@@ -28,9 +28,16 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 | D9 | Every command has `--json` output; mutations default to dry-run unified diff, `--write` to apply, multi-file apply is atomic (all-or-nothing). | CLI-native + agent-friendly |
 | D10 | Do not build on stack-graphs (archived 2025-09). Scope resolution via our own locals-style queries; graph construction may use tree-sitter-graph if the DSL earns its keep. | §3 |
 
-**Open decisions** (revisit when reached): final tool name; whether extract-function for
-Zig/Bash is worth the CFG work (Stage 5); LSP backend scope (Stage 8); whether TSX
-`className` handling should understand `clsx`/template strings (Stage 7).
+**Open decisions.** One remains: whether to add the optional LSP delegation backend
+(Stage 8). It is the only route to type-correct method resolution in Rust, Go,
+TypeScript and Python, and it costs server lifecycle management, per-language project
+discovery, version skew, and the self-contained-binary property the tool has today.
+Recommendation on file: skip it.
+
+Resolved since: the tool is `fun-refactor`, binary `fr`; extract-function landed for
+both Zig and Bash without needing a CFG; and TSX `className` handles plain attribute
+values but not helper calls or template literals — recorded as BUGS.md B14 rather than
+left as an open question, because it is a gap with known behaviour, not a decision.
 
 ## Language tiers
 

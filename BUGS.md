@@ -33,6 +33,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   records mapping paths without list indices; `--set x=null`, which deletes a key in
   Helm, is ranked as a source that supplies it; and `{a,b}` list literals, `--set-file`
   and `--set-json` are refused by name rather than half-applied.
+- [ ] B14: a CSS class named inside a TSX helper call or template literal —
+  `className={clsx("btn", active && "on")}`, `` className={`btn ${size}`} `` — is not
+  resolved, because only a plain string attribute value is captured. A rename of that
+  class rewrites the plain `className="btn"` uses and leaves the helper ones; the
+  textual sweep does report each missed site as needing review, so the result is
+  incomplete rather than silently wrong. Resolving them means teaching the TSX queries
+  which call arguments are class lists, which is a per-library convention (`clsx`,
+  `classnames`, `cva`, `tailwind-merge`) rather than a language rule.
+
 - [ ] B11: three SCSS forms fail under `tree-sitter-scss`, each refused rather than
   mis-handled: empty parentheses on a declaration (`@mixin m()`), empty parentheses on
   a call (`@include m();`), and a namespaced include after `@use 'x' as t`
