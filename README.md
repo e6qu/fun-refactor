@@ -128,7 +128,13 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 673 tests.
+Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
+backend. 867 tests.
+
+Two cells of the plan's matrix are resolved as genuinely inapplicable rather than
+built, with the refusals explaining why: organize-imports for CSS (`@import` order is
+semantic — a later import's rules beat an earlier one's, so sorting changes which
+styles apply) and entry points for stylesheets.
 
 Not yet built: the optional LSP delegation backend. (A watch-mode daemon is on the
 plan but the fact cache already recovers most of what it would have saved.)

@@ -1,0 +1,62 @@
+# HTML and XML entry points. For markup an "entry point" is a document a browser,
+# build tool or parser is pointed at directly, or an element that receives input
+# from outside — the markup equivalent of a handler.
+- id: html-page
+  kind: http-route
+  threat_model: remote
+  languages: [html]
+  matches:
+    file_name: index.html
+    symbol_kind: element-id
+
+- id: html-form-target
+  kind: http-route
+  threat_model: remote
+  languages: [html]
+  matches:
+    name_prefix: form
+    symbol_kind: element-id
+
+- id: html-root-mount
+  kind: exported-api
+  languages: [html]
+  matches:
+    name: root
+    symbol_kind: element-id
+
+- id: html-app-mount
+  kind: exported-api
+  languages: [html]
+  matches:
+    name: app
+    symbol_kind: element-id
+
+# XML configuration files a runtime loads by convention. These are the documents
+# that configure something else, so they are where external input enters.
+- id: xml-maven-project
+  kind: infra-input
+  threat_model: local
+  languages: [xml]
+  matches:
+    file_name: pom.xml
+
+- id: xml-android-manifest
+  kind: infra-exposure
+  threat_model: remote
+  languages: [xml]
+  matches:
+    file_name: AndroidManifest.xml
+
+- id: xml-web-descriptor
+  kind: infra-exposure
+  threat_model: remote
+  languages: [xml]
+  matches:
+    file_name: web.xml
+
+- id: xml-dotnet-config
+  kind: infra-input
+  threat_model: local
+  languages: [xml]
+  matches:
+    file_suffix: .config

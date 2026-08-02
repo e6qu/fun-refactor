@@ -25,6 +25,9 @@ tree-sitter-go = "0.25"
 tree-sitter-zig = "1.1"
 tree-sitter-html = "0.23"
 tree-sitter-css = "0.25"
+# SCSS has its own grammar: the CSS one has no rule for $variables, @mixin or
+# @include, so SCSS parsed as CSS is mostly parse errors (was BUGS.md B1).
+tree-sitter-scss = "1.0"
 tree-sitter-xml = "0.7"
 tree-sitter-markdown-fork = "0.7"
 streaming-iterator = "0.1"

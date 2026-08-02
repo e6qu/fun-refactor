@@ -553,3 +553,16 @@ fn consecutive_standalone_go_imports_are_sorted() {
         "got {imports:?}"
     );
 }
+
+#[test]
+fn css_is_refused_with_the_reason_rather_than_a_bare_no() {
+    // Not an unimplemented cell: reordering CSS imports changes which rules win.
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("a.css");
+    std::fs::write(&path, "@import \"b.css\";\n@import \"a.css\";\n.x { color: red; }\n").unwrap();
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    let index = Index::build_from_scan(&scanned).unwrap();
+
+    let err = imports::plan(&index, &path).unwrap_err().to_string();
+    assert!(err.contains("cascade"), "the refusal must explain itself: {err}");
+}

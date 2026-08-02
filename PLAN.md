@@ -233,7 +233,7 @@ refs must fail with the ref list).
 **Exit**: cross-language fixtures (mini app: Terraform + Helm + Python service + TSX front
 end) with stitched-flow snapshot tests.
 
-### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring, micro-rewrites and cascading cleanup done; LSP backend and daemon not started
+### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring, micro-rewrites and cascading cleanup all complete; the optional LSP delegation backend is the only item left
 
 - Micro-rewrite tail (per-language `refactor.rewrite.*` equivalents: invert-if, guard
   clauses, de Morgan, fill-struct where syntax allows).
@@ -303,21 +303,24 @@ call sites. ‡ SCSS: mixin parameters.
 
 ## Progress log
 
-572 tests. Fact queries and an integration suite for all 12 languages.
+Every stage is complete except the optional LSP delegation backend.
 
-**Done**: Stage 0 (parse + edit substrate), Stage 1 (symbols, scopes, references,
-resolution), Stage 2 (rename, including cross-language), Stage 3 (call graph +
-catalog-driven entry points), Stage 4 (imperative def-use flow + config-language
-provenance), Stage 6 (move, change signature, safe delete, organize imports).
+The 27 matrix cells recorded as outstanding above have been built, with two
+resolved as genuinely inapplicable rather than implemented:
 
-**Partial**: Stage 8 (pattern restructuring, micro-rewrites and Piranha-style
-cascading cleanup done; the optional LSP delegation backend not started, and a
-watch-mode daemon is largely obviated by the fact cache).
+- **Organize imports for CSS/SCSS** — `@import` order is semantic: a later import's
+  rules beat an earlier one's in the cascade, and `@import` must precede all other
+  rules. Sorting or removing them changes which styles apply, so the operation is
+  refused with that explanation. The plan's cell was wrong.
+- **Entry points for CSS/SCSS** — a stylesheet has no entry point in any sense the
+  catalog models; the plan already marked this `—`.
+
+One limitation was removed at its root rather than worked around: SCSS now has its
+own grammar (`tree-sitter-scss`), so `$variables`, `@mixin`, `@include` and `@use`
+parse instead of erroring. That closed BUGS.md B1 and unblocked the SCSS cells that
+depended on it.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
-`signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `callers`,
-`callees`, `graph`, `flow`, `impact`, `entrypoints`.
-
-### Remaining
-
-- Stage 8: the optional LSP delegation backend.
+`signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `rewrite`,
+`remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
+`entrypoints`, `cache`.

@@ -10,6 +10,7 @@ use super::Refusal;
 use crate::edit::{line_indent, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
+use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::Result;
@@ -42,6 +43,23 @@ pub fn variable(
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
+
+    // The config languages have no bindings, so each gets the construct that plays
+    // the same role there: a Terraform `local`, a YAML anchor, a CSS custom property,
+    // a Markdown link reference definition.
+    match language {
+        Language::Hcl => return hcl_local(index, file, span, name, all_occurrences),
+        Language::Yaml | Language::Helm => {
+            return yaml_anchor(index, file, span, name, all_occurrences)
+        }
+        Language::Css | Language::Scss => {
+            return css_custom_property(index, file, span, name, all_occurrences)
+        }
+        Language::Markdown => {
+            return markdown_link_definition(index, file, span, name, all_occurrences)
+        }
+        _ => {}
+    }
 
     if !supports_extract(language) {
         return Err(Refusal::Unsupported {
@@ -380,9 +398,10 @@ mod tests {
 
     #[test]
     fn refuses_unsupported_languages() {
-        let (tmp, index) = workspace(&[("page.md", "# Title\n\nSome text.\n")]);
-        let path = tmp.path().join("page.md");
-        let err = variable(&index, &path, Span::new(0, 7), "x", false).unwrap_err();
+        // HTML has no construct that names a value, so the matrix marks the cell n/a.
+        let (tmp, index) = workspace(&[("page.html", "<html><body>hi</body></html>\n")]);
+        let path = tmp.path().join("page.html");
+        let err = variable(&index, &path, Span::new(6, 12), "x", false).unwrap_err();
         assert!(
             err.downcast_ref::<Refusal>()
                 .is_some_and(|r| matches!(r, Refusal::Unsupported { .. })),
@@ -495,6 +514,12 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
+
+    // Helm's analogue of a function is a named template, which lives in `_helpers.tpl`
+    // and is called through `include`.
+    if language == Language::Helm {
+        return helm_named_template(file, span, name);
+    }
 
     if !supports_extract_function(language) {
         return Err(Refusal::Unsupported {
@@ -929,4 +954,913 @@ fn render_function(
             format!("\n\nfunction {name}({params}) {{\n{reindented}{tail}\n}}")
         }
     }
+}
+
+// ------------------------------------------------------- config languages
+//
+// None of these languages has a binding form, so "extract variable" means the
+// construct that plays the same role: name a value once and refer to it. What that
+// construct is differs per language, and so does where it has to be written, but the
+// shape of the work is identical everywhere — splice a declaration in, replace the
+// occurrences with a reference to it, touch nothing else.
+
+/// Every node in the tree, in source order, that `keep` accepts.
+fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> Vec<Node<'a>> {
+    let mut out = Vec::new();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if keep(node) {
+            out.push(node);
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.children(&mut cursor));
+    }
+    out.sort_by_key(|n| (n.start_byte(), n.end_byte()));
+    out
+}
+
+/// The smallest node covering the selection.
+fn descendant_at<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
+    parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end.max(span.start))
+}
+
+/// The innermost ancestor of `node` (or `node` itself) with this kind.
+fn ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut current = node;
+    loop {
+        if current.kind() == kind {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+/// Named children of `node` with a given kind.
+fn named_children_of_kind<'a>(node: Node<'a>, kind: &str) -> Vec<Node<'a>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|c| c.kind() == kind)
+        .collect()
+}
+
+fn invalid(name: &str, reason: &str) -> anyhow::Error {
+    Refusal::InvalidName {
+        name: name.to_string(),
+        reason: reason.to_string(),
+    }
+    .into()
+}
+
+// ------------------------------------------------------------ Terraform / HCL
+
+/// Extract a Terraform expression into a `locals` entry.
+///
+/// The entry joins the first `locals` block in the file, or a new one written at the
+/// top when the file has none. Terraform's scope is the module directory, so the name
+/// is checked against every declaration in that directory, not just this file.
+fn hcl_local(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+    all_occurrences: bool,
+) -> Result<ExtractPlan> {
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        || !name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+    {
+        return Err(invalid(
+            name,
+            "a Terraform local must start with a letter or underscore and contain only \
+             letters, digits, underscores and dashes",
+        ));
+    }
+
+    if let Some(existing) = hcl_module_collision(index, file, name) {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: existing.clone(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Hcl, &source)?;
+
+    let node = descendant_at(&parsed, span)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+    let expr = ancestor_of_kind(node, "expression").ok_or_else(|| {
+        anyhow::anyhow!(
+            "no Terraform expression at bytes {span} in {}; select a complete expression \
+             such as an attribute's value",
+            file.display()
+        )
+    })?;
+    let expr_span = Span::from(expr);
+    let expr_text = expr_span.text(&source).to_string();
+
+    // `local.x` already names a value; extracting it would only add a second name.
+    let trimmed = expr_text.trim();
+    if let Some(rest) = trimmed
+        .strip_prefix("local.")
+        .or_else(|| trimmed.strip_prefix("var."))
+    {
+        if !rest.is_empty()
+            && rest
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        {
+            anyhow::bail!(
+                "`{trimmed}` is already a named value; extracting it would only create an alias"
+            );
+        }
+    }
+
+    let locals_block = collect_nodes(parsed.root(), |n| {
+        n.kind() == "block"
+            && n.named_child(0)
+                .is_some_and(|c| c.kind() == "identifier" && Span::from(c).text(&source) == "locals")
+    })
+    .into_iter()
+    .next();
+
+    // An occurrence inside the `locals` block would be rewritten to a reference to the
+    // entry being defined there, which is a cycle Terraform rejects.
+    let locals_span = locals_block.map(Span::from);
+    let targets: Vec<Span> = if all_occurrences {
+        let found: Vec<Span> = collect_nodes(parsed.root(), |n| {
+            n.kind() == "expression" && Span::from(n).text(&source) == expr_text
+        })
+        .into_iter()
+        .map(Span::from)
+        .filter(|s| !locals_span.is_some_and(|l| l.contains(*s)))
+        .collect();
+        if found.is_empty() {
+            vec![expr_span]
+        } else {
+            found
+        }
+    } else {
+        vec![expr_span]
+    };
+
+    let (insert_at, insert_text) = match locals_block {
+        Some(block) => {
+            let body = named_children_of_kind(block, "body")
+                .into_iter()
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("the `locals` block has no body"))?;
+            let attributes = named_children_of_kind(body, "attribute");
+            match attributes.last() {
+                Some(last) => {
+                    let indent = line_indent(&source, last.start_byte());
+                    // Past the end of that attribute's line, so a trailing comment
+                    // stays with the attribute it annotates.
+                    let after = source[last.end_byte()..]
+                        .find('\n')
+                        .map(|i| last.end_byte() + i)
+                        .unwrap_or(source.len());
+                    (after, format!("\n{indent}{name} = {expr_text}"))
+                }
+                None => {
+                    let brace = named_children_of_kind(block, "block_start")
+                        .into_iter()
+                        .next()
+                        .map(|b| b.end_byte())
+                        .unwrap_or(body.start_byte());
+                    (brace, format!("\n  {name} = {expr_text}"))
+                }
+            }
+        }
+        None => (0, format!("locals {{\n  {name} = {expr_text}\n}}\n\n")),
+    };
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(insert_at, insert_at),
+            insert_text,
+            format!("declare local.{name}"),
+        ),
+    );
+    for target in &targets {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(*target, format!("local.{name}"), format!("use local.{name}")),
+        );
+    }
+
+    Ok(ExtractPlan {
+        name: name.to_string(),
+        expression: expr_text,
+        edits,
+        occurrences: targets.len(),
+    })
+}
+
+/// A declaration of `name` anywhere in the same Terraform module directory.
+fn hcl_module_collision(index: &Index, file: &Path, name: &str) -> Option<std::path::PathBuf> {
+    let dir = file.parent();
+    index
+        .find_symbols(name, None)
+        .into_iter()
+        .find(|s| s.language == Language::Hcl && s.file.parent() == dir)
+        .map(|s| s.file.clone())
+}
+
+// ------------------------------------------------------------------ Helm / YAML
+
+/// Extract a repeated YAML scalar into an anchor plus aliases.
+///
+/// YAML requires an anchor to precede its aliases, so the *first* occurrence in the
+/// document carries `&name` and every later one becomes `*name`, whichever occurrence
+/// was selected.
+fn yaml_anchor(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+    all_occurrences: bool,
+) -> Result<ExtractPlan> {
+    let language = index
+        .file(file)
+        .map(|i| i.language)
+        .unwrap_or(Language::Yaml);
+
+    if name.is_empty()
+        || name
+            .chars()
+            .any(|c| c.is_whitespace() || matches!(c, '[' | ']' | '{' | '}' | ',' | '&' | '*'))
+    {
+        return Err(invalid(
+            name,
+            "a YAML anchor name may not be empty or contain whitespace, `[`, `]`, `{`, \
+             `}`, `,`, `&` or `*`",
+        ));
+    }
+
+    if index
+        .find_symbols(name, Some(file))
+        .iter()
+        .any(|s| s.kind == SymbolKind::Anchor)
+    {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(language, &source)?;
+
+    if let Some(action) = parsed.template_actions.iter().find(|a| a.overlaps(span)) {
+        anyhow::bail!(
+            "the selection at bytes {span} overlaps the template action `{}`. Helm \
+             `{{{{ ... }}}}` actions are masked out before the YAML parse, so nothing \
+             inside one is visible as YAML and no anchor can be placed there",
+            action.text(&source)
+        );
+    }
+
+    let node = descendant_at(&parsed, span)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+    let selected = yaml_anchorable(node, &source).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no anchorable scalar at bytes {span} in {}; select a scalar value of a \
+             mapping key or a sequence item (a value that already carries an anchor or \
+             alias, and a block scalar, cannot be anchored)",
+            file.display()
+        )
+    })?;
+    let selected_span = Span::from(selected);
+    let value_text = selected_span.text(&source).to_string();
+
+    let occurrences: Vec<Span> = if all_occurrences {
+        collect_nodes(parsed.root(), |n| {
+            yaml_is_anchorable(n, &source) && Span::from(n).text(&source) == value_text
+        })
+        .into_iter()
+        .map(Span::from)
+        .collect()
+    } else {
+        vec![selected_span]
+    };
+    let occurrences = if occurrences.is_empty() {
+        vec![selected_span]
+    } else {
+        occurrences
+    };
+
+    if let Some(clash) = occurrences
+        .iter()
+        .find(|s| parsed.template_actions.iter().any(|a| a.overlaps(**s)))
+    {
+        anyhow::bail!(
+            "an occurrence at bytes {clash} overlaps a masked Helm template action; \
+             refusing to rewrite bytes the YAML parse never saw"
+        );
+    }
+
+    // The anchor has to come first in document order or the aliases dangle.
+    let anchor_at = occurrences[0];
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(anchor_at.start, anchor_at.start),
+            format!("&{name} "),
+            format!("anchor {name}"),
+        ),
+    );
+    for alias in occurrences.iter().skip(1) {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(*alias, format!("*{name}"), format!("alias {name}")),
+        );
+    }
+
+    Ok(ExtractPlan {
+        name: name.to_string(),
+        expression: value_text,
+        edits,
+        occurrences: occurrences.len(),
+    })
+}
+
+/// The node an anchor would attach to, walking out from the selection.
+fn yaml_anchorable<'a>(node: Node<'a>, source: &str) -> Option<Node<'a>> {
+    let mut current = node;
+    loop {
+        if yaml_is_anchorable(current, source) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+/// Is this node a plain scalar sitting in a value position?
+fn yaml_is_anchorable(node: Node<'_>, _source: &str) -> bool {
+    if node.kind() != "flow_node" {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let in_value_position = match parent.kind() {
+        "block_mapping_pair" | "flow_pair" => parent
+            .child_by_field_name("value")
+            .is_some_and(|v| v.id() == node.id()),
+        "block_sequence_item" | "flow_sequence" => true,
+        _ => false,
+    };
+    if !in_value_position {
+        return false;
+    }
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.named_children(&mut cursor).collect();
+    // An anchored or aliased node already names a value; a block scalar spans lines,
+    // and splicing one at an alias would depend on the alias site's indentation.
+    !children.is_empty()
+        && children.iter().all(|c| {
+            matches!(
+                c.kind(),
+                "plain_scalar" | "double_quote_scalar" | "single_quote_scalar"
+            )
+        })
+}
+
+// ---------------------------------------------------------------------- CSS/SCSS
+
+/// Extract a declaration value into a custom property declared in `:root`.
+///
+/// A custom property is the form that works in both dialects, and is what a bare
+/// name produces. In an SCSS file a name written with a leading `$` produces an SCSS
+/// variable instead, which its own grammar understands.
+fn css_custom_property(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+    all_occurrences: bool,
+) -> Result<ExtractPlan> {
+    let language = index
+        .file(file)
+        .map(|i| i.language)
+        .unwrap_or(Language::Css);
+
+    // `$name` asks for an SCSS variable, which only the SCSS grammar understands.
+    let scss_variable = name.starts_with('$');
+    if scss_variable && language != Language::Scss {
+        anyhow::bail!(
+            "`{name}` asks for an SCSS `$variable`, but {} is plain CSS, which has no \
+             such syntax. Use a name without the `$` to extract a CSS custom property, \
+             which works in both dialects",
+            file.display()
+        );
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(language, &source)?;
+    if parsed.has_errors() {
+        if false {
+            anyhow::bail!(
+                "{} does not parse under the CSS grammar, which is the only one available \
+                 for SCSS here — SCSS-only syntax (`$variables`, `@mixin`/`@include`, \
+                 `@use`) is not CSS. The selection cannot be located reliably in a broken \
+                 tree, so nothing is rewritten",
+                file.display()
+            );
+        }
+        anyhow::bail!(
+            "{} has syntax errors, so the selection cannot be located reliably",
+            file.display()
+        );
+    }
+
+    // An SCSS variable keeps its `$`; a custom property is normalised to `--name`.
+    let property = if scss_variable {
+        name.to_string()
+    } else if name.starts_with("--") {
+        name.to_string()
+    } else {
+        format!("--{name}")
+    };
+    if !index.find_symbols(&property, Some(file)).is_empty() {
+        return Err(Refusal::NameCollision {
+            existing: property,
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let node = descendant_at(&parsed, span)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+    let value = css_declaration_value(node).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no declaration value at bytes {span} in {}; select the value of a \
+             declaration, such as the colour in `color: #3366ff`",
+            file.display()
+        )
+    })?;
+    let value_span = Span::from(value);
+    let value_text = value_span.text(&source).to_string();
+
+    let root_rule = css_root_rule(&parsed, &source);
+    let root_span = root_rule.map(Span::from);
+
+    let targets: Vec<Span> = if all_occurrences {
+        let found: Vec<Span> = collect_nodes(parsed.root(), |n| {
+            n.is_named()
+                && n.kind() == value.kind()
+                && n.parent().is_some_and(|p| p.kind() == "declaration")
+                && Span::from(n).text(&source) == value_text
+        })
+        .into_iter()
+        .map(Span::from)
+        // A rewrite inside the `:root` rule the declaration is being added to would
+        // define the property in terms of itself.
+        .filter(|s| !root_span.is_some_and(|r| r.contains(*s)))
+        .collect();
+        if found.is_empty() {
+            vec![value_span]
+        } else {
+            found
+        }
+    } else {
+        vec![value_span]
+    };
+
+    let declaration = format!("{property}: {value_text};");
+
+    // An SCSS variable is declared at the top level of the stylesheet, not inside a
+    // `:root` rule — that is a CSS custom property's home, and `$vars` are resolved
+    // by the compiler rather than the cascade.
+    if scss_variable {
+        let insert_at = css_insertion_point(&parsed, &source);
+        let mut edits = EditSet::new();
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                Span::new(insert_at, insert_at),
+                format!("{declaration}\n\n"),
+                format!("declare {property}"),
+            ),
+        );
+        for target in &targets {
+            edits.add(
+                file.to_path_buf(),
+                Edit::new(*target, property.clone(), format!("use {property}")),
+            );
+        }
+        return Ok(ExtractPlan {
+            name: property,
+            expression: value_text,
+            edits,
+            occurrences: targets.len(),
+        });
+    }
+
+    let (insert_at, insert_text) = match root_rule {
+        Some(rule) => {
+            let block = named_children_of_kind(rule, "block")
+                .into_iter()
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("the `:root` rule has no block"))?;
+            let declarations = named_children_of_kind(block, "declaration");
+            match declarations.last() {
+                Some(last) => {
+                    if Span::from(block).text(&source).contains('\n') {
+                        let indent = line_indent(&source, last.start_byte());
+                        (last.end_byte(), format!("\n{indent}{declaration}"))
+                    } else {
+                        (last.end_byte(), format!(" {declaration}"))
+                    }
+                }
+                None => (
+                    block.start_byte() + 1,
+                    format!("\n  {declaration}\n"),
+                ),
+            }
+        }
+        None => (
+            css_insertion_point(&parsed, &source),
+            format!(":root {{\n  {declaration}\n}}\n\n"),
+        ),
+    };
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(insert_at, insert_at),
+            insert_text,
+            format!("declare {property}"),
+        ),
+    );
+    for target in &targets {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                *target,
+                format!("var({property})"),
+                format!("use var({property})"),
+            ),
+        );
+    }
+
+    Ok(ExtractPlan {
+        name: property,
+        expression: value_text,
+        edits,
+        occurrences: targets.len(),
+    })
+}
+
+/// The value node of the declaration containing `node`, if the selection is in one.
+fn css_declaration_value<'a>(node: Node<'a>) -> Option<Node<'a>> {
+    let mut current = node;
+    loop {
+        let parent = current.parent()?;
+        if parent.kind() == "declaration" {
+            if !current.is_named() || current.kind() == "property_name" {
+                return None;
+            }
+            return Some(current);
+        }
+        current = parent;
+    }
+}
+
+/// The `:root { }` rule of a stylesheet, if it has one.
+fn css_root_rule<'a>(parsed: &'a Parsed, source: &str) -> Option<Node<'a>> {
+    collect_nodes(parsed.root(), |n| {
+        n.kind() == "rule_set"
+            && named_children_of_kind(n, "selectors")
+                .first()
+                .is_some_and(|s| Span::from(*s).text(source).trim() == ":root")
+    })
+    .into_iter()
+    .next()
+}
+
+/// Where a new rule may be written: after any leading `@charset` / `@import`, which
+/// CSS requires to come before every rule.
+fn css_insertion_point(parsed: &Parsed, source: &str) -> usize {
+    let root = parsed.root();
+    let mut cursor = root.walk();
+    let mut offset = 0usize;
+    for child in root.named_children(&mut cursor) {
+        if matches!(
+            child.kind(),
+            "import_statement" | "charset_statement" | "comment"
+        ) {
+            offset = child.end_byte();
+        } else {
+            break;
+        }
+    }
+    if offset == 0 {
+        return 0;
+    }
+    // Step over the newline that ends the last leading statement.
+    match source[offset..].find('\n') {
+        Some(0) => offset + 1,
+        _ => offset,
+    }
+}
+
+// ---------------------------------------------------------------------- Markdown
+
+/// Turn an inline link's destination into a link reference definition.
+fn markdown_link_definition(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+    all_occurrences: bool,
+) -> Result<ExtractPlan> {
+    if name.is_empty() || name.contains(['[', ']', '\n']) {
+        return Err(invalid(
+            name,
+            "a link reference label may not be empty or contain `[`, `]` or a newline",
+        ));
+    }
+    if index
+        .find_symbols(name, Some(file))
+        .iter()
+        .any(|s| s.kind == SymbolKind::LinkDef)
+    {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Markdown, &source)?;
+
+    let node = descendant_at(&parsed, span)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+    let link = ancestor_of_kind(node, "link").ok_or_else(|| {
+        anyhow::anyhow!(
+            "no link at bytes {span} in {}; select an inline link `[text](destination)`",
+            file.display()
+        )
+    })?;
+    let (parens, destination) = markdown_inline_destination(link, &source).ok_or_else(|| {
+        anyhow::anyhow!(
+            "the link at bytes {span} in {} has no inline `(destination)`; only an \
+             inline link can become a reference definition",
+            file.display()
+        )
+    })?;
+
+    let targets: Vec<Span> = if all_occurrences {
+        collect_nodes(parsed.root(), |n| {
+            n.kind() == "link"
+                && markdown_inline_destination(n, &source)
+                    .is_some_and(|(_, d)| d == destination)
+        })
+        .into_iter()
+        .filter_map(|n| markdown_inline_destination(n, &source).map(|(p, _)| p))
+        .collect()
+    } else {
+        vec![parens]
+    };
+    let targets = if targets.is_empty() {
+        vec![parens]
+    } else {
+        targets
+    };
+
+    let mut edits = EditSet::new();
+    for target in &targets {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(*target, format!("[{name}]"), format!("use [{name}]")),
+        );
+    }
+
+    // The definition goes at the end of the document, beside any others already there.
+    let mut text = String::new();
+    if !source.is_empty() && !source.ends_with('\n') {
+        text.push('\n');
+    }
+    if !markdown_ends_with_definition(&parsed) {
+        text.push('\n');
+    }
+    text.push_str(&format!("[{name}]: {destination}\n"));
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(source.len(), source.len()),
+            text,
+            format!("define [{name}]"),
+        ),
+    );
+
+    Ok(ExtractPlan {
+        name: name.to_string(),
+        expression: destination,
+        edits,
+        occurrences: targets.len(),
+    })
+}
+
+/// The `(destination)` of an inline link: the span including both parentheses, and
+/// the text between them (destination plus any title, verbatim).
+fn markdown_inline_destination(link: Node<'_>, source: &str) -> Option<(Span, String)> {
+    let destination = named_children_of_kind(link, "link_destination")
+        .into_iter()
+        .next()?;
+    let open = source[..destination.start_byte()].rfind('(')?;
+    let close = link.end_byte();
+    if close == 0 || source.as_bytes().get(close - 1) != Some(&b')') {
+        return None;
+    }
+    Some((
+        Span::new(open, close),
+        source[open + 1..close - 1].trim().to_string(),
+    ))
+}
+
+/// Does the document already end with a link reference definition?
+fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
+    let root = parsed.root();
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor)
+        .last()
+        .is_some_and(|n| n.kind() == "link_reference_definition")
+}
+
+// ------------------------------------------------------- Helm named template
+
+/// Extract a region of a Helm template into a named template in `_helpers.tpl`.
+///
+/// The selected bytes move verbatim — a Helm template is text, and reformatting it
+/// would change the rendered output. The region is widened to whole lines because a
+/// named template is included on a line of its own.
+fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
+    if name.is_empty() || name.chars().any(|c| c.is_whitespace() || c == '"') {
+        return Err(invalid(
+            name,
+            "a Helm template name may not be empty or contain whitespace or a quote",
+        ));
+    }
+
+    // The include name is `<chart>.<template>` by convention, and a chart's templates
+    // share one flat namespace across every chart in a release. Guessing the chart
+    // name would produce an include that silently renders nothing.
+    let chart_root = helm_chart_root(file).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no Chart.yaml above {}, so the chart name is unknown. A named template is \
+             addressed as `<chart>.<name>` across every chart in a release, and an \
+             include under the wrong name renders empty rather than failing",
+            file.display()
+        )
+    })?;
+    let chart_name = helm_chart_name(&chart_root).ok_or_else(|| {
+        anyhow::anyhow!(
+            "{} has no top-level `name:` key, so the chart name is unknown",
+            chart_root.join("Chart.yaml").display()
+        )
+    })?;
+    let template_name = if name.contains('.') {
+        name.to_string()
+    } else {
+        format!("{chart_name}.{name}")
+    };
+
+    let source = std::fs::read_to_string(file)?;
+    let region = whole_lines(&source, span);
+    if region.text(&source).trim().is_empty() {
+        anyhow::bail!("the selection at bytes {span} is blank; select the lines to extract");
+    }
+    let body = region.text(&source).to_string();
+
+    let destination = helm_helpers_path(file, &chart_root);
+    let existing = std::fs::read_to_string(&destination).unwrap_or_default();
+    if existing.contains(&format!("define \"{template_name}\"")) {
+        return Err(Refusal::NameCollision {
+            existing: template_name,
+            file: destination,
+        }
+        .into());
+    }
+
+    let indent = line_indent(&source, region.start);
+    let mut definition = format!("{{{{- define \"{template_name}\" -}}}}\n{body}");
+    if !definition.ends_with('\n') {
+        definition.push('\n');
+    }
+    definition.push_str("{{- end -}}\n");
+
+    let separator = if existing.is_empty() || existing.ends_with("\n\n") {
+        ""
+    } else if existing.ends_with('\n') {
+        "\n"
+    } else {
+        "\n\n"
+    };
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            region,
+            format!("{indent}{{{{ include \"{template_name}\" . }}}}\n"),
+            format!("include {template_name}"),
+        ),
+    );
+    edits.add(
+        destination,
+        Edit::new(
+            Span::new(existing.len(), existing.len()),
+            format!("{separator}{definition}"),
+            format!("define {template_name}"),
+        ),
+    );
+
+    Ok(ExtractFunctionPlan {
+        name: template_name,
+        edits,
+        parameters: Vec::new(),
+        returns: Vec::new(),
+        body,
+    })
+}
+
+/// Widen a selection to the whole lines it touches, trailing newline included.
+fn whole_lines(source: &str, span: Span) -> Span {
+    let start = source[..span.start.min(source.len())]
+        .rfind('\n')
+        .map(|i| i + 1)
+        .unwrap_or(0);
+    let end_search = span.end.max(start).min(source.len());
+    // A selection that already ends on a line boundary covers whole lines as it is;
+    // widening further would swallow the line after it.
+    if end_search > start && source[..end_search].ends_with('\n') {
+        return Span::new(start, end_search);
+    }
+    let end = match source[end_search..].find('\n') {
+        Some(i) => end_search + i + 1,
+        None => source.len(),
+    };
+    Span::new(start, end)
+}
+
+/// The chart directory above `file`: the nearest ancestor holding a `Chart.yaml`.
+fn helm_chart_root(file: &Path) -> Option<std::path::PathBuf> {
+    let mut dir = file.parent();
+    while let Some(current) = dir {
+        if current.join("Chart.yaml").exists() || current.join("chart.yaml").exists() {
+            return Some(current.to_path_buf());
+        }
+        dir = current.parent();
+    }
+    None
+}
+
+/// The chart's `name:` from its Chart.yaml.
+fn helm_chart_name(chart_root: &Path) -> Option<String> {
+    let path = if chart_root.join("Chart.yaml").exists() {
+        chart_root.join("Chart.yaml")
+    } else {
+        chart_root.join("chart.yaml")
+    };
+    let text = std::fs::read_to_string(path).ok()?;
+    for line in text.lines() {
+        if let Some(value) = line.strip_prefix("name:") {
+            let value = value.trim().trim_matches(['"', '\'']);
+            if !value.is_empty() {
+                return Some(value.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Where the chart's shared templates live: `<chart>/templates/_helpers.tpl`.
+fn helm_helpers_path(file: &Path, chart_root: &Path) -> std::path::PathBuf {
+    let mut dir = file.parent();
+    while let Some(current) = dir {
+        if current
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.eq_ignore_ascii_case("templates"))
+        {
+            return current.join("_helpers.tpl");
+        }
+        if current == chart_root {
+            break;
+        }
+        dir = current.parent();
+    }
+    chart_root.join("templates").join("_helpers.tpl")
 }

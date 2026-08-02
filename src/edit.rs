@@ -178,8 +178,17 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
         if edits.is_empty() {
             continue;
         }
-        let original = std::fs::read_to_string(path)
-            .with_context(|| format!("reading {}", path.display()))?;
+        // A refactoring may create a file — moving a symbol to a new module, or
+        // writing a Helm `_helpers.tpl` that does not exist yet — so a missing
+        // destination is an empty one, not a failure.
+        let original = match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => {
+                return Err(anyhow::Error::from(e))
+                    .with_context(|| format!("reading {}", path.display()))
+            }
+        };
         let updated = apply_to_string(&original, edits)
             .with_context(|| format!("applying edits to {}", path.display()))?;
 
@@ -506,6 +515,20 @@ mod tests {
         set.add(&path, Edit::new(Span::new(3, 7), " good", "tweak"));
         let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
         assert_eq!(outcomes.len(), 1);
+    }
+
+    #[test]
+    fn a_refactoring_may_create_a_file_that_did_not_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let fresh = tmp.path().join("new_module.rs");
+
+        let mut set = EditSet::new();
+        set.add(&fresh, Edit::new(Span::new(0, 0), "fn moved() {}\n", "create"));
+
+        let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
+        assert_eq!(outcomes.len(), 1);
+        assert_eq!(commit(&outcomes).unwrap(), 1);
+        assert_eq!(std::fs::read_to_string(&fresh).unwrap(), "fn moved() {}\n");
     }
 
     #[test]

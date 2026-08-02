@@ -1,8 +1,8 @@
 //! CSS/SCSS fact extraction.
 //!
-//! Both dialects run on the tree-sitter-css grammar (BUGS.md B1), so the SCSS
-//! tests below pin what really happens — parse errors — rather than a pretend
-//! SCSS feature set.
+//! Each dialect runs on its own grammar and its own query file, so the SCSS tests
+//! below pin the two things that could drift: that Sass-only syntax really parses,
+//! and that the CSS half of an SCSS file still extracts exactly as CSS does.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -201,52 +201,51 @@ fn a_realistic_stylesheet_parses_cleanly() {
 }
 
 // ------------------------------------------------------------------ SCSS
-// SCSS is parsed with the CSS grammar (BUGS.md B1). These tests document the
-// real behaviour: the CSS subset of an SCSS file still yields facts, and the
-// SCSS-only constructs are visible as parse errors instead of silently wrong
-// facts. When an SCSS grammar is added, they are the ones that must change.
+// SCSS has its own grammar. These tests hold the line in both directions: the
+// Sass-only constructs parse, and the same source is still an error under CSS —
+// the dialects are different languages, not one language with a lenient mode.
 
 #[test]
-fn scss_variables_do_not_parse_under_the_css_grammar() {
-    let src = "$brand: red;\n.a { color: $brand; }\n";
+fn scss_variables_parse_on_the_scss_grammar() {
+    // SCSS has its own grammar now, so `$variables` are syntax rather than errors.
+    let src = "$brand: #3366ff;\n.a { color: $brand; }\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
     assert!(
-        parsed.has_errors(),
-        "SCSS `$var` syntax should surface as parse errors, not silent success"
-    );
-
-    // No symbol or reference is produced for `$brand` in either position.
-    let f = facts(Language::Scss, src);
-    assert!(
-        f.symbols.iter().all(|s| !s.name.contains("brand")),
-        "got {:?}",
-        f.symbols.iter().map(|s| &s.name).collect::<Vec<_>>()
-    );
-    assert!(
-        f.references.iter().all(|r| !r.name.contains("brand")),
-        "got {:?}",
-        f.references.iter().map(|r| &r.name).collect::<Vec<_>>()
+        !parsed.has_errors(),
+        "SCSS variables should parse: {:?}",
+        parsed.error_spans()
     );
 }
 
 #[test]
-fn scss_mixins_do_not_parse_under_the_css_grammar() {
+fn scss_mixins_parse_on_the_scss_grammar() {
     let src = "@mixin theme($c) { color: $c; }\n.a { @include theme(red); }\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
-    assert!(parsed.has_errors(), "@mixin/@include is not CSS");
-
-    let f = facts(Language::Scss, src);
-    let mixin_defs: Vec<_> = f.symbols.iter().filter(|s| s.name == "theme").collect();
-    assert!(mixin_defs.is_empty(), "got {mixin_defs:?}");
+    assert!(
+        !parsed.has_errors(),
+        "@mixin/@include should parse: {:?}",
+        parsed.error_spans()
+    );
 }
 
 #[test]
-fn scss_use_rule_does_not_parse_under_the_css_grammar() {
+fn scss_use_rule_parses_on_the_scss_grammar() {
     let src = "@use 'sass:math';\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
-    assert!(parsed.has_errors(), "@use is not CSS");
-    // And it is not mistaken for an @import.
-    assert!(facts(Language::Scss, src).imports.is_empty());
+    assert!(
+        !parsed.has_errors(),
+        "@use should parse: {:?}",
+        parsed.error_spans()
+    );
+}
+
+#[test]
+fn the_css_grammar_still_rejects_scss_syntax() {
+    // The dialects are genuinely different languages, which is why they get
+    // different grammars: the same source parsed as CSS is still an error.
+    let src = "$brand: #3366ff;\n";
+    let as_css = Parsers::new().parse(Language::Css, src).unwrap();
+    assert!(as_css.has_errors(), "`$brand` is not CSS");
 }
 
 #[test]
@@ -264,8 +263,7 @@ fn plain_css_inside_an_scss_file_still_yields_facts() {
 
 #[test]
 fn nested_rule_sets_do_parse_and_yield_both_selectors() {
-    // Nesting is native CSS in this grammar, so the SCSS habit of nesting plain
-    // rule sets survives even without an SCSS grammar.
+    // Nesting is native CSS in this grammar, so it works in both dialects.
     let src = ".outer { color: red; .inner { color: blue; } }\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
     assert!(

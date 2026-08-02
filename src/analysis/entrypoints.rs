@@ -169,6 +169,7 @@ const BUILTIN: &[(&str, &str)] = &[
     ("bash", include_str!("../../catalogs/bash.yaml")),
     ("infra", include_str!("../../catalogs/infra.yaml")),
     ("docs", include_str!("../../catalogs/docs.yaml")),
+    ("markup", include_str!("../../catalogs/markup.yaml")),
 ];
 
 impl Catalog {
@@ -488,6 +489,23 @@ mod tests {
         assert!(
             kinds.contains(&EntryKind::Test),
             "a function in test_*.py is a test: {kinds:?}"
+        );
+    }
+
+    #[test]
+    fn html_and_xml_entry_points_are_detected() {
+        let (_tmp, index) = workspace(&[
+            ("index.html", "<div id=\"root\"></div>\n"),
+            ("pom.xml", "<project><artifactId id=\"a\"/></project>\n"),
+        ]);
+        let entries = Catalog::builtin().unwrap().detect(&index);
+        assert!(
+            entries.iter().any(|e| e.rule == "html-root-mount"),
+            "an app mount point is where a page hands over to code: {entries:?}"
+        );
+        assert!(
+            entries.iter().any(|e| e.rule == "xml-maven-project"),
+            "a build descriptor is external input: {entries:?}"
         );
     }
 
