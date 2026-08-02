@@ -1,0 +1,15 @@
+//! fun-refactor — multi-language refactoring and code intelligence on tree-sitter.
+//!
+//! Layering (see PLAN.md):
+//! - [`span`] / [`lang`]: byte-native positions and language identity
+//! - [`parse`]: tree-sitter parsing for 12 languages
+//! - [`scan`]: workspace discovery
+//! - [`edit`]: lossless byte-splice edit engine
+//! - [`cli`]: command surface
+
+pub mod cli;
+pub mod edit;
+pub mod lang;
+pub mod parse;
+pub mod scan;
+pub mod span;

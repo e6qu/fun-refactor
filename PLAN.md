@@ -69,9 +69,16 @@ irrelevant here).
 Each stage lands as one PR (squash-merged), updates PLAN.md/BUGS.md, and must pass all prior
 stages' corpora. Feature work within a stage rolls out Tier A → B → C unless noted.
 
-### Stage 0 — Substrate: parse + edit engine
+### Stage 0 — Substrate: parse + edit engine — **DONE**
 
 **Goal**: parse all 12 languages; make and validate lossless multi-file edits; CLI skeleton.
+
+Landed: `src/span.rs` (byte-native `Span` + `LineIndex`), `src/lang.rs` (15 language
+variants — TS/TSX, CSS/SCSS and YAML/Helm split apart because they need different
+grammars or handling), `src/parse.rs` (all grammars + Helm `{{ }}` masking that
+preserves byte offsets), `src/scan.rs`, `src/edit.rs` (byte-splice engine, overlap
+detection, reparse validation, atomic multi-file commit, unified diff),
+`src/cli.rs` (`fr scan`, `fr parse --stats`, `--json`). 48 tests.
 
 - Cargo project, clap CLI, `--json` global flag, tracing setup.
 - Parse layer: 12 pinned grammars, `Language` enum, extension/filename mapping, parse
