@@ -11,6 +11,7 @@ pub mod imports;
 pub mod inline;
 pub mod move_symbol;
 pub mod rename;
+pub mod rewrite;
 pub mod restructure;
 pub mod signature;
 

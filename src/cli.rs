@@ -167,6 +167,19 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Apply a local transformation, or list the ones that apply.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Rewrite {
+        /// Position as `path:line:col`.
+        target: String,
+        /// Which transformation: invert-if, de-morgan, guard-clause.
+        /// Omit to list what applies at that position.
+        rewrite: Option<String>,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Rewrite every occurrence of a code shape.
     ///
     /// `$NAME` in the pattern matches any node and substitutes back into the
@@ -193,6 +206,15 @@ enum Command {
         /// How many hops to follow.
         #[arg(long, default_value = "5")]
         depth: usize,
+    },
+    /// Trace configuration values into the code that reads them.
+    Stitch {
+        /// Only chains for this environment variable.
+        #[arg(long)]
+        env: Option<String>,
+        /// Only variables nothing in the workspace reads.
+        #[arg(long)]
+        orphaned: bool,
     },
     /// Show everything a change to a symbol could affect.
     Impact {
@@ -294,6 +316,11 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
+        Command::Rewrite {
+            target,
+            rewrite,
+            write,
+        } => cmd_rewrite(&cli, target, rewrite.as_deref(), *write),
         Command::Restructure {
             pattern,
             template,
@@ -313,6 +340,7 @@ pub fn run() -> Result<()> {
             change,
             write,
         } => cmd_signature(&cli, target, change, *write),
+        Command::Stitch { env, orphaned } => cmd_stitch(&cli, env.as_deref(), *orphaned),
         Command::Impact {
             target,
             caller_depth,
@@ -692,6 +720,57 @@ fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
     present(cli, &plan.edits, &summary, write)
 }
 
+fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Result<()> {
+    use crate::refactor::rewrite::{self, Rewrite};
+
+    let pos = parse_position(target)
+        .ok_or_else(|| anyhow::anyhow!("a rewrite needs a position: path:line:col"))?;
+    let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+    let source =
+        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+    let offset = LineIndex::new(&source)
+        .offset(
+            LineCol {
+                line: pos.line,
+                col: pos.col,
+            },
+            &source,
+        )
+        .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
+
+    let index = build_index(cli, &[])?;
+
+    let Some(name) = name else {
+        // No transformation named: list what is on offer here.
+        let options = rewrite::available(&index, &path, offset)?;
+        if cli.json {
+            let payload: Vec<_> = options
+                .iter()
+                .map(|r| serde_json::json!({ "name": r.as_str(), "describe": r.describe() }))
+                .collect();
+            println!("{}", serde_json::to_string_pretty(&payload)?);
+            return Ok(());
+        }
+        if options.is_empty() {
+            println!("Nothing applies at that position.");
+            return Ok(());
+        }
+        for option in &options {
+            println!("{:<14} {}", option.as_str(), option.describe());
+        }
+        return Ok(());
+    };
+
+    let rewrite = Rewrite::from_name(name).ok_or_else(|| {
+        let known: Vec<_> = Rewrite::ALL.iter().map(|r| r.as_str()).collect();
+        anyhow::anyhow!("unknown rewrite '{name}'. Known: {}", known.join(", "))
+    })?;
+
+    let plan = rewrite::apply(&index, &path, offset, rewrite)?;
+    let summary = format!("{}: {}", plan.rewrite.as_str(), plan.rewrite.describe());
+    present(cli, &plan.edits, &summary, write)
+}
+
 fn cmd_restructure(
     cli: &Cli,
     pattern: &str,
@@ -804,6 +883,56 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
     } else {
         print!("{}", result.format_tree());
     }
+    Ok(())
+}
+
+fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
+    use crate::analysis::stitch;
+
+    let index = build_index(cli, &[])?;
+    let mut chains = match env {
+        Some(name) => stitch::for_variable(&index, name)?,
+        None => stitch::chains(&index)?,
+    };
+    if orphaned_only {
+        chains.retain(|c| c.is_orphaned());
+    }
+
+    if cli.json {
+        let payload: Vec<_> = chains
+            .iter()
+            .map(|c| {
+                serde_json::json!({
+                    "env_var": c.env_var,
+                    "declared_in": c.declared_in,
+                    "declared_line": c.declared_line,
+                    "values_path": c.values_path,
+                    "values_file": c.values_file,
+                    "reads": c.reads.iter().map(|r| serde_json::json!({
+                        "file": r.file,
+                        "line": r.line,
+                        "language": r.language.name(),
+                        "confidence": r.confidence.as_str(),
+                    })).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    if chains.is_empty() {
+        println!("No configuration-to-code chains found.");
+        return Ok(());
+    }
+
+    print!("{}", stitch::format_chains(&chains));
+    println!(
+        "{} chain(s). The link from a manifest to a program is the variable's name, \n\
+         which is a string on both sides -- nothing can prove the two refer to the \n\
+         same variable, so those hops are reported as name-only.",
+        chains.len()
+    );
     Ok(())
 }
 
