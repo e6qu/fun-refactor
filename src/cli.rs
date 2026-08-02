@@ -663,14 +663,49 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
 
+    // Config and markup languages have substitution and override provenance rather
+    // than dataflow, so the same command routes to whichever model applies.
     if !flow::applies_to(&index, &symbol.file) {
-        anyhow::bail!(
-            "{} is a {} file. Dataflow applies to imperative languages; config and \
-             markup languages have substitution and override provenance instead, \
-             which is not implemented yet.",
-            symbol.file.display(),
-            symbol.language
-        );
+        use crate::analysis::provenance;
+        let result = match direction {
+            "back" => provenance::provenance(&index, symbol.id, depth)?,
+            "fwd" => provenance::consumers(&index, symbol.id, depth)?,
+            other => anyhow::bail!("unknown direction '{other}'; use 'back' or 'fwd'"),
+        };
+
+        if cli.json {
+            let hops: Vec<_> = result
+                .hops
+                .iter()
+                .map(|h| {
+                    serde_json::json!({
+                        "text": h.text,
+                        "file": h.file,
+                        "depth": h.depth,
+                        "confidence": h.confidence.as_str(),
+                    })
+                })
+                .collect();
+            let stops: Vec<_> = result
+                .stops
+                .iter()
+                .map(|(d, r)| serde_json::json!({ "depth": d, "reason": r.to_string() }))
+                .collect();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "symbol": symbol.qualified_name(),
+                    "direction": direction,
+                    "model": "provenance",
+                    "hops": hops,
+                    "competitions": result.competitions.len(),
+                    "stops": stops,
+                }))?
+            );
+        } else {
+            print!("{}", result.format_tree());
+        }
+        return Ok(());
     }
 
     let result = match direction {
