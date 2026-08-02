@@ -5,6 +5,7 @@
 //! Nothing is ever half-applied, and nothing that could not be verified is rewritten
 //! silently (PLAN.md D8).
 
+pub mod cascade;
 pub mod delete;
 pub mod extract;
 pub mod imports;
