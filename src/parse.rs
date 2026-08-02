@@ -204,19 +204,63 @@ fn find_template_actions(source: &str) -> Vec<Span> {
     spans
 }
 
-/// Replace each span with spaces of the same byte length, preserving newlines so
+/// Replace each span with filler of the same byte length, preserving newlines so
 /// line numbering and every byte offset outside the spans stay identical.
+///
+/// The filler cannot be one character. An action alone on its line — a `{{- if }}`
+/// wrapping other keys — has to become blank, or the line reads as a stray scalar.
+/// But an action *within* a value has to become scalar text: masking
+/// `name: {{.Release.Name}}-{{.Chart.Name}}` with spaces leaves `name:` followed by a
+/// lone `-`, which YAML rejects. So the choice is made per line, by whether anything
+/// other than the actions is on it.
 fn mask_spans(source: &str, spans: &[Span]) -> String {
     let mut out = source.as_bytes().to_vec();
     for span in spans {
+        // Scalar filler is only right where a *value* is expected. An action alone on
+        // its line is structural and must vanish; an action in key position must stay
+        // visibly wrong, because a plausible-looking fake key would be worse than a
+        // parse error — the tool would report a key nobody wrote.
+        let filler = if line_is_only_actions(source, spans, *span) || starts_the_line(source, *span)
+        {
+            b' '
+        } else {
+            // A plain-scalar character, so the surrounding text still parses as a value.
+            b'x'
+        };
         for b in &mut out[span.start..span.end] {
             if *b != b'\n' {
-                *b = b' ';
+                *b = filler;
             }
         }
     }
-    // Masking only ever replaces ASCII bytes with ASCII spaces, so UTF-8 stays valid.
+    // Masking only ever replaces bytes with ASCII, so UTF-8 stays valid.
     String::from_utf8(out).expect("masking preserves UTF-8 validity")
+}
+
+/// Is this span the first thing on its line, i.e. in key rather than value position?
+fn starts_the_line(source: &str, span: Span) -> bool {
+    let line_start = source[..span.start]
+        .rfind('\n')
+        .map(|i| i + 1)
+        .unwrap_or(0);
+    source[line_start..span.start].trim().is_empty()
+}
+
+/// Is every non-whitespace byte on this span's line part of some template action?
+fn line_is_only_actions(source: &str, spans: &[Span], span: Span) -> bool {
+    let bytes = source.as_bytes();
+    let line_start = source[..span.start]
+        .rfind('\n')
+        .map(|i| i + 1)
+        .unwrap_or(0);
+    let line_end = source[span.end..]
+        .find('\n')
+        .map(|i| span.end + i)
+        .unwrap_or(source.len());
+
+    (line_start..line_end).all(|i| {
+        bytes[i].is_ascii_whitespace() || spans.iter().any(|s| s.contains_offset(i))
+    })
 }
 
 #[cfg(test)]
@@ -304,6 +348,34 @@ mod tests {
         let actions = find_template_actions(src);
         assert_eq!(actions.len(), 1);
         assert_eq!(actions[0].text(src), "{{ printf \"}}\" }}");
+    }
+
+    #[test]
+    fn adjacent_actions_in_a_value_still_parse() {
+        // `name: {{.Release.Name}}-{{.Chart.Name}}` is ordinary Helm. Masking with
+        // spaces left `name:` followed by a lone `-`, which YAML rejects — 28 of the
+        // 37 parse failures across the Helm repository were this one shape.
+        let src = "metadata:\n  name: {{.Release.Name}}-{{.Chart.Name}}\n";
+        let parsed = parse(Language::Helm, src);
+        assert!(
+            !parsed.has_errors(),
+            "adjacent actions in a value should parse: {:?}",
+            parsed.error_spans()
+        );
+        assert_eq!(parsed.template_actions.len(), 2);
+    }
+
+    #[test]
+    fn an_action_alone_on_its_line_still_masks_to_blank() {
+        // The other half of the same choice: a structural action has to vanish, or
+        // the line reads as a stray scalar.
+        let src = "spec:\n  {{- if .Values.enabled }}\n  replicas: 1\n  {{- end }}\n";
+        let parsed = parse(Language::Helm, src);
+        assert!(
+            !parsed.has_errors(),
+            "a structural action should mask to blank: {:?}",
+            parsed.error_spans()
+        );
     }
 
     #[test]

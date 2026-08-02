@@ -346,14 +346,17 @@ fn helm_template_parses_and_extracts_its_structure() {
 
 #[test]
 fn keys_whose_value_is_entirely_a_template_action_still_extract() {
-    // `replicas: {{ .Values.replicaCount }}` masks to `replicas:` — a pair with
-    // no value. The key must survive, because that is the key a values-file
-    // cross-reference has to land on.
+    // `replicas: {{ .Values.replicaCount }}` masks its action to scalar filler, so the
+    // pair has a value and the key spans the whole line. The key must survive, because
+    // that is where a values-file cross-reference lands.
     let f = helm(HELM_DEPLOYMENT);
     let replicas = sym(&f, "spec::replicas");
     assert_eq!(replicas.kind, SymbolKind::Key);
     assert_eq!(replicas.name_span.text(HELM_DEPLOYMENT), "replicas");
-    assert_eq!(replicas.full_span.text(HELM_DEPLOYMENT), "replicas:");
+    assert_eq!(
+        replicas.full_span.text(HELM_DEPLOYMENT),
+        "replicas: {{ .Values.replicaCount }}"
+    );
 }
 
 #[test]
