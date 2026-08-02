@@ -513,6 +513,15 @@ enum HclRole {
     Block,
 }
 
+/// A `module` block instantiating some module, and the argument it passes for one
+/// of that module's input variables.
+struct ModuleCall {
+    file: PathBuf,
+    alias: String,
+    /// The value expression passed for the variable, when the call sets it.
+    argument: Option<Span>,
+}
+
 /// Terraform's reserved evaluation-context namespaces: values the engine supplies.
 const HCL_CONTEXT_NAMESPACES: &[&str] = &["each", "count", "self", "path", "terraform"];
 
@@ -624,6 +633,14 @@ impl Ctx<'_> {
             ));
         }
 
+        // A module called by another module takes its inputs from the `module`
+        // block's arguments, and from nothing else: tfvars and -var apply to the
+        // root module only.
+        let callers = self.hcl_module_arguments(sym)?;
+        if !callers.is_empty() {
+            return self.hcl_child_module_sources(sym, sources, callers, depth);
+        }
+
         // Terraform's order, lowest first: default < TF_VAR_* < terraform.tfvars <
         // *.auto.tfvars (alphabetical) < -var/-var-file. Only the files are visible.
         let dir = sym.file.parent().map(Path::to_path_buf);
@@ -707,6 +724,157 @@ impl Ctx<'_> {
             },
         );
         Ok(())
+    }
+
+    /// Every `module` block in the workspace that instantiates the module this
+    /// variable belongs to, with the argument it passes for that variable.
+    fn hcl_module_arguments(&mut self, sym: &Symbol) -> Result<Vec<ModuleCall>> {
+        let Some(dir) = sym.file.parent().map(Path::to_path_buf) else {
+            return Ok(Vec::new());
+        };
+        let calls: Vec<(PathBuf, String)> = self
+            .index
+            .files()
+            .filter(|(_, info)| info.language == Language::Hcl)
+            .flat_map(|(path, info)| {
+                info.imports.iter().filter_map({
+                    let path = path.clone();
+                    let dir = dir.clone();
+                    move |import| {
+                        let resolved = path.parent().map(|d| normalise(&d.join(&import.path)))?;
+                        let alias = import.alias.clone()?;
+                        (resolved == dir).then(|| (path.clone(), alias))
+                    }
+                })
+            })
+            .collect();
+
+        let mut out = Vec::new();
+        for (file, alias) in calls {
+            let source = self.source(&file)?;
+            let block = self
+                .index
+                .file(&file)
+                .into_iter()
+                .flat_map(|info| info.symbols.iter())
+                .filter_map(|id| self.index.symbol(*id))
+                .find(|s| s.kind == SymbolKind::Module && s.name == alias)
+                .map(|s| s.full_span);
+            let argument = match block {
+                Some(span) => {
+                    let parsed = Parsers::new().parse(Language::Hcl, &source)?;
+                    parsed
+                        .root()
+                        .descendant_for_byte_range(span.start, span.end)
+                        .and_then(|node| block_attribute(node, &source, &sym.name))
+                        .map(Span::from)
+                }
+                None => None,
+            };
+            out.push(ModuleCall {
+                file,
+                alias,
+                argument,
+            });
+        }
+        Ok(out)
+    }
+
+    /// A child module's inputs come from its callers, and from nowhere else.
+    fn hcl_child_module_sources(
+        &mut self,
+        sym: &Symbol,
+        mut sources: Vec<(u32, String, PathBuf, Span, String)>,
+        callers: Vec<ModuleCall>,
+        depth: usize,
+    ) -> Result<()> {
+        for call in &callers {
+            let Some(value) = call.argument else {
+                continue;
+            };
+            let source = self.source(&call.file)?;
+            sources.push((
+                5,
+                format!("argument of module \"{}\" in {}", call.alias, short(&call.file)),
+                call.file.clone(),
+                value,
+                format!("{} = {}", sym.name, snippet(value.text(&source))),
+            ));
+        }
+
+        if sources.is_empty() {
+            self.stop(
+                depth,
+                StopReason::ExternalInput {
+                    name: format!("var.{}", sym.name),
+                    required: true,
+                    sources: format!(
+                        "the calling module, which passes no '{}' argument",
+                        sym.name
+                    ),
+                },
+            );
+            return Ok(());
+        }
+
+        // Two callers are two instances of the module, each with its own value —
+        // not an override of one by the other.
+        let per_instance = callers.len() > 1;
+        sources.sort_by_key(|s| s.0);
+        let winner = sources.len() - 1;
+
+        let mut competing = Vec::new();
+        for (i, (rank, label, path, span, text)) in sources.iter().enumerate() {
+            let edge = if *rank == 0 {
+                EdgeKind::Default
+            } else {
+                EdgeKind::Substitution
+            };
+            let hop = self.hop(None, edge, text.clone(), path, *span, depth + 1)?;
+            competing.push(CompetingSource {
+                hop,
+                precedence: Precedence::level(*rank, label.clone()),
+                wins: i == winner && !per_instance,
+                reason: if per_instance {
+                    "one instance of a module called from several places".to_string()
+                } else if i == winner {
+                    "the calling module sets this input".to_string()
+                } else {
+                    format!("the default, overridden by the {}", sources[winner].1)
+                },
+            });
+        }
+        competing.reverse();
+        for source in &competing {
+            self.push_hop(source.hop.clone());
+        }
+        self.out.competitions.push(Competition {
+            subject: format!("child module input var.{}", sym.name),
+            model:
+                "terraform child module: default < the argument its caller passes (tfvars and -var reach the root module only)"
+                    .to_string(),
+            decided: !per_instance,
+            sources: competing,
+        });
+
+        if per_instance {
+            self.stop(
+                depth,
+                StopReason::PrecedenceUndetermined(format!(
+                    "this module is called from {} places; each call is a separate instance with its own var.{}",
+                    callers.len(),
+                    sym.name
+                )),
+            );
+            return Ok(());
+        }
+
+        // The winning expression lives in the caller, and keeps going from there.
+        let (_, _, file, span, _) = &sources[winner];
+        let file = file.clone();
+        let span = *span;
+        let source = self.source(&file)?;
+        self.hcl_follow(&file, &source, span, depth + 1)
     }
 
     /// Follow every reference inside a Terraform expression to its declaration.

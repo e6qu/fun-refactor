@@ -277,7 +277,26 @@ impl Index {
             }
         }
 
-        // 6. A single exported definition anywhere in the workspace. Plausible, but
+        // 6. Directory-scoped languages: Terraform's module is a directory, so a
+        //    definition anywhere beside this file is in scope. Names are unique per
+        //    namespace there, so a single match is exact; several mean the namespace
+        //    (`var.` versus `local.`) decides, which this layer cannot see, so those
+        //    are reported rather than rewritten.
+        if reference.language.resolves_by_directory() {
+            let dir = path.parent();
+            let siblings: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| s.file.parent() == dir)
+                .collect();
+            match siblings.len() {
+                1 => return (Some(siblings[0].id), Confidence::Exact),
+                0 => {}
+                _ => return (Some(siblings[0].id), Confidence::FieldBased),
+            }
+        }
+
+        // 7. A single exported definition anywhere in the workspace. Plausible, but
         //    nothing proved this file can see it, so it stays name-only.
         let exported: Vec<&Symbol> = candidates
             .iter()
@@ -644,6 +663,42 @@ mod tests {
         let index = Index::build_from_scan(&scanned).unwrap();
         assert_eq!(index.file_count(), 0);
         assert_eq!(index.skipped.len(), 1, "skip must be visible");
+    }
+
+    #[test]
+    fn terraform_names_resolve_across_the_module_directory() {
+        // Terraform's unit of scope is the directory, so `var.region` in main.tf
+        // refers to the `variable "region"` declared in variables.tf. Without this a
+        // rename would update the declaration and leave every use dangling.
+        let (_tmp, index) = index_of(&[
+            ("variables.tf", "variable \"region\" {\n  default = \"eu-west-1\"\n}\n"),
+            (
+                "main.tf",
+                "resource \"aws_s3_bucket\" \"b\" {\n  region = var.region\n}\n",
+            ),
+        ]);
+        let region = index.find_symbols("region", None);
+        assert_eq!(region.len(), 1, "got {region:?}");
+
+        let refs = index.references_to(region[0].id);
+        assert_eq!(refs.len(), 1, "got {refs:?}");
+        assert_eq!(refs[0].confidence, Confidence::Exact);
+        assert!(refs[0].file.ends_with("main.tf"));
+    }
+
+    #[test]
+    fn terraform_names_do_not_resolve_across_module_directories() {
+        // A separate directory is a separate module; its variables are unrelated.
+        let (_tmp, index) = index_of(&[
+            ("variables.tf", "variable \"region\" {\n  default = \"a\"\n}\n"),
+            ("child/main.tf", "output \"o\" {\n  value = var.region\n}\n"),
+        ]);
+        let region = index.find_symbols("region", None);
+        assert_eq!(region.len(), 1);
+        assert!(
+            index.references_to(region[0].id).is_empty(),
+            "a different directory is a different module"
+        );
     }
 
     #[test]

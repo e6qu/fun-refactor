@@ -123,6 +123,16 @@ impl Language {
         }
     }
 
+    /// Does a name resolve across every file in the same directory?
+    ///
+    /// Terraform's unit of scope is the module, which *is* a directory: a `var.x`
+    /// written in `main.tf` refers to the `variable "x"` block wherever in that
+    /// directory it is declared. Without modelling that, a rename would update the
+    /// declaration and leave every use behind.
+    pub fn resolves_by_directory(&self) -> bool {
+        matches!(self, Language::Hcl)
+    }
+
     pub fn from_name(name: &str) -> Option<Language> {
         Language::ALL
             .iter()

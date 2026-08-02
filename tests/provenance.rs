@@ -1082,3 +1082,99 @@ fn specificity_is_exposed_for_callers_that_need_it() {
     assert!(specificity(".a") > specificity("a"));
 }
 
+
+#[test]
+fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
+    // `-var` and `*.tfvars` reach the root module only: a child module's inputs are
+    // the arguments its caller passes, so the chain must cross the module boundary.
+    let (_tmp, index) = workspace(&[
+        (
+            "infra/main.tf",
+            "variable \"region\" {\n  default = \"eu-west-1\"\n}\n\nmodule \"network\" {\n  source = \"./modules/network\"\n  cidr   = var.region\n}\n",
+        ),
+        (
+            "infra/modules/network/main.tf",
+            "variable \"cidr\" {\n  default = \"10.0.0.0/8\"\n}\n",
+        ),
+        ("infra/terraform.tfvars", "cidr = \"ignored\"\n"),
+    ]);
+    let cidr = id_in(&index, "modules/network/main.tf", "cidr");
+    let result = provenance(&index, cidr, 5).unwrap();
+
+    let competition = &result.competitions[0];
+    assert!(
+        competition.model.contains("root module only"),
+        "{}",
+        competition.model
+    );
+    let winner = competition.winner().expect("the caller's argument wins");
+    assert!(winner.hop.text.contains("cidr = var.region"), "{}", winner.hop.text);
+    assert!(winner.hop.file.ends_with("infra/main.tf"));
+    assert!(
+        competition
+            .losers()
+            .iter()
+            .any(|l| l.hop.text.contains("10.0.0.0/8")),
+        "the default must stay visible: {:?}",
+        competition.losers()
+    );
+    assert!(
+        competition.sources.iter().all(|s| !s.hop.text.contains("ignored")),
+        "a root-module tfvars entry must not be offered as a source: {:?}",
+        competition.sources
+    );
+
+    // And the caller's expression keeps going.
+    assert!(has_hop(&result, "var.region = \"eu-west-1\""), "{:?}", hop_texts(&result));
+    assert!(competition.decided, "one caller, one value");
+}
+
+#[test]
+fn a_module_called_twice_reports_both_instances_and_picks_neither() {
+    let (_tmp, index) = workspace(&[
+        (
+            "infra/a.tf",
+            "module \"one\" {\n  source = \"./mod\"\n  size   = 1\n}\n",
+        ),
+        (
+            "infra/b.tf",
+            "module \"two\" {\n  source = \"./mod\"\n  size   = 2\n}\n",
+        ),
+        ("infra/mod/main.tf", "variable \"size\" {\n}\n"),
+    ]);
+    let size = id_in(&index, "mod/main.tf", "size");
+    let result = provenance(&index, size, 5).unwrap();
+
+    let competition = &result.competitions[0];
+    assert_eq!(competition.sources.len(), 2, "{:?}", competition.sources);
+    assert!(
+        competition.winner().is_none(),
+        "two instantiations are not an override: {:?}",
+        competition.sources
+    );
+    assert!(result.stopped_because(
+        |r| matches!(r, StopReason::PrecedenceUndetermined(m) if m.contains("separate instance"))
+    ));
+}
+
+#[test]
+fn a_child_module_input_the_caller_never_passes_is_reported() {
+    let (_tmp, index) = workspace(&[
+        (
+            "infra/main.tf",
+            "module \"m\" {\n  source = \"./mod\"\n}\n",
+        ),
+        ("infra/mod/main.tf", "variable \"needed\" {\n  type = string\n}\n"),
+    ]);
+    let needed = id_in(&index, "mod/main.tf", "needed");
+    let result = provenance(&index, needed, 5).unwrap();
+    assert!(
+        result.stopped_because(|r| matches!(
+            r,
+            StopReason::ExternalInput { required: true, sources, .. } if sources.contains("passes no")
+        )),
+        "got {:?}",
+        result.stops
+    );
+    assert!(result.competitions.is_empty());
+}
