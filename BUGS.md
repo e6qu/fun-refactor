@@ -26,11 +26,13 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   mis-handled: empty parentheses on a declaration (`@mixin m()`), empty parentheses on
   a call (`@include m();`), and a namespaced include after `@use 'x' as t`
   (`@include t.m(…)`). Fixing these is upstream grammar work.
-- [ ] B12: Terraform loses the third and later step past an index traversal —
-  `x.y[0].z.w` keeps `z` and `w`, `x.y[0].z.w.q` loses `q`. Each step needs its own
-  query pattern. The address and the first two attribute reads survive.
 
 ## Fixed
+
+- [x] B12: Terraform lost the third and later step past an index traversal. A query
+  cannot say "every sibling after this one", so each step needs its own pattern; six
+  are now written, which is far past anything Terraform expresses, and a test asserts
+  the bound so it stays a decision rather than an accident.
 
 - [x] B0a: `LineIndex` invented a phantom trailing line for files ending in a newline,
   so `"a\nb\n"` counted 3 lines and an EOF offset reported a column past the last

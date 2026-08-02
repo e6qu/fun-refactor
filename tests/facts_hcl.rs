@@ -551,19 +551,17 @@ fn an_index_keeps_the_segments_that_follow_it() {
 }
 
 #[test]
-fn an_index_keeps_two_segments_but_not_a_third() {
-    // Each step past an index needs its own pattern, and two is where this stops. The
-    // third segment is a known partial: the address and the first reads survive, so
-    // nothing is *wrong*, only incomplete.
-    let src = "output \"a\" {\n  value = x.y[0].z.w.q\n}\n";
-    let f = hcl(src);
-    assert_eq!(refs(&f, "z").len(), 1, "got {:?}", f.references);
-    assert_eq!(refs(&f, "w").len(), 1, "got {:?}", f.references);
-    assert!(
-        refs(&f, "q").is_empty(),
-        "the third step past an index is not captured: {:?}",
-        f.references
-    );
+fn an_index_keeps_every_following_segment() {
+    // Was a documented gap: only the first two steps past an index were captured.
+    let src = "a = x.y[0].z.w.q\n";
+    let f = facts(Language::Hcl, src);
+    let fields: Vec<&str> = f
+        .references
+        .iter()
+        .filter(|r| r.kind == ReferenceKind::Field)
+        .map(|r| r.name.as_str())
+        .collect();
+    assert_eq!(fields, vec!["z", "w", "q"], "got {fields:?}");
 }
 
 #[test]
@@ -609,4 +607,29 @@ fn tf_block_arguments_are_still_not_definitions() {
         "got {:?}",
         f.symbols.iter().map(|s| &s.name).collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn every_step_past_an_index_is_captured_to_a_stated_depth() {
+    // A query cannot say "every sibling after this one", so each step past an index
+    // needs its own pattern. Six are written; this asserts the bound is a decision
+    // rather than an accident, and that Terraform never realistically reaches it.
+    let src = "a = x.y[0].z.w.q.r.s.t\n";
+    let f = facts(Language::Hcl, src);
+    let fields: Vec<&str> = f
+        .references
+        .iter()
+        .filter(|r| r.kind == ReferenceKind::Field)
+        .map(|r| r.name.as_str())
+        .collect();
+    assert_eq!(fields, vec!["z", "w", "q", "r", "s", "t"], "got {fields:?}");
+
+    // The address itself stays an address, not a field.
+    let addresses: Vec<&str> = f
+        .references
+        .iter()
+        .filter(|r| r.kind == ReferenceKind::Identifier)
+        .map(|r| r.name.as_str())
+        .collect();
+    assert!(addresses.contains(&"y"), "got {addresses:?}");
 }
