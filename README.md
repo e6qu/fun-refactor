@@ -131,6 +131,19 @@ exactly — including inside an extracted expression.
 cargo install --path .
 ```
 
+## Third-party material
+
+`vendor/` holds the upstream tree-sitter query files the rules in `queries/` were
+derived from, each with its licence and a checksum in `vendor/MANIFEST.toml`. Nothing
+there is compiled — it is reference material and derivation evidence, and
+`cargo test --test vendor` fails if a file changes without its manifest entry, if a
+file appears with no provenance, or if a licence arrives that is not compatible with
+AGPL-3.0-or-later.
+
+Refresh it with `python3 vendor/vendor.py` after bumping a grammar, and read the diff:
+a grammar that renames a node does not break the build, it makes a query silently stop
+matching.
+
 ## Adding a language
 
 Language knowledge lives in tree-sitter query files, not Rust. `queries/<lang>/facts.scm`

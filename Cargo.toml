@@ -6,6 +6,9 @@ authors = ["e6qu"]
 license = "AGPL-3.0-or-later"
 description = "Multi-language refactoring and code-intelligence CLI built on tree-sitter"
 repository = "https://github.com/e6qu/fun-refactor"
+# Reference material and derivation evidence, not build input. Compiling it would
+# change the licence obligations — see vendor/README.md.
+exclude = ["vendor/", "docs/"]
 
 [[bin]]
 name = "fr"
