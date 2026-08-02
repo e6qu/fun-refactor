@@ -19,7 +19,7 @@ use crate::parse::Parsers;
 use crate::span::Span;
 use anyhow::Result;
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 /// Which way to follow the flow.
@@ -127,7 +127,7 @@ impl FlowResult {
 }
 
 /// Trace where the value at `offset` comes from.
-pub fn backward(index: &Index, file: &PathBuf, offset: usize, max_depth: usize) -> Result<FlowResult> {
+pub fn backward(index: &Index, file: &Path, offset: usize, max_depth: usize) -> Result<FlowResult> {
     let mut result = FlowResult {
         direction: FlowDirection::Backward,
         steps: Vec::new(),
@@ -140,7 +140,7 @@ pub fn backward(index: &Index, file: &PathBuf, offset: usize, max_depth: usize) 
 
 fn walk_backward(
     index: &Index,
-    file: &PathBuf,
+    file: &Path,
     offset: usize,
     depth: usize,
     max_depth: usize,
@@ -151,7 +151,7 @@ fn walk_backward(
         result.stops.push((depth, StopReason::DepthLimit));
         return Ok(());
     }
-    if !seen.insert((file.clone(), offset)) {
+    if !seen.insert((file.to_path_buf(), offset)) {
         return Ok(());
     }
 
@@ -390,7 +390,7 @@ fn value_of_definition<'a>(
 fn enclosing_assignment_target(
     index: &Index,
     parsed: &crate::parse::Parsed,
-    file: &PathBuf,
+    file: &Path,
     span: Span,
 ) -> Option<SymbolId> {
     let mut node = parsed.root().descendant_for_byte_range(span.start, span.end)?;
@@ -434,7 +434,7 @@ fn line_text(source: &str, offset: usize) -> String {
 ///
 /// Config and markup languages get provenance analysis instead of dataflow: their
 /// evaluation model is substitution and override, not execution.
-pub fn applies_to(index: &Index, file: &PathBuf) -> bool {
+pub fn applies_to(index: &Index, file: &Path) -> bool {
     index
         .file(file)
         .is_some_and(|info| info.language.class() == LanguageClass::Imperative)

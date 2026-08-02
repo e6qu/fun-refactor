@@ -168,12 +168,12 @@ impl Extractor {
     }
 
     fn query_for(&mut self, lang: Language, grammar: &tree_sitter::Language) -> Result<&Query> {
-        if !self.queries.contains_key(&lang) {
+        if let std::collections::hash_map::Entry::Vacant(slot) = self.queries.entry(lang) {
             let source = query_source(lang)
                 .with_context(|| format!("no fact queries defined for {lang}"))?;
             let query = Query::new(grammar, source)
                 .with_context(|| format!("compiling {lang} fact queries"))?;
-            self.queries.insert(lang, query);
+            slot.insert(query);
         }
         Ok(&self.queries[&lang])
     }

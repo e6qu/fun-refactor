@@ -138,6 +138,34 @@
   . (get_attr (identifier) @reference.field)
   (#eq? @_ns "data"))
 
+; A splat (`aws_instance.web[*].id`, `aws_instance.web.*.id`) does not continue the
+; flat `get_attr` run: the grammar hangs everything after the `[*]` off a
+; `splat` → `full_splat`/`attr_splat` node. Those trailing steps are attribute
+; reads on each element, so they are fields, exactly as they would be without the
+; splat. Matching inside the splat node rather than as siblings is what makes them
+; visible at all.
+(splat
+  (full_splat
+    (get_attr (identifier) @reference.field)))
+
+(splat
+  (attr_splat
+    (get_attr (identifier) @reference.field)))
+
+; An index (`x.y[0].z`) leaves the following steps as flat `get_attr` siblings, but
+; the `index` node sits between them and the traversal root, so the anchored
+; patterns above stop at it. Anchoring to the index instead picks the run back up.
+; Two steps are matched, which is one more than any Terraform expression normally
+; needs; a third would need its own pattern.
+(expression
+  (index)
+  . (get_attr (identifier) @reference.field))
+
+(expression
+  (index)
+  . (get_attr)
+  . (get_attr (identifier) @reference.field))
+
 (function_call
   . (identifier) @reference.call)
 

@@ -7,6 +7,12 @@
 //! binds names nobody can enumerate, and a side-effect import binds nothing at all, so
 //! neither is ever removed — they are reported instead.
 //!
+//! Name-based liveness is exact for a value or type that must be spelled where it is
+//! used, and blind to everything a language brings into scope invisibly. Every such
+//! form this tool knows about is listed in `hold_back_reason`, and each one keeps the
+//! import and says why: removing a live import silently breaks a build, whereas keeping
+//! a dead one merely leaves a line of noise.
+//!
 //! *Sorting* never regenerates import syntax. Each statement's original bytes are
 //! reordered as-is, within one contiguous run of import lines. A blank line, a comment
 //! or any other statement ends the run, because import grouping is a decision a
@@ -16,11 +22,13 @@ use super::{Refusal, Warning, WarningKind};
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::Import;
+use crate::model::{Import, SymbolKind};
+use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
+use tree_sitter::Node;
 
 /// An import reorganisation that has been worked out but not applied.
 #[derive(Debug)]
@@ -35,25 +43,364 @@ pub struct ImportsPlan {
     pub sorted_blocks: usize,
 }
 
-/// A Rust import whose bound name could be a trait used only through its methods.
+/// Uses a language makes of an imported name without ever spelling it where a query
+/// can see it.
 ///
-/// Any upper-camel-case name may be a trait, and there is no way to tell from syntax
-/// alone. Treating them all as possible traits costs some unused type imports left in
-/// place, and buys never silently breaking a build.
-fn trait_shaped_binding(language: Language, statement: &Statement) -> Option<String> {
-    if language != Language::Rust {
+/// Collected once per file from the parse tree, because every entry is a construct the
+/// fact queries do not report as a reference. Each set is consulted only when
+/// name-based liveness has already failed, so the cost is paid on the file, not on the
+/// import.
+#[derive(Debug, Default)]
+struct InvisibleUses {
+    /// Python names re-exported through `__all__`.
+    reexported: HashSet<String>,
+    /// TypeScript names appearing inside a `{...}` type in a JSDoc comment.
+    jsdoc_types: HashSet<String>,
+    /// TypeScript names given to a `@jsx` / `@jsxFrag` / `@jsxImportSource` pragma.
+    jsx_pragma: HashSet<String>,
+    /// TypeScript names used under a `typeof` type query.
+    type_queries: HashSet<String>,
+    /// Spans of TypeScript import statements carrying a `type` modifier.
+    type_only: HashSet<Span>,
+}
+
+impl InvisibleUses {
+    fn collect(language: Language, parsed: &Parsed, source: &str) -> Self {
+        let mut uses = InvisibleUses::default();
+        match language {
+            Language::Python => for_each_node(parsed.root(), |node| {
+                if !matches!(node.kind(), "assignment" | "augmented_assignment") {
+                    return;
+                }
+                let names_all = node
+                    .child_by_field_name("left")
+                    .is_some_and(|left| text_of(left, source) == "__all__");
+                if names_all {
+                    for_each_node(node, |inner| {
+                        if inner.kind() == "string_content" {
+                            uses.reexported.insert(text_of(inner, source).to_string());
+                        }
+                    });
+                }
+            }),
+            Language::TypeScript | Language::Tsx => {
+                for_each_node(parsed.root(), |node| match node.kind() {
+                    "comment" => {
+                        let text = text_of(node, source);
+                        uses.jsdoc_types.extend(braced_identifiers(text));
+                        uses.jsx_pragma.extend(jsx_pragma_names(text));
+                    }
+                    "type_query" => {
+                        for_each_node(node, |inner| {
+                            if matches!(inner.kind(), "identifier" | "type_identifier") {
+                                uses.type_queries.insert(text_of(inner, source).to_string());
+                            }
+                        });
+                    }
+                    "import_statement" => {
+                        // The `type` modifier of `import type {...}` and of an inline
+                        // `{ type X }` is an anonymous token, so a named-node pattern
+                        // cannot see it but a full cursor walk can.
+                        let mut type_only = false;
+                        for_each_node(node, |inner| {
+                            if inner.kind() == "type" && !inner.is_named() {
+                                type_only = true;
+                            }
+                        });
+                        if type_only {
+                            uses.type_only.insert(Span::from(node));
+                        }
+                    }
+                    _ => {}
+                });
+            }
+            _ => {}
+        }
+        uses
+    }
+}
+
+/// Why an import that nothing names is kept anyway, or `None` if it can go.
+///
+/// Every arm answers the same question for one language: is there a way this binding
+/// could be in use that no reference records? The Rust arm is the oldest and states the
+/// principle — a trait is used through its methods, so its name never appears at the
+/// call site — and the rest follow it. A returned reason is reported verbatim as a
+/// warning, so it has to say which binding and why.
+fn hold_back_reason(
+    language: Language,
+    statement: &Statement,
+    uses: &InvisibleUses,
+) -> Option<String> {
+    match language {
+        // Any upper-camel-case name may be a trait, and there is no way to tell from
+        // syntax alone. Treating them all as possible traits costs some unused type
+        // imports left in place, and buys never silently breaking a build.
+        Language::Rust => {
+            let binding = statement
+                .bindings
+                .iter()
+                .find(|binding| binding.chars().next().is_some_and(char::is_uppercase))?;
+            Some(format!(
+                "'{}' binds '{binding}', which nothing names — but a trait is used \
+                 through its methods, never by name, so this is kept. Remove it by \
+                 hand if it really is unused",
+                statement.path
+            ))
+        }
+
+        Language::Python => {
+            // `from __future__ import annotations` changes how the whole file is
+            // compiled. The name it binds is never meant to be mentioned again.
+            if statement.path == "__future__" {
+                return Some(format!(
+                    "'{}' is a __future__ import: it changes how the file is compiled \
+                     rather than binding a name anyone spells, so it is never removed",
+                    statement.path
+                ));
+            }
+            if let Some(binding) = statement
+                .bindings
+                .iter()
+                .find(|binding| uses.reexported.contains(*binding))
+            {
+                return Some(format!(
+                    "'{}' binds '{binding}', which nothing names but __all__ re-exports, \
+                     so importing it is what publishes it",
+                    statement.path
+                ));
+            }
+            // `import myapp.handlers` binds only `myapp`; the point of writing the
+            // submodule out is to run its registration side effects at import time.
+            if !statement.explicit_binding && statement.path.contains('.') {
+                return Some(format!(
+                    "'{}' imports a submodule: nothing names the '{}' it binds, but the \
+                     statement may exist to run the submodule's registration side \
+                     effects, so it is kept",
+                    statement.path,
+                    statement.bindings.join(", ")
+                ));
+            }
+            None
+        }
+
+        Language::TypeScript | Language::Tsx => {
+            if uses.type_only.contains(&statement.span) {
+                return Some(format!(
+                    "'{}' is a type-only import; its uses are all in type positions, \
+                     which the fact queries do not capture in full, so it is kept",
+                    statement.path
+                ));
+            }
+            if let Some(binding) = statement
+                .bindings
+                .iter()
+                .find(|binding| uses.type_queries.contains(*binding))
+            {
+                return Some(format!(
+                    "'{}' binds '{binding}', which is used in a `typeof {binding}` type \
+                     query — a type position no reference records, so it is kept",
+                    statement.path
+                ));
+            }
+            if let Some(binding) = statement
+                .bindings
+                .iter()
+                .find(|binding| uses.jsdoc_types.contains(*binding))
+            {
+                return Some(format!(
+                    "'{}' binds '{binding}', which is named in a JSDoc type comment; \
+                     that is a use no reference records, so it is kept",
+                    statement.path
+                ));
+            }
+            if let Some(binding) = statement
+                .bindings
+                .iter()
+                .find(|binding| uses.jsx_pragma.contains(*binding))
+            {
+                return Some(format!(
+                    "'{}' binds '{binding}', which a JSX pragma comment names as the \
+                     factory every JSX element compiles to, so it is kept",
+                    statement.path
+                ));
+            }
+            None
+        }
+
+        // A Go import binds the imported package's *package clause*, which is a fact
+        // about the other package's source. When that source is outside the scan the
+        // binding can only be guessed from the path, and the guess is wrong for
+        // `gopkg.in/yaml.v2` (package `yaml`), `.../v2` version suffixes and any
+        // hyphenated path.
+        Language::Go if !statement.explicit_binding && !statement.binding_certain => {
+            Some(format!(
+                "'{}' is a Go import whose local name is its package clause, and that \
+                 package is not in the scan; '{}' is only a guess from the path, so the \
+                 import is kept",
+                statement.path,
+                if statement.bindings.is_empty() {
+                    "<no name could be guessed>".to_string()
+                } else {
+                    statement.bindings.join(", ")
+                }
+            ))
+        }
+
+        // Zig needs no guard: `@import` yields an ordinary container-level `const`, and
+        // every use of it spells that const's name. There is no Zig construct that
+        // brings an imported name into scope without naming it — `usingnamespace` does,
+        // but it binds nothing for this pass to remove.
+        _ => None,
+    }
+}
+
+/// Call `f` on `node` and every descendant, anonymous tokens included.
+fn for_each_node(node: Node, mut f: impl FnMut(Node)) {
+    let mut cursor = node.walk();
+    loop {
+        f(cursor.node());
+        if cursor.goto_first_child() {
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return;
+            }
+        }
+    }
+}
+
+fn text_of<'a>(node: Node, source: &'a str) -> &'a str {
+    &source[node.start_byte()..node.end_byte().min(source.len())]
+}
+
+/// Identifiers inside `{...}` in a comment — a JSDoc `@type {Foo}` or `@param {Foo} x`.
+///
+/// The braces are what makes a JSDoc tag a type annotation, so anything spelled inside
+/// them is a name the annotation depends on. `{import('./m').Foo}` yields both `m` and
+/// `Foo`, which is the conservative reading.
+fn braced_identifiers(comment: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth = 0usize;
+    let mut current = String::new();
+    for ch in comment.chars() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                if !current.is_empty() {
+                    out.push(std::mem::take(&mut current));
+                }
+                depth = depth.saturating_sub(1);
+            }
+            _ if depth > 0 && (ch.is_alphanumeric() || ch == '_' || ch == '$') => current.push(ch),
+            _ => {
+                if !current.is_empty() {
+                    out.push(std::mem::take(&mut current));
+                }
+            }
+        }
+    }
+    out.retain(|name| !name.chars().next().is_some_and(|c| c.is_ascii_digit()));
+    out
+}
+
+/// The name a JSX pragma comment gives, e.g. the `h` of `/** @jsx h */`.
+///
+/// Every JSX element in the file compiles into a call to that factory, so the import
+/// binding it names is used by code that does not exist until after compilation.
+fn jsx_pragma_names(comment: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = comment;
+    while let Some(at) = rest.find("@jsx") {
+        rest = &rest[at + 1..];
+        let mut words = rest.split_whitespace();
+        let tag = words.next().unwrap_or_default();
+        if !matches!(tag, "jsx" | "jsxFrag" | "jsxImportSource" | "jsxRuntime") {
+            continue;
+        }
+        if let Some(word) = words.next() {
+            let name: String = word
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '$')
+                .collect();
+            if !name.is_empty() {
+                out.push(name);
+            }
+        }
+    }
+    out
+}
+
+/// Is a Go import path's last segment usable as the package name without seeing the
+/// package clause?
+///
+/// A plain identifier almost always is. A version suffix (`.../v2`), a `gopkg.in`
+/// style `name.vN` segment and anything with a hyphen in it are not: the package clause
+/// says something else, and only the imported package's own source can say what.
+fn go_binding_is_certain(path: &str) -> bool {
+    let Some(last) = path.rsplit('/').find(|segment| !segment.is_empty()) else {
+        return false;
+    };
+    let plain = !last.is_empty()
+        && last.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && !last.starts_with(|c: char| c.is_ascii_digit());
+    let versioned = last.starts_with('v') && last[1..].chars().all(|c| c.is_ascii_digit());
+    plain && !versioned
+}
+
+/// The package clause of an imported Go package, when the scan can see it.
+///
+/// The directory a Go package lives in is named by the tail of its import path, but the
+/// module prefix (`example.com/app`) lives in `go.mod` and not on disk, so the only
+/// thing to match on is how many trailing components agree. The longest agreement wins;
+/// two equally good directories disagreeing about the package name means the answer is
+/// unknown, not whichever was found first.
+fn workspace_package_name(index: &Index, import_path: &str) -> Option<String> {
+    let wanted: Vec<&str> = import_path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    if wanted.is_empty() {
         return None;
     }
-    statement
-        .bindings
-        .iter()
-        .find(|binding| {
-            binding
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_uppercase())
-        })
-        .cloned()
+
+    let mut best = 0usize;
+    let mut found: BTreeSet<String> = BTreeSet::new();
+    for (file, info) in index.files() {
+        if info.language != Language::Go {
+            continue;
+        }
+        let Some(directory) = file.parent() else {
+            continue;
+        };
+        let on_disk: Vec<String> = directory
+            .components()
+            .map(|c| c.as_os_str().to_string_lossy().into_owned())
+            .collect();
+        let agreed = (0..wanted.len().min(on_disk.len()))
+            .take_while(|i| wanted[wanted.len() - 1 - i] == on_disk[on_disk.len() - 1 - i])
+            .count();
+        if agreed == 0 || agreed < best {
+            continue;
+        }
+        if agreed > best {
+            best = agreed;
+            found.clear();
+        }
+        for id in &info.symbols {
+            if let Some(symbol) = index.symbol(*id) {
+                if symbol.kind == SymbolKind::Module {
+                    found.insert(symbol.name.clone());
+                }
+            }
+        }
+    }
+
+    (found.len() == 1).then(|| found.into_iter().next().expect("checked"))
 }
 
 /// One import statement the plan removes.
@@ -74,11 +421,12 @@ pub struct RemovedImport {
 /// safe when it is not.
 ///
 /// Liveness is decided by name. That is exact for a value or type that must be spelled
-/// where it is used, and wrong for anything a language brings into scope invisibly: a
+/// where it is used, and blind to anything a language brings into scope invisibly: a
 /// Rust trait imported only so its methods resolve, a Python module imported for its
 /// registration side effects under a name that is never mentioned again, a TypeScript
-/// type used only in a JSDoc comment. Check the [`ImportsPlan::removed`] list before
-/// committing.
+/// type used only in a JSDoc comment. Every such form `hold_back_reason` knows about
+/// keeps its import and produces a warning saying which binding and why; check the
+/// [`ImportsPlan::removed`] list before committing all the same.
 pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     let info = index
         .file(file)
@@ -114,7 +462,24 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     let line_index = LineIndex::new(&source);
     let mut warnings = Vec::new();
 
-    let statements = statements(info.imports.iter(), &source, info.language);
+    let mut statements = statements(info.imports.iter(), &source, info.language);
+    // A Go import binds the imported package's package clause. When that package is in
+    // the scan its real name is a fact rather than a guess, so record it as a binding
+    // and stop treating the path as the last word on the subject.
+    if info.language == Language::Go {
+        for statement in &mut statements {
+            if statement.explicit_binding {
+                continue;
+            }
+            if let Some(package) = workspace_package_name(index, &statement.path) {
+                statement.binding_certain = true;
+                if !statement.bindings.contains(&package) {
+                    statement.bindings.push(package);
+                    statement.bindings.sort();
+                }
+            }
+        }
+    }
     if statements.is_empty() {
         return Ok(ImportsPlan {
             file: file.to_path_buf(),
@@ -137,6 +502,9 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         live.insert(reference.name.as_str());
     }
 
+    let parsed = Parsers::new().parse(info.language, &source)?;
+    let invisible = InvisibleUses::collect(info.language, &parsed, &source);
+
     let mut removed = Vec::new();
     let mut drop_statement = vec![false; statements.len()];
     for (i, statement) in statements.iter().enumerate() {
@@ -155,7 +523,10 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
             });
             continue;
         }
-        if statement.bindings.is_empty() {
+        // A Go `import _ "embed"` is the one form that binds nothing on purpose; every
+        // other empty-binding statement either binds nothing (a TypeScript side-effect
+        // import) or defeated the guess, which the language guard below sorts out.
+        if statement.bindings.is_empty() && statement.binding_certain {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
                 file: file.to_path_buf(),
@@ -176,22 +547,16 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         {
             continue;
         }
-        // A Rust trait is brought into scope so its *methods* resolve; the trait's own
-        // name is never spelled at the call site, so name-based liveness cannot see the
-        // use. Removing it leaves a file that still parses but no longer compiles —
-        // which the reparse check cannot catch. Hold these back and say so.
-        if let Some(binding) = trait_shaped_binding(info.language, statement) {
+        // Nothing names it — which for some constructs means nothing *can* name it.
+        // Removing one of those leaves a file that still parses but no longer builds,
+        // which the reparse check cannot catch, so it is kept and reported instead.
+        if let Some(detail) = hold_back_reason(info.language, statement, &invisible) {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
                 file: file.to_path_buf(),
                 line: position.line,
                 col: position.col,
-                detail: format!(
-                    "'{}' binds '{binding}', which nothing names — but a trait is used \
-                     through its methods, never by name, so this is kept. Remove it by \
-                     hand if it really is unused",
-                    statement.path
-                ),
+                detail,
             });
             continue;
         }
@@ -279,7 +644,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 /// rules — so sorting would change what the stylesheet means. The markup and config
 /// languages have no import construct at all, and Bash `source` is an executed
 /// statement rather than a declaration.
-fn organizable(language: Language) -> bool {
+pub fn organizable(language: Language) -> bool {
     matches!(
         language,
         Language::Rust
@@ -305,6 +670,12 @@ struct Statement {
     is_glob: bool,
     /// True when nothing but this statement (and whitespace) is on those lines.
     line_exclusive: bool,
+    /// True when the statement spells its local name out, so [`Statement::bindings`]
+    /// is a reading rather than a guess from the path.
+    explicit_binding: bool,
+    /// True when the bindings are known rather than inferred from the import path.
+    /// Only Go can be uncertain: the binding is the imported package's package clause.
+    binding_certain: bool,
 }
 
 /// Collapse import records into statements, in source order.
@@ -352,6 +723,7 @@ fn statements<'a>(
                     bindings.push(alias.clone());
                 }
             }
+            let explicit_binding = !bindings.is_empty();
             if bindings.is_empty() {
                 bindings.extend(implicit_binding(&records[0].path, language));
             }
@@ -360,13 +732,19 @@ fn statements<'a>(
             bindings.sort();
             bindings.dedup();
 
+            let path = records[0].path.clone();
+            let binding_certain =
+                explicit_binding || language != Language::Go || go_binding_is_certain(&path);
+
             Statement {
                 span,
                 lines,
-                path: records[0].path.clone(),
+                path,
                 bindings,
                 is_glob: records.iter().any(|r| r.is_glob),
                 line_exclusive,
+                explicit_binding,
+                binding_certain,
             }
         })
         .collect()
@@ -374,18 +752,39 @@ fn statements<'a>(
 
 /// The name a whole-module import binds without naming it.
 ///
-/// `use std::fmt;`, `import "os"` and `import os` all bind their last path segment.
+/// The three languages that have such a form disagree about which segment it is.
+/// `use std::fmt;` binds the last one. `import "net/http"` binds the imported package's
+/// package clause, which the path can only suggest — hence the version-suffix and
+/// `gopkg.in` handling here and the certainty check in [`go_binding_is_certain`].
+/// Python's `import a.b` binds `a`, the *first* segment: the statement makes the whole
+/// package reachable, and `b` is only spelled through it.
+///
 /// TypeScript and Zig have no such form: an import with no named binding there is a
 /// side-effect import and binds nothing, so guessing a name from the path would invent
 /// a binding that does not exist.
 fn implicit_binding(path: &str, language: Language) -> Option<String> {
-    if !matches!(language, Language::Rust | Language::Go | Language::Python) {
-        return None;
-    }
-    path.rsplit(['/', ':', '.'])
-        .find(|segment| !segment.is_empty())
-        .filter(|segment| segment.chars().all(|c| c.is_alphanumeric() || c == '_'))
-        .map(|segment| segment.to_string())
+    let segment = match language {
+        Language::Rust => path.rsplit("::").find(|segment| !segment.is_empty())?,
+        Language::Python => path
+            .trim_start_matches('.')
+            .split('.')
+            .find(|segment| !segment.is_empty())?,
+        Language::Go => {
+            let mut segments = path.split('/').filter(|segment| !segment.is_empty());
+            let mut last = segments.next_back()?;
+            // `example.com/mod/v2` is major-version suffixing: the package is `mod`.
+            if last.starts_with('v') && last[1..].chars().all(|c| c.is_ascii_digit()) {
+                last = segments.next_back()?;
+            }
+            // `gopkg.in/yaml.v2` spells the version onto the segment itself.
+            last.split('.').next()?
+        }
+        _ => return None,
+    };
+    (!segment.is_empty()
+        && segment.chars().all(|c| c.is_alphanumeric() || c == '_')
+        && !segment.starts_with(|c: char| c.is_ascii_digit()))
+    .then(|| segment.to_string())
 }
 
 /// Split statements into runs of directly consecutive import lines.
@@ -451,7 +850,18 @@ mod tests {
             implicit_binding("net/http", Language::Go),
             Some("http".into())
         );
-        assert_eq!(implicit_binding("os.path", Language::Python), Some("path".into()));
+        // A major-version suffix is not a package name, and `gopkg.in` writes the
+        // version onto the segment itself.
+        assert_eq!(
+            implicit_binding("example.com/mod/v2", Language::Go),
+            Some("mod".into())
+        );
+        assert_eq!(
+            implicit_binding("gopkg.in/yaml.v2", Language::Go),
+            Some("yaml".into())
+        );
+        // Python's `import a.b` binds `a`; `b` is only ever reached through it.
+        assert_eq!(implicit_binding("os.path", Language::Python), Some("os".into()));
         // A TS side-effect import binds nothing, so no name may be invented for it.
         assert_eq!(implicit_binding("./polyfills", Language::TypeScript), None);
         // A path segment that is not an identifier cannot be a binding.

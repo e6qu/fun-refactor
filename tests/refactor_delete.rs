@@ -316,30 +316,31 @@ fn find_unused_finds_dead_recursive_code() {
 }
 
 #[test]
-fn find_unused_cannot_see_mutual_recursion_between_dead_functions() {
-    // The honest counterpart of the test above: `ping` and `pong` reference each
-    // other, so neither has zero incoming references and neither is reported, even
-    // though the pair is unreachable. This is a documented blind spot.
+fn find_unused_reports_mutual_recursion_as_a_dead_group() {
+    // `ping` and `pong` reference each other, so neither has zero incoming references
+    // and the per-symbol check clears both. Asking the question of the cycle instead —
+    // does anything *outside* it reference a member? — finds the whole component dead.
     let source = "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(!unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
-    assert!(!unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
+    assert!(unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
+    assert!(unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
 }
 
 #[test]
-fn find_unused_lists_live_code_reached_only_by_dynamic_dispatch() {
-    // `on_event` is called through a name-keyed handler table the index cannot see —
-    // the only mention of it is a string literal. Reachability follows resolved edges
-    // only, so this live function is reported as unused. The list is a review list.
+fn find_unused_leaves_out_a_name_a_string_literal_spells() {
+    // `on_event` is called through a name-keyed handler table the index cannot see.
+    // Reachability follows resolved edges only, so nothing leads to it — but the
+    // string is evidence that something might, and a candidate list that invites
+    // deleting live code is worse than one with a stale entry missing from it.
     let source = "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
     assert!(
-        unused.contains(&only_symbol(&index, "on_event")),
-        "the false positive is the documented behaviour: {unused:?}"
+        !unused.contains(&only_symbol(&index, "on_event")),
+        "a name spelled in a string may be reached by reflection: {unused:?}"
     );
 }
 

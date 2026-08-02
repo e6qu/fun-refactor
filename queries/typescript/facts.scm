@@ -377,6 +377,12 @@
 ; clause holds an expression, so its identifier needs its own rule.
 (type_identifier) @reference.type
 
+; `typeof Foo` in a type position names a *value* and reads its type. Without this
+; the catch-all still records the use, but as a plain identifier, which understates
+; what it is — and an import bound only this way looks value-unused.
+(type_query
+  (identifier) @reference.type)
+
 (extends_clause
   value: (identifier) @reference.type)
 

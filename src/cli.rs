@@ -39,6 +39,18 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Show what this tool can do, per language.
+    Capabilities {
+        /// Only this capability, e.g. rename, extract-variable.
+        #[arg(long)]
+        capability: Option<String>,
+        /// Only this language.
+        #[arg(long = "lang")]
+        language: Option<String>,
+        /// Emit the markdown table used in the README.
+        #[arg(long)]
+        markdown: bool,
+    },
     /// Inspect or clear the fact cache.
     Cache {
         /// Delete every cached entry for the current query set.
@@ -184,7 +196,7 @@ enum Command {
         /// The flag's name.
         flag: String,
         /// The value to assume it always had.
-        #[arg(long, default_value = "true")]
+        #[arg(long, action = clap::ArgAction::Set, default_value_t = true)]
         value: bool,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -298,6 +310,11 @@ pub fn run() -> Result<()> {
         .init();
 
     match &cli.command {
+        Command::Capabilities {
+            capability,
+            language,
+            markdown,
+        } => cmd_capabilities(&cli, capability.as_deref(), language.as_deref(), *markdown),
         Command::Cache { clear } => cmd_cache(&cli, *clear),
         Command::Scan { languages } => cmd_scan(&cli, languages),
         Command::Parse { languages, stats } => cmd_parse(&cli, languages, *stats),
@@ -721,8 +738,10 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
     }
     println!("\n{} symbol(s) with no detected use", unused.len());
     println!(
-        "Reachability follows resolved edges only. Dynamic dispatch, reflection and \n\
-         calls through unresolved names are not counted, so this list can name live code."
+        "Reachability follows resolved edges only, so code reached through a trait \n\
+         object, an interface value or a function held in a map can still appear here. \n\
+         Symbols whose name is spelled in any string literal are deliberately left off, \n\
+         since a handler table or a reflective lookup would find them."
     );
     Ok(())
 }
@@ -775,6 +794,18 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: bool, write: bool) -> Result<()
                 round.description,
                 round.files_touched
             );
+        }
+        println!();
+    }
+
+    // A partial cascade is still useful, but only if it says what it left undone.
+    if !plan.unfinished.is_empty() && !cli.json {
+        println!("Left undone:");
+        for item in plan.unfinished.iter().take(20) {
+            println!("  {item}");
+        }
+        if plan.unfinished.len() > 20 {
+            println!("  … and {} more", plan.unfinished.len() - 20);
         }
         println!();
     }
@@ -976,6 +1007,7 @@ fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
                     "declared_line": c.declared_line,
                     "values_path": c.values_path,
                     "values_file": c.values_file,
+                    "conditional_on": c.conditional_on,
                     "reads": c.reads.iter().map(|r| serde_json::json!({
                         "file": r.file,
                         "line": r.line,
@@ -1325,6 +1357,64 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
     }
     Ok(index)
+}
+
+fn cmd_capabilities(
+    cli: &Cli,
+    capability: Option<&str>,
+    language: Option<&str>,
+    markdown: bool,
+) -> Result<()> {
+    use crate::capabilities::{self, Capability};
+
+    if markdown {
+        print!("{}", capabilities::render_markdown());
+        return Ok(());
+    }
+
+    let wanted_language = match language {
+        Some(name) => Some(resolve_languages(&[name.to_string()])?[0]),
+        None => None,
+    };
+    let rows: Vec<_> = capabilities::matrix()
+        .into_iter()
+        .filter(|r| capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c))
+        .collect();
+
+    if rows.is_empty() {
+        let known: Vec<_> = Capability::ALL.iter().map(|c| c.as_str()).collect();
+        anyhow::bail!(
+            "unknown capability. Known: {}",
+            known.join(", ")
+        );
+    }
+
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&rows)?);
+        return Ok(());
+    }
+
+    for row in &rows {
+        println!("{}  ({})", row.capability, row.command);
+        for (name, support) in &row.languages {
+            if wanted_language.is_some_and(|l| l.name() != *name) {
+                continue;
+            }
+            match support.reason() {
+                Some(why) => println!("  {:<4} {:<11} {why}", support.mark(), name),
+                None => println!("  {:<4} {name}", support.mark()),
+            }
+        }
+        println!();
+    }
+
+    let (yes, not_applicable, refused) = capabilities::totals();
+    println!(
+        "{yes} supported, {not_applicable} not applicable, {refused} refused \n\
+         (of {} capability x language pairs)",
+        yes + not_applicable + refused
+    );
+    Ok(())
 }
 
 fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {

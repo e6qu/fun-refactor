@@ -10,14 +10,20 @@
 //! prove refers to the same variable a manifest declares. So every chain carries
 //! [`Confidence::NameOnly`] on that hop and says so, rather than presenting a guess
 //! as a fact.
+//!
+//! The manifest end of the chain is read with [`crate::helm`]: the `.Values` path
+//! behind a variable lives inside a `{{ ... }}` action, which is masked out before
+//! the YAML parse, and a `{{ if }}` around the `value:` decides whether that branch
+//! is the one that renders. Both are parsed rather than matched by line number.
 
+use crate::helm;
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Confidence, SymbolKind};
+use crate::model::{Confidence, Symbol, SymbolKind};
 use crate::parse::Parsers;
-use crate::span::LineIndex;
+use crate::span::{LineIndex, Span};
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// One end-to-end route from configuration into code.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +37,12 @@ pub struct Chain {
     pub values_path: Option<Vec<String>>,
     /// Where that path is defined in a values file, when it is.
     pub values_file: Option<PathBuf>,
+    /// The template conditional the declaration sits under, when it sits under one.
+    ///
+    /// A `{{ if }}`-guarded `value:` is one branch of several, so the chain holds
+    /// only when its condition does. Two branches produce two chains for the same
+    /// variable, each naming its own condition, rather than one that silently picks.
+    pub conditional_on: Option<String>,
     /// Every place the program reads the variable.
     pub reads: Vec<EnvRead>,
 }
@@ -86,6 +98,7 @@ pub fn chains(index: &Index) -> Result<Vec<Chain>> {
             declared_line: declaration.line,
             values_path: declaration.values_path,
             values_file,
+            conditional_on: declaration.conditional_on,
             reads: matching,
         });
     }
@@ -109,13 +122,14 @@ struct Declaration {
     file: PathBuf,
     line: usize,
     values_path: Option<Vec<String>>,
+    conditional_on: Option<String>,
 }
 
 /// Environment variables declared in Helm templates and plain manifests.
 ///
 /// The shape looked for is the Kubernetes one: a `name`/`value` pair inside an `env`
-/// sequence. `name` gives the variable, and a template action overlapping `value`
-/// gives the `.Values` path behind it.
+/// sequence. `name` gives the variable, and the template actions written after the
+/// sibling `value:` give the `.Values` path behind it.
 fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
     let parsers = Parsers::new();
     let mut found = Vec::new();
@@ -128,9 +142,10 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
             continue;
         };
         let parsed = parsers.parse(info.language, &source)?;
+        let template = helm::Template::of(&source, &parsed);
         let line_index = LineIndex::new(&source);
 
-        let keys: Vec<&crate::model::Symbol> = info
+        let keys: Vec<&Symbol> = info
             .symbols
             .iter()
             .filter_map(|id| index.symbol(*id))
@@ -148,44 +163,97 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
             if variable.is_empty() {
                 continue;
             }
+            let line = line_index.line_col(name_key.name_span.start, &source).line;
 
-            // The sibling `value` key, if this entry has a literal or templated one.
-            let sibling = keys
-                .iter()
-                .filter(|s| s.name == "value" && s.qualifier == name_key.qualifier)
-                .min_by_key(|s| s.full_span.start.abs_diff(name_key.full_span.end));
+            let values = value_keys(&keys, name_key, source.len());
+            if values.is_empty() {
+                // `valueFrom:`, or a variable whose value the manifest does not set.
+                found.push(Declaration {
+                    name: variable,
+                    file: path.clone(),
+                    line,
+                    values_path: None,
+                    conditional_on: describe(&template.conditions_at(name_key.name_span.start)),
+                });
+                continue;
+            }
 
-            // A `value:` whose entire content is a template action parses as a key
-            // with a null value, so its span stops before the action. Match on the
-            // line instead, which is where the action actually sits.
-            let values_path = sibling.and_then(|value_key| {
-                let key_line = line_index.line_col(value_key.name_span.start, &source).line;
-                parsed
-                    .template_actions
-                    .iter()
-                    .find(|action| {
-                        line_index.line_col(action.start, &source).line == key_line
-                    })
-                    .and_then(|action| {
-                        crate::analysis::provenance::values_paths_in(action.text(&source))
-                            .into_iter()
-                            .next()
-                    })
-            });
-
-            found.push(Declaration {
-                name: variable,
-                file: path.clone(),
-                line: line_index.line_col(name_key.name_span.start, &source).line,
-                values_path,
-            });
+            // Each `value:` is a branch: `{{ if }}` around one of them means this
+            // entry has several possible values, and which renders is the template's
+            // decision. Every branch is reported, with the condition that selects it.
+            for value_key in values {
+                found.push(Declaration {
+                    name: variable.clone(),
+                    file: path.clone(),
+                    line,
+                    values_path: templated_values_path(&template, &line_index, &source, value_key),
+                    conditional_on: describe(&template.conditions_at(value_key.name_span.start)),
+                });
+            }
         }
     }
     Ok(found)
 }
 
+/// The `value:` keys belonging to one `name:` entry of an `env:` list.
+///
+/// A list item is not its own container in the index, so the entry is bounded by
+/// the next `name:` key at the same level instead.
+fn value_keys<'a>(keys: &[&'a Symbol], name_key: &Symbol, end_of_file: usize) -> Vec<&'a Symbol> {
+    let next_entry = keys
+        .iter()
+        .filter(|s| s.name == "name" && s.qualifier == name_key.qualifier)
+        .map(|s| s.full_span.start)
+        .filter(|start| *start > name_key.full_span.start)
+        .min()
+        .unwrap_or(end_of_file);
+    keys.iter()
+        .copied()
+        .filter(|s| s.name == "value" && s.qualifier == name_key.qualifier)
+        .filter(|s| s.full_span.start >= name_key.full_span.end && s.full_span.start < next_entry)
+        .collect()
+}
+
+/// The `.Values` path a `value:` takes its content from.
+///
+/// A `value:` whose whole content is a template action parses as a key with a null
+/// value — its span stops at the colon, because the action's bytes are masked. The
+/// path therefore comes from the actions written after the key, on its own line.
+fn templated_values_path(
+    template: &helm::Template,
+    lines: &LineIndex,
+    source: &str,
+    value_key: &Symbol,
+) -> Option<Vec<String>> {
+    let line = lines.line_col(value_key.name_span.start, source).line;
+    let line_span = lines.line_span(line)?;
+    let after_key = Span::new(
+        value_key.name_span.end,
+        line_span.end.max(value_key.name_span.end),
+    );
+    template
+        .actions_in(after_key)
+        .into_iter()
+        // A control action on the line decides which text renders; it does not
+        // supply the value itself.
+        .filter(|(_, action)| action.kind.opens_region().is_none())
+        .flat_map(|(index, _)| template.values_paths_of(index))
+        .next()
+}
+
+/// The conditions guarding a point, as one phrase.
+fn describe(guards: &[helm::Guard]) -> Option<String> {
+    (!guards.is_empty()).then(|| {
+        guards
+            .iter()
+            .map(helm::Guard::describe)
+            .collect::<Vec<_>>()
+            .join(" and ")
+    })
+}
+
 /// Is this key inside an `env:` sequence?
-fn under_env_list(keys: &[&crate::model::Symbol], key: &crate::model::Symbol) -> bool {
+fn under_env_list(keys: &[&Symbol], key: &Symbol) -> bool {
     // The extractor qualifies a nested key by its parent, and an `env:` list's
     // entries qualify as `env`. Fall back to an ancestor search for deeper shapes.
     if key.qualifier.as_deref() == Some("env") {
@@ -206,7 +274,7 @@ fn under_env_list(keys: &[&crate::model::Symbol], key: &crate::model::Symbol) ->
 }
 
 /// The scalar written after a key's colon.
-fn value_of(key: &crate::model::Symbol, source: &str) -> Option<String> {
+fn value_of(key: &Symbol, source: &str) -> Option<String> {
     let pair = key.full_span.text(source);
     let after = pair.find(':').map(|i| &pair[i + 1..])?;
     Some(
@@ -221,7 +289,7 @@ fn value_of(key: &crate::model::Symbol, source: &str) -> Option<String> {
 }
 
 /// The values file defining a `.Values` path, searched from the template outwards.
-fn values_file_defining(index: &Index, template: &PathBuf, path: &[String]) -> Option<PathBuf> {
+fn values_file_defining(index: &Index, template: &Path, path: &[String]) -> Option<PathBuf> {
     let leaf = path.last()?;
     let mut dir = template.parent();
     while let Some(current) = dir {
@@ -358,6 +426,9 @@ pub fn format_chains(chains: &[Chain]) -> String {
             chain.declared_in.display(),
             chain.declared_line
         ));
+        if let Some(condition) = &chain.conditional_on {
+            out.push_str(&format!("  only  when `{condition}` renders\n"));
+        }
         if chain.reads.is_empty() {
             out.push_str("  read  nothing in this workspace reads it\n");
         }

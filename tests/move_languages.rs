@@ -1052,10 +1052,11 @@ fn python_move_adds_a_relative_import() {
 
 #[test]
 fn languages_with_no_derivable_move_are_refused_by_name() {
+    // Zig, Bash and YAML gained moves; markup did not, and cannot: a document does
+    // not import another's elements, so a moved element has no reference to update.
     for (source, destination, code) in [
-        ("a.zig", "b.zig", "pub fn thing() void {}\n"),
-        ("a.sh", "b.sh", "thing() {\n  echo hi\n}\n"),
-        ("a.yaml", "b.yaml", "thing: 1\n"),
+        ("a.html", "b.html", "<div id=\"thing\">x</div>\n"),
+        ("a.xml", "b.xml", "<root><item id=\"thing\"/></root>\n"),
     ] {
         let ws = Workspace::new(&[(source, code), (destination, "\n")]);
         let index = ws.index();

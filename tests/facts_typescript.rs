@@ -737,3 +737,19 @@ fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
     assert_eq!(named(&f, "inBlock").len(), 1);
     assert!(named(&f, "inCase").is_empty());
 }
+
+#[test]
+fn a_typeof_type_query_names_the_value_it_reads() {
+    // `typeof Foo` reads a *value's* type. The catch-all identifier pattern already
+    // recorded the use, but as a plain identifier, which understates it — and an
+    // import bound only this way looks value-unused.
+    let src = "const Foo = { a: 1 };\nlet x: typeof Foo;\n";
+    let f = facts(Language::TypeScript, src);
+    let uses: Vec<_> = f
+        .references
+        .iter()
+        .filter(|r| r.name == "Foo")
+        .collect();
+    assert_eq!(uses.len(), 1, "got {uses:?}");
+    assert_eq!(uses[0].kind, ReferenceKind::Type);
+}

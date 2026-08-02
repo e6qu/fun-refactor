@@ -303,24 +303,22 @@ call sites. ‡ SCSS: mixin parameters.
 
 ## Progress log
 
-Every stage is complete except the optional LSP delegation backend.
+Every stage is complete except the optional LSP delegation backend, and every
+capability a language can meaningfully support is built: **201 of 285 capability ×
+language pairs supported, 84 not applicable, none refused.**
 
-The 27 matrix cells recorded as outstanding above have been built, with two
-resolved as genuinely inapplicable rather than implemented:
+The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
+asking each refactoring's own predicate, `fr capabilities` prints it with the reason
+attached to every non-supported cell, and a test asserts the README matches. That
+exists because the hand-written version drifted twice — once hiding 27 unbuilt cells,
+once publishing six working ones as refused.
 
-- **Organize imports for CSS/SCSS** — `@import` order is semantic: a later import's
-  rules beat an earlier one's in the cascade, and `@import` must precede all other
-  rules. Sorting or removing them changes which styles apply, so the operation is
-  refused with that explanation. The plan's cell was wrong.
-- **Entry points for CSS/SCSS** — a stylesheet has no entry point in any sense the
-  catalog models; the plan already marked this `—`.
-
-One limitation was removed at its root rather than worked around: SCSS now has its
-own grammar (`tree-sitter-scss`), so `$variables`, `@mixin`, `@include` and `@use`
-parse instead of erroring. That closed BUGS.md B1 and unblocked the SCSS cells that
-depended on it.
+Open limitations are in BUGS.md. All four are characterised rather than silent, and
+none is a missing feature: reachability under dynamic dispatch (inherent), Helm
+values passed on a command line (invisible to a workspace scan), three SCSS forms the
+grammar does not cover (upstream), and deep Terraform index traversals.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `rewrite`,
 `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
-`entrypoints`, `cache`.
+`entrypoints`, `capabilities`, `cache`.
