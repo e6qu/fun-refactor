@@ -8,11 +8,13 @@
 use super::Refusal;
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
+use crate::lang::Language;
 use crate::model::{Confidence, SymbolId, SymbolKind};
-use crate::parse::Parsers;
+use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
 use std::path::PathBuf;
+use tree_sitter::Node;
 
 /// An inline worked out but not applied.
 #[derive(Debug)]
@@ -30,6 +32,20 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+
+    // The config languages name values through their own constructs; each has its own
+    // inliner, mirroring the extraction that produced it.
+    match (sym.language, sym.kind) {
+        (Language::Hcl, SymbolKind::Variable) => return hcl_local(index, symbol),
+        (Language::Yaml | Language::Helm, SymbolKind::Anchor) => {
+            return yaml_anchor(index, symbol)
+        }
+        (Language::Css | Language::Scss, SymbolKind::Property) => {
+            return css_custom_property(index, symbol)
+        }
+        (Language::Markdown, SymbolKind::LinkDef) => return markdown_link_definition(index, symbol),
+        _ => {}
+    }
 
     if !matches!(sym.kind, SymbolKind::Variable | SymbolKind::Constant) {
         anyhow::bail!(
@@ -316,7 +332,8 @@ mod tests {
     #[test]
     fn refuses_non_variables() {
         let src = "fn helper() {}\nfn f() { helper(); }\n";
-        let (tmp, index) = workspace(&[("a.rs", src)]);
+        // The temp dir is bound so it outlives the index that points into it.
+        let (_tmp, index) = workspace(&[("a.rs", src)]);
         let id = index.find_symbols("helper", None)[0].id;
 
         let err = variable(&index, id).unwrap_err().to_string();
@@ -544,10 +561,7 @@ fn single_expression_body<'a>(
         }
         // A statement kind we do not recognise cannot be reduced to one expression.
         let mut inner = node.walk();
-        let Some(next) = node.named_children(&mut inner).next() else {
-            return None;
-        };
-        node = next;
+        node = node.named_children(&mut inner).next()?;
     }
 
     // Anything still statement-shaped is not a single expression.
@@ -700,6 +714,662 @@ fn needs_parentheses(expansion: &str) -> bool {
     if trimmed.starts_with('(') && trimmed.ends_with(')') {
         return false;
     }
-    // Anything containing an operator could re-associate with its surroundings.
-    trimmed.contains(|c| matches!(c, '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '&' | '|'))
+    // An operator that is not already inside brackets could re-associate with the
+    // expression the call site sits in.
+    needs_grouping(trimmed)
+}
+
+// ------------------------------------------------------- config languages
+//
+// Each of these is the exact inverse of the corresponding extraction: substitute the
+// named value at every use site and delete the declaration, including the container
+// the extraction created when nothing else is left in it. Everything else in the file
+// keeps its bytes.
+
+/// The node whose byte range is exactly, or most closely, the given span.
+fn node_covering<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
+    parsed.root().descendant_for_byte_range(span.start, span.end)
+}
+
+/// The innermost ancestor of `node` (or `node` itself) with this kind.
+fn ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut current = node;
+    loop {
+        if current.kind() == kind {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+fn named_children_of_kind<'a>(node: Node<'a>, kind: &str) -> Vec<Node<'a>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|c| c.kind() == kind)
+        .collect()
+}
+
+/// The span to delete for a construct that owns whole lines: the lines it covers,
+/// plus the blank lines directly after it.
+///
+/// This is what makes an extraction reversible — the blank line an extraction wrote
+/// to separate its new block from the rest of the file goes away with the block.
+fn block_removal_span(source: &str, inner: Span) -> Span {
+    let first = full_line_span(source, inner.start);
+    let last_offset = inner.end.saturating_sub(1).max(inner.start);
+    let last = full_line_span(source, last_offset);
+
+    // Only take whole lines when the construct really has them to itself.
+    if !source[first.start..inner.start].trim().is_empty()
+        || !source[inner.end.min(source.len())..last.end.min(source.len())]
+            .trim()
+            .is_empty()
+    {
+        return inner;
+    }
+
+    let mut end = last.end;
+    while end < source.len() {
+        let line = full_line_span(source, end);
+        if line.end <= end || !line.text(source).trim().is_empty() {
+            break;
+        }
+        end = line.end;
+    }
+    Span::new(first.start, end)
+}
+
+/// The span to delete for a construct sharing its line with other code: itself, plus
+/// the whitespace directly before it so no double space is left behind.
+fn tight_removal_span(source: &str, inner: Span) -> Span {
+    let line = full_line_span(source, inner.start);
+    if source[line.start..inner.start].trim().is_empty()
+        && source[inner.end.min(source.len())..line.end.min(source.len())]
+            .trim()
+            .is_empty()
+    {
+        return line;
+    }
+    let mut start = inner.start;
+    while start > 0 && matches!(source.as_bytes()[start - 1], b' ' | b'\t') {
+        start -= 1;
+    }
+    Span::new(start, inner.end)
+}
+
+/// Does substituting this text into a larger expression need parentheses to keep its
+/// meaning? True when it contains an operator that could re-associate.
+fn needs_grouping(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    let mut depth = 0i32;
+    let mut quote: Option<u8> = None;
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        match quote {
+            Some(q) => {
+                if b == b'\\' {
+                    i += 1;
+                } else if b == q {
+                    quote = None;
+                }
+            }
+            None => match b {
+                b'"' | b'\'' => quote = Some(b),
+                b'(' | b'[' | b'{' => depth += 1,
+                b')' | b']' | b'}' => depth -= 1,
+                b'+' | b'-' | b'*' | b'/' | b'%' | b'?' | b'<' | b'>' | b'=' | b'&' | b'|'
+                    if depth == 0 =>
+                {
+                    return true;
+                }
+                _ => {}
+            },
+        }
+        i += 1;
+    }
+    false
+}
+
+// ------------------------------------------------------------ Terraform / HCL
+
+/// Inline a `locals` entry: substitute its expression at every `local.<name>` and
+/// delete the entry, taking the `locals` block with it when it becomes empty.
+fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
+    let sym = index
+        .symbol(symbol)
+        .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(sym.language, &source)?;
+
+    let node = node_covering(&parsed, sym.full_span)
+        .ok_or_else(|| anyhow::anyhow!("could not locate the declaration of '{}'", sym.name))?;
+    let attribute = ancestor_of_kind(node, "attribute")
+        .filter(|a| Span::from(*a) == sym.full_span)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "'{}' is a `{}` block, not a `locals` entry. A module input is part of the \
+                 module's call surface; changing it is a signature change, not an inline",
+                sym.name,
+                sym.full_span
+                    .text(&source)
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("block")
+            )
+        })?;
+    let locals = ancestor_of_kind(attribute, "block")
+        .filter(|b| {
+            b.named_child(0)
+                .is_some_and(|c| Span::from(c).text(&source) == "locals")
+        })
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "'{}' is not declared in a `locals` block, so there is no `local.{}` to \
+                 substitute",
+                sym.name,
+                sym.name
+            )
+        })?;
+
+    let value = named_children_of_kind(attribute, "expression")
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("'{}' has no value to inline", sym.name))?;
+    let value_text = Span::from(value).text(&source).to_string();
+
+    let references = index.references_to(symbol);
+    if references.is_empty() {
+        anyhow::bail!(
+            "local.{} has no uses; inlining would only delete it — use `fr delete` if \
+             that is the intent",
+            sym.name
+        );
+    }
+    for reference in &references {
+        if !reference.confidence.is_safe_to_rewrite() {
+            return Err(Refusal::TooWeak {
+                confidence: reference.confidence,
+                detail: format!(
+                    "a use of local.{} at {}:{} did not resolve conclusively — the \
+                     module declares more than one thing by that name",
+                    sym.name,
+                    reference.file.display(),
+                    LineIndex::new(&source)
+                        .line_col(reference.span.start, &source)
+                        .line
+                ),
+            }
+            .into());
+        }
+    }
+
+    // A local belongs to one module, which in Terraform is one directory. A use of the
+    // same name from another directory is a different module's business and this tool
+    // has no way to tell whether it was meant to be this value.
+    let foreign = hcl_foreign_local_uses(index, &sym.file, &sym.name);
+    if !foreign.is_empty() {
+        anyhow::bail!(
+            "`local.{}` is also used in {}, which is a different Terraform module \
+             directory. Locals are module-scoped, so those uses cannot be rewritten \
+             from here and would be left naming a local that no longer exists",
+            sym.name,
+            foreign
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+
+    let mut edits = EditSet::new();
+    // A module spans several files, so each use site is read and parsed in its own.
+    let mut per_file: std::collections::HashMap<PathBuf, (String, Parsed)> =
+        std::collections::HashMap::new();
+    for reference in &references {
+        let site = match per_file.entry(reference.file.clone()) {
+            std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
+            std::collections::hash_map::Entry::Vacant(e) => {
+                let text = std::fs::read_to_string(&reference.file)?;
+                let tree = Parsers::new().parse(reference.language, &text)?;
+                e.insert((text, tree))
+            }
+        };
+        let (site_source, site_parsed) = (&site.0, &site.1);
+
+        let prefix_start = reference
+            .span
+            .start
+            .checked_sub("local.".len())
+            .filter(|start| &site_source[*start..reference.span.start] == "local.")
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "a use of '{}' at {} byte {} is not written as `local.{}`; refusing \
+                     to guess what it meant",
+                    sym.name,
+                    reference.file.display(),
+                    reference.span.start,
+                    sym.name
+                )
+            })?;
+        let traversal = Span::new(prefix_start, reference.span.end);
+
+        // `local.x.attr` reads an attribute off the local; substituting a value that
+        // has no such attribute would produce a configuration that does not evaluate.
+        if let Some(next) = site_source[traversal.end..].chars().next() {
+            if next == '.' || next == '[' {
+                anyhow::bail!(
+                    "`local.{}` at byte {} is read further with `{}`; inlining the value \
+                     underneath an attribute or index read is not supported",
+                    sym.name,
+                    traversal.start,
+                    next
+                );
+            }
+        }
+
+        // Terraform has no operator precedence rescue: an inlined sum inside a product
+        // would bind differently, so it is grouped when it is not the whole expression.
+        let enclosing = node_covering(site_parsed, traversal)
+            .and_then(|n| ancestor_of_kind(n, "expression"))
+            .map(Span::from);
+        let replacement = if needs_grouping(&value_text) && enclosing != Some(traversal) {
+            format!("({value_text})")
+        } else {
+            value_text.clone()
+        };
+
+        edits.add(
+            reference.file.clone(),
+            Edit::new(traversal, replacement, format!("inline local.{}", sym.name)),
+        );
+    }
+
+    // The `locals` block an extraction created goes away with its last entry.
+    let siblings = ancestor_of_kind(attribute, "body")
+        .map(|body| named_children_of_kind(body, "attribute").len())
+        .unwrap_or(1);
+    let removal = if siblings <= 1 {
+        block_removal_span(&source, Span::from(locals))
+    } else {
+        tight_removal_span(&source, sym.full_span)
+    };
+    edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("remove local.{}", sym.name)),
+    );
+
+    Ok(InlinePlan {
+        name: sym.name.clone(),
+        value: value_text,
+        edits,
+        use_sites: references.len(),
+    })
+}
+
+/// `.tf` files in other directories that spell `local.<name>`.
+fn hcl_foreign_local_uses(index: &Index, file: &std::path::Path, name: &str) -> Vec<PathBuf> {
+    let dir = file.parent();
+    let mut sources: std::collections::HashMap<PathBuf, String> = std::collections::HashMap::new();
+    let mut out: Vec<PathBuf> = Vec::new();
+
+    for reference in &index.references {
+        if reference.language != Language::Hcl
+            || reference.name != name
+            || reference.file.parent() == dir
+        {
+            continue;
+        }
+        let text = sources
+            .entry(reference.file.clone())
+            .or_insert_with(|| std::fs::read_to_string(&reference.file).unwrap_or_default());
+        if reference.span.start >= "local.".len()
+            && text.get(reference.span.start - "local.".len()..reference.span.start)
+                == Some("local.")
+            && !out.contains(&reference.file)
+        {
+            out.push(reference.file.clone());
+        }
+    }
+    out.sort();
+    out
+}
+
+// ------------------------------------------------------------------ Helm / YAML
+
+/// Inline a YAML anchor: substitute its value at every `*alias` and drop the `&name`.
+fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
+    let sym = index
+        .symbol(symbol)
+        .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(sym.language, &source)?;
+
+    let node = node_covering(&parsed, sym.full_span)
+        .ok_or_else(|| anyhow::anyhow!("could not locate the anchor '&{}'", sym.name))?;
+    let anchor = named_children_of_kind(node, "anchor")
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("'&{}' is not an anchor node", sym.name))?;
+
+    let mut value_start = anchor.end_byte();
+    while value_start < sym.full_span.end
+        && source.as_bytes()[value_start].is_ascii_whitespace()
+    {
+        value_start += 1;
+    }
+    if value_start >= sym.full_span.end {
+        anyhow::bail!(
+            "'&{}' anchors an empty node, so there is nothing to inline",
+            sym.name
+        );
+    }
+    let value_text = source[value_start..sym.full_span.end].trim_end().to_string();
+    if value_text.contains('\n') {
+        anyhow::bail!(
+            "'&{}' anchors a block collection spanning several lines. Substituting it \
+             at an alias would have to re-indent the spliced lines to each alias's \
+             depth, which would not be a byte-preserving edit; only anchors on a \
+             single-line value can be inlined",
+            sym.name
+        );
+    }
+
+    let references = index.references_to(symbol);
+    if references.is_empty() {
+        anyhow::bail!(
+            "'&{}' has no aliases; inlining would only delete the anchor",
+            sym.name
+        );
+    }
+    if let Some(elsewhere) = references.iter().find(|r| r.file != sym.file) {
+        anyhow::bail!(
+            "'*{}' is used in {}, but a YAML anchor is only visible inside the document \
+             that declares it; that use names something else",
+            sym.name,
+            elsewhere.file.display()
+        );
+    }
+
+    let mut edits = EditSet::new();
+    for reference in &references {
+        let start = reference
+            .span
+            .start
+            .checked_sub(1)
+            .filter(|s| source.as_bytes()[*s] == b'*')
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "a use of '{}' at byte {} is not written as an alias",
+                    sym.name,
+                    reference.span.start
+                )
+            })?;
+        // `<<: *name` splices a mapping in; a scalar cannot be merged.
+        let line = full_line_span(&source, start);
+        if line.text(&source).trim_start().starts_with("<<:") {
+            anyhow::bail!(
+                "'*{}' is used as a merge key (`<<:`), which requires a mapping; the \
+                 anchored value is a scalar, so the merge cannot be inlined",
+                sym.name
+            );
+        }
+        edits.add(
+            reference.file.clone(),
+            Edit::new(
+                Span::new(start, reference.span.end),
+                value_text.clone(),
+                format!("inline *{}", sym.name),
+            ),
+        );
+    }
+
+    edits.add(
+        sym.file.clone(),
+        Edit::new(
+            Span::new(sym.full_span.start, value_start),
+            "",
+            format!("remove anchor &{}", sym.name),
+        ),
+    );
+
+    Ok(InlinePlan {
+        name: sym.name.clone(),
+        value: value_text,
+        edits,
+        use_sites: references.len(),
+    })
+}
+
+// ---------------------------------------------------------------------- CSS/SCSS
+
+/// Inline a custom property: substitute its value at every `var(--name)` and delete
+/// the declaration, taking an emptied rule with it.
+fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
+    let sym = index
+        .symbol(symbol)
+        .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+
+    // A custom property redeclared per scope has a different value at each use site;
+    // one substitution would be wrong at all but one of them.
+    let group = index.definition_group(symbol);
+    if group.len() > 1 {
+        let sites: Vec<String> = group
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .map(|s| s.file.display().to_string())
+            .collect();
+        anyhow::bail!(
+            "'{}' is declared {} times ({}); which declaration wins at a given use site \
+             is a cascade question, so inlining one value everywhere would change meaning",
+            sym.name,
+            group.len(),
+            sites.join(", ")
+        );
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(sym.language, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} does not parse cleanly under the CSS grammar{}; the declaration cannot \
+             be located reliably",
+            sym.file.display(),
+            if sym.language == Language::Scss {
+                " — which is the only grammar available for SCSS here, so SCSS-only \
+                 syntax such as `$variables`, `@mixin` and `@use` is not understood"
+            } else {
+                ""
+            }
+        );
+    }
+
+    let declaration = node_covering(&parsed, sym.full_span)
+        .and_then(|n| ancestor_of_kind(n, "declaration"))
+        .ok_or_else(|| anyhow::anyhow!("could not locate the declaration of '{}'", sym.name))?;
+    let value_span = css_declaration_value_span(declaration).ok_or_else(|| {
+        anyhow::anyhow!("'{}' has no value, so there is nothing to inline", sym.name)
+    })?;
+    let value_text = value_span.text(&source).to_string();
+
+    let references = index.references_to(symbol);
+    if references.is_empty() {
+        anyhow::bail!(
+            "'{}' has no `var()` uses; inlining would only delete it — use `fr delete` \
+             if that is the intent",
+            sym.name
+        );
+    }
+
+    let mut edits = EditSet::new();
+    let mut parsed_cache: std::collections::HashMap<PathBuf, (String, Parsed)> =
+        std::collections::HashMap::new();
+    for reference in &references {
+        let entry = match parsed_cache.entry(reference.file.clone()) {
+            std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
+            std::collections::hash_map::Entry::Vacant(e) => {
+                let text = std::fs::read_to_string(&reference.file)?;
+                let tree = Parsers::new().parse(reference.language, &text)?;
+                e.insert((text, tree))
+            }
+        };
+        let call = node_covering(&entry.1, reference.span)
+            .and_then(|n| ancestor_of_kind(n, "call_expression"))
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "a use of '{}' at {}:{} is not inside a `var()` call",
+                    sym.name,
+                    reference.file.display(),
+                    reference.span.start
+                )
+            })?;
+        edits.add(
+            reference.file.clone(),
+            Edit::new(
+                Span::from(call),
+                value_text.clone(),
+                format!("inline {}", sym.name),
+            ),
+        );
+    }
+
+    // A `:root` rule an extraction created goes away with its last declaration.
+    let block = declaration.parent().filter(|p| p.kind() == "block");
+    let siblings = block
+        .map(|b| {
+            let mut cursor = b.walk();
+            b.named_children(&mut cursor)
+                .filter(|c| !c.kind().contains("comment"))
+                .count()
+        })
+        .unwrap_or(2);
+    let removal = if siblings <= 1 {
+        match block.and_then(|b| b.parent()) {
+            Some(rule) => block_removal_span(&source, Span::from(rule)),
+            None => tight_removal_span(&source, sym.full_span),
+        }
+    } else {
+        tight_removal_span(&source, sym.full_span)
+    };
+    edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("remove {}", sym.name)),
+    );
+
+    Ok(InlinePlan {
+        name: sym.name.clone(),
+        value: value_text,
+        edits,
+        use_sites: references.len(),
+    })
+}
+
+/// The value part of a declaration: everything after the property name and the colon,
+/// with the trailing semicolon left out.
+fn css_declaration_value_span(declaration: Node<'_>) -> Option<Span> {
+    let mut cursor = declaration.walk();
+    let values: Vec<Node> = declaration
+        .named_children(&mut cursor)
+        .filter(|c| c.kind() != "property_name" && !c.kind().contains("comment"))
+        .collect();
+    let first = values.first()?;
+    let last = values.last()?;
+    Some(Span::new(first.start_byte(), last.end_byte()))
+}
+
+// ---------------------------------------------------------------------- Markdown
+
+/// Inline a link reference definition: rewrite every reference link as an inline link
+/// and delete the definition.
+fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
+    let sym = index
+        .symbol(symbol)
+        .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(sym.language, &source)?;
+
+    let definition = node_covering(&parsed, sym.full_span)
+        .and_then(|n| ancestor_of_kind(n, "link_reference_definition"))
+        .ok_or_else(|| anyhow::anyhow!("could not locate the definition of '[{}]'", sym.name))?;
+    let destination_node = named_children_of_kind(definition, "link_destination")
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("'[{}]' has no destination", sym.name))?;
+    // Anything after the destination is the optional title, which belongs with it.
+    let destination = source[destination_node.start_byte()..definition.end_byte()]
+        .trim()
+        .to_string();
+
+    let references = index.references_to(symbol);
+    if references.is_empty() {
+        anyhow::bail!(
+            "'[{}]' has no reference links; inlining would only delete it — use \
+             `fr delete` if that is the intent",
+            sym.name
+        );
+    }
+    if let Some(elsewhere) = references.iter().find(|r| r.file != sym.file) {
+        anyhow::bail!(
+            "'[{}]' is used in {}, but a link reference definition only applies to the \
+             document that contains it; that use resolves to nothing there",
+            sym.name,
+            elsewhere.file.display()
+        );
+    }
+
+    let mut edits = EditSet::new();
+    for reference in &references {
+        let link = node_covering(&parsed, reference.span)
+            .and_then(|n| ancestor_of_kind(n, "link"))
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "a use of '[{}]' at byte {} is not a link",
+                    sym.name,
+                    reference.span.start
+                )
+            })?;
+        let text = named_children_of_kind(link, "link_text")
+            .into_iter()
+            .next()
+            .map(|t| Span::from(t).text(&source).to_string())
+            .unwrap_or_else(|| sym.name.clone());
+        edits.add(
+            reference.file.clone(),
+            Edit::new(
+                Span::from(link),
+                format!("[{text}]({destination})"),
+                format!("inline [{}]", sym.name),
+            ),
+        );
+    }
+
+    edits.add(
+        sym.file.clone(),
+        Edit::new(
+            markdown_definition_removal(&source, Span::from(definition)),
+            "",
+            format!("remove [{}]", sym.name),
+        ),
+    );
+
+    Ok(InlinePlan {
+        name: sym.name.clone(),
+        value: destination,
+        edits,
+        use_sites: references.len(),
+    })
+}
+
+/// The lines a link reference definition occupies, plus the blank line before it when
+/// it is the last thing in the document — the separator an extraction wrote.
+fn markdown_definition_removal(source: &str, definition: Span) -> Span {
+    let line = full_line_span(source, definition.start);
+    let mut start = line.start;
+    if line.end >= source.len() && start > 0 {
+        let previous = full_line_span(source, start - 1);
+        if previous.text(source).trim().is_empty() {
+            start = previous.start;
+        }
+    }
+    Span::new(start, line.end)
 }

@@ -6,11 +6,6 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
 ## Open
 
-- [ ] B1: SCSS is parsed with the plain CSS grammar, so SCSS-only syntax (`$vars`,
-  `@mixin`, nesting) is reported as parse errors — `src/parse.rs`. The grammar set
-  inherited from funveil has no SCSS grammar. Surfaced honestly (never silently
-  mis-parsed) and covered by a test that asserts the errors appear. Fix requires adding
-  an SCSS grammar; blocks full SCSS support in Stages 2/5/6.
 - [ ] B2: Helm template masking makes `{{ ... }}` invisible to the YAML grammar, so a
   template action occupying a structural position (e.g. a whole `{{- if }}` block
   wrapping map keys) yields a YAML tree that does not reflect any single rendering —
@@ -18,6 +13,12 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
   structure must be reported as unresolved rather than guessed (D5).
 
 ## Fixed
+
+- [x] B1: SCSS was parsed with the plain CSS grammar, so `$variables`, `@mixin`,
+  `@include` and `@use` were all parse errors. Fixed at the root by adding the
+  `tree-sitter-scss` grammar and routing `Language::Scss` to it. CSS and SCSS are
+  genuinely different languages and now get different grammars; a test asserts the
+  CSS grammar still rejects SCSS syntax, so the split is real rather than cosmetic.
 
 - [x] B3: Deleting a CSS selector left its `{ ... }` block orphaned. A selector's
   `full_span` is the selector — which is what a rename needs — so the *delete* widens

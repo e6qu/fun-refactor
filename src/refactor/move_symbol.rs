@@ -1,19 +1,43 @@
-//! Move a top-level symbol to another file, updating imports.
+//! Move a top-level definition to another file, updating whatever that language's own
+//! resolution rules require.
 //!
-//! Updating the imports *is* the refactoring — moving the text is trivial. That means
-//! the operation is only offered where an import statement can actually be computed
-//! from two paths: TypeScript and Python relative imports. Elsewhere it refuses,
-//! because a move that leaves dangling references is worse than no move at all
-//! (PLAN.md D8).
+//! There is no single answer to "what does a move have to update", so there is no
+//! single implementation. Each language gets the treatment its own name resolution
+//! demands, and refuses where the answer cannot be computed rather than guessing
+//! (PLAN.md D8):
+//!
+//! - **TypeScript / Python** — resolution is by relative path, so the move rewrites
+//!   every referencing file with an import derived from the two paths.
+//! - **Rust** — resolution is by module path. The destination's module path is derived
+//!   from its location under `src/`, checked for reachability through `mod`
+//!   declarations, and `use crate::<module>::<name>;` is rewritten or inserted. Where
+//!   the module structure cannot be derived, the move refuses and names what was
+//!   ambiguous.
+//! - **Go** — a package *is* a directory, so a move inside one needs no updates at all.
+//!   Across packages the symbol must be exported and an import path must be derivable
+//!   from `go.mod`.
+//! - **HCL / Terraform** — a module *is* a directory, so every address survives a move
+//!   between `.tf` files in the same directory and nothing else changes. Across
+//!   directories the module changes and every address breaks, so that is refused.
+//! - **CSS** — a class is named globally, so no reference changes exist to make. What
+//!   can break is reachability: if the destination is not `@import`ed from where the
+//!   rule was, the styles silently stop applying, which is warned about rather than
+//!   refused.
+//! - **Markdown** — a section is a heading and everything under it up to the next
+//!   heading of the same or higher level. In-repo links to the anchors that left are
+//!   repointed at the new document.
+//!
+//! Everything else refuses: Zig, Bash, HTML, XML, YAML and Helm have no move that can
+//! be made correct from two paths alone.
 
 use super::Refusal;
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{SymbolId, SymbolKind};
-use crate::span::Span;
-use anyhow::Result;
-use std::collections::BTreeSet;
+use crate::model::{Symbol, SymbolId, SymbolKind};
+use crate::span::{LineIndex, Span};
+use anyhow::{bail, Result};
+use std::collections::{BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 /// A move worked out but not applied.
@@ -23,8 +47,25 @@ pub struct MovePlan {
     pub from: PathBuf,
     pub to: PathBuf,
     pub edits: EditSet,
-    /// Files that gained an import.
+    /// Files that gained an import, or — in Markdown, which has none — whose links
+    /// were repointed at the new document.
     pub imports_added: Vec<PathBuf>,
+    /// Things the move could not fix and a human must check. A warning never blocks
+    /// the move; it says what the tool saw and declined to act on.
+    pub warnings: Vec<String>,
+}
+
+impl MovePlan {
+    fn new(sym: &Symbol, destination: &Path) -> Self {
+        MovePlan {
+            symbol: sym.name.clone(),
+            from: sym.file.clone(),
+            to: destination.to_path_buf(),
+            edits: EditSet::new(),
+            imports_added: Vec::new(),
+            warnings: Vec::new(),
+        }
+    }
 }
 
 /// Move `symbol` into `destination`.
@@ -33,79 +74,104 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
-    if !supports_move(sym.language) {
-        return Err(Refusal::Unsupported {
-            operation: "move to file".into(),
-            language: format!(
-                "{} — an import statement cannot be derived from file paths in this language",
-                sym.language
-            ),
-        }
-        .into());
+    if destination == sym.file {
+        bail!("'{}' is already in {}", sym.name, destination.display());
     }
 
+    let Some(dest_language) = crate::lang::detect(destination) else {
+        bail!(
+            "the destination {} has no recognised language, so '{}' cannot be moved into it",
+            destination.display(),
+            sym.name
+        );
+    };
+    if !interchangeable(sym.language, dest_language) {
+        bail!(
+            "'{}' is {}, but the destination {} is {}; a move cannot change language",
+            sym.name,
+            sym.language,
+            destination.display(),
+            dest_language
+        );
+    }
+
+    match sym.language {
+        Language::TypeScript | Language::Tsx | Language::Python => {
+            move_by_relative_import(index, sym, destination)
+        }
+        Language::Rust => move_rust(index, sym, destination),
+        Language::Go => move_go(index, sym, destination),
+        Language::Hcl => move_hcl(index, sym, destination),
+        Language::Css | Language::Scss => move_css(index, sym, destination),
+        Language::Markdown => move_markdown(index, sym, destination),
+        other => Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: format!(
+                "{other} — a moved definition cannot be reached from its old use sites \
+                 in this language, and a move that leaves dangling references is worse \
+                 than no move at all"
+            ),
+        }
+        .into()),
+    }
+}
+
+/// May a symbol written in `from` be moved into a file of language `to`?
+fn interchangeable(from: Language, to: Language) -> bool {
+    from == to
+        || matches!(
+            (from, to),
+            (Language::TypeScript, Language::Tsx)
+                | (Language::Tsx, Language::TypeScript)
+                | (Language::Css, Language::Scss)
+                | (Language::Scss, Language::Css)
+        )
+}
+
+// ---------------------------------------------------------------------------
+// TypeScript and Python: resolution follows relative paths.
+// ---------------------------------------------------------------------------
+
+fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
-        anyhow::bail!(
+        bail!(
             "'{}' is nested inside another definition; only top-level symbols can be moved",
             sym.name
         );
     }
 
-    if destination == sym.file {
-        anyhow::bail!("'{}' is already in {}", sym.name, destination.display());
-    }
-
     let source = std::fs::read_to_string(&sym.file)?;
-
-    // Take the whole line(s) so the moved text carries its own formatting and the
-    // hole left behind does not become a blank line.
-    let start_line = full_line_span(&source, sym.full_span.start);
-    let end_line = full_line_span(&source, sym.full_span.end.saturating_sub(1));
-    let removal = Span::new(start_line.start, end_line.end.max(sym.full_span.end));
+    let removal = whole_lines(&source, sym.full_span);
     let moved_text = removal.text(&source).to_string();
 
-    let mut edits = EditSet::new();
-    edits.add(
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
         sym.file.clone(),
         Edit::new(removal, "", format!("move {} out", sym.name)),
     );
-
-    // Append to the destination, which may not exist yet.
-    let existing = std::fs::read_to_string(destination).unwrap_or_default();
-    let separator = if existing.is_empty() || existing.ends_with("\n\n") {
-        ""
-    } else if existing.ends_with('\n') {
-        "\n"
-    } else {
-        "\n\n"
-    };
-    let insert_at = Span::new(existing.len(), existing.len());
-    edits.add(
-        destination.to_path_buf(),
-        Edit::new(
-            insert_at,
-            format!("{separator}{moved_text}"),
-            format!("move {} in", sym.name),
-        ),
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move {} in", sym.name),
     );
 
     // Every file that referenced it now needs an import — including the file it
     // came from, if references remain there.
     let mut needs_import: BTreeSet<PathBuf> = BTreeSet::new();
-    for reference in index.references_to(symbol) {
+    for reference in index.references_to(sym.id) {
         if reference.file != *destination {
             needs_import.insert(reference.file.clone());
         }
     }
 
-    let mut imports_added = Vec::new();
     for file in &needs_import {
         let Some(statement) = import_statement(sym.language, file, destination, &sym.name) else {
             continue;
         };
         let target_source = std::fs::read_to_string(file).unwrap_or_default();
         let insert = import_insertion_point(&target_source);
-        edits.add(
+        plan.edits.add(
             file.clone(),
             Edit::new(
                 Span::new(insert, insert),
@@ -113,41 +179,57 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
                 format!("import {} from its new home", sym.name),
             ),
         );
-        imports_added.push(file.clone());
+        plan.imports_added.push(file.clone());
     }
 
-    Ok(MovePlan {
-        symbol: sym.name.clone(),
-        from: sym.file.clone(),
-        to: destination.to_path_buf(),
-        edits,
-        imports_added,
-    })
-}
-
-/// Languages where an import statement can be computed from two paths.
-fn supports_move(language: Language) -> bool {
-    matches!(
-        language,
-        Language::TypeScript | Language::Tsx | Language::Python
-    )
+    Ok(plan)
 }
 
 /// The import statement `from` needs in order to see `name` defined in `to`.
-fn import_statement(
-    language: Language,
-    from: &Path,
-    to: &Path,
-    name: &str,
-) -> Option<String> {
-    let module = relative_module(from, to)?;
+fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> Option<String> {
     Some(match language {
         Language::TypeScript | Language::Tsx => {
+            let module = relative_module(from, to)?;
             format!("import {{ {name} }} from '{module}';\n")
         }
-        Language::Python => format!("from {module} import {name}\n"),
+        // Python spells a relative module with dots, not slashes. A slash-shaped path
+        // is a syntax error, which the reparse check would reject — so the move would
+        // never commit at all.
+        Language::Python => {
+            let module = python_relative_module(from, to)?;
+            format!("from {module} import {name}\n")
+        }
         _ => return None,
     })
+}
+
+/// A Python relative module path for `to`, as seen from `from`.
+///
+/// `.sibling` for a file beside it, `.sub.mod` for one below, `..up.mod` for one
+/// reached by going up first — one leading dot per level, as the language spells it.
+fn python_relative_module(from: &Path, to: &Path) -> Option<String> {
+    let from_dir = from.parent()?;
+    let to_dir = to.parent()?;
+    let stem = to.file_stem()?.to_str()?;
+
+    let mut ups = 0;
+    let mut probe = from_dir;
+    loop {
+        if let Ok(rest) = to_dir.strip_prefix(probe) {
+            let mut module = ".".repeat(ups + 1);
+            for part in rest.components() {
+                module.push_str(part.as_os_str().to_str()?);
+                module.push('.');
+            }
+            module.push_str(stem);
+            return Some(module);
+        }
+        probe = probe.parent()?;
+        ups += 1;
+        if ups > 16 {
+            return None;
+        }
+    }
 }
 
 /// A module path for `to`, expressed relative to `from`.
@@ -202,7 +284,1361 @@ fn import_insertion_point(source: &str) -> usize {
     last_import_end
 }
 
-/// Symbols eligible to be moved.
+// ---------------------------------------------------------------------------
+// Rust: resolution follows module paths.
+// ---------------------------------------------------------------------------
+
+/// A Rust file's position in a crate: the `src` directory it lives under and the
+/// module path from the crate root, empty for the root itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CrateModule {
+    src: PathBuf,
+    path: Vec<String>,
+}
+
+impl CrateModule {
+    /// The `use` prefix naming this module from anywhere in the crate.
+    fn use_prefix(&self) -> String {
+        let mut out = String::from("crate");
+        for segment in &self.path {
+            out.push_str("::");
+            out.push_str(segment);
+        }
+        out
+    }
+}
+
+fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.container.is_some() {
+        bail!(
+            "'{}' is nested inside another definition; only top-level items can be moved",
+            sym.name
+        );
+    }
+
+    let from_module = crate_module(&sym.file)?;
+    let to_module = crate_module(destination)?;
+    if from_module.src != to_module.src {
+        return Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: format!(
+                "rust — {} and {} are under different crate roots ({} and {}); a move \
+                 between crates needs a dependency edge this tool cannot add",
+                sym.file.display(),
+                destination.display(),
+                from_module.src.display(),
+                to_module.src.display()
+            ),
+        }
+        .into());
+    }
+
+    if let Some(offender) = path_attribute_user(index, &to_module.src) {
+        bail!(
+            "{} contains a `#[path]` attribute, so a module's file location no longer \
+             follows from its path; refusing to guess a `use` path for {}",
+            offender.display(),
+            destination.display()
+        );
+    }
+
+    check_module_is_declared(&to_module, destination)?;
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let removal = with_rust_attributes(&source, whole_lines(&source, sym.full_span));
+    let moved_text = removal.text(&source).to_string();
+
+    // Everything that still names the item, other than the copy that travels with it.
+    let outside: Vec<&crate::model::Reference> = index
+        .references_to(sym.id)
+        .into_iter()
+        .filter(|r| !(r.file == sym.file && removal.contains(r.span)))
+        .collect();
+
+    if !sym.exported && outside.iter().any(|r| r.file != *destination) {
+        bail!(
+            "'{}' is private to {}; moving it into {} would put it out of reach of \
+             {} use site(s). Make it `pub` (or `pub(crate)`) first.",
+            sym.name,
+            module_label(&from_module),
+            module_label(&to_module),
+            outside.iter().filter(|r| r.file != *destination).count()
+        );
+    }
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move {} out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move {} in", sym.name),
+    );
+
+    let statement = format!("use {}::{};", to_module.use_prefix(), sym.name);
+
+    // The destination must not keep importing what it now defines.
+    if let Some(binding) = binding_import(index, destination, &sym.name) {
+        drop_rust_binding(&mut plan.edits, &binding, &sym.name, destination)?;
+    }
+
+    let mut needs_use: BTreeSet<PathBuf> = BTreeSet::new();
+    for reference in &outside {
+        if reference.file == *destination {
+            continue;
+        }
+        if !reference.confidence.is_safe_to_rewrite() {
+            plan.warnings.push(format!(
+                "{}: '{}' resolves only '{}' here, so no `use` was written for it",
+                location(&reference.file, reference.span.start),
+                sym.name,
+                reference.confidence.as_str()
+            ));
+            continue;
+        }
+        needs_use.insert(reference.file.clone());
+    }
+
+    for file in &needs_use {
+        match binding_import(index, file, &sym.name) {
+            Some(binding) => repoint_rust_binding(&mut plan.edits, &binding, &sym.name, &statement)?,
+            None => {
+                let target_source = std::fs::read_to_string(file).unwrap_or_default();
+                let at = rust_use_insertion_point(&target_source);
+                plan.edits.add(
+                    file.clone(),
+                    Edit::new(
+                        Span::new(at, at),
+                        format!("{statement}\n"),
+                        format!("import {} from its new home", sym.name),
+                    ),
+                );
+            }
+        }
+        plan.imports_added.push(file.clone());
+    }
+
+    warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+    Ok(plan)
+}
+
+/// Where a Rust file sits in its crate.
+///
+/// Refuses rather than guessing: a wrong `use` path produces a file that does not
+/// compile, which is worse than declining the move.
+fn crate_module(file: &Path) -> Result<CrateModule> {
+    let mut src: Option<PathBuf> = None;
+    for ancestor in file.ancestors().skip(1) {
+        if ancestor.file_name().and_then(|n| n.to_str()) == Some("src") {
+            src = Some(ancestor.to_path_buf());
+            break;
+        }
+    }
+    let Some(src) = src else {
+        return Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: format!(
+                "rust — {} is not under a `src/` directory, so its module path cannot \
+                 be derived from its location",
+                file.display()
+            ),
+        }
+        .into());
+    };
+
+    if !src.join("lib.rs").exists() && !src.join("main.rs").exists() {
+        return Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: format!(
+                "rust — {} has neither lib.rs nor main.rs, so there is no crate root to \
+                 anchor a `use crate::…` path to",
+                src.display()
+            ),
+        }
+        .into());
+    }
+
+    let relative = file
+        .strip_prefix(&src)
+        .map_err(|_| anyhow::anyhow!("{} is not under {}", file.display(), src.display()))?;
+
+    let mut path: Vec<String> = Vec::new();
+    for component in relative.components() {
+        let part = component
+            .as_os_str()
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("non-UTF-8 path component in {}", file.display()))?;
+        path.push(part.to_string());
+    }
+    // The last component is the file; strip its extension and fold away the module
+    // spellings that name their parent directory rather than a module of their own.
+    if let Some(last) = path.pop() {
+        let stem = last.strip_suffix(".rs").unwrap_or(&last).to_string();
+        if !matches!(stem.as_str(), "mod" | "lib" | "main") {
+            path.push(stem);
+        }
+    }
+    Ok(CrateModule { src, path })
+}
+
+fn module_label(module: &CrateModule) -> String {
+    if module.path.is_empty() {
+        "the crate root".to_string()
+    } else {
+        module.use_prefix()
+    }
+}
+
+/// Is every module on the path to `module` declared with a `mod` statement?
+fn check_module_is_declared(module: &CrateModule, destination: &Path) -> Result<()> {
+    let root = if module.src.join("lib.rs").exists() {
+        module.src.join("lib.rs")
+    } else {
+        module.src.join("main.rs")
+    };
+
+    let mut parent_file = root;
+    let mut walked: Vec<String> = Vec::new();
+    for segment in &module.path {
+        let source = std::fs::read_to_string(&parent_file).unwrap_or_default();
+        if !declares_module(&source, segment) {
+            bail!(
+                "{} does not declare `mod {};`, so {} is not part of the module tree and \
+                 a `use` path to it would not compile",
+                parent_file.display(),
+                segment,
+                destination.display()
+            );
+        }
+        walked.push(segment.clone());
+        let dir: PathBuf = module.src.join(walked.join("/"));
+        let flat = module.src.join(format!("{}.rs", walked.join("/")));
+        parent_file = if flat.exists() {
+            flat
+        } else {
+            dir.join("mod.rs")
+        };
+    }
+    Ok(())
+}
+
+/// Does `source` contain a `mod <name>;` declaration at any nesting?
+///
+/// Only the `;` form is accepted: `mod name { … }` declares an inline module that is
+/// not this file, so a file-derived path would be wrong.
+fn declares_module(source: &str, name: &str) -> bool {
+    source.lines().any(|line| {
+        let mut rest = line.trim_start();
+        if let Some(after) = rest.strip_prefix("pub") {
+            rest = after.trim_start();
+            if rest.starts_with('(') {
+                match rest.find(')') {
+                    Some(close) => rest = rest[close + 1..].trim_start(),
+                    None => return false,
+                }
+            }
+        }
+        let Some(after_mod) = rest.strip_prefix("mod ") else {
+            return false;
+        };
+        after_mod.trim() == format!("{name};")
+    })
+}
+
+/// The first file under `src` that uses `#[path]`, which unhooks module paths from
+/// file locations.
+fn path_attribute_user(index: &Index, src: &Path) -> Option<PathBuf> {
+    let mut found: Option<PathBuf> = None;
+    for (path, info) in index.files() {
+        if info.language != Language::Rust || !path.starts_with(src) {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        if text.contains("#[path") && found.as_ref().is_none_or(|best| path < best) {
+            found = Some(path.clone());
+        }
+    }
+    found
+}
+
+/// The import in `file` that binds `name`, described by the spans a rewrite needs.
+struct Binding {
+    file: PathBuf,
+    /// The whole `use …;` statement.
+    statement: Span,
+    /// The span of `name` inside a `use a::{X, Y};` list, when that is the form.
+    in_list: Option<Span>,
+    /// How many names the list holds.
+    list_len: usize,
+    is_glob: bool,
+}
+
+fn binding_import(index: &Index, file: &Path, name: &str) -> Option<Binding> {
+    let info = index.file(file)?;
+    let mut listed: Option<&crate::model::Import> = None;
+    for import in &info.imports {
+        if import.is_glob {
+            continue;
+        }
+        if import.names.iter().any(|n| n.local == name) {
+            listed = Some(import);
+            break;
+        }
+        let tail = import.path.rsplit("::").find(|s| !s.is_empty());
+        if import.names.is_empty() && (tail == Some(name) || import.alias.as_deref() == Some(name)) {
+            return Some(Binding {
+                file: file.to_path_buf(),
+                statement: import.span,
+                in_list: None,
+                list_len: 0,
+                is_glob: false,
+            });
+        }
+    }
+
+    // `use a::{X, Y};` produces one import record per name, all sharing the statement
+    // span, so how long the list is has to be counted across the group.
+    let import = listed?;
+    let entry = import.names.iter().find(|n| n.local == name)?;
+    let list_len = info
+        .imports
+        .iter()
+        .filter(|other| other.span == import.span)
+        .map(|other| other.names.len())
+        .sum();
+    Some(Binding {
+        file: file.to_path_buf(),
+        statement: import.span,
+        in_list: Some(entry.span),
+        list_len,
+        is_glob: false,
+    })
+}
+
+/// Point an existing binding at the item's new home.
+fn repoint_rust_binding(
+    edits: &mut EditSet,
+    binding: &Binding,
+    name: &str,
+    statement: &str,
+) -> Result<()> {
+    if binding.is_glob {
+        return Ok(());
+    }
+    match binding.in_list {
+        // `use a::{X};` and `use a::X;` are both wholly replaceable.
+        None => edits.add(
+            binding.file.clone(),
+            Edit::new(binding.statement, statement, format!("repoint use of {name}")),
+        ),
+        Some(_) if binding.list_len == 1 => edits.add(
+            binding.file.clone(),
+            Edit::new(binding.statement, statement, format!("repoint use of {name}")),
+        ),
+        // One of several: take the name out of the list and add a statement beside it.
+        Some(span) => {
+            let source = std::fs::read_to_string(&binding.file)?;
+            edits.add(
+                binding.file.clone(),
+                Edit::new(
+                    list_entry_span(&source, span),
+                    "",
+                    format!("drop {name} from its old import list"),
+                ),
+            );
+            edits.add(
+                binding.file.clone(),
+                Edit::new(
+                    Span::new(binding.statement.end, binding.statement.end),
+                    format!("\n{statement}"),
+                    format!("import {name} from its new home"),
+                ),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Remove a binding that the destination file no longer needs, because it is about to
+/// define the item itself.
+fn drop_rust_binding(
+    edits: &mut EditSet,
+    binding: &Binding,
+    name: &str,
+    destination: &Path,
+) -> Result<()> {
+    let source = std::fs::read_to_string(destination).unwrap_or_default();
+    match binding.in_list {
+        Some(span) if binding.list_len > 1 => edits.add(
+            binding.file.clone(),
+            Edit::new(
+                list_entry_span(&source, span),
+                "",
+                format!("{name} is defined here now"),
+            ),
+        ),
+        _ => edits.add(
+            binding.file.clone(),
+            Edit::new(
+                whole_lines(&source, binding.statement),
+                "",
+                format!("{name} is defined here now"),
+            ),
+        ),
+    }
+    Ok(())
+}
+
+/// A name inside a `use a::{X, Y};` list, plus the comma that joins it to its
+/// neighbour, so that removing it leaves a well-formed list.
+fn list_entry_span(source: &str, name: Span) -> Span {
+    let bytes = source.as_bytes();
+    let mut end = name.end;
+    while end < bytes.len() && bytes[end] == b' ' {
+        end += 1;
+    }
+    if end < bytes.len() && bytes[end] == b',' {
+        end += 1;
+        while end < bytes.len() && bytes[end] == b' ' {
+            end += 1;
+        }
+        return Span::new(name.start, end);
+    }
+    // Last in the list: take the preceding comma instead.
+    let mut start = name.start;
+    while start > 0 && (bytes[start - 1] == b' ' || bytes[start - 1] == b',') {
+        start -= 1;
+        if bytes[start] == b',' {
+            break;
+        }
+    }
+    Span::new(start, name.end)
+}
+
+/// Where a new `use` should go: after the file's header and any existing `use` lines.
+fn rust_use_insertion_point(source: &str) -> usize {
+    let mut offset = 0;
+    let mut point = 0;
+    for line in source.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        let is_prelude = trimmed.starts_with("//!")
+            || trimmed.starts_with("#![")
+            || trimmed.starts_with("use ")
+            || trimmed.starts_with("pub use ")
+            || trimmed.starts_with("extern crate ");
+        if is_prelude {
+            point = offset + line.len();
+        } else if !trimmed.is_empty() {
+            break;
+        }
+        offset += line.len();
+    }
+    point
+}
+
+/// Widen a removal to swallow the attributes and doc comments written directly above
+/// the item, which cannot legally stay behind without it.
+fn with_rust_attributes(source: &str, span: Span) -> Span {
+    let mut start = span.start;
+    while start > 0 {
+        let previous = full_line_span(source, start - 1);
+        let trimmed = previous.text(source).trim_start();
+        if trimmed.starts_with("#[") || trimmed.starts_with("///") || trimmed.starts_with("/**") {
+            start = previous.start;
+        } else {
+            break;
+        }
+    }
+    Span::new(start, span.end)
+}
+
+// ---------------------------------------------------------------------------
+// Go: a package is a directory.
+// ---------------------------------------------------------------------------
+
+fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.container.is_some() {
+        bail!(
+            "'{}' is nested inside another definition; only top-level declarations can \
+             be moved",
+            sym.name
+        );
+    }
+
+    let source_dir = sym
+        .file
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("{} has no directory", sym.file.display()))?;
+    let dest_dir = destination
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("{} has no directory", destination.display()))?;
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let removal = with_go_doc_comment(&source, whole_lines(&source, sym.full_span));
+    let moved_text = removal.text(&source).to_string();
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move {} out", sym.name)),
+    );
+
+    if source_dir == dest_dir {
+        // Same directory means same package: every reference already resolves, and
+        // there is nothing whatsoever to update.
+        let package = go_package(index, &sym.file).ok_or_else(|| {
+            anyhow::anyhow!(
+                "{} has no package clause, so the package of the move is unknown",
+                sym.file.display()
+            )
+        })?;
+        if let Some(existing) = go_package(index, destination) {
+            if existing != package {
+                bail!(
+                    "{} declares package {} but {} declares package {}; two packages \
+                     cannot share a directory",
+                    sym.file.display(),
+                    package,
+                    destination.display(),
+                    existing
+                );
+            }
+        }
+        let header = if go_package(index, destination).is_none() {
+            format!("package {package}\n\n")
+        } else {
+            String::new()
+        };
+        append_to_destination(
+            &mut plan.edits,
+            destination,
+            &format!("{header}{moved_text}"),
+            format!("move {} in", sym.name),
+        );
+        warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+        return Ok(plan);
+    }
+
+    // A different directory is a different package.
+    if !sym.exported {
+        bail!(
+            "'{}' is unexported, so nothing outside {} can name it; moving it to {} \
+             would make it unreachable. Capitalise it first.",
+            sym.name,
+            source_dir.display(),
+            dest_dir.display()
+        );
+    }
+
+    let Some(package) = go_package(index, destination).or_else(|| go_package_of_dir(index, dest_dir))
+    else {
+        bail!(
+            "no .go file in {} declares a package, so the qualifier every use site \
+             would need is unknown",
+            dest_dir.display()
+        );
+    };
+    let import_path = go_import_path(dest_dir).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no go.mod above {}, so the import path of package {} cannot be derived",
+            dest_dir.display(),
+            package
+        )
+    })?;
+
+    let outside: Vec<&crate::model::Reference> = index
+        .references_to(sym.id)
+        .into_iter()
+        .filter(|r| !(r.file == sym.file && removal.contains(r.span)))
+        .collect();
+
+    let stray: Vec<&&crate::model::Reference> = outside
+        .iter()
+        .filter(|r| r.file.parent() != Some(source_dir))
+        .collect();
+    if !stray.is_empty() {
+        let mut message = format!(
+            "'{}' is used from {} file(s) outside package {}",
+            sym.name,
+            stray.len(),
+            source_dir.display()
+        );
+        for reference in &stray {
+            message.push_str(&format!("\n  {}", location(&reference.file, reference.span.start)));
+        }
+        message.push_str(
+            "\nRequalifying an already-qualified use cannot be verified from names alone; \
+             nothing was changed.",
+        );
+        bail!("{message}");
+    }
+
+    let header = if go_package(index, destination).is_none() {
+        format!("package {package}\n\n")
+    } else {
+        String::new()
+    };
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &format!("{header}{moved_text}"),
+        format!("move {} in", sym.name),
+    );
+
+    let mut needs_import: BTreeSet<PathBuf> = BTreeSet::new();
+    for reference in &outside {
+        if !reference.confidence.is_safe_to_rewrite() {
+            plan.warnings.push(format!(
+                "{}: '{}' resolves only '{}' here, so it was left unqualified",
+                location(&reference.file, reference.span.start),
+                sym.name,
+                reference.confidence.as_str()
+            ));
+            continue;
+        }
+        plan.edits.add(
+            reference.file.clone(),
+            Edit::new(
+                Span::new(reference.span.start, reference.span.start),
+                format!("{package}."),
+                format!("qualify {} with its new package", sym.name),
+            ),
+        );
+        needs_import.insert(reference.file.clone());
+    }
+
+    for file in &needs_import {
+        let target_source = std::fs::read_to_string(file).unwrap_or_default();
+        if target_source.contains(&format!("\"{import_path}\"")) {
+            continue;
+        }
+        let at = go_import_insertion_point(index, file).ok_or_else(|| {
+            anyhow::anyhow!(
+                "{} has no package clause, so an import cannot be placed in it",
+                file.display()
+            )
+        })?;
+        plan.edits.add(
+            file.clone(),
+            Edit::new(
+                Span::new(at, at),
+                format!("\nimport \"{import_path}\"\n"),
+                format!("import package {package}"),
+            ),
+        );
+        plan.imports_added.push(file.clone());
+    }
+
+    warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+    Ok(plan)
+}
+
+/// The package a Go file declares.
+fn go_package(index: &Index, file: &Path) -> Option<String> {
+    let info = index.file(file)?;
+    info.symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .find(|s| s.kind == SymbolKind::Module && s.language == Language::Go)
+        .map(|s| s.name.clone())
+}
+
+/// The package declared by the .go files of a directory.
+fn go_package_of_dir(index: &Index, dir: &Path) -> Option<String> {
+    index
+        .files()
+        .filter(|(path, info)| info.language == Language::Go && path.parent() == Some(dir))
+        .find_map(|(path, _)| go_package(index, path))
+}
+
+/// The import path of `dir`, derived from the nearest go.mod above it.
+fn go_import_path(dir: &Path) -> Option<String> {
+    for ancestor in dir.ancestors() {
+        let manifest = ancestor.join("go.mod");
+        let Ok(text) = std::fs::read_to_string(&manifest) else {
+            continue;
+        };
+        let module = text.lines().find_map(|line| {
+            line.trim_start()
+                .strip_prefix("module ")
+                .map(|rest| rest.trim().to_string())
+        })?;
+        let relative = dir.strip_prefix(ancestor).ok()?;
+        let mut parts = vec![module];
+        for component in relative.components() {
+            parts.push(component.as_os_str().to_str()?.to_string());
+        }
+        return Some(parts.join("/"));
+    }
+    None
+}
+
+/// Just after the package clause, where an extra `import` declaration is always legal.
+fn go_import_insertion_point(index: &Index, file: &Path) -> Option<usize> {
+    let info = index.file(file)?;
+    let clause = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .find(|s| s.kind == SymbolKind::Module && s.language == Language::Go)?;
+    let source = std::fs::read_to_string(file).ok()?;
+    Some(full_line_span(&source, clause.full_span.start).end)
+}
+
+/// Widen a removal to swallow the `//` doc comment written directly above.
+fn with_go_doc_comment(source: &str, span: Span) -> Span {
+    let mut start = span.start;
+    while start > 0 {
+        let previous = full_line_span(source, start - 1);
+        if previous.text(source).trim_start().starts_with("//") {
+            start = previous.start;
+        } else {
+            break;
+        }
+    }
+    Span::new(start, span.end)
+}
+
+// ---------------------------------------------------------------------------
+// HCL / Terraform: a module is a directory.
+// ---------------------------------------------------------------------------
+
+fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    let source_dir = sym.file.parent();
+    if source_dir != destination.parent() {
+        return Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: format!(
+                "hcl — Terraform's module is the directory, so moving '{}' from {} to {} \
+                 changes its module. Every address that names it, and its state address, \
+                 would break; `moved` blocks or `terraform state mv` are the tools for that",
+                sym.name,
+                sym.file.display(),
+                destination.display()
+            ),
+        }
+        .into());
+    }
+
+    let source_ext = sym.file.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let dest_ext = destination.extension().and_then(|e| e.to_str()).unwrap_or("");
+    if source_ext != dest_ext {
+        bail!(
+            "{} and {} are different kinds of Terraform file (.{source_ext} and \
+             .{dest_ext}); Terraform loads them by different rules",
+            sym.file.display(),
+            destination.display()
+        );
+    }
+    if sym.kind == SymbolKind::Key {
+        bail!(
+            "'{}' is a value in a .tfvars file, not a declaration; which values file \
+             Terraform loads is decided by its name and the command line, so moving it \
+             between files changes whether it is applied at all",
+            sym.name
+        );
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let enclosing_locals = enclosing_locals_block(index, sym);
+
+    if sym.container.is_some() && enclosing_locals.is_none() {
+        bail!(
+            "'{}' is an argument of an enclosing block, not a declaration of its own; \
+             only whole blocks and `locals` entries can be moved between files",
+            sym.name
+        );
+    }
+
+    let removal = whole_lines(&source, sym.full_span);
+    let moved_text = removal.text(&source).to_string();
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move {} out", sym.name)),
+    );
+
+    match enclosing_locals {
+        // A `locals` entry only means anything inside a `locals` block, so it goes into
+        // the destination's block, or into one made for it.
+        Some(_) => {
+            let dest_source = std::fs::read_to_string(destination).unwrap_or_default();
+            match locals_block_in(index, destination) {
+                Some(block) => {
+                    let close = dest_source[..block.end]
+                        .rfind('}')
+                        .ok_or_else(|| anyhow::anyhow!("malformed locals block in {}", destination.display()))?;
+                    let at = full_line_span(&dest_source, close).start;
+                    plan.edits.add(
+                        destination.to_path_buf(),
+                        Edit::new(
+                            Span::new(at, at),
+                            moved_text.clone(),
+                            format!("move {} in", sym.name),
+                        ),
+                    );
+                }
+                None => append_to_destination(
+                    &mut plan.edits,
+                    destination,
+                    &format!("locals {{\n{moved_text}}}\n"),
+                    format!("move {} in", sym.name),
+                ),
+            }
+        }
+        None => append_to_destination(
+            &mut plan.edits,
+            destination,
+            &moved_text,
+            format!("move {} in", sym.name),
+        ),
+    }
+
+    Ok(plan)
+}
+
+/// The `locals` block a definition sits inside, if it is a `locals` entry.
+fn enclosing_locals_block<'a>(index: &'a Index, sym: &Symbol) -> Option<&'a Symbol> {
+    let container = index.symbol(sym.container?)?;
+    (container.name == "locals" && container.kind == SymbolKind::Block).then_some(container)
+}
+
+/// The span of a `locals` block in `file`, if it has one.
+fn locals_block_in(index: &Index, file: &Path) -> Option<Span> {
+    let info = index.file(file)?;
+    info.symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.kind == SymbolKind::Block && s.name == "locals")
+        .map(|s| s.full_span)
+        .next_back()
+}
+
+// ---------------------------------------------------------------------------
+// CSS: names are global; reachability is what breaks.
+// ---------------------------------------------------------------------------
+
+fn move_css(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.kind == SymbolKind::Property {
+        bail!(
+            "'{}' is a custom property declared inside a rule, not a rule; a declaration \
+             on its own is not valid at the top level of a stylesheet",
+            sym.name
+        );
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let rule = widen_to_rule(&source, sym)?;
+    let removal = whole_lines(&source, rule);
+    let moved_text = removal.text(&source).to_string();
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move the {} rule out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move the {} rule in", sym.name),
+    );
+
+    // Nothing to repoint: a CSS name is global. What can silently break is whether the
+    // destination is loaded at all where the rule used to apply.
+    if !imports_reach(index, &sym.file, destination) {
+        plan.warnings.push(format!(
+            "{} does not reach {} through any @import, so the rules moved there will \
+             stop applying wherever {} was loaded. Add an @import, or move the rule to \
+             a stylesheet that is already loaded.",
+            sym.file.display(),
+            destination.display(),
+            sym.file.display()
+        ));
+    }
+
+    Ok(plan)
+}
+
+/// Widen a selector to the rule it heads.
+///
+/// A selector is its own symbol — that is what a rename rewrites — but what a move
+/// carries is the whole rule. A rule with several selectors is refused: taking one
+/// selector elsewhere means duplicating the declaration block, which is a different
+/// edit with different consequences.
+fn widen_to_rule(source: &str, sym: &Symbol) -> Result<Span> {
+    let parsed = crate::parse::Parsers::new().parse(sym.language, source)?;
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
+    else {
+        bail!(
+            "cannot locate '{}' in {} after reparsing it",
+            sym.name,
+            sym.file.display()
+        );
+    };
+
+    let mut rule = node;
+    loop {
+        if matches!(rule.kind(), "rule_set" | "keyframes_statement") {
+            break;
+        }
+        let Some(parent) = rule.parent() else {
+            bail!(
+                "'{}' is not part of a rule, so there is nothing to move",
+                sym.name
+            );
+        };
+        rule = parent;
+    }
+
+    if rule.parent().map(|p| p.kind()) != Some("stylesheet") {
+        bail!(
+            "the rule for '{}' is nested inside a {}; moving it out of that context \
+             would change when it applies",
+            sym.name,
+            rule.parent().map(|p| p.kind()).unwrap_or("block")
+        );
+    }
+
+    if rule.kind() == "rule_set" {
+        let mut cursor = rule.walk();
+        let selectors = rule
+            .named_children(&mut cursor)
+            .find(|c| c.kind() == "selectors");
+        if let Some(selectors) = selectors {
+            let mut inner = selectors.walk();
+            let count = selectors
+                .named_children(&mut inner)
+                .filter(|c| !c.kind().contains("comment"))
+                .count();
+            if count > 1 {
+                bail!(
+                    "the rule for '{}' has {} selectors; moving one of them would have \
+                     to duplicate the declaration block, which is a rewrite rather than \
+                     a move",
+                    sym.name,
+                    count
+                );
+            }
+        }
+    }
+
+    Ok(Span::from(rule))
+}
+
+/// Is `target` reachable from `origin` by following `@import`s?
+fn imports_reach(index: &Index, origin: &Path, target: &Path) -> bool {
+    let mut seen: HashSet<PathBuf> = HashSet::new();
+    let mut queue = vec![origin.to_path_buf()];
+    while let Some(file) = queue.pop() {
+        if !seen.insert(file.clone()) {
+            continue;
+        }
+        let Some(info) = index.file(&file) else {
+            continue;
+        };
+        for import in &info.imports {
+            let Some(dir) = file.parent() else { continue };
+            let base = dir.join(import.path.trim_start_matches("./"));
+            for candidate in [
+                base.clone(),
+                base.with_extension("css"),
+                base.with_extension("scss"),
+            ] {
+                if candidate == target {
+                    return true;
+                }
+                if index.file(&candidate).is_some() {
+                    queue.push(candidate);
+                }
+            }
+        }
+    }
+    false
+}
+
+// ---------------------------------------------------------------------------
+// Markdown: a section is a heading and everything under it.
+// ---------------------------------------------------------------------------
+
+fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.kind != SymbolKind::Heading {
+        bail!(
+            "'{}' is a {}, not a heading; a Markdown move takes a section, which is a \
+             heading and the content under it",
+            sym.name,
+            sym.kind.as_str()
+        );
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let headings = file_headings(index, &sym.file);
+    let removal = section_span(&source, sym, &headings);
+    let moved_text = removal.text(&source).to_string();
+
+    // Every anchor that travelled with the section, so links to it can be repointed.
+    let moved_slugs: HashSet<String> = headings
+        .iter()
+        .filter(|h| removal.contains(h.full_span))
+        .map(|h| slug(&h.name))
+        .collect();
+    let staying_slugs: HashSet<String> = headings
+        .iter()
+        .filter(|h| !removal.contains(h.full_span))
+        .map(|h| slug(&h.name))
+        .collect();
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move the {} section out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move the {} section in", sym.name),
+    );
+
+    // Same-document anchors in the file the section left: they now point at nothing.
+    let Some(from_dir) = sym.file.parent() else {
+        bail!("{} has no directory", sym.file.display());
+    };
+    let Some(link) = relative_link(from_dir, destination) else {
+        bail!(
+            "cannot express {} relative to {}",
+            destination.display(),
+            from_dir.display()
+        );
+    };
+
+    if let Some(info) = index.file(&sym.file) {
+        for reference in info.references.iter().map(|i| &index.references[*i]) {
+            let Some(anchor) = reference.name.strip_prefix('#') else {
+                continue;
+            };
+            if removal.contains(reference.span) {
+                // It travels with the section. If its target stayed behind, the link
+                // breaks in the other direction, which is the reader's to fix.
+                if staying_slugs.contains(anchor) {
+                    plan.warnings.push(format!(
+                        "the moved section links to #{anchor}, which stays in {}; that \
+                         link will not resolve from {}",
+                        sym.file.display(),
+                        destination.display()
+                    ));
+                }
+                continue;
+            }
+            if !moved_slugs.contains(anchor) {
+                continue;
+            }
+            plan.edits.add(
+                sym.file.clone(),
+                Edit::new(
+                    reference.span,
+                    format!("{link}#{anchor}"),
+                    format!("#{anchor} lives in {} now", destination.display()),
+                ),
+            );
+        }
+    }
+
+    // Cross-document links written as `path/to/doc.md#anchor` elsewhere in the repo.
+    let mut updated: BTreeSet<PathBuf> = BTreeSet::new();
+    for (path, info) in index.files() {
+        if info.language != Language::Markdown || path == &sym.file {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        let Some(dir) = path.parent() else { continue };
+        for span in link_destinations(&text) {
+            let destination_text = span.text(&text);
+            let Some((target, anchor)) = destination_text.rsplit_once('#') else {
+                continue;
+            };
+            if target.is_empty() || !moved_slugs.contains(anchor) {
+                continue;
+            }
+            if normalise(&dir.join(target)) != normalise(&sym.file) {
+                continue;
+            }
+            let Some(new_link) = relative_link(dir, destination) else {
+                continue;
+            };
+            plan.edits.add(
+                path.clone(),
+                Edit::new(
+                    span,
+                    format!("{new_link}#{anchor}"),
+                    format!("#{anchor} lives in {} now", destination.display()),
+                ),
+            );
+            updated.insert(path.clone());
+        }
+    }
+    plan.imports_added.extend(updated);
+
+    Ok(plan)
+}
+
+/// Every heading in a file, in source order.
+fn file_headings<'a>(index: &'a Index, file: &Path) -> Vec<&'a Symbol> {
+    let Some(info) = index.file(file) else {
+        return Vec::new();
+    };
+    let mut headings: Vec<&Symbol> = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.kind == SymbolKind::Heading)
+        .collect();
+    headings.sort_by_key(|s| s.full_span.start);
+    headings
+}
+
+/// A heading and the content under it, up to the next heading of the same or higher
+/// level — which is exactly what a reader means by "this section".
+fn section_span(source: &str, heading: &Symbol, headings: &[&Symbol]) -> Span {
+    let level = heading_level(source, heading);
+    let start = full_line_span(source, heading.full_span.start).start;
+    let mut end = source.len();
+    for other in headings {
+        if other.full_span.start <= heading.full_span.start {
+            continue;
+        }
+        if heading_level(source, other) <= level {
+            end = full_line_span(source, other.full_span.start).start;
+            break;
+        }
+    }
+    Span::new(start, end.max(heading.full_span.end))
+}
+
+/// 1 for `#` and for a `===` underline, 2 for `##` and `---`, and so on.
+fn heading_level(source: &str, heading: &Symbol) -> usize {
+    let text = heading.full_span.text(source);
+    let hashes = text.trim_start().chars().take_while(|c| *c == '#').count();
+    if hashes > 0 {
+        return hashes;
+    }
+    match text.lines().nth(1).map(|l| l.trim_start().starts_with('=')) {
+        Some(true) => 1,
+        _ => 2,
+    }
+}
+
+/// GitHub's heading anchor: lowercased, punctuation dropped, spaces hyphenated.
+fn slug(heading: &str) -> String {
+    let mut out = String::with_capacity(heading.len());
+    for ch in heading.trim().chars() {
+        if ch.is_alphanumeric() {
+            out.extend(ch.to_lowercase());
+        } else if ch == ' ' || ch == '-' || ch == '_' {
+            out.push(if ch == '_' { '_' } else { '-' });
+        }
+    }
+    out
+}
+
+/// Every `link_destination` in a Markdown document.
+fn link_destinations(source: &str) -> Vec<Span> {
+    let Ok(parsed) = crate::parse::Parsers::new().parse(Language::Markdown, source) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let mut stack = vec![parsed.root()];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "link_destination" {
+            out.push(Span::from(node));
+        }
+        for i in (0..node.child_count() as u32).rev() {
+            if let Some(child) = node.child(i) {
+                stack.push(child);
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+/// A path for `to` as a Markdown link would write it from `from_dir`.
+fn relative_link(from_dir: &Path, to: &Path) -> Option<String> {
+    let mut ups = 0;
+    let mut probe = from_dir;
+    loop {
+        if let Ok(rest) = to.strip_prefix(probe) {
+            let mut parts: Vec<String> = vec!["..".to_string(); ups];
+            for component in rest.components() {
+                parts.push(component.as_os_str().to_str()?.to_string());
+            }
+            return Some(parts.join("/"));
+        }
+        probe = probe.parent()?;
+        ups += 1;
+        if ups > 16 {
+            return None;
+        }
+    }
+}
+
+/// Resolve `.` and `..` textually, so two spellings of one path compare equal.
+fn normalise(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------
+// Shared machinery.
+// ---------------------------------------------------------------------------
+
+/// Take the whole line(s) a definition sits on, so the moved text carries its own
+/// formatting and the hole left behind does not become a stray blank line.
+fn whole_lines(source: &str, span: Span) -> Span {
+    let start_line = full_line_span(source, span.start);
+    let end_line = full_line_span(source, span.end.saturating_sub(1));
+    Span::new(start_line.start, end_line.end.max(span.end))
+}
+
+/// Append `text` to a file that may not exist yet.
+fn append_to_destination(
+    edits: &mut EditSet,
+    destination: &Path,
+    text: &str,
+    reason: impl Into<String>,
+) {
+    let existing = std::fs::read_to_string(destination).unwrap_or_default();
+    let separator = if existing.is_empty() || existing.ends_with("\n\n") {
+        ""
+    } else if existing.ends_with('\n') {
+        "\n"
+    } else {
+        "\n\n"
+    };
+    edits.add(
+        destination.to_path_buf(),
+        Edit::new(
+            Span::new(existing.len(), existing.len()),
+            format!("{separator}{text}"),
+            reason,
+        ),
+    );
+}
+
+/// Report the imports the moved text depended on, in both directions.
+///
+/// A move takes code away from the imports that fed it. Nothing here is edited: which
+/// import a name came from is exactly the question this index answers only weakly for
+/// Rust and Go, and a wrong import edit breaks the build silently.
+fn warn_about_carried_imports(
+    index: &Index,
+    sym: &Symbol,
+    destination: &Path,
+    removal: Span,
+    source: &str,
+    plan: &mut MovePlan,
+) {
+    let Some(info) = index.file(&sym.file) else {
+        return;
+    };
+    let moved_text = removal.text(source);
+
+    for import in &info.imports {
+        let bound: Vec<String> = if !import.names.is_empty() {
+            import.names.iter().map(|n| n.local.clone()).collect()
+        } else if let Some(alias) = &import.alias {
+            vec![alias.clone()]
+        } else {
+            import
+                .path
+                .rsplit(['/', ':'])
+                .find(|s| !s.is_empty())
+                .map(|s| vec![s.to_string()])
+                .unwrap_or_default()
+        };
+
+        for name in bound {
+            if !mentions_word(moved_text, &name) {
+                continue;
+            }
+            let still_used = info
+                .references
+                .iter()
+                .map(|i| &index.references[*i])
+                .any(|r| r.name == name && !removal.contains(r.span));
+            if !still_used {
+                plan.warnings.push(format!(
+                    "{} imports '{}' only for the code being moved; the import may now \
+                     be unused",
+                    sym.file.display(),
+                    import.path
+                ));
+            }
+            let destination_has = index
+                .file(destination)
+                .is_some_and(|d| d.imports.iter().any(|i| i.path == import.path));
+            if !destination_has {
+                plan.warnings.push(format!(
+                    "the moved code uses '{}' from '{}', which {} does not import",
+                    name,
+                    import.path,
+                    destination.display()
+                ));
+            }
+        }
+    }
+}
+
+/// Does `text` contain `word` as a whole identifier?
+fn mentions_word(text: &str, word: &str) -> bool {
+    if word.is_empty() {
+        return false;
+    }
+    let boundary = |c: char| !c.is_alphanumeric() && c != '_';
+    let mut from = 0;
+    while let Some(found) = text[from..].find(word) {
+        let start = from + found;
+        let end = start + word.len();
+        let before_ok = start == 0 || text[..start].chars().next_back().is_some_and(boundary);
+        let after_ok = end == text.len() || text[end..].chars().next().is_some_and(boundary);
+        if before_ok && after_ok {
+            return true;
+        }
+        from = end;
+    }
+    false
+}
+
+/// `path:line:col`, for warnings that point a human at a file.
+fn location(file: &Path, offset: usize) -> String {
+    let Ok(source) = std::fs::read_to_string(file) else {
+        return file.display().to_string();
+    };
+    let position = LineIndex::new(&source).line_col(offset, &source);
+    format!("{}:{}", file.display(), position)
+}
+
+/// Symbols eligible to be moved, by what a move means in each language.
 pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
     let Some(info) = index.file(file) else {
         return Vec::new();
@@ -210,12 +1646,38 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
     info.symbols
         .iter()
         .filter_map(|id| index.symbol(*id))
-        .filter(|s| {
-            s.container.is_none()
-                && matches!(
-                    s.kind,
-                    SymbolKind::Function | SymbolKind::Class | SymbolKind::Constant
-                )
+        .filter(|s| match s.language {
+            Language::TypeScript | Language::Tsx | Language::Python => {
+                s.container.is_none()
+                    && matches!(
+                        s.kind,
+                        SymbolKind::Function | SymbolKind::Class | SymbolKind::Constant
+                    )
+            }
+            Language::Rust | Language::Go => {
+                s.container.is_none()
+                    && matches!(
+                        s.kind,
+                        SymbolKind::Function
+                            | SymbolKind::Struct
+                            | SymbolKind::Enum
+                            | SymbolKind::Trait
+                            | SymbolKind::Interface
+                            | SymbolKind::TypeAlias
+                            | SymbolKind::Constant
+                    )
+            }
+            // A `locals` entry has the `locals` block as its container and is movable
+            // all the same; every other nested name is an argument, which is not.
+            Language::Hcl => {
+                matches!(s.kind, SymbolKind::Block | SymbolKind::Variable | SymbolKind::Module)
+                    && (s.container.is_none() || enclosing_locals_block(index, s).is_some())
+            }
+            Language::Css | Language::Scss => {
+                matches!(s.kind, SymbolKind::Selector | SymbolKind::ElementId)
+            }
+            Language::Markdown => s.kind == SymbolKind::Heading,
+            _ => false,
         })
         .map(|s| s.id)
         .collect()
@@ -303,10 +1765,10 @@ mod tests {
     }
 
     #[test]
-    fn refuses_languages_without_computable_imports() {
-        let (tmp, index) = workspace(&[("a.rs", "fn thing() {}\n"), ("b.rs", "\n")]);
+    fn refuses_languages_with_no_derivable_reachability() {
+        let (tmp, index) = workspace(&[("a.zig", "fn thing() void {}\n"), ("b.zig", "\n")]);
         let id = index.find_symbols("thing", None)[0].id;
-        let err = to_file(&index, id, &tmp.path().join("b.rs")).unwrap_err();
+        let err = to_file(&index, id, &tmp.path().join("b.zig")).unwrap_err();
         assert!(
             err.downcast_ref::<Refusal>()
                 .is_some_and(|r| matches!(r, Refusal::Unsupported { .. })),
@@ -342,16 +1804,41 @@ mod tests {
     }
 
     #[test]
+    fn refuses_a_move_that_would_change_language() {
+        let (tmp, index) = workspace(&[("a.py", "def f():\n    pass\n"), ("b.ts", "\n")]);
+        let id = index.find_symbols("f", None)[0].id;
+        let err = to_file(&index, id, &tmp.path().join("b.ts"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("cannot change language"), "got: {err}");
+    }
+
+    #[test]
     fn relative_module_paths_are_computed_correctly() {
         assert_eq!(
             relative_module(Path::new("/w/src/a.ts"), Path::new("/w/src/b.ts")).as_deref(),
             Some("./b")
         );
-        let nested =
-            relative_module(Path::new("/w/src/deep/a.ts"), Path::new("/w/src/b.ts"));
+        let nested = relative_module(Path::new("/w/src/deep/a.ts"), Path::new("/w/src/b.ts"));
         assert!(
             nested.as_deref().is_some_and(|m| m.contains("b")),
             "got {nested:?}"
+        );
+    }
+
+    #[test]
+    fn python_relative_modules_are_spelled_with_dots() {
+        assert_eq!(
+            python_relative_module(Path::new("/w/a.py"), Path::new("/w/b.py")).as_deref(),
+            Some(".b")
+        );
+        assert_eq!(
+            python_relative_module(Path::new("/w/a.py"), Path::new("/w/sub/b.py")).as_deref(),
+            Some(".sub.b")
+        );
+        assert_eq!(
+            python_relative_module(Path::new("/w/sub/a.py"), Path::new("/w/b.py")).as_deref(),
+            Some("..b")
         );
     }
 
@@ -365,5 +1852,47 @@ mod tests {
     #[test]
     fn a_file_with_no_imports_gets_one_at_the_top() {
         assert_eq!(import_insertion_point("const x = 1;\n"), 0);
+    }
+
+    #[test]
+    fn rust_use_insertion_lands_after_the_header_and_uses() {
+        let source = "//! Docs.\nuse std::fmt;\n\nfn f() {}\n";
+        let at = rust_use_insertion_point(source);
+        assert_eq!(&source[..at], "//! Docs.\nuse std::fmt;\n");
+        assert_eq!(rust_use_insertion_point("fn f() {}\n"), 0);
+    }
+
+    #[test]
+    fn module_declarations_are_recognised_only_in_the_file_form() {
+        assert!(declares_module("mod helpers;\n", "helpers"));
+        assert!(declares_module("pub mod helpers;\n", "helpers"));
+        assert!(declares_module("pub(crate) mod helpers;\n", "helpers"));
+        assert!(!declares_module("mod helpers { }\n", "helpers"));
+        assert!(!declares_module("mod other;\n", "helpers"));
+    }
+
+    #[test]
+    fn slugs_follow_the_anchor_spelling() {
+        assert_eq!(slug("Title One"), "title-one");
+        assert_eq!(slug("  Getting Started!  "), "getting-started");
+        assert_eq!(slug("C++ & Rust"), "c--rust");
+    }
+
+    #[test]
+    fn relative_links_walk_up_and_down() {
+        assert_eq!(
+            relative_link(Path::new("/w/docs"), Path::new("/w/docs/a.md")).as_deref(),
+            Some("a.md")
+        );
+        assert_eq!(
+            relative_link(Path::new("/w/docs/deep"), Path::new("/w/docs/a.md")).as_deref(),
+            Some("../a.md")
+        );
+    }
+
+    #[test]
+    fn whole_word_matching_ignores_substrings() {
+        assert!(mentions_word("use fmt::Debug;", "fmt"));
+        assert!(!mentions_word("format!(\"x\")", "fmt"));
     }
 }

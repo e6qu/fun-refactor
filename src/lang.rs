@@ -116,8 +116,9 @@ impl Language {
             Language::Scss => &["scss", "sass"],
             Language::Hcl => &["tf", "tfvars", "hcl"],
             Language::Yaml => &["yaml", "yml"],
-            // Helm shares YAML extensions; it is distinguished by chart layout, not suffix.
-            Language::Helm => &[],
+            // Helm shares YAML extensions and is otherwise distinguished by chart
+            // layout, but `.tpl` is unambiguously a Helm template file.
+            Language::Helm => &["tpl"],
             Language::Xml => &["xml"],
             Language::Markdown => &["md", "markdown", "mdown", "mkd"],
         }
@@ -259,6 +260,16 @@ mod tests {
     fn unknown_extensions_are_none() {
         assert_eq!(detect(Path::new("binary.bin")), None);
         assert_eq!(detect(Path::new("no_extension")), None);
+    }
+
+    #[test]
+    fn tpl_files_are_helm() {
+        // `_helpers.tpl` is where named templates live; without this it belongs to no
+        // language and cannot be written to.
+        assert_eq!(
+            detect(Path::new("chart/templates/_helpers.tpl")),
+            Some(Language::Helm)
+        );
     }
 
     #[test]

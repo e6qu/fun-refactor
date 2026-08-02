@@ -645,6 +645,16 @@ fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool)
         .canonicalize()
         .unwrap_or_else(|_| destination.to_path_buf());
     let plan = crate::refactor::move_symbol::to_file(&index, symbol.id, &dest)?;
+
+    // A CSS move's entire safety story is a warning, so these cannot stay hidden.
+    if !plan.warnings.is_empty() && !cli.json {
+        println!("Check these before committing:");
+        for warning in &plan.warnings {
+            println!("  {warning}");
+        }
+        println!();
+    }
+
     let summary = format!(
         "moved {} from {} to {} ({} file(s) gained an import)",
         plan.symbol,

@@ -32,7 +32,9 @@ impl Parsers {
             Language::Python => tree_sitter_python::LANGUAGE.into(),
             Language::Bash => tree_sitter_bash::LANGUAGE.into(),
             Language::Html => tree_sitter_html::LANGUAGE.into(),
-            Language::Css | Language::Scss => tree_sitter_css::LANGUAGE.into(),
+            Language::Css => tree_sitter_css::LANGUAGE.into(),
+            // SCSS is a superset, and the CSS grammar rejects most of what it adds.
+            Language::Scss => tree_sitter_scss::language(),
             Language::Hcl => tree_sitter_hcl::LANGUAGE.into(),
             Language::Yaml | Language::Helm => tree_sitter_yaml::LANGUAGE.into(),
             Language::Xml => tree_sitter_xml::LANGUAGE_XML.into(),
@@ -323,13 +325,23 @@ mod tests {
     }
 
     #[test]
-    fn scss_specific_syntax_is_reported_not_silently_accepted() {
-        // SCSS runs on the CSS grammar; `$vars` and `@mixin` are not CSS. The tool
-        // must surface that rather than pretend the parse succeeded.
-        let parsed = parse(Language::Scss, "@mixin theme($c) { color: $c; }\n");
-        assert!(
-            parsed.has_errors(),
-            "SCSS-only syntax should be visible as parse errors under the CSS grammar"
+    fn scss_specific_syntax_parses_on_its_own_grammar() {
+        // $variables, @mixin and @include are not CSS, and the CSS grammar rejects
+        // them; SCSS gets the grammar that knows them.
+        let parsed = parse(
+            Language::Scss,
+            "$brand: #fff;\n@mixin theme($c) { color: $c; }\n.btn { @include theme($brand); }\n",
         );
+        assert!(
+            !parsed.has_errors(),
+            "SCSS should parse cleanly: {:?}",
+            parsed.error_spans()
+        );
+    }
+
+    #[test]
+    fn plain_css_still_parses_as_css() {
+        let parsed = parse(Language::Css, ".btn { color: red; }\n");
+        assert!(!parsed.has_errors());
     }
 }

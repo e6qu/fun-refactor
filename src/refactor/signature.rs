@@ -4,14 +4,25 @@
 //! actions — so a CLI is free to offer the operation directly. That freedom does not
 //! extend to guessing: a call site that did not resolve conclusively is reported and
 //! the whole operation refuses, because a half-updated signature does not compile.
+//!
+//! Two languages spell "signature" differently and are handled separately below:
+//!
+//!   * Terraform. A module is a directory; its parameters are the `variable "x" {}`
+//!     blocks declared in it, and its call sites are `module "m" { source = "./dir" }`
+//!     blocks pointing at that directory. Arguments there are named rather than
+//!     positional, so a change addresses a position in the variables' document order
+//!     and rewrites the *named* argument at every call site.
+//!   * SCSS mixins are not supported and cannot be: see [`scss_mixins_unsupported`].
 
 use super::Refusal;
-use crate::edit::{Edit, EditSet};
+use crate::edit::{full_line_span, line_indent, Edit, EditSet};
 use crate::index::Index;
-use crate::model::{SymbolId, SymbolKind};
-use crate::parse::Parsers;
+use crate::lang::Language;
+use crate::model::{Confidence, Symbol, SymbolId, SymbolKind};
+use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
+use std::path::{Component, Path, PathBuf};
 use tree_sitter::Node;
 
 /// What to do to a parameter list.
@@ -29,10 +40,21 @@ pub enum Change {
     },
 }
 
+/// What sort of thing the changed signature belongs to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Subject {
+    /// A function or method, whose arguments are positional.
+    Callable,
+    /// A Terraform module directory, whose arguments are named.
+    TerraformModule,
+}
+
 /// A signature change worked out but not applied.
 #[derive(Debug)]
 pub struct SignaturePlan {
-    pub function: String,
+    /// The function's name, or the Terraform module's directory.
+    pub subject: String,
+    pub subject_kind: Subject,
     pub change: Change,
     pub edits: EditSet,
     /// Call sites updated.
@@ -44,6 +66,13 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+
+    match sym.language {
+        // A Terraform module's signature is its directory's `variable` blocks.
+        Language::Hcl => return terraform_module(index, sym, change),
+        Language::Scss => return Err(scss_mixins_unsupported().into()),
+        _ => {}
+    }
 
     if !matches!(sym.kind, SymbolKind::Function | SymbolKind::Method) {
         anyhow::bail!(
@@ -123,7 +152,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     }
 
     Ok(SignaturePlan {
-        function: sym.name.clone(),
+        subject: sym.name.clone(),
+        subject_kind: Subject::Callable,
         change,
         edits,
         call_sites,
@@ -179,7 +209,11 @@ fn apply_change(
             declaration,
             argument,
         } => {
-            let text = if is_declaration { declaration } else { argument };
+            let text = if is_declaration {
+                declaration
+            } else {
+                argument
+            };
             if items.is_empty() {
                 // Insert just inside the parentheses.
                 let inside = Span::new(list.start_byte() + 1, list.start_byte() + 1);
@@ -293,20 +327,800 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
         .collect()
 }
 
+// ---------------------------------------------------------------- SCSS
+
+/// Why SCSS mixin parameters cannot be changed.
+///
+/// This is a grammar gap, not a policy: SCSS files are parsed with the
+/// tree-sitter-css grammar, which has no rule for `@mixin` or `@include`. Both forms
+/// come out as ERROR nodes, so a mixin has no symbol, no parameter list and no
+/// locatable call sites. Anything this function could return instead would be
+/// invented, so it refuses and says exactly what is missing.
+fn scss_mixins_unsupported() -> Refusal {
+    Refusal::Unsupported {
+        operation: "changing mixin parameters".to_string(),
+        language: "SCSS, which is parsed with the tree-sitter-css grammar: that grammar \
+                   has no rule for `@mixin` or `@include`, so a mixin declaration and \
+                   every `@include` of it parse as errors and produce no symbol, no \
+                   parameter list and no call sites. An SCSS grammar is a prerequisite"
+            .to_string(),
+    }
+}
+
+// ----------------------------------------------------- Terraform modules
+
+/// A `variable "x" { ... }` block declared in the target module's directory.
+#[derive(Debug)]
+struct ModuleVariable {
+    id: SymbolId,
+    name: String,
+    file: PathBuf,
+    /// The whole block, `variable` keyword through closing brace.
+    span: Span,
+    has_default: bool,
+}
+
+/// A `module "m" { source = "./dir" ... }` block that calls the target module.
+#[derive(Debug)]
+struct ModuleCall {
+    label: String,
+    file: PathBuf,
+    /// The whole `module` block.
+    span: Span,
+    /// Named arguments, each the whole `name = value` attribute.
+    arguments: Vec<(String, Span)>,
+}
+
+/// What a `module` block's `source` argument says.
+enum ModuleSource {
+    /// A literal string, e.g. `"./modules/thing"` or `"hashicorp/consul/aws"`.
+    Literal(String),
+    /// Anything else: `var.where`, an interpolation, a function call.
+    Computed(String),
+    /// No `source` argument at all.
+    Missing,
+}
+
+/// Change the signature of the Terraform module `sym` belongs to.
+fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<SignaturePlan> {
+    let dir = target_module_dir(index, sym)?;
+    let variables = module_variables(index, &dir)?;
+    let calls = module_calls(index, &dir)?;
+
+    let mut edits = EditSet::new();
+    let mut call_sites = 0usize;
+
+    match &change {
+        // Terraform arguments are named, so shuffling `variable` blocks is a
+        // formatting change that no call site can observe. Saying so beats
+        // performing an edit that means nothing.
+        Change::Move { .. } => {
+            return Err(Refusal::Unsupported {
+                operation: "reordering module variables".to_string(),
+                language: "Terraform, whose module arguments are named rather than \
+                           positional: moving a `variable` block changes nothing at any \
+                           call site"
+                    .to_string(),
+            }
+            .into());
+        }
+
+        Change::Remove(at) => {
+            let Some(target) = variables.get(*at) else {
+                anyhow::bail!(
+                    "there is no module variable at position {at}; {} declares {}",
+                    dir.display(),
+                    describe_variables(&variables)
+                );
+            };
+
+            // A variable the module's own configuration still reads cannot be
+            // removed: the `var.x` uses would dangle.
+            let uses = index.references_to(target.id);
+            if !uses.is_empty() {
+                let where_ = uses
+                    .iter()
+                    .map(|r| location(&r.file, r.span.start))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                anyhow::bail!(
+                    "`{}` is still read {} time(s) inside the module ({where_}); removing \
+                     it would leave those `var.{}` references dangling",
+                    target.name,
+                    uses.len(),
+                    target.name
+                );
+            }
+
+            let source = std::fs::read_to_string(&target.file)?;
+            edits.add(
+                target.file.clone(),
+                Edit::new(
+                    statement_deletion_span(&source, target.span),
+                    "",
+                    format!("remove module variable `{}`", target.name),
+                ),
+            );
+
+            for call in &calls {
+                let Some((_, span)) = call.arguments.iter().find(|(n, _)| *n == target.name) else {
+                    // The caller relied on the default; there is nothing to remove.
+                    continue;
+                };
+                let call_source = std::fs::read_to_string(&call.file)?;
+                edits.add(
+                    call.file.clone(),
+                    Edit::new(
+                        statement_deletion_span(&call_source, *span),
+                        "",
+                        format!(
+                            "drop `{}` argument from module \"{}\"",
+                            target.name, call.label
+                        ),
+                    ),
+                );
+                call_sites += 1;
+            }
+
+            // A values file assigns the same call surface from the other side; an
+            // assignment left behind names a variable that no longer exists.
+            for (file, span) in tfvars_assignments(index, &dir, &target.name)? {
+                let source = std::fs::read_to_string(&file)?;
+                edits.add(
+                    file,
+                    Edit::new(
+                        statement_deletion_span(&source, span),
+                        "",
+                        format!("drop `{}` from the values file", target.name),
+                    ),
+                );
+                call_sites += 1;
+            }
+        }
+
+        Change::Add {
+            at,
+            declaration,
+            argument,
+        } => {
+            let (name, has_default) = parse_variable_declaration(declaration)?;
+
+            if let Some(existing) = variables.iter().find(|v| v.name == name) {
+                return Err(Refusal::NameCollision {
+                    existing: name,
+                    file: existing.file.clone(),
+                }
+                .into());
+            }
+            for call in &calls {
+                if call.arguments.iter().any(|(n, _)| *n == name) {
+                    return Err(Refusal::NameCollision {
+                        existing: name,
+                        file: call.file.clone(),
+                    }
+                    .into());
+                }
+            }
+            // A variable with no default is required, so every caller has to start
+            // passing it. Without a value to pass, adding it breaks them all.
+            if argument.is_empty() && !has_default && !calls.is_empty() {
+                anyhow::bail!(
+                    "`{name}` has no `default`, so it is required at all {} call site(s); \
+                     supply an argument value to pass there, or give the variable a default",
+                    calls.len()
+                );
+            }
+
+            let (file, offset, text) =
+                variable_insertion(index, &dir, &variables, *at, declaration)?;
+            edits.add(
+                file,
+                Edit::new(
+                    Span::new(offset, offset),
+                    text,
+                    format!("declare module variable `{name}`"),
+                ),
+            );
+
+            if !argument.is_empty() {
+                for call in &calls {
+                    let call_source = std::fs::read_to_string(&call.file)?;
+                    let Some((_, last)) = call.arguments.last() else {
+                        anyhow::bail!(
+                            "module \"{}\" at {} has no arguments to append to",
+                            call.label,
+                            location(&call.file, call.span.start)
+                        );
+                    };
+                    let indent = argument_indent(&call_source, call.span, *last);
+                    edits.add(
+                        call.file.clone(),
+                        Edit::new(
+                            Span::new(last.end, last.end),
+                            format!("\n{indent}{name} = {argument}"),
+                            format!("pass `{name}` to module \"{}\"", call.label),
+                        ),
+                    );
+                    call_sites += 1;
+                }
+            }
+        }
+    }
+
+    Ok(SignaturePlan {
+        subject: dir.display().to_string(),
+        subject_kind: Subject::TerraformModule,
+        change,
+        edits,
+        call_sites,
+    })
+}
+
+/// The module directory whose signature `sym` identifies.
+///
+/// Two handles work: a `variable` block, whose module is the directory it sits in,
+/// and a `module` block, whose module is wherever its `source` points.
+fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(sym.language, &source)?;
+    let block = top_level_blocks(&parsed)
+        .into_iter()
+        .find(|b| Span::from(*b).contains(sym.name_span));
+
+    match (sym.kind, block) {
+        (SymbolKind::Variable, Some(block))
+            if block_keyword(block, &source) == Some("variable") =>
+        {
+            let dir = sym.file.parent().ok_or_else(|| {
+                anyhow::anyhow!("{} is not inside a directory", sym.file.display())
+            })?;
+            Ok(normalize(dir))
+        }
+        (SymbolKind::Module, Some(block)) if block_keyword(block, &source) == Some("module") => {
+            let dir = sym.file.parent().ok_or_else(|| {
+                anyhow::anyhow!("{} is not inside a directory", sym.file.display())
+            })?;
+            match block_source(block, &source) {
+                ModuleSource::Literal(path) => {
+                    let Some(target) = local_module_dir(dir, &path) else {
+                        anyhow::bail!(
+                            "module \"{}\" at {} has source `{path}`, which is not a local \
+                             directory; its variables are not declared in this workspace",
+                            sym.name,
+                            location(&sym.file, sym.name_span.start)
+                        );
+                    };
+                    if !directory_has_hcl(index, &target) {
+                        anyhow::bail!(
+                            "module \"{}\" at {} points at {}, which holds no Terraform files \
+                             in this workspace",
+                            sym.name,
+                            location(&sym.file, sym.name_span.start),
+                            target.display()
+                        );
+                    }
+                    Ok(target)
+                }
+                ModuleSource::Computed(text) => anyhow::bail!(
+                    "module \"{}\" at {} has a computed source `{text}`, so the directory it \
+                     calls is not knowable without applying the configuration",
+                    sym.name,
+                    location(&sym.file, sym.name_span.start)
+                ),
+                ModuleSource::Missing => anyhow::bail!(
+                    "module \"{}\" at {} has no `source` argument",
+                    sym.name,
+                    location(&sym.file, sym.name_span.start)
+                ),
+            }
+        }
+        _ => anyhow::bail!(
+            "'{}' is a {} in Terraform; only a `variable` block or a `module` block names a \
+             module signature",
+            sym.name,
+            sym.kind.as_str()
+        ),
+    }
+}
+
+/// The `variable` blocks of a module directory, in document order.
+fn module_variables(index: &Index, dir: &Path) -> Result<Vec<ModuleVariable>> {
+    let mut out: Vec<ModuleVariable> = Vec::new();
+
+    for (path, info) in index.files() {
+        if info.language != Language::Hcl || !is_terraform_config(path) {
+            continue;
+        }
+        if path.parent().map(normalize).as_deref() != Some(dir) {
+            continue;
+        }
+        let source = std::fs::read_to_string(path)?;
+        let parsed = Parsers::new().parse(Language::Hcl, &source)?;
+        for block in top_level_blocks(&parsed) {
+            if block_keyword(block, &source) != Some("variable") {
+                continue;
+            }
+            let Some(label) = block_labels(block).first().copied() else {
+                continue;
+            };
+            let name = Span::from(label).text(&source).to_string();
+            let span = Span::from(block);
+            let id = info
+                .symbols
+                .iter()
+                .filter_map(|id| index.symbol(*id))
+                .find(|s| s.kind == SymbolKind::Variable && s.name_span == Span::from(label))
+                .map(|s| s.id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "the index has no symbol for `variable \"{name}\"` at {}",
+                        location(path, span.start)
+                    )
+                })?;
+            let has_default = block_body(block).is_some_and(|body| {
+                body_attributes(body, &source)
+                    .iter()
+                    .any(|(n, _)| *n == "default")
+            });
+            out.push(ModuleVariable {
+                id,
+                name,
+                file: path.clone(),
+                span,
+                has_default,
+            });
+        }
+    }
+
+    out.sort_by(|a, b| a.file.cmp(&b.file).then(a.span.start.cmp(&b.span.start)));
+    Ok(out)
+}
+
+/// Every `module` block in the workspace that calls the module in `dir`.
+///
+/// All-or-nothing applies across the whole workspace: a `module` block whose source
+/// is not a literal path might be the one caller this change would miss, and no
+/// amount of reading the configuration can prove otherwise. So one such block
+/// refuses the operation instead of producing an update that is right for the
+/// callers we could see and wrong for Terraform as a whole.
+fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
+    let mut calls: Vec<ModuleCall> = Vec::new();
+    let mut opaque: Vec<String> = Vec::new();
+
+    for (path, info) in index.files() {
+        if info.language != Language::Hcl || !is_terraform_config(path) {
+            continue;
+        }
+        let source = std::fs::read_to_string(path)?;
+        let parsed = Parsers::new().parse(Language::Hcl, &source)?;
+        let here = path
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("{} is not inside a directory", path.display()))?;
+
+        for block in top_level_blocks(&parsed) {
+            if block_keyword(block, &source) != Some("module") {
+                continue;
+            }
+            let label = block_labels(block)
+                .first()
+                .map(|l| Span::from(*l).text(&source).to_string())
+                .unwrap_or_default();
+            let at = location(path, block.start_byte());
+
+            match block_source(block, &source) {
+                ModuleSource::Missing => opaque.push(format!(
+                    "module \"{label}\" at {at} has no `source` argument"
+                )),
+                ModuleSource::Computed(text) => opaque.push(format!(
+                    "module \"{label}\" at {at} has a computed source `{text}`"
+                )),
+                ModuleSource::Literal(literal) => {
+                    if local_module_dir(here, &literal).as_deref() != Some(dir) {
+                        continue;
+                    }
+                    let arguments = block_body(block)
+                        .map(|body| {
+                            body_attributes(body, &source)
+                                .into_iter()
+                                .map(|(name, node)| (name.to_string(), Span::from(node)))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    calls.push(ModuleCall {
+                        label,
+                        file: path.clone(),
+                        span: Span::from(block),
+                        arguments,
+                    });
+                }
+            }
+        }
+
+        // The index records every module `source` as an import. One that points at
+        // the target directory without a matching top-level `module` block means the
+        // block is somewhere this rewrite does not look — nested inside another
+        // block, say — and editing around it would update only part of the call
+        // surface.
+        for import in &info.imports {
+            if local_module_dir(here, &import.path).as_deref() != Some(dir) {
+                continue;
+            }
+            if !calls
+                .iter()
+                .any(|c| c.file == *path && c.span == import.span)
+            {
+                return Err(Refusal::TooWeak {
+                    confidence: Confidence::NameOnly,
+                    detail: format!(
+                        "a `module` block at {} sources {} but is not a top-level block, so \
+                         its arguments cannot be rewritten",
+                        location(path, import.span.start),
+                        dir.display()
+                    ),
+                }
+                .into());
+            }
+        }
+    }
+
+    if !opaque.is_empty() {
+        return Err(Refusal::TooWeak {
+            confidence: Confidence::NameOnly,
+            detail: format!(
+                "{} `module` block(s) do not name a literal source, so they cannot be shown \
+                 not to call {}: {}",
+                opaque.len(),
+                dir.display(),
+                opaque.join("; ")
+            ),
+        }
+        .into());
+    }
+
+    calls.sort_by(|a, b| a.file.cmp(&b.file).then(a.span.start.cmp(&b.span.start)));
+    Ok(calls)
+}
+
+/// Top-level `name = value` assignments of `name` in the module's `.tfvars` files.
+fn tfvars_assignments(index: &Index, dir: &Path, name: &str) -> Result<Vec<(PathBuf, Span)>> {
+    let mut out = Vec::new();
+    for (path, info) in index.files() {
+        if info.language != Language::Hcl || is_terraform_config(path) {
+            continue;
+        }
+        if path.parent().map(normalize).as_deref() != Some(dir) {
+            continue;
+        }
+        for symbol in info.symbols.iter().filter_map(|id| index.symbol(*id)) {
+            if symbol.kind == SymbolKind::Key && symbol.name == name {
+                out.push((path.clone(), symbol.full_span));
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+/// Where a new `variable` block goes: its file, byte offset and text.
+fn variable_insertion(
+    index: &Index,
+    dir: &Path,
+    variables: &[ModuleVariable],
+    at: usize,
+    declaration: &str,
+) -> Result<(PathBuf, usize, String)> {
+    let block = declaration.trim_end_matches('\n');
+
+    if let Some(before) = variables.get(at) {
+        let source = std::fs::read_to_string(&before.file)?;
+        let offset = full_line_span(&source, before.span.start).start;
+        return Ok((before.file.clone(), offset, format!("{block}\n\n")));
+    }
+
+    // Past the end, or no position given: after the last variable there is.
+    if let Some(last) = variables.last() {
+        let source = std::fs::read_to_string(&last.file)?;
+        let offset = full_line_span(&source, last.span.end - 1).end;
+        return Ok((last.file.clone(), offset, format!("\n{block}\n")));
+    }
+
+    // A module with no variables at all has no anchor, so the conventional file is
+    // the only sane target — and if it does not exist, saying so beats creating one.
+    let path = dir.join("variables.tf");
+    if index.file(&path).is_none() {
+        anyhow::bail!(
+            "module {} declares no variables and has no variables.tf to add one to; create \
+             the file first",
+            dir.display()
+        );
+    }
+    let source = std::fs::read_to_string(&path)?;
+    // A block needs a blank line before it, but only as much of one as the file
+    // does not already end with.
+    let separator = if source.is_empty() || source.ends_with("\n\n") {
+        ""
+    } else if source.ends_with('\n') {
+        "\n"
+    } else {
+        "\n\n"
+    };
+    Ok((path, source.len(), format!("{separator}{block}\n")))
+}
+
+/// Validate a `variable "x" { ... }` declaration and report its name and defaulting.
+fn parse_variable_declaration(declaration: &str) -> Result<(String, bool)> {
+    let parsed = Parsers::new().parse(Language::Hcl, declaration)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "the declaration does not parse as Terraform; it must be a whole block, e.g. \
+             `variable \"name\" {{\\n  type = string\\n}}`"
+        );
+    }
+    let blocks = top_level_blocks(&parsed);
+    let [block] = blocks.as_slice() else {
+        anyhow::bail!(
+            "the declaration must be exactly one `variable` block, not {}",
+            blocks.len()
+        );
+    };
+    if block_keyword(*block, declaration) != Some("variable") {
+        anyhow::bail!("the declaration must be a `variable` block");
+    }
+    let labels = block_labels(*block);
+    let [label] = labels.as_slice() else {
+        anyhow::bail!("a `variable` block takes exactly one name label");
+    };
+    let name = Span::from(*label).text(declaration).to_string();
+    if !is_terraform_identifier(&name) {
+        return Err(Refusal::InvalidName {
+            name,
+            reason: "a Terraform variable name must start with a letter or underscore and \
+                     contain only letters, digits, underscores and dashes"
+                .to_string(),
+        }
+        .into());
+    }
+    let has_default = block_body(*block).is_some_and(|body| {
+        body_attributes(body, declaration)
+            .iter()
+            .any(|(n, _)| *n == "default")
+    });
+    Ok((name, has_default))
+}
+
+fn is_terraform_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+}
+
+/// Indentation to give an argument appended to a `module` block.
+fn argument_indent(source: &str, block: Span, last_argument: Span) -> String {
+    let block_line = full_line_span(source, block.start);
+    let argument_line = full_line_span(source, last_argument.start);
+    if block_line.start == argument_line.start {
+        // A one-line block: the appended argument opens the body's first real line.
+        format!("{}  ", line_indent(source, block.start))
+    } else {
+        line_indent(source, last_argument.start)
+    }
+}
+
+/// Widen a span to the whole lines it occupies, taking one adjoining blank line so a
+/// removed block does not leave a double gap behind.
+fn statement_deletion_span(source: &str, span: Span) -> Span {
+    if span.is_empty() || span.end > source.len() {
+        return span;
+    }
+    let first = full_line_span(source, span.start);
+    let last = full_line_span(source, span.end - 1);
+    let line_end = last.end.max(first.end).max(span.end);
+    let alone = source[first.start..span.start].trim().is_empty()
+        && source[span.end..line_end].trim().is_empty();
+    if !alone {
+        return span;
+    }
+
+    // A block separated from its neighbours by blank lines must take one of them
+    // with it, or the file is left with a double gap where it used to be.
+    let mut start = first.start;
+    let mut end = line_end;
+    let previous_blank = start > 0
+        && full_line_span(source, start - 1)
+            .text(source)
+            .trim()
+            .is_empty();
+    let next = (end < source.len()).then(|| full_line_span(source, end));
+    let next_blank = next.is_some_and(|n| n.text(source).trim().is_empty());
+
+    if (previous_blank || start == 0) && next_blank {
+        end = next.expect("blank line exists").end;
+    } else if previous_blank {
+        start = full_line_span(source, start - 1).start;
+    }
+    Span::new(start, end)
+}
+
+/// Resolve a module `source` to a workspace directory, or `None` if it names
+/// something that is not a local path (a registry address, a git URL).
+fn local_module_dir(from: &Path, source: &str) -> Option<PathBuf> {
+    if !(source.starts_with("./") || source.starts_with("../") || source.starts_with('/')) {
+        return None;
+    }
+    Some(normalize(&from.join(source)))
+}
+
+/// Resolve `.` and `..` lexically. Not `canonicalize`: the comparison is between
+/// paths the scan produced, and following symlinks would make two spellings of the
+/// same directory compare unequal.
+fn normalize(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+/// Does the workspace hold any `.tf` file in this directory?
+fn directory_has_hcl(index: &Index, dir: &Path) -> bool {
+    index.files().any(|(path, info)| {
+        info.language == Language::Hcl
+            && is_terraform_config(path)
+            && path.parent().map(normalize).as_deref() == Some(dir)
+    })
+}
+
+/// `.tf` declares configuration; `.tfvars` only assigns values to it.
+fn is_terraform_config(path: &Path) -> bool {
+    !path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("tfvars"))
+}
+
+fn describe_variables(variables: &[ModuleVariable]) -> String {
+    if variables.is_empty() {
+        return "none".to_string();
+    }
+    variables
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            let required = if v.has_default { "" } else { " (required)" };
+            format!("{i}: {}{required}", v.name)
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// `path:line` for an error message.
+fn location(path: &Path, offset: usize) -> String {
+    let line = std::fs::read_to_string(path)
+        .map(|src| LineIndex::new(&src).line_col(offset, &src).line)
+        .unwrap_or(0);
+    format!("{}:{line}", path.display())
+}
+
+// -------------------------------------------------------- HCL tree access
+
+/// The blocks directly under the file body. `variable` and `module` are only
+/// meaningful there, and a rewrite must not mistake a nested block for one.
+fn top_level_blocks<'a>(parsed: &'a Parsed) -> Vec<Node<'a>> {
+    let root = parsed.root();
+    let mut out = Vec::new();
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if child.kind() != "body" {
+            continue;
+        }
+        let mut inner = child.walk();
+        out.extend(
+            child
+                .named_children(&mut inner)
+                .filter(|n| n.kind() == "block"),
+        );
+    }
+    out
+}
+
+/// The block type keyword: `variable`, `module`, `resource`…
+fn block_keyword<'a>(block: Node<'_>, source: &'a str) -> Option<&'a str> {
+    let keyword = child_of_kind(block, "identifier")?;
+    Some(&source[keyword.start_byte()..keyword.end_byte()])
+}
+
+/// The label contents of a block, quotes excluded.
+fn block_labels(block: Node<'_>) -> Vec<Node<'_>> {
+    let mut cursor = block.walk();
+    block
+        .children(&mut cursor)
+        .filter(|c| c.kind() == "string_lit")
+        .filter_map(|literal| child_of_kind(literal, "template_literal"))
+        .collect()
+}
+
+fn block_body(block: Node<'_>) -> Option<Node<'_>> {
+    child_of_kind(block, "body")
+}
+
+/// The `name = value` attributes of a body, in source order.
+fn body_attributes<'a, 'tree>(body: Node<'tree>, source: &'a str) -> Vec<(&'a str, Node<'tree>)> {
+    let mut cursor = body.walk();
+    body.named_children(&mut cursor)
+        .filter(|c| c.kind() == "attribute")
+        .filter_map(|attribute| {
+            let name = child_of_kind(attribute, "identifier")?;
+            Some((&source[name.start_byte()..name.end_byte()], attribute))
+        })
+        .collect()
+}
+
+/// What a block's `source` argument says.
+fn block_source(block: Node<'_>, source: &str) -> ModuleSource {
+    let Some(body) = block_body(block) else {
+        return ModuleSource::Missing;
+    };
+    let Some((_, attribute)) = body_attributes(body, source)
+        .into_iter()
+        .find(|(name, _)| *name == "source")
+    else {
+        return ModuleSource::Missing;
+    };
+    let literal = child_of_kind(attribute, "expression")
+        .and_then(|e| child_of_kind(e, "literal_value"))
+        .and_then(|l| child_of_kind(l, "string_lit"))
+        .and_then(|s| child_of_kind(s, "template_literal"));
+    match literal {
+        Some(node) => ModuleSource::Literal(Span::from(node).text(source).to_string()),
+        None => ModuleSource::Computed(
+            child_of_kind(attribute, "expression")
+                .map(|e| Span::from(e).text(source).to_string())
+                .unwrap_or_default(),
+        ),
+    }
+}
+
+fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
+    let mut cursor = node.walk();
+    let found = node.children(&mut cursor).find(|c| c.kind() == kind);
+    found
+}
+
 /// Describe a plan for display.
 pub fn describe(index: &Index, plan: &SignaturePlan) -> String {
+    let noun = match plan.subject_kind {
+        Subject::Callable => "parameter",
+        Subject::TerraformModule => "module variable",
+    };
     let what = match &plan.change {
-        Change::Remove(i) => format!("removed parameter {i}"),
-        Change::Move { from, to } => format!("moved parameter {from} to position {to}"),
-        Change::Add { at, declaration, .. } => {
-            format!("added parameter `{declaration}` at position {at}")
+        Change::Remove(i) => format!("removed {noun} {i}"),
+        Change::Move { from, to } => format!("moved {noun} {from} to position {to}"),
+        Change::Add {
+            at, declaration, ..
+        } => {
+            format!(
+                "added {noun} `{}` at position {at}",
+                first_line(declaration)
+            )
         }
     };
     let _ = index;
     format!(
         "{}: {what}, updating {} call site(s)",
-        plan.function, plan.call_sites
+        plan.subject, plan.call_sites
     )
+}
+
+/// The first line of a declaration, for one-line summaries.
+fn first_line(text: &str) -> &str {
+    text.lines().next().unwrap_or(text).trim_end()
 }
 
 /// Line of a symbol, for error messages.
@@ -431,8 +1245,14 @@ mod tests {
         // A same-named function elsewhere makes resolution ambiguous, and updating
         // only some call sites would not compile.
         let (_tmp, index) = workspace(&[
-            ("a.rs", "fn ambiguous(x: i32) {}\nfn ambiguous_caller() { ambiguous(1); }\n"),
-            ("b.rs", "fn ambiguous(x: i32) {}\nfn other() { ambiguous(2); }\n"),
+            (
+                "a.rs",
+                "fn ambiguous(x: i32) {}\nfn ambiguous_caller() { ambiguous(1); }\n",
+            ),
+            (
+                "b.rs",
+                "fn ambiguous(x: i32) {}\nfn other() { ambiguous(2); }\n",
+            ),
         ]);
         let id = index.find_symbols("ambiguous", None)[0].id;
         // Whatever resolution says, the operation must either be provably complete
@@ -454,7 +1274,9 @@ mod tests {
     fn refuses_non_functions() {
         let (_tmp, index) = workspace(&[("a.rs", "struct S;\n")]);
         let id = index.find_symbols("S", None)[0].id;
-        let err = change(&index, id, Change::Remove(0)).unwrap_err().to_string();
+        let err = change(&index, id, Change::Remove(0))
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("only functions"), "got: {err}");
     }
 
@@ -462,7 +1284,9 @@ mod tests {
     fn rejects_a_position_that_does_not_exist() {
         let (_tmp, index) = workspace(&[("a.rs", "fn f(a: i32) {}\nfn c() { f(1); }\n")]);
         let id = index.find_symbols("f", None)[0].id;
-        let err = change(&index, id, Change::Remove(9)).unwrap_err().to_string();
+        let err = change(&index, id, Change::Remove(9))
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("no parameter at position"), "got: {err}");
     }
 

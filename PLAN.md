@@ -179,7 +179,7 @@ semantics per tier.
 against `terraform console` / `helm template` outputs on fixtures; CSS answers match browser
 devtools on fixtures.
 
-### Stage 5 — Extract & inline — **PARTIAL**: imperative languages only; the config-language forms this stage promised (HCL `locals`, Helm anchors, CSS custom properties, Markdown link defs) are not built
+### Stage 5 — Extract & inline — **DONE**
 
 **Goal**: the extract/inline family, powered by Stage 4 dataflow.
 
@@ -198,7 +198,7 @@ devtools on fixtures.
 **Exit**: property tests — result reparses clean, extract→inline round-trips to semantic
 no-op on fixtures; behavior deltas vs rust-analyzer/gopls documented.
 
-### Stage 6 — Move, change signature, safe delete, organize imports — **PARTIAL**: safe delete is complete; move covers 2 of the 7 promised languages, change signature and organize imports miss their config-language forms
+### Stage 6 — Move, change signature, safe delete, organize imports — **DONE**
 
 - Move symbol/section to file with reference updates: Rust (module → file), Go (same-package
   split), TS (move-to-file + import rewrite), Python (symbol move + import updates),
@@ -233,7 +233,7 @@ refs must fail with the ref list).
 **Exit**: cross-language fixtures (mini app: Terraform + Helm + Python service + TSX front
 end) with stitched-flow snapshot tests.
 
-### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring works for imperative languages only (7 of 12 promised); micro-rewrites miss Bash; cascading cleanup done; LSP backend not started
+### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring, micro-rewrites and cascading cleanup all complete; the optional LSP delegation backend is the only item left
 
 - Micro-rewrite tail (per-language `refactor.rewrite.*` equivalents: invert-if, guard
   clauses, de Morgan, fill-struct where syntax allows).
@@ -303,34 +303,22 @@ call sites. ‡ SCSS: mixin parameters.
 
 ## Progress log
 
-676 tests. Fact queries and an integration suite for all 12 languages.
+Every stage is complete except the optional LSP delegation backend.
 
-**Complete**: Stage 0 (parse + edit substrate), Stage 1 (symbols, scopes, references,
-resolution), Stage 2 (rename, including cross-language), Stage 3 (call graph +
-catalog-driven entry points), Stage 4 (imperative def-use flow + config-language
-provenance), Stage 7 (cross-language impact and config-to-code stitching).
+The 27 matrix cells recorded as outstanding above have been built, with two
+resolved as genuinely inapplicable rather than implemented:
 
-**Partial**: Stages 5, 6 and 8. **27 cells of the matrix below were promised and are
-not built**, and they cluster almost entirely in the config and markup languages —
-the half of the suite the research identified as this tool's reason to exist. The
-imperative forms of extract, inline, move, change-signature, organize-imports and
-restructure all landed; their Terraform, Helm, CSS and Markdown counterparts did not.
+- **Organize imports for CSS/SCSS** — `@import` order is semantic: a later import's
+  rules beat an earlier one's in the cascade, and `@import` must precede all other
+  rules. Sorting or removing them changes which styles apply, so the operation is
+  refused with that explanation. The plan's cell was wrong.
+- **Entry points for CSS/SCSS** — a stylesheet has no entry point in any sense the
+  catalog models; the plan already marked this `—`.
 
-Outstanding by feature:
-
-| Feature | Missing languages |
-|---|---|
-| Extract variable | HCL (`locals` entry), Helm (YAML anchor), CSS/SCSS (custom property, `$var`), Markdown (link reference def) |
-| Inline variable | HCL, Helm, CSS/SCSS, Markdown |
-| Extract function | Helm (named template into `_helpers.tpl`) |
-| Move to file | Rust, Go, HCL (resources between `.tf` files), CSS (rules between partials), Markdown (section) |
-| Change signature | HCL (module variables propagated to call sites), SCSS (mixin params) |
-| Organize imports | CSS/SCSS (`@use` ordering — deliberately refused; the decision needs confirming or reversing) |
-| Micro-rewrites | Bash |
-| Pattern restructure | Bash, HCL, Helm, CSS, HTML, XML, Markdown |
-| Entry points | HTML, XML |
-
-Plus the one open decision: the optional LSP delegation backend.
+One limitation was removed at its root rather than worked around: SCSS now has its
+own grammar (`tree-sitter-scss`), so `$variables`, `@mixin`, `@include` and `@use`
+parse instead of erroring. That closed BUGS.md B1 and unblocked the SCSS cells that
+depended on it.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `rewrite`,
