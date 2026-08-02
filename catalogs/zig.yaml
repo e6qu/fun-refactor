@@ -1,0 +1,23 @@
+# Zig entry points.
+- id: zig-main
+  kind: cli-main
+  threat_model: local
+  languages: [zig]
+  matches:
+    name: main
+    symbol_kind: function
+
+- id: zig-build
+  kind: cli-main
+  threat_model: local
+  languages: [zig]
+  matches:
+    file_name: build.zig
+    name: build
+
+- id: zig-test
+  kind: test
+  languages: [zig]
+  matches:
+    name_prefix: test
+    symbol_kind: function

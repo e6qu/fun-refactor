@@ -1,0 +1,51 @@
+# Go entry points. Test conventions come from `go test`; exported names are
+# capitalised, which the extractor records as `exported`.
+- id: go-main
+  kind: cli-main
+  threat_model: local
+  languages: [go]
+  matches:
+    name: main
+    symbol_kind: function
+
+- id: go-init
+  kind: cli-main
+  languages: [go]
+  matches:
+    name: init
+    symbol_kind: function
+
+- id: go-test
+  kind: test
+  languages: [go]
+  matches:
+    name_prefix: Test
+    file_suffix: _test.go
+
+- id: go-benchmark
+  kind: test
+  languages: [go]
+  matches:
+    name_prefix: Benchmark
+    file_suffix: _test.go
+
+- id: go-fuzz
+  kind: test
+  languages: [go]
+  matches:
+    name_prefix: Fuzz
+    file_suffix: _test.go
+
+- id: go-example
+  kind: test
+  languages: [go]
+  matches:
+    name_prefix: Example
+    file_suffix: _test.go
+
+- id: go-http-handler
+  kind: http-route
+  threat_model: remote
+  languages: [go]
+  matches:
+    name_suffix: Handler

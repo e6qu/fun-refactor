@@ -1,0 +1,56 @@
+[package]
+name = "fun-refactor"
+version = "0.1.0"
+edition = "2021"
+authors = ["e6qu"]
+license = "AGPL-3.0-or-later"
+description = "Multi-language refactoring and code-intelligence CLI built on tree-sitter"
+repository = "https://github.com/e6qu/fun-refactor"
+
+[[bin]]
+name = "fr"
+path = "src/main.rs"
+
+[dependencies]
+# Tree-sitter parsing. Grammar pins inherited from funveil (github.com/e6qu/funveil
+# @ 2b9a47408e3419ce0061a2c9a2dd5f1efc11f4ba) — a known-good, mutually compatible set.
+tree-sitter = "0.26"
+tree-sitter-rust = "0.24"
+tree-sitter-typescript = "0.23"
+tree-sitter-python = "0.25"
+tree-sitter-bash = "0.25"
+tree-sitter-hcl = "1.1"
+tree-sitter-yaml = "0.7"
+tree-sitter-go = "0.25"
+tree-sitter-zig = "1.1"
+tree-sitter-html = "0.23"
+tree-sitter-css = "0.25"
+tree-sitter-xml = "0.7"
+tree-sitter-markdown-fork = "0.7"
+streaming-iterator = "0.1"
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+clap = { version = "4.6", features = ["derive"] }
+thiserror = "2.0"
+anyhow = "1.0"
+walkdir = "2.5"
+ignore = "0.4"
+regex = "1.12"
+sha2 = "0.10"
+petgraph = "0.8"
+postcard = { version = "1.1", features = ["alloc"] }
+rayon = "1.11"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+similar = "2.6"
+tempfile = "3.27"
+
+[dev-dependencies]
+rstest = "0.26"
+assert_cmd = "2.2"
+predicates = "3.1"
+
+[lints.rust]
+unsafe_code = "forbid"

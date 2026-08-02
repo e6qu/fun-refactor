@@ -1,0 +1,14 @@
+# Documentation entry points: the files a reader lands on first.
+- id: readme
+  kind: doc
+  languages: [markdown]
+  matches:
+    file_name: README.md
+    symbol_kind: heading
+
+- id: contributing
+  kind: doc
+  languages: [markdown]
+  matches:
+    file_name: CONTRIBUTING.md
+    symbol_kind: heading

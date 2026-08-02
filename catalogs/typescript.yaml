@@ -1,0 +1,51 @@
+# TypeScript / TSX entry points, including Next.js file conventions.
+- id: ts-nextjs-page
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    file_name: page.tsx
+    exported: true
+
+- id: ts-nextjs-layout
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    file_name: layout.tsx
+    exported: true
+
+- id: ts-nextjs-route-handler
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    file_name: route.ts
+    exported: true
+
+- id: ts-app-component
+  kind: exported-api
+  languages: [typescript, tsx]
+  matches:
+    name: App
+    exported: true
+
+- id: ts-test
+  kind: test
+  languages: [typescript, tsx]
+  matches:
+    file_suffix: .test.ts
+
+- id: ts-spec
+  kind: test
+  languages: [typescript, tsx]
+  matches:
+    file_suffix: .spec.ts
+
+- id: ts-handler-suffix
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    name_suffix: Handler
+    exported: true

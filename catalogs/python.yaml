@@ -1,0 +1,43 @@
+# Python entry points.
+- id: python-main
+  kind: cli-main
+  threat_model: local
+  languages: [python]
+  matches:
+    name: main
+    symbol_kind: function
+
+- id: python-pytest
+  kind: test
+  languages: [python]
+  matches:
+    name_prefix: test_
+    symbol_kind: function
+
+- id: python-test-file
+  kind: test
+  languages: [python]
+  matches:
+    file_prefix: test_
+    symbol_kind: function
+
+- id: python-handler-suffix
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    name_suffix: _handler
+
+- id: python-view-suffix
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    name_suffix: _view
+
+- id: python-lambda-handler
+  kind: serverless-handler
+  threat_model: remote
+  languages: [python]
+  matches:
+    name: lambda_handler
