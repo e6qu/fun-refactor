@@ -111,6 +111,18 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Change a function's parameters and update every call site.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Signature {
+        /// Position as `path:line:col`, or a bare function name.
+        target: String,
+        /// `remove:<i>`, `move:<from>:<to>`, or `add:<i>:<declaration>:<argument>`.
+        change: String,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Trace where a value comes from or goes to.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
@@ -217,6 +229,11 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_extract(&cli, range, name, *all, *write),
         Command::Inline { target, write } => cmd_inline(&cli, target, *write),
+        Command::Signature {
+            target,
+            change,
+            write,
+        } => cmd_signature(&cli, target, change, *write),
         Command::Impact {
             target,
             caller_depth,
@@ -397,6 +414,44 @@ fn cmd_inline(cli: &Cli, target: &str, write: bool) -> Result<()> {
         "inlined `{}` into {} use site(s)",
         plan.name, plan.use_sites
     );
+    present(cli, &plan.edits, &summary, write)
+}
+
+/// Parse a signature-change spec such as `remove:1` or `add:2:flag: bool:false`.
+fn parse_signature_change(spec: &str) -> Result<crate::refactor::signature::Change> {
+    use crate::refactor::signature::Change;
+
+    let parts: Vec<&str> = spec.splitn(4, ':').collect();
+    match parts.as_slice() {
+        ["remove", index] => Ok(Change::Remove(index.parse()?)),
+        ["move", from, to] => Ok(Change::Move {
+            from: from.parse()?,
+            to: to.parse()?,
+        }),
+        ["add", at, rest] | ["add", at, rest, ..] => {
+            // The declaration may itself contain a colon (`flag: bool`), so the
+            // argument is taken from the last colon-separated field.
+            let (declaration, argument) = rest.rsplit_once(':').ok_or_else(|| {
+                anyhow::anyhow!("add needs a declaration and an argument, e.g. add:1:flag\\: bool:false")
+            })?;
+            Ok(Change::Add {
+                at: at.parse()?,
+                declaration: declaration.to_string(),
+                argument: argument.to_string(),
+            })
+        }
+        _ => anyhow::bail!(
+            "unrecognised change '{spec}'. Use remove:<i>, move:<from>:<to>, or add:<i>:<declaration>:<argument>"
+        ),
+    }
+}
+
+fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let change = parse_signature_change(change_spec)?;
+    let plan = crate::refactor::signature::change(&index, symbol.id, change)?;
+    let summary = crate::refactor::signature::describe(&index, &plan);
     present(cli, &plan.edits, &summary, write)
 }
 

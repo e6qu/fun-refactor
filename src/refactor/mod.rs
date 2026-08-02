@@ -10,6 +10,7 @@ pub mod extract;
 pub mod imports;
 pub mod inline;
 pub mod rename;
+pub mod signature;
 
 use crate::model::Confidence;
 use serde::Serialize;
