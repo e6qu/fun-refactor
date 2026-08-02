@@ -129,7 +129,8 @@ fn in_document_anchor_hrefs_are_references() {
 
 #[test]
 fn cross_document_and_external_hrefs_are_not_anchor_references() {
-    let src = "<a href=\"other.html\">x</a><a href=\"https://example.com\">y</a><a href=\"#\">z</a>\n";
+    let src =
+        "<a href=\"other.html\">x</a><a href=\"https://example.com\">y</a><a href=\"#\">z</a>\n";
     let f = facts(src);
     assert!(refs(&f).is_empty(), "got {:?}", refs(&f));
 }

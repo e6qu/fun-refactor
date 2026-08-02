@@ -643,12 +643,7 @@ impl TraceResult {
                 }
                 _ => String::new(),
             };
-            out.push_str(&format!(
-                "{}{}{}\n",
-                "  ".repeat(node.depth),
-                name,
-                marker
-            ));
+            out.push_str(&format!("{}{}{}\n", "  ".repeat(node.depth), name, marker));
         }
         if !self.cycles.is_empty() {
             out.push_str(&format!("\n{} cycle(s) detected\n", self.cycles.len()));
@@ -1016,9 +1011,10 @@ impl Hierarchy {
     fn visit_go(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
             "type_spec" => {
-                let (Some(name), Some(body)) =
-                    (field_text(node, "name", source), node.child_by_field_name("type"))
-                else {
+                let (Some(name), Some(body)) = (
+                    field_text(node, "name", source),
+                    node.child_by_field_name("type"),
+                ) else {
                     return;
                 };
                 if body.kind() != "interface_type" {
@@ -1210,13 +1206,7 @@ fn named_children<'a>(node: Node<'a>) -> Vec<Node<'a>> {
 }
 
 /// Record the method name of a call written as `receiver.name(...)`.
-fn push_site(
-    accessor: Node,
-    field: &str,
-    source: &str,
-    family: Family,
-    sites: &mut Vec<CallSite>,
-) {
+fn push_site(accessor: Node, field: &str, source: &str, family: Family, sites: &mut Vec<CallSite>) {
     if let Some(name) = accessor.child_by_field_name(field) {
         sites.push(CallSite {
             offset: name.start_byte(),
@@ -1253,7 +1243,10 @@ fn heritage_names(node: Node, source: &str) -> Vec<String> {
         };
         for part in parts {
             // A type argument list belongs to the supertype, not beside it.
-            if matches!(part.kind(), "type_identifier" | "identifier" | "nested_type_identifier") {
+            if matches!(
+                part.kind(),
+                "type_identifier" | "identifier" | "nested_type_identifier"
+            ) {
                 let name = text(part, source);
                 names.push(name.rsplit('.').next().unwrap_or(name).to_string());
             }
@@ -1405,7 +1398,8 @@ mod tests {
 
     #[test]
     fn mutual_recursion_terminates() {
-        let (_tmp, index) = workspace(&[("a.rs", "fn ping() { pong(); }\nfn pong() { ping(); }\n")]);
+        let (_tmp, index) =
+            workspace(&[("a.rs", "fn ping() { pong(); }\nfn pong() { ping(); }\n")]);
         let cg = CallGraph::build(&index);
         let trace = cg.trace(id_of(&index, "ping"), Direction2::Callees, 100);
         assert_eq!(trace.len(), 2);
@@ -1417,7 +1411,9 @@ mod tests {
         let (_tmp, index) = workspace(&[("a.rs", "fn caller() { external_thing(); }\n")]);
         let cg = CallGraph::build(&index);
         assert!(
-            cg.unresolved.iter().any(|u| u.callee_name == "external_thing"),
+            cg.unresolved
+                .iter()
+                .any(|u| u.callee_name == "external_thing"),
             "an unresolvable call must still be visible: {:?}",
             cg.unresolved
         );
@@ -1481,7 +1477,11 @@ mod tests {
              impl T for B { fn m(&self) {} }\nfn go(t: &dyn T) { t.m(); }\n",
         )]);
         let cg = CallGraph::build(&index);
-        assert_eq!(cg.hierarchy_edge_count(), 3, "two impls and the declaration");
+        assert_eq!(
+            cg.hierarchy_edge_count(),
+            3,
+            "two impls and the declaration"
+        );
         for (_, edge) in cg.callees(id_of(&index, "go")) {
             assert_eq!(edge.confidence, Confidence::FieldBased);
             assert!(edge.origin.is_hierarchy());

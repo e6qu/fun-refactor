@@ -182,7 +182,8 @@ fn works_for_go_despite_its_statement_list_wrapper() {
 
 #[test]
 fn works_for_typescript() {
-    let src = "function double(x: number) { return x * 2; }\nfunction main() { const y = double(3); }\n";
+    let src =
+        "function double(x: number) { return x * 2; }\nfunction main() { const y = double(3); }\n";
     let (tmp, index) = workspace(&[("a.ts", src)]);
     let path = tmp.path().join("a.ts");
 

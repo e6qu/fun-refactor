@@ -371,12 +371,8 @@ pub fn run() -> Result<()> {
             new_name,
             write,
         } => cmd_rename(&cli, target, new_name, *write),
-        Command::Callers { target, depth } => {
-            cmd_trace(&cli, target, *depth, Direction2::Callers)
-        }
-        Command::Callees { target, depth } => {
-            cmd_trace(&cli, target, *depth, Direction2::Callees)
-        }
+        Command::Callers { target, depth } => cmd_trace(&cli, target, *depth, Direction2::Callers),
+        Command::Callees { target, depth } => cmd_trace(&cli, target, *depth, Direction2::Callees),
         Command::Flow {
             direction,
             target,
@@ -385,8 +381,7 @@ pub fn run() -> Result<()> {
             set,
             set_string,
         } => {
-            let inputs =
-                crate::analysis::provenance::ValuesInputs::parse(values, set, set_string)?;
+            let inputs = crate::analysis::provenance::ValuesInputs::parse(values, set, set_string)?;
             cmd_flow(&cli, direction, target, *depth, &inputs)
         }
         Command::Extract {
@@ -401,9 +396,7 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
-        Command::RemoveFlag { flag, value, write } => {
-            cmd_remove_flag(&cli, flag, *value, *write)
-        }
+        Command::RemoveFlag { flag, value, write } => cmd_remove_flag(&cli, flag, *value, *write),
         Command::Rewrite {
             target,
             rewrite,
@@ -506,12 +499,7 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
 }
 
 /// Render a plan's diff, report what it did, and optionally commit it.
-fn present(
-    cli: &Cli,
-    edits: &crate::edit::EditSet,
-    summary: &str,
-    write: bool,
-) -> Result<()> {
+fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) -> Result<()> {
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
 
     if cli.json {
@@ -585,8 +573,8 @@ fn cmd_extract(
 ) -> Result<()> {
     let (path, start, end) = parse_range(range)?;
     let path = path.canonicalize().unwrap_or(path);
-    let source = std::fs::read_to_string(&path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let source =
+        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let index_of_lines = LineIndex::new(&source);
     let span = crate::span::Span::new(
         index_of_lines
@@ -648,7 +636,10 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
             .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
 
         let plan = crate::refactor::inline::call(&index, &path, offset)?;
-        let summary = format!("inlined the call to {} as `{}`", plan.function, plan.expansion);
+        let summary = format!(
+            "inlined the call to {} as `{}`",
+            plan.function, plan.expansion
+        );
         return present(cli, &plan.edits, &summary, write);
     }
 
@@ -699,12 +690,43 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
     present(cli, &plan.edits, &summary, write)
 }
 
+/// The destination file, spelled the way the index spells its paths.
+///
+/// A move works out an import path by comparing the destination against the file
+/// that needs the import, so the two have to be written the same way. They are not
+/// by default: the destination is whatever the caller typed, while indexed paths are
+/// canonical, and on macOS `/var` and `/private/var` name the same directory. Left
+/// alone that produced imports like `'../../../../../../../var/folders/…'`.
+///
+/// The file itself need not exist yet — a move usually creates it — so it is the
+/// parent directory that is resolved, and a missing one is an error rather than a
+/// path passed through untouched.
+fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::path::PathBuf> {
+    let absolute = if destination.is_absolute() {
+        destination.to_path_buf()
+    } else {
+        cli.root.join(destination)
+    };
+    let parent = absolute
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("{} has no parent directory", absolute.display()))?;
+    let name = absolute
+        .file_name()
+        .ok_or_else(|| anyhow::anyhow!("{} does not name a file", absolute.display()))?;
+    let parent = parent.canonicalize().map_err(|e| {
+        anyhow::anyhow!(
+            "cannot resolve the destination directory {}: {e}. Create it first, or \
+             give a path inside an existing directory",
+            parent.display()
+        )
+    })?;
+    Ok(parent.join(name))
+}
+
 fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
-    let dest = destination
-        .canonicalize()
-        .unwrap_or_else(|_| destination.to_path_buf());
+    let dest = resolve_destination(cli, destination)?;
     let plan = crate::refactor::move_symbol::to_file(&index, symbol.id, &dest)?;
 
     // A CSS move's entire safety story is a warning, so these cannot stay hidden.
@@ -787,7 +809,8 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
          value or a base class is no longer listed. A function held in a map or a \n\
          struct field and called through it, and a name assembled at runtime, still \n\
          can be. Symbols whose name is spelled in any string literal are deliberately \n\
-         left off."
+         left off, as are names beginning with an underscore, which say the author \n\
+         meant them to go unused."
     );
     Ok(())
 }
@@ -1367,7 +1390,13 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
         for (kind, warnings) in grouped {
             println!("  {} ({}):", kind, warnings.len());
             for w in warnings.iter().take(10) {
-                println!("    {}:{}:{}  {}", w.file.display(), w.line, w.col, w.detail);
+                println!(
+                    "    {}:{}:{}  {}",
+                    w.file.display(),
+                    w.line,
+                    w.col,
+                    w.detail
+                );
             }
             if warnings.len() > 10 {
                 println!("    … and {} more", warnings.len() - 10);
@@ -1497,15 +1526,14 @@ fn cmd_capabilities(
     };
     let rows: Vec<_> = capabilities::matrix()
         .into_iter()
-        .filter(|r| capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c))
+        .filter(|r| {
+            capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c)
+        })
         .collect();
 
     if rows.is_empty() {
         let known: Vec<_> = Capability::ALL.iter().map(|c| c.as_str()).collect();
-        anyhow::bail!(
-            "unknown capability. Known: {}",
-            known.join(", ")
-        );
+        anyhow::bail!("unknown capability. Known: {}", known.join(", "));
     }
 
     if cli.json {
@@ -1840,21 +1868,22 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     };
 
     if cli.json {
-        let render = |list: &[&crate::model::Reference],
-                      locate: &mut dyn FnMut(&PathBuf, usize) -> (usize, usize)| {
-            list.iter()
-                .map(|r| {
-                    let (line, col) = locate(&r.file, r.span.start);
-                    serde_json::json!({
-                        "file": r.file,
-                        "line": line,
-                        "col": col,
-                        "kind": format!("{:?}", r.kind).to_lowercase(),
-                        "confidence": r.confidence.as_str(),
+        let render =
+            |list: &[&crate::model::Reference],
+             locate: &mut dyn FnMut(&PathBuf, usize) -> (usize, usize)| {
+                list.iter()
+                    .map(|r| {
+                        let (line, col) = locate(&r.file, r.span.start);
+                        serde_json::json!({
+                            "file": r.file,
+                            "line": line,
+                            "col": col,
+                            "kind": format!("{:?}", r.kind).to_lowercase(),
+                            "confidence": r.confidence.as_str(),
+                        })
                     })
-                })
-                .collect::<Vec<_>>()
-        };
+                    .collect::<Vec<_>>()
+            };
         let resolved = render(&refs, &mut locate);
         let unresolved = render(&weak, &mut locate);
         println!(
@@ -1907,7 +1936,10 @@ fn resolve_languages(names: &[String]) -> Result<Vec<Language>> {
         .map(|n| {
             Language::from_name(n).ok_or_else(|| {
                 let known: Vec<_> = Language::ALL.iter().map(|l| l.name()).collect();
-                anyhow::anyhow!("unknown language '{n}'. Known languages: {}", known.join(", "))
+                anyhow::anyhow!(
+                    "unknown language '{n}'. Known languages: {}",
+                    known.join(", ")
+                )
             })
         })
         .collect()
@@ -2015,7 +2047,10 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("{:<12} {:>7} {:>8} {:>8}", "LANGUAGE", "FILES", "ERRORS", "UNREAD");
+    println!(
+        "{:<12} {:>7} {:>8} {:>8}",
+        "LANGUAGE", "FILES", "ERRORS", "UNREAD"
+    );
     for (name, t) in &per_language {
         println!(
             "{:<12} {:>7} {:>8} {:>8}",

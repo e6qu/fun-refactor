@@ -128,19 +128,36 @@ impl Ref {
 /// only the former open or close a [`Region`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionKind {
-    If { expression: String },
-    ElseIf { expression: String },
+    If {
+        expression: String,
+    },
+    ElseIf {
+        expression: String,
+    },
     Else,
     End,
-    Range { expression: String, variables: Vec<String> },
-    With { expression: String },
-    Define { name: String },
+    Range {
+        expression: String,
+        variables: Vec<String>,
+    },
+    With {
+        expression: String,
+    },
+    Define {
+        name: String,
+    },
     /// `{{ block "name" . }}` both defines a template and invokes it here.
-    Block { name: String },
+    Block {
+        name: String,
+    },
     /// `{{ template "name" . }}`.
-    TemplateCall { name: String },
+    TemplateCall {
+        name: String,
+    },
     /// `{{ $x := ... }}` or `{{ $x = ... }}`.
-    Assignment { variable: String },
+    Assignment {
+        variable: String,
+    },
     /// `{{/* ... */}}`.
     Comment,
     /// A pipeline whose result is rendered.
@@ -384,10 +401,7 @@ impl Template {
     }
 
     fn new(source: &str, spans: &[Span]) -> Template {
-        let mut actions: Vec<Action> = spans
-            .iter()
-            .map(|span| action_at(source, *span))
-            .collect();
+        let mut actions: Vec<Action> = spans.iter().map(|span| action_at(source, *span)).collect();
         actions.sort_by_key(|a| a.span.start);
 
         let mut regions: Vec<Region> = Vec::new();
@@ -401,8 +415,7 @@ impl Template {
                     match stack.pop() {
                         Some(region) => {
                             regions[region].end = Some(index);
-                            regions[region].span =
-                                Span::new(regions[region].span.start, span.end);
+                            regions[region].span = Span::new(regions[region].span.start, span.end);
                             regions[region].body =
                                 Span::new(actions[regions[region].open].span.end, span.start);
                         }
@@ -793,9 +806,7 @@ fn parse_set_path(key: &str) -> Result<Vec<SetSegment>> {
     let mut segments = Vec::new();
     for part in split_unescaped(key, '.') {
         let bytes = part.as_bytes();
-        let name_end = part
-            .find('[')
-            .unwrap_or(part.len());
+        let name_end = part.find('[').unwrap_or(part.len());
         let name = unescape(&part[..name_end]);
         if !name.is_empty() {
             segments.push(SetSegment::Key(name));
@@ -805,7 +816,10 @@ fn parse_set_path(key: &str) -> Result<Vec<SetSegment>> {
         let mut i = name_end;
         while i < bytes.len() {
             if bytes[i] != b'[' {
-                bail!("`{key}` is not a Helm --set path: expected `[` at '{}'", &part[i..]);
+                bail!(
+                    "`{key}` is not a Helm --set path: expected `[` at '{}'",
+                    &part[i..]
+                );
             }
             let Some(close) = part[i..].find(']').map(|offset| i + offset) else {
                 bail!("`{key}` has an unclosed `[`");
@@ -1230,9 +1244,7 @@ fn classify(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Actio
         },
         "range" => {
             // `range $index, $element := .Values.list` binds before it iterates.
-            let declare = tokens
-                .iter()
-                .position(|token| token.kind == Tok::Declare);
+            let declare = tokens.iter().position(|token| token.kind == Tok::Declare);
             let variables = match declare {
                 Some(at) => tokens[1..at]
                     .iter()

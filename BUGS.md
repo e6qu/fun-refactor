@@ -34,13 +34,20 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   Helm, is ranked as a source that supplies it; and `{a,b}` list literals, `--set-file`
   and `--set-json` are refused by name rather than half-applied.
 - [ ] B14: a CSS class named inside a TSX helper call or template literal —
-  `className={clsx("btn", active && "on")}`, `` className={`btn ${size}`} `` — is not
+  `className={cx("btn", active && "on")}`, `` className={`btn ${size}`} `` — is not
   resolved, because only a plain string attribute value is captured. A rename of that
   class rewrites the plain `className="btn"` uses and leaves the helper ones; the
   textual sweep does report each missed site as needing review, so the result is
   incomplete rather than silently wrong. Resolving them means teaching the TSX queries
   which call arguments are class lists, which is a per-library convention (`clsx`,
-  `classnames`, `cva`, `tailwind-merge`) rather than a language rule.
+  `cx`, `classnames`, `cva`, `tailwind-merge`) rather than a language rule.
+
+  Measured over grafana/grafana's 4,400 TSX files, `className` is written as:
+  `styles.x` from CSS-in-JS 3,233 times, `cx(…)` 381, a plain string literal 224, a
+  template literal 28. So the helper form outnumbers the resolvable one, and closing
+  this would roughly triple the reach of a stylesheet-class rename in a modern React
+  codebase. The CSS-in-JS majority is a different matter and out of scope: there is no
+  stylesheet selector to link `styles.x` to.
 
 - [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse, each surfaced as a parse
   error rather than mis-handled. Found by hand: empty parentheses on a declaration
@@ -61,6 +68,77 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   facts inside that expression.
 
 ## Fixed
+
+- [x] B16: micro-rewrites were published for seven languages and tested on three.
+  `invert-if` and `guard-clause` negated the whole condition node, which in the C
+  family and Zig *includes the brackets*, so both emitted `if !(a)` — valid Rust,
+  a syntax error in TypeScript, TSX and Zig. Zig failed earlier still: its grammar
+  calls the consequence `body`, not `consequence`, so no part of the `if` was found.
+  Fixed by negating the expression inside the condition and splicing within it, so
+  whatever the grammar writes around it survives; `guard-clause` now builds its
+  header from the source's own bytes rather than reinventing one per language.
+  Found by running the tool on grafana/grafana, where 63 of 65 real if/else sites
+  now invert cleanly and both refusals are genuine `else if` chains.
+
+- [x] B17: **`guard-clause` silently changed what Go programs do.** Go's grammar puts
+  a `statement_list` between a block and its statements; counted as a statement, it
+  made every block look like a block of one, so the "is this `if` last?" check passed
+  for an `if` with code after it and the guard hoisted that code out from under the
+  condition guarding it. The result parses, so the reparse check never saw it.
+  Measured over 250 files of grafana/grafana's `pkg/services`: **1,258 of 1,498
+  applications (84%) were wrong**; after the fix those are refused and the remaining
+  240 apply. Fixed at the class rather than the site — `is_statement_container` was
+  duplicated in two modules and had already drifted, and is now one shared predicate.
+
+- [x] B18: `invert-if` accepted an `else if` chain and produced unparseable output.
+  The second condition is only tested when the first is false, so swapping the
+  branches changes which tests run; it is now refused with that reason. Also fixed:
+  `else_body_of` returned the whole `else` clause when it did not recognise the body
+  shape, splicing the `else` keyword into the consequence position.
+
+- [x] B19: **de Morgan dropped the grouping its own result needs.** `!(a && b)` is one
+  operand; `!a || !b` is two, and the brackets that held it together left with the
+  negation. Inside another operator that rebinds silently: `x && !(a && b)` became
+  `x && !a || !b`, which parses and means something else. Now bracketed whenever the
+  parent binds operands; in shell, where `( … )` opens a subshell, it is refused.
+
+- [x] B20: `extract --function` emitted `function helper(x: : number)` for TypeScript.
+  The C-family grammars fold the `:` into the annotation node, and the renderer added
+  another. The type is now read bare and each language spells its own punctuation, so
+  Go gets `x int` rather than `x: int`, and its call site loses the C semicolon —
+  `gofmt -d` reports no diff on the result.
+
+- [x] B21: **a move produced files that parse and do not compile.** The definition was
+  relocated and nothing else: it was left unexported while an import was written for
+  it, its own imports stayed behind, and whatever it still needed from its old file
+  was unreachable. A move now carries the imports the moved code uses — narrowed to
+  the names it actually mentions, `type` modifiers intact — imports back what stayed
+  behind, exports that too, and exports the moved symbol. A Python back-import makes
+  a run-time cycle and says so.
+
+- [x] B22: a move given a destination spelled differently from the indexed path — a
+  relative path, or `/var` where the index holds `/private/var` — wrote imports like
+  `'../../../../../../../var/folders/…'`, and in the relative case silently added no
+  import at all. `canonicalize()` had failed on a file that does not exist yet and the
+  result was passed through unchanged. The destination is now resolved through its
+  parent directory, and a missing directory is an error. The matching silent skip in
+  the move itself — a file that needed an import and did not get one, reported as
+  success — is now a failure.
+
+- [x] B23: the index records one `Import` per imported name, each carrying the whole
+  statement's span, so a four-name import read as four statements. Anything rewriting
+  import statements has to regroup them first, and a move did not: it emitted the
+  same statement once per used name.
+
+- [x] B24: generated code was indented four spaces regardless of the file. Two-space
+  TypeScript and tab-indented Go both received four, on every guard clause and every
+  extracted function. One level is now read from the source.
+
+- [x] B25: `fr unused` listed every `_`-prefixed parameter — the convention in Rust,
+  TypeScript, Python and Zig for a binding a signature forces and the body ignores.
+  One real file contributed eight. They are now spared with that stated reason rather
+  than dropped quietly.
+
 
 - [x] B10: Helm values precedence stopped at the command line — whether a
   `values-*.yaml` is passed with `-f`, the order of several `-f` files, and every

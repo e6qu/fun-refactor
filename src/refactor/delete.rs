@@ -208,6 +208,10 @@ pub enum SparedReason {
         from: SymbolId,
         basis: HierarchyBasis,
     },
+    /// Its name begins with an underscore, which in Rust, TypeScript, Python and Zig
+    /// is how an author writes "this is deliberately not used" — usually a parameter
+    /// a signature requires and the body ignores.
+    DeclaredUnused,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -229,6 +233,11 @@ impl UnusedReport {
         Some(match reason {
             SparedReason::NamedInAString => {
                 "name appears in a string literal; reflection or a handler table may reach it"
+                    .to_string()
+            }
+            SparedReason::DeclaredUnused => {
+                "its name begins with an underscore, which says the author meant it to \
+                 go unused"
                     .to_string()
             }
             SparedReason::DynamicDispatch { from, basis } => {
@@ -281,6 +290,17 @@ pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
 }
 
+/// Did the author declare this unused by naming it so?
+///
+/// A leading underscore is the convention in Rust, TypeScript, Python and Zig for a
+/// binding a signature forces on you and the body has no use for. Listing those as
+/// dead code buries the real findings — a single real file turned up eight of them.
+/// Go spells the same idea as a bare `_`, which binds nothing and never reaches the
+/// index in the first place.
+fn declared_unused(symbol: &crate::model::Symbol) -> bool {
+    symbol.name.starts_with('_')
+}
+
 /// [`find_unused`], with the reason each spared symbol was spared.
 pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedReport {
     let call_graph = CallGraph::build(index);
@@ -322,11 +342,17 @@ pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedRepo
 
     for symbol in &index.symbols {
         let orphaned = !reachable.contains(&symbol.id) && !referenced.contains(&symbol.id);
-        if (orphaned || dead_cycles.contains(&symbol.id))
-            && !named_in_a_string.contains(&symbol.name)
-        {
-            report.unused.push(symbol.id);
-            continue;
+        if orphaned || dead_cycles.contains(&symbol.id) {
+            if declared_unused(symbol) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::DeclaredUnused));
+                continue;
+            }
+            if !named_in_a_string.contains(&symbol.name) {
+                report.unused.push(symbol.id);
+                continue;
+            }
         }
 
         // Only a symbol the plain reachability answer would have listed was spared.
@@ -379,9 +405,10 @@ fn names_in_string_literals(index: &Index) -> HashSet<String> {
             continue;
         };
         for span in spans_of(&parsed, is_string_kind) {
-            for word in span.text(&source).split(|c: char| {
-                !(c.is_alphanumeric() || c == '_' || c == '$' || c == '-')
-            }) {
+            for word in span
+                .text(&source)
+                .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$' || c == '-'))
+            {
                 if word.is_empty() {
                     continue;
                 }
@@ -423,9 +450,7 @@ fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSe
         }
         incoming.entry(target).or_default().insert(owner);
         if let Some(owner) = owner {
-            let from = *nodes
-                .entry(owner)
-                .or_insert_with(|| graph.add_node(owner));
+            let from = *nodes.entry(owner).or_insert_with(|| graph.add_node(owner));
             let to = *nodes
                 .entry(target)
                 .or_insert_with(|| graph.add_node(target));
@@ -443,9 +468,10 @@ fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSe
             continue;
         }
         let held_from_outside = members.iter().any(|id| {
-            incoming
-                .get(id)
-                .is_some_and(|from| from.iter().any(|owner| !owner.is_some_and(|o| members.contains(&o))))
+            incoming.get(id).is_some_and(|from| {
+                from.iter()
+                    .any(|owner| !owner.is_some_and(|o| members.contains(&o)))
+            })
         });
         if held_from_outside {
             continue;
@@ -493,7 +519,10 @@ fn widen_for_delete(
 ) -> Span {
     use crate::model::SymbolKind;
     if !matches!(symbol.kind, SymbolKind::Selector | SymbolKind::ElementId)
-        || !matches!(symbol.language, crate::lang::Language::Css | crate::lang::Language::Scss)
+        || !matches!(
+            symbol.language,
+            crate::lang::Language::Css | crate::lang::Language::Scss
+        )
     {
         return symbol.full_span;
     }
@@ -772,6 +801,9 @@ mod tests {
     #[test]
     fn merge_runs_collapses_touching_spans() {
         let spans = [Span::new(0, 10), Span::new(10, 20), Span::new(30, 40)];
-        assert_eq!(merge_runs(&spans), vec![Span::new(0, 20), Span::new(30, 40)]);
+        assert_eq!(
+            merge_runs(&spans),
+            vec![Span::new(0, 20), Span::new(30, 40)]
+        );
     }
 }

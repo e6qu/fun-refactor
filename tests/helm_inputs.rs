@@ -71,7 +71,10 @@ fn chart() -> (tempfile::TempDir, Index) {
         ("app/values.yaml", PARENT_VALUES),
         ("app/values-stage.yaml", STAGE_VALUES),
         ("app/values-prod.yaml", PROD_VALUES),
-        ("app/charts/mysql/Chart.yaml", "name: mysql\nversion: 8.0.0\n"),
+        (
+            "app/charts/mysql/Chart.yaml",
+            "name: mysql\nversion: 8.0.0\n",
+        ),
         ("app/charts/mysql/values.yaml", SUBCHART_VALUES),
         ("app/templates/deployment.yaml", DEPLOYMENT),
     ])
@@ -124,13 +127,7 @@ fn listing(competition: &provenance::Competition) -> Vec<(String, String, bool)>
     competition
         .sources
         .iter()
-        .map(|s| {
-            (
-                s.precedence.label.clone(),
-                s.hop.text.clone(),
-                s.wins,
-            )
-        })
+        .map(|s| (s.precedence.label.clone(), s.hop.text.clone(), s.wins))
         .collect()
 }
 
@@ -185,10 +182,12 @@ fn passing_no_inputs_explicitly_is_the_same_answer_as_passing_none() {
     let (_tmp, index) = chart();
     let tag = key_with_path(&index, "charts/mysql/values.yaml", "image.tag");
     let plain = provenance(&index, tag, 5).unwrap();
-    let empty =
-        provenance_with_inputs(&index, tag, 5, &ValuesInputs::default()).unwrap();
+    let empty = provenance_with_inputs(&index, tag, 5, &ValuesInputs::default()).unwrap();
     assert_eq!(stops(&plain), stops(&empty));
-    assert_eq!(listing(tag_competition(&plain)), listing(tag_competition(&empty)));
+    assert_eq!(
+        listing(tag_competition(&plain)),
+        listing(tag_competition(&empty))
+    );
 }
 
 // ----------------------------------------------------------- one `-f` decides
@@ -324,7 +323,10 @@ fn two_values_files_apply_in_the_order_they_were_given() {
     assert!(competition.decided);
     let winner = competition.winner().unwrap();
     assert_eq!(winner.hop.text, "tag: \"8.4\"");
-    assert_eq!(winner.precedence.label, "user-supplied -f values-prod.yaml (2 of 2)");
+    assert_eq!(
+        winner.precedence.label,
+        "user-supplied -f values-prod.yaml (2 of 2)"
+    );
     assert!(winner.reason.contains("the last `-f` supplied"));
 
     // The same two files, written the other way round, give the other answer.
@@ -372,11 +374,10 @@ fn a_set_beats_every_values_file_however_many_were_passed() {
     );
     // Both files and both chart levels are still listed under it.
     assert_eq!(competition.losers().len(), 4, "{:?}", listing(competition));
-    assert!(competition
-        .losers()
-        .iter()
-        .all(|s| s.reason.contains("overridden by --set on the command line")
-            || s.reason.contains("sets nothing")));
+    assert!(competition.losers().iter().all(|s| s
+        .reason
+        .contains("overridden by --set on the command line")
+        || s.reason.contains("sets nothing")));
 }
 
 #[test]
@@ -429,7 +430,9 @@ fn a_set_for_a_key_no_values_file_declares_is_reported_as_introducing_it() {
         .iter()
         .find(|c| c.subject.contains("pullPolicy"))
         .unwrap_or_else(|| panic!("no competition: {:?}", result.competitions));
-    assert!(competition.subject.contains("introduced by the inputs supplied"));
+    assert!(competition
+        .subject
+        .contains("introduced by the inputs supplied"));
     assert_eq!(
         competition.winner().unwrap().hop.text,
         "--set image.pullPolicy=Always"
@@ -577,7 +580,10 @@ fn a_values_file_names_the_scanned_file_by_a_relative_path() {
     };
     let tag = key_with_path(&index, "charts/mysql/values.yaml", "image.tag");
     let result = provenance_with_inputs(&index, tag, 5, &inputs).unwrap();
-    assert_eq!(tag_competition(&result).winner().unwrap().hop.text, "tag: \"8.4\"");
+    assert_eq!(
+        tag_competition(&result).winner().unwrap().hop.text,
+        "tag: \"8.4\""
+    );
 }
 
 // --------------------------------------------------------- Helm's --set syntax
@@ -611,10 +617,7 @@ fn set_paths_follow_helms_own_syntax() {
 
     // An escaped dot is part of the key, not a separator.
     let escaped = helm::parse_set(r"annotations.example\.com/team=infra", false).unwrap();
-    assert_eq!(
-        escaped[0].keys(),
-        vec!["annotations", "example.com/team"]
-    );
+    assert_eq!(escaped[0].keys(), vec!["annotations", "example.com/team"]);
 
     // A value may hold `=` and commas of its own once escaped.
     let value = helm::parse_set(r"args=--a\,--b", false).unwrap();
@@ -630,7 +633,10 @@ fn set_paths_follow_helms_own_syntax() {
 fn unsupported_set_syntax_is_refused_by_name() {
     let list = helm::parse_set("a={x,y}", false).unwrap_err().to_string();
     assert!(list.contains("list syntax"), "{list}");
-    assert!(list.contains("-f"), "the refusal names what does work: {list}");
+    assert!(
+        list.contains("-f"),
+        "the refusal names what does work: {list}"
+    );
 
     let bare = helm::parse_set("justakey", false).unwrap_err().to_string();
     assert!(bare.contains("not an assignment"), "{bare}");
@@ -739,9 +745,16 @@ fn a_template_reaching_a_hyphenated_key_now_lands_on_the_values_entry() {
     );
     let result = provenance(&index, args, 6).unwrap();
     assert!(
-        result.hops.iter().any(|h| h.text.contains("extra-args: \"--quiet\"")),
+        result
+            .hops
+            .iter()
+            .any(|h| h.text.contains("extra-args: \"--quiet\"")),
         "the walk should reach the values key: {:?}",
-        result.hops.iter().map(|h| h.text.clone()).collect::<Vec<_>>()
+        result
+            .hops
+            .iter()
+            .map(|h| h.text.clone())
+            .collect::<Vec<_>>()
     );
 }
 

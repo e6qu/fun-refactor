@@ -168,7 +168,11 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
                 col,
                 kind: ImpactKind::Caller,
                 confidence: node.caller.map(|(_, c)| c).unwrap_or(Confidence::Exact),
-                detail: format!("{} calls it (depth {})", caller.qualified_name(), node.depth),
+                detail: format!(
+                    "{} calls it (depth {})",
+                    caller.qualified_name(),
+                    node.depth
+                ),
             });
         }
     }
@@ -189,9 +193,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
         }
     }
 
-    items.sort_by(|a, b| {
-        (a.kind, &a.file, a.line, a.col).cmp(&(b.kind, &b.file, b.line, b.col))
-    });
+    items.sort_by(|a, b| (a.kind, &a.file, a.line, a.col).cmp(&(b.kind, &b.file, b.line, b.col)));
     items.dedup();
 
     Ok(Impact { symbol, items })
@@ -280,10 +282,7 @@ mod tests {
         let leaf = index.find_symbols("leaf", None)[0].id;
         let impact = analyse(&index, leaf, 5).unwrap();
 
-        assert!(impact
-            .items
-            .iter()
-            .any(|i| i.kind == ImpactKind::Reference));
+        assert!(impact.items.iter().any(|i| i.kind == ImpactKind::Reference));
         // `top` calls `middle` calls `leaf`, so both are in the radius.
         let callers: Vec<_> = impact
             .items
@@ -307,7 +306,10 @@ mod tests {
         let (_tmp, index) = workspace(&[
             ("styles.css", ".card { color: red; }\n"),
             ("index.html", "<div class=\"card\"></div>\n"),
-            ("src/App.tsx", "export const A = () => <b className=\"card\" />;\n"),
+            (
+                "src/App.tsx",
+                "export const A = () => <b className=\"card\" />;\n",
+            ),
         ]);
         let card = index.find_symbols("card", None)[0].id;
         let impact = analyse(&index, card, 0).unwrap();

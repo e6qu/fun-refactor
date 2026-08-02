@@ -150,7 +150,10 @@ fn every_licence_is_compatible_with_this_project() {
              deliberate decision, not a silent import"
         );
     }
-    assert!(checked > 0, "no licences were checked; the manifest looks wrong");
+    assert!(
+        checked > 0,
+        "no licences were checked; the manifest looks wrong"
+    );
 }
 
 #[test]

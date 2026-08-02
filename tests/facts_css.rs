@@ -275,5 +275,8 @@ fn nested_rule_sets_do_parse_and_yield_both_selectors() {
     assert_eq!(names(&f, SymbolKind::Selector), ["outer", "inner"]);
     // The `&`-prefixed form is SCSS-only and does not survive.
     let amp = ".outer { &.inner { color: blue; } }\n";
-    assert_eq!(names(&facts(Language::Scss, amp), SymbolKind::Selector), ["outer", "inner"]);
+    assert_eq!(
+        names(&facts(Language::Scss, amp), SymbolKind::Selector),
+        ["outer", "inner"]
+    );
 }

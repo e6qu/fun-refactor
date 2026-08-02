@@ -130,7 +130,10 @@ fn rust_move_repoints_a_simple_use() {
     let changed = commit(&plan);
     assert_eq!(names_of(&changed), ["app.rs", "helpers.rs", "store.rs"]);
 
-    assert_eq!(ws.read("src/helpers.rs"), "pub fn kept() -> i32 {\n    1\n}\n\n");
+    assert_eq!(
+        ws.read("src/helpers.rs"),
+        "pub fn kept() -> i32 {\n    1\n}\n\n"
+    );
     assert_eq!(
         ws.read("src/store.rs"),
         "pub const LIMIT: i32 = 10;\n\npub fn shared() -> i32 {\n    2\n}\n"
@@ -149,7 +152,10 @@ fn rust_move_repoints_a_simple_use() {
     let refs = after.references_to(moved);
     assert_eq!(refs.len(), 2, "got {refs:?}");
     assert!(refs.iter().all(|r| r.file == ws.path("src/app.rs")));
-    assert!(refs.iter().all(|r| r.confidence.is_safe_to_rewrite()), "got {refs:?}");
+    assert!(
+        refs.iter().all(|r| r.confidence.is_safe_to_rewrite()),
+        "got {refs:?}"
+    );
     assert!(
         refs.iter()
             .any(|r| r.kind == fun_refactor::model::ReferenceKind::Call),
@@ -183,8 +189,14 @@ fn rust_move_takes_only_the_moved_name_out_of_a_use_list() {
     // Each name is now imported from where it lives, and both still resolve: one
     // reference in the `use` line and one at the call site.
     let after = ws.index();
-    assert_eq!(after.references_to(symbol_id(&after, "kept", None)).len(), 2);
-    assert_eq!(after.references_to(symbol_id(&after, "shared", None)).len(), 2);
+    assert_eq!(
+        after.references_to(symbol_id(&after, "kept", None)).len(),
+        2
+    );
+    assert_eq!(
+        after.references_to(symbol_id(&after, "shared", None)).len(),
+        2
+    );
 }
 
 #[test]
@@ -261,13 +273,20 @@ fn rust_destination_stops_importing_what_it_now_defines() {
         ws.read("src/store.rs"),
         "\npub fn total() -> i32 {\n    shared() + 1\n}\n\npub fn shared() -> i32 {\n    2\n}\n"
     );
-    assert!(plan.imports_added.is_empty(), "got {:?}", plan.imports_added);
+    assert!(
+        plan.imports_added.is_empty(),
+        "got {:?}",
+        plan.imports_added
+    );
 }
 
 #[test]
 fn rust_move_into_a_module_directory_uses_the_nested_path() {
     let ws = Workspace::new(&[
-        ("src/lib.rs", "pub mod app;\npub mod helpers;\npub mod store;\n"),
+        (
+            "src/lib.rs",
+            "pub mod app;\npub mod helpers;\npub mod store;\n",
+        ),
         ("src/store/mod.rs", "pub mod inner;\n"),
         ("src/store/inner.rs", "// inner\n"),
         ("src/helpers.rs", "pub fn shared() -> i32 {\n    2\n}\n"),
@@ -311,7 +330,11 @@ fn rust_warns_instead_of_rewriting_a_weakly_resolved_use_site() {
     // A fully-qualified call is matched by name alone, so the path in it cannot be
     // rewritten with any confidence. Saying so beats writing a `use` that would sit
     // beside a path still naming the old module.
-    assert!(plan.imports_added.is_empty(), "got {:?}", plan.imports_added);
+    assert!(
+        plan.imports_added.is_empty(),
+        "got {:?}",
+        plan.imports_added
+    );
     assert_eq!(plan.warnings.len(), 1, "got {:?}", plan.warnings);
     assert!(
         plan.warnings[0].contains("app.rs:2:") && plan.warnings[0].contains("name-only"),
@@ -327,15 +350,15 @@ fn rust_refuses_a_file_outside_a_src_directory() {
     let index = ws.index();
     let id = symbol_id(&index, "thing", None);
     let message = error(move_symbol::to_file(&index, id, &ws.path("b.rs")));
-    assert!(message.contains("not under a `src/` directory"), "got: {message}");
+    assert!(
+        message.contains("not under a `src/` directory"),
+        "got: {message}"
+    );
 }
 
 #[test]
 fn rust_refuses_a_src_directory_with_no_crate_root() {
-    let ws = Workspace::new(&[
-        ("src/a.rs", "pub fn thing() {}\n"),
-        ("src/b.rs", "\n"),
-    ]);
+    let ws = Workspace::new(&[("src/a.rs", "pub fn thing() {}\n"), ("src/b.rs", "\n")]);
     let index = ws.index();
     let id = symbol_id(&index, "thing", None);
     let message = error(move_symbol::to_file(&index, id, &ws.path("src/b.rs")));
@@ -355,8 +378,14 @@ fn rust_refuses_a_destination_that_is_not_declared_as_a_module() {
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
     let message = error(move_symbol::to_file(&index, id, &ws.path("src/orphan.rs")));
-    assert!(message.contains("does not declare `mod orphan;`"), "got: {message}");
-    assert!(message.contains("lib.rs"), "the refusal must name where to look: {message}");
+    assert!(
+        message.contains("does not declare `mod orphan;`"),
+        "got: {message}"
+    );
+    assert!(
+        message.contains("lib.rs"),
+        "the refusal must name where to look: {message}"
+    );
 }
 
 #[test]
@@ -402,7 +431,11 @@ fn rust_refuses_a_move_between_crates() {
     ]);
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
-    let message = error(move_symbol::to_file(&index, id, &ws.path("two/src/store.rs")));
+    let message = error(move_symbol::to_file(
+        &index,
+        id,
+        &ws.path("two/src/store.rs"),
+    ));
     assert!(message.contains("different crate roots"), "got: {message}");
 }
 
@@ -429,7 +462,11 @@ fn go_move_inside_one_package_changes_nothing_else() {
 
     let plan = move_symbol::to_file(&index, id, &ws.path("pkg/c.go")).unwrap();
     // Nothing to import: within a package every name is already in scope.
-    assert!(plan.imports_added.is_empty(), "got {:?}", plan.imports_added);
+    assert!(
+        plan.imports_added.is_empty(),
+        "got {:?}",
+        plan.imports_added
+    );
     let changed = commit(&plan);
     assert_eq!(
         names_of(&changed),
@@ -457,7 +494,10 @@ fn go_move_inside_one_package_changes_nothing_else() {
 fn go_move_into_an_empty_file_writes_the_package_clause() {
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
-        ("pkg/a.go", "package pkg\n\nfunc helper() int {\n\treturn 1\n}\n"),
+        (
+            "pkg/a.go",
+            "package pkg\n\nfunc helper() int {\n\treturn 1\n}\n",
+        ),
         ("pkg/new.go", ""),
     ]);
     let index = ws.index();
@@ -492,7 +532,9 @@ fn go_move_warns_about_the_imports_the_code_leaves_behind_and_needs() {
     // Nothing is edited: which import fed which name is exactly what this index knows
     // only weakly, so both directions are reported instead of guessed at.
     assert!(
-        plan.warnings.iter().any(|w| w.contains("may now be unused")),
+        plan.warnings
+            .iter()
+            .any(|w| w.contains("may now be unused")),
         "got {:?}",
         plan.warnings
     );
@@ -536,7 +578,10 @@ fn go_cross_package_move_qualifies_uses_and_imports_the_destination() {
 fn go_refuses_to_move_an_unexported_name_out_of_its_package() {
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
-        ("pkg/a.go", "package pkg\n\nfunc shared() int {\n\treturn 2\n}\n"),
+        (
+            "pkg/a.go",
+            "package pkg\n\nfunc shared() int {\n\treturn 2\n}\n",
+        ),
         ("util/u.go", "package util\n"),
     ]);
     let index = ws.index();
@@ -549,7 +594,10 @@ fn go_refuses_to_move_an_unexported_name_out_of_its_package() {
 #[test]
 fn go_refuses_a_cross_package_move_with_no_go_mod() {
     let ws = Workspace::new(&[
-        ("pkg/a.go", "package pkg\n\nfunc Shared() int {\n\treturn 2\n}\n"),
+        (
+            "pkg/a.go",
+            "package pkg\n\nfunc Shared() int {\n\treturn 2\n}\n",
+        ),
         ("util/u.go", "package util\n"),
     ]);
     let index = ws.index();
@@ -562,7 +610,10 @@ fn go_refuses_a_cross_package_move_with_no_go_mod() {
 fn go_refuses_when_the_destination_package_has_no_name() {
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
-        ("pkg/a.go", "package pkg\n\nfunc Shared() int {\n\treturn 2\n}\n"),
+        (
+            "pkg/a.go",
+            "package pkg\n\nfunc Shared() int {\n\treturn 2\n}\n",
+        ),
         ("util/u.go", ""),
     ]);
     let index = ws.index();
@@ -586,7 +637,10 @@ fn go_refuses_when_a_third_package_already_qualifies_the_name() {
     let id = symbol_id(&index, "Shared", None);
     let message = error(move_symbol::to_file(&index, id, &ws.path("util/u.go")));
     assert!(message.contains("outside package"), "got: {message}");
-    assert!(message.contains("c.go"), "the refusal must name the file: {message}");
+    assert!(
+        message.contains("c.go"),
+        "the refusal must name the file: {message}"
+    );
 }
 
 // ===========================================================================
@@ -711,7 +765,10 @@ fn hcl_refuses_a_move_that_changes_module() {
     let index = ws.index();
     let id = symbol_id(&index, "data", None);
     let message = error(move_symbol::to_file(&index, id, &ws.path("child/main.tf")));
-    assert!(message.contains("module is the directory"), "got: {message}");
+    assert!(
+        message.contains("module is the directory"),
+        "got: {message}"
+    );
     assert!(message.contains("terraform state mv"), "got: {message}");
 }
 
@@ -821,7 +878,10 @@ fn css_refuses_to_split_a_rule_with_several_selectors() {
     let id = symbol_id(&index, "btn", None);
     let message = error(move_symbol::to_file(&index, id, &ws.path("other.css")));
     assert!(message.contains("2 selectors"), "got: {message}");
-    assert!(message.contains("duplicate the declaration block"), "got: {message}");
+    assert!(
+        message.contains("duplicate the declaration block"),
+        "got: {message}"
+    );
 }
 
 #[test]
@@ -937,7 +997,11 @@ fn markdown_warns_when_the_moved_section_links_back_at_what_stayed() {
 
     let plan = move_symbol::to_file(&index, id, &ws.path("other.md")).unwrap();
     assert_eq!(plan.warnings.len(), 1, "got {:?}", plan.warnings);
-    assert!(plan.warnings[0].contains("#guide"), "got {:?}", plan.warnings);
+    assert!(
+        plan.warnings[0].contains("#guide"),
+        "got {:?}",
+        plan.warnings
+    );
     commit(&plan);
     assert_eq!(ws.read("guide.md"), "# Guide\n\nIntro.\n\n");
 }
@@ -991,7 +1055,10 @@ fn markdown_setext_headings_carry_their_level() {
 #[test]
 fn markdown_refuses_to_move_something_that_is_not_a_section() {
     let ws = Workspace::new(&[
-        ("guide.md", "# Guide\n\nSee [ref][r].\n\n[r]: http://example.com\n"),
+        (
+            "guide.md",
+            "# Guide\n\nSee [ref][r].\n\n[r]: http://example.com\n",
+        ),
         ("other.md", "# Other\n"),
     ]);
     let index = ws.index();
@@ -1008,7 +1075,10 @@ fn markdown_refuses_to_move_something_that_is_not_a_section() {
 fn typescript_and_python_are_unchanged() {
     let ws = Workspace::new(&[
         ("a.ts", "export function moved() { return 1; }\n"),
-        ("b.ts", "import { moved } from './a';\nexport const x = moved();\n"),
+        (
+            "b.ts",
+            "import { moved } from './a';\nexport const x = moved();\n",
+        ),
         ("c.ts", "export const y = 2;\n"),
     ]);
     let index = ws.index();
@@ -1033,7 +1103,10 @@ fn typescript_and_python_are_unchanged() {
 fn python_move_adds_a_relative_import() {
     let ws = Workspace::new(&[
         ("lib.py", "def shared():\n    return 1\n"),
-        ("app.py", "from lib import shared\n\n\ndef use():\n    return shared()\n"),
+        (
+            "app.py",
+            "from lib import shared\n\n\ndef use():\n    return shared()\n",
+        ),
         ("dest.py", "X = 1\n"),
     ]);
     let index = ws.index();
@@ -1064,7 +1137,11 @@ fn languages_with_no_derivable_move_are_refused_by_name() {
         if found.is_empty() {
             continue;
         }
-        let message = error(move_symbol::to_file(&index, found[0].id, &ws.path(destination)));
+        let message = error(move_symbol::to_file(
+            &index,
+            found[0].id,
+            &ws.path(destination),
+        ));
         assert!(
             message.contains("is not supported for"),
             "{source} must refuse by name, got: {message}"
@@ -1076,8 +1153,14 @@ fn languages_with_no_derivable_move_are_refused_by_name() {
 fn movable_lists_what_each_language_can_move() {
     let ws = Workspace::new(&[
         ("src/lib.rs", "pub mod a;\n"),
-        ("src/a.rs", "pub struct S;\npub fn f() {}\nfn g() { let x = 1; }\n"),
-        ("main.tf", "resource \"t\" \"r\" {\n  a = 1\n}\n\nlocals {\n  l = 2\n}\n"),
+        (
+            "src/a.rs",
+            "pub struct S;\npub fn f() {}\nfn g() { let x = 1; }\n",
+        ),
+        (
+            "main.tf",
+            "resource \"t\" \"r\" {\n  a = 1\n}\n\nlocals {\n  l = 2\n}\n",
+        ),
         ("style.css", ".btn { color: red; }\n"),
         ("doc.md", "# One\n\ntext\n"),
     ]);
@@ -1094,8 +1177,14 @@ fn movable_lists_what_each_language_can_move() {
         .map(|id| index.symbol(*id).unwrap().name.clone())
         .collect();
     assert!(hcl.contains(&"r".to_string()), "got {hcl:?}");
-    assert!(hcl.contains(&"l".to_string()), "a locals entry is movable: {hcl:?}");
-    assert!(!hcl.contains(&"a".to_string()), "an argument is not: {hcl:?}");
+    assert!(
+        hcl.contains(&"l".to_string()),
+        "a locals entry is movable: {hcl:?}"
+    );
+    assert!(
+        !hcl.contains(&"a".to_string()),
+        "an argument is not: {hcl:?}"
+    );
 
     let css: Vec<String> = move_symbol::movable(&index, &ws.path("style.css"))
         .iter()
@@ -1108,4 +1197,140 @@ fn movable_lists_what_each_language_can_move() {
         .map(|id| index.symbol(*id).unwrap().name.clone())
         .collect();
     assert_eq!(markdown, ["One"]);
+}
+
+// --------------------------------------------------------------------------
+// What moves with the code.
+//
+// A move that relocates the text and nothing else leaves a file that parses and
+// does not compile: the definition is invisible to the import just written for it,
+// and everything it referenced is no longer in scope. These pin the rest of the job.
+
+#[test]
+fn a_moved_symbol_is_exported_where_something_now_imports_it() {
+    let ws = Workspace::new(&[(
+        "a.ts",
+        "function moveMe(x: number) {\n  return x + 1;\n}\n\n\
+         export function caller(x: number) {\n  return moveMe(x);\n}\n",
+    )]);
+    let index = ws.index();
+    let id = symbol_id(&index, "moveMe", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("b.ts")).unwrap();
+    commit(&plan);
+
+    assert!(
+        ws.read("b.ts").contains("export function moveMe"),
+        "an imported definition must be exported:\n{}",
+        ws.read("b.ts")
+    );
+    assert!(ws.read("a.ts").contains("import { moveMe } from './b';"));
+}
+
+#[test]
+fn the_imports_a_moved_symbol_relied_on_come_with_it() {
+    let ws = Workspace::new(&[
+        (
+            "dep.ts",
+            "export type Alpha = { a: number };\nexport type Beta = { b: number };\n\
+             export function used(x: number) {\n  return x;\n}\n\
+             export function other(x: number) {\n  return x;\n}\n",
+        ),
+        (
+            "a.ts",
+            "import { Alpha, Beta, used, other } from './dep';\n\n\
+             export function moveMe(v: Alpha) {\n  return used(v.a);\n}\n\n\
+             export function stay(v: Beta) {\n  return other(v.b);\n}\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "moveMe", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("b.ts")).unwrap();
+    commit(&plan);
+
+    let moved = ws.read("b.ts");
+    assert!(
+        moved.contains("import { Alpha, used } from './dep';"),
+        "the import should carry the names the moved code uses, and only those:\n{moved}"
+    );
+    assert_eq!(
+        moved.matches("from './dep'").count(),
+        1,
+        "the index records one entry per imported name; they must regroup into one \
+         statement:\n{moved}"
+    );
+}
+
+#[test]
+fn a_carried_import_keeps_its_type_modifier() {
+    let ws = Workspace::new(&[
+        (
+            "dep.ts",
+            "export type Alpha = { a: number };\nexport const value = 1;\n",
+        ),
+        (
+            "a.ts",
+            "import { type Alpha, value } from './dep';\n\n\
+             export function moveMe(v: Alpha) {\n  return v.a;\n}\n\n\
+             export function stay() {\n  return value;\n}\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "moveMe", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("b.ts")).unwrap();
+    commit(&plan);
+
+    assert!(
+        ws.read("b.ts")
+            .contains("import { type Alpha } from './dep';"),
+        "narrowing must not drop the `type` modifier:\n{}",
+        ws.read("b.ts")
+    );
+}
+
+#[test]
+fn what_the_moved_code_left_behind_is_imported_back_and_exported() {
+    let ws = Workspace::new(&[(
+        "a.ts",
+        "function localHelper(x: number) {\n  return x * 2;\n}\n\n\
+         export function moveMe(x: number) {\n  return localHelper(x);\n}\n\n\
+         export function alsoUses(x: number) {\n  return moveMe(x) + 1;\n}\n",
+    )]);
+    let index = ws.index();
+    let id = symbol_id(&index, "moveMe", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("b.ts")).unwrap();
+    commit(&plan);
+
+    let moved = ws.read("b.ts");
+    let left = ws.read("a.ts");
+    assert!(
+        moved.contains("import { localHelper } from './a';"),
+        "the moved code still needs what stayed behind:\n{moved}"
+    );
+    assert!(
+        left.contains("export function localHelper"),
+        "and that has to be visible for the import to resolve:\n{left}"
+    );
+    assert!(
+        !left.contains("export import"),
+        "the export and the new import must not collide at offset zero:\n{left}"
+    );
+}
+
+#[test]
+fn a_move_that_cannot_write_the_import_fails_instead_of_skipping_it() {
+    // Skipping leaves a file that parses and no longer compiles, while reporting
+    // success. The reparse check cannot see it, so the refusal has to be explicit.
+    let ws = Workspace::new(&[(
+        "a.py",
+        "def move_me(x):\n    return x + 1\n\n\ndef caller(x):\n    return move_me(x)\n",
+    )]);
+    let index = ws.index();
+    let id = symbol_id(&index, "move_me", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("b.py")).unwrap();
+    commit(&plan);
+    assert!(
+        ws.read("a.py").contains("from .b import move_me"),
+        "got:\n{}",
+        ws.read("a.py")
+    );
 }

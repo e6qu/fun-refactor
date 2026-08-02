@@ -260,8 +260,8 @@ impl Parsed {
         for root in self.roots() {
             // An inline sub-tree covers only its own node, and still answers for a
             // range outside it — with its root. Those answers are discarded here.
-            let Some(node) = lookup(root, start, end)
-                .filter(|n| n.start_byte() <= start && end <= n.end_byte())
+            let Some(node) =
+                lookup(root, start, end).filter(|n| n.start_byte() <= start && end <= n.end_byte())
             else {
                 continue;
             };
@@ -407,28 +407,21 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
 
 /// Is this span the first thing on its line, i.e. in key rather than value position?
 fn starts_the_line(source: &str, span: Span) -> bool {
-    let line_start = source[..span.start]
-        .rfind('\n')
-        .map(|i| i + 1)
-        .unwrap_or(0);
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
     source[line_start..span.start].trim().is_empty()
 }
 
 /// Is every non-whitespace byte on this span's line part of some template action?
 fn line_is_only_actions(source: &str, spans: &[Span], span: Span) -> bool {
     let bytes = source.as_bytes();
-    let line_start = source[..span.start]
-        .rfind('\n')
-        .map(|i| i + 1)
-        .unwrap_or(0);
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
     let line_end = source[span.end..]
         .find('\n')
         .map(|i| span.end + i)
         .unwrap_or(source.len());
 
-    (line_start..line_end).all(|i| {
-        bytes[i].is_ascii_whitespace() || spans.iter().any(|s| s.contains_offset(i))
-    })
+    (line_start..line_end)
+        .all(|i| bytes[i].is_ascii_whitespace() || spans.iter().any(|s| s.contains_offset(i)))
 }
 
 #[cfg(test)]
@@ -447,13 +440,22 @@ mod tests {
             (Language::Rust, "fn main() { println!(\"hi\"); }\n"),
             (Language::Go, "package main\n\nfunc main() {}\n"),
             (Language::Zig, "pub fn main() void {}\n"),
-            (Language::TypeScript, "export function f(a: number) { return a; }\n"),
-            (Language::Tsx, "export const App = () => <div className=\"x\" />;\n"),
+            (
+                Language::TypeScript,
+                "export function f(a: number) { return a; }\n",
+            ),
+            (
+                Language::Tsx,
+                "export const App = () => <div className=\"x\" />;\n",
+            ),
             (Language::Python, "def main():\n    return 1\n"),
             (Language::Bash, "main() {\n  echo hi\n}\n"),
             (Language::Html, "<html><body id=\"root\"></body></html>\n"),
             (Language::Css, ".btn { color: red; }\n"),
-            (Language::Hcl, "resource \"aws_s3_bucket\" \"b\" {\n  bucket = var.name\n}\n"),
+            (
+                Language::Hcl,
+                "resource \"aws_s3_bucket\" \"b\" {\n  bucket = var.name\n}\n",
+            ),
             (Language::Yaml, "key: value\nlist:\n  - a\n"),
             (Language::Xml, "<root><child id=\"a\"/></root>\n"),
             (Language::Markdown, "# Title\n\nSome text.\n"),
@@ -467,7 +469,10 @@ mod tests {
                 "{lang} produced parse errors: {:?}",
                 parsed.error_spans()
             );
-            assert!(parsed.root().end_byte() > 0, "{lang} produced an empty tree");
+            assert!(
+                parsed.root().end_byte() > 0,
+                "{lang} produced an empty tree"
+            );
         }
     }
 
@@ -500,14 +505,8 @@ mod tests {
         );
         assert_eq!(parsed.template_actions.len(), 2);
         // Spans must still index the ORIGINAL source, not the masked copy.
-        assert_eq!(
-            parsed.template_actions[0].text(src),
-            "{{ .Values.name }}"
-        );
-        assert_eq!(
-            parsed.template_actions[1].text(src),
-            "{{- .Release.ns -}}"
-        );
+        assert_eq!(parsed.template_actions[0].text(src), "{{ .Values.name }}");
+        assert_eq!(parsed.template_actions[1].text(src), "{{- .Release.ns -}}");
     }
 
     #[test]

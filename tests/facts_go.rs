@@ -105,7 +105,8 @@ fn parameters_and_locals_are_never_exported() {
 
 #[test]
 fn value_receiver_qualifies_the_method() {
-    let src = "package p\n\ntype Point struct{ X int }\n\nfunc (p Point) Area() int { return p.X }\n";
+    let src =
+        "package p\n\ntype Point struct{ X int }\n\nfunc (p Point) Area() int { return p.X }\n";
     let f = go(src);
     let area = sym(&f, "Area");
     assert_eq!(area.kind, SymbolKind::Method);
@@ -147,7 +148,9 @@ fn the_receiver_type_is_a_reference_not_a_second_definition() {
 
     // …and the receiver mention is a reference, so a rename still rewrites it.
     let receiver = src.rfind("Point").unwrap();
-    let r = f.reference_at(receiver).expect("receiver type is a reference");
+    let r = f
+        .reference_at(receiver)
+        .expect("receiver type is a reference");
     assert_eq!(r.name, "Point");
     assert_eq!(r.kind, ReferenceKind::Type);
 }
@@ -335,7 +338,8 @@ fn single_import_captures_the_unquoted_path() {
 
 #[test]
 fn grouped_imports_report_one_entry_per_spec() {
-    let src = "package p\n\nimport (\n\t\"os\"\n\tstr \"strings\"\n\t. \"math\"\n\t_ \"embed\"\n)\n";
+    let src =
+        "package p\n\nimport (\n\t\"os\"\n\tstr \"strings\"\n\t. \"math\"\n\t_ \"embed\"\n)\n";
     let f = go(src);
     let paths: Vec<_> = f.imports.iter().map(|i| i.path.as_str()).collect();
     assert_eq!(paths, vec!["os", "strings", "math", "embed"]);
@@ -365,7 +369,8 @@ fn import_paths_keep_their_slashes() {
 
 #[test]
 fn function_bodies_and_blocks_nest() {
-    let src = "package p\n\nfunc outer() {\n\tx := 1\n\t{\n\t\ty := 2\n\t\t_ = y\n\t}\n\t_ = x\n}\n";
+    let src =
+        "package p\n\nfunc outer() {\n\tx := 1\n\t{\n\t\ty := 2\n\t\t_ = y\n\t}\n\t_ = x\n}\n";
     let f = go(src);
     let inner = f.scope_at(src.find("y := 2").unwrap()).unwrap();
     let outer = f.scope_at(src.find("x := 1").unwrap()).unwrap();
@@ -426,7 +431,10 @@ func main() {
     let mut seen = std::collections::HashMap::new();
     for s in &f.symbols {
         if let Some(prev) = seen.insert(s.name_span, s) {
-            panic!("duplicate definition at {:?}: {:?} and {:?}", s.name_span, prev, s);
+            panic!(
+                "duplicate definition at {:?}: {:?} and {:?}",
+                s.name_span, prev, s
+            );
         }
     }
 

@@ -12,13 +12,34 @@ pub mod imports;
 pub mod inline;
 pub mod move_symbol;
 pub mod rename;
-pub mod rewrite;
 pub mod restructure;
+pub mod rewrite;
 pub mod signature;
 
 use crate::model::Confidence;
 use serde::Serialize;
 use std::path::PathBuf;
+
+/// Is this node kind a container whose children are statements?
+///
+/// Shared because getting it wrong is not a cosmetic matter: several refactorings
+/// ask "is this the last statement in its block", and a wrapper node mistaken for a
+/// statement makes a block of many look like a block of one. Go's `statement_list`
+/// sits between a block and its statements and did exactly that, which let a guard
+/// clause hoist code out from under the condition that guarded it.
+///
+/// Shell function bodies are `compound_statement`, which no other grammar in the set
+/// uses, so the list is not the same as the one extraction alone would need.
+pub(crate) fn is_statement_container(kind: &str) -> bool {
+    kind.contains("block")
+        || kind.contains("body")
+        || kind == "statement_list"
+        || kind == "source_file"
+        || kind == "module"
+        || kind == "program"
+        || kind == "compound_statement"
+        || kind == "subshell"
+}
 
 /// Something a refactoring found but deliberately did not act on.
 ///

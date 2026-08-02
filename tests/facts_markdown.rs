@@ -252,11 +252,7 @@ fn a_realistic_document_parses_and_extracts() {
     // The anchor and the heading it points at differ by slugging: the heading is
     // `Installation`, the link `#installation`. Reconciling the two is the index's
     // job, and it needs the name to be the title alone.
-    let heading = f
-        .symbols
-        .iter()
-        .find(|s| s.name == "Installation")
-        .unwrap();
+    let heading = f.symbols.iter().find(|s| s.name == "Installation").unwrap();
     assert_eq!(
         heading.name.to_lowercase(),
         f.references

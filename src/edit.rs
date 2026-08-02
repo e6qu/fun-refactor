@@ -52,11 +52,7 @@ impl EditSet {
     }
 
     pub fn add(&mut self, path: impl Into<PathBuf>, edit: Edit) {
-        self.files
-            .entry(path.into())
-            .or_default()
-            .edits
-            .push(edit);
+        self.files.entry(path.into()).or_default().edits.push(edit);
     }
 
     pub fn is_empty(&self) -> bool {
@@ -64,7 +60,10 @@ impl EditSet {
     }
 
     pub fn file_count(&self) -> usize {
-        self.files.iter().filter(|(_, f)| !f.edits.is_empty()).count()
+        self.files
+            .iter()
+            .filter(|(_, f)| !f.edits.is_empty())
+            .count()
     }
 
     pub fn edit_count(&self) -> usize {
@@ -314,7 +313,9 @@ pub fn unified_diff(before: &str, after: &str, path: &str) -> String {
 pub fn full_line_span(source: &str, offset: usize) -> Span {
     let index = LineIndex::new(source);
     let pos = index.line_col(offset, source);
-    let line = index.line_span(pos.line).unwrap_or(Span::new(offset, offset));
+    let line = index
+        .line_span(pos.line)
+        .unwrap_or(Span::new(offset, offset));
     let end = if line.end < source.len() && source.as_bytes()[line.end] == b'\n' {
         line.end + 1
     } else {
@@ -334,6 +335,26 @@ pub fn line_indent(source: &str, offset: usize) -> String {
         .chars()
         .take_while(|c| *c == ' ' || *c == '\t')
         .collect()
+}
+
+/// One level of indentation, as this file writes it.
+///
+/// Read from the source rather than assumed: generated code that arrives four spaces
+/// deep in a two-space TypeScript file or a tab-indented Go file is a visible wart on
+/// every line it touches. The shortest indentation any line carries is one level —
+/// every real file has at least one line indented exactly once.
+pub fn indent_unit(source: &str) -> String {
+    source
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| {
+            line.chars()
+                .take_while(|c| *c == ' ' || *c == '\t')
+                .collect::<String>()
+        })
+        .filter(|lead| !lead.is_empty())
+        .min_by_key(String::len)
+        .unwrap_or_else(|| "    ".to_string())
 }
 
 /// Re-indent a multi-line block so its subsequent lines carry `indent`.
@@ -418,7 +439,10 @@ mod tests {
         // Byte 2 is inside the two-byte 'é'.
         let edits = vec![Edit::new(Span::new(1, 2), "x", "bad")];
         let err = apply_to_string(src, &edits).unwrap_err().to_string();
-        assert!(err.contains("character boundaries"), "unexpected error: {err}");
+        assert!(
+            err.contains("character boundaries"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
@@ -458,7 +482,9 @@ mod tests {
         // Delete the closing brace: the file would no longer parse.
         set.add(&path, Edit::new(Span::new(11, 12), "", "break it"));
 
-        let err = plan(&set, Validation::ReparseStrict).unwrap_err().to_string();
+        let err = plan(&set, Validation::ReparseStrict)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("edit rejected"), "unexpected error: {err}");
         // The file must be untouched.
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "fn main() {}\n");
@@ -483,7 +509,9 @@ mod tests {
         // Emptying the body produces the flagged-but-node-less error case.
         set.add(&path, Edit::new(Span::new(17, 27), "{}", "empty the body"));
 
-        let err = plan(&set, Validation::ReparseStrict).unwrap_err().to_string();
+        let err = plan(&set, Validation::ReparseStrict)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("edit rejected"), "unexpected error: {err}");
         assert_eq!(
             std::fs::read_to_string(&path).unwrap(),
@@ -493,7 +521,9 @@ mod tests {
 
     #[test]
     fn error_spans_are_reported_even_without_an_error_node() {
-        let parsed = Parsers::new().parse(Language::Zig, "const Z = struct {};\n").unwrap();
+        let parsed = Parsers::new()
+            .parse(Language::Zig, "const Z = struct {};\n")
+            .unwrap();
         if parsed.has_errors() {
             assert!(
                 !parsed.error_spans().is_empty(),
@@ -523,7 +553,10 @@ mod tests {
         let fresh = tmp.path().join("new_module.rs");
 
         let mut set = EditSet::new();
-        set.add(&fresh, Edit::new(Span::new(0, 0), "fn moved() {}\n", "create"));
+        set.add(
+            &fresh,
+            Edit::new(Span::new(0, 0), "fn moved() {}\n", "create"),
+        );
 
         let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
         assert_eq!(outcomes.len(), 1);

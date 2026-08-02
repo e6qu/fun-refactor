@@ -145,7 +145,10 @@ fn python_dunder_all_naming_something_else_does_not_save_an_import() {
     assert_eq!(
         removed_paths(
             &[
-                ("a.py", "from m import thing\n\ndef other():\n    pass\n\n__all__ = [\"other\"]\n"),
+                (
+                    "a.py",
+                    "from m import thing\n\ndef other():\n    pass\n\n__all__ = [\"other\"]\n"
+                ),
                 ("m.py", "def thing():\n    pass\n"),
             ],
             "a.py"
@@ -175,10 +178,7 @@ fn typescript_a_side_effect_import_binds_nothing_and_is_kept() {
     // Already handled by binding nothing rather than by a guard; asserted here so the
     // zero-binding path stays covered next to the guards that surround it.
     kept_because(
-        &[(
-            "a.ts",
-            "import './polyfill';\n\nexport const x = 1;\n",
-        )],
+        &[("a.ts", "import './polyfill';\n\nexport const x = 1;\n")],
         "a.ts",
         "./polyfill",
         "side effects",
@@ -300,7 +300,10 @@ fn typescript_without_the_pragma_the_same_import_goes() {
 fn go_an_import_nothing_names_goes() {
     assert_eq!(
         removed_paths(
-            &[("a.go", "package main\n\nimport \"strings\"\n\nfunc main() {}\n")],
+            &[(
+                "a.go",
+                "package main\n\nimport \"strings\"\n\nfunc main() {}\n"
+            )],
             "a.go"
         ),
         vec!["strings".to_string()]
@@ -487,8 +490,14 @@ fn a_mutually_recursive_dead_group_is_reported() {
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n",
     )]);
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
-    assert!(unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
+    assert!(
+        unused.contains(&only_symbol(&index, "ping")),
+        "got {unused:?}"
+    );
+    assert!(
+        unused.contains(&only_symbol(&index, "pong")),
+        "got {unused:?}"
+    );
 }
 
 #[test]
@@ -498,8 +507,14 @@ fn a_mutually_recursive_group_one_entry_point_reaches_is_not_reported() {
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() { ping(); }\n",
     )]);
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(!unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
-    assert!(!unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
+    assert!(
+        !unused.contains(&only_symbol(&index, "ping")),
+        "got {unused:?}"
+    );
+    assert!(
+        !unused.contains(&only_symbol(&index, "pong")),
+        "got {unused:?}"
+    );
 }
 
 #[test]

@@ -56,11 +56,8 @@ impl Rewrite {
         }
     }
 
-    pub const ALL: &'static [Rewrite] = &[
-        Rewrite::InvertIf,
-        Rewrite::DeMorgan,
-        Rewrite::GuardClause,
-    ];
+    pub const ALL: &'static [Rewrite] =
+        &[Rewrite::InvertIf, Rewrite::DeMorgan, Rewrite::GuardClause];
 }
 
 /// A rewrite worked out but not applied.
@@ -73,10 +70,17 @@ pub struct RewritePlan {
 }
 
 /// Which rewrites apply at `offset`.
+///
+/// A rewrite is only offered if its result reparses, so the menu never lists
+/// something that applying it would then refuse. It is the same check the commit
+/// makes, run early.
 pub fn available(index: &Index, file: &Path, offset: usize) -> Result<Vec<Rewrite>> {
     let mut found = Vec::new();
     for rewrite in Rewrite::ALL {
-        if apply(index, file, offset, *rewrite).is_ok() {
+        let Ok(plan) = apply(index, file, offset, *rewrite) else {
+            continue;
+        };
+        if crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict).is_ok() {
             found.push(*rewrite);
         }
     }
@@ -133,28 +137,46 @@ pub fn supported(language: Language) -> bool {
     )
 }
 
-/// The three pieces of an `if`, however the grammar spells them.
+/// The pieces of an `if`, however the grammar spells them.
 struct IfParts {
+    /// The expression a negation applies to. Where a grammar makes the parentheses
+    /// part of the condition, this is what sits inside them, so that rewriting it
+    /// leaves the brackets the language requires standing.
     condition: Span,
     consequence: Span,
     alternative: Option<Span>,
+    /// The `else` leads to another `if` rather than to a block.
+    chained: bool,
 }
 
 /// Locate an `if`'s condition and branches.
 ///
-/// Most grammars expose all three as fields. Bash exposes only the condition: its
-/// branches are delimited by the `then`, `else` and `fi` keyword tokens, with the
-/// statements sitting as bare children in between.
+/// Grammars disagree about all three. The condition is bare in Rust, Go, Python and
+/// Zig but is a `parenthesized_expression` in the C family, and only the inside of
+/// it may be rewritten. The consequence is a `consequence` field everywhere except
+/// Zig, which calls it `body`. Bash names none of it: its branches are delimited by
+/// the `then`, `else` and `fi` keyword tokens, with the statements sitting as bare
+/// children in between.
 fn if_parts(node: Node<'_>) -> Option<IfParts> {
-    let condition = Span::from(node.child_by_field_name("condition")?);
+    let condition = condition_expression(node.child_by_field_name("condition")?);
 
-    if let Some(consequence) = node.child_by_field_name("consequence") {
+    if let Some(consequence) = node
+        .child_by_field_name("consequence")
+        .or_else(|| node.child_by_field_name("body"))
+    {
+        let mut cursor = node.walk();
+        let children: Vec<Node> = node.named_children(&mut cursor).collect();
+        let else_clause = node.child_by_field_name("alternative").or_else(|| {
+            children
+                .iter()
+                .find(|c| c.kind().contains("else") || c.kind().contains("elif"))
+                .copied()
+        });
         return Some(IfParts {
             condition,
             consequence: Span::from(consequence),
-            alternative: node
-                .child_by_field_name("alternative")
-                .map(|a| Span::from(else_body_of(a))),
+            alternative: else_clause.and_then(else_body_of).map(Span::from),
+            chained: else_clause.is_some_and(continues_into_another_if),
         });
     }
 
@@ -191,7 +213,37 @@ fn if_parts(node: Node<'_>) -> Option<IfParts> {
         condition,
         consequence: Span::new(then_end, consequence_end),
         alternative,
+        chained: else_clause.is_some_and(|c| c.kind().contains("elif")),
     })
+}
+
+/// What a negation applies to, looking through the brackets a grammar folds into
+/// the condition. `if (a)` in the C family yields the `a`, not the `(a)`.
+fn condition_expression(condition: Node<'_>) -> Span {
+    if condition.kind().contains("parenthesized") {
+        let mut cursor = condition.walk();
+        let inner: Vec<Node> = condition.named_children(&mut cursor).collect();
+        if let Some(first) = inner.first() {
+            return Span::from(*first);
+        }
+    }
+    Span::from(condition)
+}
+
+/// Does this `else` lead to another `if` rather than to a block?
+///
+/// An `else if` cannot have its branches swapped: the second condition is only ever
+/// tested when the first is false, so moving the block out from under it changes
+/// which tests run.
+fn continues_into_another_if(clause: Node<'_>) -> bool {
+    if clause.kind().contains("elif") {
+        return true;
+    }
+    let mut cursor = clause.walk();
+    let children: Vec<Node> = clause.named_children(&mut cursor).collect();
+    children
+        .iter()
+        .any(|c| c.kind().starts_with("if_") || c.kind() == "if_expression")
 }
 
 /// Swap an if/else's branches and negate its condition.
@@ -201,11 +253,18 @@ fn invert_if(
     offset: usize,
     language: Language,
 ) -> Result<(Span, String)> {
-    let node = enclosing_if(parsed, offset)
-        .ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
+    let node =
+        enclosing_if(parsed, offset).ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
 
     let parts = if_parts(node)
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
+    if parts.chained {
+        anyhow::bail!(
+            "this `if` continues into an `else if`; its later conditions are only \
+             tested when this one is false, so swapping the branches would change \
+             which of them run"
+        );
+    }
     let alternative = parts.alternative.ok_or_else(|| {
         anyhow::anyhow!("this `if` has no `else`; there is nothing to swap it with")
     })?;
@@ -234,13 +293,21 @@ fn invert_if(
 }
 
 /// The block an else clause wraps.
-fn else_body_of(alternative: Node<'_>) -> Node<'_> {
+///
+/// Zig puts a `labeled_statement` in the way, so the search descends. Returning the
+/// clause itself when no block is found would splice the `else` keyword into the
+/// consequence position, so an unrecognised shape is `None` and the caller refuses.
+fn else_body_of(alternative: Node<'_>) -> Option<Node<'_>> {
+    if alternative.kind().contains("block") {
+        return Some(alternative);
+    }
     let mut cursor = alternative.walk();
-    let block = alternative
-        .named_children(&mut cursor)
+    let children: Vec<Node> = alternative.named_children(&mut cursor).collect();
+    children
+        .iter()
         .find(|c| c.kind().contains("block"))
-        .unwrap_or(alternative);
-    block
+        .copied()
+        .or_else(|| children.iter().find_map(|c| else_body_of(*c)))
 }
 
 /// Push a negation through a boolean operator.
@@ -281,7 +348,29 @@ fn de_morgan(
         negate(left.trim(), language),
         negate(right.trim(), language)
     );
+
+    // `!(a && b)` is one operand; `!a || !b` is two, and the brackets that used to
+    // hold it together are gone with the negation. Inside another operator that
+    // silently rebinds the expression — `x && !(a && b)` would become
+    // `x && !a || !b` — so the grouping has to come back.
+    if unary.parent().is_some_and(|p| binds_operands(p.kind())) {
+        if language == Language::Bash {
+            anyhow::bail!(
+                "the result needs grouping to keep its meaning here, and `( … )` \
+                 opens a subshell in shell"
+            );
+        }
+        return Ok((span, format!("({rewritten})")));
+    }
     Ok((span, rewritten))
+}
+
+/// Would this node take the expression inside it as an operand of its own operator?
+fn binds_operands(kind: &str) -> bool {
+    kind.contains("binary")
+        || kind.contains("unary")
+        || kind.contains("boolean_operator")
+        || kind.contains("not_operator")
 }
 
 /// Turn a trailing whole-body `if` into an early return.
@@ -291,8 +380,8 @@ fn guard_clause(
     offset: usize,
     language: Language,
 ) -> Result<(Span, String)> {
-    let node = enclosing_if(parsed, offset)
-        .ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
+    let node =
+        enclosing_if(parsed, offset).ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
 
     let parts = if_parts(node)
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
@@ -321,15 +410,32 @@ fn guard_clause(
     let body = strip_block(parts.consequence, source);
     let indent = crate::edit::line_indent(source, Span::from(node).start);
 
+    // Reuse the source's own header — everything from the `if` keyword up to the
+    // body — with the condition negated in place. Whatever the language spells
+    // around the condition, brackets in Zig and the C family, `:` in Python, `; then`
+    // in shell, is preserved rather than reinvented per language.
+    let start = Span::from(node).start;
+    let header = format!(
+        "{}{negated}{}",
+        &source[start..parts.condition.start],
+        &source[parts.condition.end..parts.consequence.start]
+    );
+    let header = header.trim_end();
+
+    // The body is already indented one level past the `if`, so the file's own unit
+    // is the difference — tabs in Go, two spaces in most TypeScript. Guessing four
+    // spaces would reindent every guard this touches.
+    let unit = crate::edit::indent_unit(source);
     let guard = match language {
-        Language::Python => format!("if {negated}:\n{indent}    return\n"),
-        Language::Bash => format!("if {negated}; then\n{indent}    return\n{indent}fi\n"),
-        _ => format!("if {negated} {{\n{indent}    return;\n{indent}}}\n"),
+        Language::Python => format!("{header}\n{indent}{unit}return\n"),
+        Language::Bash => format!("{header}\n{indent}{unit}return\n{indent}fi\n"),
+        // Go's grammar accepts the semicolon, but no Go is written with it.
+        Language::Go => format!("{header} {{\n{indent}{unit}return\n{indent}}}\n"),
+        _ => format!("{header} {{\n{indent}{unit}return;\n{indent}}}\n"),
     };
 
     // The body loses one level of indentation as it leaves the block. Blank lines
     // stay blank rather than collecting trailing spaces.
-    let unit = "    ";
     let dedented: Vec<String> = body
         .text(source)
         .lines()
@@ -340,7 +446,7 @@ fn guard_clause(
             } else {
                 let stripped = line
                     .strip_prefix(&format!("{indent}{unit}"))
-                    .unwrap_or_else(|| line.trim_start_matches(' '));
+                    .unwrap_or_else(|| line.trim_start());
                 format!("{indent}{stripped}")
             }
         })
@@ -361,26 +467,12 @@ fn guard_clause(
     Ok((Span::from(node), format!("{guard}{body_text}")))
 }
 
-/// Is this node kind a container whose children are statements?
-///
-/// Shell function bodies are `compound_statement`, which no other grammar in the set
-/// uses, so the list is not the same as the one extraction uses.
-fn is_statement_container(kind: &str) -> bool {
-    kind.contains("block")
-        || kind.contains("body")
-        || kind == "source_file"
-        || kind == "module"
-        || kind == "program"
-        || kind == "compound_statement"
-        || kind == "subshell"
-}
-
 /// The statement a node forms, and the block that statement sits in.
 fn statement_in_block(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
     let mut current = node;
     for _ in 0..8 {
         let parent = current.parent()?;
-        if is_statement_container(parent.kind()) {
+        if crate::refactor::is_statement_container(parent.kind()) {
             return Some((current, parent));
         }
         current = parent;
@@ -489,13 +581,10 @@ fn split_boolean<'a>(
                     if text[i..].starts_with(op) {
                         // Word operators must not match inside an identifier.
                         let alpha = op.chars().all(|c| c.is_alphabetic());
-                        let before_ok = !alpha
-                            || i == 0
-                            || !bytes[i - 1].is_ascii_alphanumeric();
+                        let before_ok = !alpha || i == 0 || !bytes[i - 1].is_ascii_alphanumeric();
                         let after = i + op.len();
-                        let after_ok = !alpha
-                            || after >= bytes.len()
-                            || !bytes[after].is_ascii_alphanumeric();
+                        let after_ok =
+                            !alpha || after >= bytes.len() || !bytes[after].is_ascii_alphanumeric();
                         if before_ok && after_ok {
                             return Some((&text[..i], op, &text[after..]));
                         }

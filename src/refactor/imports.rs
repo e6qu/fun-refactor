@@ -233,19 +233,17 @@ fn hold_back_reason(
         // binding can only be guessed from the path, and the guess is wrong for
         // `gopkg.in/yaml.v2` (package `yaml`), `.../v2` version suffixes and any
         // hyphenated path.
-        Language::Go if !statement.explicit_binding && !statement.binding_certain => {
-            Some(format!(
-                "'{}' is a Go import whose local name is its package clause, and that \
+        Language::Go if !statement.explicit_binding && !statement.binding_certain => Some(format!(
+            "'{}' is a Go import whose local name is its package clause, and that \
                  package is not in the scan; '{}' is only a guess from the path, so the \
                  import is kept",
-                statement.path,
-                if statement.bindings.is_empty() {
-                    "<no name could be guessed>".to_string()
-                } else {
-                    statement.bindings.join(", ")
-                }
-            ))
-        }
+            statement.path,
+            if statement.bindings.is_empty() {
+                "<no name could be guessed>".to_string()
+            } else {
+                statement.bindings.join(", ")
+            }
+        )),
 
         // Zig needs no guard: `@import` yields an ordinary container-level `const`, and
         // every use of it spells that const's name. There is no Zig construct that
@@ -588,10 +586,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
             continue;
         }
 
-        let region = Span::new(
-            members[0].lines.start,
-            members[members.len() - 1].lines.end,
-        );
+        let region = Span::new(members[0].lines.start, members[members.len() - 1].lines.end);
         let kept: Vec<&Statement> = members
             .iter()
             .enumerate()
@@ -861,7 +856,10 @@ mod tests {
             Some("yaml".into())
         );
         // Python's `import a.b` binds `a`; `b` is only ever reached through it.
-        assert_eq!(implicit_binding("os.path", Language::Python), Some("os".into()));
+        assert_eq!(
+            implicit_binding("os.path", Language::Python),
+            Some("os".into())
+        );
         // A TS side-effect import binds nothing, so no name may be invented for it.
         assert_eq!(implicit_binding("./polyfills", Language::TypeScript), None);
         // A path segment that is not an identifier cannot be a binding.
