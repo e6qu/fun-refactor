@@ -29,9 +29,23 @@
 //! whatever the caller passed. Both resolve to [`RefRoot::Context`] and no values
 //! path is invented for them. A `with` *does* rebind the dot to exactly one value,
 //! so that one is resolved ([`Template::values_path_of`]).
+//!
+//! `index .Values "a-b"` is resolved too, because it is how a chart reaches a key
+//! whose name is not a valid identifier. Only literal string arguments resolve: a
+//! computed key (`index .Values $k`) or a nested call names no key we can know, and
+//! says so through [`Action::problems`] instead of inventing one.
+//!
+//! # The command line
+//!
+//! A chart's values are not decided by the chart alone: `-f` files and `--set`
+//! assignments outrank everything in it, and neither is visible to a workspace
+//! scan. [`SetValue`] parses Helm's own `--set` syntax so a caller who knows the
+//! invocation can supply it; [`crate::analysis::provenance::ValuesInputs`] is where
+//! that input meets the precedence order.
 
 use crate::parse::Parsed;
 use crate::span::Span;
+use anyhow::{bail, Result};
 
 /// Helm's built-in top-level objects. None of them lives in a values file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -666,6 +680,202 @@ pub fn builtins_in(text: &str) -> Vec<String> {
         .collect()
 }
 
+// ------------------------------------------------------- `--set` on the CLI
+
+/// One step of a `--set` path: `image.tag` is two keys, `ports[0].name` is a key,
+/// an index and a key.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SetSegment {
+    Key(String),
+    Index(usize),
+}
+
+impl std::fmt::Display for SetSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SetSegment::Key(name) => write!(f, "{name}"),
+            SetSegment::Index(i) => write!(f, "[{i}]"),
+        }
+    }
+}
+
+/// One `--set` or `--set-string` assignment from a `helm` command line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SetValue {
+    /// The path as written, indices included.
+    pub path: Vec<SetSegment>,
+    /// The value, with `\.`, `\,`, `\=` and `\\` escapes resolved.
+    pub value: String,
+    /// `--set-string`: Helm keeps the value a string rather than coercing it.
+    pub string: bool,
+    /// The assignment exactly as written, e.g. `image.tag=1.2`.
+    pub text: String,
+}
+
+impl SetValue {
+    /// The mapping keys of the path, with list indices dropped.
+    ///
+    /// Values-file keys are indexed by their mapping path — a key under a sequence
+    /// is qualified by the sequence's key, with no index — so `ports[0].name` and
+    /// the `name` under `ports:` are the same key path here.
+    pub fn keys(&self) -> Vec<String> {
+        self.path
+            .iter()
+            .filter_map(|segment| match segment {
+                SetSegment::Key(name) => Some(name.clone()),
+                SetSegment::Index(_) => None,
+            })
+            .collect()
+    }
+
+    pub fn flag(&self) -> &'static str {
+        if self.string {
+            "--set-string"
+        } else {
+            "--set"
+        }
+    }
+
+    /// The assignment as it would be written on the command line.
+    pub fn describe(&self) -> String {
+        format!("`{} {}`", self.flag(), self.text)
+    }
+}
+
+impl std::fmt::Display for SetValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.flag(), self.text)
+    }
+}
+
+/// Parse one `--set`/`--set-string` argument, which may hold several assignments
+/// separated by unescaped commas, as Helm's `strvals` does.
+///
+/// What is not supported is refused by name rather than half-applied: the `{a,b}`
+/// list literal has no single key to compete for, so it is rejected with the
+/// alternative that does work.
+pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
+    if argument.trim().is_empty() {
+        bail!("`--set` was given nothing to set; it takes key=value");
+    }
+    if unescaped_positions(argument, '{').next().is_some() {
+        bail!(
+            "`{argument}` uses Helm's `{{a,b}}` list syntax, which names no single key to \
+             rank; pass the list in a `-f` values file instead"
+        );
+    }
+
+    let mut out = Vec::new();
+    for assignment in split_unescaped(argument, ',') {
+        let assignment = assignment.trim().to_string();
+        if assignment.is_empty() {
+            bail!("`{argument}` holds an empty assignment; --set takes key=value[,key=value]");
+        }
+        let Some((key, value)) = split_once_unescaped(&assignment, '=') else {
+            bail!("`{assignment}` is not an assignment; --set takes key=value");
+        };
+        let path = parse_set_path(&key)?;
+        out.push(SetValue {
+            path,
+            value: unescape(&value),
+            string,
+            text: assignment,
+        });
+    }
+    Ok(out)
+}
+
+/// `image.tag`, `ports[0].name`, `annotations.foo\.bar` — Helm's key syntax.
+fn parse_set_path(key: &str) -> Result<Vec<SetSegment>> {
+    if key.trim().is_empty() {
+        bail!("`{key}=…` sets an empty key; --set takes key=value");
+    }
+    let mut segments = Vec::new();
+    for part in split_unescaped(key, '.') {
+        let bytes = part.as_bytes();
+        let name_end = part
+            .find('[')
+            .unwrap_or(part.len());
+        let name = unescape(&part[..name_end]);
+        if !name.is_empty() {
+            segments.push(SetSegment::Key(name));
+        } else if name_end != 0 {
+            bail!("`{key}` has an empty path segment");
+        }
+        let mut i = name_end;
+        while i < bytes.len() {
+            if bytes[i] != b'[' {
+                bail!("`{key}` is not a Helm --set path: expected `[` at '{}'", &part[i..]);
+            }
+            let Some(close) = part[i..].find(']').map(|offset| i + offset) else {
+                bail!("`{key}` has an unclosed `[`");
+            };
+            let digits = &part[i + 1..close];
+            let index: usize = digits.parse().map_err(|_| {
+                anyhow::anyhow!("`{key}` indexes with '{digits}', which is not a list index")
+            })?;
+            segments.push(SetSegment::Index(index));
+            i = close + 1;
+        }
+    }
+    if segments.is_empty() {
+        bail!("`{key}` names no key");
+    }
+    Ok(segments)
+}
+
+/// Offsets of `needle` that are not preceded by an odd run of backslashes.
+fn unescaped_positions(text: &str, needle: char) -> impl Iterator<Item = usize> + '_ {
+    text.char_indices().filter_map(move |(i, c)| {
+        if c != needle {
+            return None;
+        }
+        let escapes = text[..i].chars().rev().take_while(|c| *c == '\\').count();
+        (escapes % 2 == 0).then_some(i)
+    })
+}
+
+fn split_unescaped(text: &str, separator: char) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut start = 0usize;
+    for at in unescaped_positions(text, separator).collect::<Vec<_>>() {
+        parts.push(text[start..at].to_string());
+        start = at + separator.len_utf8();
+    }
+    parts.push(text[start..].to_string());
+    parts
+}
+
+fn split_once_unescaped(text: &str, separator: char) -> Option<(String, String)> {
+    let at = unescaped_positions(text, separator).next()?;
+    Some((
+        text[..at].to_string(),
+        text[at + separator.len_utf8()..].to_string(),
+    ))
+}
+
+/// Resolve Helm's `\.`, `\,`, `\=` and `\\` escapes; anything else keeps its
+/// backslash, which is what Helm does with it.
+fn unescape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some(escaped @ ('.' | ',' | '=' | '\\' | '[' | ']')) => out.push(escaped),
+            Some(other) => {
+                out.push('\\');
+                out.push(other);
+            }
+            None => out.push('\\'),
+        }
+    }
+    out
+}
+
 // ------------------------------------------------------------------ the lexer
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -770,7 +980,7 @@ fn action_at(source: &str, span: Span) -> Action {
 
     let tokens = lex(inner, inner_start, &mut problems);
     let kind = classify(&tokens, source, &mut problems);
-    let refs = references(&tokens, source);
+    let refs = references(&tokens, source, &mut problems);
     let functions = function_names(&tokens, &kind);
     let invokes = invocations(&tokens, &kind);
 
@@ -1055,9 +1265,22 @@ fn classify(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Actio
 }
 
 /// Every field chain the tokens name.
-fn references(tokens: &[Token], source: &str) -> Vec<Ref> {
+fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec<Ref> {
     let mut out = Vec::new();
-    for token in tokens {
+    let mut i = 0usize;
+    while i < tokens.len() {
+        // `index .Values "a-b"` reaches a key no field chain can spell. Its string
+        // arguments *are* the path, so it resolves like one; anything else it is
+        // given cannot be, and is reported rather than dropped.
+        if let Some((reference, next)) = index_call(tokens, source, i, problems) {
+            if let Some(reference) = reference {
+                out.push(reference);
+            }
+            i = next;
+            continue;
+        }
+        let token = &tokens[i];
+        i += 1;
         let text = source
             .get(token.span.start..token.span.end)
             .unwrap_or_default()
@@ -1107,6 +1330,92 @@ fn references(tokens: &[Token], source: &str) -> Vec<Ref> {
         }
     }
     out
+}
+
+/// An `index` call over `.Values`, starting at token `at`.
+///
+/// Returns the reference it names — `None` inside the `Some` when the call names
+/// no key we can know — and the token index to continue from. `None` means the
+/// tokens at `at` are not an `index` call at all, and are read the ordinary way.
+///
+/// `index .Values "a-b" "c"` is `.Values.a-b.c`: each literal string argument is
+/// one path segment, which is exactly what Go's `index` does to a map. A computed
+/// key or a parenthesised sub-call names a segment the workspace does not hold, so
+/// it becomes a problem on the action rather than a guessed path.
+fn index_call(
+    tokens: &[Token],
+    source: &str,
+    at: usize,
+    problems: &mut Vec<String>,
+) -> Option<(Option<Ref>, usize)> {
+    match &tokens[at].kind {
+        Tok::Ident(name) if name == "index" => {}
+        _ => return None,
+    }
+
+    // The base is the collection being indexed: `.Values`, `.Values.a` or `$.Values`.
+    let base = tokens.get(at + 1)?;
+    let base_path: Vec<String> = match &base.kind {
+        Tok::Field(segments) if segments.first().is_some_and(|s| s == "Values") => {
+            segments[1..].to_vec()
+        }
+        Tok::Variable { name, path }
+            if name.is_empty() && path.first().is_some_and(|s| s == "Values") =>
+        {
+            path[1..].to_vec()
+        }
+        Tok::LParen => {
+            problems.push(
+                "`index` is given a parenthesised expression, so the key it reads is not a \
+                 values path this can resolve"
+                    .to_string(),
+            );
+            return None;
+        }
+        _ => return None,
+    };
+
+    let mut path = base_path.clone();
+    let mut end = at + 2;
+    while let Some(Token {
+        kind: Tok::Str(segment),
+        ..
+    }) = tokens.get(end)
+    {
+        path.push(segment.clone());
+        end += 1;
+    }
+
+    if end == at + 2 {
+        // Nothing literal followed. A chain with a path of its own still names a
+        // key — `index .Values.hosts 0` reads an element of `.Values.hosts` — but a
+        // bare `.Values` indexed by a computed key names nothing at all.
+        if base_path.is_empty() {
+            let key = tokens
+                .get(at + 2)
+                .and_then(|token| source.get(token.span.start..token.span.end))
+                .unwrap_or("")
+                .trim();
+            problems.push(format!(
+                "`index .Values {key}` computes its key, so the values path is not resolved"
+            ));
+        }
+        return None;
+    }
+
+    let span = Span::new(tokens[at].span.start, tokens[end - 1].span.end);
+    Some((
+        Some(Ref {
+            root: RefRoot::Values,
+            path,
+            span,
+            text: source
+                .get(span.start..span.end)
+                .unwrap_or_default()
+                .to_string(),
+        }),
+        end,
+    ))
 }
 
 /// Bare identifiers in a template are function names, bar the keywords and the

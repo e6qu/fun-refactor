@@ -518,12 +518,11 @@ fn a_longer_dead_cycle_is_reported_as_a_group() {
 }
 
 #[test]
-fn dynamic_dispatch_with_no_string_to_go_on_remains_a_false_positive() {
-    // The part of B5 that stays open. The `hello` that runs is the impl's, reached
-    // through a `&dyn Greet`, so the only resolved edge from `main` goes to the trait
-    // method and nothing leads to the implementation. No string names it either.
-    // Nothing in the workspace distinguishes this from dead code, and inventing a
-    // distinction would be guessing.
+fn dynamic_dispatch_no_longer_looks_dead() {
+    // The `hello` that runs is the impl's, reached through a `&dyn Greet`, and no
+    // resolved edge leads to it. `impl Greet for Greeter` is the distinction the
+    // workspace does draw, though: class hierarchy analysis follows it and spares
+    // every implementation of the trait. See tests/hierarchy_reachability.rs.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "trait Greet { fn hello(&self); }\nstruct Greeter;\nimpl Greet for Greeter {\n    fn hello(&self) {}\n}\nfn main() {\n    let g: &dyn Greet = &Greeter;\n    g.hello();\n}\n",
@@ -535,7 +534,30 @@ fn dynamic_dispatch_with_no_string_to_go_on_remains_a_false_positive() {
         .map(|s| s.name.as_str())
         .collect();
     assert!(
-        names.contains(&"hello"),
-        "a method only ever reached through a trait object still looks dead: {names:?}"
+        !names.contains(&"hello"),
+        "the impl of a trait a call names is reachable code: {names:?}"
+    );
+}
+
+#[test]
+fn a_name_assembled_at_runtime_remains_a_false_positive() {
+    // The part of B5 that stays open. The handler's name exists only once the pieces
+    // are concatenated, so no reference resolves to it, no string literal spells it,
+    // and no type declares it as a method for a hierarchy to fan out to. Nothing in
+    // the workspace distinguishes this from dead code, and inventing a distinction
+    // would be guessing.
+    let (_tmp, index) = workspace(&[(
+        "a.rs",
+        "fn on_event() {}\nfn dispatch(name: &str) {}\nfn main() {\n    let name = format!(\"on_{}\", \"event\");\n    dispatch(&name);\n}\n",
+    )]);
+    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let names: Vec<&str> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.as_str())
+        .collect();
+    assert!(
+        names.contains(&"on_event"),
+        "a function value in a field has nothing to resolve through: {names:?}"
     );
 }

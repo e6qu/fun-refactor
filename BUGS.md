@@ -17,17 +17,29 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   that failed to parse is the same. Two former halves are fixed: a name spelled in any
   string literal is now excluded (reflection and handler tables), and a reference
   cycle nothing outside reaches is now reported as a dead group.
-- [ ] B10: Helm values precedence is now decided among the chart files a workspace
-  scan can see — a subchart's `values.yaml` loses to its parent's, and the winner is
-  marked. What stays invisible is the command line: whether a `values-*.yaml` is
-  passed with `-f` at all, the order of several `-f` files, and every `--set`. Those
-  cases are reported undecided, each naming the input that would decide it.
+- [ ] B13: an answer from supplied values inputs is only as complete as the
+  description of them. Given `--set` but no `-f` (or the reverse) the competition is
+  decided *given the inputs supplied* and says so, naming the channel it was never
+  told about; nothing infers an invocation. Three narrower edges: `--set ports[0].name`
+  and `--set ports[1].name` address the same key path, because the symbol index
+  records mapping paths without list indices; `--set x=null`, which deletes a key in
+  Helm, is ranked as a source that supplies it; and `{a,b}` list literals, `--set-file`
+  and `--set-json` are refused by name rather than half-applied.
 - [ ] B11: three SCSS forms fail under `tree-sitter-scss`, each refused rather than
   mis-handled: empty parentheses on a declaration (`@mixin m()`), empty parentheses on
   a call (`@include m();`), and a namespaced include after `@use 'x' as t`
   (`@include t.m(…)`). Fixing these is upstream grammar work.
 
 ## Fixed
+
+- [x] B10: Helm values precedence stopped at the command line — whether a
+  `values-*.yaml` is passed with `-f`, the order of several `-f` files, and every
+  `--set` were invisible and reported undecided. That was a missing input, not a
+  limit: `fr flow back <target> -f values-prod.yaml --set a.b=c` supplies the
+  invocation, and Helm's order (chart `values.yaml` < each enclosing parent chart <
+  each `-f` in the order given < `--set`) then decides it, winner marked and every
+  loser — including a values file the caller says is *not* passed — still listed.
+  With nothing supplied the answer is exactly what it was.
 
 - [x] B12: Terraform lost the third and later step past an index traversal. A query
   cannot say "every sibling after this one", so each step needs its own pattern; six

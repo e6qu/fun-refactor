@@ -232,6 +232,10 @@ enum Command {
         write: bool,
     },
     /// Trace where a value comes from or goes to.
+    ///
+    /// For Helm charts, `-f` and `--set` describe the invocation the answer is
+    /// for: without them a values key that the command line could override is
+    /// reported undecided, with them the same precedence order decides it.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
         #[arg(value_parser = ["back", "fwd"])]
@@ -241,6 +245,15 @@ enum Command {
         /// How many hops to follow.
         #[arg(long, default_value = "5")]
         depth: usize,
+        /// A values file passed to helm with -f (repeatable; later files win).
+        #[arg(long = "values", short = 'f', value_name = "FILE")]
+        values: Vec<PathBuf>,
+        /// A helm --set assignment: a.b=c, a[0].b=c, or several comma-separated.
+        #[arg(long = "set", value_name = "KEY=VALUE")]
+        set: Vec<String>,
+        /// Like --set, but helm keeps the value a string.
+        #[arg(long = "set-string", value_name = "KEY=VALUE")]
+        set_string: Vec<String>,
     },
     /// Trace configuration values into the code that reads them.
     Stitch {
@@ -344,7 +357,14 @@ pub fn run() -> Result<()> {
             direction,
             target,
             depth,
-        } => cmd_flow(&cli, direction, target, *depth),
+            values,
+            set,
+            set_string,
+        } => {
+            let inputs =
+                crate::analysis::provenance::ValuesInputs::parse(values, set, set_string)?;
+            cmd_flow(&cli, direction, target, *depth, &inputs)
+        }
         Command::Extract {
             range,
             name,
@@ -895,19 +915,36 @@ fn cmd_restructure(
     present(cli, &plan.edits, &summary, write)
 }
 
-fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()> {
+fn cmd_flow(
+    cli: &Cli,
+    direction: &str,
+    target: &str,
+    depth: usize,
+    inputs: &crate::analysis::provenance::ValuesInputs,
+) -> Result<()> {
     use crate::analysis::flow;
 
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
+
+    // `-f`/`--set` describe a helm invocation. Accepting them for a target no
+    // values file can reach would be accepting an argument and ignoring it.
+    if !inputs.is_empty() && !matches!(symbol.language, Language::Helm | Language::Yaml) {
+        anyhow::bail!(
+            "-f/--set describe a helm invocation, but '{}' is {}, whose values have no Helm \
+             precedence to decide; drop the flags or point at a chart's values",
+            symbol.name,
+            symbol.language
+        );
+    }
 
     // Config and markup languages have substitution and override provenance rather
     // than dataflow, so the same command routes to whichever model applies.
     if !flow::applies_to(&index, &symbol.file) {
         use crate::analysis::provenance;
         let result = match direction {
-            "back" => provenance::provenance(&index, symbol.id, depth)?,
-            "fwd" => provenance::consumers(&index, symbol.id, depth)?,
+            "back" => provenance::provenance_with_inputs(&index, symbol.id, depth, inputs)?,
+            "fwd" => provenance::consumers_with_inputs(&index, symbol.id, depth, inputs)?,
             other => anyhow::bail!("unknown direction '{other}'; use 'back' or 'fwd'"),
         };
 
@@ -935,6 +972,7 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
                     "symbol": symbol.qualified_name(),
                     "direction": direction,
                     "model": "provenance",
+                    "values_inputs": inputs.describe(),
                     "hops": hops,
                     "competitions": result.competitions.len(),
                     "stops": stops,
@@ -942,6 +980,7 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
             );
         } else {
             print!("{}", result.format_tree());
+            report_values_inputs(inputs, &result);
         }
         return Ok(());
     }
@@ -983,6 +1022,38 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
         print!("{}", result.format_tree());
     }
     Ok(())
+}
+
+/// Say which supplied input decided each Helm competition, and what the answer
+/// still rests on. With nothing supplied there is nothing extra to say, and the
+/// tree already reports every competition as undecided.
+fn report_values_inputs(
+    inputs: &crate::analysis::provenance::ValuesInputs,
+    result: &crate::analysis::provenance::Provenance,
+) {
+    if inputs.is_empty() {
+        return;
+    }
+    println!("\nValues inputs supplied: {}", inputs.describe());
+    for competition in &result.competitions {
+        match competition.winner() {
+            Some(winner) => println!(
+                "  {} decided by {} — {}",
+                competition.subject, winner.precedence.label, winner.hop.text
+            ),
+            None => println!(
+                "  {}: nothing supplied, and nothing in the chart, decides it",
+                competition.subject
+            ),
+        }
+    }
+    let unsupplied = inputs.unsupplied();
+    if !unsupplied.is_empty() {
+        println!(
+            "Decided given the inputs supplied: {} not listed here would change these answers.",
+            unsupplied.join(" and ")
+        );
+    }
 }
 
 fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
