@@ -44,6 +44,7 @@ pub fn apply(
     // `$X` is not valid syntax in most languages, so the pattern is rewritten into
     // ordinary identifiers before parsing. Without this the pattern would parse into
     // ERROR nodes everywhere except Rust, where `$` happens to be macro syntax.
+    let original_pattern = pattern.to_string();
     let encoded = encode_metavariables(pattern);
     // A pattern is a fragment, not a file: `old_api(x)` is not a valid Rust item.
     // Parsing it inside a minimal wrapper gives the grammar the context it needs.
@@ -93,7 +94,9 @@ pub fn apply(
     }
 
     Ok(RestructurePlan {
-        pattern: decode_metavariables(pattern),
+        // Report the pattern the caller wrote, not the wrapped, encoded form used
+        // internally for parsing.
+        pattern: original_pattern,
         template: template.to_string(),
         edits,
         matches,
@@ -238,6 +241,7 @@ fn matches_node(
 }
 
 /// Turn encoded metavariables back into `$NAME` for display.
+#[cfg_attr(not(test), allow(dead_code))]
 fn decode_metavariables(encoded: &str) -> String {
     encoded.replace(META, "$")
 }
@@ -401,6 +405,13 @@ mod tests {
         let outcomes =
             crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict).unwrap();
         assert_eq!(outcomes.len(), 1);
+    }
+
+    #[test]
+    fn metavariable_encoding_round_trips() {
+        let encoded = encode_metavariables("f($A, $B)");
+        assert!(!encoded.contains('$'), "must parse as an identifier: {encoded}");
+        assert_eq!(decode_metavariables(&encoded), "f($A, $B)");
     }
 
     #[test]

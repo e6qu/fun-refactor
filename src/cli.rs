@@ -161,6 +161,22 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Rewrite every occurrence of a code shape.
+    ///
+    /// `$NAME` in the pattern matches any node and substitutes back into the
+    /// template. Prints a diff by default; pass --write to apply it.
+    Restructure {
+        /// The shape to match, e.g. 'old_api($X)'.
+        pattern: String,
+        /// What to replace it with, e.g. 'new_api($X, None)'.
+        template: String,
+        /// Language to rewrite.
+        #[arg(long = "lang")]
+        language: String,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Trace where a value comes from or goes to.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
@@ -267,6 +283,12 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_extract(&cli, range, name, *all, *write),
         Command::Inline { target, write } => cmd_inline(&cli, target, *write),
+        Command::Restructure {
+            pattern,
+            template,
+            language,
+            write,
+        } => cmd_restructure(&cli, pattern, template, language, *write),
         Command::Delete { target, write } => cmd_delete(&cli, target, *write),
         Command::Unused { catalogs } => cmd_unused(&cli, catalogs.as_deref()),
         Command::Imports { file, write } => cmd_imports(&cli, file, *write),
@@ -606,6 +628,31 @@ fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
         plan.file.display(),
         plan.removed.len(),
         plan.sorted_blocks
+    );
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_restructure(
+    cli: &Cli,
+    pattern: &str,
+    template: &str,
+    language: &str,
+    write: bool,
+) -> Result<()> {
+    let lang = resolve_languages(std::slice::from_ref(&language.to_string()))?[0];
+    let index = build_index(cli, &[])?;
+    let plan = crate::refactor::restructure::apply(&index, lang, pattern, template)?;
+
+    if plan.matches.is_empty() {
+        println!("No {lang} code matches `{pattern}`.");
+        return Ok(());
+    }
+
+    let summary = format!(
+        "rewrote {} occurrence(s) of `{}` in {} file(s)",
+        plan.matches.len(),
+        plan.pattern,
+        plan.edits.file_count()
     );
     present(cli, &plan.edits, &summary, write)
 }
