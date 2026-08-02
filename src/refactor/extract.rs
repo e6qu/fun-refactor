@@ -452,3 +452,481 @@ mod tests {
         assert!(!suggest_name("").is_empty());
     }
 }
+
+// ---------------------------------------------------------------- extract function
+
+/// A function extraction worked out but not applied.
+#[derive(Debug)]
+pub struct ExtractFunctionPlan {
+    pub name: String,
+    pub edits: EditSet,
+    /// Locals read inside the region but defined outside it.
+    pub parameters: Vec<Parameter>,
+    /// Locals defined inside the region and still used after it.
+    pub returns: Vec<String>,
+    /// Statements moved into the new function, verbatim.
+    pub body: String,
+}
+
+/// A parameter the extracted function needs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Parameter {
+    pub name: String,
+    /// The declared type, where the source states one.
+    pub type_annotation: Option<String>,
+}
+
+impl Parameter {
+    fn render(&self, language: Language) -> String {
+        match (language, &self.type_annotation) {
+            (Language::Python, _) => self.name.clone(),
+            (_, Some(ty)) => format!("{}: {ty}", self.name),
+            (_, None) => self.name.clone(),
+        }
+    }
+}
+
+/// Extract the statements covering `span` into a new function called `name`.
+///
+/// The moved statements keep their original bytes, so comments inside the extracted
+/// region survive — the thing gopls is known to lose.
+pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
+    let info = index
+        .file(file)
+        .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
+    let language = info.language;
+
+    if !supports_extract_function(language) {
+        return Err(Refusal::Unsupported {
+            operation: "extract function".into(),
+            language: language.to_string(),
+        }
+        .into());
+    }
+
+    if !index.find_symbols(name, Some(file)).is_empty() {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(language, &source)?;
+
+    let region = statement_region(&parsed, span, &source)
+        .ok_or_else(|| anyhow::anyhow!("select one or more complete statements to extract"))?;
+
+    // A jump out of the region cannot be reproduced by a call, so the extraction
+    // would change control flow. Refuse rather than produce something that compiles
+    // but behaves differently.
+    if let Some(kind) = escaping_control_flow(&parsed, region) {
+        anyhow::bail!(
+            "the selected code contains a `{kind}` that leaves the enclosing function; \
+             a call cannot reproduce that, so this region cannot be extracted as-is"
+        );
+    }
+
+    let enclosing = enclosing_function(index, file, region.start).ok_or_else(|| {
+        anyhow::anyhow!("the selection is not inside a function, so there is nothing to extract from")
+    })?;
+    let enclosing_span = index
+        .symbol(enclosing)
+        .map(|s| s.full_span)
+        .unwrap_or(region);
+
+    // Data flow in: names used in the region whose definition lives outside it.
+    let mut parameters: Vec<Parameter> = Vec::new();
+    let mut seen_params = std::collections::HashSet::new();
+    for reference in references_within(index, file, region) {
+        let Some(target) = reference.target.and_then(|t| index.symbol(t)) else {
+            continue;
+        };
+        // Whether a binding is local is a question of scope, not of mutability: a
+        // function-scoped `const` is every bit as local as a `let`. Functions and
+        // types are reachable from the new function wherever they live, so only
+        // value bindings declared inside the enclosing function can need passing.
+        if !is_value_binding(target.kind) || !enclosing_span.contains(target.name_span) {
+            continue;
+        }
+        if region.contains(target.name_span) {
+            continue;
+        }
+        if seen_params.insert(target.name.clone()) {
+            parameters.push(Parameter {
+                name: target.name.clone(),
+                type_annotation: declared_type(&parsed, &source, target.full_span),
+            });
+        }
+    }
+    parameters.sort_by(|a, b| a.name.cmp(&b.name));
+
+    // Data flow out: locals defined in the region that are still read afterwards.
+    let mut returns: Vec<String> = Vec::new();
+    for symbol_id in &info.symbols {
+        let Some(symbol) = index.symbol(*symbol_id) else {
+            continue;
+        };
+        if !is_value_binding(symbol.kind) || !region.contains(symbol.name_span) {
+            continue;
+        }
+        let used_after = index.references_to(symbol.id).iter().any(|r| {
+            r.file == *file && r.span.start >= region.end && enclosing_span.contains(r.span)
+        });
+        if used_after {
+            returns.push(symbol.name.clone());
+        }
+    }
+    returns.sort();
+    returns.dedup();
+
+    // The declared type of the single returned binding, where the source states one.
+    let return_type = returns.first().and_then(|name| {
+        info.symbols
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .find(|s| &s.name == name && region.contains(s.name_span))
+            .and_then(|s| declared_type(&parsed, &source, s.full_span))
+    });
+
+    // Languages that require types on parameters cannot have them invented. Where a
+    // binding's type was never written down there is nothing to recover, so the
+    // extraction is refused with the names rather than emitting code that will not
+    // compile.
+    if requires_explicit_types(language) {
+        let untyped: Vec<&str> = parameters
+            .iter()
+            .filter(|p| p.type_annotation.is_none())
+            .map(|p| p.name.as_str())
+            .collect();
+        if !untyped.is_empty() {
+            anyhow::bail!(
+                "cannot extract: {language} requires a type on every parameter, and the \
+                 type of {} was never written down, so there is none to copy. Annotate \
+                 the declaration(s) and try again",
+                untyped.join(", ")
+            );
+        }
+        if let Some(returned) = returns.first() {
+            if return_type.is_none() {
+                anyhow::bail!(
+                    "cannot extract: {language} requires a return type, and the type of \
+                     '{returned}' was never written down. Annotate its declaration and \
+                     try again"
+                );
+            }
+        }
+    }
+
+    // More than one out-value needs a tuple or struct, which differs enough per
+    // language that guessing would produce something unidiomatic.
+    if returns.len() > 1 && !matches!(language, Language::Python | Language::Go) {
+        anyhow::bail!(
+            "the selected code produces {} values used afterwards ({}); returning several \
+             values is not supported for {language} yet",
+            returns.len(),
+            returns.join(", ")
+        );
+    }
+
+    let body = region.text(&source).to_string();
+    let indent = line_indent(&source, region.start);
+    let call = render_call(language, name, &parameters, &returns);
+    let definition = render_function(
+        language,
+        name,
+        &parameters,
+        &returns,
+        return_type.as_deref(),
+        &body,
+        &indent,
+    );
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(region, call, format!("call {name}")),
+    );
+    // The new function goes after the one it came from, at that function's indentation.
+    let insert_at = enclosing_span.end;
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(insert_at, insert_at),
+            definition,
+            format!("define {name}"),
+        ),
+    );
+
+    Ok(ExtractFunctionPlan {
+        name: name.to_string(),
+        edits,
+        parameters,
+        returns,
+        body,
+    })
+}
+
+/// Kinds that hold a value and therefore have to cross the new function's boundary.
+fn is_value_binding(kind: crate::model::SymbolKind) -> bool {
+    use crate::model::SymbolKind;
+    matches!(
+        kind,
+        SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
+    )
+}
+
+/// Does this language require a written type on every parameter and return?
+fn requires_explicit_types(language: Language) -> bool {
+    matches!(language, Language::Rust | Language::Go | Language::Zig)
+}
+
+fn supports_extract_function(language: Language) -> bool {
+    matches!(
+        language,
+        Language::Rust
+            | Language::Go
+            | Language::TypeScript
+            | Language::Tsx
+            | Language::Python
+    )
+}
+
+/// Widen a selection to the complete statements it touches.
+///
+/// A line selection starts on the line's indentation, which belongs to no statement,
+/// so the search begins at the first real content inside the span and ends at the
+/// last.
+fn statement_region(parsed: &Parsed, span: Span, source: &str) -> Option<Span> {
+    let text = span.text(source);
+    let lead = text.len() - text.trim_start().len();
+    let trail = text.len() - text.trim_end().len();
+    let content = Span::new(span.start + lead, span.end.saturating_sub(trail));
+    if content.is_empty() {
+        return None;
+    }
+
+    let first = parsed
+        .root()
+        .descendant_for_byte_range(content.start, content.start)?;
+    let last = parsed
+        .root()
+        .descendant_for_byte_range(content.end.saturating_sub(1), content.end.saturating_sub(1))?;
+
+    let start = statement_ancestor(first)?;
+    let end = statement_ancestor(last)?;
+    Some(Span::new(
+        Span::from(start).start.min(content.start),
+        Span::from(end).end.max(content.end),
+    ))
+}
+
+/// Is this node kind a container whose children are statements?
+fn is_statement_container(kind: &str) -> bool {
+    kind.contains("block")
+        || kind.contains("body")
+        || kind == "source_file"
+        || kind == "module"
+        || kind == "program"
+}
+
+/// The ancestor of `node` that is a direct child of a statement container.
+fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node;
+    loop {
+        let parent = current.parent()?;
+        if is_statement_container(parent.kind()) {
+            return Some(current);
+        }
+        current = parent;
+    }
+}
+
+/// A `return`, `break` or `continue` inside the region that leaves it.
+fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> {
+    let mut cursor = parsed.root().walk();
+    let mut stack = vec![parsed.root()];
+    while let Some(node) = stack.pop() {
+        let span = Span::from(node);
+        if !span.overlaps(region) {
+            continue;
+        }
+        if region.contains(span) {
+            let kind = node.kind();
+            // A break or continue belonging to a loop inside the region is fine; only
+            // the ones escaping the selection matter, and a loop carries its own.
+            if kind.contains("return_statement") || kind == "return" {
+                return Some("return");
+            }
+            if (kind.contains("break") || kind.contains("continue"))
+                && !has_enclosing_loop_within(node, region)
+            {
+                return Some(if kind.contains("break") {
+                    "break"
+                } else {
+                    "continue"
+                });
+            }
+        }
+        stack.extend(node.children(&mut cursor));
+    }
+    None
+}
+
+/// Does a loop containing `node` also sit inside the region?
+fn has_enclosing_loop_within(node: Node<'_>, region: Span) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        let span = Span::from(parent);
+        if !region.contains(span) {
+            return false;
+        }
+        let kind = parent.kind();
+        if kind.contains("for") || kind.contains("while") || kind.contains("loop") {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
+/// The innermost function whose body contains `offset`.
+fn enclosing_function(index: &Index, file: &Path, offset: usize) -> Option<crate::model::SymbolId> {
+    let info = index.file(file)?;
+    info.symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.kind.is_callable() && s.full_span.contains_offset(offset))
+        .min_by_key(|s| s.full_span.len())
+        .map(|s| s.id)
+}
+
+/// References whose span falls inside the region.
+fn references_within<'a>(
+    index: &'a Index,
+    file: &Path,
+    region: Span,
+) -> Vec<&'a crate::model::Reference> {
+    let Some(info) = index.file(file) else {
+        return Vec::new();
+    };
+    info.references
+        .iter()
+        .map(|i| &index.references[*i])
+        .filter(|r| region.contains(r.span))
+        .collect()
+}
+
+/// The type written at a declaration site, if the source states one.
+///
+/// There is no type inference here: a binding whose type the programmer left to the
+/// compiler has none to recover, and the caller is told rather than guessed at.
+fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(declaration.start, declaration.end)?;
+    let ty = node.child_by_field_name("type")?;
+    Some(Span::from(ty).text(source).trim().to_string())
+}
+
+/// The call that replaces the extracted region.
+fn render_call(
+    language: Language,
+    name: &str,
+    parameters: &[Parameter],
+    returns: &[String],
+) -> String {
+    let args = parameters
+        .iter()
+        .map(|p| p.name.clone())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let call = format!("{name}({args})");
+
+    match (returns.len(), language) {
+        (0, Language::Python) => call,
+        (0, _) => format!("{call};"),
+        (1, Language::Python) => format!("{} = {call}", returns[0]),
+        (1, Language::Rust) => format!("let {} = {call};", returns[0]),
+        (1, Language::Go) => format!("{} := {call}", returns[0]),
+        (1, _) => format!("const {} = {call};", returns[0]),
+        (_, Language::Python) => format!("{} = {call}", returns.join(", ")),
+        (_, Language::Go) => format!("{} := {call}", returns.join(", ")),
+        _ => format!("{call};"),
+    }
+}
+
+/// The new function definition.
+fn render_function(
+    language: Language,
+    name: &str,
+    parameters: &[Parameter],
+    returns: &[String],
+    return_type: Option<&str>,
+    body: &str,
+    indent: &str,
+) -> String {
+    let params = parameters
+        .iter()
+        .map(|p| p.render(language))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    // The body keeps its original bytes; only its indentation is adjusted.
+    let body_indent = match language {
+        Language::Python => "    ",
+        _ => "    ",
+    };
+    let reindented = body
+        .lines()
+        .map(|line| {
+            if line.trim().is_empty() {
+                String::new()
+            } else {
+                let stripped = line.strip_prefix(indent).unwrap_or(line);
+                format!("{body_indent}{stripped}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    match language {
+        Language::Python => {
+            let tail = match returns.len() {
+                0 => String::new(),
+                _ => format!("\n{body_indent}return {}", returns.join(", ")),
+            };
+            format!("\n\ndef {name}({params}):\n{reindented}{tail}")
+        }
+        Language::Rust => {
+            let ret = match return_type {
+                Some(ty) => format!(" -> {ty}"),
+                None => String::new(),
+            };
+            let tail = match returns.first() {
+                Some(r) => format!("\n{body_indent}{r}"),
+                None => String::new(),
+            };
+            format!("\n\nfn {name}({params}){ret} {{\n{reindented}{tail}\n}}")
+        }
+        Language::Go => {
+            let ret = match return_type {
+                Some(ty) => format!(" {ty}"),
+                None => String::new(),
+            };
+            let tail = match returns.len() {
+                0 => String::new(),
+                _ => format!("\n{body_indent}return {}", returns.join(", ")),
+            };
+            format!("\n\nfunc {name}({params}){ret} {{\n{reindented}{tail}\n}}")
+        }
+        _ => {
+            let tail = match returns.first() {
+                Some(r) => format!("\n{body_indent}return {r};"),
+                None => String::new(),
+            };
+            format!("\n\nfunction {name}({params}) {{\n{reindented}{tail}\n}}")
+        }
+    }
+}

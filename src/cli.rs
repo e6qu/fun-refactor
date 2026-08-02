@@ -86,15 +86,18 @@ enum Command {
         #[arg(long, default_value = "1")]
         depth: usize,
     },
-    /// Extract an expression into a named binding.
+    /// Extract an expression into a named binding, or statements into a function.
     ///
     /// Prints a diff by default; pass --write to apply it.
     Extract {
-        /// The expression to extract, as `path:line:col-line:col`.
+        /// The region to extract, as `path:line:col-line:col`.
         range: String,
-        /// Name for the new binding.
+        /// Name for the new binding or function.
         name: String,
-        /// Replace every identical occurrence in the same block.
+        /// Extract the selected statements into a function instead of a binding.
+        #[arg(long)]
+        function: bool,
+        /// Replace every identical occurrence in the same block (bindings only).
         #[arg(long)]
         all: bool,
         /// Apply the change instead of printing a diff.
@@ -279,9 +282,10 @@ pub fn run() -> Result<()> {
         Command::Extract {
             range,
             name,
+            function,
             all,
             write,
-        } => cmd_extract(&cli, range, name, *all, *write),
+        } => cmd_extract(&cli, range, name, *function, *all, *write),
         Command::Inline { target, write } => cmd_inline(&cli, target, *write),
         Command::Restructure {
             pattern,
@@ -448,7 +452,14 @@ fn parse_range(spec: &str) -> Result<(PathBuf, LineCol, LineCol)> {
     ))
 }
 
-fn cmd_extract(cli: &Cli, range: &str, name: &str, all: bool, write: bool) -> Result<()> {
+fn cmd_extract(
+    cli: &Cli,
+    range: &str,
+    name: &str,
+    as_function: bool,
+    all: bool,
+    write: bool,
+) -> Result<()> {
     let (path, start, end) = parse_range(range)?;
     let path = path.canonicalize().unwrap_or(path);
     let source = std::fs::read_to_string(&path)
@@ -464,6 +475,24 @@ fn cmd_extract(cli: &Cli, range: &str, name: &str, all: bool, write: bool) -> Re
     );
 
     let index = build_index(cli, &[])?;
+
+    if as_function {
+        let plan = crate::refactor::extract::function(&index, &path, span, name)?;
+        let params: Vec<&str> = plan.parameters.iter().map(|p| p.name.as_str()).collect();
+        let summary = format!(
+            "extracted {} statement(s) into {}({}){}",
+            plan.body.lines().filter(|l| !l.trim().is_empty()).count(),
+            plan.name,
+            params.join(", "),
+            if plan.returns.is_empty() {
+                String::new()
+            } else {
+                format!(" returning {}", plan.returns.join(", "))
+            }
+        );
+        return present(cli, &plan.edits, &summary, write);
+    }
+
     let plan = crate::refactor::extract::variable(&index, &path, span, name, all)?;
     let summary = format!(
         "extracted `{}` into {} ({} occurrence(s) replaced)",
