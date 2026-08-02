@@ -727,6 +727,10 @@ fn the_cascade_orders_competing_declarations_by_specificity() {
     let btn = id_in(&index, "app.css", "btn");
     let result = provenance(&index, btn, 5).unwrap();
 
+    // The chain starts at the symbol that was asked about.
+    assert_eq!(result.hops[0].symbol, Some(btn));
+    assert_eq!(result.hops[0].kind, EdgeKind::Declaration);
+
     let color = result
         .competitions
         .iter()
@@ -1078,15 +1082,3 @@ fn specificity_is_exposed_for_callers_that_need_it() {
     assert!(specificity(".a") > specificity("a"));
 }
 
-#[test]
-fn show_tree() {
-    let (_tmp, index) = terraform();
-    let name = id_in(&index, "main.tf", "name");
-    println!("{}", provenance(&index, name, 10).unwrap().format_tree());
-    let (_t2, chart_index) = chart();
-    let tag = key_with_path(&chart_index, "charts/mysql/values.yaml", "image.tag");
-    println!("{}", provenance(&chart_index, tag, 5).unwrap().format_tree());
-    let (_t3, css) = workspace(&[("ui/app.css", STYLES)]);
-    let btn = id_in(&css, "app.css", "btn");
-    println!("{}", provenance(&css, btn, 5).unwrap().format_tree());
-}
