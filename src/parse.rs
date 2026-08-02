@@ -19,9 +19,10 @@ impl Parsers {
 
     /// The tree-sitter grammar used for a language.
     ///
-    /// SCSS is parsed with the CSS grammar (the only one available in this grammar
-    /// set); SCSS-only constructs therefore surface as parse errors, which callers
-    /// see via [`Parsed::has_errors`] rather than silently mis-parsing.
+    /// One dialect gets its own entry rather than borrowing a near neighbour's:
+    /// SCSS on the CSS grammar reported every `$variable` and `@mixin` as a parse
+    /// error, so it has the SCSS grammar. What a grammar still cannot express
+    /// surfaces through [`Parsed::has_errors`] rather than being mis-parsed silently.
     fn grammar(lang: Language) -> tree_sitter::Language {
         match lang {
             Language::Rust => tree_sitter_rust::LANGUAGE.into(),
@@ -33,7 +34,7 @@ impl Parsers {
             Language::Bash => tree_sitter_bash::LANGUAGE.into(),
             Language::Html => tree_sitter_html::LANGUAGE.into(),
             Language::Css => tree_sitter_css::LANGUAGE.into(),
-            // SCSS is a superset, and the CSS grammar rejects most of what it adds.
+            // SCSS is a superset of CSS, and its own grammar knows the extra half.
             Language::Scss => tree_sitter_scss::language(),
             Language::Hcl => tree_sitter_hcl::LANGUAGE.into(),
             Language::Yaml | Language::Helm => tree_sitter_yaml::LANGUAGE.into(),

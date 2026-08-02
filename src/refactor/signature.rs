@@ -5,14 +5,19 @@
 //! extend to guessing: a call site that did not resolve conclusively is reported and
 //! the whole operation refuses, because a half-updated signature does not compile.
 //!
-//! Two languages spell "signature" differently and are handled separately below:
+//! Two languages spell "signature" differently:
 //!
+//!   * SCSS. `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a
+//!     call, so the ordinary machinery below handles both once it knows that an
+//!     `include_statement` is a call. What SCSS adds is a declaration that can start
+//!     with no parentheses at all, and a grammar whose gaps can hide a call site —
+//!     see [`open_a_parameter_list`] and [`reject_hidden_call_sites`].
 //!   * Terraform. A module is a directory; its parameters are the `variable "x" {}`
 //!     blocks declared in it, and its call sites are `module "m" { source = "./dir" }`
 //!     blocks pointing at that directory. Arguments there are named rather than
 //!     positional, so a change addresses a position in the variables' document order
-//!     and rewrites the *named* argument at every call site.
-//!   * SCSS mixins are not supported and cannot be: see [`scss_mixins_unsupported`].
+//!     and rewrites the *named* argument at every call site. That is different enough
+//!     to get its own path: [`terraform_module`].
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
@@ -67,11 +72,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
-    match sym.language {
-        // A Terraform module's signature is its directory's `variable` blocks.
-        Language::Hcl => return terraform_module(index, sym, change),
-        Language::Scss => return Err(scss_mixins_unsupported().into()),
-        _ => {}
+    // A Terraform module's signature is its directory's `variable` blocks.
+    if sym.language == Language::Hcl {
+        return terraform_module(index, sym, change);
     }
 
     if !matches!(sym.kind, SymbolKind::Function | SymbolKind::Method) {
@@ -100,6 +103,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         }
         .into());
     }
+    reject_hidden_call_sites(index, sym)?;
 
     let source = std::fs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
@@ -108,20 +112,32 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
         .ok_or_else(|| anyhow::anyhow!("could not locate the declaration"))?;
 
-    let params = parameter_list(declaration)
-        .ok_or_else(|| anyhow::anyhow!("could not find the parameter list of '{}'", sym.name))?;
-    let param_spans = list_items(params);
-
     let mut edits = EditSet::new();
-    apply_change(
-        &mut edits,
-        &sym.file,
-        &source,
-        params,
-        &param_spans,
-        &change,
-        true,
-    )?;
+    match parameter_list(declaration) {
+        Some(params) => {
+            let param_spans = list_items(params);
+            apply_change(
+                &mut edits,
+                &sym.file,
+                &source,
+                params,
+                &param_spans,
+                &change,
+                true,
+            )?;
+        }
+        // A declaration can legitimately have no parameter list to change: SCSS
+        // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
+        // Adding the first parameter has to write them.
+        None => open_a_parameter_list(
+            &mut edits,
+            &sym.file,
+            sym.name_span.end,
+            &change,
+            true,
+            &sym.name,
+        )?,
+    }
 
     // Now every call site.
     let mut call_sites = 0;
@@ -132,22 +148,56 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         let call_source = std::fs::read_to_string(&reference.file)?;
         let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
         let Some(call) = call_expression(&call_parsed, reference.span) else {
-            continue;
+            return Err(Refusal::TooWeak {
+                confidence: reference.confidence,
+                detail: format!(
+                    "the call to `{}` at {} is not a call expression this grammar exposes, \
+                     so its arguments cannot be rewritten",
+                    sym.name,
+                    location(&reference.file, reference.span.start)
+                ),
+            }
+            .into());
         };
-        let Some(args) = argument_list(call) else {
-            continue;
-        };
-        let arg_spans = list_items(args);
+        // An unparsed call site would be silently skipped, and a skipped call site
+        // is exactly the partial update this refactoring exists to avoid.
+        if call.has_error() {
+            return Err(Refusal::TooWeak {
+                confidence: reference.confidence,
+                detail: format!(
+                    "the call to `{}` at {} does not parse cleanly, so its argument list \
+                     cannot be rewritten with certainty",
+                    sym.name,
+                    location(&reference.file, reference.span.start)
+                ),
+            }
+            .into());
+        }
 
-        apply_change(
-            &mut edits,
-            &reference.file,
-            &call_source,
-            args,
-            &arg_spans,
-            &change,
-            false,
-        )?;
+        match argument_list(call) {
+            Some(args) => {
+                let arg_spans = list_items(args);
+                apply_change(
+                    &mut edits,
+                    &reference.file,
+                    &call_source,
+                    args,
+                    &arg_spans,
+                    &change,
+                    false,
+                )?;
+            }
+            // `@include reset;` passes nothing and needs no parentheses. Removing or
+            // reordering there is a no-op, but an added argument has to go somewhere.
+            None => open_a_parameter_list(
+                &mut edits,
+                &reference.file,
+                reference.span.end,
+                &change,
+                false,
+                &sym.name,
+            )?,
+        }
         call_sites += 1;
     }
 
@@ -249,6 +299,80 @@ fn apply_change(
     Ok(())
 }
 
+/// Write a parameter list for a declaration or call that has none yet.
+///
+/// Only an addition can do this: there is nothing to remove or reorder in a list
+/// that does not exist, and on the call side that is a legitimate state — a mixin
+/// whose parameters all have defaults is included as `@include reset;`.
+fn open_a_parameter_list(
+    edits: &mut EditSet,
+    file: &std::path::Path,
+    after: usize,
+    change: &Change,
+    is_declaration: bool,
+    name: &str,
+) -> Result<()> {
+    let Change::Add {
+        declaration,
+        argument,
+        ..
+    } = change
+    else {
+        if is_declaration {
+            anyhow::bail!("`{name}` has no parameter list to change");
+        }
+        return Ok(());
+    };
+    let text = if is_declaration {
+        declaration
+    } else {
+        argument
+    };
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(after, after),
+            format!("({text})"),
+            "add parameter".to_string(),
+        ),
+    );
+    Ok(())
+}
+
+/// Refuse when a file that could hold a call site did not parse cleanly.
+///
+/// A call site inside an ERROR node produces no reference, so it is invisible to the
+/// index rather than weakly resolved — the confidence check above cannot see it. In
+/// SCSS this is not hypothetical: `@include m();` with empty parentheses and the
+/// namespaced `@include ns.m()` both fail to parse under tree-sitter-scss, and each
+/// one is a call this change would leave behind.
+fn reject_hidden_call_sites(index: &Index, sym: &Symbol) -> Result<()> {
+    let hidden: Vec<&PathBuf> = index
+        .files()
+        .filter(|(_, info)| info.had_parse_errors && info.language == sym.language)
+        .filter(|(path, _)| {
+            std::fs::read_to_string(path).is_ok_and(|source| source.contains(&sym.name))
+        })
+        .map(|(path, _)| path)
+        .collect();
+
+    let Some(first) = hidden.first() else {
+        return Ok(());
+    };
+    Err(Refusal::TooWeak {
+        confidence: Confidence::NameOnly,
+        detail: format!(
+            "{} file(s) naming `{}` do not parse cleanly, starting with {}; a call site \
+             inside a syntax error is invisible to the index, so the call surface cannot \
+             be shown to be complete",
+            hidden.len(),
+            sym.name,
+            first.display()
+        ),
+    }
+    .into())
+}
+
 /// Extend a span to swallow the comma that separates it from its neighbour.
 fn with_separator(source: &str, items: &[Span], index: usize, target: Span) -> Span {
     let bytes = source.as_bytes();
@@ -305,12 +429,14 @@ fn argument_list(node: Node<'_>) -> Option<Node<'_>> {
 }
 
 /// The call expression whose callee is at `span`.
-fn call_expression<'a>(parsed: &'a crate::parse::Parsed, span: Span) -> Option<Node<'a>> {
+fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
     let mut node = parsed
         .root()
         .descendant_for_byte_range(span.start, span.end)?;
     for _ in 0..8 {
-        if node.kind().contains("call") {
+        // SCSS spells a mixin call `@include name(args)`, which is an
+        // `include_statement` — the one call form whose kind does not say "call".
+        if node.kind().contains("call") || node.kind() == "include_statement" {
             return Some(node);
         }
         node = node.parent()?;
@@ -324,27 +450,10 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
     list.named_children(&mut cursor)
         .filter(|c| !c.kind().contains("comment"))
         .map(Span::from)
+        // An item occupying no bytes is not an item, whatever the grammar calls it;
+        // counting one would put every position after it out by one.
+        .filter(|span| !span.is_empty())
         .collect()
-}
-
-// ---------------------------------------------------------------- SCSS
-
-/// Why SCSS mixin parameters cannot be changed.
-///
-/// This is a grammar gap, not a policy: SCSS files are parsed with the
-/// tree-sitter-css grammar, which has no rule for `@mixin` or `@include`. Both forms
-/// come out as ERROR nodes, so a mixin has no symbol, no parameter list and no
-/// locatable call sites. Anything this function could return instead would be
-/// invented, so it refuses and says exactly what is missing.
-fn scss_mixins_unsupported() -> Refusal {
-    Refusal::Unsupported {
-        operation: "changing mixin parameters".to_string(),
-        language: "SCSS, which is parsed with the tree-sitter-css grammar: that grammar \
-                   has no rule for `@mixin` or `@include`, so a mixin declaration and \
-                   every `@include` of it parse as errors and produce no symbol, no \
-                   parameter list and no call sites. An SCSS grammar is a prerequisite"
-            .to_string(),
-    }
 }
 
 // ----------------------------------------------------- Terraform modules

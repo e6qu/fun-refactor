@@ -954,18 +954,58 @@ fn css_extract_puts_a_new_root_rule_after_leading_at_rules() {
 }
 
 #[test]
-fn css_extract_refuses_the_scss_dollar_variable_form() {
-    // BUGS.md B1 in force: there is no SCSS grammar here, so `$var` is unreachable.
-    let ws = workspace(&[("theme.scss", ".btn { color: #3366ff; }\n")]);
+fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
+    // A `$` name asks for an SCSS variable, which is declared at the stylesheet's top
+    // level rather than in a `:root` rule — `$vars` are resolved by the compiler, not
+    // the cascade.
+    let src = ".btn {\n  color: #3366ff;\n}\n\n.link {\n  color: #3366ff;\n}\n";
+    let ws = workspace(&[("theme.scss", src)]);
     let path = ws.path("theme.scss");
+    let start = src.find("#3366ff").unwrap();
+
+    let plan_out =
+        extract::variable(&ws.index, &path, Span::new(start, start + 7), "$brand", true).unwrap();
+    assert_eq!(plan_out.occurrences, 2);
+    assert_eq!(
+        applied(&plan_out.edits, &path),
+        "$brand: #3366ff;\n\n.btn {\n  color: $brand;\n}\n\n.link {\n  color: $brand;\n}\n"
+    );
+    must_reparse(&plan_out.edits);
+}
+
+#[test]
+fn scss_inline_substitutes_every_bare_use_and_removes_the_declaration() {
+    let src = "$brand: #3366ff;\n\n.btn {\n  color: $brand;\n}\n\n.link {\n  border-color: $brand;\n}\n";
+    let ws = workspace(&[("theme.scss", src)]);
+    let path = ws.path("theme.scss");
+    let symbol = ws
+        .index
+        .find_symbols("$brand", None)
+        .first()
+        .expect("the SCSS variable is a symbol")
+        .id;
+
+    let plan_out = inline::variable(&ws.index, symbol).unwrap();
+    assert_eq!(plan_out.use_sites, 2);
+    assert_eq!(
+        applied(&plan_out.edits, &path),
+        ".btn {\n  color: #3366ff;\n}\n\n.link {\n  border-color: #3366ff;\n}\n"
+    );
+    must_reparse(&plan_out.edits);
+}
+
+#[test]
+fn a_dollar_name_is_refused_in_plain_css() {
+    // Plain CSS has no `$variable` syntax, so the request cannot be honoured there.
+    let ws = workspace(&[("theme.css", ".btn { color: #3366ff; }\n")]);
+    let path = ws.path("theme.css");
     let src = std::fs::read_to_string(&path).unwrap();
     let start = src.find("#3366ff").unwrap();
 
     let err = extract::variable(&ws.index, &path, Span::new(start, start + 7), "$brand", false)
         .unwrap_err()
         .to_string();
-    assert!(err.contains("SCSS `$variable`"), "got: {err}");
-    assert!(err.contains("does not parse"), "got: {err}");
+    assert!(err.contains("plain CSS"), "got: {err}");
     assert!(err.contains("custom property"), "got: {err}");
 }
 

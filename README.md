@@ -128,10 +128,13 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–4 and 7 of [PLAN.md](PLAN.md) are complete. Stages 5, 6 and 8 are partial:
-27 cells of the plan's feature × language matrix are promised and not yet built,
-almost all of them the config- and markup-language forms of extract, inline, move,
-change-signature and restructure. PLAN.md's progress log lists them. 676 tests.
+Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
+backend. 867 tests.
+
+Two cells of the plan's matrix are resolved as genuinely inapplicable rather than
+built, with the refusals explaining why: organize-imports for CSS (`@import` order is
+semantic — a later import's rules beat an earlier one's, so sorting changes which
+styles apply) and entry points for stylesheets.
 
 Not yet built: the optional LSP delegation backend. (A watch-mode daemon is on the
 plan but the fact cache already recovers most of what it would have saved.)

@@ -1,8 +1,8 @@
 //! CSS/SCSS fact extraction.
 //!
-//! Both dialects run on the tree-sitter-css grammar (BUGS.md B1), so the SCSS
-//! tests below pin what really happens — parse errors — rather than a pretend
-//! SCSS feature set.
+//! Each dialect runs on its own grammar and its own query file, so the SCSS tests
+//! below pin the two things that could drift: that Sass-only syntax really parses,
+//! and that the CSS half of an SCSS file still extracts exactly as CSS does.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -201,10 +201,9 @@ fn a_realistic_stylesheet_parses_cleanly() {
 }
 
 // ------------------------------------------------------------------ SCSS
-// SCSS is parsed with the CSS grammar (BUGS.md B1). These tests document the
-// real behaviour: the CSS subset of an SCSS file still yields facts, and the
-// SCSS-only constructs are visible as parse errors instead of silently wrong
-// facts. When an SCSS grammar is added, they are the ones that must change.
+// SCSS has its own grammar. These tests hold the line in both directions: the
+// Sass-only constructs parse, and the same source is still an error under CSS —
+// the dialects are different languages, not one language with a lenient mode.
 
 #[test]
 fn scss_variables_parse_on_the_scss_grammar() {

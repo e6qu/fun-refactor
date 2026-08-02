@@ -1,12 +1,11 @@
-; CSS (and SCSS) fact extraction.
+; CSS fact extraction.
 ; Capture conventions are documented in src/extract.rs.
 ;
-; This file serves both Language::Css and Language::Scss, because both are parsed
-; with the tree-sitter-css grammar (BUGS.md B1). Everything below is plain CSS;
-; SCSS-only syntax (`$vars`, `@mixin`/`@include`, `@use`) does not parse under this
-; grammar and therefore yields no facts — see tests/facts_css.rs, which pins that
-; actual behaviour rather than pretending SCSS is supported. Nested rule sets are
-; the exception: nesting is native CSS now, so nested selectors do come through.
+; This file serves Language::Css only. SCSS has its own grammar and its own query
+; file, queries/scss/facts.scm, which repeats every pattern below and adds the
+; Sass-only ones (`$vars`, `@mixin`/`@include`, `@function`, `@use`/`@forward`).
+; The two are meant to stay in step: a change here that is not SCSS-specific
+; belongs there too.
 ;
 ; Naming notes (asserted in the tests):
 ;   * `.btn` -> name is `btn`; the leading `.` is outside the name span.

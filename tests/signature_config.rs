@@ -1,17 +1,22 @@
-//! Change-signature for the config languages: Terraform module variables, and the
-//! SCSS mixin cell that the grammar makes impossible.
+//! Change-signature for the config languages: Terraform module variables and SCSS
+//! mixin parameters.
 //!
 //! A Terraform module is a directory. Its parameters are the `variable "x" {}` blocks
 //! declared there and its call sites are `module "m" { source = "./that/dir" }` blocks
-//! elsewhere, so a signature change has to reach both sides at once. These tests assert
-//! the exact resulting bytes, because "formatting outside the edited range survives" is
-//! only checkable against exact text.
+//! elsewhere, so a signature change has to reach both sides at once. An SCSS mixin is
+//! closer to a function — `@mixin name($a)` declares, `@include name(1)` calls — and
+//! goes through the same path a function does.
+//!
+//! These tests assert the exact resulting bytes, because "formatting outside the
+//! edited range survives" is only checkable against exact text. Where the SCSS grammar
+//! genuinely cannot parse a form, the test says so and pins the refusal rather than
+//! pretending the form works.
 
 use fun_refactor::{
     edit::{apply_to_string, plan, Validation},
     index::Index,
     lang::Language,
-    model::SymbolKind,
+    model::{ReferenceKind, SymbolKind},
     parse::Parsers,
     refactor::{
         signature::{self, Change, Subject},
@@ -667,46 +672,247 @@ fn a_locals_entry_is_not_a_module_variable() {
 }
 
 // ------------------------------------------------------------------ SCSS
+// `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call,
+// so a mixin's signature changes through exactly the same path a function's does.
+
+const THEME_SCSS: &str = "@mixin theme($fg, $bg) {\n  color: $fg;\n  background: $bg;\n}\n";
+
+const BUTTONS_SCSS: &str = concat!(
+    "@use 'theme';\n",
+    "\n",
+    ".btn {\n  @include theme(white, black);\n}\n",
+    "\n",
+    ".btn-ghost {\n  @include theme(black, white);\n}\n"
+);
+
+fn stylesheets() -> Workspace {
+    Workspace::new(&[("theme.scss", THEME_SCSS), ("buttons.scss", BUTTONS_SCSS)])
+}
 
 #[test]
-fn scss_mixins_produce_no_symbols_to_change() {
-    // The evidence for the refusal below: `@mixin`/`@include` is not in the grammar
-    // SCSS is parsed with, so there is nothing to take a signature from.
-    let src = "@mixin theme($c, $d) {\n  color: $c;\n}\n.btn {\n  @include theme(red, blue);\n}\n";
+fn a_mixin_is_a_callable_symbol_with_resolved_call_sites() {
+    // The facts the change depends on: the mixin is a function-shaped symbol and
+    // every `@include` of it is a Call reference that resolved well enough to edit.
+    let ws = stylesheets();
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    let references = ws.index.references_to(theme);
+    assert_eq!(references.len(), 2, "got {references:?}");
+    assert!(references
+        .iter()
+        .all(|r| r.kind == ReferenceKind::Call && r.confidence.is_safe_to_rewrite()));
+    // Parameters are symbols too, spelled with the dollar at both ends.
+    let fg = ws
+        .index
+        .symbol(ws.symbol("$fg", SymbolKind::Parameter))
+        .unwrap();
+    assert_eq!(fg.name_span.text(THEME_SCSS), "$fg");
+}
+
+#[test]
+fn removing_a_mixin_parameter_updates_every_include() {
+    let ws = stylesheets();
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    let plan = signature::change(&ws.index, theme, Change::Remove(1)).unwrap();
+
+    assert_eq!(plan.subject, "theme");
+    assert_eq!(plan.call_sites, 2);
+    assert_eq!(
+        applied(&plan, &ws.path("theme.scss")),
+        "@mixin theme($fg) {\n  color: $fg;\n  background: $bg;\n}\n"
+    );
+    assert_eq!(
+        applied(&plan, &ws.path("buttons.scss")),
+        concat!(
+            "@use 'theme';\n",
+            "\n",
+            ".btn {\n  @include theme(white);\n}\n",
+            "\n",
+            ".btn-ghost {\n  @include theme(black);\n}\n"
+        )
+    );
+}
+
+#[test]
+fn reordering_mixin_parameters_reorders_every_argument() {
+    let ws = stylesheets();
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    let plan = signature::change(&ws.index, theme, Change::Move { from: 0, to: 1 }).unwrap();
+    assert_eq!(
+        applied(&plan, &ws.path("theme.scss")),
+        "@mixin theme($bg, $fg) {\n  color: $fg;\n  background: $bg;\n}\n"
+    );
+    assert_eq!(
+        applied(&plan, &ws.path("buttons.scss")),
+        concat!(
+            "@use 'theme';\n",
+            "\n",
+            ".btn {\n  @include theme(black, white);\n}\n",
+            "\n",
+            ".btn-ghost {\n  @include theme(white, black);\n}\n"
+        )
+    );
+}
+
+#[test]
+fn adding_a_mixin_parameter_passes_it_at_every_include() {
+    let ws = stylesheets();
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    let plan = signature::change(
+        &ws.index,
+        theme,
+        Change::Add {
+            at: 2,
+            declaration: "$radius: 0".into(),
+            argument: "4px".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        applied(&plan, &ws.path("theme.scss")),
+        "@mixin theme($fg, $bg, $radius: 0) {\n  color: $fg;\n  background: $bg;\n}\n"
+    );
+    assert_eq!(
+        applied(&plan, &ws.path("buttons.scss")),
+        concat!(
+            "@use 'theme';\n",
+            "\n",
+            ".btn {\n  @include theme(white, black, 4px);\n}\n",
+            "\n",
+            ".btn-ghost {\n  @include theme(black, white, 4px);\n}\n"
+        )
+    );
+}
+
+#[test]
+fn scss_signature_changes_reparse_clean() {
+    let ws = stylesheets();
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    for change in [
+        Change::Remove(0),
+        Change::Move { from: 0, to: 1 },
+        Change::Add {
+            at: 0,
+            declaration: "$radius".into(),
+            argument: "4px".into(),
+        },
+    ] {
+        let planned = signature::change(&ws.index, theme, change.clone()).unwrap();
+        let outcomes = plan(&planned.edits, Validation::ReparseStrict).unwrap();
+        assert_eq!(outcomes.len(), 2, "for {change:?}");
+        assert!(outcomes.iter().all(|o| o.changed()), "for {change:?}");
+    }
+}
+
+#[test]
+fn a_mixin_written_without_parentheses_gains_them() {
+    // `@mixin reset { }` has no parameter list at all, and neither does
+    // `@include reset;`. Adding the first parameter has to write both.
+    let ws = Workspace::new(&[(
+        "reset.scss",
+        "@mixin reset {\n  margin: 0;\n}\n\n.page {\n  @include reset;\n}\n",
+    )]);
+    let reset = ws.symbol("reset", SymbolKind::Function);
+    let plan = signature::change(
+        &ws.index,
+        reset,
+        Change::Add {
+            at: 0,
+            declaration: "$gap".into(),
+            argument: "0".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        applied(&plan, &ws.path("reset.scss")),
+        "@mixin reset($gap) {\n  margin: 0;\n}\n\n.page {\n  @include reset(0);\n}\n"
+    );
+}
+
+#[test]
+fn a_mixin_with_empty_parentheses_does_not_parse_and_blocks_the_change() {
+    // `@mixin m()` is valid Sass, but tree-sitter-scss wants a parameter between the
+    // parentheses and reports a MISSING node when there is none.
+    let src = "@mixin block() {\n  display: block;\n}\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
     assert!(
         parsed.has_errors(),
-        "@mixin/@include should surface as parse errors, not silent success"
+        "evidence: `@mixin m()` is not in tree-sitter-scss"
     );
+    // The parentheses that do parse are the ones with something in them.
+    let with_parameter = Parsers::new()
+        .parse(Language::Scss, "@mixin block($a) {\n  display: block;\n}\n")
+        .unwrap();
+    assert!(!with_parameter.has_errors());
 
-    let ws = Workspace::new(&[("theme.scss", src)]);
-    assert!(
-        ws.index.find_symbols("theme", None).is_empty(),
-        "a mixin yields no symbol: {:?}",
-        ws.index.find_symbols("theme", None)
+    let ws = Workspace::new(&[("empty.scss", src)]);
+    let block = ws.symbol("block", SymbolKind::Function);
+    let error = refusal(
+        signature::change(
+            &ws.index,
+            block,
+            Change::Add {
+                at: 0,
+                declaration: "$w".into(),
+                argument: "1px".into(),
+            },
+        )
+        .unwrap_err(),
     );
-    // Not even the parameters exist as names.
-    assert!(ws.index.find_symbols("$c", None).is_empty());
-    assert!(ws.index.find_symbols("c", None).is_empty());
+    assert!(error.contains("do not parse cleanly"), "got: {error}");
 }
 
 #[test]
-fn changing_an_scss_signature_names_the_grammar_limitation() {
-    // The only SCSS symbols that exist are the CSS ones, so that is the handle a
-    // user would reach for. It must refuse, and say why rather than "unsupported".
+fn an_scss_function_has_a_signature_too() {
     let ws = Workspace::new(&[(
-        "theme.scss",
-        "@mixin theme($c) {\n  color: $c;\n}\n.btn {\n  @include theme(red);\n}\n",
+        "math.scss",
+        "@function double($n, $unit) {\n  @return $n * 2;\n}\n\n.a {\n  width: double(3, 1px);\n}\n",
     )]);
-    let btn = ws.symbol("btn", SymbolKind::Selector);
-    let error = refusal(signature::change(&ws.index, btn, Change::Remove(0)).unwrap_err());
-    assert!(error.contains("changing mixin parameters"), "got: {error}");
-    assert!(error.contains("tree-sitter-css grammar"), "got: {error}");
-    assert!(error.contains("`@mixin`"), "got: {error}");
-    assert!(error.contains("`@include`"), "got: {error}");
-    assert!(error.contains("no parameter list"), "got: {error}");
+    let double = ws.symbol("double", SymbolKind::Function);
+    let plan = signature::change(&ws.index, double, Change::Remove(1)).unwrap();
+    assert_eq!(plan.call_sites, 1);
+    assert_eq!(
+        applied(&plan, &ws.path("math.scss")),
+        "@function double($n) {\n  @return $n * 2;\n}\n\n.a {\n  width: double(3);\n}\n"
+    );
 }
 
+// The grammar is real but not complete. These two forms genuinely do not parse, so
+// the change refuses rather than editing around a call site it cannot see.
+
+#[test]
+fn an_include_with_empty_parentheses_does_not_parse_and_blocks_the_change() {
+    let src = "@mixin theme($fg) {\n  color: $fg;\n}\n.a {\n  @include theme();\n}\n";
+    let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
+    assert!(
+        parsed.has_errors(),
+        "evidence: `@include m();` is not in tree-sitter-scss"
+    );
+
+    let ws = Workspace::new(&[("theme.scss", src)]);
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    let error = refusal(signature::change(&ws.index, theme, Change::Remove(0)).unwrap_err());
+    assert!(error.contains("do not parse cleanly"), "got: {error}");
+    assert!(error.contains("invisible to the index"), "got: {error}");
+}
+
+#[test]
+fn a_namespaced_include_does_not_parse_and_blocks_the_change() {
+    // `@use 'theme' as t;` + `@include t.theme(...)` is ordinary Sass, and neither
+    // the `as` clause nor the namespaced include is in this grammar. The call site
+    // is therefore invisible, which is precisely when a partial update happens.
+    let namespaced = "@use 'theme' as t;\n\n.a {\n  @include t.theme(red);\n}\n";
+    let parsed = Parsers::new().parse(Language::Scss, namespaced).unwrap();
+    assert!(
+        parsed.has_errors(),
+        "evidence: namespaced `@include ns.m()` is not in tree-sitter-scss"
+    );
+
+    let ws = Workspace::new(&[("theme.scss", THEME_SCSS), ("uses.scss", namespaced)]);
+    let theme = ws.symbol("theme", SymbolKind::Function);
+    let error = refusal(signature::change(&ws.index, theme, Change::Remove(0)).unwrap_err());
+    assert!(error.contains("uses.scss"), "got: {error}");
+    assert!(error.contains("invisible to the index"), "got: {error}");
+}
 // ----------------------------------------------------------- no regression
 
 #[test]
@@ -738,4 +944,3 @@ fn the_summary_says_module_variable_for_terraform() {
     assert!(summary.contains("1 call site(s)"), "got: {summary}");
     assert!(summary.contains("modules/thing"), "got: {summary}");
 }
-

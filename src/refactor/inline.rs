@@ -1172,12 +1172,11 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} does not parse cleanly under the CSS grammar{}; the declaration cannot \
-             be located reliably",
+            "{} does not parse cleanly{}; the declaration cannot be located reliably",
             sym.file.display(),
             if sym.language == Language::Scss {
-                " — which is the only grammar available for SCSS here, so SCSS-only \
-                 syntax such as `$variables`, `@mixin` and `@use` is not understood"
+                " — check for SCSS syntax its grammar does not yet cover, such as \
+                 empty `@mixin m()` parentheses or a namespaced `@include t.m(…)`"
             } else {
                 ""
             }
@@ -1199,6 +1198,47 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
              if that is the intent",
             sym.name
         );
+    }
+
+    // An SCSS `$variable` is used bare, not wrapped in `var()`, so its uses are the
+    // reference spans themselves and the declaration is a plain top-level statement.
+    if sym.name.starts_with('$') {
+        let mut edits = EditSet::new();
+        for reference in &references {
+            edits.add(
+                reference.file.clone(),
+                Edit::new(
+                    reference.span,
+                    value_text.clone(),
+                    format!("inline {}", sym.name),
+                ),
+            );
+        }
+        let line = full_line_span(&source, sym.full_span.start);
+        let removal = if line.text(&source).trim() == sym.full_span.text(&source).trim() {
+            // Take the blank line the declaration left behind with it.
+            let mut end = line.end;
+            if end < source.len() {
+                let next = full_line_span(&source, end);
+                if next.text(&source).trim().is_empty() {
+                    end = next.end;
+                }
+            }
+            Span::new(line.start, end)
+        } else {
+            sym.full_span
+        };
+        edits.add(
+            sym.file.clone(),
+            Edit::new(removal, "", format!("remove {}", sym.name)),
+        );
+
+        return Ok(InlinePlan {
+            name: sym.name.clone(),
+            value: value_text,
+            edits,
+            use_sites: references.len(),
+        });
     }
 
     let mut edits = EditSet::new();

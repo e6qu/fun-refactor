@@ -103,6 +103,14 @@
 (include_statement
   (identifier) @reference.call)
 
+; `double(3)` calls a Sass function. `var()` is excluded because it is CSS's
+; custom-property lookup rather than a function anyone declares, and it already has
+; its own pattern above; every other name here is either a user `@function` or a
+; built-in that simply resolves to nothing.
+(call_expression
+  (function_name) @reference.call
+  (#not-eq? @reference.call "var"))
+
 ; `animation-name: slide` / `animation: slide 1s` refer to a @keyframes name.
 (declaration
   (property_name) @_prop

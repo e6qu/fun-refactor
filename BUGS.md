@@ -6,6 +6,11 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
 ## Open
 
+- [ ] B11: three SCSS forms still fail under `tree-sitter-scss`, each refused rather
+  than mis-handled: empty parentheses on a declaration (`@mixin m()`), empty
+  parentheses on a call (`@include m();`), and a namespaced include after
+  `@use 'x' as t` (`@include t.m(…)`). A narrower successor to the old B1.
+
 - [ ] B2: Helm template masking makes `{{ ... }}` invisible to the YAML grammar, so a
   template action occupying a structural position (e.g. a whole `{{- if }}` block
   wrapping map keys) yields a YAML tree that does not reflect any single rendering —
@@ -39,7 +44,12 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
   and exported trees walked `target/`, `node_modules/` etc — `src/scan.rs`. Fixed with
   `WalkBuilder::require_git(false)`.
 
-## Open (added during implementation)
+## Open
+
+- [ ] B11: three SCSS forms still fail under `tree-sitter-scss`, each refused rather
+  than mis-handled: empty parentheses on a declaration (`@mixin m()`), empty
+  parentheses on a call (`@include m();`), and a namespaced include after
+  `@use 'x' as t` (`@include t.m(…)`). A narrower successor to the old B1. (added during implementation)
 
 - [ ] B4: Organize-imports decides liveness by name, so a Python module imported for
   a registration side effect, or a TypeScript type used only in a JSDoc comment,

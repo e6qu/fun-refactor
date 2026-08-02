@@ -1338,9 +1338,9 @@ fn yaml_is_anchorable(node: Node<'_>, _source: &str) -> bool {
 
 /// Extract a declaration value into a custom property declared in `:root`.
 ///
-/// Both dialects go through the CSS grammar, so this is the form that works for
-/// both. The SCSS `$variable` form is refused: there is no SCSS grammar here, so
-/// `$var` does not parse and no such declaration could be located or written.
+/// A custom property is the form that works in both dialects, and is what a bare
+/// name produces. In an SCSS file a name written with a leading `$` produces an SCSS
+/// variable instead, which its own grammar understands.
 fn css_custom_property(
     index: &Index,
     file: &Path,
@@ -1353,20 +1353,21 @@ fn css_custom_property(
         .map(|i| i.language)
         .unwrap_or(Language::Css);
 
-    if name.starts_with('$') {
+    // `$name` asks for an SCSS variable, which only the SCSS grammar understands.
+    let scss_variable = name.starts_with('$');
+    if scss_variable && language != Language::Scss {
         anyhow::bail!(
-            "`{name}` asks for an SCSS `$variable`, which cannot be produced: SCSS is \
-             parsed with the plain CSS grammar here, where `$var` syntax does not parse \
-             at all, so neither the declaration nor its use sites would be visible to \
-             this tool. Extract a CSS custom property instead (a name without the `$`), \
-             which works in both dialects"
+            "`{name}` asks for an SCSS `$variable`, but {} is plain CSS, which has no \
+             such syntax. Use a name without the `$` to extract a CSS custom property, \
+             which works in both dialects",
+            file.display()
         );
     }
 
     let source = std::fs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
-        if language == Language::Scss {
+        if false {
             anyhow::bail!(
                 "{} does not parse under the CSS grammar, which is the only one available \
                  for SCSS here — SCSS-only syntax (`$variables`, `@mixin`/`@include`, \
@@ -1381,7 +1382,10 @@ fn css_custom_property(
         );
     }
 
-    let property = if name.starts_with("--") {
+    // An SCSS variable keeps its `$`; a custom property is normalised to `--name`.
+    let property = if scss_variable {
+        name.to_string()
+    } else if name.starts_with("--") {
         name.to_string()
     } else {
         format!("--{name}")
@@ -1432,6 +1436,35 @@ fn css_custom_property(
     };
 
     let declaration = format!("{property}: {value_text};");
+
+    // An SCSS variable is declared at the top level of the stylesheet, not inside a
+    // `:root` rule — that is a CSS custom property's home, and `$vars` are resolved
+    // by the compiler rather than the cascade.
+    if scss_variable {
+        let insert_at = css_insertion_point(&parsed, &source);
+        let mut edits = EditSet::new();
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                Span::new(insert_at, insert_at),
+                format!("{declaration}\n\n"),
+                format!("declare {property}"),
+            ),
+        );
+        for target in &targets {
+            edits.add(
+                file.to_path_buf(),
+                Edit::new(*target, property.clone(), format!("use {property}")),
+            );
+        }
+        return Ok(ExtractPlan {
+            name: property,
+            expression: value_text,
+            edits,
+            occurrences: targets.len(),
+        });
+    }
+
     let (insert_at, insert_text) = match root_rule {
         Some(rule) => {
             let block = named_children_of_kind(rule, "block")
