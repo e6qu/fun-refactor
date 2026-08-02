@@ -107,7 +107,7 @@ ranges; diff/apply UX works end to end.
   SCSS `@use`/`@import`, HCL module sources, Helm chart structure, HTML `script`/`link` srcs,
   Markdown links.
 - Cross-file resolution for import-qualified top-level symbols; confidence tags per D4.
-- Persistent index cache (postcard) keyed by content hash.
+- Persistent index cache (postcard) keyed by content hash. **Landed later, in `src/cache.rs`.**
 - Commands: `fr symbols`, `fr def <file:line:col>`, `fr refs <pos|name>`.
 
 **Exit**: refs/def corpora pass including adversarial shadowing fixtures; cache invalidation

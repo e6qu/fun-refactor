@@ -29,12 +29,22 @@ struct Cli {
     #[arg(long, short = 'C', global = true, default_value = ".")]
     root: PathBuf,
 
+    /// Re-read every file instead of reusing cached facts.
+    #[arg(long, global = true)]
+    no_cache: bool,
+
     #[command(subcommand)]
     command: Command,
 }
 
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect or clear the fact cache.
+    Cache {
+        /// Delete every cached entry for the current query set.
+        #[arg(long)]
+        clear: bool,
+    },
     /// List the source files fun-refactor can act on.
     Scan {
         /// Restrict to a language (repeatable), e.g. --lang rust --lang go.
@@ -275,6 +285,7 @@ pub fn run() -> Result<()> {
         .init();
 
     match &cli.command {
+        Command::Cache { clear } => cmd_cache(&cli, *clear),
         Command::Scan { languages } => cmd_scan(&cli, languages),
         Command::Parse { languages, stats } => cmd_parse(&cli, languages, *stats),
         Command::Symbols {
@@ -1243,7 +1254,55 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
     // Canonicalise the root so indexed paths match the ones commands resolve from
     // arguments; otherwise /var and /private/var name the same file but never match.
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    Index::build(&root, &options)
+    let scanned = crate::scan::scan(&root, &options)?;
+
+    let cache = if cli.no_cache {
+        None
+    } else {
+        crate::cache::Cache::open()
+    };
+    let index = Index::build_with_cache(&scanned, cache.as_ref())?;
+
+    if let Some(cache) = &cache {
+        let (hits, misses) = cache.stats();
+        tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
+    }
+    Ok(index)
+}
+
+fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
+    let Some(cache) = crate::cache::Cache::open() else {
+        println!(
+            "No cache location is available, so every command re-reads each file. Set \
+             FUN_REFACTOR_CACHE or XDG_CACHE_HOME to enable it."
+        );
+        return Ok(());
+    };
+
+    if clear {
+        cache.clear()?;
+        println!("Cleared {}.", cache.location().display());
+        return Ok(());
+    }
+
+    let bytes = cache.size_bytes();
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "location": cache.location(),
+                "bytes": bytes,
+            }))?
+        );
+    } else {
+        println!("location  {}", cache.location().display());
+        println!("size      {} KiB", bytes / 1024);
+        println!(
+            "\nEntries are keyed by file content and by the query set, so editing a \n\
+             query file makes every stale entry unreachable rather than wrong."
+        );
+    }
+    Ok(())
 }
 
 fn cmd_symbols(
