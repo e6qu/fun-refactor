@@ -192,12 +192,11 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
 }
 
 #[test]
-fn a_rust_trait_imported_only_for_its_methods_is_wrongly_removed() {
-    // Documented behaviour, not desired behaviour: liveness is decided by name, and
-    // `Write` is never spelled at the call site — only `write_str` is. Nothing in a
-    // tree-sitter index can tell that the import is what makes that method resolve,
-    // so the import is removed and the file stops compiling. Check `plan.removed`
-    // before committing.
+fn a_rust_trait_imported_only_for_its_methods_is_kept() {
+    // `Write` is never spelled at the call site — only `write_str` is — so name-based
+    // liveness sees an unused import. Removing it would leave a file that still parses
+    // but no longer compiles, which the reparse check cannot catch, so any
+    // upper-camel-case Rust binding is held back and reported instead.
     let (plan, updated, _) = organize(
         &[(
             "a.rs",
@@ -206,12 +205,17 @@ fn a_rust_trait_imported_only_for_its_methods_is_wrongly_removed() {
         "a.rs",
     );
 
-    assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
-        vec!["std::fmt::Write"],
-        "the false positive is the real behaviour"
+    assert!(
+        plan.removed.is_empty(),
+        "a possible trait import must not be removed: {:?}",
+        plan.removed
     );
-    assert!(!updated.contains("use std::fmt::Write;"));
+    assert!(updated.contains("use std::fmt::Write;"), "got:\n{updated}");
+    assert!(
+        plan.warnings.iter().any(|w| w.detail.contains("trait")),
+        "the decision must be explained: {:?}",
+        plan.warnings
+    );
 }
 
 // ------------------------------------------------------------------- sorting
@@ -491,7 +495,9 @@ fn the_plan_reports_the_file_it_planned_for() {
 fn the_edits_survive_the_engines_reparse_check() {
     let (tmp, index) = workspace(&[(
         "a.rs",
-        "use zebra::Thing;\nuse dead::Gone;\nuse apple::Other;\n\nfn main() {\n    f(Thing);\n    f(Other);\n}\n",
+        // `dead::gone` is lower-case, so it is not trait-shaped and is removable;
+        // the two used imports are reordered around its removal.
+        "use zebra::Thing;\nuse dead::gone;\nuse apple::Other;\n\nfn main() {\n    f(Thing);\n    f(Other);\n}\n",
     )]);
     let path = tmp.path().join("a.rs");
     let plan = imports::plan(&index, &path).unwrap();

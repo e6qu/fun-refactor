@@ -35,6 +35,27 @@ pub struct ImportsPlan {
     pub sorted_blocks: usize,
 }
 
+/// A Rust import whose bound name could be a trait used only through its methods.
+///
+/// Any upper-camel-case name may be a trait, and there is no way to tell from syntax
+/// alone. Treating them all as possible traits costs some unused type imports left in
+/// place, and buys never silently breaking a build.
+fn trait_shaped_binding(language: Language, statement: &Statement) -> Option<String> {
+    if language != Language::Rust {
+        return None;
+    }
+    statement
+        .bindings
+        .iter()
+        .find(|binding| {
+            binding
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_uppercase())
+        })
+        .cloned()
+}
+
 /// One import statement the plan removes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemovedImport {
@@ -143,6 +164,25 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
             .iter()
             .any(|binding| live.contains(binding.as_str()))
         {
+            continue;
+        }
+        // A Rust trait is brought into scope so its *methods* resolve; the trait's own
+        // name is never spelled at the call site, so name-based liveness cannot see the
+        // use. Removing it leaves a file that still parses but no longer compiles —
+        // which the reparse check cannot catch. Hold these back and say so.
+        if let Some(binding) = trait_shaped_binding(info.language, statement) {
+            warnings.push(Warning {
+                kind: WarningKind::WeaklyResolved,
+                file: file.to_path_buf(),
+                line: position.line,
+                col: position.col,
+                detail: format!(
+                    "'{}' binds '{binding}', which nothing names — but a trait is used \
+                     through its methods, never by name, so this is kept. Remove it by \
+                     hand if it really is unused",
+                    statement.path
+                ),
+            });
             continue;
         }
         drop_statement[i] = true;
