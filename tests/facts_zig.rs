@@ -154,9 +154,14 @@ fn empty_container_bodies_do_not_parse() {
     for src in ["const Z = struct {};\n", "const O = opaque {};\n"] {
         let parsed = Parsers::new().parse(Language::Zig, src).unwrap();
         assert!(parsed.has_errors(), "{src:?} unexpectedly parsed cleanly");
-        // The error is a MISSING node the walker does not surface, so an edit check
-        // comparing error spans before and after would see no change at all.
-        assert!(parsed.error_spans().is_empty(), "{src:?}");
+        // The grammar flags this subtree without emitting an ERROR node. The parser
+        // falls back to the innermost node that reports an error, so the breakage is
+        // still visible to the edit engine's before/after comparison.
+        assert!(
+            !parsed.error_spans().is_empty(),
+            "{src:?} must report a span, or an edit that breaks a file this way \
+             would be accepted"
+        );
     }
 }
 

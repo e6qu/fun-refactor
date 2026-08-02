@@ -84,6 +84,38 @@ impl SymbolKind {
     pub fn is_local(&self) -> bool {
         matches!(self, SymbolKind::Variable | SymbolKind::Parameter)
     }
+
+    /// Is this kind referenced by name from other files, rather than through scope
+    /// or imports?
+    ///
+    /// CSS classes, element ids, custom properties, YAML keys, Markdown headings and
+    /// link definitions are all named globally by string. This is what makes
+    /// cross-language references possible: `class="btn"` in HTML names the `.btn`
+    /// declared in a stylesheet.
+    pub fn is_string_keyed(&self) -> bool {
+        matches!(
+            self,
+            SymbolKind::Selector
+                | SymbolKind::ElementId
+                | SymbolKind::Property
+                | SymbolKind::Heading
+                | SymbolKind::LinkDef
+                | SymbolKind::Anchor
+        )
+    }
+
+    /// May one entity of this kind legitimately have many definition sites?
+    ///
+    /// A CSS class has no canonical definition: `.btn` and `.btn:hover` are both
+    /// definitions of the same class, and a custom property can be redeclared per
+    /// scope. Renaming such an entity has to rewrite every site, so these kinds are
+    /// not treated as an ambiguous choice between rival definitions.
+    pub fn allows_multiple_definitions(&self) -> bool {
+        matches!(
+            self,
+            SymbolKind::Selector | SymbolKind::Property | SymbolKind::ElementId
+        )
+    }
 }
 
 /// How confident we are that a reference or call resolved to the right symbol.

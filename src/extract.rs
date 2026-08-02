@@ -280,6 +280,12 @@ impl Extractor {
                 .unwrap_or(ScopeId(0))
         };
 
+        // One identifier position is one definition. Several patterns may legitimately
+        // match the same node (a language often needs one pattern per parent context),
+        // and without merging them a rename would emit two edits over the same bytes
+        // and be rejected as a conflict.
+        merge_duplicate_defs(&mut raw_defs);
+
         // Pass 3: materialise symbols, nesting them by span containment.
         raw_defs.sort_by_key(|d| (d.full_span.start, std::cmp::Reverse(d.full_span.end)));
         let mut symbols: Vec<Symbol> = Vec::with_capacity(raw_defs.len());
@@ -296,13 +302,21 @@ impl Extractor {
                 .map(|(j, _)| SymbolId(j as u32));
 
             // The innermost container enclosing this definition supplies its qualifier.
-            let qualifier = containers
-                .iter()
-                .filter(|(span, name_span)| {
-                    span.contains(d.full_span) && *name_span != d.name_span
-                })
-                .min_by_key(|(span, _)| span.len())
-                .map(|(_, name_span)| name_span.text(source).to_string());
+            //
+            // Locals and parameters are deliberately excluded: a method's parameter
+            // belongs to the method, not the type, so qualifying it would produce
+            // nonsense like `Widget::self`.
+            let qualifier = if d.kind.is_local() {
+                None
+            } else {
+                containers
+                    .iter()
+                    .filter(|(span, name_span)| {
+                        span.contains(d.full_span) && *name_span != d.name_span
+                    })
+                    .min_by_key(|(span, _)| span.len())
+                    .map(|(_, name_span)| name_span.text(source).to_string())
+            };
 
             // A function defined inside a type-like container is a method. Deriving
             // this keeps every language from needing separate method captures.
@@ -437,6 +451,58 @@ impl ImportParts {
             file: path.to_path_buf(),
             is_glob: self.is_glob,
         }
+    }
+}
+
+/// Collapse definitions that describe the same identifier into one.
+///
+/// The survivor keeps the most specific kind, the widest full span (so a delete or
+/// move takes the whole construct) and export visibility if any duplicate had it.
+fn merge_duplicate_defs(defs: &mut Vec<RawDef>) {
+    defs.sort_by_key(|d| {
+        (
+            d.name_span,
+            kind_specificity(d.kind),
+            std::cmp::Reverse(d.full_span.len()),
+        )
+    });
+
+    let mut merged: Vec<RawDef> = Vec::with_capacity(defs.len());
+    for def in defs.drain(..) {
+        match merged.last_mut() {
+            Some(previous) if previous.name_span == def.name_span => {
+                previous.exported |= def.exported;
+                if def.full_span.len() > previous.full_span.len() {
+                    previous.full_span = def.full_span;
+                }
+            }
+            _ => merged.push(def),
+        }
+    }
+    *defs = merged;
+}
+
+/// Ranks symbol kinds from most to least specific, for duplicate resolution.
+fn kind_specificity(kind: SymbolKind) -> u8 {
+    match kind {
+        SymbolKind::Method => 0,
+        SymbolKind::Parameter => 1,
+        SymbolKind::Field => 2,
+        SymbolKind::Constant => 3,
+        SymbolKind::Anchor | SymbolKind::Heading | SymbolKind::LinkDef => 4,
+        SymbolKind::Selector | SymbolKind::Property | SymbolKind::ElementId => 5,
+        SymbolKind::Function
+        | SymbolKind::Class
+        | SymbolKind::Struct
+        | SymbolKind::Trait
+        | SymbolKind::Interface
+        | SymbolKind::Enum
+        | SymbolKind::TypeAlias
+        | SymbolKind::Module
+        | SymbolKind::Block
+        | SymbolKind::Key => 6,
+        // The most generic kinds lose to anything more informative.
+        SymbolKind::Variable => 7,
     }
 }
 
@@ -596,6 +662,85 @@ mod tests {
         assert_ne!(spans[0], spans[1], "each occurrence needs its own span");
         assert_eq!(spans[0], Span::new(0, 1));
         assert_eq!(spans[1], Span::new(2, 3));
+    }
+
+    #[test]
+    fn duplicate_definitions_of_one_identifier_are_merged() {
+        // Several patterns often match the same node — languages need one pattern
+        // per parent context. Two symbols over identical bytes would make a rename
+        // emit two edits at the same span, which the edit engine rejects.
+        let mut defs = vec![
+            RawDef {
+                kind: SymbolKind::Variable,
+                full_span: Span::new(0, 10),
+                name_span: Span::new(4, 5),
+                exported: false,
+            },
+            RawDef {
+                kind: SymbolKind::Constant,
+                full_span: Span::new(0, 20),
+                name_span: Span::new(4, 5),
+                exported: true,
+            },
+        ];
+        merge_duplicate_defs(&mut defs);
+
+        assert_eq!(defs.len(), 1);
+        // The more specific kind wins, exports are preserved, and the widest span
+        // survives so a delete takes the whole construct.
+        assert_eq!(defs[0].kind, SymbolKind::Constant);
+        assert!(defs[0].exported);
+        assert_eq!(defs[0].full_span, Span::new(0, 20));
+    }
+
+    #[test]
+    fn distinct_identifiers_are_not_merged() {
+        let mut defs = vec![
+            RawDef {
+                kind: SymbolKind::Variable,
+                full_span: Span::new(0, 10),
+                name_span: Span::new(4, 5),
+                exported: false,
+            },
+            RawDef {
+                kind: SymbolKind::Variable,
+                full_span: Span::new(11, 20),
+                name_span: Span::new(15, 16),
+                exported: false,
+            },
+        ];
+        merge_duplicate_defs(&mut defs);
+        assert_eq!(defs.len(), 2);
+    }
+
+    #[test]
+    fn parameters_are_not_qualified_by_the_enclosing_type() {
+        // A method's parameter belongs to the method, not the type: `Widget::self`
+        // would be nonsense.
+        let src = "struct S;\nimpl S {\n    fn m(&self, count: i32) {}\n}\n";
+        let f = facts(Language::Rust, src);
+        let param = f
+            .symbols
+            .iter()
+            .find(|s| s.name == "count")
+            .expect("parameter extracted");
+        assert_eq!(param.kind, SymbolKind::Parameter);
+        assert_eq!(param.qualifier, None);
+        // The method itself is still qualified.
+        let method = f.symbols.iter().find(|s| s.name == "m").unwrap();
+        assert_eq!(method.qualifier.as_deref(), Some("S"));
+    }
+
+    #[test]
+    fn no_identifier_yields_two_symbols_in_practice() {
+        // Across a realistic sample, every definition must own a distinct identifier.
+        let src = "struct S { field: i32 }\nimpl S {\n    fn m(&self, x: i32) -> i32 { let y = x; y }\n}\n";
+        let f = facts(Language::Rust, src);
+        let mut spans: Vec<_> = f.symbols.iter().map(|s| s.name_span).collect();
+        let before = spans.len();
+        spans.sort();
+        spans.dedup();
+        assert_eq!(before, spans.len(), "duplicate definitions: {:?}", f.symbols);
     }
 
     #[test]

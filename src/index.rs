@@ -238,7 +238,31 @@ impl Index {
             }
         }
 
-        // 4. Field access without a known receiver type: name-matched at best.
+        // 4. String-keyed references. In CSS, HTML, XML and Markdown a reference
+        //    names its target globally: `class="btn"` refers to whatever declares
+        //    `.btn`, in any file. That is the language's actual rule, not a
+        //    heuristic, so a unique kind match resolves exactly. This is what lets a
+        //    CSS class rename reach HTML and TSX.
+        if reference.kind == ReferenceKind::StringRef {
+            // Fragment references (`href="#top"`) name the id or heading without it.
+            let bare = reference.name.strip_prefix('#').unwrap_or(&reference.name);
+            let targets: Vec<&Symbol> = self
+                .symbols
+                .iter()
+                .filter(|s| s.kind.is_string_keyed() && s.name == bare)
+                .collect();
+
+            let kinds: HashSet<SymbolKind> = targets.iter().map(|s| s.kind).collect();
+            match kinds.len() {
+                1 => return (Some(targets[0].id), Confidence::Exact),
+                0 => {}
+                // The same name declared as two different kinds is genuinely
+                // ambiguous; report it rather than pick one.
+                _ => return (Some(targets[0].id), Confidence::FieldBased),
+            }
+        }
+
+        // 5. Field access without a known receiver type: name-matched at best.
         if reference.kind == ReferenceKind::Field {
             let members: Vec<&Symbol> = candidates
                 .iter()
@@ -253,7 +277,7 @@ impl Index {
             }
         }
 
-        // 5. A single exported definition anywhere in the workspace. Plausible, but
+        // 6. A single exported definition anywhere in the workspace. Plausible, but
         //    nothing proved this file can see it, so it stays name-only.
         let exported: Vec<&Symbol> = candidates
             .iter()
@@ -365,6 +389,36 @@ impl Index {
             .iter()
             .filter(|r| r.name == sym.name && r.target != Some(symbol))
             .collect()
+    }
+
+    /// Every definition site of the entity `symbol` belongs to.
+    ///
+    /// Usually just the symbol itself. For kinds with no canonical definition — CSS
+    /// classes, custom properties — it is every site that declares the same name, so
+    /// a rename rewrites all of them rather than half.
+    pub fn definition_group(&self, symbol: SymbolId) -> Vec<SymbolId> {
+        let Some(sym) = self.symbol(symbol) else {
+            return Vec::new();
+        };
+        if !sym.kind.allows_multiple_definitions() {
+            return vec![symbol];
+        }
+        self.symbols
+            .iter()
+            .filter(|s| s.name == sym.name && s.kind == sym.kind)
+            .map(|s| s.id)
+            .collect()
+    }
+
+    /// Do these symbols all denote the same entity?
+    pub fn is_one_entity(&self, symbols: &[&Symbol]) -> bool {
+        let Some(first) = symbols.first() else {
+            return false;
+        };
+        first.kind.allows_multiple_definitions()
+            && symbols
+                .iter()
+                .all(|s| s.name == first.name && s.kind == first.kind)
     }
 
     /// Find a symbol by name, optionally narrowed to a file.

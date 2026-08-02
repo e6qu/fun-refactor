@@ -189,6 +189,17 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
         if validation == Validation::ReparseStrict {
             let before = parsers.parse(language, &original)?;
             let after = parsers.parse(language, &updated)?;
+
+            // Check the tree-wide error flag as well as the span count. Some
+            // grammars flag a broken subtree without emitting an ERROR node, so
+            // counting spans alone can miss a file we just broke.
+            if after.has_errors() && !before.has_errors() {
+                bail!(
+                    "edit rejected: {} parses cleanly now but would not after the \
+                     change. The file was left unchanged.",
+                    path.display()
+                );
+            }
             let before_errors = before.error_spans().len();
             let after_errors = after.error_spans().len();
             if after_errors > before_errors {
@@ -439,9 +450,48 @@ mod tests {
         set.add(&path, Edit::new(Span::new(11, 12), "", "break it"));
 
         let err = plan(&set, Validation::ReparseStrict).unwrap_err().to_string();
-        assert!(err.contains("new syntax error"), "unexpected error: {err}");
+        assert!(err.contains("edit rejected"), "unexpected error: {err}");
         // The file must be untouched.
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "fn main() {}\n");
+    }
+
+    #[test]
+    fn plan_rejects_breakage_a_grammar_flags_without_an_error_node() {
+        // Some grammars mark a subtree erroneous without emitting an ERROR node
+        // (tree-sitter-zig does this for an empty container body). Comparing error
+        // span counts alone would see no change and accept the edit, so the
+        // tree-wide flag is checked too.
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("thing.zig");
+        std::fs::write(&path, "const S = struct { x: i32 };\n").unwrap();
+
+        let before = Parsers::new()
+            .parse(Language::Zig, "const S = struct { x: i32 };\n")
+            .unwrap();
+        assert!(!before.has_errors(), "the starting file must parse cleanly");
+
+        let mut set = EditSet::new();
+        // Emptying the body produces the flagged-but-node-less error case.
+        set.add(&path, Edit::new(Span::new(17, 27), "{}", "empty the body"));
+
+        let err = plan(&set, Validation::ReparseStrict).unwrap_err().to_string();
+        assert!(err.contains("edit rejected"), "unexpected error: {err}");
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "const S = struct { x: i32 };\n"
+        );
+    }
+
+    #[test]
+    fn error_spans_are_reported_even_without_an_error_node() {
+        let parsed = Parsers::new().parse(Language::Zig, "const Z = struct {};\n").unwrap();
+        if parsed.has_errors() {
+            assert!(
+                !parsed.error_spans().is_empty(),
+                "a tree flagged as erroneous must report at least one span, \
+                 or the edit engine cannot detect the breakage"
+            );
+        }
     }
 
     #[test]

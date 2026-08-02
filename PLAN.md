@@ -93,7 +93,7 @@ detection, reparse validation, atomic multi-file commit, unified diff),
 **Exit**: all fixture corpora parse; synthetic edit round-trips are byte-exact outside edited
 ranges; diff/apply UX works end to end.
 
-### Stage 1 — Graph tier-0: symbols, scopes, references, imports
+### Stage 1 — Graph tier-0: symbols, scopes, references, imports — **DONE**
 
 **Goal**: the resolution layer everything else stands on.
 
@@ -113,7 +113,7 @@ ranges; diff/apply UX works end to end.
 **Exit**: refs/def corpora pass including adversarial shadowing fixtures; cache invalidation
 correct; every ref answer carries a confidence tag.
 
-### Stage 2 — Rename (first mutation)
+### Stage 2 — Rename (first mutation) — **DONE**
 
 **Goal**: the table-stakes refactor, all 12 languages, each meaning the right thing.
 
@@ -136,7 +136,7 @@ correct; every ref answer carries a confidence tag.
 **Exit**: rename corpus per language incl. shadowing traps; differential spot-checks vs
 gopls / rust-analyzer / rope on shared fixtures documented; sweep report emitted.
 
-### Stage 3 — Call graph + entrypoints
+### Stage 3 — Call graph + entrypoints — **DONE**
 
 **Goal**: beat funveil's string-matching baseline with resolved, confidence-tagged graphs.
 
@@ -159,7 +159,7 @@ gopls / rust-analyzer / rope on shared fixtures documented; sweep report emitted
 precision/recall measured on fixture apps per language; catalog-driven entrypoints ≥ funveil's
 detection on its own categories.
 
-### Stage 4 — Flow analysis
+### Stage 4 — Flow analysis — **PARTIAL**: imperative def-use done; config-language provenance not started
 
 **Goal**: "where does this value come from / where is it used" for all 12, with the right
 semantics per tier.
@@ -300,3 +300,25 @@ call sites. ‡ SCSS: mixin parameters.
   render-dependent structures as unresolved, loudly.
 - **Scope creep across 12 × 17 features**: the matrix's — cells are commitments to refuse,
   not gaps to fill; tbd cells resolve via open decisions, not silent drift.
+
+## Progress log
+
+- **Stages 0–3 complete**, Stage 4 half complete. 406 tests.
+- Fact queries exist for all 12 languages (15 variants), each with an integration
+  suite: Rust, Go, Zig, TypeScript, TSX, Python, Bash, HCL, YAML/Helm, CSS/SCSS,
+  HTML, XML, Markdown.
+- Commands: `fr scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `callers`,
+  `callees`, `graph`, `entrypoints`, `flow`.
+- Cross-language rename works end to end (Stage 7's headline capability, reached
+  early because it fell out of the string-keyed resolution tier): renaming a CSS
+  class rewrites its selectors, every HTML `class` attribute and every TSX
+  `className`, leaving sibling classes in the same attribute untouched.
+
+### Remaining
+
+- Stage 4: provenance for config languages (Terraform value DAG, Helm values
+  precedence, CSS cascade, YAML anchor expansion).
+- Stage 5: extract/inline. Stage 6: move, change signature, safe delete, organize
+  imports. Stage 7: the rest of cross-language intelligence (`fr impact`, Helm
+  value → env var → code stitching). Stage 8: micro-rewrites, pattern restructure,
+  optional LSP backend, daemon.

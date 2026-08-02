@@ -47,46 +47,60 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     let mut edits = EditSet::new();
     let mut warnings = Vec::new();
 
-    // The definition itself.
-    edits.add(
-        symbol.file.clone(),
-        Edit::new(
-            symbol.name_span,
-            new_name,
-            format!("rename definition of {}", symbol.name),
-        ),
-    );
+    // Some entities have several definition sites (a CSS class declared by both
+    // `.btn` and `.btn:hover`); all of them must change together.
+    let group = index.definition_group(symbol_id);
+    for id in &group {
+        let Some(definition) = index.symbol(*id) else {
+            continue;
+        };
+        edits.add(
+            definition.file.clone(),
+            Edit::new(
+                definition.name_span,
+                new_name,
+                format!("rename definition of {}", definition.name),
+            ),
+        );
+    }
 
     // References that resolved strongly enough to rewrite.
     let mut reference_edits = 0;
-    for reference in index.references_to(symbol_id) {
-        if reference.confidence.is_safe_to_rewrite() {
-            edits.add(
-                reference.file.clone(),
-                Edit::new(
-                    reference.span,
-                    new_name,
-                    format!("rename reference to {}", symbol.name),
-                ),
-            );
-            reference_edits += 1;
-        } else {
-            warnings.push(locate_warning(
-                WarningKind::WeaklyResolved,
-                &reference.file,
-                reference.span.start,
-                format!(
-                    "reference resolved only as '{}'; left unchanged",
-                    reference.confidence.as_str()
-                ),
-            ));
+    let mut seen_spans = std::collections::HashSet::new();
+    for id in &group {
+        for reference in index.references_to(*id) {
+            if !seen_spans.insert((reference.file.clone(), reference.span)) {
+                continue;
+            }
+            if reference.confidence.is_safe_to_rewrite() {
+                edits.add(
+                    reference.file.clone(),
+                    Edit::new(
+                        reference.span,
+                        new_name,
+                        format!("rename reference to {}", symbol.name),
+                    ),
+                );
+                reference_edits += 1;
+            } else {
+                warnings.push(locate_warning(
+                    WarningKind::WeaklyResolved,
+                    &reference.file,
+                    reference.span.start,
+                    format!(
+                        "reference resolved only as '{}'; left unchanged",
+                        reference.confidence.as_str()
+                    ),
+                ));
+            }
         }
     }
 
     // Same-named references that resolved somewhere else entirely. These are not
     // ours to touch, but a human should confirm the resolution was right.
     for reference in index.unresolved_matching(symbol_id) {
-        if reference.target.is_none() {
+        if reference.target.is_none() && !seen_spans.contains(&(reference.file.clone(), reference.span))
+        {
             warnings.push(locate_warning(
                 WarningKind::WeaklyResolved,
                 &reference.file,
@@ -96,8 +110,16 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // Strings and comments: invisible to any analysis, so report every hit.
-    warnings.extend(textual_sweep(index, &symbol.name)?);
+    // Strings and comments: invisible to any analysis, so report every hit — except
+    // the ones we are already rewriting. A resolved `class="btn"` lives inside a
+    // string literal, and reporting it as unhandled after editing it would be wrong.
+    let edited: Vec<(PathBuf, Span)> = edits
+        .iter()
+        .flat_map(|(path, file_edits)| {
+            file_edits.iter().map(|e| (path.clone(), e.span))
+        })
+        .collect();
+    warnings.extend(textual_sweep(index, &symbol.name, &edited)?);
 
     // Files that did not parse cleanly may be hiding references.
     for (path, info) in index.files() {
@@ -236,7 +258,11 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
 ///
 /// These are exactly the references that defeat both syntax analysis and language
 /// servers, so they are surfaced for review and never edited automatically.
-fn textual_sweep(index: &Index, name: &str) -> Result<Vec<Warning>> {
+fn textual_sweep(
+    index: &Index,
+    name: &str,
+    already_edited: &[(PathBuf, Span)],
+) -> Result<Vec<Warning>> {
     let parsers = Parsers::new();
     let mut warnings = Vec::new();
 
@@ -256,7 +282,16 @@ fn textual_sweep(index: &Index, name: &str) -> Result<Vec<Warning>> {
                 if !is_word_boundary(text, offset, name.len()) {
                     continue;
                 }
-                let pos = line_index.line_col(span.start + offset, &source);
+                let absolute = Span::new(span.start + offset, span.start + offset + name.len());
+                // An occurrence this rename is already rewriting is handled, not
+                // outstanding.
+                if already_edited
+                    .iter()
+                    .any(|(f, s)| f == path && s.overlaps(absolute))
+                {
+                    continue;
+                }
+                let pos = line_index.line_col(absolute.start, &source);
                 warnings.push(Warning {
                     kind: WarningKind::TextualOccurrence,
                     file: path.clone(),

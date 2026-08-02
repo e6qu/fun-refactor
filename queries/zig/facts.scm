@@ -66,6 +66,10 @@
 ; name of its own, so the identifier stays a reference and the block is not a
 ; symbol. The catch-all reference rule below picks it up.
 
+; The `.` anchor pins the name to the first *named* child, so the annotation in
+; `const p: Point = …` is never mistaken for the declared name.
+;
+; The model has no union or opaque kind; both are records, like a struct.
 (variable_declaration
   "pub"? @export
   "export"? @export
@@ -73,35 +77,11 @@
   .
   (identifier) @name
   "="
-  (struct_declaration)) @definition.struct
-
-; The model has no separate union kind; a Zig union is a tagged record like a struct.
-(variable_declaration
-  "pub"? @export
-  "export"? @export
-  "const"
-  .
-  (identifier) @name
-  "="
-  (union_declaration)) @definition.struct
-
-(variable_declaration
-  "pub"? @export
-  "export"? @export
-  "const"
-  .
-  (identifier) @name
-  "="
-  (opaque_declaration)) @definition.struct
-
-(variable_declaration
-  "pub"? @export
-  "export"? @export
-  "const"
-  .
-  (identifier) @name
-  "="
-  (enum_declaration)) @definition.enum
+  [
+    (struct_declaration)
+    (union_declaration)
+    (opaque_declaration)
+  ]) @definition.struct
 
 ; An error set is a closed set of named values — an enum in everything but spelling.
 (variable_declaration
@@ -111,7 +91,10 @@
   .
   (identifier) @name
   "="
-  (error_set_declaration)) @definition.enum
+  [
+    (enum_declaration)
+    (error_set_declaration)
+  ]) @definition.enum
 
 ; Plain `const`. The query language cannot negate a child pattern, so the value's
 ; text is what keeps this from firing a second time on the container declarations

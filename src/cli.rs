@@ -86,6 +86,17 @@ enum Command {
         #[arg(long, default_value = "1")]
         depth: usize,
     },
+    /// Trace where a value comes from or goes to.
+    Flow {
+        /// Direction: `back` (where does it come from) or `fwd` (where is it used).
+        #[arg(value_parser = ["back", "fwd"])]
+        direction: String,
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// How many hops to follow.
+        #[arg(long, default_value = "5")]
+        depth: usize,
+    },
     /// Export the call graph.
     Graph {
         /// Emit Graphviz DOT.
@@ -161,6 +172,11 @@ pub fn run() -> Result<()> {
         Command::Callees { target, depth } => {
             cmd_trace(&cli, target, *depth, Direction2::Callees)
         }
+        Command::Flow {
+            direction,
+            target,
+            depth,
+        } => cmd_flow(&cli, direction, target, *depth),
         Command::Graph { dot } => cmd_graph(&cli, *dot),
         Command::Entrypoints {
             kind,
@@ -229,6 +245,61 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
         if related.len() > 10 {
             println!("  … and {} more", related.len() - 10);
         }
+    }
+    Ok(())
+}
+
+fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()> {
+    use crate::analysis::flow;
+
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+
+    if !flow::applies_to(&index, &symbol.file) {
+        anyhow::bail!(
+            "{} is a {} file. Dataflow applies to imperative languages; config and \
+             markup languages have substitution and override provenance instead, \
+             which is not implemented yet.",
+            symbol.file.display(),
+            symbol.language
+        );
+    }
+
+    let result = match direction {
+        "back" => flow::backward(&index, &symbol.file, symbol.name_span.start, depth)?,
+        "fwd" => flow::forward(&index, symbol.id, depth)?,
+        other => anyhow::bail!("unknown direction '{other}'; use 'back' or 'fwd'"),
+    };
+
+    if cli.json {
+        let steps: Vec<_> = result
+            .steps
+            .iter()
+            .map(|s| {
+                serde_json::json!({
+                    "text": s.text,
+                    "file": s.file,
+                    "depth": s.depth,
+                    "confidence": s.confidence.as_str(),
+                })
+            })
+            .collect();
+        let stops: Vec<_> = result
+            .stops
+            .iter()
+            .map(|(depth, reason)| serde_json::json!({ "depth": depth, "reason": reason.to_string() }))
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "symbol": symbol.qualified_name(),
+                "direction": direction,
+                "steps": steps,
+                "stops": stops,
+            }))?
+        );
+    } else {
+        print!("{}", result.format_tree());
     }
     Ok(())
 }
@@ -473,6 +544,9 @@ fn resolve_target<'a>(index: &'a Index, target: &str) -> Result<&'a Symbol> {
     match matches.len() {
         0 => anyhow::bail!("no symbol named '{target}'"),
         1 => Ok(matches[0]),
+        // Several sites can declare one entity — a CSS class has no canonical
+        // definition — and that is not an ambiguous choice between rivals.
+        _ if index.is_one_entity(&matches) => Ok(matches[0]),
         _ => {
             // Ambiguity is reported, never resolved by guessing.
             let mut listing = String::new();

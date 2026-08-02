@@ -119,6 +119,15 @@ impl Parsed {
             loop {
                 if !cursor.goto_parent() {
                     errors.sort();
+                    // Some grammars flag a subtree as erroneous without producing an
+                    // ERROR or MISSING node anywhere in it (tree-sitter-zig does this
+                    // for an empty container body). Reporting nothing here would let
+                    // the edit engine's before/after comparison see no change and
+                    // accept an edit that broke the file, so fall back to the
+                    // narrowest node that still reports an error.
+                    if errors.is_empty() && self.root().has_error() {
+                        errors.push(innermost_error_span(self.root()));
+                    }
                     return errors;
                 }
                 if cursor.goto_next_sibling() {
@@ -132,6 +141,21 @@ impl Parsed {
     pub fn node_at(&self, offset: usize) -> Option<Node<'_>> {
         self.root()
             .named_descendant_for_byte_range(offset, offset.saturating_add(1))
+    }
+}
+
+/// Descend to the smallest node that still reports an error.
+///
+/// Used when a tree is flagged erroneous but contains no ERROR or MISSING node.
+fn innermost_error_span(root: Node<'_>) -> Span {
+    let mut node = root;
+    loop {
+        let mut cursor = node.walk();
+        let next = node.children(&mut cursor).find(|child| child.has_error());
+        match next {
+            Some(child) => node = child,
+            None => return Span::from(node),
+        }
     }
 }
 

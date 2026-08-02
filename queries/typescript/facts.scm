@@ -401,13 +401,14 @@
 ; A capitalised identifier in a `name:` field is a component reference:
 ; `<MyComponent />` and its closing tag. Lowercase names are HTML tags and are
 ; not captured at all. The rule is deliberately structural because JSX node
-; types cannot be named here; in .ts files it additionally picks up capitalised
-; import/export specifier names, which are references too.
+; types cannot be named here, which is also why the captured kind is `identifier`
+; rather than `type`: the same `name:` field holds capitalised import and export
+; specifier names, which are plain value references.
 ;
 ; `<ns.Thing />` spells its name as a member expression, so it is captured by the
 ; member_expression rule above as a field reference instead.
-((_ name: (identifier) @reference.type)
- (#match? @reference.type "^[A-Z]"))
+((_ name: (identifier) @reference.identifier)
+ (#match? @reference.identifier "^[A-Z]"))
 
 ; `className="btn card"` is a cross-language reference to CSS classes — the
 ; headline case this tool exists for. Written as "an attribute-ish name next to a
