@@ -106,6 +106,30 @@ impl Index {
         Ok(index)
     }
 
+    /// Build an index from sources held in memory rather than read from disk.
+    ///
+    /// A cascading refactoring rewrites files and must re-resolve against the result
+    /// before deciding what to do next; writing each intermediate state to disk just
+    /// to read it back would be both slower and observable.
+    pub fn build_from_sources(sources: &[(PathBuf, Language, String)]) -> Result<Self> {
+        let parsers = Parsers::new();
+        let mut extractor = Extractor::new();
+        let mut index = Index::default();
+
+        for (path, language, source) in sources {
+            let parsed = parsers.parse(*language, source)?;
+            let had_parse_errors = parsed.has_errors();
+            let mut facts = extractor
+                .extract(&parsed, path, source)
+                .with_context(|| format!("extracting facts from {}", path.display()))?;
+            facts.had_parse_errors = had_parse_errors;
+            index.add_file(facts, *language, had_parse_errors);
+        }
+
+        index.resolve();
+        Ok(index)
+    }
+
     /// Merge one file's facts, remapping file-local ids into the global namespace.
     pub fn add_file(&mut self, facts: FileFacts, language: Language, had_parse_errors: bool) {
         let base = self.symbols.len() as u32;

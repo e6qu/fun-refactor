@@ -177,6 +177,19 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Remove a feature flag and everything that only existed to serve it.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    RemoveFlag {
+        /// The flag's name.
+        flag: String,
+        /// The value to assume it always had.
+        #[arg(long, default_value = "true")]
+        value: bool,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Apply a local transformation, or list the ones that apply.
     ///
     /// Prints a diff by default; pass --write to apply it.
@@ -327,6 +340,9 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
+        Command::RemoveFlag { flag, value, write } => {
+            cmd_remove_flag(&cli, flag, *value, *write)
+        }
         Command::Rewrite {
             target,
             rewrite,
@@ -727,6 +743,37 @@ fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
         plan.file.display(),
         plan.removed.len(),
         plan.sorted_blocks
+    );
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_remove_flag(cli: &Cli, flag: &str, value: bool, write: bool) -> Result<()> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let plan = crate::refactor::cascade::remove_flag(&root, flag, value)?;
+
+    if plan.is_empty() {
+        println!("Removing {flag} as {value} changes nothing.");
+        return Ok(());
+    }
+
+    if !cli.json {
+        println!("Cascade:");
+        for (i, round) in plan.rounds.iter().enumerate() {
+            println!(
+                "  {}. {} ({} file(s))",
+                i + 1,
+                round.description,
+                round.files_touched
+            );
+        }
+        println!();
+    }
+
+    let summary = format!(
+        "removed {} as {} in {} round(s)",
+        plan.flag,
+        plan.value,
+        plan.rounds.len()
     );
     present(cli, &plan.edits, &summary, write)
 }
