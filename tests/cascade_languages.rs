@@ -73,7 +73,11 @@ fn zig_true_keeps_the_enabled_branch_and_removes_the_dead_one() {
          \x20   newPath();\n\
          }\n"
     );
-    assert!(plan.rounds.len() >= 3, "expected a cascade: {:?}", plan.rounds);
+    assert!(
+        plan.rounds.len() >= 3,
+        "expected a cascade: {:?}",
+        plan.rounds
+    );
     must_still_parse(&plan);
     assert!(plan.unfinished.is_empty(), "{}", unfinished(&plan));
 }
@@ -330,7 +334,11 @@ fn bash_true_collapses_a_quoted_string_test() {
 
     let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
     assert_eq!(result_for(tmp.path(), "run.sh", &plan), "new_path\n");
-    assert!(plan.rounds.len() >= 3, "expected a cascade: {:?}", plan.rounds);
+    assert!(
+        plan.rounds.len() >= 3,
+        "expected a cascade: {:?}",
+        plan.rounds
+    );
     must_still_parse(&plan);
     assert!(plan.unfinished.is_empty(), "{}", unfinished(&plan));
 }
@@ -487,10 +495,7 @@ fn bash_a_compound_expansion_is_refused_by_name() {
     // `${FLAG:-no}` means more than the flag's value: the whole expansion cannot be
     // replaced without losing the default, and the name alone cannot be replaced
     // without producing `${true:-no}`.
-    let tmp = workspace(&[(
-        "run.sh",
-        "USE_NEW=true\n\necho \"${USE_NEW:-no}\"\n",
-    )]);
+    let tmp = workspace(&[("run.sh", "USE_NEW=true\n\necho \"${USE_NEW:-no}\"\n")]);
 
     let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
     let out = result_for(tmp.path(), "run.sh", &plan);
@@ -657,10 +662,7 @@ fn terraform_true_drops_a_count_of_one_and_the_variable() {
 #[test]
 fn terraform_false_deletes_the_resource_the_count_zeroed() {
     let tmp = workspace(&[
-        (
-            "variables.tf",
-            "variable \"enabled\" {\n  type = bool\n}\n",
-        ),
+        ("variables.tf", "variable \"enabled\" {\n  type = bool\n}\n"),
         (
             "main.tf",
             "resource \"aws_s3_bucket\" \"logs\" {\n\
@@ -704,7 +706,10 @@ fn terraform_reports_the_addresses_a_deleted_resource_leaves_dangling() {
 
     let plan = cascade::remove_flag(tmp.path(), "enabled", false).unwrap();
     let out = result_for(tmp.path(), "main.tf", &plan);
-    assert!(!out.contains("resource \"aws_s3_bucket\" \"logs\""), "got:\n{out}");
+    assert!(
+        !out.contains("resource \"aws_s3_bucket\" \"logs\""),
+        "got:\n{out}"
+    );
     assert!(
         out.contains("value = aws_s3_bucket.logs[0].arn"),
         "the dangling use is reported, not deleted:\n{out}"

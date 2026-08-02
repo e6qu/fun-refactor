@@ -382,7 +382,11 @@ mod tests {
         );
         // Every rule must have at least one language and a usable condition.
         for rule in &catalog.rules {
-            assert!(!rule.languages.is_empty(), "rule {} has no language", rule.id);
+            assert!(
+                !rule.languages.is_empty(),
+                "rule {} has no language",
+                rule.id
+            );
             assert!(!rule.id.is_empty());
         }
     }
@@ -406,17 +410,18 @@ mod tests {
 
     #[test]
     fn detects_python_main_and_tests() {
-        let (_tmp, index) = workspace(&[("app.py", "def main():\n    pass\n\ndef test_it():\n    pass\n")]);
+        let (_tmp, index) = workspace(&[(
+            "app.py",
+            "def main():\n    pass\n\ndef test_it():\n    pass\n",
+        )]);
         assert!(kinds_for(&index, "main").contains(&EntryKind::CliMain));
         assert!(kinds_for(&index, "test_it").contains(&EntryKind::Test));
     }
 
     #[test]
     fn terraform_variables_are_infra_inputs() {
-        let (_tmp, index) = workspace(&[(
-            "main.tf",
-            "variable \"region\" {\n  type = string\n}\n",
-        )]);
+        let (_tmp, index) =
+            workspace(&[("main.tf", "variable \"region\" {\n  type = string\n}\n")]);
         let kinds = kinds_for(&index, "region");
         assert!(
             kinds.contains(&EntryKind::InfraInput),
@@ -456,7 +461,10 @@ mod tests {
     fn detection_records_which_rule_matched() {
         let (_tmp, index) = workspace(&[("a.rs", "fn main() {}\n")]);
         let entries = Catalog::builtin().unwrap().detect(&index);
-        let main_entry = entries.iter().find(|e| e.kind == EntryKind::CliMain).unwrap();
+        let main_entry = entries
+            .iter()
+            .find(|e| e.kind == EntryKind::CliMain)
+            .unwrap();
         assert!(
             !main_entry.rule.is_empty(),
             "every detection must name its rule so it can be traced"
@@ -485,7 +493,8 @@ mod tests {
     fn a_typo_in_a_catalog_is_rejected_not_ignored() {
         // Without deny_unknown_fields a misspelled key would parse fine and produce
         // a rule that silently never matches.
-        let yaml = "- id: typo\n  kind: cli-main\n  languages: [rust]\n  matches:\n    nmae: main\n";
+        let yaml =
+            "- id: typo\n  kind: cli-main\n  languages: [rust]\n  matches:\n    nmae: main\n";
         let err = serde_yaml::from_str::<Vec<Rule>>(yaml).unwrap_err();
         assert!(err.to_string().contains("nmae"), "got: {err}");
     }

@@ -20,6 +20,10 @@ maintainer needs and the source our own rules derive from.
 `MANIFEST.toml` — generated provenance for every file: language, crate, the exact
 version Cargo resolved, upstream repository, SPDX licence, and a SHA-256 of each file.
 
+For the node names a grammar actually produces — which is what a query has to match,
+and where the per-language bugs come from — `cargo run --example dump -- <file>`
+prints the parse tree with its field names.
+
 ## The rules
 
 **Every artifact records its source, its pin, its licence and a checksum.** A file

@@ -38,7 +38,10 @@ fn removing_a_true_flag_keeps_the_enabled_branch() {
     let out = result_for(tmp.path(), "a.rs", &plan);
 
     assert!(out.contains("new_path();"), "got:\n{out}");
-    assert!(!out.contains("old_path();"), "dead branch should go:\n{out}");
+    assert!(
+        !out.contains("old_path();"),
+        "dead branch should go:\n{out}"
+    );
     assert!(!out.contains("USE_NEW"), "the flag should be gone:\n{out}");
     assert!(!out.contains("if true"), "the test should collapse:\n{out}");
 }
@@ -73,7 +76,11 @@ fn the_cascade_removes_what_the_dead_branch_alone_used() {
         !out.contains("fn only_old"),
         "the now-unused function should be removed too:\n{out}"
     );
-    assert!(plan.rounds.len() >= 2, "expected a cascade: {:?}", plan.rounds);
+    assert!(
+        plan.rounds.len() >= 2,
+        "expected a cascade: {:?}",
+        plan.rounds
+    );
 }
 
 #[test]

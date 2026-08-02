@@ -166,11 +166,7 @@ pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
 }
 
 /// [`definitions_of`] against an already-scanned hierarchy.
-pub fn definitions_with(
-    hierarchy: &Hierarchy,
-    index: &Index,
-    symbol_id: SymbolId,
-) -> Definitions {
+pub fn definitions_with(hierarchy: &Hierarchy, index: &Index, symbol_id: SymbolId) -> Definitions {
     let Some(symbol) = index.symbol(symbol_id) else {
         return Definitions {
             query: String::new(),
@@ -198,7 +194,11 @@ pub fn definitions_with(
     }
 
     definitions.sort_by(|a, b| {
-        (a.role, &a.location.file, a.location.line).cmp(&(b.role, &b.location.file, b.location.line))
+        (a.role, &a.location.file, a.location.line).cmp(&(
+            b.role,
+            &b.location.file,
+            b.location.line,
+        ))
     });
     definitions.dedup_by_key(|d| d.symbol);
 
@@ -375,10 +375,8 @@ impl Shape for Square {
 
     #[test]
     fn a_method_on_a_concrete_type_is_not_treated_as_polymorphic() {
-        let (_tmp, index) = workspace(&[(
-            "a.rs",
-            "struct S;\nimpl S {\n    fn only(&self) {}\n}\n",
-        )]);
+        let (_tmp, index) =
+            workspace(&[("a.rs", "struct S;\nimpl S {\n    fn only(&self) {}\n}\n")]);
         let only = index.find_symbols("only", None)[0].id;
         assert!(implementations_of(&index, only).is_empty());
     }
@@ -438,7 +436,10 @@ impl Shape for Square {
 
         // The call in a.rs is a use; anything that did not resolve here is listed
         // apart, so a caller never mistakes it for one.
-        assert!(found.usages.iter().all(|u| u.location.file.ends_with("a.rs")));
+        assert!(found
+            .usages
+            .iter()
+            .all(|u| u.location.file.ends_with("a.rs")));
         for usage in &found.same_name_elsewhere {
             assert!(!usage.confidence.is_safe_to_rewrite());
         }

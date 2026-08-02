@@ -274,7 +274,10 @@ mod tests {
 
     #[test]
     fn chart_files_detected_as_helm() {
-        assert_eq!(detect(Path::new("mychart/Chart.yaml")), Some(Language::Helm));
+        assert_eq!(
+            detect(Path::new("mychart/Chart.yaml")),
+            Some(Language::Helm)
+        );
         assert_eq!(
             detect(Path::new("mychart/values.yaml")),
             Some(Language::Helm)
@@ -291,7 +294,10 @@ mod tests {
         std::fs::write(chart.join("Chart.yaml"), "name: mychart\n").unwrap();
 
         // A chart's alternate values files must get the same treatment as values.yaml.
-        assert_eq!(detect(&chart.join("values-prod.yaml")), Some(Language::Helm));
+        assert_eq!(
+            detect(&chart.join("values-prod.yaml")),
+            Some(Language::Helm)
+        );
         // YAML elsewhere is unaffected.
         assert_eq!(
             detect(&tmp.path().join("ci/config.yaml")),

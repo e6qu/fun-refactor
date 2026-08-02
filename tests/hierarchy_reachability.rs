@@ -40,7 +40,11 @@ fn method(index: &Index, owner: &str, name: &str) -> SymbolId {
         .iter()
         .filter(|s| s.name == name && s.qualifier.as_deref() == Some(owner))
         .collect();
-    assert_eq!(found.len(), 1, "expected one {owner}::{name}, got {found:?}");
+    assert_eq!(
+        found.len(),
+        1,
+        "expected one {owner}::{name}, got {found:?}"
+    );
     found[0].id
 }
 
@@ -74,8 +78,8 @@ fn assert_dispatches(
             .map(|s| s.qualified_name())
             .unwrap_or_else(|| "<unknown>".into())
     };
-    let found = edge(graph, from, to)
-        .unwrap_or_else(|| panic!("no edge {} -> {}", name(from), name(to)));
+    let found =
+        edge(graph, from, to).unwrap_or_else(|| panic!("no edge {} -> {}", name(from), name(to)));
     assert_eq!(
         found,
         (Confidence::FieldBased, EdgeOrigin::Hierarchy(basis)),

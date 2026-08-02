@@ -350,7 +350,10 @@ fn use_site(language: Language, parsed: &Parsed, source: &str, span: Span) -> Us
 
 /// `$FLAG`, `${FLAG}` and `"$FLAG"` all stand for the value; anything more does not.
 fn bash_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
-    let Some(node) = parsed.root().descendant_for_byte_range(span.start, span.end) else {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
         return UseSite::Replace(span);
     };
     let Some(parent) = node.parent() else {
@@ -410,7 +413,10 @@ fn inside_expansion(node: Node<'_>) -> bool {
 
 /// `var.flag` is one expression written as two segments; the literal replaces both.
 fn hcl_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
-    let Some(node) = parsed.root().descendant_for_byte_range(span.start, span.end) else {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
         return UseSite::Replace(span);
     };
     let Some(get_attr) = node.parent().filter(|p| p.kind() == "get_attr") else {
@@ -422,7 +428,10 @@ fn hcl_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
 
     let mut cursor = expression.walk();
     let parts: Vec<Node> = expression.named_children(&mut cursor).collect();
-    let namespace = parts.first().copied().filter(|p| p.kind() == "variable_expr");
+    let namespace = parts
+        .first()
+        .copied()
+        .filter(|p| p.kind() == "variable_expr");
     let Some(namespace) = namespace else {
         return UseSite::Refuse("the flag is not used as a `var.NAME` traversal".into());
     };
@@ -644,7 +653,9 @@ fn zig_expression_branches<'a>(children: &[Node<'a>], truth: bool) -> Result<Nod
     let otherwise = children
         .iter()
         .position(|c| c.kind() == "else")
-        .ok_or_else(|| "this `if` expression has no `else`, so it has no value to keep".to_string())?;
+        .ok_or_else(|| {
+            "this `if` expression has no `else`, so it has no value to keep".to_string()
+        })?;
 
     let consequence: Vec<&Node> = children[close + 1..otherwise]
         .iter()
@@ -745,11 +756,7 @@ fn bash_conditionals(parsed: &Parsed, source: &str) -> Collapse {
             continue;
         };
 
-        let kept = if truth {
-            Some(parts.0)
-        } else {
-            parts.1
-        };
+        let kept = if truth { Some(parts.0) } else { parts.1 };
         let span = Span::from(node);
         let indent = crate::edit::line_indent(source, span.start);
         let replacement = match kept {
@@ -943,12 +950,7 @@ fn bash_unary(operator: &str, operand: &str) -> Option<bool> {
 fn bash_literal(node: Node<'_>, source: &str) -> Option<String> {
     match node.kind() {
         "word" | "number" => Some(Span::from(node).text(source).to_string()),
-        "raw_string" => Some(
-            Span::from(node)
-                .text(source)
-                .trim_matches('\'')
-                .to_string(),
-        ),
+        "raw_string" => Some(Span::from(node).text(source).trim_matches('\'').to_string()),
         "string" => {
             let mut cursor = node.walk();
             let children: Vec<Node> = node.named_children(&mut cursor).collect();
@@ -1068,7 +1070,10 @@ fn count_removable(
     }
 
     let address = hcl_resource_address(block, source);
-    if address.as_deref().is_some_and(|a| context.indexed.contains(a)) {
+    if address
+        .as_deref()
+        .is_some_and(|a| context.indexed.contains(a))
+    {
         return Err(format!(
             "`{}` is read with an index, which only a resource with a `count` has",
             address.unwrap_or_default()

@@ -63,7 +63,11 @@ fn a_wide_table_extracts_facts_without_errors() {
     let src = wide_table();
     let f = facts(&src);
     assert!(!f.had_parse_errors);
-    assert!(f.symbols.is_empty(), "a table defines nothing: {:?}", f.symbols);
+    assert!(
+        f.symbols.is_empty(),
+        "a table defines nothing: {:?}",
+        f.symbols
+    );
 }
 
 #[test]
@@ -139,7 +143,8 @@ fn inline_nodes_are_parsed_apart_so_brackets_do_not_pair_across_them() {
     let f = facts(src);
     assert!(
         !f.references.iter().any(|r| r.name == "#nope"),
-        "brackets paired across a paragraph boundary: {:?}", f.references
+        "brackets paired across a paragraph boundary: {:?}",
+        f.references
     );
 }
 
@@ -199,12 +204,12 @@ fn a_mixed_document_yields_every_kind_of_fact() {
     assert_eq!(
         refs,
         [
-            "#guide",         // a link from inside a table cell
-            "#installation",  // an inline anchor link
-            "bash",           // the code fence's info string
-            "ref",            // [reference][ref]
-            "ref",            // ![logo][ref]
-            "shortcut",       // [shortcut]
+            "#guide",        // a link from inside a table cell
+            "#installation", // an inline anchor link
+            "bash",          // the code fence's info string
+            "ref",           // [reference][ref]
+            "ref",           // ![logo][ref]
+            "shortcut",      // [shortcut]
         ]
     );
 

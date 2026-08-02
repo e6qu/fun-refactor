@@ -254,7 +254,10 @@ resource \"aws_s3_bucket\" \"b\" {
 fn hcl_extract_refuses_a_name_the_module_already_uses() {
     // Terraform's scope is the directory, so a name taken in a sibling file is taken.
     let ws = workspace(&[
-        ("variables.tf", "variable \"region\" {\n  type = string\n}\n"),
+        (
+            "variables.tf",
+            "variable \"region\" {\n  type = string\n}\n",
+        ),
         (
             "main.tf",
             "resource \"aws_s3_bucket\" \"b\" {\n  bucket = \"acme\"\n}\n",
@@ -361,10 +364,7 @@ fn hcl_inline_reaches_across_files_in_the_same_module() {
 
     let plan_out = inline::variable(&ws.index, id).unwrap();
     assert_eq!(plan_out.use_sites, 1);
-    assert_eq!(
-        applied(&plan_out.edits, &ws.path("locals.tf")),
-        ""
-    );
+    assert_eq!(applied(&plan_out.edits, &ws.path("locals.tf")), "");
     assert_eq!(
         applied(&plan_out.edits, &ws.path("outputs.tf")),
         "output \"o\" {\n  value = \"acme\"\n}\n"
@@ -503,7 +503,10 @@ fn yaml_extract_anchors_the_first_occurrence_even_when_a_later_one_is_selected()
     )
     .unwrap();
     let out = applied(&plan_out.edits, &path);
-    assert!(out.contains("image: &img nginx:1.25\nbackend"), "got:\n{out}");
+    assert!(
+        out.contains("image: &img nginx:1.25\nbackend"),
+        "got:\n{out}"
+    );
     assert!(out.trim_end().ends_with("image: *img"), "got:\n{out}");
 }
 
@@ -633,7 +636,10 @@ fn helm_workspace() -> Workspace {
 #[test]
 fn helm_files_are_detected_as_helm() {
     let ws = helm_workspace();
-    let info = ws.index.file(&ws.path("chart/templates/deploy.yaml")).unwrap();
+    let info = ws
+        .index
+        .file(&ws.path("chart/templates/deploy.yaml"))
+        .unwrap();
     assert_eq!(info.language, fun_refactor::lang::Language::Helm);
 }
 
@@ -693,7 +699,10 @@ fn helm_extract_refuses_a_selection_inside_a_masked_template_action() {
     )
     .unwrap_err()
     .to_string();
-    assert!(err.contains("masked out before the YAML parse"), "got: {err}");
+    assert!(
+        err.contains("masked out before the YAML parse"),
+        "got: {err}"
+    );
     assert!(err.contains("{{ .Values.replicaCount }}"), "got: {err}");
 }
 
@@ -829,12 +838,18 @@ fn helm_extract_function_writes_a_named_template_to_a_file_that_did_not_exist() 
         .find(|o| o.path.ends_with("deploy.yaml"))
         .expect("the manifest is rewritten");
     assert!(
-        manifest.updated.contains("{{ include \"acme.container\" . }}"),
+        manifest
+            .updated
+            .contains("{{ include \"acme.container\" . }}"),
         "got:\n{}",
         manifest.updated
     );
     // The sibling container is untouched.
-    assert!(manifest.updated.contains("- name: sidecar"), "got:\n{}", manifest.updated);
+    assert!(
+        manifest.updated.contains("- name: sidecar"),
+        "got:\n{}",
+        manifest.updated
+    );
 }
 
 // ------------------------------------------------------------------------ CSS
@@ -936,8 +951,14 @@ fn css_extract_puts_a_new_root_rule_after_leading_at_rules() {
     let path = ws.path("theme.css");
     let start = src.find("red").unwrap();
 
-    let plan_out =
-        extract::variable(&ws.index, &path, Span::new(start, start + 3), "brand", false).unwrap();
+    let plan_out = extract::variable(
+        &ws.index,
+        &path,
+        Span::new(start, start + 3),
+        "brand",
+        false,
+    )
+    .unwrap();
 
     assert_eq!(
         applied(&plan_out.edits, &path),
@@ -963,8 +984,14 @@ fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
     let path = ws.path("theme.scss");
     let start = src.find("#3366ff").unwrap();
 
-    let plan_out =
-        extract::variable(&ws.index, &path, Span::new(start, start + 7), "$brand", true).unwrap();
+    let plan_out = extract::variable(
+        &ws.index,
+        &path,
+        Span::new(start, start + 7),
+        "$brand",
+        true,
+    )
+    .unwrap();
     assert_eq!(plan_out.occurrences, 2);
     assert_eq!(
         applied(&plan_out.edits, &path),
@@ -975,7 +1002,8 @@ fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
 
 #[test]
 fn scss_inline_substitutes_every_bare_use_and_removes_the_declaration() {
-    let src = "$brand: #3366ff;\n\n.btn {\n  color: $brand;\n}\n\n.link {\n  border-color: $brand;\n}\n";
+    let src =
+        "$brand: #3366ff;\n\n.btn {\n  color: $brand;\n}\n\n.link {\n  border-color: $brand;\n}\n";
     let ws = workspace(&[("theme.scss", src)]);
     let path = ws.path("theme.scss");
     let symbol = ws
@@ -1002,9 +1030,15 @@ fn a_dollar_name_is_refused_in_plain_css() {
     let src = std::fs::read_to_string(&path).unwrap();
     let start = src.find("#3366ff").unwrap();
 
-    let err = extract::variable(&ws.index, &path, Span::new(start, start + 7), "$brand", false)
-        .unwrap_err()
-        .to_string();
+    let err = extract::variable(
+        &ws.index,
+        &path,
+        Span::new(start, start + 7),
+        "$brand",
+        false,
+    )
+    .unwrap_err()
+    .to_string();
     assert!(err.contains("plain CSS"), "got: {err}");
     assert!(err.contains("custom property"), "got: {err}");
 }
@@ -1018,8 +1052,14 @@ fn css_extract_works_alongside_scss_only_syntax() {
     let path = ws.path("theme.scss");
     let start = src.find("#3366ff").unwrap();
 
-    let plan_out =
-        extract::variable(&ws.index, &path, Span::new(start, start + 7), "accent", false).unwrap();
+    let plan_out = extract::variable(
+        &ws.index,
+        &path,
+        Span::new(start, start + 7),
+        "accent",
+        false,
+    )
+    .unwrap();
     let updated = applied(&plan_out.edits, &path);
     must_reparse(&plan_out.edits);
     assert!(updated.contains("--accent: #3366ff;"), "got:\n{updated}");
@@ -1036,8 +1076,14 @@ fn css_extract_works_in_an_scss_file_that_is_css_compatible() {
     let path = ws.path("theme.scss");
     let start = src.find("#3366ff").unwrap();
 
-    let plan_out =
-        extract::variable(&ws.index, &path, Span::new(start, start + 7), "brand", false).unwrap();
+    let plan_out = extract::variable(
+        &ws.index,
+        &path,
+        Span::new(start, start + 7),
+        "brand",
+        false,
+    )
+    .unwrap();
     assert_eq!(
         applied(&plan_out.edits, &path),
         ":root {\n  --brand: #3366ff;\n}\n\n.btn {\n  color: var(--brand);\n}\n"
@@ -1195,8 +1241,8 @@ fn markdown_extract_beside_an_existing_definition_needs_no_blank_line() {
     let path = ws.path("guide.md");
     let start = src.find("/a").unwrap();
 
-    let plan_out = extract::variable(&ws.index, &path, Span::new(start, start + 2), "a", false)
-        .unwrap();
+    let plan_out =
+        extract::variable(&ws.index, &path, Span::new(start, start + 2), "a", false).unwrap();
     assert_eq!(
         applied(&plan_out.edits, &path),
         "See [a][a] and [b][b].\n\n[b]: /b\n[a]: /a\n"
@@ -1337,8 +1383,14 @@ fn every_config_extraction_leaves_the_rest_of_the_file_byte_identical() {
 
     assert!(out.contains("# a comment\n"));
     assert!(out.contains("  bucket   =    local.name\n"));
-    assert!(out.contains("\n\n\nresource"), "blank lines survive:\n{out:?}");
-    assert!(out.ends_with("}\n   \n"), "trailing spaces survive:\n{out:?}");
+    assert!(
+        out.contains("\n\n\nresource"),
+        "blank lines survive:\n{out:?}"
+    );
+    assert!(
+        out.ends_with("}\n   \n"),
+        "trailing spaces survive:\n{out:?}"
+    );
     untouched_regions_survive(src, &out, plan_out.edits.edits_for(&path).unwrap());
     must_reparse(&plan_out.edits);
 }

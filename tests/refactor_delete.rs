@@ -108,7 +108,10 @@ fn a_reference_the_index_could_not_prove_does_not_block_but_is_reported() {
         .references_to(target)
         .iter()
         .all(|r| !r.confidence.is_safe_to_rewrite());
-    assert!(weak, "this fixture is only interesting if resolution is weak");
+    assert!(
+        weak,
+        "this fixture is only interesting if resolution is weak"
+    );
 
     let plan = delete::plan(&index, target).expect("a weak reference must not block");
     assert!(
@@ -127,10 +130,7 @@ fn a_recursive_call_inside_the_definition_does_not_block_its_own_deletion() {
 
     let plan = delete::plan(&index, only_symbol(&index, "loops"))
         .expect("a self-call is not an outside use");
-    assert_eq!(
-        applied(&plan, &tmp.path().join("a.rs")),
-        "fn main() {}\n"
-    );
+    assert_eq!(applied(&plan, &tmp.path().join("a.rs")), "fn main() {}\n");
 }
 
 #[test]
@@ -150,10 +150,7 @@ fn deletes_an_unused_definition_whole_line_and_all() {
     let plan = delete::plan(&index, only_symbol(&index, "unused")).unwrap();
     assert_eq!(plan.sites, 1);
     assert_eq!(plan.edits.edit_count(), 1);
-    assert_eq!(
-        applied(&plan, &tmp.path().join("a.rs")),
-        "fn main() {}\n"
-    );
+    assert_eq!(applied(&plan, &tmp.path().join("a.rs")), "fn main() {}\n");
 }
 
 #[test]
@@ -174,10 +171,7 @@ fn deleting_the_first_definition_does_not_leave_the_file_starting_blank() {
     let (tmp, index) = workspace(&[("a.rs", source)]);
 
     let plan = delete::plan(&index, only_symbol(&index, "first")).unwrap();
-    assert_eq!(
-        applied(&plan, &tmp.path().join("a.rs")),
-        "fn second() {}\n"
-    );
+    assert_eq!(applied(&plan, &tmp.path().join("a.rs")), "fn second() {}\n");
 }
 
 #[test]
@@ -312,7 +306,10 @@ fn find_unused_finds_dead_recursive_code() {
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(unused.contains(&only_symbol(&index, "dead")), "got {unused:?}");
+    assert!(
+        unused.contains(&only_symbol(&index, "dead")),
+        "got {unused:?}"
+    );
 }
 
 #[test]
@@ -324,8 +321,14 @@ fn find_unused_reports_mutual_recursion_as_a_dead_group() {
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
-    assert!(unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
+    assert!(
+        unused.contains(&only_symbol(&index, "ping")),
+        "got {unused:?}"
+    );
+    assert!(
+        unused.contains(&only_symbol(&index, "pong")),
+        "got {unused:?}"
+    );
 }
 
 #[test]
@@ -347,12 +350,18 @@ fn find_unused_leaves_out_a_name_a_string_literal_spells() {
 #[test]
 fn find_unused_finds_a_css_class_no_markup_uses() {
     let (_tmp, index) = workspace(&[
-        ("style.css", ".used { color: red; }\n.dead { color: blue; }\n"),
+        (
+            "style.css",
+            ".used { color: red; }\n.dead { color: blue; }\n",
+        ),
         ("page.html", "<div class=\"used\">hi</div>\n"),
     ]);
 
     let unused = delete::find_unused(&index, &[]);
-    assert!(unused.contains(&only_symbol(&index, "dead")), "got {unused:?}");
+    assert!(
+        unused.contains(&only_symbol(&index, "dead")),
+        "got {unused:?}"
+    );
     assert!(!unused.contains(&only_symbol(&index, "used")));
 }
 
@@ -383,10 +392,7 @@ fn an_unused_symbol_from_find_unused_can_then_be_deleted() {
     assert!(unused.contains(&orphan));
 
     let plan = delete::plan(&index, orphan).unwrap();
-    assert_eq!(
-        applied(&plan, &tmp.path().join("a.rs")),
-        "fn main() {}\n"
-    );
+    assert_eq!(applied(&plan, &tmp.path().join("a.rs")), "fn main() {}\n");
 }
 
 #[test]
@@ -419,5 +425,48 @@ fn deleting_a_css_selector_survives_the_reparse_check() {
         fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
             .expect("the result must still parse");
     assert_eq!(outcomes.len(), 1);
-    assert!(!outcomes[0].updated.contains("btn"), "got:\n{}", outcomes[0].updated);
+    assert!(
+        !outcomes[0].updated.contains("btn"),
+        "got:\n{}",
+        outcomes[0].updated
+    );
+}
+
+#[test]
+fn find_unused_leaves_out_a_name_the_author_marked_unused() {
+    // A parameter a signature forces on you and the body ignores is written with a
+    // leading underscore in Rust, TypeScript, Python and Zig. Listing those buries
+    // the real findings: one real TypeScript file contributed eight of them.
+    let source = "fn handler(_theme: i32, value: i32) -> i32 {\n    value\n}\n\
+                  fn main() {\n    handler(1, 2);\n}\n";
+    let (_tmp, index) = workspace(&[("a.rs", source)]);
+
+    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let named: Vec<String> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+    assert!(
+        !named.iter().any(|n| n == "_theme"),
+        "an underscore says the author meant it: {named:?}"
+    );
+}
+
+#[test]
+fn the_underscore_convention_is_reported_as_a_reason_not_hidden() {
+    let source = "fn handler(_theme: i32, value: i32) -> i32 {\n    value\n}\n\
+                  fn main() {\n    handler(1, 2);\n}\n";
+    let (_tmp, index) = workspace(&[("a.rs", source)]);
+
+    let report = delete::find_unused_report(&index, &[only_symbol(&index, "main")]);
+    let theme = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "_theme")
+        .expect("the parameter is still in the index");
+    let reason = report
+        .explain(&index, theme.id)
+        .expect("a spared symbol must say why it was spared");
+    assert!(reason.contains("underscore"), "got: {reason}");
 }

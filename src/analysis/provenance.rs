@@ -563,7 +563,13 @@ pub fn provenance_with_inputs(
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
     refuse_imperative(sym)?;
 
-    let mut ctx = Ctx::new(index, max_depth, Direction::Backward, symbol, inputs.resolve(index)?);
+    let mut ctx = Ctx::new(
+        index,
+        max_depth,
+        Direction::Backward,
+        symbol,
+        inputs.resolve(index)?,
+    );
     match sym.language {
         Language::Hcl => ctx.hcl_backward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_backward(sym, EdgeKind::Declaration, 0)?,
@@ -590,7 +596,13 @@ pub fn consumers_with_inputs(
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
     refuse_imperative(sym)?;
 
-    let mut ctx = Ctx::new(index, max_depth, Direction::Forward, symbol, inputs.resolve(index)?);
+    let mut ctx = Ctx::new(
+        index,
+        max_depth,
+        Direction::Forward,
+        symbol,
+        inputs.resolve(index)?,
+    );
     match sym.language {
         Language::Hcl => ctx.hcl_forward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_forward(sym, 0)?,
@@ -672,7 +684,12 @@ impl<'a> Ctx<'a> {
     }
 
     fn stop(&mut self, depth: usize, reason: StopReason) {
-        if !self.out.stops.iter().any(|(d, r)| *d == depth && r == &reason) {
+        if !self
+            .out
+            .stops
+            .iter()
+            .any(|(d, r)| *d == depth && r == &reason)
+        {
             self.out.stops.push((depth, reason));
         }
     }
@@ -812,14 +829,7 @@ impl Ctx<'_> {
             Some(span) => format!("{address} = {}", snippet(span.text(&source))),
             None => format!("{address}: {}", snippet(sym.full_span.text(&source))),
         };
-        let hop = self.hop(
-            Some(sym.id),
-            edge,
-            text,
-            &sym.file,
-            sym.full_span,
-            depth,
-        )?;
+        let hop = self.hop(Some(sym.id), edge, text, &sym.file, sym.full_span, depth)?;
         self.push_hop(hop);
 
         match role {
@@ -919,7 +929,10 @@ impl Ctx<'_> {
         if !sources.is_empty() {
             // Ties within a rank are broken by file name, matching the alphabetical
             // load order of `*.auto.tfvars`.
-            sources.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| file_name(&a.2).cmp(&file_name(&b.2))));
+            sources.sort_by(|a, b| {
+                a.0.cmp(&b.0)
+                    .then_with(|| file_name(&a.2).cmp(&file_name(&b.2)))
+            });
             let winner = sources.len() - 1;
             let mut competing = Vec::new();
             for (i, (rank, label, path, span, text)) in sources.iter().enumerate() {
@@ -938,10 +951,7 @@ impl Ctx<'_> {
                     reason: if i == winner {
                         "highest-precedence source visible in the workspace".to_string()
                     } else {
-                        format!(
-                            "overridden by '{}'",
-                            sources[winner].1
-                        )
+                        format!("overridden by '{}'", sources[winner].1)
                     },
                 });
             }
@@ -965,8 +975,9 @@ impl Ctx<'_> {
             StopReason::ExternalInput {
                 name: format!("var.{}", sym.name),
                 required,
-                sources: "a *.tfvars file, -var/-var-file on the CLI, or TF_VAR_ in the environment"
-                    .to_string(),
+                sources:
+                    "a *.tfvars file, -var/-var-file on the CLI, or TF_VAR_ in the environment"
+                        .to_string(),
             },
         );
         Ok(())
@@ -1041,7 +1052,11 @@ impl Ctx<'_> {
             let source = self.source(&call.file)?;
             sources.push((
                 5,
-                format!("argument of module \"{}\" in {}", call.alias, short(&call.file)),
+                format!(
+                    "argument of module \"{}\" in {}",
+                    call.alias,
+                    short(&call.file)
+                ),
                 call.file.clone(),
                 value,
                 format!("{} = {}", sym.name, snippet(value.text(&source))),
@@ -1170,7 +1185,10 @@ impl Ctx<'_> {
                         .unwrap_or_default();
                     self.stop(
                         depth + 1,
-                        StopReason::ComputedAtApply(format!("{kind}.{}{attribute}", reference.name)),
+                        StopReason::ComputedAtApply(format!(
+                            "{kind}.{}{attribute}",
+                            reference.name
+                        )),
                     );
                 }
                 (ReferenceKind::Field, Some(namespace))
@@ -1295,7 +1313,9 @@ impl Ctx<'_> {
         else {
             self.stop(
                 depth + 1,
-                StopReason::Unresolved(format!("{address} (no module block with a literal source)")),
+                StopReason::Unresolved(format!(
+                    "{address} (no module block with a literal source)"
+                )),
             );
             return Ok(());
         };
@@ -1423,14 +1443,7 @@ impl Ctx<'_> {
             .line_span(line)
             .map(|s| s.text(&text).trim().to_string())
             .unwrap_or_default();
-        let hop = self.hop(
-            None,
-            EdgeKind::Use,
-            line_text,
-            file,
-            span,
-            depth,
-        )?;
+        let hop = self.hop(None, EdgeKind::Use, line_text, file, span, depth)?;
         self.push_hop(hop);
 
         // The innermost declaration containing the use is what the value flows into.
@@ -1782,7 +1795,14 @@ impl Ctx<'_> {
         // than a name match.
         let hop = Hop {
             confidence: Confidence::NameOnly,
-            ..self.hop(None, EdgeKind::TemplateAction, text.clone(), file, span, depth)?
+            ..self.hop(
+                None,
+                EdgeKind::TemplateAction,
+                text.clone(),
+                file,
+                span,
+                depth,
+            )?
         };
         self.push_hop(hop);
         self.stop(depth, StopReason::RenderDependent(text.clone()));
@@ -1797,10 +1817,7 @@ impl Ctx<'_> {
             );
         }
         for problem in &action.problems {
-            self.stop(
-                depth,
-                StopReason::Unresolved(format!("{text}: {problem}")),
-            );
+            self.stop(depth, StopReason::Unresolved(format!("{text}: {problem}")));
         }
 
         for path in template.values_paths_of(index) {
@@ -1975,12 +1992,7 @@ impl Ctx<'_> {
 
     /// A key no values file in the chart declares, which the supplied inputs
     /// nonetheless set. Returns false when no input sets it.
-    fn helm_introduced_key(
-        &mut self,
-        chart: &Path,
-        path: &[String],
-        depth: usize,
-    ) -> Result<bool> {
+    fn helm_introduced_key(&mut self, chart: &Path, path: &[String], depth: usize) -> Result<bool> {
         if self.inputs.is_empty() {
             return Ok(false);
         }
@@ -2009,7 +2021,10 @@ impl Ctx<'_> {
             );
         }
         self.helm_competition(
-            format!("values key {} (introduced by the inputs supplied)", addressed.join(".")),
+            format!(
+                "values key {} (introduced by the inputs supplied)",
+                addressed.join(".")
+            ),
             candidates,
             depth,
         )?;
@@ -2045,11 +2060,7 @@ impl Ctx<'_> {
 
         let mut candidates = self.helm_chart_candidates(&levels)?;
         candidates.extend(self.helm_input_candidates(&addressed)?);
-        self.helm_competition(
-            format!("values key {}", local.join(".")),
-            candidates,
-            depth,
-        )
+        self.helm_competition(format!("values key {}", local.join(".")), candidates, depth)
     }
 
     /// The values files of a chart and each chart enclosing it.
@@ -2084,10 +2095,7 @@ impl Ctx<'_> {
                         } else {
                             format!("parent chart values ({})", file_name(dir))
                         },
-                        origin: ValuesOrigin::Key {
-                            file,
-                            symbol,
-                        },
+                        origin: ValuesOrigin::Key { file, symbol },
                         participates: true,
                     });
                     continue;
@@ -2255,7 +2263,14 @@ impl Ctx<'_> {
                     let key = self.index.symbol(*symbol).expect("key exists");
                     let span = key.full_span;
                     let snippet = snippet(span.text(&text));
-                    self.hop(Some(*symbol), EdgeKind::Override, snippet, file, span, depth + 1)?
+                    self.hop(
+                        Some(*symbol),
+                        EdgeKind::Override,
+                        snippet,
+                        file,
+                        span,
+                        depth + 1,
+                    )?
                 }
                 ValuesOrigin::Set(set) => {
                     self.command_line_hop(EdgeKind::Override, set.to_string(), depth + 1)
@@ -2441,14 +2456,7 @@ impl Ctx<'_> {
                 );
             }
             for (file, span, text) in uses {
-                let hop = self.hop(
-                    None,
-                    EdgeKind::Expansion,
-                    text,
-                    &file,
-                    span,
-                    depth + 1,
-                )?;
+                let hop = self.hop(None, EdgeKind::Expansion, text, &file, span, depth + 1)?;
                 self.push_hop(hop);
             }
             return Ok(());
@@ -2569,8 +2577,7 @@ fn key_value_text(source: &str, sym: &Symbol) -> Option<String> {
 
 fn is_values_file(path: &Path) -> bool {
     let name = file_name(path);
-    name.starts_with("values")
-        && (name.ends_with(".yaml") || name.ends_with(".yml"))
+    name.starts_with("values") && (name.ends_with(".yaml") || name.ends_with(".yml"))
 }
 
 fn has_chart_yaml(dir: &Path) -> bool {
@@ -2706,14 +2713,7 @@ impl Ctx<'_> {
                 let text = format!("var({reference})");
                 let file = declaration.file.clone();
                 let span = declaration.value;
-                self.hop(
-                    None,
-                    EdgeKind::VarFunction,
-                    text,
-                    &file,
-                    span,
-                    depth + 1,
-                )?
+                self.hop(None, EdgeKind::VarFunction, text, &file, span, depth + 1)?
             };
             self.push_hop(hop);
             self.css_property(&reference, depth + 1, None)?;
@@ -2730,7 +2730,11 @@ impl Ctx<'_> {
                 continue;
             };
             let source = self.source(&symbol.file)?;
-            declarations.extend(css_rule_declarations(&source, &symbol.file, symbol.name_span)?);
+            declarations.extend(css_rule_declarations(
+                &source,
+                &symbol.file,
+                symbol.name_span,
+            )?);
         }
         if declarations.is_empty() {
             self.stop(
@@ -2749,11 +2753,7 @@ impl Ctx<'_> {
                 .filter(|d| d.property == property)
                 .cloned()
                 .collect();
-            self.css_competition(
-                format!("{property} on '{}'", sym.name),
-                group,
-                depth,
-            )?;
+            self.css_competition(format!("{property} on '{}'", sym.name), group, depth)?;
         }
         Ok(())
     }
@@ -2790,10 +2790,12 @@ impl Ctx<'_> {
             .collect();
 
         let mut order: Vec<usize> = (0..declarations.len()).collect();
-        order.sort_by(|a, b| match css_compare(&declarations[*a], &declarations[*b]) {
-            Some(ordering) => ordering.reverse(),
-            None => Ordering::Equal,
-        });
+        order.sort_by(
+            |a, b| match css_compare(&declarations[*a], &declarations[*b]) {
+                Some(ordering) => ordering.reverse(),
+                None => Ordering::Equal,
+            },
+        );
 
         let mut sources = Vec::new();
         for index in order {
@@ -2960,8 +2962,20 @@ fn css_compare(a: &CssDeclaration, b: &CssDeclaration) -> Option<Ordering> {
     // Unlayered author declarations beat layered ones; `!important` reverses it.
     match (&a.layer, &b.layer) {
         (None, None) => {}
-        (None, Some(_)) => return Some(if a.important { Ordering::Less } else { Ordering::Greater }),
-        (Some(_), None) => return Some(if a.important { Ordering::Greater } else { Ordering::Less }),
+        (None, Some(_)) => {
+            return Some(if a.important {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            })
+        }
+        (Some(_), None) => {
+            return Some(if a.important {
+                Ordering::Greater
+            } else {
+                Ordering::Less
+            })
+        }
         (Some(x), Some(y)) if x != y => return None,
         (Some(_), Some(_)) => {}
     }
@@ -3072,7 +3086,10 @@ fn css_rule_declarations(
 /// The declaration whose property name is at `span`.
 fn css_declaration_at(source: &str, file: &Path, span: Span) -> Result<Vec<CssDeclaration>> {
     let parsed = Parsers::new().parse(css_language(file), source)?;
-    let Some(node) = parsed.root().descendant_for_byte_range(span.start, span.end) else {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
         return Ok(Vec::new());
     };
     let Some(declaration) = ancestor_of_kind(node, "declaration") else {
@@ -3090,7 +3107,10 @@ fn css_declaration_containing(
     span: Span,
 ) -> Result<Option<CssDeclaration>> {
     let parsed = Parsers::new().parse(css_language(file), source)?;
-    let Some(node) = parsed.root().descendant_for_byte_range(span.start, span.end) else {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
         return Ok(None);
     };
     let Some(declaration) = ancestor_of_kind(node, "declaration") else {
@@ -3159,7 +3179,12 @@ fn css_context(node: Node<'_>, source: &str) -> (Option<String>, Vec<String>) {
     while let Some(parent) = current {
         if parent.kind() == "at_rule" || parent.kind() == "media_statement" {
             let text = Span::from(parent).text(source);
-            let head = text.lines().next().unwrap_or("").trim_end_matches('{').trim();
+            let head = text
+                .lines()
+                .next()
+                .unwrap_or("")
+                .trim_end_matches('{')
+                .trim();
             if head.starts_with("@layer") {
                 layer = Some(head.trim_start_matches("@layer").trim().to_string());
             } else if head.starts_with("@media")
@@ -3249,7 +3274,12 @@ pub fn specificity(selector: &str) -> Specificity {
                     None
                 };
                 let lowered = name.to_ascii_lowercase();
-                if double || matches!(lowered.as_str(), "before" | "after" | "first-line" | "first-letter") {
+                if double
+                    || matches!(
+                        lowered.as_str(),
+                        "before" | "after" | "first-line" | "first-letter"
+                    )
+                {
                     result.elements += 1;
                 } else if lowered == "where" {
                     // Contributes nothing, by design.
@@ -3420,24 +3450,71 @@ mod tests {
 
     #[test]
     fn specificity_follows_the_spec_counting_rules() {
-        assert_eq!(specificity("*"), Specificity { ids: 0, classes: 0, elements: 0 });
-        assert_eq!(specificity("li"), Specificity { ids: 0, classes: 0, elements: 1 });
-        assert_eq!(specificity(".btn"), Specificity { ids: 0, classes: 1, elements: 0 });
-        assert_eq!(specificity("#main"), Specificity { ids: 1, classes: 0, elements: 0 });
+        assert_eq!(
+            specificity("*"),
+            Specificity {
+                ids: 0,
+                classes: 0,
+                elements: 0
+            }
+        );
+        assert_eq!(
+            specificity("li"),
+            Specificity {
+                ids: 0,
+                classes: 0,
+                elements: 1
+            }
+        );
+        assert_eq!(
+            specificity(".btn"),
+            Specificity {
+                ids: 0,
+                classes: 1,
+                elements: 0
+            }
+        );
+        assert_eq!(
+            specificity("#main"),
+            Specificity {
+                ids: 1,
+                classes: 0,
+                elements: 0
+            }
+        );
         assert_eq!(
             specificity("#main .btn:hover"),
-            Specificity { ids: 1, classes: 2, elements: 0 }
+            Specificity {
+                ids: 1,
+                classes: 2,
+                elements: 0
+            }
         );
         assert_eq!(
             specificity("a[href^=\"http\"]"),
-            Specificity { ids: 0, classes: 1, elements: 1 }
+            Specificity {
+                ids: 0,
+                classes: 1,
+                elements: 1
+            }
         );
         assert_eq!(
             specificity("p::before"),
-            Specificity { ids: 0, classes: 0, elements: 2 }
+            Specificity {
+                ids: 0,
+                classes: 0,
+                elements: 2
+            }
         );
         // Legacy single-colon pseudo-elements count as elements, not classes.
-        assert_eq!(specificity("p:before"), Specificity { ids: 0, classes: 0, elements: 2 });
+        assert_eq!(
+            specificity("p:before"),
+            Specificity {
+                ids: 0,
+                classes: 0,
+                elements: 2
+            }
+        );
     }
 
     #[test]
@@ -3445,15 +3522,27 @@ mod tests {
         // `:not()`/`:is()` take their most specific argument; `:where()` takes none.
         assert_eq!(
             specificity(".card:not(.hidden)"),
-            Specificity { ids: 0, classes: 2, elements: 0 }
+            Specificity {
+                ids: 0,
+                classes: 2,
+                elements: 0
+            }
         );
         assert_eq!(
             specificity(":is(#a, .b)"),
-            Specificity { ids: 1, classes: 0, elements: 0 }
+            Specificity {
+                ids: 1,
+                classes: 0,
+                elements: 0
+            }
         );
         assert_eq!(
             specificity(":where(#a) .b"),
-            Specificity { ids: 0, classes: 1, elements: 0 }
+            Specificity {
+                ids: 0,
+                classes: 1,
+                elements: 0
+            }
         );
     }
 
@@ -3461,7 +3550,11 @@ mod tests {
     fn a_selector_list_reports_its_strongest_branch() {
         assert_eq!(
             specificity(".a, #b"),
-            Specificity { ids: 1, classes: 0, elements: 0 }
+            Specificity {
+                ids: 1,
+                classes: 0,
+                elements: 0
+            }
         );
     }
 
@@ -3469,7 +3562,11 @@ mod tests {
     fn namespace_prefix_is_not_counted_as_an_element() {
         assert_eq!(
             specificity("svg|circle"),
-            Specificity { ids: 0, classes: 0, elements: 1 }
+            Specificity {
+                ids: 0,
+                classes: 0,
+                elements: 1
+            }
         );
     }
 
@@ -3483,5 +3580,4 @@ mod tests {
         let span = Span::new(bare.find("region").unwrap(), bare.len());
         assert_eq!(namespace_before(bare, span), None);
     }
-
 }

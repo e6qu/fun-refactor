@@ -186,8 +186,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
         }
 
         C::EntryPoints => {
-            let catalog = crate::analysis::entrypoints::Catalog::builtin()
-                .expect("built-in catalogs parse");
+            let catalog =
+                crate::analysis::entrypoints::Catalog::builtin().expect("built-in catalogs parse");
             if crate::analysis::entrypoints::has_rules_for(&catalog, language) {
                 Support::Yes
             } else {

@@ -350,7 +350,9 @@ fn struct_initializers_name_their_type() {
     let src = "const P = struct { x: u8 };\nfn make() P { return P{ .x = 1 }; }\n";
     let f = zig(src);
     let init_offset = src.rfind("P{").unwrap();
-    let r = f.reference_at(init_offset).expect("initializer names a type");
+    let r = f
+        .reference_at(init_offset)
+        .expect("initializer names a type");
     assert_eq!(r.name, "P");
     assert_eq!(r.kind, ReferenceKind::Type);
 }

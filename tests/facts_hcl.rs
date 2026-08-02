@@ -544,7 +544,11 @@ fn an_index_keeps_the_segments_that_follow_it() {
     let f = hcl(src);
     let y = refs(&f, "y");
     assert_eq!(y.len(), 1, "got {:?}", f.references);
-    assert_eq!(y[0].kind, ReferenceKind::Identifier, "the address is renameable");
+    assert_eq!(
+        y[0].kind,
+        ReferenceKind::Identifier,
+        "the address is renameable"
+    );
     let z = refs(&f, "z");
     assert_eq!(z.len(), 1, "got {:?}", f.references);
     assert_eq!(z[0].kind, ReferenceKind::Field);

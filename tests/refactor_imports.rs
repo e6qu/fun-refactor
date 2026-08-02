@@ -99,7 +99,10 @@ fn a_glob_import_is_never_removed_and_says_why() {
     );
 
     assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["std::fmt"],
         "only the provably-unused one goes"
     );
@@ -121,7 +124,10 @@ fn a_python_star_import_is_never_removed() {
     );
 
     assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["sys"]
     );
     assert_eq!(updated, "from foo import *\n\nprint(1)\n");
@@ -138,7 +144,10 @@ fn a_side_effect_import_binds_nothing_and_is_never_removed() {
     );
 
     assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["./m"]
     );
     assert_eq!(updated, "import './polyfills';\n\nexport const x = 1;\n");
@@ -162,7 +171,10 @@ fn a_go_blank_import_binds_nothing_and_is_never_removed() {
     );
 
     assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["strings"],
     );
     assert_eq!(
@@ -182,7 +194,10 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
     );
 
     assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["other"]
     );
     assert_eq!(
@@ -378,7 +393,10 @@ fn sorts_and_prunes_typescript_in_one_pass() {
     );
 
     assert_eq!(
-        plan.removed.iter().map(|r| r.path.as_str()).collect::<Vec<_>>(),
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["./dead"]
     );
     assert_eq!(
@@ -389,10 +407,7 @@ fn sorts_and_prunes_typescript_in_one_pass() {
 
 #[test]
 fn removing_every_import_in_a_block_removes_its_lines_entirely() {
-    let (plan, updated, _) = organize(
-        &[("a.py", "import os\nimport sys\n\nprint(1)\n")],
-        "a.py",
-    );
+    let (plan, updated, _) = organize(&[("a.py", "import os\nimport sys\n\nprint(1)\n")], "a.py");
 
     assert_eq!(plan.removed.len(), 2);
     assert_eq!(updated, "\nprint(1)\n");
@@ -420,7 +435,10 @@ fn zig_import_consts_sort_by_path() {
 #[test]
 fn languages_without_import_declarations_refuse() {
     let (tmp, index) = workspace(&[
-        ("style.css", "@import \"a.css\";\n@import \"b.css\";\n\n.btn { color: red; }\n"),
+        (
+            "style.css",
+            "@import \"a.css\";\n@import \"b.css\";\n\n.btn { color: red; }\n",
+        ),
         ("page.html", "<div id=\"x\"></div>\n"),
         ("config.yaml", "key: value\n"),
         ("main.tf", "variable \"x\" {}\n"),
@@ -458,7 +476,10 @@ fn a_css_import_is_left_alone_because_its_order_is_semantic() {
         "@import \"z.css\";\n@import \"a.css\";\n\n.btn { color: red; }\n",
     )]);
     let error = imports::plan(&index, &tmp.path().join("style.css")).unwrap_err();
-    assert!(error.to_string().contains("not supported for css"), "{error}");
+    assert!(
+        error.to_string().contains("not supported for css"),
+        "{error}"
+    );
 }
 
 #[test]
@@ -488,7 +509,10 @@ fn a_file_with_no_imports_is_a_clean_no_op() {
 fn the_plan_reports_the_file_it_planned_for() {
     let (plan, _, path) = organize(&[("a.rs", "fn main() {}\n")], "a.rs");
     assert_eq!(plan.file, path);
-    assert_eq!(plan.file.parent().map(Path::to_path_buf), path.parent().map(Path::to_path_buf));
+    assert_eq!(
+        plan.file.parent().map(Path::to_path_buf),
+        path.parent().map(Path::to_path_buf)
+    );
 }
 
 #[test]
@@ -559,10 +583,17 @@ fn css_is_refused_with_the_reason_rather_than_a_bare_no() {
     // Not an unimplemented cell: reordering CSS imports changes which rules win.
     let tmp = tempfile::tempdir().unwrap();
     let path = tmp.path().join("a.css");
-    std::fs::write(&path, "@import \"b.css\";\n@import \"a.css\";\n.x { color: red; }\n").unwrap();
+    std::fs::write(
+        &path,
+        "@import \"b.css\";\n@import \"a.css\";\n.x { color: red; }\n",
+    )
+    .unwrap();
     let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
     let index = Index::build_from_scan(&scanned).unwrap();
 
     let err = imports::plan(&index, &path).unwrap_err().to_string();
-    assert!(err.contains("cascade"), "the refusal must explain itself: {err}");
+    assert!(
+        err.contains("cascade"),
+        "the refusal must explain itself: {err}"
+    );
 }

@@ -268,8 +268,11 @@ impl Extractor {
         let mut containers: Vec<(Span, Span)> = Vec::new();
 
         for (query, root) in units {
-            let capture_names: Vec<String> =
-                query.capture_names().iter().map(|s| s.to_string()).collect();
+            let capture_names: Vec<String> = query
+                .capture_names()
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
             let mut cursor = QueryCursor::new();
             let mut matches = cursor.matches(query, root, source.as_bytes());
 
@@ -296,14 +299,12 @@ impl Extractor {
                         container_span = Some(span);
                     } else if cap_name == "container.name" {
                         container_name = Some(span);
-                    } else if let Some(kind) = cap_name
-                        .strip_prefix("definition.")
-                        .and_then(symbol_kind)
+                    } else if let Some(kind) =
+                        cap_name.strip_prefix("definition.").and_then(symbol_kind)
                     {
                         def = Some((kind, span));
-                    } else if let Some(kind) = cap_name
-                        .strip_prefix("reference.")
-                        .and_then(reference_kind)
+                    } else if let Some(kind) =
+                        cap_name.strip_prefix("reference.").and_then(reference_kind)
                     {
                         raw_refs.push(RawRef { kind, span });
                     } else if cap_name == "import" {
@@ -526,10 +527,7 @@ impl ImportParts {
             .collect();
 
         Import {
-            path: self
-                .path
-                .map(|s| trim(s.text(source)))
-                .unwrap_or_default(),
+            path: self.path.map(|s| trim(s.text(source))).unwrap_or_default(),
             alias: self.alias.map(|s| s.text(source).to_string()),
             names,
             span,
@@ -689,7 +687,9 @@ mod tests {
 
         // The `S` in `impl S` is a type reference, so a rename still rewrites it.
         let impl_offset = src.find("impl S").unwrap() + 5;
-        let r = f.reference_at(impl_offset).expect("impl type is a reference");
+        let r = f
+            .reference_at(impl_offset)
+            .expect("impl type is a reference");
         assert_eq!(r.name, "S");
         assert_eq!(r.kind, ReferenceKind::Type);
     }
@@ -854,7 +854,12 @@ mod tests {
         let before = spans.len();
         spans.sort();
         spans.dedup();
-        assert_eq!(before, spans.len(), "duplicate definitions: {:?}", f.symbols);
+        assert_eq!(
+            before,
+            spans.len(),
+            "duplicate definitions: {:?}",
+            f.symbols
+        );
     }
 
     #[test]
@@ -918,7 +923,10 @@ mod tests {
         let src = "fn alpha() {}\nfn beta() { alpha(); }\n";
         let f = facts(Language::Rust, src);
         let def_offset = src.find("alpha").unwrap() + 1;
-        assert_eq!(f.symbol_at(def_offset).map(|s| s.name.as_str()), Some("alpha"));
+        assert_eq!(
+            f.symbol_at(def_offset).map(|s| s.name.as_str()),
+            Some("alpha")
+        );
 
         let call_offset = src.rfind("alpha").unwrap() + 1;
         assert_eq!(

@@ -47,14 +47,18 @@ fn extracts_statements_with_no_inputs_or_outputs() {
     assert!(plan.returns.is_empty(), "got {:?}", plan.returns);
 
     let out = apply(&plan, &path);
-    assert!(out.contains("    greet()"), "call replaces the region:\n{out}");
+    assert!(
+        out.contains("    greet()"),
+        "call replaces the region:\n{out}"
+    );
     assert!(out.contains("def greet():"), "definition added:\n{out}");
     assert!(out.contains("print(\"one\")"), "body moved:\n{out}");
 }
 
 #[test]
 fn locals_read_in_the_region_become_parameters() {
-    let src = "def main():\n    width = 3\n    height = 4\n    area = width * height\n    print(area)\n";
+    let src =
+        "def main():\n    width = 3\n    height = 4\n    area = width * height\n    print(area)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
     let path = tmp.path().join("a.py");
 
@@ -92,7 +96,8 @@ fn a_local_not_used_afterwards_is_not_returned() {
 #[test]
 fn comments_inside_the_region_survive() {
     // gopls is documented to drop comments here; reusing the original bytes keeps them.
-    let src = "def main():\n    # explain the next line\n    x = compute()  # trailing\n    print(x)\n";
+    let src =
+        "def main():\n    # explain the next line\n    x = compute()  # trailing\n    print(x)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
     let path = tmp.path().join("a.py");
 
@@ -124,7 +129,11 @@ fn a_loop_carrying_its_own_break_is_extractable() {
     let path = tmp.path().join("a.py");
 
     let plan = extract::function(&index, &path, lines(src, 2, 4), "scan");
-    assert!(plan.is_ok(), "should extract: {:?}", plan.err().map(|e| e.to_string()));
+    assert!(
+        plan.is_ok(),
+        "should extract: {:?}",
+        plan.err().map(|e| e.to_string())
+    );
 }
 
 #[test]
@@ -167,7 +176,10 @@ fn rust_refuses_when_a_parameter_type_was_never_written() {
         .unwrap_err()
         .to_string();
     assert!(err.contains("never written down"), "got: {err}");
-    assert!(err.contains("width"), "the blocking name should be named: {err}");
+    assert!(
+        err.contains("width"),
+        "the blocking name should be named: {err}"
+    );
 }
 
 #[test]
@@ -207,4 +219,118 @@ fn typescript_extracts_without_type_annotations() {
     let out = apply(&plan, &path);
     assert!(out.contains("function show(w)"), "got:\n{out}");
     assert!(out.contains("show(w);"), "got:\n{out}");
+}
+
+#[test]
+fn extracted_typescript_states_its_parameter_types_once() {
+    // The C-family grammars fold the `:` into the annotation node, so reading the
+    // type field verbatim and adding a `:` back produced `function helper(x: : number)`.
+    let src = "function f(x: number) {\n  const a = x + 1;\n  use(a);\n}\n";
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let plan = extract::function(&index, &path, lines(src, 2, 2), "helper").unwrap();
+    let out = apply(&plan, &path);
+    assert!(out.contains("function helper(x: number)"), "got:\n{out}");
+    assert!(!out.contains(": :"), "doubled annotation:\n{out}");
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .expect("extracted TypeScript must parse");
+}
+
+#[test]
+fn extracted_go_writes_go_and_not_c() {
+    let src = "package p\n\nfunc f(x int) {\n\ta := x + 1\n\tuse(a)\n\tdone()\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let plan = extract::function(&index, &path, lines(src, 4, 5), "helper").unwrap();
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("func helper(x int)"),
+        "colon-typed params:\n{out}"
+    );
+    assert!(
+        !out.contains("helper(x);"),
+        "Go has no statement semicolon:\n{out}"
+    );
+    assert!(
+        out.contains("\tdone()\n}"),
+        "`done()` should stay behind:\n{out}"
+    );
+}
+
+#[test]
+fn a_go_selection_takes_only_the_statements_selected() {
+    // `statement_list` sits between a Go block and its statements; treating it as a
+    // statement widened every selection to the whole block.
+    let src = "package p\n\nfunc f(x int) {\n\ta := x + 1\n\tuse(a)\n\tdone()\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let plan = extract::function(&index, &path, lines(src, 4, 5), "helper").unwrap();
+    assert!(
+        !plan.body.contains("done()"),
+        "selection widened past what was asked:\n{}",
+        plan.body
+    );
+}
+
+#[test]
+fn an_extracted_body_is_indented_the_way_the_file_is() {
+    let src = "function f(x: number) {\n  const a = x + 1;\n  use(a);\n}\n";
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let plan = extract::function(&index, &path, lines(src, 2, 3), "helper").unwrap();
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("function helper(x: number) {\n  const a = x + 1;"),
+        "four spaces in a two-space file:\n{out}"
+    );
+}
+
+#[test]
+fn extract_function_produces_parseable_code_in_every_imperative_language() {
+    // Only Rust and Python were ever exercised here. TypeScript was broken.
+    let cases: &[(&str, &str, usize, usize)] = &[
+        (
+            "a.rs",
+            "fn f(x: i32) {\n    let a: i32 = x + 1;\n    use_it(a);\n}\n",
+            2,
+            2,
+        ),
+        (
+            "a.go",
+            "package p\n\nfunc f(x int) {\n\tvar a int = x + 1\n\tuse(a)\n}\n",
+            4,
+            4,
+        ),
+        (
+            "a.zig",
+            "fn f(x: i32) void {\n    const a: i32 = x + 1;\n    use(a);\n}\n",
+            2,
+            2,
+        ),
+        (
+            "a.ts",
+            "function f(x: number) {\n  const a = x + 1;\n  use(a);\n}\n",
+            2,
+            2,
+        ),
+        (
+            "a.tsx",
+            "function f(x: number) {\n  const a = x + 1;\n  use(a);\n}\n",
+            2,
+            2,
+        ),
+        ("a.py", "def f(x):\n    a = x + 1\n    use(a)\n", 2, 2),
+    ];
+    for (name, src, from, to) in cases {
+        let (tmp, index) = workspace(&[(name, src)]);
+        let path = tmp.path().join(name);
+        let plan = extract::function(&index, &path, lines(src, *from, *to), "helper")
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .unwrap_or_else(|e| panic!("{name} produced code that will not parse: {e}"));
+    }
 }

@@ -88,9 +88,10 @@ pub fn chains(index: &Index) -> Result<Vec<Chain>> {
             .map(|r| r.read.clone())
             .collect();
 
-        let values_file = declaration.values_path.as_ref().and_then(|path| {
-            values_file_defining(index, &declaration.file, path)
-        });
+        let values_file = declaration
+            .values_path
+            .as_ref()
+            .and_then(|path| values_file_defining(index, &declaration.file, path));
 
         chains.push(Chain {
             env_var: declaration.name,
@@ -472,14 +473,22 @@ mod tests {
             ("chart/Chart.yaml", CHART),
             ("chart/values.yaml", VALUES),
             ("chart/templates/deployment.yaml", DEPLOYMENT),
-            ("app/main.py", "import os\n\ndef connect():\n    return os.environ[\"DATABASE_URL\"]\n"),
+            (
+                "app/main.py",
+                "import os\n\ndef connect():\n    return os.environ[\"DATABASE_URL\"]\n",
+            ),
         ]);
 
         let chains = chains(&index).unwrap();
         let chain = chains
             .iter()
             .find(|c| c.env_var == "DATABASE_URL")
-            .unwrap_or_else(|| panic!("no chain: {:?}", chains.iter().map(|c| &c.env_var).collect::<Vec<_>>()));
+            .unwrap_or_else(|| {
+                panic!(
+                    "no chain: {:?}",
+                    chains.iter().map(|c| &c.env_var).collect::<Vec<_>>()
+                )
+            });
 
         assert_eq!(
             chain.values_path.as_deref(),
@@ -498,7 +507,10 @@ mod tests {
             ("chart/Chart.yaml", CHART),
             ("chart/values.yaml", VALUES),
             ("chart/templates/deployment.yaml", DEPLOYMENT),
-            ("app/main.py", "import os\nx = os.getenv(\"DATABASE_URL\")\n"),
+            (
+                "app/main.py",
+                "import os\nx = os.getenv(\"DATABASE_URL\")\n",
+            ),
         ]);
         let chains = chains(&index).unwrap();
         let chain = chains.iter().find(|c| c.env_var == "DATABASE_URL").unwrap();
@@ -565,7 +577,10 @@ mod tests {
 
     #[test]
     fn lower_case_names_are_not_treated_as_environment_variables() {
-        assert_eq!(variable_name_after("\"DATABASE_URL\")"), Some("DATABASE_URL".into()));
+        assert_eq!(
+            variable_name_after("\"DATABASE_URL\")"),
+            Some("DATABASE_URL".into())
+        );
         assert_eq!(variable_name_after("\"lower_case\")"), None);
         assert_eq!(variable_name_after("path/to/thing"), None);
         assert_eq!(variable_name_after("\"MIXED_case\")"), None);

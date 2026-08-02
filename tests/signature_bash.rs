@@ -160,7 +160,10 @@ fn removes_the_only_argument() {
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo hi\n}\nf a\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
-    assert_eq!(applied(&plan, &ws.path("run.sh")), "f() {\n  echo hi\n}\nf\n");
+    assert_eq!(
+        applied(&plan, &ws.path("run.sh")),
+        "f() {\n  echo hi\n}\nf\n"
+    );
     commit(&plan);
 }
 
@@ -225,10 +228,7 @@ fn notes_a_call_site_with_nothing_at_that_position() {
 
 #[test]
 fn moving_swaps_both_the_arguments_and_the_body_references() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$1 $2\"\n}\nf first second\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$1 $2\"\n}\nf first second\n")]);
     let index = ws.index();
     let plan = signature::change(
         &index,
@@ -394,10 +394,7 @@ fn notes_a_call_that_cannot_be_reordered_for_want_of_positions() {
 
 #[test]
 fn braced_references_are_renumbered_in_place() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"${2}-${3}\"\n}\nf a b c\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"${2}-${3}\"\n}\nf a b c\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
     assert_eq!(
@@ -411,10 +408,7 @@ fn braced_references_are_renumbered_in_place() {
 fn renumbering_past_nine_has_to_start_bracing() {
     // `$10` is not parameter 10 — the shell reads it as `${1}0` — so a reference
     // pushed past nine must gain braces or the rewrite would change its meaning.
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$9\"\n}\nf 1 2 3 4 5 6 7 8 9\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$9\"\n}\nf 1 2 3 4 5 6 7 8 9\n")]);
     let index = ws.index();
     let plan = signature::change(
         &index,
@@ -435,10 +429,7 @@ fn renumbering_past_nine_has_to_start_bracing() {
 
 #[test]
 fn dollar_zero_is_the_script_name_and_never_renumbered() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$0: $2\"\n}\nf a b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$0: $2\"\n}\nf a b\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
     assert_eq!(
@@ -450,10 +441,7 @@ fn dollar_zero_is_the_script_name_and_never_renumbered() {
 
 #[test]
 fn refuses_a_multi_digit_unbraced_reference() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$12\"\n}\nf a b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$12\"\n}\nf a b\n")]);
     let index = ws.index();
     let message = error(signature::change(
         &index,
@@ -468,10 +456,7 @@ fn refuses_a_multi_digit_unbraced_reference() {
 fn notes_a_body_that_reads_the_parameter_count() {
     // `$#` stays correct as an expression and wrong as an intent: the count it
     // reports is one lower than the code below it was written for.
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$# $2\"\n}\nf a b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$# $2\"\n}\nf a b\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
     assert!(
@@ -504,10 +489,7 @@ fn refuses_a_body_that_expands_the_whole_parameter_list() {
 
 #[test]
 fn refuses_a_body_that_shifts() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  local first=\"$1\"\n  shift\n}\nf a b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  local first=\"$1\"\n  shift\n}\nf a b\n")]);
     let index = ws.index();
     let message = error(signature::change(
         &index,
@@ -519,10 +501,7 @@ fn refuses_a_body_that_shifts() {
 
 #[test]
 fn refuses_a_body_that_replaces_the_parameters_with_set() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  set -- x y\n  echo \"$2\"\n}\nf a b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  set -- x y\n  echo \"$2\"\n}\nf a b\n")]);
     let index = ws.index();
     let message = error(signature::change(
         &index,
@@ -549,20 +528,14 @@ fn refuses_a_body_holding_a_nested_function() {
 
 #[test]
 fn refuses_a_recursive_call_whose_argument_is_also_renumbered() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$2\"\n  f \"$2\" x\n}\nf a b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$2\"\n  f \"$2\" x\n}\nf a b\n")]);
     let index = ws.index();
     let message = error(signature::change(
         &index,
         symbol_id(&index, "f"),
         Change::Move { from: 0, to: 1 },
     ));
-    assert!(
-        message.contains("rewritten twice"),
-        "got: {message}"
-    );
+    assert!(message.contains("rewritten twice"), "got: {message}");
 }
 
 // ===========================================================================
@@ -604,10 +577,7 @@ fn a_splitting_word_after_the_change_is_fine() {
 
 #[test]
 fn refuses_an_unquoted_expansion_at_a_position_being_changed() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$2\"\n}\nx=1\nf $x b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$2\"\n}\nx=1\nf $x b\n")]);
     let index = ws.index();
     let message = refusal(signature::change(
         &index,
@@ -619,10 +589,7 @@ fn refuses_an_unquoted_expansion_at_a_position_being_changed() {
 
 #[test]
 fn quoting_the_same_expansion_makes_it_one_argument() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$2\"\n}\nx=1\nf \"$x\" b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$2\"\n}\nx=1\nf \"$x\" b\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
     assert_eq!(
@@ -634,25 +601,22 @@ fn quoting_the_same_expansion_makes_it_one_argument() {
 
 #[test]
 fn refuses_an_unquoted_glob_at_a_position_being_changed() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$2\"\n}\nf *.txt b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$2\"\n}\nf *.txt b\n")]);
     let index = ws.index();
     let message = refusal(signature::change(
         &index,
         symbol_id(&index, "f"),
         Change::Remove(0),
     ));
-    assert!(message.contains("glob or brace expansion"), "got: {message}");
+    assert!(
+        message.contains("glob or brace expansion"),
+        "got: {message}"
+    );
 }
 
 #[test]
 fn refuses_an_unquoted_command_substitution_at_a_position_being_changed() {
-    let ws = Workspace::new(&[(
-        "run.sh",
-        "f() {\n  echo \"$2\"\n}\nf $(date) b\n",
-    )]);
+    let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$2\"\n}\nf $(date) b\n")]);
     let index = ws.index();
     let message = refusal(signature::change(
         &index,
@@ -685,10 +649,7 @@ fn refuses_when_two_functions_share_the_name() {
 fn refuses_a_caller_that_sources_a_computed_path() {
     let ws = Workspace::new(&[
         ("lib.sh", "greet() {\n  echo \"$2\"\n}\n"),
-        (
-            "app.sh",
-            "dir=.\nsource \"$dir/lib.sh\"\ngreet one two\n",
-        ),
+        ("app.sh", "dir=.\nsource \"$dir/lib.sh\"\ngreet one two\n"),
     ]);
     let index = ws.index();
     let message = refusal(signature::change(
@@ -706,8 +667,7 @@ fn a_same_named_command_that_never_sources_the_definition_is_reported_not_edited
         ("other.sh", "greet one two\n"),
     ]);
     let index = ws.index();
-    let plan =
-        signature::change(&index, symbol_id(&index, "greet"), Change::Remove(0)).unwrap();
+    let plan = signature::change(&index, symbol_id(&index, "greet"), Change::Remove(0)).unwrap();
     assert_eq!(plan.call_sites, 0);
     assert!(
         plan.notes.iter().any(|n| n.contains("never sources")),
