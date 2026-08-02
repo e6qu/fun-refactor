@@ -68,6 +68,26 @@ impl MovePlan {
     }
 }
 
+/// Can a moved definition still be reached from its old use sites in this language?
+///
+/// Updating the references is the refactoring, so a language qualifies only when that
+/// is expressible: an import statement derivable from two paths, or a scope where a
+/// move changes no name at all.
+pub fn supports_move(language: Language) -> bool {
+    matches!(
+        language,
+        Language::TypeScript
+            | Language::Tsx
+            | Language::Python
+            | Language::Rust
+            | Language::Go
+            | Language::Hcl
+            | Language::Css
+            | Language::Scss
+            | Language::Markdown
+    )
+}
+
 /// Move `symbol` into `destination`.
 pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<MovePlan> {
     let sym = index

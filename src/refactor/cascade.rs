@@ -49,6 +49,21 @@ impl CascadePlan {
     }
 }
 
+/// Can a constant conditional be collapsed in this language?
+///
+/// Substituting the flag works anywhere, but the cleanup that makes the operation
+/// worth having needs an `if` whose branches can be collapsed.
+pub fn supports_cascade(language: Language) -> bool {
+    matches!(
+        language,
+        Language::Rust
+            | Language::Go
+            | Language::TypeScript
+            | Language::Tsx
+            | Language::Python
+    )
+}
+
 /// Remove `flag`, assuming it always had `value`, and clean up what follows.
 pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> {
     let scanned = scan(root, &ScanOptions::default())?;
@@ -235,14 +250,7 @@ fn simplify_constants(sources: &BTreeMap<PathBuf, (Language, String)>) -> Result
     let mut changes = Vec::new();
 
     for (path, (language, source)) in sources {
-        if !matches!(
-            language,
-            Language::Rust
-                | Language::Go
-                | Language::TypeScript
-                | Language::Tsx
-                | Language::Python
-        ) {
+        if !supports_cascade(*language) {
             continue;
         }
         let parsed = parsers.parse(*language, source)?;

@@ -39,6 +39,18 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Show what this tool can do, per language.
+    Capabilities {
+        /// Only this capability, e.g. rename, extract-variable.
+        #[arg(long)]
+        capability: Option<String>,
+        /// Only this language.
+        #[arg(long = "lang")]
+        language: Option<String>,
+        /// Emit the markdown table used in the README.
+        #[arg(long)]
+        markdown: bool,
+    },
     /// Inspect or clear the fact cache.
     Cache {
         /// Delete every cached entry for the current query set.
@@ -298,6 +310,11 @@ pub fn run() -> Result<()> {
         .init();
 
     match &cli.command {
+        Command::Capabilities {
+            capability,
+            language,
+            markdown,
+        } => cmd_capabilities(&cli, capability.as_deref(), language.as_deref(), *markdown),
         Command::Cache { clear } => cmd_cache(&cli, *clear),
         Command::Scan { languages } => cmd_scan(&cli, languages),
         Command::Parse { languages, stats } => cmd_parse(&cli, languages, *stats),
@@ -1325,6 +1342,64 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
     }
     Ok(index)
+}
+
+fn cmd_capabilities(
+    cli: &Cli,
+    capability: Option<&str>,
+    language: Option<&str>,
+    markdown: bool,
+) -> Result<()> {
+    use crate::capabilities::{self, Capability};
+
+    if markdown {
+        print!("{}", capabilities::render_markdown());
+        return Ok(());
+    }
+
+    let wanted_language = match language {
+        Some(name) => Some(resolve_languages(&[name.to_string()])?[0]),
+        None => None,
+    };
+    let rows: Vec<_> = capabilities::matrix()
+        .into_iter()
+        .filter(|r| capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c))
+        .collect();
+
+    if rows.is_empty() {
+        let known: Vec<_> = Capability::ALL.iter().map(|c| c.as_str()).collect();
+        anyhow::bail!(
+            "unknown capability. Known: {}",
+            known.join(", ")
+        );
+    }
+
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&rows)?);
+        return Ok(());
+    }
+
+    for row in &rows {
+        println!("{}  ({})", row.capability, row.command);
+        for (name, support) in &row.languages {
+            if wanted_language.is_some_and(|l| l.name() != *name) {
+                continue;
+            }
+            match support.reason() {
+                Some(why) => println!("  {:<4} {:<11} {why}", support.mark(), name),
+                None => println!("  {:<4} {name}", support.mark()),
+            }
+        }
+        println!();
+    }
+
+    let (yes, not_applicable, refused) = capabilities::totals();
+    println!(
+        "{yes} supported, {not_applicable} not applicable, {refused} refused \n\
+         (of {} capability x language pairs)",
+        yes + not_applicable + refused
+    );
+    Ok(())
 }
 
 fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {

@@ -120,7 +120,7 @@ pub fn apply(index: &Index, file: &Path, offset: usize, rewrite: Rewrite) -> Res
     })
 }
 
-fn supported(language: Language) -> bool {
+pub fn supported(language: Language) -> bool {
     matches!(
         language,
         Language::Rust
