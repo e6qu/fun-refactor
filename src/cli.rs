@@ -87,10 +87,29 @@ enum Command {
         #[arg(long)]
         stats: bool,
     },
-    /// Show the definition a position or name refers to.
+    /// Show where a symbol is defined — every definition, not just one.
+    ///
+    /// A trait or interface method has as many definitions as implementations, and a
+    /// CSS class is declared by every rule that names it.
     Def {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
+        /// Show only the primary definition.
+        #[arg(long)]
+        first: bool,
+    },
+    /// Show the concrete implementations of an abstract declaration.
+    Implementations {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+    },
+    /// Show every use of a symbol, grouped by file.
+    Usages {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// Include same-named occurrences that resolved elsewhere or not at all.
+        #[arg(long)]
+        include_unresolved: bool,
     },
     /// Show what calls a function.
     Callers {
@@ -337,7 +356,12 @@ pub fn run() -> Result<()> {
             kind,
             stats,
         } => cmd_symbols(&cli, languages, name.as_deref(), kind.as_deref(), *stats),
-        Command::Def { target } => cmd_def(&cli, target),
+        Command::Def { target, first } => cmd_def(&cli, target, *first),
+        Command::Implementations { target } => cmd_implementations(&cli, target),
+        Command::Usages {
+            target,
+            include_unresolved,
+        } => cmd_usages(&cli, target, *include_unresolved),
         Command::Refs {
             target,
             include_unresolved,
@@ -758,10 +782,12 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
     }
     println!("\n{} symbol(s) with no detected use", unused.len());
     println!(
-        "Reachability follows resolved edges only, so code reached through a trait \n\
-         object, an interface value or a function held in a map can still appear here. \n\
-         Symbols whose name is spelled in any string literal are deliberately left off, \n\
-         since a handler table or a reflective lookup would find them."
+        "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
+         candidates, so a method reached only through a trait object, an interface \n\
+         value or a base class is no longer listed. A function held in a map or a \n\
+         struct field and called through it, and a name assembled at runtime, still \n\
+         can be. Symbols whose name is spelled in any string literal are deliberately \n\
+         left off."
     );
     Ok(())
 }
@@ -1157,23 +1183,43 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     }
 
     let breakdown = graph.confidence_breakdown();
+    let by_origin = graph.origin_breakdown();
     if cli.json {
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "functions": graph.node_count(),
                 "calls": graph.edge_count(),
+                "hierarchy_edges": graph.hierarchy_edge_count(),
                 "unresolved_calls": graph.unresolved.len(),
                 "by_confidence": breakdown,
+                "by_origin": by_origin,
             }))?
         );
-    } else {
-        println!("functions         {}", graph.node_count());
-        println!("call edges        {}", graph.edge_count());
-        for (confidence, count) in &breakdown {
-            println!("  {confidence:<16} {count}");
+        return Ok(());
+    }
+
+    println!("functions         {}", graph.node_count());
+    println!(
+        "call edges        {} ({} from hierarchy analysis)",
+        graph.edge_count(),
+        graph.hierarchy_edge_count()
+    );
+    for (confidence, count) in &breakdown {
+        println!("  {confidence:<16} {count}");
+    }
+    println!("unresolved calls  {}", graph.unresolved.len());
+
+    // A call site the dispatch scan and the index disagree about is reported, since
+    // an edge placed on the wrong offset would be worse than a missing one.
+    if !graph.hierarchy_gaps.is_empty() {
+        println!(
+            "\n{} call site(s) the hierarchy scan could not line up with the index:",
+            graph.hierarchy_gaps.len()
+        );
+        for (file, detail) in graph.hierarchy_gaps.iter().take(10) {
+            println!("  {}: {detail}", file.display());
         }
-        println!("unresolved calls  {}", graph.unresolved.len());
     }
     Ok(())
 }
@@ -1222,9 +1268,11 @@ fn cmd_entrypoints(
                 println!("  {:<40} {}", s.qualified_name(), s.file.display());
             }
             println!(
-                "\nNote: reachability follows resolved call edges only. Dynamic \
-                 dispatch and calls through unresolved names are not counted, so \
-                 this list can include functions that are used."
+                "\nNote: reachability follows resolved call edges plus class-hierarchy \
+                 dispatch, so a method reached through a trait object or an interface \
+                 value is counted. A function held in a map or a struct field, and a \
+                 name assembled at runtime, are not — this list can still include \
+                 functions that are used."
             );
         }
         return Ok(());
@@ -1601,34 +1649,172 @@ fn cmd_symbols(
     Ok(())
 }
 
-fn cmd_def(cli: &Cli, target: &str) -> Result<()> {
+fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
+    use crate::navigate;
+
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
-    let source = std::fs::read_to_string(&symbol.file)?;
-    let pos = LineIndex::new(&source).line_col(symbol.name_span.start, &source);
+    let found = navigate::definitions_of(&index, symbol.id);
 
     if cli.json {
+        let payload: Vec<_> = found
+            .definitions
+            .iter()
+            .filter(|d| !first_only || d.role == navigate::DefinitionRole::Primary)
+            .map(|d| {
+                serde_json::json!({
+                    "name": d.name,
+                    "qualified_name": d.qualified_name,
+                    "kind": d.kind.as_str(),
+                    "role": d.role.as_str(),
+                    "file": d.location.file,
+                    "line": d.location.line,
+                    "col": d.location.col,
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    for definition in &found.definitions {
+        if first_only && definition.role != navigate::DefinitionRole::Primary {
+            continue;
+        }
+        println!(
+            "{:<18} {:<12} {}:{}:{}",
+            definition.role.as_str(),
+            definition.kind.as_str(),
+            definition.location.file.display(),
+            definition.location.line,
+            definition.location.col
+        );
+        if !definition.location.preview.is_empty() {
+            println!("                   {}", definition.location.preview);
+        }
+    }
+
+    if found.is_polymorphic() && !first_only {
+        println!(
+            "\n`{}` is declared on an abstraction, so which one runs is a runtime \n\
+             fact. Every implementation is listed.",
+            found.query
+        );
+    }
+    Ok(())
+}
+
+fn cmd_implementations(cli: &Cli, target: &str) -> Result<()> {
+    use crate::navigate;
+
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let found = navigate::implementations_of(&index, symbol.id);
+
+    if found.is_empty() {
+        println!(
+            "`{}` has no implementations: nothing declares it as an abstraction.",
+            symbol.qualified_name()
+        );
+        return Ok(());
+    }
+
+    let rendered: Vec<_> = found
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| (s.qualified_name(), s.file.clone()))
+        .collect();
+
+    if cli.json {
+        let payload: Vec<_> = rendered
+            .iter()
+            .map(|(name, file)| serde_json::json!({ "name": name, "file": file }))
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    for (name, file) in &rendered {
+        println!("{:<34} {}", name, file.display());
+    }
+    println!(
+        "\n{} implementation(s). These are dispatch candidates, matched through \n\
+         declared implements-relationships — which one runs is a runtime fact.",
+        rendered.len()
+    );
+    Ok(())
+}
+
+fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
+    use crate::navigate;
+
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let found = navigate::usages_of(&index, symbol.id);
+
+    if cli.json {
+        let render = |list: &[&navigate::Usage]| {
+            list.iter()
+                .map(|u| {
+                    serde_json::json!({
+                        "file": u.location.file,
+                        "line": u.location.line,
+                        "col": u.location.col,
+                        "within": u.within,
+                        "confidence": u.confidence.as_str(),
+                        "preview": u.location.preview,
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        let all: Vec<&navigate::Usage> = found.usages.iter().collect();
+        let weak: Vec<&navigate::Usage> = found.same_name_elsewhere.iter().collect();
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
-                "name": symbol.name,
-                "qualified_name": symbol.qualified_name(),
-                "kind": symbol.kind.as_str(),
-                "file": symbol.file,
-                "line": pos.line,
-                "col": pos.col,
-                "exported": symbol.exported,
+                "symbol": found.query,
+                "usages": render(&all),
+                "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
             }))?
         );
-    } else {
+        return Ok(());
+    }
+
+    for (file, usages) in found.by_file() {
+        println!("{}", file.display());
+        for usage in usages {
+            let context = usage
+                .within
+                .as_deref()
+                .map(|w| format!("  in {w}"))
+                .unwrap_or_default();
+            let confidence = if usage.confidence.is_safe_to_rewrite() {
+                String::new()
+            } else {
+                format!("  [{}]", usage.confidence.as_str())
+            };
+            println!(
+                "  {}:{}  {}{context}{confidence}",
+                usage.location.line, usage.location.col, usage.location.preview
+            );
+        }
+    }
+    println!("\n{} use(s) of {}", found.usages.len(), found.query);
+
+    if include_unresolved && !found.same_name_elsewhere.is_empty() {
         println!(
-            "{} {} at {}:{}:{}",
-            symbol.kind.as_str(),
-            symbol.qualified_name(),
-            symbol.file.display(),
-            pos.line,
-            pos.col
+            "\n{} occurrence(s) of the same name that did NOT resolve here:",
+            found.same_name_elsewhere.len()
         );
+        for usage in found.same_name_elsewhere.iter().take(20) {
+            println!(
+                "  {}:{}:{}  [{}]",
+                usage.location.file.display(),
+                usage.location.line,
+                usage.location.col,
+                usage.confidence.as_str()
+            );
+        }
     }
     Ok(())
 }

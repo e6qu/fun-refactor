@@ -65,7 +65,9 @@ fr cache                      # where cached facts live, and how big
 fr scan                       # files it can act on
 fr parse --stats              # syntax health per language
 fr symbols --kind function    # what is defined
-fr def <name|path:line:col>   # where is it defined
+fr def <name|path:line:col>   # where is it defined — every definition
+fr implementations <target>   # the concrete implementations of an abstraction
+fr usages <target>            # every use, grouped by file, with its context
 fr refs <target>              # where is it used, with confidence per site
 fr rename <target> <new>      # rename it and everything that points at it
 fr extract <path:l:c-l:c> <n> # extract an expression into a binding
@@ -84,7 +86,8 @@ fr rewrite <path:l:c> guard-clause   # ...and apply one
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call
 fr graph --dot                # the call graph
-fr flow back <target>         # where did this value come from
+fr flow back <target> [-f values.yaml] [--set a.b=c]
+                              # where did this value come from
 fr flow fwd <target>          # where does it go
                               #   (def-use for code, substitution/override
                               #    provenance for config languages)
