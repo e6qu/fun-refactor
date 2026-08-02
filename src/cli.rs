@@ -1,9 +1,12 @@
 //! Command-line surface.
 
+use crate::index::Index;
 use crate::lang::Language;
+use crate::model::Symbol;
 use crate::parse::Parsers;
 use crate::scan::{scan, ScanOptions};
-use anyhow::Result;
+use crate::span::{LineCol, LineIndex};
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -45,6 +48,34 @@ enum Command {
         #[arg(long)]
         stats: bool,
     },
+    /// List defined symbols.
+    Symbols {
+        /// Restrict to a language (repeatable).
+        #[arg(long = "lang")]
+        languages: Vec<String>,
+        /// Only symbols whose name contains this string.
+        #[arg(long)]
+        name: Option<String>,
+        /// Only symbols of this kind, e.g. function, struct, key.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Show index-wide totals instead of listing symbols.
+        #[arg(long)]
+        stats: bool,
+    },
+    /// Show the definition a position or name refers to.
+    Def {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+    },
+    /// List references to a symbol.
+    Refs {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// Include weakly-resolved references that share the name.
+        #[arg(long)]
+        include_unresolved: bool,
+    },
 }
 
 pub fn run() -> Result<()> {
@@ -60,7 +91,283 @@ pub fn run() -> Result<()> {
     match &cli.command {
         Command::Scan { languages } => cmd_scan(&cli, languages),
         Command::Parse { languages, stats } => cmd_parse(&cli, languages, *stats),
+        Command::Symbols {
+            languages,
+            name,
+            kind,
+            stats,
+        } => cmd_symbols(&cli, languages, name.as_deref(), kind.as_deref(), *stats),
+        Command::Def { target } => cmd_def(&cli, target),
+        Command::Refs {
+            target,
+            include_unresolved,
+        } => cmd_refs(&cli, target, *include_unresolved),
     }
+}
+
+/// A position in a file, given as `path:line:col`.
+struct Position {
+    path: PathBuf,
+    line: usize,
+    col: usize,
+}
+
+/// Parse `path:line:col`. Returns `None` for anything else, which callers treat as
+/// a bare symbol name.
+fn parse_position(target: &str) -> Option<Position> {
+    let mut parts = target.rsplitn(3, ':');
+    let col: usize = parts.next()?.parse().ok()?;
+    let line: usize = parts.next()?.parse().ok()?;
+    let path = parts.next()?;
+    Some(Position {
+        path: PathBuf::from(path),
+        line,
+        col,
+    })
+}
+
+/// Resolve a CLI target to a symbol, accepting either a position or a name.
+fn resolve_target<'a>(index: &'a Index, target: &str) -> Result<&'a Symbol> {
+    if let Some(pos) = parse_position(target) {
+        let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+        let source = std::fs::read_to_string(&path)
+            .with_context(|| format!("reading {}", path.display()))?;
+        let offset = LineIndex::new(&source)
+            .offset(
+                LineCol {
+                    line: pos.line,
+                    col: pos.col,
+                },
+                &source,
+            )
+            .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
+
+        return index.definition_at(&path, offset).ok_or_else(|| {
+            anyhow::anyhow!(
+                "no symbol or resolved reference at {}:{}:{}",
+                path.display(),
+                pos.line,
+                pos.col
+            )
+        });
+    }
+
+    let matches = index.find_symbols(target, None);
+    match matches.len() {
+        0 => anyhow::bail!("no symbol named '{target}'"),
+        1 => Ok(matches[0]),
+        _ => {
+            // Ambiguity is reported, never resolved by guessing.
+            let mut listing = String::new();
+            for symbol in &matches {
+                listing.push_str(&format!(
+                    "\n  {} ({}) in {}",
+                    symbol.name,
+                    symbol.kind.as_str(),
+                    symbol.file.display()
+                ));
+            }
+            anyhow::bail!(
+                "'{target}' is defined {} times; specify a position as path:line:col{listing}",
+                matches.len()
+            )
+        }
+    }
+}
+
+fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
+    let options = scan_options(languages)?;
+    Index::build(&cli.root, &options)
+}
+
+fn cmd_symbols(
+    cli: &Cli,
+    languages: &[String],
+    name_filter: Option<&str>,
+    kind_filter: Option<&str>,
+    stats: bool,
+) -> Result<()> {
+    let index = build_index(cli, languages)?;
+
+    if stats {
+        let s = index.stats();
+        if cli.json {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "files": s.files,
+                    "symbols": s.symbols,
+                    "references": s.references,
+                    "resolved": s.resolved,
+                    "by_confidence": s.by_confidence,
+                    "files_with_parse_errors": s.files_with_parse_errors,
+                }))?
+            );
+        } else {
+            println!("files       {}", s.files);
+            println!("symbols     {}", s.symbols);
+            println!("references  {} ({} resolved)", s.references, s.resolved);
+            for (confidence, count) in &s.by_confidence {
+                println!("  {confidence:<18} {count}");
+            }
+            if s.files_with_parse_errors > 0 {
+                println!(
+                    "\n{} file(s) had parse errors; their facts may be incomplete",
+                    s.files_with_parse_errors
+                );
+            }
+        }
+        return Ok(());
+    }
+
+    let selected: Vec<&Symbol> = index
+        .symbols
+        .iter()
+        .filter(|s| name_filter.is_none_or(|n| s.name.contains(n)))
+        .filter(|s| kind_filter.is_none_or(|k| s.kind.as_str() == k))
+        .collect();
+
+    if cli.json {
+        let payload: Vec<_> = selected
+            .iter()
+            .map(|s| {
+                serde_json::json!({
+                    "name": s.name,
+                    "qualified_name": s.qualified_name(),
+                    "kind": s.kind.as_str(),
+                    "file": s.file,
+                    "language": s.language.name(),
+                    "exported": s.exported,
+                    "name_span": { "start": s.name_span.start, "end": s.name_span.end },
+                    "full_span": { "start": s.full_span.start, "end": s.full_span.end },
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        for symbol in &selected {
+            println!(
+                "{:<12} {:<30} {}",
+                symbol.kind.as_str(),
+                symbol.qualified_name(),
+                symbol.file.display()
+            );
+        }
+        println!("\n{} symbol(s)", selected.len());
+    }
+    Ok(())
+}
+
+fn cmd_def(cli: &Cli, target: &str) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let source = std::fs::read_to_string(&symbol.file)?;
+    let pos = LineIndex::new(&source).line_col(symbol.name_span.start, &source);
+
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "name": symbol.name,
+                "qualified_name": symbol.qualified_name(),
+                "kind": symbol.kind.as_str(),
+                "file": symbol.file,
+                "line": pos.line,
+                "col": pos.col,
+                "exported": symbol.exported,
+            }))?
+        );
+    } else {
+        println!(
+            "{} {} at {}:{}:{}",
+            symbol.kind.as_str(),
+            symbol.qualified_name(),
+            symbol.file.display(),
+            pos.line,
+            pos.col
+        );
+    }
+    Ok(())
+}
+
+fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let refs = index.references_to(symbol.id);
+    let weak = if include_unresolved {
+        index.unresolved_matching(symbol.id)
+    } else {
+        Vec::new()
+    };
+
+    // Line/column lookups need each file's text; read once per file.
+    let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+    let mut locate = |file: &PathBuf, offset: usize| -> (usize, usize) {
+        let source = sources
+            .entry(file.clone())
+            .or_insert_with(|| std::fs::read_to_string(file).unwrap_or_default());
+        let pos = LineIndex::new(source).line_col(offset, source);
+        (pos.line, pos.col)
+    };
+
+    if cli.json {
+        let render = |list: &[&crate::model::Reference],
+                      locate: &mut dyn FnMut(&PathBuf, usize) -> (usize, usize)| {
+            list.iter()
+                .map(|r| {
+                    let (line, col) = locate(&r.file, r.span.start);
+                    serde_json::json!({
+                        "file": r.file,
+                        "line": line,
+                        "col": col,
+                        "kind": format!("{:?}", r.kind).to_lowercase(),
+                        "confidence": r.confidence.as_str(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        let resolved = render(&refs, &mut locate);
+        let unresolved = render(&weak, &mut locate);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "symbol": symbol.qualified_name(),
+                "references": resolved,
+                "same_name_elsewhere": unresolved,
+            }))?
+        );
+        return Ok(());
+    }
+
+    println!("{} reference(s) to {}", refs.len(), symbol.qualified_name());
+    for r in &refs {
+        let (line, col) = locate(&r.file, r.span.start);
+        println!(
+            "  {}:{}:{}  [{}]",
+            r.file.display(),
+            line,
+            col,
+            r.confidence.as_str()
+        );
+    }
+
+    if include_unresolved && !weak.is_empty() {
+        println!(
+            "\n{} occurrence(s) of the same name that did NOT resolve here:",
+            weak.len()
+        );
+        for r in &weak {
+            let (line, col) = locate(&r.file, r.span.start);
+            println!(
+                "  {}:{}:{}  [{}]",
+                r.file.display(),
+                line,
+                col,
+                r.confidence.as_str()
+            );
+        }
+    }
+    Ok(())
 }
 
 /// Resolve `--lang` values, failing loudly on an unknown name rather than silently

@@ -9,7 +9,10 @@
 
 pub mod cli;
 pub mod edit;
+pub mod extract;
+pub mod index;
 pub mod lang;
+pub mod model;
 pub mod parse;
 pub mod scan;
 pub mod span;
