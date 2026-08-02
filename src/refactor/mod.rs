@@ -9,6 +9,7 @@ pub mod delete;
 pub mod extract;
 pub mod imports;
 pub mod inline;
+pub mod move_symbol;
 pub mod rename;
 pub mod signature;
 

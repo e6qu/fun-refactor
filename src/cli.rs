@@ -123,6 +123,18 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Move a top-level symbol to another file, updating imports.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Move {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// Destination file.
+        destination: PathBuf,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Trace where a value comes from or goes to.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
@@ -229,6 +241,11 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_extract(&cli, range, name, *all, *write),
         Command::Inline { target, write } => cmd_inline(&cli, target, *write),
+        Command::Move {
+            target,
+            destination,
+            write,
+        } => cmd_move(&cli, target, destination, *write),
         Command::Signature {
             target,
             change,
@@ -452,6 +469,23 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
     let change = parse_signature_change(change_spec)?;
     let plan = crate::refactor::signature::change(&index, symbol.id, change)?;
     let summary = crate::refactor::signature::describe(&index, &plan);
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let dest = destination
+        .canonicalize()
+        .unwrap_or_else(|_| destination.to_path_buf());
+    let plan = crate::refactor::move_symbol::to_file(&index, symbol.id, &dest)?;
+    let summary = format!(
+        "moved {} from {} to {} ({} file(s) gained an import)",
+        plan.symbol,
+        plan.from.display(),
+        plan.to.display(),
+        plan.imports_added.len()
+    );
     present(cli, &plan.edits, &summary, write)
 }
 
