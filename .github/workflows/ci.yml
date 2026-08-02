@@ -1,9 +1,15 @@
 name: CI
 
+# Pull requests only. A push to `main` is a merge of a branch CI has already
+# checked, so running it again buys nothing and costs the minutes twice.
 on:
-  push:
-    branches: [main]
   pull_request:
+
+# A new commit on a pull request makes the run in flight for the old one pointless.
+# Without this it keeps going to the end and bills for it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
