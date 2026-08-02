@@ -13,6 +13,7 @@ use crate::lang::Language;
 use crate::model::FileFacts;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 /// Bumped when [`FileFacts`] changes shape in a way old entries cannot satisfy.
 const SCHEMA_VERSION: u32 = 1;
@@ -20,10 +21,11 @@ const SCHEMA_VERSION: u32 = 1;
 /// A content-addressed store of per-file facts.
 pub struct Cache {
     root: PathBuf,
-    hits: std::cell::Cell<usize>,
-    misses: std::cell::Cell<usize>,
+    // Indexing extracts files in parallel, so the counters are shared across threads.
+    hits: AtomicUsize,
+    misses: AtomicUsize,
     /// Set when the store turns out to be unusable, so we stop trying.
-    disabled: std::cell::Cell<bool>,
+    disabled: AtomicBool,
 }
 
 impl Cache {
@@ -42,9 +44,9 @@ impl Cache {
         std::fs::create_dir_all(&root).ok()?;
         Some(Cache {
             root,
-            hits: std::cell::Cell::new(0),
-            misses: std::cell::Cell::new(0),
-            disabled: std::cell::Cell::new(false),
+            hits: AtomicUsize::new(0),
+            misses: AtomicUsize::new(0),
+            disabled: AtomicBool::new(false),
         })
     }
 
@@ -68,13 +70,13 @@ impl Cache {
     /// The stored facts came from whichever file first had these bytes, so the path
     /// they carry is not necessarily this one.
     pub fn get(&self, key: &str, path: &Path) -> Option<FileFacts> {
-        if self.disabled.get() {
+        if self.disabled.load(Ordering::Relaxed) {
             return None;
         }
         let bytes = std::fs::read(self.entry_path(key)).ok()?;
         match postcard::from_bytes::<FileFacts>(&bytes) {
             Ok(mut facts) => {
-                self.hits.set(self.hits.get() + 1);
+                self.hits.fetch_add(1, Ordering::Relaxed);
                 facts.path = path.to_path_buf();
                 for symbol in &mut facts.symbols {
                     symbol.file = path.to_path_buf();
@@ -90,7 +92,7 @@ impl Cache {
             // A corrupt or outdated entry is a miss, not a failure.
             Err(_) => {
                 let _ = std::fs::remove_file(self.entry_path(key));
-                self.misses.set(self.misses.get() + 1);
+                self.misses.fetch_add(1, Ordering::Relaxed);
                 None
             }
         }
@@ -99,10 +101,10 @@ impl Cache {
     /// Store facts under a key. Failure to write only costs time, so it is ignored
     /// beyond disabling further attempts.
     pub fn put(&self, key: &str, facts: &FileFacts) {
-        if self.disabled.get() {
+        if self.disabled.load(Ordering::Relaxed) {
             return;
         }
-        self.misses.set(self.misses.get() + 1);
+        self.misses.fetch_add(1, Ordering::Relaxed);
 
         let Ok(bytes) = postcard::to_allocvec(facts) else {
             return;
@@ -110,13 +112,13 @@ impl Cache {
         let path = self.entry_path(key);
         let Some(dir) = path.parent() else { return };
         if std::fs::create_dir_all(dir).is_err() {
-            self.disabled.set(true);
+            self.disabled.store(true, Ordering::Relaxed);
             return;
         }
         // Write through a temporary file so a concurrent reader never sees a
         // half-written entry.
         let Ok(mut tmp) = tempfile::NamedTempFile::new_in(dir) else {
-            self.disabled.set(true);
+            self.disabled.store(true, Ordering::Relaxed);
             return;
         };
         use std::io::Write;
@@ -127,7 +129,10 @@ impl Cache {
     }
 
     pub fn stats(&self) -> (usize, usize) {
-        (self.hits.get(), self.misses.get())
+        (
+            self.hits.load(Ordering::Relaxed),
+            self.misses.load(Ordering::Relaxed),
+        )
     }
 
     pub fn location(&self) -> &Path {

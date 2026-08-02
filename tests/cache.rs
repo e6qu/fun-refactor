@@ -150,15 +150,35 @@ fn two_files_with_identical_content_share_one_entry() {
     let cache_dir = tempfile::tempdir().unwrap();
     let cache = Cache::open_at(cache_dir.path()).unwrap();
 
+    // Files are extracted in parallel, so within one run both may finish before
+    // either writes; the shared entry pays off from the next run onwards.
+    Index::build_with_cache(&scanned, Some(&cache)).unwrap();
+    let (before, _) = cache.stats();
     let index = Index::build_with_cache(&scanned, Some(&cache)).unwrap();
-    let (hits, _) = cache.stats();
-    assert_eq!(hits, 1, "the second file should reuse the first's entry");
+    let (after, _) = cache.stats();
+    assert_eq!(after - before, 2, "both files served from one entry");
 
     // Each file must still own its own symbol, pointing at its own path.
     let symbols = index.find_symbols("same", None);
     assert_eq!(symbols.len(), 2);
     let files: Vec<&PathBuf> = symbols.iter().map(|s| &s.file).collect();
     assert_ne!(files[0], files[1], "facts must be rewritten to their own file");
+}
+
+#[test]
+fn indexing_is_deterministic_despite_running_in_parallel() {
+    // Symbol ids are assigned by position, so results are collected in scan order
+    // and merged serially; otherwise ids would depend on thread timing.
+    let (_tmp, scanned) = workspace(FILES);
+    let first = Index::build_with_cache(&scanned, None).unwrap();
+    for _ in 0..4 {
+        let again = Index::build_with_cache(&scanned, None).unwrap();
+        assert_eq!(fingerprint(&first), fingerprint(&again));
+        assert_eq!(
+            first.symbols.iter().map(|s| s.id).collect::<Vec<_>>(),
+            again.symbols.iter().map(|s| s.id).collect::<Vec<_>>()
+        );
+    }
 }
 
 #[test]

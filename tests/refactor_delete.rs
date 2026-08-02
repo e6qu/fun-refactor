@@ -247,18 +247,43 @@ fn files_that_failed_to_parse_are_reported_as_possibly_hiding_uses() {
 }
 
 #[test]
-fn deleting_a_css_selector_removes_only_the_selector_bytes() {
-    // Documented behaviour, not desired behaviour: a CSS selector's `full_span` is the
-    // selector node (`.btn`), never the rule set it heads, so the delete leaves the
-    // declaration block behind. Fixing this belongs in queries/css/facts.scm.
-    let source = ".btn { color: red; }\n";
+fn deleting_a_lone_css_selector_removes_its_whole_rule() {
+    // A selector's `full_span` is the selector node, which is what a rename rewrites.
+    // A delete has to take the rule too: a declaration block with nothing to apply to
+    // is not valid CSS.
+    let source = ".btn { color: red; }\n.other { padding: 1px; }\n";
     let (tmp, index) = workspace(&[("style.css", source)]);
 
     let plan = delete::plan(&index, only_symbol(&index, "btn")).unwrap();
     assert_eq!(
         applied(&plan, &tmp.path().join("style.css")),
-        " { color: red; }\n",
-        "the orphaned declaration block is the known gap"
+        ".other { padding: 1px; }\n"
+    );
+}
+
+#[test]
+fn deleting_one_of_several_selectors_leaves_the_rule_standing() {
+    // The rule still applies to its remaining selectors, so only the named one and
+    // the comma joining it are removed.
+    let source = ".card, .btn, .wide { margin: 0; }\n";
+    let (tmp, index) = workspace(&[("style.css", source)]);
+
+    let plan = delete::plan(&index, only_symbol(&index, "btn")).unwrap();
+    assert_eq!(
+        applied(&plan, &tmp.path().join("style.css")),
+        ".card, .wide { margin: 0; }\n"
+    );
+}
+
+#[test]
+fn deleting_the_last_selector_in_a_list_takes_the_preceding_comma() {
+    let source = ".card, .btn { margin: 0; }\n";
+    let (tmp, index) = workspace(&[("style.css", source)]);
+
+    let plan = delete::plan(&index, only_symbol(&index, "btn")).unwrap();
+    assert_eq!(
+        applied(&plan, &tmp.path().join("style.css")),
+        ".card { margin: 0; }\n"
     );
 }
 
@@ -379,12 +404,19 @@ fn the_edits_survive_the_engines_reparse_check() {
 }
 
 #[test]
-fn deleting_a_css_selector_is_rejected_by_the_reparse_check() {
-    // The other half of `deleting_a_css_selector_removes_only_the_selector_bytes`:
-    // the engine catches what the plan gets wrong, so the damage never reaches disk.
-    let (_tmp, index) = workspace(&[("style.css", ".btn { color: red; }\n")]);
-    let plan = delete::plan(&index, only_symbol(&index, "btn")).unwrap();
-    let error = fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
-        .unwrap_err();
-    assert!(error.to_string().contains("edit rejected"), "{error}");
+fn deleting_a_css_selector_survives_the_reparse_check() {
+    // What is left has to still be CSS.
+    let (_tmp, index) = workspace(&[(
+        "style.css",
+        ".btn { color: red; }\n.card, .btn { margin: 0; }\n",
+    )]);
+    // A CSS class has no canonical definition, so `.btn` here is two sites; deleting
+    // the entity removes both.
+    let first = index.find_symbols("btn", None)[0].id;
+    let plan = delete::plan(&index, first).unwrap();
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("the result must still parse");
+    assert_eq!(outcomes.len(), 1);
+    assert!(!outcomes[0].updated.contains("btn"), "got:\n{}", outcomes[0].updated);
 }

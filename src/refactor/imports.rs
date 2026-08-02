@@ -298,6 +298,19 @@ struct Statement {
 }
 
 /// Collapse import records into statements, in source order.
+/// Is this the keyword that introduces an import in the language?
+fn is_import_keyword(text: &str, language: Language) -> bool {
+    let keywords: &[&str] = match language {
+        Language::Rust => &["use", "pub use"],
+        Language::Go => &["import"],
+        Language::Python => &["import", "from"],
+        Language::TypeScript | Language::Tsx => &["import", "export"],
+        Language::Zig => &["const"],
+        _ => &[],
+    };
+    keywords.contains(&text)
+}
+
 fn statements<'a>(
     imports: impl Iterator<Item = &'a Import>,
     source: &str,
@@ -315,7 +328,11 @@ fn statements<'a>(
             let first = full_line_span(source, span.start);
             let last = full_line_span(source, span.end - 1);
             let lines = Span::new(first.start, last.end.max(first.end).max(span.end));
-            let line_exclusive = source[lines.start..span.start].trim().is_empty()
+            // A statement owns its line if nothing but its own introducing keyword
+            // sits before it. Go records `import "os"` as the spec alone, so without
+            // this the keyword looks like unrelated code and ends the block.
+            let before = source[lines.start..span.start].trim();
+            let line_exclusive = (before.is_empty() || is_import_keyword(before, language))
                 && source[span.end..lines.end].trim().is_empty();
 
             let mut bindings = Vec::new();

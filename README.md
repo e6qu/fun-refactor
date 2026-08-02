@@ -87,9 +87,9 @@ fr entrypoints --kind http-route
 Every command takes `--json`. Every mutation prints a diff and changes nothing
 unless you add `--write`, and a multi-file change is applied atomically.
 
-Extracted facts are cached by file content and query set, so a repeated command
-re-reads only what changed — around 3–5× faster on a warm cache. `--no-cache`
-bypasses it; `fr cache --clear` empties it.
+Files are indexed in parallel, and extracted facts are cached by file content and
+query set, so a repeated command re-reads only what changed — roughly 1.7× faster
+cold and 3–5× warm. `--no-cache` bypasses the cache; `fr cache --clear` empties it.
 
 ## What it will not do
 
@@ -128,7 +128,7 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 667 tests.
+Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 673 tests.
 
 Not yet built: the optional LSP delegation backend. (A watch-mode daemon is on the
 plan but the fact cache already recovers most of what it would have saved.)

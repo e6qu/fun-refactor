@@ -529,3 +529,27 @@ fn the_go_edits_survive_the_engines_reparse_check() {
         "package main\n\nimport (\n\t\"fmt\"\n\t\"os\"\n)\n\nfunc main() {\n\tfmt.Println(os.Args)\n}\n"
     );
 }
+
+#[test]
+fn consecutive_standalone_go_imports_are_sorted() {
+    // Go records `import "os"` as the spec alone, so the `import` keyword sits
+    // outside the span. Without allowing for it the keyword looks like unrelated
+    // code and ends the block, leaving these unsorted.
+    let (_plan, updated, _path) = organize(
+        &[(
+            "m.go",
+            "package main\n\nimport \"os\"\nimport \"fmt\"\nimport \"bytes\"\n\nfunc main() { _ = os.Args; _ = fmt.Sprint; _ = bytes.MinRead }\n",
+        )],
+        "m.go",
+    );
+
+    let imports: Vec<&str> = updated
+        .lines()
+        .filter(|l| l.starts_with("import "))
+        .collect();
+    assert_eq!(
+        imports,
+        vec!["import \"bytes\"", "import \"fmt\"", "import \"os\""],
+        "got {imports:?}"
+    );
+}
