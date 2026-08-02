@@ -44,6 +44,17 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 - [ ] B6: Consecutive standalone Go `import "x"` lines are not sorted — the `import`
   keyword sits outside the `import_spec` span, so the separator is non-whitespace and
   ends the block. Parenthesised gofmt-style blocks sort correctly.
+- [ ] B8: Terraform `count`/`for_each`/splat traversals lose their trailing segments
+  (`aws_instance.web[*].id` yields the address but not `id`) — the grammar puts those
+  steps under `splat`/`index` rather than as flat `get_attr` siblings. The renameable
+  part survives; the attribute read is lost.
+- [ ] B9: `.tfvars` top-level attributes produce no symbols, so provenance reads them
+  off the CST directly rather than through the index. A definition capture in
+  `queries/hcl/facts.scm` would put values files in the index and let provenance drop
+  its private path.
+- [ ] B10: Helm values competitions are never *decided*: `--set` and `-f` ordering
+  happen at the command line and are invisible to a workspace scan, so two candidate
+  sources are reported with no winner and a `PrecedenceUndetermined` stop.
 - [ ] B7: Helm `.Values` references live inside masked template actions and are
   therefore invisible to the YAML queries. Resolving them needs a template-aware pass
   over `Parsed::template_actions`; provenance reports them as render-dependent rather

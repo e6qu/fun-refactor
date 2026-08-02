@@ -181,6 +181,15 @@ fn is_helm_path(path: &Path) -> bool {
         return true;
     }
 
+    // Any YAML sitting beside a Chart.yaml belongs to that chart — charts routinely
+    // carry values-prod.yaml and friends, and treating them as plain YAML would give
+    // them different provenance rules than the values.yaml next to them.
+    if let Some(dir) = path.parent() {
+        if dir.join("Chart.yaml").exists() || dir.join("chart.yaml").exists() {
+            return true;
+        }
+    }
+
     path.components().any(|c| {
         c.as_os_str()
             .to_str()
@@ -261,6 +270,22 @@ mod tests {
         );
         // A plain YAML file elsewhere stays YAML.
         assert_eq!(detect(Path::new("ci/config.yaml")), Some(Language::Yaml));
+    }
+
+    #[test]
+    fn other_values_files_beside_a_chart_are_helm_too() {
+        let tmp = tempfile::tempdir().unwrap();
+        let chart = tmp.path().join("mychart");
+        std::fs::create_dir_all(&chart).unwrap();
+        std::fs::write(chart.join("Chart.yaml"), "name: mychart\n").unwrap();
+
+        // A chart's alternate values files must get the same treatment as values.yaml.
+        assert_eq!(detect(&chart.join("values-prod.yaml")), Some(Language::Helm));
+        // YAML elsewhere is unaffected.
+        assert_eq!(
+            detect(&tmp.path().join("ci/config.yaml")),
+            Some(Language::Yaml)
+        );
     }
 
     #[test]
