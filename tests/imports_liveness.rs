@@ -145,7 +145,10 @@ fn python_dunder_all_naming_something_else_does_not_save_an_import() {
     assert_eq!(
         removed_paths(
             &[
-                ("a.py", "from m import thing\n\ndef other():\n    pass\n\n__all__ = [\"other\"]\n"),
+                (
+                    "a.py",
+                    "from m import thing\n\ndef other():\n    pass\n\n__all__ = [\"other\"]\n"
+                ),
                 ("m.py", "def thing():\n    pass\n"),
             ],
             "a.py"
@@ -175,10 +178,7 @@ fn typescript_a_side_effect_import_binds_nothing_and_is_kept() {
     // Already handled by binding nothing rather than by a guard; asserted here so the
     // zero-binding path stays covered next to the guards that surround it.
     kept_because(
-        &[(
-            "a.ts",
-            "import './polyfill';\n\nexport const x = 1;\n",
-        )],
+        &[("a.ts", "import './polyfill';\n\nexport const x = 1;\n")],
         "a.ts",
         "./polyfill",
         "side effects",
@@ -300,7 +300,10 @@ fn typescript_without_the_pragma_the_same_import_goes() {
 fn go_an_import_nothing_names_goes() {
     assert_eq!(
         removed_paths(
-            &[("a.go", "package main\n\nimport \"strings\"\n\nfunc main() {}\n")],
+            &[(
+                "a.go",
+                "package main\n\nimport \"strings\"\n\nfunc main() {}\n"
+            )],
             "a.go"
         ),
         vec!["strings".to_string()]
@@ -487,8 +490,14 @@ fn a_mutually_recursive_dead_group_is_reported() {
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n",
     )]);
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
-    assert!(unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
+    assert!(
+        unused.contains(&only_symbol(&index, "ping")),
+        "got {unused:?}"
+    );
+    assert!(
+        unused.contains(&only_symbol(&index, "pong")),
+        "got {unused:?}"
+    );
 }
 
 #[test]
@@ -498,8 +507,14 @@ fn a_mutually_recursive_group_one_entry_point_reaches_is_not_reported() {
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() { ping(); }\n",
     )]);
     let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
-    assert!(!unused.contains(&only_symbol(&index, "ping")), "got {unused:?}");
-    assert!(!unused.contains(&only_symbol(&index, "pong")), "got {unused:?}");
+    assert!(
+        !unused.contains(&only_symbol(&index, "ping")),
+        "got {unused:?}"
+    );
+    assert!(
+        !unused.contains(&only_symbol(&index, "pong")),
+        "got {unused:?}"
+    );
 }
 
 #[test]
@@ -518,12 +533,11 @@ fn a_longer_dead_cycle_is_reported_as_a_group() {
 }
 
 #[test]
-fn dynamic_dispatch_with_no_string_to_go_on_remains_a_false_positive() {
-    // The part of B5 that stays open. The `hello` that runs is the impl's, reached
-    // through a `&dyn Greet`, so the only resolved edge from `main` goes to the trait
-    // method and nothing leads to the implementation. No string names it either.
-    // Nothing in the workspace distinguishes this from dead code, and inventing a
-    // distinction would be guessing.
+fn dynamic_dispatch_no_longer_looks_dead() {
+    // The `hello` that runs is the impl's, reached through a `&dyn Greet`, and no
+    // resolved edge leads to it. `impl Greet for Greeter` is the distinction the
+    // workspace does draw, though: class hierarchy analysis follows it and spares
+    // every implementation of the trait. See tests/hierarchy_reachability.rs.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "trait Greet { fn hello(&self); }\nstruct Greeter;\nimpl Greet for Greeter {\n    fn hello(&self) {}\n}\nfn main() {\n    let g: &dyn Greet = &Greeter;\n    g.hello();\n}\n",
@@ -535,7 +549,30 @@ fn dynamic_dispatch_with_no_string_to_go_on_remains_a_false_positive() {
         .map(|s| s.name.as_str())
         .collect();
     assert!(
-        names.contains(&"hello"),
-        "a method only ever reached through a trait object still looks dead: {names:?}"
+        !names.contains(&"hello"),
+        "the impl of a trait a call names is reachable code: {names:?}"
+    );
+}
+
+#[test]
+fn a_name_assembled_at_runtime_remains_a_false_positive() {
+    // The part of B5 that stays open. The handler's name exists only once the pieces
+    // are concatenated, so no reference resolves to it, no string literal spells it,
+    // and no type declares it as a method for a hierarchy to fan out to. Nothing in
+    // the workspace distinguishes this from dead code, and inventing a distinction
+    // would be guessing.
+    let (_tmp, index) = workspace(&[(
+        "a.rs",
+        "fn on_event() {}\nfn dispatch(name: &str) {}\nfn main() {\n    let name = format!(\"on_{}\", \"event\");\n    dispatch(&name);\n}\n",
+    )]);
+    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let names: Vec<&str> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.as_str())
+        .collect();
+    assert!(
+        names.contains(&"on_event"),
+        "a function value in a field has nothing to resolve through: {names:?}"
     );
 }

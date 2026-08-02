@@ -251,9 +251,7 @@ fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static st
 /// The outermost node covering exactly the fragment inside its wrapper.
 fn fragment_root<'a>(parsed: &'a Parsed, offset: usize, len: usize) -> Option<Node<'a>> {
     let span = Span::new(offset, offset + len);
-    let mut node = parsed
-        .root()
-        .descendant_for_byte_range(span.start, span.end)?;
+    let mut node = parsed.descendant_at(span.start, span.end)?;
 
     // Widen through wrappers of identical extent, then narrow past statement
     // containers the wrapper introduced.
@@ -320,8 +318,8 @@ struct Metavariable {
 /// text inside the quotes, that inner node is what a metavariable binds, and a
 /// pattern string stays a pattern string rather than matching any node at all.
 fn metavariable(node: Node<'_>, source: &str) -> Option<Metavariable> {
-    // Some grammars fold padding into a node — tree-sitter-markdown's
-    // `heading_content` keeps the space after the `#` markers — so compare trimmed.
+    // Some grammars fold padding into a node — tree-sitter-yaml keeps the space
+    // after a `-` sequence marker inside the item — so compare trimmed.
     let text = Span::from(node).text(source).trim();
     if let Some(name) = meta_name(text) {
         return Some(Metavariable {
@@ -377,7 +375,9 @@ fn find_matches(
     pattern: &Pattern<'_>,
 ) -> Vec<(Span, HashMap<String, String>)> {
     let mut results = Vec::new();
-    let mut stack = vec![parsed.root()];
+    // Markdown's inline content is a sub-tree of its own, and that is where its links
+    // and emphasis are; a pattern over them matches nothing in the block tree.
+    let mut stack: Vec<Node> = parsed.roots().collect();
     let mut cursor = parsed.root().walk();
 
     while let Some(node) = stack.pop() {
@@ -395,6 +395,10 @@ fn find_matches(
     }
 
     results.sort_by_key(|(span, _)| *span);
+    // A node can appear in two trees at once — Markdown's `inline` is the block
+    // grammar's opaque leaf and the inline grammar's root — and one match rewritten
+    // twice is an overlapping edit the engine rejects.
+    results.dedup_by_key(|(span, _)| *span);
     results
 }
 

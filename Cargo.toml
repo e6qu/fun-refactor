@@ -6,6 +6,9 @@ authors = ["e6qu"]
 license = "AGPL-3.0-or-later"
 description = "Multi-language refactoring and code-intelligence CLI built on tree-sitter"
 repository = "https://github.com/e6qu/fun-refactor"
+# Reference material and derivation evidence, not build input. Compiling it would
+# change the licence obligations — see vendor/README.md.
+exclude = ["vendor/", "docs/"]
 
 [[bin]]
 name = "fr"
@@ -29,7 +32,11 @@ tree-sitter-css = "0.25"
 # @include, so SCSS parsed as CSS is mostly parse errors (was BUGS.md B1).
 tree-sitter-scss = "1.0"
 tree-sitter-xml = "0.7"
-tree-sitter-markdown-fork = "0.7"
+# The maintained grammar from tree-sitter-grammars/tree-sitter-markdown. Its
+# predecessor (tree-sitter-markdown-fork 0.7) abort()s inside its C++ inline scanner
+# on wide tables, which no in-process handler can catch. This one splits block and
+# inline parsing into two languages, which src/parse.rs stitches back together.
+tree-sitter-md-025 = "0.5"
 streaming-iterator = "0.1"
 
 serde = { version = "1.0", features = ["derive"] }

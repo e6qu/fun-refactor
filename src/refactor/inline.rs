@@ -37,13 +37,13 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // inliner, mirroring the extraction that produced it.
     match (sym.language, sym.kind) {
         (Language::Hcl, SymbolKind::Variable) => return hcl_local(index, symbol),
-        (Language::Yaml | Language::Helm, SymbolKind::Anchor) => {
-            return yaml_anchor(index, symbol)
-        }
+        (Language::Yaml | Language::Helm, SymbolKind::Anchor) => return yaml_anchor(index, symbol),
         (Language::Css | Language::Scss, SymbolKind::Property) => {
             return css_custom_property(index, symbol)
         }
-        (Language::Markdown, SymbolKind::LinkDef) => return markdown_link_definition(index, symbol),
+        (Language::Markdown, SymbolKind::LinkDef) => {
+            return markdown_link_definition(index, symbol)
+        }
         // Shell quoting decides what a substitution means, so bash cannot go through
         // the generic path, which would splice a value into `${…}` and change it.
         (Language::Bash, SymbolKind::Variable | SymbolKind::Constant) => {
@@ -299,7 +299,10 @@ mod tests {
 
         let plan = variable(&index, id).unwrap();
         assert_eq!(plan.use_sites, 2);
-        assert_eq!(apply(&plan, &path), "fn f() {\n    p(a + b);\n    q(a + b);\n}\n");
+        assert_eq!(
+            apply(&plan, &path),
+            "fn f() {\n    p(a + b);\n    q(a + b);\n}\n"
+        );
     }
 
     #[test]
@@ -383,7 +386,11 @@ mod tests {
 
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         let index2 = Index::build_from_scan(&scanned).unwrap();
-        let id = var_at(&index2, &path, after_extract.find("let subtotal").unwrap() + 4);
+        let id = var_at(
+            &index2,
+            &path,
+            after_extract.find("let subtotal").unwrap() + 4,
+        );
 
         let inlined = variable(&index2, id).unwrap();
         let after_inline =
@@ -431,7 +438,10 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     if !reference.confidence.is_safe_to_rewrite() {
         return Err(Refusal::TooWeak {
             confidence: reference.confidence,
-            detail: format!("the callee of '{}' was not resolved conclusively", reference.name),
+            detail: format!(
+                "the callee of '{}' was not resolved conclusively",
+                reference.name
+            ),
         }
         .into());
     }
@@ -443,7 +453,10 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 
     // Inlining a function into itself would not terminate.
     if callee.file == *file && callee.full_span.contains_offset(offset) {
-        anyhow::bail!("'{}' calls itself here; inlining would not terminate", callee.name);
+        anyhow::bail!(
+            "'{}' calls itself here; inlining would not terminate",
+            callee.name
+        );
     }
 
     let callee_source = std::fs::read_to_string(&callee.file)?;
@@ -518,10 +531,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 }
 
 /// The single expression a function body evaluates to, if that is all it does.
-fn single_expression_body<'a>(
-    declaration: tree_sitter::Node<'a>,
-    source: &str,
-) -> Option<Span> {
+fn single_expression_body<'a>(declaration: tree_sitter::Node<'a>, source: &str) -> Option<Span> {
     let body = declaration.child_by_field_name("body")?;
     // Some grammars interpose a list node between a block and its statements
     // (tree-sitter-go wraps them in `statement_list`); descend through it, or the
@@ -641,7 +651,10 @@ fn argument_texts(call: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
 }
 
 /// The call expression containing `span`.
-fn enclosing_call<'a>(parsed: &'a crate::parse::Parsed, span: Span) -> Option<tree_sitter::Node<'a>> {
+fn enclosing_call<'a>(
+    parsed: &'a crate::parse::Parsed,
+    span: Span,
+) -> Option<tree_sitter::Node<'a>> {
     let mut node = parsed
         .root()
         .descendant_for_byte_range(span.start, span.end)?;
@@ -736,7 +749,7 @@ fn needs_parentheses(expansion: &str) -> bool {
 
 /// The node whose byte range is exactly, or most closely, the given span.
 fn node_covering<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
-    parsed.root().descendant_for_byte_range(span.start, span.end)
+    parsed.descendant_at(span.start, span.end)
 }
 
 /// The innermost ancestor of `node` (or `node` itself) with this kind.
@@ -1061,9 +1074,7 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .ok_or_else(|| anyhow::anyhow!("'&{}' is not an anchor node", sym.name))?;
 
     let mut value_start = anchor.end_byte();
-    while value_start < sym.full_span.end
-        && source.as_bytes()[value_start].is_ascii_whitespace()
-    {
+    while value_start < sym.full_span.end && source.as_bytes()[value_start].is_ascii_whitespace() {
         value_start += 1;
     }
     if value_start >= sym.full_span.end {
@@ -1072,7 +1083,9 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             sym.name
         );
     }
-    let value_text = source[value_start..sym.full_span.end].trim_end().to_string();
+    let value_text = source[value_start..sym.full_span.end]
+        .trim_end()
+        .to_string();
     if value_text.contains('\n') {
         anyhow::bail!(
             "'&{}' anchors a block collection spanning several lines. Substituting it \
@@ -1368,7 +1381,7 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
     let mut edits = EditSet::new();
     for reference in &references {
         let link = node_covering(&parsed, reference.span)
-            .and_then(|n| ancestor_of_kind(n, "link"))
+            .and_then(markdown_link_ancestor)
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "a use of '[{}]' at byte {} is not a link",
@@ -1406,6 +1419,26 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
         edits,
         use_sites: references.len(),
     })
+}
+
+/// The innermost Markdown link enclosing `node`.
+///
+/// A reference link is a node of the inline grammar, and it has one kind per
+/// spelling: `[t][label]`, `[label][]` and `[label]` are three different nodes.
+fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
+    const KINDS: [&str; 4] = [
+        "inline_link",
+        "full_reference_link",
+        "collapsed_reference_link",
+        "shortcut_link",
+    ];
+    let mut current = node;
+    loop {
+        if KINDS.contains(&current.kind()) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
 }
 
 /// The lines a link reference definition occupies, plus the blank line before it when
@@ -1592,17 +1625,16 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             )
         })?;
         let expansion = bash_expansion_of(use_node, &source, &sym.name)?;
-        let (target, replacement) =
-            match bash_redundant_quotes(expansion, &source, &sym.name) {
-                // `x="$name"` on the right of an assignment is one word however it is
-                // written, so the quotes may go with the expansion and the value keeps
-                // its own — which is what makes an extraction reversible byte for byte.
-                Some(quoted) => (quoted, Span::from(value).text(&source).to_string()),
-                None => (
-                    Span::from(expansion),
-                    bash_substitution(expansion, value, &source, &sym.name)?,
-                ),
-            };
+        let (target, replacement) = match bash_redundant_quotes(expansion, &source, &sym.name) {
+            // `x="$name"` on the right of an assignment is one word however it is
+            // written, so the quotes may go with the expansion and the value keeps
+            // its own — which is what makes an extraction reversible byte for byte.
+            Some(quoted) => (quoted, Span::from(value).text(&source).to_string()),
+            None => (
+                Span::from(expansion),
+                bash_substitution(expansion, value, &source, &sym.name)?,
+            ),
+        };
         edits.add(
             reference.file.clone(),
             Edit::new(target, replacement, format!("inline {}", sym.name)),
@@ -1730,7 +1762,9 @@ fn bash_redundant_quotes(expansion: Node<'_>, source: &str, name: &str) -> Optio
     if text != format!("\"${name}\"") && text != format!("\"${{{name}}}\"") {
         return None;
     }
-    let assignment = string.parent().filter(|p| p.kind() == "variable_assignment")?;
+    let assignment = string
+        .parent()
+        .filter(|p| p.kind() == "variable_assignment")?;
     let value = assignment.child_by_field_name("value")?;
     (value.id() == string.id()).then(|| Span::from(string))
 }

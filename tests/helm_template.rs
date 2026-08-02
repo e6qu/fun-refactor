@@ -47,7 +47,10 @@ fn a_values_path_survives_a_pipeline() {
     let a = action("{{ .Values.x | default \"y\" | quote }}");
     assert_eq!(a.kind, ActionKind::Expression);
     assert_eq!(a.values_paths(), vec![path(&["x"])]);
-    assert_eq!(a.functions, vec!["default".to_string(), "quote".to_string()]);
+    assert_eq!(
+        a.functions,
+        vec!["default".to_string(), "quote".to_string()]
+    );
     assert!(a.problems.is_empty(), "{:?}", a.problems);
 }
 
@@ -114,7 +117,10 @@ fn builtin_objects_are_told_apart_from_values() {
 #[test]
 fn a_bare_builtin_with_no_field_still_counts() {
     // `.Release` alone reads the object; it is still not a values key.
-    assert_eq!(action("{{ toYaml .Release }}").builtins(), vec![Builtin::Release]);
+    assert_eq!(
+        action("{{ toYaml .Release }}").builtins(),
+        vec![Builtin::Release]
+    );
 }
 
 #[test]
@@ -369,7 +375,11 @@ fn a_define_is_located_by_name_and_by_the_bytes_it_covers() {
     );
     let template = template(source);
     assert_eq!(
-        template.defines.iter().map(|d| d.name.as_str()).collect::<Vec<_>>(),
+        template
+            .defines
+            .iter()
+            .map(|d| d.name.as_str())
+            .collect::<Vec<_>>(),
         vec!["chart.name", "chart.labels"]
     );
 
@@ -393,16 +403,12 @@ fn action_spans_index_the_original_file() {
     let source = "name: {{ .Values.x }}\n";
     let template = template(source);
     assert_eq!(template.actions.len(), 1);
+    assert_eq!(template.actions[0].span.text(source), "{{ .Values.x }}");
+    assert_eq!(template.actions[0].refs[0].span.text(source), ".Values.x");
     assert_eq!(
-        template.actions[0].span.text(source),
-        "{{ .Values.x }}"
-    );
-    assert_eq!(
-        template.actions[0].refs[0].span.text(source),
-        ".Values.x"
-    );
-    assert_eq!(
-        template.action_at(source.find(".Values").unwrap()).map(|(i, _)| i),
+        template
+            .action_at(source.find(".Values").unwrap())
+            .map(|(i, _)| i),
         Some(0)
     );
     assert!(template.actions_in(Span::new(0, 5)).is_empty());
@@ -489,12 +495,18 @@ fn chart() -> (tempfile::TempDir, Index) {
     workspace(&[
         ("app/Chart.yaml", CHART),
         ("app/values.yaml", VALUES),
-        ("app/charts/mysql/Chart.yaml", "name: mysql\nversion: 8.0.0\n"),
+        (
+            "app/charts/mysql/Chart.yaml",
+            "name: mysql\nversion: 8.0.0\n",
+        ),
         ("app/charts/mysql/values.yaml", SUBCHART_VALUES),
         ("app/templates/_helpers.tpl", HELPERS),
         ("app/templates/deployment.yaml", DEPLOYMENT),
         ("app/templates/ingress.yaml", INGRESS),
-        ("app/main.py", "import os\nos.environ[\"DATABASE_URL\"]\nos.getenv(\"LOG_LEVEL\")\n"),
+        (
+            "app/main.py",
+            "import os\nos.environ[\"DATABASE_URL\"]\nos.getenv(\"LOG_LEVEL\")\n",
+        ),
     ])
 }
 
@@ -590,10 +602,10 @@ fn a_value_from_an_include_is_followed_into_the_define() {
         "the values key behind the define is resolved: {texts:?}"
     );
     assert!(
-        result.hops.iter().any(|h| h
-            .file
-            .to_string_lossy()
-            .ends_with("_helpers.tpl")),
+        result
+            .hops
+            .iter()
+            .any(|h| h.file.to_string_lossy().ends_with("_helpers.tpl")),
         "the answer lives in another file, and says so: {:?}",
         result.hops.iter().map(|h| &h.file).collect::<Vec<_>>()
     );
@@ -618,13 +630,13 @@ fn a_values_key_read_only_inside_a_define_names_its_include_sites() {
 
     let texts: Vec<&str> = result.hops.iter().map(|h| h.text.as_str()).collect();
     assert!(
-        texts.iter().any(|t| t.contains("{{ .Values.image.tag | quote }}")),
+        texts
+            .iter()
+            .any(|t| t.contains("{{ .Values.image.tag | quote }}")),
         "the read inside the define: {texts:?}"
     );
     assert!(
-        texts
-            .iter()
-            .any(|t| t.contains("include \"app.labels\"")),
+        texts.iter().any(|t| t.contains("include \"app.labels\"")),
         "the include site that makes the read happen: {texts:?}"
     );
 }
@@ -775,9 +787,17 @@ fn an_env_var_takes_its_values_path_from_the_action_after_the_colon() {
     let chain = chains
         .iter()
         .find(|c| c.env_var == "DATABASE_URL")
-        .unwrap_or_else(|| panic!("no chain: {:?}", chains.iter().map(|c| &c.env_var).collect::<Vec<_>>()));
+        .unwrap_or_else(|| {
+            panic!(
+                "no chain: {:?}",
+                chains.iter().map(|c| &c.env_var).collect::<Vec<_>>()
+            )
+        });
 
-    assert_eq!(chain.values_path.as_deref(), Some(&path(&["db", "url"])[..]));
+    assert_eq!(
+        chain.values_path.as_deref(),
+        Some(&path(&["db", "url"])[..])
+    );
     assert!(chain.values_file.is_some());
     assert_eq!(chain.conditional_on, None, "this one is not guarded");
     assert_eq!(chain.reads.len(), 1, "got {:?}", chain.reads);

@@ -24,7 +24,11 @@ fn facts(src: &str) -> FileFacts {
 /// which is the failure mode of overlapping query patterns.
 fn one<'a>(f: &'a FileFacts, name: &str) -> &'a Symbol {
     let found: Vec<_> = f.symbols.iter().filter(|s| s.name == name).collect();
-    assert_eq!(found.len(), 1, "expected exactly one `{name}`, got {found:?}");
+    assert_eq!(
+        found.len(),
+        1,
+        "expected exactly one `{name}`, got {found:?}"
+    );
     found[0]
 }
 
@@ -95,14 +99,22 @@ fn no_definition_is_captured_twice() {
     let before = spans.len();
     spans.sort();
     spans.dedup();
-    assert_eq!(before, spans.len(), "duplicate definitions in {:?}", f.symbols);
+    assert_eq!(
+        before,
+        spans.len(),
+        "duplicate definitions in {:?}",
+        f.symbols
+    );
 }
 
 #[test]
 fn both_function_syntaxes_are_captured() {
     let src = "posix() {\n  echo a\n}\nfunction keyword {\n  echo b\n}\nfunction hybrid() {\n  echo c\n}\n";
     let f = facts(src);
-    assert_eq!(names_of(&f, SymbolKind::Function), vec!["posix", "keyword", "hybrid"]);
+    assert_eq!(
+        names_of(&f, SymbolKind::Function),
+        vec!["posix", "keyword", "hybrid"]
+    );
 
     // name_span is the identifier alone — the bytes a rename rewrites.
     let posix = one(&f, "posix");
@@ -111,7 +123,10 @@ fn both_function_syntaxes_are_captured() {
 
     let keyword = one(&f, "keyword");
     assert_eq!(keyword.name_span.text(src), "keyword");
-    assert_eq!(keyword.full_span.text(src), "function keyword {\n  echo b\n}");
+    assert_eq!(
+        keyword.full_span.text(src),
+        "function keyword {\n  echo b\n}"
+    );
 }
 
 #[test]
@@ -134,7 +149,9 @@ fn a_nested_function_is_contained_by_its_outer_function() {
     assert_eq!(inner.kind, SymbolKind::Function);
     assert_eq!(inner.qualifier, None);
     assert_eq!(
-        inner.container.map(|id| f.symbol(id).unwrap().name.as_str()),
+        inner
+            .container
+            .map(|id| f.symbol(id).unwrap().name.as_str()),
         Some("outer")
     );
 }
@@ -254,7 +271,8 @@ fn command_invocations_are_call_references() {
 
 #[test]
 fn every_expansion_form_is_an_identifier_reference() {
-    let src = "NAME=1\narr=(x y)\nn=0\necho $NAME\necho \"${NAME}\"\necho \"${arr[0]}\"\n(( n++ ))\n";
+    let src =
+        "NAME=1\narr=(x y)\nn=0\necho $NAME\necho \"${NAME}\"\necho \"${arr[0]}\"\n(( n++ ))\n";
     let f = facts(src);
     let refs: Vec<_> = f
         .references
@@ -336,7 +354,10 @@ fn symbol_and_reference_lookup_by_offset() {
     let src = "greet() {\n  echo hi\n}\ngreet\n";
     let f = facts(src);
     let def_offset = src.find("greet").unwrap() + 1;
-    assert_eq!(f.symbol_at(def_offset).map(|s| s.name.as_str()), Some("greet"));
+    assert_eq!(
+        f.symbol_at(def_offset).map(|s| s.name.as_str()),
+        Some("greet")
+    );
     let call_offset = src.rfind("greet").unwrap() + 1;
     assert_eq!(
         f.reference_at(call_offset).map(|r| r.name.as_str()),
@@ -358,7 +379,10 @@ fn the_rich_sample_yields_the_expected_facts() {
     }
 
     assert_eq!(
-        f.imports.iter().map(|i| i.path.as_str()).collect::<Vec<_>>(),
+        f.imports
+            .iter()
+            .map(|i| i.path.as_str())
+            .collect::<Vec<_>>(),
         vec!["./lib/util.sh", "/etc/profile"]
     );
 

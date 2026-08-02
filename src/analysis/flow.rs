@@ -53,7 +53,10 @@ impl std::fmt::Display for StopReason {
         match self {
             StopReason::Origin(what) => write!(f, "origin: {what}"),
             StopReason::UnresolvedCall(name) => {
-                write!(f, "value comes from call to '{name}', which did not resolve")
+                write!(
+                    f,
+                    "value comes from call to '{name}', which did not resolve"
+                )
             }
             StopReason::Unresolved(name) => write!(f, "'{name}' did not resolve to a definition"),
             StopReason::TooWeak(c) => {
@@ -192,9 +195,10 @@ fn walk_backward(
 
     // The value assigned to this definition.
     let Some(value_node) = value_of_definition(&parsed, symbol.full_span, symbol.name_span) else {
-        result
-            .stops
-            .push((depth, StopReason::Origin(format!("{} has no initialiser", symbol.name))));
+        result.stops.push((
+            depth,
+            StopReason::Origin(format!("{} has no initialiser", symbol.name)),
+        ));
         return Ok(());
     };
     let value_span = Span::from(value_node);
@@ -264,10 +268,9 @@ fn walk_backward(
                     seen,
                 )?;
             }
-            None => result.stops.push((
-                depth + 1,
-                StopReason::Unresolved(reference.name.clone()),
-            )),
+            None => result
+                .stops
+                .push((depth + 1, StopReason::Unresolved(reference.name.clone()))),
         }
     }
     Ok(())
@@ -332,7 +335,8 @@ fn walk_forward(
             continue;
         };
         let parsed = Parsers::new().parse(info.language, &ref_source)?;
-        if let Some(target) = enclosing_assignment_target(index, &parsed, &reference.file, reference.span)
+        if let Some(target) =
+            enclosing_assignment_target(index, &parsed, &reference.file, reference.span)
         {
             walk_forward(index, target, depth + 2, max_depth, result, seen)?;
         }
@@ -393,7 +397,9 @@ fn enclosing_assignment_target(
     file: &Path,
     span: Span,
 ) -> Option<SymbolId> {
-    let mut node = parsed.root().descendant_for_byte_range(span.start, span.end)?;
+    let mut node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)?;
 
     // Walk outwards looking for a node whose `value`/`right` contains our span.
     for _ in 0..16 {
@@ -481,7 +487,9 @@ mod tests {
         let path = tmp.path().join("a.rs");
         let flow = backward(&index, &path, src.find("let a").unwrap() + 4, 5).unwrap();
         assert!(
-            flow.stops.iter().any(|(_, r)| matches!(r, StopReason::Origin(_))),
+            flow.stops
+                .iter()
+                .any(|(_, r)| matches!(r, StopReason::Origin(_))),
             "reaching a literal is an origin: {:?}",
             flow.stops
         );
@@ -525,7 +533,9 @@ mod tests {
         let path = tmp.path().join("a.rs");
         let flow = backward(&index, &path, src.find("let a").unwrap() + 4, 5).unwrap();
         assert!(
-            flow.steps.iter().any(|s| s.text.contains("returned by make")),
+            flow.steps
+                .iter()
+                .any(|s| s.text.contains("returned by make")),
             "got {:?}",
             flow.steps.iter().map(|s| &s.text).collect::<Vec<_>>()
         );
@@ -536,7 +546,9 @@ mod tests {
         let src = "fn f() {\n    let a = 1;\n    g(a);\n    h(a);\n}\n";
         let (tmp, index) = workspace(&[("a.rs", src)]);
         let path = tmp.path().join("a.rs");
-        let a = index.definition_at(&path, src.find("let a").unwrap() + 4).unwrap();
+        let a = index
+            .definition_at(&path, src.find("let a").unwrap() + 4)
+            .unwrap();
 
         let flow = forward(&index, a.id, 5).unwrap();
         let uses = flow.steps.iter().filter(|s| s.text.contains("(a)")).count();

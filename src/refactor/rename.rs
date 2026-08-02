@@ -99,7 +99,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // Same-named references that resolved somewhere else entirely. These are not
     // ours to touch, but a human should confirm the resolution was right.
     for reference in index.unresolved_matching(symbol_id) {
-        if reference.target.is_none() && !seen_spans.contains(&(reference.file.clone(), reference.span))
+        if reference.target.is_none()
+            && !seen_spans.contains(&(reference.file.clone(), reference.span))
         {
             warnings.push(locate_warning(
                 WarningKind::WeaklyResolved,
@@ -115,9 +116,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // string literal, and reporting it as unhandled after editing it would be wrong.
     let edited: Vec<(PathBuf, Span)> = edits
         .iter()
-        .flat_map(|(path, file_edits)| {
-            file_edits.iter().map(|e| (path.clone(), e.span))
-        })
+        .flat_map(|(path, file_edits)| file_edits.iter().map(|e| (path.clone(), e.span)))
         .collect();
     warnings.extend(textual_sweep(index, &symbol.name, &edited)?);
 
@@ -212,8 +211,24 @@ fn is_keyword(name: &str, language: Language) -> bool {
             "unsafe", "async", "await", "dyn", "loop", "in", "as",
         ],
         Language::Go => &[
-            "func", "var", "const", "type", "struct", "interface", "map", "chan", "go", "defer",
-            "select", "switch", "case", "default", "package", "import", "range", "fallthrough",
+            "func",
+            "var",
+            "const",
+            "type",
+            "struct",
+            "interface",
+            "map",
+            "chan",
+            "go",
+            "defer",
+            "select",
+            "switch",
+            "case",
+            "default",
+            "package",
+            "import",
+            "range",
+            "fallthrough",
         ],
         Language::Python => &[
             "def", "class", "lambda", "import", "from", "global", "nonlocal", "pass", "raise",
@@ -221,14 +236,60 @@ fn is_keyword(name: &str, language: Language) -> bool {
             "and", "or", "not", "is", "in", "as", "async", "await", "elif",
         ],
         Language::TypeScript | Language::Tsx => &[
-            "function", "var", "let", "const", "class", "interface", "type", "enum", "import",
-            "export", "default", "extends", "implements", "new", "this", "super", "typeof",
-            "instanceof", "void", "null", "undefined", "async", "await", "yield", "switch",
-            "case", "try", "catch", "finally", "throw", "delete", "in", "of",
+            "function",
+            "var",
+            "let",
+            "const",
+            "class",
+            "interface",
+            "type",
+            "enum",
+            "import",
+            "export",
+            "default",
+            "extends",
+            "implements",
+            "new",
+            "this",
+            "super",
+            "typeof",
+            "instanceof",
+            "void",
+            "null",
+            "undefined",
+            "async",
+            "await",
+            "yield",
+            "switch",
+            "case",
+            "try",
+            "catch",
+            "finally",
+            "throw",
+            "delete",
+            "in",
+            "of",
         ],
         Language::Zig => &[
-            "fn", "var", "const", "pub", "struct", "enum", "union", "error", "try", "catch",
-            "defer", "comptime", "inline", "test", "switch", "orelse", "unreachable", "and", "or",
+            "fn",
+            "var",
+            "const",
+            "pub",
+            "struct",
+            "enum",
+            "union",
+            "error",
+            "try",
+            "catch",
+            "defer",
+            "comptime",
+            "inline",
+            "test",
+            "switch",
+            "orelse",
+            "unreachable",
+            "and",
+            "or",
         ],
         Language::Bash => &["function", "then", "fi", "do", "done", "case", "esac", "in"],
         _ => &[],
@@ -460,7 +521,10 @@ mod tests {
         let (_tmp, index) = workspace(&[("a.rs", "fn alpha() {}\nfn beta() {}\n")]);
         let err = plan(&index, only_symbol(&index, "alpha"), "beta").unwrap_err();
         let refusal = err.downcast_ref::<Refusal>().expect("a refusal");
-        assert!(matches!(refusal, Refusal::NameCollision { .. }), "{refusal}");
+        assert!(
+            matches!(refusal, Refusal::NameCollision { .. }),
+            "{refusal}"
+        );
     }
 
     #[test]
@@ -494,7 +558,8 @@ mod tests {
 
     #[test]
     fn reports_occurrences_in_strings_and_comments_without_editing_them() {
-        let src = "// helper does things\nfn helper() {}\nfn main() { let s = \"call helper now\"; }\n";
+        let src =
+            "// helper does things\nfn helper() {}\nfn main() { let s = \"call helper now\"; }\n";
         let (tmp, index) = workspace(&[("a.rs", src)]);
         let plan = plan(&index, only_symbol(&index, "helper"), "assist").unwrap();
 
@@ -543,7 +608,10 @@ mod tests {
         assert!(out.contains("let y = 2;"), "got:\n{out}");
         assert!(out.contains("g(y)"), "inner use should be renamed:\n{out}");
         assert!(out.contains("h(x)"), "outer use must be untouched:\n{out}");
-        assert!(out.contains("let x = 1;"), "outer binding untouched:\n{out}");
+        assert!(
+            out.contains("let x = 1;"),
+            "outer binding untouched:\n{out}"
+        );
     }
 
     #[test]
@@ -571,10 +639,8 @@ mod tests {
 
     #[test]
     fn warns_about_files_that_failed_to_parse() {
-        let (_tmp, index) = workspace(&[
-            ("a.rs", "fn alpha() {}\n"),
-            ("broken.rs", "fn oops( {\n"),
-        ]);
+        let (_tmp, index) =
+            workspace(&[("a.rs", "fn alpha() {}\n"), ("broken.rs", "fn oops( {\n")]);
         let plan = plan(&index, only_symbol(&index, "alpha"), "beta").unwrap();
         assert!(
             plan.warnings

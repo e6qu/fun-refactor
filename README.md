@@ -65,7 +65,9 @@ fr cache                      # where cached facts live, and how big
 fr scan                       # files it can act on
 fr parse --stats              # syntax health per language
 fr symbols --kind function    # what is defined
-fr def <name|path:line:col>   # where is it defined
+fr def <name|path:line:col>   # where is it defined — every definition
+fr implementations <target>   # the concrete implementations of an abstraction
+fr usages <target>            # every use, grouped by file, with its context
 fr refs <target>              # where is it used, with confidence per site
 fr rename <target> <new>      # rename it and everything that points at it
 fr extract <path:l:c-l:c> <n> # extract an expression into a binding
@@ -84,7 +86,8 @@ fr rewrite <path:l:c> guard-clause   # ...and apply one
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call
 fr graph --dot                # the call graph
-fr flow back <target>         # where did this value come from
+fr flow back <target> [-f values.yaml] [--set a.b=c]
+                              # where did this value come from
 fr flow fwd <target>          # where does it go
                               #   (def-use for code, substitution/override
                               #    provenance for config languages)
@@ -127,6 +130,19 @@ exactly — including inside an extracted expression.
 ```
 cargo install --path .
 ```
+
+## Third-party material
+
+`vendor/` holds the upstream tree-sitter query files the rules in `queries/` were
+derived from, each with its licence and a checksum in `vendor/MANIFEST.toml`. Nothing
+there is compiled — it is reference material and derivation evidence, and
+`cargo test --test vendor` fails if a file changes without its manifest entry, if a
+file appears with no provenance, or if a licence arrives that is not compatible with
+AGPL-3.0-or-later.
+
+Refresh it with `python3 vendor/vendor.py` after bumping a grammar, and read the diff:
+a grammar that renames a node does not break the build, it makes a query silently stop
+matching.
 
 ## Adding a language
 

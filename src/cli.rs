@@ -87,10 +87,29 @@ enum Command {
         #[arg(long)]
         stats: bool,
     },
-    /// Show the definition a position or name refers to.
+    /// Show where a symbol is defined — every definition, not just one.
+    ///
+    /// A trait or interface method has as many definitions as implementations, and a
+    /// CSS class is declared by every rule that names it.
     Def {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
+        /// Show only the primary definition.
+        #[arg(long)]
+        first: bool,
+    },
+    /// Show the concrete implementations of an abstract declaration.
+    Implementations {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+    },
+    /// Show every use of a symbol, grouped by file.
+    Usages {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// Include same-named occurrences that resolved elsewhere or not at all.
+        #[arg(long)]
+        include_unresolved: bool,
     },
     /// Show what calls a function.
     Callers {
@@ -232,6 +251,10 @@ enum Command {
         write: bool,
     },
     /// Trace where a value comes from or goes to.
+    ///
+    /// For Helm charts, `-f` and `--set` describe the invocation the answer is
+    /// for: without them a values key that the command line could override is
+    /// reported undecided, with them the same precedence order decides it.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
         #[arg(value_parser = ["back", "fwd"])]
@@ -241,6 +264,15 @@ enum Command {
         /// How many hops to follow.
         #[arg(long, default_value = "5")]
         depth: usize,
+        /// A values file passed to helm with -f (repeatable; later files win).
+        #[arg(long = "values", short = 'f', value_name = "FILE")]
+        values: Vec<PathBuf>,
+        /// A helm --set assignment: a.b=c, a[0].b=c, or several comma-separated.
+        #[arg(long = "set", value_name = "KEY=VALUE")]
+        set: Vec<String>,
+        /// Like --set, but helm keeps the value a string.
+        #[arg(long = "set-string", value_name = "KEY=VALUE")]
+        set_string: Vec<String>,
     },
     /// Trace configuration values into the code that reads them.
     Stitch {
@@ -324,7 +356,12 @@ pub fn run() -> Result<()> {
             kind,
             stats,
         } => cmd_symbols(&cli, languages, name.as_deref(), kind.as_deref(), *stats),
-        Command::Def { target } => cmd_def(&cli, target),
+        Command::Def { target, first } => cmd_def(&cli, target, *first),
+        Command::Implementations { target } => cmd_implementations(&cli, target),
+        Command::Usages {
+            target,
+            include_unresolved,
+        } => cmd_usages(&cli, target, *include_unresolved),
         Command::Refs {
             target,
             include_unresolved,
@@ -334,17 +371,19 @@ pub fn run() -> Result<()> {
             new_name,
             write,
         } => cmd_rename(&cli, target, new_name, *write),
-        Command::Callers { target, depth } => {
-            cmd_trace(&cli, target, *depth, Direction2::Callers)
-        }
-        Command::Callees { target, depth } => {
-            cmd_trace(&cli, target, *depth, Direction2::Callees)
-        }
+        Command::Callers { target, depth } => cmd_trace(&cli, target, *depth, Direction2::Callers),
+        Command::Callees { target, depth } => cmd_trace(&cli, target, *depth, Direction2::Callees),
         Command::Flow {
             direction,
             target,
             depth,
-        } => cmd_flow(&cli, direction, target, *depth),
+            values,
+            set,
+            set_string,
+        } => {
+            let inputs = crate::analysis::provenance::ValuesInputs::parse(values, set, set_string)?;
+            cmd_flow(&cli, direction, target, *depth, &inputs)
+        }
         Command::Extract {
             range,
             name,
@@ -357,9 +396,7 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
-        Command::RemoveFlag { flag, value, write } => {
-            cmd_remove_flag(&cli, flag, *value, *write)
-        }
+        Command::RemoveFlag { flag, value, write } => cmd_remove_flag(&cli, flag, *value, *write),
         Command::Rewrite {
             target,
             rewrite,
@@ -462,12 +499,7 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
 }
 
 /// Render a plan's diff, report what it did, and optionally commit it.
-fn present(
-    cli: &Cli,
-    edits: &crate::edit::EditSet,
-    summary: &str,
-    write: bool,
-) -> Result<()> {
+fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) -> Result<()> {
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
 
     if cli.json {
@@ -541,8 +573,8 @@ fn cmd_extract(
 ) -> Result<()> {
     let (path, start, end) = parse_range(range)?;
     let path = path.canonicalize().unwrap_or(path);
-    let source = std::fs::read_to_string(&path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let source =
+        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let index_of_lines = LineIndex::new(&source);
     let span = crate::span::Span::new(
         index_of_lines
@@ -604,7 +636,10 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
             .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
 
         let plan = crate::refactor::inline::call(&index, &path, offset)?;
-        let summary = format!("inlined the call to {} as `{}`", plan.function, plan.expansion);
+        let summary = format!(
+            "inlined the call to {} as `{}`",
+            plan.function, plan.expansion
+        );
         return present(cli, &plan.edits, &summary, write);
     }
 
@@ -655,12 +690,43 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
     present(cli, &plan.edits, &summary, write)
 }
 
+/// The destination file, spelled the way the index spells its paths.
+///
+/// A move works out an import path by comparing the destination against the file
+/// that needs the import, so the two have to be written the same way. They are not
+/// by default: the destination is whatever the caller typed, while indexed paths are
+/// canonical, and on macOS `/var` and `/private/var` name the same directory. Left
+/// alone that produced imports like `'../../../../../../../var/folders/…'`.
+///
+/// The file itself need not exist yet — a move usually creates it — so it is the
+/// parent directory that is resolved, and a missing one is an error rather than a
+/// path passed through untouched.
+fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::path::PathBuf> {
+    let absolute = if destination.is_absolute() {
+        destination.to_path_buf()
+    } else {
+        cli.root.join(destination)
+    };
+    let parent = absolute
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("{} has no parent directory", absolute.display()))?;
+    let name = absolute
+        .file_name()
+        .ok_or_else(|| anyhow::anyhow!("{} does not name a file", absolute.display()))?;
+    let parent = parent.canonicalize().map_err(|e| {
+        anyhow::anyhow!(
+            "cannot resolve the destination directory {}: {e}. Create it first, or \
+             give a path inside an existing directory",
+            parent.display()
+        )
+    })?;
+    Ok(parent.join(name))
+}
+
 fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
-    let dest = destination
-        .canonicalize()
-        .unwrap_or_else(|_| destination.to_path_buf());
+    let dest = resolve_destination(cli, destination)?;
     let plan = crate::refactor::move_symbol::to_file(&index, symbol.id, &dest)?;
 
     // A CSS move's entire safety story is a warning, so these cannot stay hidden.
@@ -738,10 +804,13 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
     }
     println!("\n{} symbol(s) with no detected use", unused.len());
     println!(
-        "Reachability follows resolved edges only, so code reached through a trait \n\
-         object, an interface value or a function held in a map can still appear here. \n\
-         Symbols whose name is spelled in any string literal are deliberately left off, \n\
-         since a handler table or a reflective lookup would find them."
+        "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
+         candidates, so a method reached only through a trait object, an interface \n\
+         value or a base class is no longer listed. A function held in a map or a \n\
+         struct field and called through it, and a name assembled at runtime, still \n\
+         can be. Symbols whose name is spelled in any string literal are deliberately \n\
+         left off, as are names beginning with an underscore, which say the author \n\
+         meant them to go unused."
     );
     Ok(())
 }
@@ -895,19 +964,36 @@ fn cmd_restructure(
     present(cli, &plan.edits, &summary, write)
 }
 
-fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()> {
+fn cmd_flow(
+    cli: &Cli,
+    direction: &str,
+    target: &str,
+    depth: usize,
+    inputs: &crate::analysis::provenance::ValuesInputs,
+) -> Result<()> {
     use crate::analysis::flow;
 
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
+
+    // `-f`/`--set` describe a helm invocation. Accepting them for a target no
+    // values file can reach would be accepting an argument and ignoring it.
+    if !inputs.is_empty() && !matches!(symbol.language, Language::Helm | Language::Yaml) {
+        anyhow::bail!(
+            "-f/--set describe a helm invocation, but '{}' is {}, whose values have no Helm \
+             precedence to decide; drop the flags or point at a chart's values",
+            symbol.name,
+            symbol.language
+        );
+    }
 
     // Config and markup languages have substitution and override provenance rather
     // than dataflow, so the same command routes to whichever model applies.
     if !flow::applies_to(&index, &symbol.file) {
         use crate::analysis::provenance;
         let result = match direction {
-            "back" => provenance::provenance(&index, symbol.id, depth)?,
-            "fwd" => provenance::consumers(&index, symbol.id, depth)?,
+            "back" => provenance::provenance_with_inputs(&index, symbol.id, depth, inputs)?,
+            "fwd" => provenance::consumers_with_inputs(&index, symbol.id, depth, inputs)?,
             other => anyhow::bail!("unknown direction '{other}'; use 'back' or 'fwd'"),
         };
 
@@ -935,6 +1021,7 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
                     "symbol": symbol.qualified_name(),
                     "direction": direction,
                     "model": "provenance",
+                    "values_inputs": inputs.describe(),
                     "hops": hops,
                     "competitions": result.competitions.len(),
                     "stops": stops,
@@ -942,6 +1029,7 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
             );
         } else {
             print!("{}", result.format_tree());
+            report_values_inputs(inputs, &result);
         }
         return Ok(());
     }
@@ -983,6 +1071,38 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
         print!("{}", result.format_tree());
     }
     Ok(())
+}
+
+/// Say which supplied input decided each Helm competition, and what the answer
+/// still rests on. With nothing supplied there is nothing extra to say, and the
+/// tree already reports every competition as undecided.
+fn report_values_inputs(
+    inputs: &crate::analysis::provenance::ValuesInputs,
+    result: &crate::analysis::provenance::Provenance,
+) {
+    if inputs.is_empty() {
+        return;
+    }
+    println!("\nValues inputs supplied: {}", inputs.describe());
+    for competition in &result.competitions {
+        match competition.winner() {
+            Some(winner) => println!(
+                "  {} decided by {} — {}",
+                competition.subject, winner.precedence.label, winner.hop.text
+            ),
+            None => println!(
+                "  {}: nothing supplied, and nothing in the chart, decides it",
+                competition.subject
+            ),
+        }
+    }
+    let unsupplied = inputs.unsupplied();
+    if !unsupplied.is_empty() {
+        println!(
+            "Decided given the inputs supplied: {} not listed here would change these answers.",
+            unsupplied.join(" and ")
+        );
+    }
 }
 
 fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
@@ -1086,23 +1206,43 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     }
 
     let breakdown = graph.confidence_breakdown();
+    let by_origin = graph.origin_breakdown();
     if cli.json {
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "functions": graph.node_count(),
                 "calls": graph.edge_count(),
+                "hierarchy_edges": graph.hierarchy_edge_count(),
                 "unresolved_calls": graph.unresolved.len(),
                 "by_confidence": breakdown,
+                "by_origin": by_origin,
             }))?
         );
-    } else {
-        println!("functions         {}", graph.node_count());
-        println!("call edges        {}", graph.edge_count());
-        for (confidence, count) in &breakdown {
-            println!("  {confidence:<16} {count}");
+        return Ok(());
+    }
+
+    println!("functions         {}", graph.node_count());
+    println!(
+        "call edges        {} ({} from hierarchy analysis)",
+        graph.edge_count(),
+        graph.hierarchy_edge_count()
+    );
+    for (confidence, count) in &breakdown {
+        println!("  {confidence:<16} {count}");
+    }
+    println!("unresolved calls  {}", graph.unresolved.len());
+
+    // A call site the dispatch scan and the index disagree about is reported, since
+    // an edge placed on the wrong offset would be worse than a missing one.
+    if !graph.hierarchy_gaps.is_empty() {
+        println!(
+            "\n{} call site(s) the hierarchy scan could not line up with the index:",
+            graph.hierarchy_gaps.len()
+        );
+        for (file, detail) in graph.hierarchy_gaps.iter().take(10) {
+            println!("  {}: {detail}", file.display());
         }
-        println!("unresolved calls  {}", graph.unresolved.len());
     }
     Ok(())
 }
@@ -1151,9 +1291,11 @@ fn cmd_entrypoints(
                 println!("  {:<40} {}", s.qualified_name(), s.file.display());
             }
             println!(
-                "\nNote: reachability follows resolved call edges only. Dynamic \
-                 dispatch and calls through unresolved names are not counted, so \
-                 this list can include functions that are used."
+                "\nNote: reachability follows resolved call edges plus class-hierarchy \
+                 dispatch, so a method reached through a trait object or an interface \
+                 value is counted. A function held in a map or a struct field, and a \
+                 name assembled at runtime, are not — this list can still include \
+                 functions that are used."
             );
         }
         return Ok(());
@@ -1248,7 +1390,13 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
         for (kind, warnings) in grouped {
             println!("  {} ({}):", kind, warnings.len());
             for w in warnings.iter().take(10) {
-                println!("    {}:{}:{}  {}", w.file.display(), w.line, w.col, w.detail);
+                println!(
+                    "    {}:{}:{}  {}",
+                    w.file.display(),
+                    w.line,
+                    w.col,
+                    w.detail
+                );
             }
             if warnings.len() > 10 {
                 println!("    … and {} more", warnings.len() - 10);
@@ -1378,15 +1526,14 @@ fn cmd_capabilities(
     };
     let rows: Vec<_> = capabilities::matrix()
         .into_iter()
-        .filter(|r| capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c))
+        .filter(|r| {
+            capability.is_none_or(|c| r.capability.replace(' ', "-") == c || r.capability == c)
+        })
         .collect();
 
     if rows.is_empty() {
         let known: Vec<_> = Capability::ALL.iter().map(|c| c.as_str()).collect();
-        anyhow::bail!(
-            "unknown capability. Known: {}",
-            known.join(", ")
-        );
+        anyhow::bail!("unknown capability. Known: {}", known.join(", "));
     }
 
     if cli.json {
@@ -1530,34 +1677,172 @@ fn cmd_symbols(
     Ok(())
 }
 
-fn cmd_def(cli: &Cli, target: &str) -> Result<()> {
+fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
+    use crate::navigate;
+
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(&index, target)?;
-    let source = std::fs::read_to_string(&symbol.file)?;
-    let pos = LineIndex::new(&source).line_col(symbol.name_span.start, &source);
+    let found = navigate::definitions_of(&index, symbol.id);
 
     if cli.json {
+        let payload: Vec<_> = found
+            .definitions
+            .iter()
+            .filter(|d| !first_only || d.role == navigate::DefinitionRole::Primary)
+            .map(|d| {
+                serde_json::json!({
+                    "name": d.name,
+                    "qualified_name": d.qualified_name,
+                    "kind": d.kind.as_str(),
+                    "role": d.role.as_str(),
+                    "file": d.location.file,
+                    "line": d.location.line,
+                    "col": d.location.col,
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    for definition in &found.definitions {
+        if first_only && definition.role != navigate::DefinitionRole::Primary {
+            continue;
+        }
+        println!(
+            "{:<18} {:<12} {}:{}:{}",
+            definition.role.as_str(),
+            definition.kind.as_str(),
+            definition.location.file.display(),
+            definition.location.line,
+            definition.location.col
+        );
+        if !definition.location.preview.is_empty() {
+            println!("                   {}", definition.location.preview);
+        }
+    }
+
+    if found.is_polymorphic() && !first_only {
+        println!(
+            "\n`{}` is declared on an abstraction, so which one runs is a runtime \n\
+             fact. Every implementation is listed.",
+            found.query
+        );
+    }
+    Ok(())
+}
+
+fn cmd_implementations(cli: &Cli, target: &str) -> Result<()> {
+    use crate::navigate;
+
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let found = navigate::implementations_of(&index, symbol.id);
+
+    if found.is_empty() {
+        println!(
+            "`{}` has no implementations: nothing declares it as an abstraction.",
+            symbol.qualified_name()
+        );
+        return Ok(());
+    }
+
+    let rendered: Vec<_> = found
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| (s.qualified_name(), s.file.clone()))
+        .collect();
+
+    if cli.json {
+        let payload: Vec<_> = rendered
+            .iter()
+            .map(|(name, file)| serde_json::json!({ "name": name, "file": file }))
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    for (name, file) in &rendered {
+        println!("{:<34} {}", name, file.display());
+    }
+    println!(
+        "\n{} implementation(s). These are dispatch candidates, matched through \n\
+         declared implements-relationships — which one runs is a runtime fact.",
+        rendered.len()
+    );
+    Ok(())
+}
+
+fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
+    use crate::navigate;
+
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let found = navigate::usages_of(&index, symbol.id);
+
+    if cli.json {
+        let render = |list: &[&navigate::Usage]| {
+            list.iter()
+                .map(|u| {
+                    serde_json::json!({
+                        "file": u.location.file,
+                        "line": u.location.line,
+                        "col": u.location.col,
+                        "within": u.within,
+                        "confidence": u.confidence.as_str(),
+                        "preview": u.location.preview,
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        let all: Vec<&navigate::Usage> = found.usages.iter().collect();
+        let weak: Vec<&navigate::Usage> = found.same_name_elsewhere.iter().collect();
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
-                "name": symbol.name,
-                "qualified_name": symbol.qualified_name(),
-                "kind": symbol.kind.as_str(),
-                "file": symbol.file,
-                "line": pos.line,
-                "col": pos.col,
-                "exported": symbol.exported,
+                "symbol": found.query,
+                "usages": render(&all),
+                "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
             }))?
         );
-    } else {
+        return Ok(());
+    }
+
+    for (file, usages) in found.by_file() {
+        println!("{}", file.display());
+        for usage in usages {
+            let context = usage
+                .within
+                .as_deref()
+                .map(|w| format!("  in {w}"))
+                .unwrap_or_default();
+            let confidence = if usage.confidence.is_safe_to_rewrite() {
+                String::new()
+            } else {
+                format!("  [{}]", usage.confidence.as_str())
+            };
+            println!(
+                "  {}:{}  {}{context}{confidence}",
+                usage.location.line, usage.location.col, usage.location.preview
+            );
+        }
+    }
+    println!("\n{} use(s) of {}", found.usages.len(), found.query);
+
+    if include_unresolved && !found.same_name_elsewhere.is_empty() {
         println!(
-            "{} {} at {}:{}:{}",
-            symbol.kind.as_str(),
-            symbol.qualified_name(),
-            symbol.file.display(),
-            pos.line,
-            pos.col
+            "\n{} occurrence(s) of the same name that did NOT resolve here:",
+            found.same_name_elsewhere.len()
         );
+        for usage in found.same_name_elsewhere.iter().take(20) {
+            println!(
+                "  {}:{}:{}  [{}]",
+                usage.location.file.display(),
+                usage.location.line,
+                usage.location.col,
+                usage.confidence.as_str()
+            );
+        }
     }
     Ok(())
 }
@@ -1583,21 +1868,22 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     };
 
     if cli.json {
-        let render = |list: &[&crate::model::Reference],
-                      locate: &mut dyn FnMut(&PathBuf, usize) -> (usize, usize)| {
-            list.iter()
-                .map(|r| {
-                    let (line, col) = locate(&r.file, r.span.start);
-                    serde_json::json!({
-                        "file": r.file,
-                        "line": line,
-                        "col": col,
-                        "kind": format!("{:?}", r.kind).to_lowercase(),
-                        "confidence": r.confidence.as_str(),
+        let render =
+            |list: &[&crate::model::Reference],
+             locate: &mut dyn FnMut(&PathBuf, usize) -> (usize, usize)| {
+                list.iter()
+                    .map(|r| {
+                        let (line, col) = locate(&r.file, r.span.start);
+                        serde_json::json!({
+                            "file": r.file,
+                            "line": line,
+                            "col": col,
+                            "kind": format!("{:?}", r.kind).to_lowercase(),
+                            "confidence": r.confidence.as_str(),
+                        })
                     })
-                })
-                .collect::<Vec<_>>()
-        };
+                    .collect::<Vec<_>>()
+            };
         let resolved = render(&refs, &mut locate);
         let unresolved = render(&weak, &mut locate);
         println!(
@@ -1650,7 +1936,10 @@ fn resolve_languages(names: &[String]) -> Result<Vec<Language>> {
         .map(|n| {
             Language::from_name(n).ok_or_else(|| {
                 let known: Vec<_> = Language::ALL.iter().map(|l| l.name()).collect();
-                anyhow::anyhow!("unknown language '{n}'. Known languages: {}", known.join(", "))
+                anyhow::anyhow!(
+                    "unknown language '{n}'. Known languages: {}",
+                    known.join(", ")
+                )
             })
         })
         .collect()
@@ -1758,7 +2047,10 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("{:<12} {:>7} {:>8} {:>8}", "LANGUAGE", "FILES", "ERRORS", "UNREAD");
+    println!(
+        "{:<12} {:>7} {:>8} {:>8}",
+        "LANGUAGE", "FILES", "ERRORS", "UNREAD"
+    );
     for (name, t) in &per_language {
         println!(
             "{:<12} {:>7} {:>8} {:>8}",

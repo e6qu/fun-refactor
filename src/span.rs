@@ -170,7 +170,10 @@ impl LineIndex {
         if line == 0 || line > self.line_starts.len() {
             return None;
         }
-        Some(Span::new(self.line_starts[line - 1], self.line_end(line - 1)))
+        Some(Span::new(
+            self.line_starts[line - 1],
+            self.line_end(line - 1),
+        ))
     }
 
     pub fn line_count(&self) -> usize {
@@ -247,7 +250,10 @@ mod tests {
         let index = LineIndex::new(source);
         // Offset at EOF sits just past "beta", i.e. line 2 column 5 — not on a
         // phantom line 3, and not past the newline.
-        assert_eq!(index.line_col(source.len(), source), LineCol { line: 2, col: 5 });
+        assert_eq!(
+            index.line_col(source.len(), source),
+            LineCol { line: 2, col: 5 }
+        );
     }
 
     #[test]

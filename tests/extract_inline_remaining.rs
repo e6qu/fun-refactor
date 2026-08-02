@@ -137,8 +137,7 @@ fn bash_extract_leaves_a_splitting_expansion_unquoted() {
     let ws = workspace(&[("run.sh", src)]);
     let path = ws.path("run.sh");
 
-    let plan_out =
-        extract::variable(&ws.index, &path, at(src, "$(list)"), "items", false).unwrap();
+    let plan_out = extract::variable(&ws.index, &path, at(src, "$(list)"), "items", false).unwrap();
 
     assert_eq!(
         applied(&plan_out.edits, &path),
@@ -170,8 +169,14 @@ fn bash_extract_quotes_a_literal_string() {
     let ws = workspace(&[("run.sh", src)]);
     let path = ws.path("run.sh");
 
-    let plan_out =
-        extract::variable(&ws.index, &path, at(src, "\"hello world\""), "greeting", false).unwrap();
+    let plan_out = extract::variable(
+        &ws.index,
+        &path,
+        at(src, "\"hello world\""),
+        "greeting",
+        false,
+    )
+    .unwrap();
 
     assert_eq!(
         applied(&plan_out.edits, &path),
@@ -396,10 +401,7 @@ fn bash_inline_refuses_a_parameter_expansion_operator() {
     let id = symbol_at(&ws.index, &path, src.find("name=").unwrap());
 
     let err = inline::variable(&ws.index, id).unwrap_err().to_string();
-    assert!(
-        err.contains("parameter expansion operator"),
-        "got: {err}"
-    );
+    assert!(err.contains("parameter expansion operator"), "got: {err}");
 }
 
 #[test]
@@ -457,13 +459,16 @@ fn bash_extract_then_inline_restores_the_original_bytes() {
     ] {
         let mut ws = workspace(&[("run.sh", src)]);
         let path = ws.path("run.sh");
-        let selection = at(src, if src.contains("compute") {
-            "$(compute a)"
-        } else if src.contains("list") {
-            "$(list)"
-        } else {
-            "$(date)"
-        });
+        let selection = at(
+            src,
+            if src.contains("compute") {
+                "$(compute a)"
+            } else if src.contains("list") {
+                "$(list)"
+            } else {
+                "$(date)"
+            },
+        );
 
         let extracted = extract::variable(&ws.index, &path, selection, "tmp", false).unwrap();
         let after = applied(&extracted.edits, &path);
@@ -902,7 +907,8 @@ fn xml_inline_refuses_an_entity_that_is_never_referenced() {
 
 #[test]
 fn xml_inline_refuses_a_value_that_would_end_the_attribute() {
-    let src = "<!DOCTYPE root [\n  <!ENTITY brand 'say \"hi\"'>\n]>\n<root title=\"&brand;\">y</root>\n";
+    let src =
+        "<!DOCTYPE root [\n  <!ENTITY brand 'say \"hi\"'>\n]>\n<root title=\"&brand;\">y</root>\n";
     let ws = workspace(&[("doc.xml", src)]);
     let path = ws.path("doc.xml");
 
@@ -914,7 +920,8 @@ fn xml_inline_refuses_a_value_that_would_end_the_attribute() {
 fn xml_entities_are_symbols_so_inline_is_reachable_by_name() {
     // `queries/xml/facts.scm` declares entities, so an entity has a SymbolId and
     // `fr inline` routes to it like any other binding.
-    let src = "<!DOCTYPE root [\n  <!ENTITY brand \"Acme\">\n]>\n<root title=\"&brand;\">y</root>\n";
+    let src =
+        "<!DOCTYPE root [\n  <!ENTITY brand \"Acme\">\n]>\n<root title=\"&brand;\">y</root>\n";
     let ws = workspace(&[("doc.xml", src)]);
     let path = ws.path("doc.xml");
 

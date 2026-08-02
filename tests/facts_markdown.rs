@@ -1,11 +1,16 @@
 //! Markdown fact extraction.
 //!
-//! The grammar is tree-sitter-markdown-fork, which parses inline structure into
-//! the same tree as the block structure — so links, labels and destinations are
-//! all reachable. The grammar hands ATX heading names back with the padding around
-//! the text still attached; the extractor trims it, so a heading's name is the title
-//! alone and a rename rewrites exactly those bytes. Anchor destinations still include
-//! their leading `#`, which is pinned here rather than hidden.
+//! The grammar is tree-sitter-md-025, which parses block structure and inline content
+//! with two separate grammars: headings, link reference definitions and code fences
+//! come from the block tree, and links, labels and destinations from the inline
+//! sub-trees src/parse.rs builds over the same bytes. Both feed one extraction pass,
+//! so which grammar a fact came from is invisible here — which is the point.
+//!
+//! Two shapes of syntax survive into a captured name and are trimmed by the
+//! extractor: an ATX heading's optional closing marker (`## Title ##`) and the
+//! brackets of a link label (`[label]`). A rename rewrites exactly the name span, so
+//! either one left in place would corrupt the file. Anchor destinations do still
+//! include their leading `#`, which is pinned here rather than hidden.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -39,7 +44,9 @@ fn atx_headings_define_headings_without_the_markers() {
     // heading rewrites exactly the title bytes.
     let first = &f.symbols[0];
     assert_eq!(first.name_span.text(src), "Title One");
-    assert_eq!(first.full_span.text(src), "# Title One");
+    // A block node runs to the end of its line, so the full span takes the newline
+    // with it — which is what makes deleting a heading leave no blank line behind.
+    assert_eq!(first.full_span.text(src), "# Title One\n");
     assert!(first.full_span.contains(first.name_span));
 }
 
@@ -47,9 +54,21 @@ fn atx_headings_define_headings_without_the_markers() {
 fn atx_heading_padding_and_closing_markers() {
     let src = "#   Spaced Title   #\n";
     let f = facts(src);
-    // The closing `#` is outside the name; the surrounding spaces are inside it.
+    // The grammar puts the closing `#` inside the heading content; the extractor
+    // trims it along with the padding, so the name is the title alone.
     assert_eq!(names(&f, SymbolKind::Heading), ["Spaced Title"]);
-    assert_eq!(f.symbols[0].full_span.text(src), "#   Spaced Title   #");
+    assert_eq!(f.symbols[0].name_span.text(src), "Spaced Title");
+    assert_eq!(f.symbols[0].full_span.text(src), "#   Spaced Title   #\n");
+}
+
+#[test]
+fn a_heading_that_really_ends_in_a_hash_keeps_it() {
+    // A closing marker is only a marker when whitespace precedes it, so a language
+    // name is not mistaken for one.
+    let src = "# C#\n";
+    let f = facts(src);
+    assert_eq!(names(&f, SymbolKind::Heading), ["C#"]);
+    assert_eq!(f.symbols[0].name_span.text(src), "C#");
 }
 
 #[test]
@@ -58,7 +77,7 @@ fn setext_heading_names_have_no_padding() {
     let f = facts(src);
     assert_eq!(names(&f, SymbolKind::Heading), ["Under Line", "Second"]);
     assert_eq!(f.symbols[0].name_span.text(src), "Under Line");
-    assert_eq!(f.symbols[0].full_span.text(src), "Under Line\n==========");
+    assert_eq!(f.symbols[0].full_span.text(src), "Under Line\n==========\n");
 }
 
 #[test]
@@ -75,9 +94,13 @@ fn link_reference_definition_defines_the_bare_label() {
     assert_eq!(names(&f, SymbolKind::LinkDef), ["label"]);
 
     let def = &f.symbols[0];
-    // Brackets excluded, destination and title outside the name span.
+    // Brackets excluded, destination and title outside the name span: renaming this
+    // definition writes `[new]: ...`, never `new: ...`.
     assert_eq!(def.name_span.text(src), "label");
-    assert_eq!(def.full_span.text(src), "[label]: http://example.com \"Title\"");
+    assert_eq!(
+        def.full_span.text(src),
+        "[label]: http://example.com \"Title\"\n"
+    );
 }
 
 #[test]
@@ -105,6 +128,21 @@ fn shortcut_and_collapsed_reference_links_reference_the_label() {
     let mut r = refs(&f);
     r.sort();
     assert_eq!(r, ["collapsed", "shortcut"]);
+}
+
+#[test]
+fn reference_images_use_link_definitions_too() {
+    // `![alt][label]` points at a link reference definition exactly as `[t][label]`
+    // does, so renaming the definition has to rewrite the image as well.
+    let src = "![alt text][logo] and [link][logo]\n\n[logo]: /l.png\n";
+    let f = facts(src);
+    assert_eq!(names(&f, SymbolKind::LinkDef), ["logo"]);
+
+    let uses: Vec<_> = f.references.iter().filter(|r| r.name == "logo").collect();
+    assert_eq!(uses.len(), 2, "got {:?}", f.references);
+    assert!(uses.iter().all(|r| r.span.text(src) == "logo"));
+    // The alt text is not a reference.
+    assert!(!refs(&f).contains(&"alt"));
 }
 
 #[test]
@@ -157,10 +195,10 @@ fn code_block_contents_produce_no_facts() {
 
 #[test]
 fn footnote_definitions_and_uses_both_surface_as_references() {
-    // NOT AVAILABLE: this grammar has no footnote node — `[^fn]: text` is a
-    // paragraph starting with a shortcut link — so there is no LinkDef symbol
-    // for a footnote. Both occurrences are still found, which is what a rename
-    // needs, so this is a missing symbol rather than a missing edit site.
+    // NOT AVAILABLE: this grammar has no footnote rule either — `[^fn]: text` is a
+    // paragraph whose inline content is the shortcut link `[^fn]` — so there is no
+    // LinkDef symbol for a footnote. Both occurrences are still found, which is what
+    // a rename needs, so this is a missing symbol rather than a missing edit site.
     let src = "Text with a note[^fn].\n\n[^fn]: the note\n";
     let f = facts(src);
     assert!(names(&f, SymbolKind::LinkDef).is_empty());
@@ -169,8 +207,9 @@ fn footnote_definitions_and_uses_both_surface_as_references() {
 
 #[test]
 fn headings_do_not_nest_into_scopes() {
-    // The grammar emits a flat block list with no `section` node, so every fact
-    // in the file shares the document scope.
+    // The grammar does nest `section` nodes under their headings, but a Markdown
+    // name is document-global — an anchor resolves against the whole file — so the
+    // queries capture only the document as a scope and every fact shares it.
     let src = "# A\n\ntext\n\n## B\n\nmore\n";
     let f = facts(src);
     assert_eq!(f.scopes.len(), 1);
@@ -210,16 +249,12 @@ fn a_realistic_document_parses_and_extracts() {
     r.sort();
     assert_eq!(r, ["#installation", "bash", "ref"]);
 
-    // The anchor and the heading it points at differ by slugging: the heading
-    // name is ` Installation`, the link is `#installation`. Reconciling the two
-    // is the index's job, and needs the trimming noted at the top of the file.
-    let heading = f
-        .symbols
-        .iter()
-        .find(|s| s.name.trim() == "Installation")
-        .unwrap();
+    // The anchor and the heading it points at differ by slugging: the heading is
+    // `Installation`, the link `#installation`. Reconciling the two is the index's
+    // job, and it needs the name to be the title alone.
+    let heading = f.symbols.iter().find(|s| s.name == "Installation").unwrap();
     assert_eq!(
-        heading.name.trim().to_lowercase(),
+        heading.name.to_lowercase(),
         f.references
             .iter()
             .find(|r| r.name.starts_with('#'))

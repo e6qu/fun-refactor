@@ -80,7 +80,12 @@ impl Index {
                 let source = match std::fs::read_to_string(&file.path) {
                     Ok(s) => s,
                     // Reported by the caller once results are merged.
-                    Err(e) => return Ok(Some((position, Self::unreadable_placeholder(&file.path, e.to_string())))),
+                    Err(e) => {
+                        return Ok(Some((
+                            position,
+                            Self::unreadable_placeholder(&file.path, e.to_string()),
+                        )))
+                    }
                 };
 
                 // A cached entry carries its own parse-error flag, so a hit skips
@@ -579,13 +584,13 @@ impl Index {
             files: self.files.len(),
             symbols: self.symbols.len(),
             references: self.references.len(),
-            resolved: self.references.iter().filter(|r| r.target.is_some()).count(),
-            by_confidence,
-            files_with_parse_errors: self
-                .files
-                .values()
-                .filter(|f| f.had_parse_errors)
+            resolved: self
+                .references
+                .iter()
+                .filter(|r| r.target.is_some())
                 .count(),
+            by_confidence,
+            files_with_parse_errors: self.files.values().filter(|f| f.had_parse_errors).count(),
             imperative_files: self
                 .files
                 .values()
@@ -662,7 +667,8 @@ mod tests {
 
     #[test]
     fn shadowing_resolves_to_the_innermost_definition() {
-        let src = "fn f() {\n    let x = 1;\n    {\n        let x = 2;\n        use_it(x);\n    }\n}\n";
+        let src =
+            "fn f() {\n    let x = 1;\n    {\n        let x = 2;\n        use_it(x);\n    }\n}\n";
         let (_tmp, index) = index_of(&[("a.rs", src)]);
 
         let inner_def_offset = src.rfind("let x").unwrap() + 4;
@@ -762,7 +768,10 @@ mod tests {
         // refers to the `variable "region"` declared in variables.tf. Without this a
         // rename would update the declaration and leave every use dangling.
         let (_tmp, index) = index_of(&[
-            ("variables.tf", "variable \"region\" {\n  default = \"eu-west-1\"\n}\n"),
+            (
+                "variables.tf",
+                "variable \"region\" {\n  default = \"eu-west-1\"\n}\n",
+            ),
             (
                 "main.tf",
                 "resource \"aws_s3_bucket\" \"b\" {\n  region = var.region\n}\n",
@@ -781,7 +790,10 @@ mod tests {
     fn terraform_names_do_not_resolve_across_module_directories() {
         // A separate directory is a separate module; its variables are unrelated.
         let (_tmp, index) = index_of(&[
-            ("variables.tf", "variable \"region\" {\n  default = \"a\"\n}\n"),
+            (
+                "variables.tf",
+                "variable \"region\" {\n  default = \"a\"\n}\n",
+            ),
             ("child/main.tf", "output \"o\" {\n  value = var.region\n}\n"),
         ]);
         let region = index.find_symbols("region", None);

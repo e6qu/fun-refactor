@@ -136,12 +136,8 @@ fn zig_qualifies_the_uses_left_behind_in_the_source_file() {
         ("b.zig", "pub const K: i32 = 1;\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "thing", None),
-        &ws.path("b.zig"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "thing", None), &ws.path("b.zig")).unwrap();
     commit(&plan);
 
     assert_eq!(
@@ -219,7 +215,10 @@ fn zig_repoints_a_qualified_use_in_another_file() {
     );
     // `a` is still used for `other`, so no "unused import" warning.
     assert!(
-        !plan.warnings.iter().any(|w| w.contains("may now be unused")),
+        !plan
+            .warnings
+            .iter()
+            .any(|w| w.contains("may now be unused")),
         "got: {:?}",
         plan.warnings
     );
@@ -243,7 +242,9 @@ fn zig_warns_when_the_old_namespace_is_left_with_nothing_to_name() {
     )
     .unwrap();
     assert!(
-        plan.warnings.iter().any(|w| w.contains("may now be unused")),
+        plan.warnings
+            .iter()
+            .any(|w| w.contains("may now be unused")),
         "got: {:?}",
         plan.warnings
     );
@@ -344,15 +345,14 @@ fn zig_moves_a_private_declaration_nothing_uses() {
         ("b.zig", "pub const J: i32 = 2;\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "thing", None),
-        &ws.path("b.zig"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "thing", None), &ws.path("b.zig")).unwrap();
     commit(&plan);
     assert_eq!(ws.read("a.zig"), "pub const K: i32 = 1;\n");
-    assert_eq!(ws.read("b.zig"), "pub const J: i32 = 2;\n\nfn thing() void {}\n");
+    assert_eq!(
+        ws.read("b.zig"),
+        "pub const J: i32 = 2;\n\nfn thing() void {}\n"
+    );
 }
 
 #[test]
@@ -395,12 +395,8 @@ fn zig_carries_its_doc_comment() {
         ("b.zig", "pub const K: i32 = 1;\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "thing", None),
-        &ws.path("b.zig"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "thing", None), &ws.path("b.zig")).unwrap();
     commit(&plan);
     assert_eq!(ws.read("a.zig"), "//! Module docs.\n\n");
     assert_eq!(
@@ -419,12 +415,8 @@ fn zig_reports_an_import_the_moved_code_depended_on() {
         ("b.zig", "pub const K: i32 = 1;\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "thing", None),
-        &ws.path("b.zig"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "thing", None), &ws.path("b.zig")).unwrap();
     assert!(
         plan.warnings.iter().any(|w| w.contains("std")),
         "the destination does not import std: {:?}",
@@ -446,12 +438,8 @@ fn bash_sources_the_new_home_from_the_script_that_still_calls_it() {
         ("lib.sh", "#!/usr/bin/env bash\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "greet", None),
-        &ws.path("lib.sh"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "greet", None), &ws.path("lib.sh")).unwrap();
     commit(&plan);
 
     assert_eq!(
@@ -507,12 +495,8 @@ fn bash_adds_nothing_where_the_destination_is_already_sourced() {
         ("lib.sh", "x=1\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "greet", None),
-        &ws.path("lib.sh"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "greet", None), &ws.path("lib.sh")).unwrap();
     commit(&plan);
     assert_eq!(ws.read("app.sh"), "source ./lib.sh\n\n\ngreet\n");
     assert!(
@@ -569,12 +553,8 @@ fn bash_reports_a_caller_that_never_sourced_the_definition() {
         ("lib.sh", "x=1\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "greet", None),
-        &ws.path("lib.sh"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "greet", None), &ws.path("lib.sh")).unwrap();
     assert!(
         plan.warnings.iter().any(|w| w.contains("never sources")),
         "got: {:?}",
@@ -625,12 +605,8 @@ fn bash_carries_the_comment_above_the_function_but_not_the_shebang() {
         ("lib.sh", "x=1\n"),
     ]);
     let index = ws.index();
-    let plan = move_symbol::to_file(
-        &index,
-        symbol_id(&index, "greet", None),
-        &ws.path("lib.sh"),
-    )
-    .unwrap();
+    let plan =
+        move_symbol::to_file(&index, symbol_id(&index, "greet", None), &ws.path("lib.sh")).unwrap();
     commit(&plan);
     assert_eq!(ws.read("app.sh"), "#!/usr/bin/env bash\n");
     assert_eq!(
@@ -854,7 +830,11 @@ fn yaml_refuses_a_key_the_destination_already_has() {
     ]);
     let index = ws.index();
     let id = symbol_id(&index, "beta", Some(&ws.path("conf/base.yaml")));
-    let message = refusal(move_symbol::to_file(&index, id, &ws.path("conf/extra.yaml")));
+    let message = refusal(move_symbol::to_file(
+        &index,
+        id,
+        &ws.path("conf/extra.yaml"),
+    ));
     assert!(message.contains("already defined in"), "got: {message}");
 }
 
@@ -866,14 +846,21 @@ fn yaml_refuses_a_destination_holding_several_documents() {
     ]);
     let index = ws.index();
     let id = symbol_id(&index, "beta", Some(&ws.path("conf/base.yaml")));
-    let message = error(move_symbol::to_file(&index, id, &ws.path("conf/extra.yaml")));
+    let message = error(move_symbol::to_file(
+        &index,
+        id,
+        &ws.path("conf/extra.yaml"),
+    ));
     assert!(message.contains("more than one document"), "got: {message}");
 }
 
 #[test]
 fn yaml_refuses_an_anchor() {
     let ws = Workspace::new(&[
-        ("conf/base.yaml", "defaults: &shared\n  a: 1\nuse: *shared\n"),
+        (
+            "conf/base.yaml",
+            "defaults: &shared\n  a: 1\nuse: *shared\n",
+        ),
         ("conf/extra.yaml", "gamma: 3\n"),
     ]);
     let index = ws.index();
@@ -908,7 +895,10 @@ fn html_and_xml_stay_refused_by_name() {
         let ws = Workspace::new(&[(source, code), (destination, other)]);
         let index = ws.index();
         let found = index.find_symbols("thing", None);
-        assert!(!found.is_empty(), "{source}: nothing named `thing` extracted");
+        assert!(
+            !found.is_empty(),
+            "{source}: nothing named `thing` extracted"
+        );
         let message = refusal(move_symbol::to_file(
             &index,
             found[0].id,

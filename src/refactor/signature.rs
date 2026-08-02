@@ -655,10 +655,7 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
             "the change leaves `{}` exactly as it was: no call site and no reference in \
              its body names that position.{}",
             sym.name,
-            notes
-                .iter()
-                .map(|n| format!("\n  {n}"))
-                .collect::<String>()
+            notes.iter().map(|n| format!("\n  {n}")).collect::<String>()
         );
     }
 
@@ -875,7 +872,9 @@ fn shell_call_files<'a>(
 }
 
 /// The `source` graph of the workspace, plus the files whose sourcing is not literal.
-pub(super) fn shell_source_graph(index: &Index) -> (BTreeMap<PathBuf, Vec<PathBuf>>, BTreeSet<PathBuf>) {
+pub(super) fn shell_source_graph(
+    index: &Index,
+) -> (BTreeMap<PathBuf, Vec<PathBuf>>, BTreeSet<PathBuf>) {
     let mut sources: BTreeMap<PathBuf, Vec<PathBuf>> = BTreeMap::new();
     let mut opaque: BTreeSet<PathBuf> = BTreeSet::new();
 
@@ -904,7 +903,11 @@ fn is_literal_shell_path(path: &str) -> bool {
 }
 
 /// Does `from` reach `target` by following `source` statements?
-pub(super) fn shell_reaches(sources: &BTreeMap<PathBuf, Vec<PathBuf>>, from: &Path, target: &Path) -> bool {
+pub(super) fn shell_reaches(
+    sources: &BTreeMap<PathBuf, Vec<PathBuf>>,
+    from: &Path,
+    target: &Path,
+) -> bool {
     let mut seen: BTreeSet<PathBuf> = BTreeSet::new();
     let mut queue = vec![from.to_path_buf()];
     while let Some(file) = queue.pop() {

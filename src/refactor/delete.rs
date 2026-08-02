@@ -11,7 +11,7 @@
 //! "nothing references it" with "nothing reachable from an entry point calls it".
 
 use super::{Warning, WarningKind};
-use crate::analysis::call_graph::CallGraph;
+use crate::analysis::call_graph::{CallGraph, HierarchyBasis};
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
 use crate::model::{Confidence, SymbolId};
@@ -195,6 +195,66 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     })
 }
 
+/// Why a symbol the resolved call graph would have called dead was kept off the list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SparedReason {
+    /// Its name is spelled in a string literal somewhere in the workspace, which is
+    /// the only trace reflection and a name-keyed handler table leave.
+    NamedInAString,
+    /// Dynamic dispatch reaches it: a call site names a method its type declares
+    /// through a trait, an interface or a base class, and this is one of the
+    /// implementations that call could pick.
+    DynamicDispatch {
+        from: SymbolId,
+        basis: HierarchyBasis,
+    },
+    /// Its name begins with an underscore, which in Rust, TypeScript, Python and Zig
+    /// is how an author writes "this is deliberately not used" — usually a parameter
+    /// a signature requires and the body ignores.
+    DeclaredUnused,
+}
+
+/// [`find_unused`]'s answer with its reasoning attached.
+#[derive(Debug, Default)]
+pub struct UnusedReport {
+    /// The candidates, in symbol order.
+    pub unused: Vec<SymbolId>,
+    /// Symbols reachability alone would have listed, and what saved each.
+    pub spared: Vec<(SymbolId, SparedReason)>,
+    /// Files whose dispatch edges could not be read, so an absent hierarchy is not
+    /// mistaken for the absence of a hierarchy.
+    pub hierarchy_gaps: Vec<(PathBuf, String)>,
+}
+
+impl UnusedReport {
+    /// One line saying why `symbol` is not on the list, if it was on the raw one.
+    pub fn explain(&self, index: &Index, symbol: SymbolId) -> Option<String> {
+        let (_, reason) = self.spared.iter().find(|(id, _)| *id == symbol)?;
+        Some(match reason {
+            SparedReason::NamedInAString => {
+                "name appears in a string literal; reflection or a handler table may reach it"
+                    .to_string()
+            }
+            SparedReason::DeclaredUnused => {
+                "its name begins with an underscore, which says the author meant it to \
+                 go unused"
+                    .to_string()
+            }
+            SparedReason::DynamicDispatch { from, basis } => {
+                let caller = index
+                    .symbol(*from)
+                    .map(|s| s.qualified_name())
+                    .unwrap_or_else(|| "<unknown>".into());
+                format!(
+                    "reached from {caller} by dynamic dispatch ({}); which implementation \
+                     runs is a runtime fact",
+                    basis.as_str()
+                )
+            }
+        })
+    }
+}
+
 /// Symbols nothing references and nothing reachable from `entrypoints` reaches.
 ///
 /// This is what powers dead-CSS-selector, unused-Terraform-variable,
@@ -203,8 +263,8 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
 /// count, so dead recursive code is still found) and the call graph cannot reach it
 /// from any given entry point.
 ///
-/// Two corrections are applied on top of that, because the raw answer is wrong in both
-/// directions:
+/// Three corrections are applied on top of that, because the raw answer is wrong in
+/// both directions:
 ///
 /// * A symbol whose name appears in a **string literal** anywhere in the workspace is
 ///   left off the list. Reflection, a handler table keyed by name, a route string, a
@@ -214,15 +274,35 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
 ///   member is reachable from an entry point and nothing outside the cycle references
 ///   any member. Mutual recursion otherwise hides a whole dead component, because every
 ///   member does have an incoming reference.
+/// * A method **dynamic dispatch can reach** is left off. A call through a `dyn Trait`,
+///   an interface value or a base-class reference names no single definition, but the
+///   workspace does say which types implement the abstraction, and class hierarchy
+///   analysis ([`CallGraph`]) puts an edge on each of them. Those edges are unproven by
+///   construction and marked so; sparing a live method is the point of them.
 ///
-/// **The result is still a candidate list, not a delete list**, and the remaining gap
-/// is not closable by guessing. Reachability follows *resolved* call edges only, and a
-/// call the index could not resolve produces no edge at all, so code reached only
-/// through a trait object or interface value, a function held in a map or a struct
-/// field, or a name assembled at runtime from pieces is live code with nothing to
-/// distinguish it from dead code. The same is true of a symbol used only from a file
-/// that failed to parse. Feed each candidate to [`plan`] before acting.
+/// **The result is still a candidate list, not a delete list.** What remains is not
+/// closable by guessing: a function held in a map or a struct field and called through
+/// it, and a name assembled at runtime from pieces, name no callee any analysis can
+/// read, and a symbol used only from a file that failed to parse is invisible for a
+/// different reason. [`find_unused_report`] says which correction spared what. Feed
+/// each candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
+    find_unused_report(index, entrypoints).unused
+}
+
+/// Did the author declare this unused by naming it so?
+///
+/// A leading underscore is the convention in Rust, TypeScript, Python and Zig for a
+/// binding a signature forces on you and the body has no use for. Listing those as
+/// dead code buries the real findings — a single real file turned up eight of them.
+/// Go spells the same idea as a bare `_`, which binds nothing and never reaches the
+/// index in the first place.
+fn declared_unused(symbol: &crate::model::Symbol) -> bool {
+    symbol.name.starts_with('_')
+}
+
+/// [`find_unused`], with the reason each spared symbol was spared.
+pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedReport {
     let call_graph = CallGraph::build(index);
     let reachable = call_graph.reachable_from(entrypoints);
 
@@ -244,17 +324,65 @@ pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
     let named_in_a_string = names_in_string_literals(index);
     let dead_cycles = dead_reference_cycles(index, &reachable);
 
-    let mut unused: Vec<SymbolId> = index
-        .symbols
-        .iter()
-        .filter(|s| {
-            let orphaned = !reachable.contains(&s.id) && !referenced.contains(&s.id);
-            (orphaned || dead_cycles.contains(&s.id)) && !named_in_a_string.contains(&s.name)
-        })
-        .map(|s| s.id)
-        .collect();
-    unused.sort();
-    unused
+    // What the answer would have been on resolved edges alone, so the difference the
+    // hierarchy layer made can be named rather than merely applied. A workspace with
+    // no dispatch edges pays nothing for this.
+    let (reachable_directly, dead_cycles_directly) = if call_graph.hierarchy_edge_count() == 0 {
+        (reachable.clone(), dead_cycles.clone())
+    } else {
+        let direct = call_graph.reachable_from_resolved(entrypoints);
+        let cycles = dead_reference_cycles(index, &direct);
+        (direct, cycles)
+    };
+
+    let mut report = UnusedReport {
+        hierarchy_gaps: call_graph.hierarchy_gaps.clone(),
+        ..UnusedReport::default()
+    };
+
+    for symbol in &index.symbols {
+        let orphaned = !reachable.contains(&symbol.id) && !referenced.contains(&symbol.id);
+        if orphaned || dead_cycles.contains(&symbol.id) {
+            if declared_unused(symbol) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::DeclaredUnused));
+                continue;
+            }
+            if !named_in_a_string.contains(&symbol.name) {
+                report.unused.push(symbol.id);
+                continue;
+            }
+        }
+
+        // Only a symbol the plain reachability answer would have listed was spared.
+        let orphaned_directly =
+            !reachable_directly.contains(&symbol.id) && !referenced.contains(&symbol.id);
+        if !(orphaned_directly || dead_cycles_directly.contains(&symbol.id)) {
+            continue;
+        }
+        if !orphaned {
+            if let Some((from, basis)) = call_graph.hierarchy_callers(symbol.id).first() {
+                report.spared.push((
+                    symbol.id,
+                    SparedReason::DynamicDispatch {
+                        from: *from,
+                        basis: *basis,
+                    },
+                ));
+                continue;
+            }
+        }
+        if named_in_a_string.contains(&symbol.name) {
+            report
+                .spared
+                .push((symbol.id, SparedReason::NamedInAString));
+        }
+    }
+
+    report.unused.sort();
+    report.spared.sort_by_key(|(id, _)| *id);
+    report
 }
 
 /// Every identifier-shaped word inside a string literal anywhere in the workspace.
@@ -277,9 +405,10 @@ fn names_in_string_literals(index: &Index) -> HashSet<String> {
             continue;
         };
         for span in spans_of(&parsed, is_string_kind) {
-            for word in span.text(&source).split(|c: char| {
-                !(c.is_alphanumeric() || c == '_' || c == '$' || c == '-')
-            }) {
+            for word in span
+                .text(&source)
+                .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$' || c == '-'))
+            {
                 if word.is_empty() {
                     continue;
                 }
@@ -321,9 +450,7 @@ fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSe
         }
         incoming.entry(target).or_default().insert(owner);
         if let Some(owner) = owner {
-            let from = *nodes
-                .entry(owner)
-                .or_insert_with(|| graph.add_node(owner));
+            let from = *nodes.entry(owner).or_insert_with(|| graph.add_node(owner));
             let to = *nodes
                 .entry(target)
                 .or_insert_with(|| graph.add_node(target));
@@ -341,9 +468,10 @@ fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSe
             continue;
         }
         let held_from_outside = members.iter().any(|id| {
-            incoming
-                .get(id)
-                .is_some_and(|from| from.iter().any(|owner| !owner.is_some_and(|o| members.contains(&o))))
+            incoming.get(id).is_some_and(|from| {
+                from.iter()
+                    .any(|owner| !owner.is_some_and(|o| members.contains(&o)))
+            })
         });
         if held_from_outside {
             continue;
@@ -391,7 +519,10 @@ fn widen_for_delete(
 ) -> Span {
     use crate::model::SymbolKind;
     if !matches!(symbol.kind, SymbolKind::Selector | SymbolKind::ElementId)
-        || !matches!(symbol.language, crate::lang::Language::Css | crate::lang::Language::Scss)
+        || !matches!(
+            symbol.language,
+            crate::lang::Language::Css | crate::lang::Language::Scss
+        )
     {
         return symbol.full_span;
     }
@@ -670,6 +801,9 @@ mod tests {
     #[test]
     fn merge_runs_collapses_touching_spans() {
         let spans = [Span::new(0, 10), Span::new(10, 20), Span::new(30, 40)];
-        assert_eq!(merge_runs(&spans), vec![Span::new(0, 20), Span::new(30, 40)]);
+        assert_eq!(
+            merge_runs(&spans),
+            vec![Span::new(0, 20), Span::new(30, 40)]
+        );
     }
 }

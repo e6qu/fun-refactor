@@ -38,7 +38,9 @@ fn one<'a>(f: &'a FileFacts, name: &str) -> &'a Symbol {
         all.len(),
         1,
         "expected exactly one symbol named {name:?}, got {:?}",
-        all.iter().map(|s| (s.kind, s.full_span)).collect::<Vec<_>>()
+        all.iter()
+            .map(|s| (s.kind, s.full_span))
+            .collect::<Vec<_>>()
     );
     all[0]
 }
@@ -399,9 +401,8 @@ fn loop_and_catch_bindings_are_variables() {
 #[test]
 fn every_import_form_is_recorded() {
     for (lang, f) in both(IMPORTS) {
-        let by_path = |p: &str| -> Vec<&Import> {
-            f.imports.iter().filter(|i| i.path == p).collect()
-        };
+        let by_path =
+            |p: &str| -> Vec<&Import> { f.imports.iter().filter(|i| i.path == p).collect() };
 
         // Default import: one binding, unaliased.
         let d = by_path("./default-mod");
@@ -512,7 +513,11 @@ fn type_positions_are_type_references() {
             ReferenceKind::Type,
             "{lang}"
         );
-        assert_eq!(refs_named(&f, "Alias")[0].kind, ReferenceKind::Type, "{lang}");
+        assert_eq!(
+            refs_named(&f, "Alias")[0].kind,
+            ReferenceKind::Type,
+            "{lang}"
+        );
     }
 }
 
@@ -680,7 +685,12 @@ export const store = new Store<User>();
     let before = spans.len();
     spans.sort();
     spans.dedup();
-    assert_eq!(before, spans.len(), "duplicate definitions in {:?}", f.symbols);
+    assert_eq!(
+        before,
+        spans.len(),
+        "duplicate definitions in {:?}",
+        f.symbols
+    );
 
     assert!(one(&f, "Profile").exported);
     assert_eq!(one(&f, "add").qualified_name(), "Store::add");
@@ -695,7 +705,10 @@ export const store = new Store<User>();
         .filter(|r| r.kind == ReferenceKind::StringRef)
         .map(|r| r.name.as_str())
         .collect();
-    assert!(css.contains(&"profile") && css.contains(&"field"), "{css:?}");
+    assert!(
+        css.contains(&"profile") && css.contains(&"field"),
+        "{css:?}"
+    );
 }
 
 #[test]
@@ -732,7 +745,8 @@ fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
     // Known limit: definitions are matched through their statement parent
     // (`program` / `statement_block` / `export_statement`), so a declaration in
     // a bare switch case is missed rather than duplicated.
-    let src = "switch (k) { case 1: { const inBlock = 1; } }\nswitch (k) { case 2: const inCase = 2; }\n";
+    let src =
+        "switch (k) { case 1: { const inBlock = 1; } }\nswitch (k) { case 2: const inCase = 2; }\n";
     let f = facts(Language::TypeScript, src);
     assert_eq!(named(&f, "inBlock").len(), 1);
     assert!(named(&f, "inCase").is_empty());
@@ -745,11 +759,7 @@ fn a_typeof_type_query_names_the_value_it_reads() {
     // import bound only this way looks value-unused.
     let src = "const Foo = { a: 1 };\nlet x: typeof Foo;\n";
     let f = facts(Language::TypeScript, src);
-    let uses: Vec<_> = f
-        .references
-        .iter()
-        .filter(|r| r.name == "Foo")
-        .collect();
+    let uses: Vec<_> = f.references.iter().filter(|r| r.name == "Foo").collect();
     assert_eq!(uses.len(), 1, "got {uses:?}");
     assert_eq!(uses[0].kind, ReferenceKind::Type);
 }

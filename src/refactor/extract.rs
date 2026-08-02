@@ -100,8 +100,9 @@ pub fn variable(
         .into());
     }
 
-    let statement = enclosing_statement(expr)
-        .ok_or_else(|| anyhow::anyhow!("could not find a statement to insert the binding before"))?;
+    let statement = enclosing_statement(expr).ok_or_else(|| {
+        anyhow::anyhow!("could not find a statement to insert the binding before")
+    })?;
     let statement_span = Span::from(statement);
 
     let targets = if all_occurrences {
@@ -413,8 +414,14 @@ mod tests {
         let path = tmp.path().join("a.rs");
 
         let start = src.find("a + b").unwrap();
-        let err =
-            variable(&index, &path, Span::new(start, start + 5), "existing", false).unwrap_err();
+        let err = variable(
+            &index,
+            &path,
+            Span::new(start, start + 5),
+            "existing",
+            false,
+        )
+        .unwrap_err();
         assert!(
             err.downcast_ref::<Refusal>()
                 .is_some_and(|r| matches!(r, Refusal::NameCollision { .. })),
@@ -525,6 +532,8 @@ impl Parameter {
     fn render(&self, language: Language) -> String {
         match (language, &self.type_annotation) {
             (Language::Python, _) => self.name.clone(),
+            // Go writes the type after the name with no colon between them.
+            (Language::Go, Some(ty)) => format!("{} {ty}", self.name),
             (_, Some(ty)) => format!("{}: {ty}", self.name),
             (_, None) => self.name.clone(),
         }
@@ -593,7 +602,9 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     }
 
     let enclosing = enclosing_function(index, file, region.start).ok_or_else(|| {
-        anyhow::anyhow!("the selection is not inside a function, so there is nothing to extract from")
+        anyhow::anyhow!(
+            "the selection is not inside a function, so there is nothing to extract from"
+        )
     })?;
     let enclosing_span = index
         .symbol(enclosing)
@@ -704,7 +715,10 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         &returns,
         return_type.as_deref(),
         &body,
-        &indent,
+        Indentation {
+            outer: &indent,
+            unit: &crate::edit::indent_unit(&source),
+        },
     );
 
     let mut edits = EditSet::new();
@@ -802,21 +816,12 @@ fn statement_region(parsed: &Parsed, span: Span, source: &str) -> Option<Span> {
     ))
 }
 
-/// Is this node kind a container whose children are statements?
-fn is_statement_container(kind: &str) -> bool {
-    kind.contains("block")
-        || kind.contains("body")
-        || kind == "source_file"
-        || kind == "module"
-        || kind == "program"
-}
-
 /// The ancestor of `node` that is a direct child of a statement container.
 fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
         let parent = current.parent()?;
-        if is_statement_container(parent.kind()) {
+        if crate::refactor::is_statement_container(parent.kind()) {
             return Some(current);
         }
         current = parent;
@@ -902,12 +907,20 @@ fn references_within<'a>(
 ///
 /// There is no type inference here: a binding whose type the programmer left to the
 /// compiler has none to recover, and the caller is told rather than guessed at.
+/// The type a declaration states, as a bare type with no punctuation.
+///
+/// The C-family grammars make the `:` part of the annotation node, so the text of
+/// the `type` field is `: number` rather than `number`. Every caller wants the type
+/// alone and re-spells the punctuation its own language needs, so it is stripped
+/// here rather than in each of them.
 fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;
     let ty = node.child_by_field_name("type")?;
-    Some(Span::from(ty).text(source).trim().to_string())
+    let text = Span::from(ty).text(source).trim();
+    let bare = text.strip_prefix(':').unwrap_or(text).trim();
+    (!bare.is_empty()).then(|| bare.to_string())
 }
 
 /// The call that replaces the extracted region.
@@ -925,7 +938,7 @@ fn render_call(
     let call = format!("{name}({args})");
 
     match (returns.len(), language) {
-        (0, Language::Python) => call,
+        (0, Language::Python | Language::Go) => call,
         (0, _) => format!("{call};"),
         (1, Language::Python) => format!("{} = {call}", returns[0]),
         (1, Language::Rust) => format!("let {} = {call};", returns[0]),
@@ -937,6 +950,17 @@ fn render_call(
     }
 }
 
+/// How the file being edited is indented.
+///
+/// `outer` is what the extracted region already carries; `unit` is one level as this
+/// file writes it, which is read from the source rather than assumed so a two-space
+/// or tab-indented file does not come back with four spaces.
+#[derive(Clone, Copy)]
+struct Indentation<'a> {
+    outer: &'a str,
+    unit: &'a str,
+}
+
 /// The new function definition.
 fn render_function(
     language: Language,
@@ -945,19 +969,17 @@ fn render_function(
     returns: &[String],
     return_type: Option<&str>,
     body: &str,
-    indent: &str,
+    indent: Indentation<'_>,
 ) -> String {
+    let Indentation {
+        outer: indent,
+        unit: body_indent,
+    } = indent;
     let params = parameters
         .iter()
         .map(|p| p.render(language))
         .collect::<Vec<_>>()
         .join(", ");
-
-    // The body keeps its original bytes; only its indentation is adjusted.
-    let body_indent = match language {
-        Language::Python => "    ",
-        _ => "    ",
-    };
     let reindented = body
         .lines()
         .map(|line| {
@@ -1046,9 +1068,7 @@ fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> 
 
 /// The smallest node covering the selection.
 fn descendant_at<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
-    parsed
-        .root()
-        .descendant_for_byte_range(span.start, span.end.max(span.start))
+    parsed.descendant_at(span.start, span.end.max(span.start))
 }
 
 /// The innermost ancestor of `node` (or `node` itself) with this kind.
@@ -1164,8 +1184,9 @@ fn hcl_local(
 
     let locals_block = collect_nodes(parsed.root(), |n| {
         n.kind() == "block"
-            && n.named_child(0)
-                .is_some_and(|c| c.kind() == "identifier" && Span::from(c).text(&source) == "locals")
+            && n.named_child(0).is_some_and(|c| {
+                c.kind() == "identifier" && Span::from(c).text(&source) == "locals"
+            })
     })
     .into_iter()
     .next();
@@ -1233,7 +1254,11 @@ fn hcl_local(
     for target in &targets {
         edits.add(
             file.to_path_buf(),
-            Edit::new(*target, format!("local.{name}"), format!("use local.{name}")),
+            Edit::new(
+                *target,
+                format!("local.{name}"),
+                format!("use local.{name}"),
+            ),
         );
     }
 
@@ -1553,10 +1578,7 @@ fn css_custom_property(
                         (last.end_byte(), format!(" {declaration}"))
                     }
                 }
-                None => (
-                    block.start_byte() + 1,
-                    format!("\n  {declaration}\n"),
-                ),
+                None => (block.start_byte() + 1, format!("\n  {declaration}\n")),
             }
         }
         None => (
@@ -1679,7 +1701,7 @@ fn markdown_link_definition(
 
     let node = descendant_at(&parsed, span)
         .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
-    let link = ancestor_of_kind(node, "link").ok_or_else(|| {
+    let link = markdown_link_ancestor(node).ok_or_else(|| {
         anyhow::anyhow!(
             "no link at bytes {span} in {}; select an inline link `[text](destination)`",
             file.display()
@@ -1694,14 +1716,17 @@ fn markdown_link_definition(
     })?;
 
     let targets: Vec<Span> = if all_occurrences {
-        collect_nodes(parsed.root(), |n| {
-            n.kind() == "link"
-                && markdown_inline_destination(n, &source)
-                    .is_some_and(|(_, d)| d == destination)
-        })
-        .into_iter()
-        .filter_map(|n| markdown_inline_destination(n, &source).map(|(p, _)| p))
-        .collect()
+        parsed
+            .roots()
+            .flat_map(|root| {
+                collect_nodes(root, |n| {
+                    MARKDOWN_LINK_KINDS.contains(&n.kind())
+                        && markdown_inline_destination(n, &source)
+                            .is_some_and(|(_, d)| d == destination)
+                })
+            })
+            .filter_map(|n| markdown_inline_destination(n, &source).map(|(p, _)| p))
+            .collect()
     } else {
         vec![parens]
     };
@@ -1745,6 +1770,31 @@ fn markdown_link_definition(
     })
 }
 
+/// The Markdown node kinds that are links.
+///
+/// All four live in the inline grammar: the block grammar leaves a paragraph's text
+/// opaque, so a link is only ever a node in an inline sub-tree.
+const MARKDOWN_LINK_KINDS: [&str; 4] = [
+    "inline_link",
+    "full_reference_link",
+    "collapsed_reference_link",
+    "shortcut_link",
+];
+
+/// The innermost link enclosing `node`, whichever of the four spellings it is.
+///
+/// Reference links are found too, so selecting one is refused for having no inline
+/// destination rather than for not being a link at all.
+fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node;
+    loop {
+        if MARKDOWN_LINK_KINDS.contains(&current.kind()) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
 /// The `(destination)` of an inline link: the span including both parentheses, and
 /// the text between them (destination plus any title, verbatim).
 fn markdown_inline_destination(link: Node<'_>, source: &str) -> Option<(Span, String)> {
@@ -1764,11 +1814,18 @@ fn markdown_inline_destination(link: Node<'_>, source: &str) -> Option<(Span, St
 
 /// Does the document already end with a link reference definition?
 fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
-    let root = parsed.root();
-    let mut cursor = root.walk();
-    root.named_children(&mut cursor)
-        .last()
-        .is_some_and(|n| n.kind() == "link_reference_definition")
+    // Blocks hang off `section` nodes rather than off the document, so the last block
+    // is at the bottom of the last section.
+    let mut node = parsed.root();
+    loop {
+        let mut cursor = node.walk();
+        let last = node.named_children(&mut cursor).last();
+        match last {
+            Some(last) if last.kind() == "link_reference_definition" => return true,
+            Some(last) if last.kind() == "section" => node = last,
+            _ => return false,
+        }
+    }
 }
 
 // ------------------------------------------------------- Helm named template
@@ -2163,16 +2220,14 @@ fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
         match parent.kind() {
             // `if`/`elif` hold their condition as an ordinary child alongside the
             // body, so position relative to `then` is what tells them apart.
-            "if_statement" | "elif_clause" => {
-                match child_of_kind(parent, "then") {
-                    Some(then) if current.start_byte() >= then.end_byte() => return Ok(current),
-                    _ => anyhow::bail!(
-                        "the selection is part of the condition of an `if`; a binding \
+            "if_statement" | "elif_clause" => match child_of_kind(parent, "then") {
+                Some(then) if current.start_byte() >= then.end_byte() => return Ok(current),
+                _ => anyhow::bail!(
+                    "the selection is part of the condition of an `if`; a binding \
                          spliced in front of it would become the command whose exit \
                          status is tested"
-                    ),
-                }
-            }
+                ),
+            },
             "while_statement" | "until_statement" | "c_style_for_statement" => anyhow::bail!(
                 "the selection is part of a loop's condition, which the shell \
                  re-evaluates on every iteration; hoisting it into a variable before \
@@ -2334,7 +2389,11 @@ fn bash_function(
     );
     edits.add(
         file.to_path_buf(),
-        Edit::new(region, format!("{region_indent}{name}\n"), format!("call {name}")),
+        Edit::new(
+            region,
+            format!("{region_indent}{name}\n"),
+            format!("call {name}"),
+        ),
     );
 
     Ok(ExtractFunctionPlan {
@@ -2379,11 +2438,7 @@ fn bash_positional_parameters(parsed: &Parsed, region: Span, source: &str) -> Ve
 }
 
 /// A `return`, `break` or `continue` in the region that would leave it.
-fn bash_escaping_control_flow(
-    parsed: &Parsed,
-    region: Span,
-    source: &str,
-) -> Option<&'static str> {
+fn bash_escaping_control_flow(parsed: &Parsed, region: Span, source: &str) -> Option<&'static str> {
     for node in collect_nodes(parsed.root(), |n| {
         n.kind() == "command" && region.contains(Span::from(n))
     }) {
@@ -2844,9 +2899,7 @@ fn xml_text_extent(node: Node<'_>) -> Option<Span> {
 fn xml_entity_declaration<'a>(doctype: Node<'a>, source: &str, name: &str) -> Option<Node<'a>> {
     named_children_of_kind(doctype, "GEDecl")
         .into_iter()
-        .find(|d| {
-            child_of_kind(*d, "Name").is_some_and(|n| Span::from(n).text(source) == name)
-        })
+        .find(|d| child_of_kind(*d, "Name").is_some_and(|n| Span::from(n).text(source) == name))
 }
 
 /// The document's root element.

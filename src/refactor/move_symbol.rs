@@ -176,12 +176,6 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         sym.file.clone(),
         Edit::new(removal, "", format!("move {} out", sym.name)),
     );
-    append_to_destination(
-        &mut plan.edits,
-        destination,
-        &moved_text,
-        format!("move {} in", sym.name),
-    );
 
     // Every file that referenced it now needs an import — including the file it
     // came from, if references remain there.
@@ -192,10 +186,24 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         }
     }
 
+    // Code that moves has to keep working where it lands: it needs whatever it
+    // referenced, and it needs to be visible to the files that will now import it.
+    let used = names_used_in(sym.language, &source, removal)?;
+    let carried = carried_imports(index, sym, destination, &used, &source, &mut plan);
+    let moved_text = if needs_import.is_empty() {
+        moved_text
+    } else {
+        exported(sym.language, &moved_text)
+    };
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &format!("{carried}{moved_text}"),
+        format!("move {} in", sym.name),
+    );
+
     for file in &needs_import {
-        let Some(statement) = import_statement(sym.language, file, destination, &sym.name) else {
-            continue;
-        };
+        let statement = import_statement(sym.language, file, destination, &sym.name)?;
         let target_source = std::fs::read_to_string(file).unwrap_or_default();
         let insert = import_insertion_point(&target_source);
         plan.edits.add(
@@ -212,21 +220,337 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     Ok(plan)
 }
 
-/// The import statement `from` needs in order to see `name` defined in `to`.
-fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> Option<String> {
+/// Every identifier the moved region names.
+///
+/// Deciding what the moved code depends on needs the names it mentions, and reading
+/// them off the tree rather than the text keeps strings and comments out of it.
+/// Locally-declared names come along too, which is harmless: they are only ever
+/// matched against imports and the names the source file defines, and a local that
+/// shadows one of those was already a hazard before the move.
+fn names_used_in(
+    language: Language,
+    source: &str,
+    region: Span,
+) -> Result<std::collections::HashSet<String>> {
+    let parsed = crate::parse::Parsers::new().parse(language, source)?;
+    let mut names = std::collections::HashSet::new();
+    let mut stack = vec![parsed.root()];
+    while let Some(node) = stack.pop() {
+        let span = Span::from(node);
+        if span.end <= region.start || span.start >= region.end {
+            continue;
+        }
+        if node.kind().ends_with("identifier") {
+            names.insert(span.text(source).to_string());
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.children(&mut cursor));
+    }
+    Ok(names)
+}
+
+/// The imports the moved text needs at the top of its new file.
+///
+/// Two kinds. An import the source file already had, whose binding the moved code
+/// uses, is re-pointed at the destination and copied across. A symbol the *source
+/// file itself* defines and the moved code still calls needs a new import pointing
+/// back at the source — and that symbol has to be exported for it to resolve, which
+/// is done here rather than left as a note.
+///
+/// The import pointing back is a cycle when the source also imports the moved
+/// symbol. That is legal in both languages and common in TypeScript, but Python
+/// resolves imports at run time and can deadlock on one, so it is reported.
+fn carried_imports(
+    index: &Index,
+    sym: &Symbol,
+    destination: &Path,
+    used: &std::collections::HashSet<String>,
+    source: &str,
+    plan: &mut MovePlan,
+) -> String {
+    let Some(info) = index.file(&sym.file) else {
+        return String::new();
+    };
+    let mut statements: Vec<String> = Vec::new();
+
+    for statement in import_statements(&info.imports) {
+        let binds_something_used = statement.names.iter().any(|n| used.contains(&n.local))
+            || statement.alias.as_ref().is_some_and(|a| used.contains(a));
+        if !binds_something_used {
+            continue;
+        }
+        match repoint(&statement.path, &sym.file, destination) {
+            Some(path) => statements.push(narrowed_import(
+                sym.language,
+                &statement,
+                used,
+                &path,
+                source,
+            )),
+            None => plan.warnings.push(format!(
+                "the moved code uses `{}`, imported from `{}`; that path could not be \
+                 re-expressed from the new file and was not carried over",
+                statement
+                    .names
+                    .iter()
+                    .map(|n| n.local.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                statement.path
+            )),
+        }
+    }
+
+    // Names the source file defines that the moved code still needs.
+    let mut wanted: Vec<&crate::model::Symbol> = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.id != sym.id && s.container.is_none() && used.contains(&s.name))
+        .collect();
+    wanted.sort_by(|a, b| a.name.cmp(&b.name));
+    wanted.dedup_by(|a, b| a.name == b.name);
+
+    if !wanted.is_empty() {
+        let names: Vec<String> = wanted.iter().map(|s| s.name.clone()).collect();
+        match back_import(sym.language, destination, &sym.file, &names) {
+            Some(statement) => {
+                statements.push(statement);
+                for symbol in &wanted {
+                    if let Some(edit) = export_edit(sym.language, &sym.file, symbol) {
+                        plan.edits.add(sym.file.clone(), edit);
+                    }
+                }
+                if sym.language == Language::Python {
+                    plan.warnings.push(format!(
+                        "{} now imports {} back from {}, which imports the moved symbol \
+                         in turn; Python resolves that cycle at run time and may fail on it",
+                        destination.display(),
+                        names.join(", "),
+                        sym.file.display()
+                    ));
+                }
+            }
+            None => plan.warnings.push(format!(
+                "the moved code uses {} from {}, and no import path back to it could be \
+                 written from the new file",
+                names.join(", "),
+                sym.file.display()
+            )),
+        }
+    }
+
+    if statements.is_empty() {
+        return String::new();
+    }
+    format!("{}\n", statements.join(""))
+}
+
+/// The same module, named from the destination instead of the source.
+///
+/// A bare package name means the same thing from anywhere and is returned unchanged;
+/// a relative path has to be recomputed, since the two files sit in different
+/// directories.
+fn repoint(path: &str, from: &Path, to: &Path) -> Option<String> {
+    if !path.starts_with('.') {
+        return Some(path.to_string());
+    }
+    let from_dir = from.parent()?;
+    let target = normalise(&from_dir.join(path.trim_start_matches("./")));
+    let stem_holder = target.clone();
+    relative_module(to, &stem_holder.with_extension("ts")).or_else(|| Some(path.to_string()))
+}
+
+/// One import statement, with every name it binds.
+///
+/// The index records a separate [`crate::model::Import`] per imported name, each
+/// carrying the span of the whole statement it came from. Iterating that list
+/// directly makes a four-name import look like four statements, so anything
+/// rewriting statements has to regroup them first.
+struct ImportStatement {
+    path: String,
+    alias: Option<String>,
+    names: Vec<crate::model::ImportedName>,
+    span: Span,
+}
+
+fn import_statements(imports: &[crate::model::Import]) -> Vec<ImportStatement> {
+    let mut grouped: Vec<ImportStatement> = Vec::new();
+    for import in imports {
+        match grouped.iter_mut().find(|g| g.span == import.span) {
+            Some(existing) => {
+                for name in &import.names {
+                    if !existing.names.iter().any(|n| n.span == name.span) {
+                        existing.names.push(name.clone());
+                    }
+                }
+                if existing.alias.is_none() {
+                    existing.alias = import.alias.clone();
+                }
+            }
+            None => grouped.push(ImportStatement {
+                path: import.path.clone(),
+                alias: import.alias.clone(),
+                names: import.names.clone(),
+                span: import.span,
+            }),
+        }
+    }
+    for group in &mut grouped {
+        group.names.sort_by_key(|n| n.span.start);
+    }
+    grouped
+}
+
+/// The import as the destination needs it: the new path, and only the names the
+/// moved code actually uses.
+///
+/// Copying the statement whole would carry names the moved code never mentions, and
+/// an unused import is an error under `noUnusedLocals` — a move should not hand back
+/// a file that fails the build for a reason it introduced. A default or namespace
+/// import binds one name and has no list to narrow, so it is copied as written.
+fn narrowed_import(
+    language: Language,
+    import: &ImportStatement,
+    used: &std::collections::HashSet<String>,
+    path: &str,
+    source: &str,
+) -> String {
+    let statement = import.span.text(source);
+    let rewritten = |text: &str| {
+        let replaced = text.replacen(&import.path, path, 1);
+        if replaced.ends_with('\n') {
+            replaced
+        } else {
+            format!("{replaced}\n")
+        }
+    };
+
+    let keep: Vec<&crate::model::ImportedName> = import
+        .names
+        .iter()
+        .filter(|n| used.contains(&n.local))
+        .collect();
+    if keep.is_empty() || keep.len() == import.names.len() {
+        return rewritten(statement);
+    }
+
+    // Each name keeps whatever it was written with — an aliased name keeps its
+    // alias, and a TypeScript `type` modifier keeps the modifier.
+    let spelled: Vec<String> = keep
+        .iter()
+        .map(|n| {
+            let written = n.span.text(source);
+            let before = source[..n.span.start].trim_end();
+            if before.ends_with("type") && !written.starts_with("type") {
+                format!("type {written}")
+            } else {
+                written.to_string()
+            }
+        })
+        .collect();
+
+    match language {
+        Language::Python => format!("from {path} import {}\n", spelled.join(", ")),
+        _ => format!("import {{ {} }} from '{path}';\n", spelled.join(", ")),
+    }
+}
+
+/// An import in the destination naming symbols left behind in the source file.
+fn back_import(language: Language, from: &Path, to: &Path, names: &[String]) -> Option<String> {
+    let joined = names.join(", ");
     Some(match language {
         Language::TypeScript | Language::Tsx => {
-            let module = relative_module(from, to)?;
+            format!(
+                "import {{ {joined} }} from '{}';\n",
+                relative_module(from, to)?
+            )
+        }
+        Language::Python => {
+            format!(
+                "from {} import {joined}\n",
+                python_relative_module(from, to)?
+            )
+        }
+        _ => return None,
+    })
+}
+
+/// Make a symbol visible outside its file, if the language says so and it is not
+/// already.
+///
+/// The edit rewrites the declaration's first word rather than inserting `export`
+/// ahead of it. An insertion has no width, and a file whose first line is the
+/// declaration would put it at the same offset as the new import — two zero-width
+/// edits at one position, whose order decides whether the result reads
+/// `import …` then `export function`, or the nonsense `export import …`.
+fn export_edit(language: Language, file: &Path, symbol: &Symbol) -> Option<Edit> {
+    if !matches!(language, Language::TypeScript | Language::Tsx) {
+        return None;
+    }
+    let source = std::fs::read_to_string(file).ok()?;
+    let line_start = whole_lines(&source, symbol.full_span).start;
+    let rest = &source[line_start..];
+    let lead = rest.len() - rest.trim_start().len();
+    let start = line_start + lead;
+    let word_len = source[start..]
+        .find(|c: char| c.is_whitespace())
+        .unwrap_or(source.len() - start);
+    let word = &source[start..start + word_len];
+    if word == "export" {
+        return None;
+    }
+    Some(Edit::new(
+        Span::new(start, start + word_len),
+        format!("export {word}"),
+        format!("export {} so the moved code can import it", symbol.name),
+    ))
+}
+
+/// The moved text, exported.
+fn exported(language: Language, text: &str) -> String {
+    if !matches!(language, Language::TypeScript | Language::Tsx) {
+        return text.to_string();
+    }
+    let body = text.trim_start_matches(['\n', '\r']);
+    if body.trim_start().starts_with("export") {
+        return text.to_string();
+    }
+    let lead = &text[..text.len() - body.len()];
+    format!("{lead}export {body}")
+}
+
+/// The import statement `from` needs in order to see `name` defined in `to`.
+///
+/// Failing to work one out is an error, not something to skip: the reference in
+/// `from` is what makes the import necessary, and a move that drops it leaves code
+/// that no longer compiles while reporting success.
+fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> Result<String> {
+    let unresolvable = || {
+        anyhow::anyhow!(
+            "cannot express {} as a module path from {}, so the import {} needs after \
+             the move cannot be written",
+            to.display(),
+            from.display(),
+            name
+        )
+    };
+    Ok(match language {
+        Language::TypeScript | Language::Tsx => {
+            let module = relative_module(from, to).ok_or_else(unresolvable)?;
             format!("import {{ {name} }} from '{module}';\n")
         }
         // Python spells a relative module with dots, not slashes. A slash-shaped path
         // is a syntax error, which the reparse check would reject — so the move would
         // never commit at all.
         Language::Python => {
-            let module = python_relative_module(from, to)?;
+            let module = python_relative_module(from, to).ok_or_else(unresolvable)?;
             format!("from {module} import {name}\n")
         }
-        _ => return None,
+        other => bail!(
+            "{other} does not move by relative import, so no import statement can be \
+             written for {name}"
+        ),
     })
 }
 
@@ -431,7 +755,9 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
     for file in &needs_use {
         match binding_import(index, file, &sym.name) {
-            Some(binding) => repoint_rust_binding(&mut plan.edits, &binding, &sym.name, &statement)?,
+            Some(binding) => {
+                repoint_rust_binding(&mut plan.edits, &binding, &sym.name, &statement)?
+            }
             None => {
                 let target_source = std::fs::read_to_string(file).unwrap_or_default();
                 let at = rust_use_insertion_point(&target_source);
@@ -617,7 +943,8 @@ fn binding_import(index: &Index, file: &Path, name: &str) -> Option<Binding> {
             break;
         }
         let tail = import.path.rsplit("::").find(|s| !s.is_empty());
-        if import.names.is_empty() && (tail == Some(name) || import.alias.as_deref() == Some(name)) {
+        if import.names.is_empty() && (tail == Some(name) || import.alias.as_deref() == Some(name))
+        {
             return Some(Binding {
                 file: file.to_path_buf(),
                 statement: import.span,
@@ -661,11 +988,19 @@ fn repoint_rust_binding(
         // `use a::{X};` and `use a::X;` are both wholly replaceable.
         None => edits.add(
             binding.file.clone(),
-            Edit::new(binding.statement, statement, format!("repoint use of {name}")),
+            Edit::new(
+                binding.statement,
+                statement,
+                format!("repoint use of {name}"),
+            ),
         ),
         Some(_) if binding.list_len == 1 => edits.add(
             binding.file.clone(),
-            Edit::new(binding.statement, statement, format!("repoint use of {name}")),
+            Edit::new(
+                binding.statement,
+                statement,
+                format!("repoint use of {name}"),
+            ),
         ),
         // One of several: take the name out of the list and add a statement beside it.
         Some(span) => {
@@ -862,7 +1197,8 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         );
     }
 
-    let Some(package) = go_package(index, destination).or_else(|| go_package_of_dir(index, dest_dir))
+    let Some(package) =
+        go_package(index, destination).or_else(|| go_package_of_dir(index, dest_dir))
     else {
         bail!(
             "no .go file in {} declares a package, so the qualifier every use site \
@@ -896,7 +1232,10 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
             source_dir.display()
         );
         for reference in &stray {
-            message.push_str(&format!("\n  {}", location(&reference.file, reference.span.start)));
+            message.push_str(&format!(
+                "\n  {}",
+                location(&reference.file, reference.span.start)
+            ));
         }
         message.push_str(
             "\nRequalifying an already-qualified use cannot be verified from names alone; \
@@ -1053,7 +1392,10 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     }
 
     let source_ext = sym.file.extension().and_then(|e| e.to_str()).unwrap_or("");
-    let dest_ext = destination.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let dest_ext = destination
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
     if source_ext != dest_ext {
         bail!(
             "{} and {} are different kinds of Terraform file (.{source_ext} and \
@@ -1098,9 +1440,9 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
             let dest_source = std::fs::read_to_string(destination).unwrap_or_default();
             match locals_block_in(index, destination) {
                 Some(block) => {
-                    let close = dest_source[..block.end]
-                        .rfind('}')
-                        .ok_or_else(|| anyhow::anyhow!("malformed locals block in {}", destination.display()))?;
+                    let close = dest_source[..block.end].rfind('}').ok_or_else(|| {
+                        anyhow::anyhow!("malformed locals block in {}", destination.display())
+                    })?;
                     let at = full_line_span(&dest_source, close).start;
                     plan.edits.add(
                         destination.to_path_buf(),
@@ -1484,7 +1826,9 @@ fn link_destinations(source: &str) -> Vec<Span> {
         return Vec::new();
     };
     let mut out = Vec::new();
-    let mut stack = vec![parsed.root()];
+    // An inline link's destination lives in an inline sub-tree; only the destination
+    // of a link reference definition is in the block tree.
+    let mut stack: Vec<_> = parsed.roots().collect();
     while let Some(node) = stack.pop() {
         if node.kind() == "link_destination" {
             out.push(Span::from(node));
@@ -1664,8 +2008,8 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
                 // `other.thing` — the namespace it was reached through has to change.
                 Some(object) => {
                     let qualifier = Span::from(object).text(&text);
-                    let names_source =
-                        zig_import_binding_target(index, file, qualifier).as_deref() == Some(&*sym.file);
+                    let names_source = zig_import_binding_target(index, file, qualifier).as_deref()
+                        == Some(&*sym.file);
                     if !names_source {
                         plan.warnings.push(format!(
                             "{}: `{qualifier}.{}` is not reached through an `@import` of {}, \
@@ -2374,8 +2718,10 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
             // A `locals` entry has the `locals` block as its container and is movable
             // all the same; every other nested name is an argument, which is not.
             Language::Hcl => {
-                matches!(s.kind, SymbolKind::Block | SymbolKind::Variable | SymbolKind::Module)
-                    && (s.container.is_none() || enclosing_locals_block(index, s).is_some())
+                matches!(
+                    s.kind,
+                    SymbolKind::Block | SymbolKind::Variable | SymbolKind::Module
+                ) && (s.container.is_none() || enclosing_locals_block(index, s).is_some())
             }
             Language::Css | Language::Scss => {
                 matches!(s.kind, SymbolKind::Selector | SymbolKind::ElementId)
@@ -2398,9 +2744,7 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
             Language::Bash => s.container.is_none() && s.kind == SymbolKind::Function,
             // A nested key's path is its address; only a top-level key keeps the same
             // path in another file.
-            Language::Yaml | Language::Helm => {
-                s.container.is_none() && s.kind == SymbolKind::Key
-            }
+            Language::Yaml | Language::Helm => s.container.is_none() && s.kind == SymbolKind::Key,
             Language::Html | Language::Xml => false,
         })
         .map(|s| s.id)
@@ -2435,7 +2779,10 @@ mod tests {
     #[test]
     fn moves_a_function_between_python_modules() {
         let (tmp, index) = workspace(&[
-            ("helpers.py", "def keep():\n    pass\n\ndef moved():\n    return 1\n"),
+            (
+                "helpers.py",
+                "def keep():\n    pass\n\ndef moved():\n    return 1\n",
+            ),
             ("other.py", "def existing():\n    pass\n"),
         ]);
         let id = index.find_symbols("moved", None)[0].id;
@@ -2456,7 +2803,10 @@ mod tests {
     fn adds_an_import_where_the_symbol_is_still_used() {
         let (tmp, index) = workspace(&[
             ("lib.py", "def shared():\n    return 1\n"),
-            ("app.py", "from lib import shared\n\ndef use():\n    return shared()\n"),
+            (
+                "app.py",
+                "from lib import shared\n\ndef use():\n    return shared()\n",
+            ),
             ("dest.py", "x = 1\n"),
         ]);
         let id = index.find_symbols("shared", None)[0].id;
@@ -2469,15 +2819,22 @@ mod tests {
             plan.imports_added
         );
         let app = apply(&plan, &tmp.path().join("app.py"));
-        assert!(app.contains("from ./dest import shared") || app.contains("from .dest import shared") || app.contains("dest import shared"),
-            "got:\n{app}");
+        assert!(
+            app.contains("from ./dest import shared")
+                || app.contains("from .dest import shared")
+                || app.contains("dest import shared"),
+            "got:\n{app}"
+        );
     }
 
     #[test]
     fn typescript_gets_a_named_import() {
         let (tmp, index) = workspace(&[
             ("a.ts", "export function moved() { return 1; }\n"),
-            ("b.ts", "import { moved } from './a';\nexport const x = moved();\n"),
+            (
+                "b.ts",
+                "import { moved } from './a';\nexport const x = moved();\n",
+            ),
             ("c.ts", "export const y = 2;\n"),
         ]);
         let id = index.find_symbols("moved", None)[0].id;

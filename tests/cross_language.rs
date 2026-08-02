@@ -34,7 +34,8 @@ fn rendered(plan: &rename::RenamePlan, path: &PathBuf) -> String {
 }
 
 const CSS: &str = ".btn-primary {\n  color: white;\n}\n.btn-primary:hover { opacity: 0.9; }\n";
-const HTML: &str = "<div class=\"btn-primary large\">Click</div>\n<span class=\"other btn-primary\"></span>\n";
+const HTML: &str =
+    "<div class=\"btn-primary large\">Click</div>\n<span class=\"other btn-primary\"></span>\n";
 const TSX: &str = "export const App = () => <button className=\"btn-primary\">Go</button>;\n";
 
 #[test]
@@ -71,7 +72,11 @@ fn renaming_a_css_class_rewrites_html_and_tsx() {
     let plan = rename::plan(&index, target, "btn-cta").unwrap();
 
     // Three files, three languages, one entity.
-    assert_eq!(plan.edits.file_count(), 3, "expected all three files to change");
+    assert_eq!(
+        plan.edits.file_count(),
+        3,
+        "expected all three files to change"
+    );
 
     let css = rendered(&plan, &tmp.path().join("styles.css"));
     assert_eq!(
@@ -116,14 +121,16 @@ fn every_definition_site_of_a_css_class_is_renamed() {
 #[test]
 fn an_unrelated_class_of_the_same_shape_is_not_touched() {
     let (tmp, index) = workspace(&[
-        ("styles.css", ".btn-primary { color: red; }\n.btn-secondary { color: blue; }\n"),
-        ("index.html", "<div class=\"btn-primary\"></div>\n<div class=\"btn-secondary\"></div>\n"),
+        (
+            "styles.css",
+            ".btn-primary { color: red; }\n.btn-secondary { color: blue; }\n",
+        ),
+        (
+            "index.html",
+            "<div class=\"btn-primary\"></div>\n<div class=\"btn-secondary\"></div>\n",
+        ),
     ]);
-    let target = index
-        .find_symbols("btn-primary", None)
-        .first()
-        .unwrap()
-        .id;
+    let target = index.find_symbols("btn-primary", None).first().unwrap().id;
     let plan = rename::plan(&index, target, "btn-cta").unwrap();
 
     let html = rendered(&plan, &tmp.path().join("index.html"));
@@ -212,7 +219,11 @@ fn cross_language_edits_survive_reparse_validation() {
             .expect("cross-language edits must survive validation");
     assert_eq!(outcomes.len(), 3);
     for outcome in &outcomes {
-        assert!(outcome.changed(), "{} did not change", outcome.path.display());
+        assert!(
+            outcome.changed(),
+            "{} did not change",
+            outcome.path.display()
+        );
     }
     let _ = Path::new(tmp.path());
 }

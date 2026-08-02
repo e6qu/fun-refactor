@@ -390,10 +390,7 @@ mod tests {
     fn scope_chain_terminates_on_a_cycle() {
         // A malformed scope tree must not hang the tool.
         let f = FileFacts {
-            scopes: vec![
-                scope(0, (0, 10), Some(1)),
-                scope(1, (0, 10), Some(0)),
-            ],
+            scopes: vec![scope(0, (0, 10), Some(1)), scope(1, (0, 10), Some(0))],
             ..Default::default()
         };
         assert!(f.scope_chain(ScopeId(0)).len() <= 3);

@@ -8,7 +8,7 @@ use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rewrite::{self, Rewrite};
 use fun_refactor::scan::{scan, ScanOptions};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
     let tmp = tempfile::tempdir().unwrap();
@@ -34,7 +34,12 @@ fn invert_if_swaps_branches_and_negates() {
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
-    let out = rewritten(&index, &path, src.find("if ready").unwrap(), Rewrite::InvertIf);
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if ready").unwrap(),
+        Rewrite::InvertIf,
+    );
     assert_eq!(
         out,
         "fn f() {\n    if !ready {\n        wait();\n    } else {\n        go();\n    }\n}\n"
@@ -49,7 +54,10 @@ fn invert_if_flips_a_comparison_instead_of_adding_a_bang() {
 
     let out = rewritten(&index, &path, src.find("if a").unwrap(), Rewrite::InvertIf);
     assert!(out.contains("if a != b {"), "got:\n{out}");
-    assert!(!out.contains('!' ) || !out.contains("!(a"), "should not wrap: {out}");
+    assert!(
+        !out.contains('!') || !out.contains("!(a"),
+        "should not wrap: {out}"
+    );
 }
 
 #[test]
@@ -58,7 +66,12 @@ fn invert_if_preserves_comments_in_both_branches() {
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
-    let out = rewritten(&index, &path, src.find("if ready").unwrap(), Rewrite::InvertIf);
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if ready").unwrap(),
+        Rewrite::InvertIf,
+    );
     assert!(out.contains("// then"), "got:\n{out}");
     assert!(out.contains("// otherwise"), "got:\n{out}");
 }
@@ -69,9 +82,14 @@ fn invert_if_refuses_without_an_else() {
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
-    let err = rewrite::apply(&index, &path, src.find("if ready").unwrap(), Rewrite::InvertIf)
-        .unwrap_err()
-        .to_string();
+    let err = rewrite::apply(
+        &index,
+        &path,
+        src.find("if ready").unwrap(),
+        Rewrite::InvertIf,
+    )
+    .unwrap_err()
+    .to_string();
     assert!(err.contains("no `else`"), "got: {err}");
 }
 
@@ -81,7 +99,12 @@ fn invert_if_works_in_python() {
     let (tmp, index) = workspace(&[("a.py", src)]);
     let path = tmp.path().join("a.py");
 
-    let out = rewritten(&index, &path, src.find("if ready").unwrap(), Rewrite::InvertIf);
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if ready").unwrap(),
+        Rewrite::InvertIf,
+    );
     assert!(out.contains("if not ready:"), "got:\n{out}");
     assert!(
         out.find("wait()").unwrap() < out.find("go()").unwrap(),
@@ -115,19 +138,30 @@ fn de_morgan_refuses_a_plain_negation() {
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
-    let err = rewrite::apply(&index, &path, src.find("!ready").unwrap(), Rewrite::DeMorgan)
-        .unwrap_err()
-        .to_string();
+    let err = rewrite::apply(
+        &index,
+        &path,
+        src.find("!ready").unwrap(),
+        Rewrite::DeMorgan,
+    )
+    .unwrap_err()
+    .to_string();
     assert!(err.contains("not an `and`/`or`"), "got: {err}");
 }
 
 #[test]
 fn guard_clause_returns_early_instead_of_nesting() {
-    let src = "fn f() {\n    setup();\n    if ready {\n        go();\n        finish();\n    }\n}\n";
+    let src =
+        "fn f() {\n    setup();\n    if ready {\n        go();\n        finish();\n    }\n}\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
-    let out = rewritten(&index, &path, src.find("if ready").unwrap(), Rewrite::GuardClause);
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if ready").unwrap(),
+        Rewrite::GuardClause,
+    );
     assert!(out.contains("if !ready {"), "got:\n{out}");
     assert!(out.contains("return;"), "got:\n{out}");
     assert!(out.contains("    go();"), "body should be dedented:\n{out}");
@@ -141,9 +175,14 @@ fn guard_clause_refuses_when_statements_follow() {
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
-    let err = rewrite::apply(&index, &path, src.find("if ready").unwrap(), Rewrite::GuardClause)
-        .unwrap_err()
-        .to_string();
+    let err = rewrite::apply(
+        &index,
+        &path,
+        src.find("if ready").unwrap(),
+        Rewrite::GuardClause,
+    )
+    .unwrap_err()
+    .to_string();
     assert!(err.contains("skip"), "got: {err}");
 }
 
@@ -235,7 +274,12 @@ fn guard_clause_works_in_bash() {
     let (tmp, index) = workspace(&[("a.sh", src)]);
     let path = tmp.path().join("a.sh");
 
-    let out = rewritten(&index, &path, src.find("if [").unwrap(), Rewrite::GuardClause);
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if [").unwrap(),
+        Rewrite::GuardClause,
+    );
     assert!(out.contains("! [ -n \"$x\" ]"), "got:\n{out}");
     assert!(out.contains("return"), "got:\n{out}");
 }
@@ -248,4 +292,235 @@ fn bash_rewrites_still_parse() {
     let plan = rewrite::apply(&index, &path, src.find("if [").unwrap(), Rewrite::InvertIf).unwrap();
     fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
         .expect("an inverted shell conditional must still parse");
+}
+
+/// Every language `rewrite::supported` claims, with an if/else and a guardable if.
+///
+/// The gap these close: for a long time only Rust, Python and Bash were exercised,
+/// and the matrix published the rest on the strength of the language list alone.
+/// TypeScript and Zig were both broken — a negated condition lost the brackets those
+/// grammars require — and nothing said so until the tool was run on real code.
+const EVERY_LANGUAGE: &[(&str, &str, &str)] = &[
+    (
+        "a.rs",
+        "fn f(a: bool) {\n    if a {\n        go();\n    } else {\n        wait();\n    }\n}\n",
+        "fn g(a: bool) {\n    if a {\n        go();\n    }\n}\n",
+    ),
+    (
+        "a.go",
+        "package p\n\nfunc f(a bool) {\n\tif a {\n\t\tgo1()\n\t} else {\n\t\twait()\n\t}\n}\n",
+        "package p\n\nfunc g(a bool) {\n\tif a {\n\t\tgo1()\n\t}\n}\n",
+    ),
+    (
+        "a.zig",
+        "fn f(a: bool) void {\n    if (a) {\n        go();\n    } else {\n        wait();\n    }\n}\n",
+        "fn g(a: bool) void {\n    if (a) {\n        go();\n    }\n}\n",
+    ),
+    (
+        "a.ts",
+        "function f(a: boolean) {\n  if (a) {\n    go();\n  } else {\n    wait();\n  }\n}\n",
+        "function g(a: boolean) {\n  if (a) {\n    go();\n  }\n}\n",
+    ),
+    (
+        "a.tsx",
+        "function f(a: boolean) {\n  if (a) {\n    go();\n  } else {\n    wait();\n  }\n}\n",
+        "function g(a: boolean) {\n  if (a) {\n    go();\n  }\n}\n",
+    ),
+    (
+        "a.py",
+        "def f(a):\n    if a:\n        go()\n    else:\n        wait()\n",
+        "def g(a):\n    if a:\n        go()\n",
+    ),
+    (
+        "a.sh",
+        "f() {\n  if [ -n \"$x\" ]; then\n    go\n  else\n    wait\n  fi\n}\n",
+        "g() {\n  if [ -n \"$x\" ]; then\n    go\n  fi\n}\n",
+    ),
+];
+
+fn assert_reparses(index: &Index, path: &Path, offset: usize, r: Rewrite, what: &str) {
+    let plan = rewrite::apply(index, path, offset, r)
+        .unwrap_or_else(|e| panic!("{} on {what}: {e}", r.as_str()));
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .unwrap_or_else(|e| {
+            panic!(
+                "{} on {what} produced code that will not parse: {e}",
+                r.as_str()
+            )
+        });
+}
+
+#[test]
+fn invert_if_produces_parseable_code_in_every_supported_language() {
+    for (name, src, _) in EVERY_LANGUAGE {
+        let (tmp, index) = workspace(&[(name, src)]);
+        let path = tmp.path().join(name);
+        let offset = src.find("if ").or_else(|| src.find("if(")).unwrap();
+        assert_reparses(&index, &path, offset, Rewrite::InvertIf, name);
+    }
+}
+
+#[test]
+fn guard_clause_produces_parseable_code_in_every_supported_language() {
+    for (name, _, src) in EVERY_LANGUAGE {
+        let (tmp, index) = workspace(&[(name, src)]);
+        let path = tmp.path().join(name);
+        let offset = src.find("if ").or_else(|| src.find("if(")).unwrap();
+        assert_reparses(&index, &path, offset, Rewrite::GuardClause, name);
+    }
+}
+
+#[test]
+fn a_negated_condition_keeps_the_brackets_its_grammar_requires() {
+    // Zig and the C family fold the parentheses into the condition node. Negating
+    // that node whole yields `if !(a)`, which is valid Rust and invalid everywhere
+    // that needs the brackets.
+    for (name, src, _) in EVERY_LANGUAGE {
+        if !name.ends_with(".ts") && !name.ends_with(".tsx") && !name.ends_with(".zig") {
+            continue;
+        }
+        let (tmp, index) = workspace(&[(name, src)]);
+        let path = tmp.path().join(name);
+        let out = rewritten(&index, &path, src.find("if (").unwrap(), Rewrite::InvertIf);
+        assert!(out.contains("if (!a)"), "{name} lost its brackets:\n{out}");
+    }
+}
+
+#[test]
+fn invert_if_refuses_an_else_if_chain() {
+    // Swapping the branches would move the second block out from under a test that
+    // only runs when the first is false.
+    let cases = [
+        (
+            "a.rs",
+            "fn f(a: bool, b: bool) {\n    if a {\n        go();\n    } else if b {\n        wait();\n    } else {\n        stop();\n    }\n}\n",
+        ),
+        (
+            "a.ts",
+            "function f(a: boolean, b: boolean) {\n  if (a) {\n    go();\n  } else if (b) {\n    wait();\n  } else {\n    stop();\n  }\n}\n",
+        ),
+        (
+            "a.py",
+            "def f(a, b):\n    if a:\n        go()\n    elif b:\n        wait()\n    else:\n        stop()\n",
+        ),
+    ];
+    for (name, src) in cases {
+        let (tmp, index) = workspace(&[(name, src)]);
+        let path = tmp.path().join(name);
+        let err = rewrite::apply(&index, &path, src.find("if ").unwrap(), Rewrite::InvertIf)
+            .expect_err(&format!("{name}: an else-if chain must be refused"));
+        assert!(
+            err.to_string().contains("else if"),
+            "{name}: the refusal should name the chain, got: {err}"
+        );
+    }
+}
+
+#[test]
+fn de_morgan_keeps_the_grouping_the_result_needs() {
+    // `!(a && b)` is one operand of the outer `&&`; `!a || !b` is two. Without new
+    // brackets the outer operator rebinds and the meaning changes silently — this
+    // one parses cleanly, so no reparse check would catch it.
+    let src = "fn f(a: bool, b: bool, x: bool) -> bool {\n    x && !(a && b)\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let out = rewritten(&index, &path, src.find("!(a").unwrap(), Rewrite::DeMorgan);
+    assert!(
+        out.contains("x && (!a || !b)"),
+        "grouping was dropped:\n{out}"
+    );
+}
+
+#[test]
+fn de_morgan_leaves_a_standalone_negation_unbracketed() {
+    let src = "fn f(a: bool, b: bool) {\n    if !(a && b) {\n        go();\n    }\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let out = rewritten(&index, &path, src.find("!(a").unwrap(), Rewrite::DeMorgan);
+    assert!(out.contains("if !a || !b {"), "needless brackets:\n{out}");
+}
+
+#[test]
+fn guard_clause_indents_the_way_the_file_does() {
+    // Two-space TypeScript and tab-indented Go both used to receive four spaces.
+    let ts = "function f(a: boolean) {\n  if (a) {\n    go();\n  }\n}\n";
+    let (tmp, index) = workspace(&[("a.ts", ts)]);
+    let path = tmp.path().join("a.ts");
+    let out = rewritten(
+        &index,
+        &path,
+        ts.find("if (").unwrap(),
+        Rewrite::GuardClause,
+    );
+    assert!(
+        out.contains("\n    return;\n"),
+        "expected a two-space unit:\n{out}"
+    );
+
+    let go = "package p\n\nfunc f(a bool) {\n\tif a {\n\t\tgo1()\n\t}\n}\n";
+    let (tmp, index) = workspace(&[("a.go", go)]);
+    let path = tmp.path().join("a.go");
+    let out = rewritten(&index, &path, go.find("if ").unwrap(), Rewrite::GuardClause);
+    assert!(out.contains("\n\t\treturn\n"), "expected tabs:\n{out}");
+    assert!(
+        !out.contains("return;"),
+        "Go is not written with the semicolon:\n{out}"
+    );
+}
+
+#[test]
+fn available_only_offers_rewrites_that_survive_a_reparse() {
+    for (name, src, _) in EVERY_LANGUAGE {
+        let (tmp, index) = workspace(&[(name, src)]);
+        let path = tmp.path().join(name);
+        let offset = src.find("if ").or_else(|| src.find("if(")).unwrap();
+        for r in rewrite::available(&index, &path, offset).unwrap() {
+            assert_reparses(&index, &path, offset, r, name);
+        }
+    }
+}
+
+#[test]
+fn guard_clause_refuses_when_the_if_is_not_last_in_a_go_block() {
+    // Go puts a `statement_list` between a block and its statements. Mistaking that
+    // wrapper for a statement made every block look like a block of one, so the
+    // "is the `if` last?" check passed for an `if` with code after it and the guard
+    // hoisted that code out from under the condition. The result parses, so no
+    // reparse check would have caught it — only the meaning changes.
+    let src = "package p\n\nfunc f(a bool) {\n\tif a {\n\t\tgo1()\n\t}\n\tafter()\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let err = rewrite::apply(
+        &index,
+        &path,
+        src.find("if a").unwrap(),
+        Rewrite::GuardClause,
+    )
+    .expect_err("an `if` with code after it must not become a guard");
+    assert!(
+        err.to_string().contains("not the last statement"),
+        "got: {err}"
+    );
+}
+
+#[test]
+fn guard_clause_still_applies_to_a_trailing_go_if() {
+    let src = "package p\n\nfunc f(a bool) {\n\tbefore()\n\tif a {\n\t\tgo1()\n\t}\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if a").unwrap(),
+        Rewrite::GuardClause,
+    );
+    assert!(out.contains("if !a {\n\t\treturn\n\t}\n"), "got:\n{out}");
+    assert!(
+        out.contains("before()"),
+        "the earlier statement was lost:\n{out}"
+    );
 }

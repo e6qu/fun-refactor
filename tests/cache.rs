@@ -51,7 +51,10 @@ fn fingerprint(index: &Index) -> Vec<String> {
 
 const FILES: &[(&str, &str)] = &[
     ("a.rs", "pub fn alpha() {}\nfn caller() { alpha(); }\n"),
-    ("b.py", "def beta():\n    return 1\n\ndef main():\n    return beta()\n"),
+    (
+        "b.py",
+        "def beta():\n    return 1\n\ndef main():\n    return beta()\n",
+    ),
     ("styles.css", ".card { color: red; }\n"),
     ("index.html", "<div class=\"card\" id=\"root\"></div>\n"),
     ("main.tf", "variable \"region\" {\n  default = \"a\"\n}\n"),
@@ -162,7 +165,10 @@ fn two_files_with_identical_content_share_one_entry() {
     let symbols = index.find_symbols("same", None);
     assert_eq!(symbols.len(), 2);
     let files: Vec<&PathBuf> = symbols.iter().map(|s| &s.file).collect();
-    assert_ne!(files[0], files[1], "facts must be rewritten to their own file");
+    assert_ne!(
+        files[0], files[1],
+        "facts must be rewritten to their own file"
+    );
 }
 
 #[test]
@@ -195,7 +201,11 @@ fn cross_language_resolution_survives_caching() {
     let card = cached.find_symbols("card", None);
     assert_eq!(card.len(), 1);
     let refs = cached.references_to(card[0].id);
-    assert_eq!(refs.len(), 1, "the HTML class should still resolve: {refs:?}");
+    assert_eq!(
+        refs.len(),
+        1,
+        "the HTML class should still resolve: {refs:?}"
+    );
 }
 
 #[test]

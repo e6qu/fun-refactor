@@ -131,10 +131,7 @@ fn a_local_keeps_every_hop_of_its_substitution_chain() {
             .any(|t| t.contains("local.prefix = \"${var.env}-${var.region}\"")),
         "the intermediate expression must be retained verbatim: {texts:?}"
     );
-    assert!(
-        texts.iter().any(|t| t.starts_with("var.env")),
-        "{texts:?}"
-    );
+    assert!(texts.iter().any(|t| t.starts_with("var.env")), "{texts:?}");
     assert!(
         texts.iter().any(|t| t.starts_with("var.region")),
         "{texts:?}"
@@ -158,10 +155,7 @@ fn a_local_keeps_every_hop_of_its_substitution_chain() {
         assert!(hop.line >= 1, "hop without a line: {hop:?}");
         assert!(hop.file.exists(), "hop without a file: {hop:?}");
     }
-    assert!(result
-        .hops
-        .iter()
-        .any(|h| h.kind == EdgeKind::Substitution));
+    assert!(result.hops.iter().any(|h| h.kind == EdgeKind::Substitution));
 }
 
 #[test]
@@ -235,7 +229,11 @@ fn competing_tfvars_files_are_all_reported_with_the_winner_marked() {
         .iter()
         .find(|c| c.subject.contains("var.env"))
         .expect("a competition for var.env");
-    assert!(competition.model.contains("terraform.tfvars"), "{}", competition.model);
+    assert!(
+        competition.model.contains("terraform.tfvars"),
+        "{}",
+        competition.model
+    );
 
     let labels: Vec<&str> = competition
         .sources
@@ -302,7 +300,9 @@ fn a_module_output_that_does_not_exist_is_reported_not_invented() {
     let missing = id_in(&index, "main.tf", "missing");
     let result = provenance(&index, missing, 5).unwrap();
     assert!(
-        result.stopped_because(|r| matches!(r, StopReason::Unresolved(what) if what.contains("nope"))),
+        result.stopped_because(
+            |r| matches!(r, StopReason::Unresolved(what) if what.contains("nope"))
+        ),
         "got {:?}",
         result.stops
     );
@@ -314,7 +314,10 @@ fn the_depth_limit_is_reported_rather_than_silently_truncating() {
     let name = id_in(&index, "main.tf", "name");
     let result = provenance(&index, name, 1).unwrap();
     assert!(
-        result.stops.iter().any(|(_, r)| *r == StopReason::DepthLimit),
+        result
+            .stops
+            .iter()
+            .any(|(_, r)| *r == StopReason::DepthLimit),
         "got {:?}",
         result.stops
     );
@@ -350,10 +353,7 @@ fn an_unresolvable_variable_reference_is_reported() {
 
 #[test]
 fn an_evaluation_context_value_is_its_own_origin() {
-    let (_tmp, index) = workspace(&[(
-        "infra/main.tf",
-        "locals {\n  who = each.value\n}\n",
-    )]);
+    let (_tmp, index) = workspace(&[("infra/main.tf", "locals {\n  who = each.value\n}\n")]);
     let who = id_in(&index, "main.tf", "who");
     let result = provenance(&index, who, 5).unwrap();
     assert!(
@@ -369,13 +369,21 @@ fn terraform_consumers_walk_forward_through_the_same_chain() {
     let env = id_in(&index, "variables.tf", "env");
     let result = consumers(&index, env, 10).unwrap();
 
-    assert!(has_hop(&result, "prefix = \"${var.env}"), "{:?}", hop_texts(&result));
+    assert!(
+        has_hop(&result, "prefix = \"${var.env}"),
+        "{:?}",
+        hop_texts(&result)
+    );
     assert!(
         has_hop(&result, "name   = \"${local.prefix}-app\""),
         "the value must be followed onward through local.prefix: {:?}",
         hop_texts(&result)
     );
-    assert!(has_hop(&result, "bucket = local.name"), "{:?}", hop_texts(&result));
+    assert!(
+        has_hop(&result, "bucket = local.name"),
+        "{:?}",
+        hop_texts(&result)
+    );
     assert!(result.hops.iter().any(|h| h.kind == EdgeKind::Use));
 }
 
@@ -392,10 +400,7 @@ fn an_output_reports_its_caller_or_says_there_is_none() {
     );
 
     // An output nobody calls is an external boundary, and says so.
-    let (_tmp2, lonely) = workspace(&[(
-        "mod/main.tf",
-        "output \"lonely\" {\n  value = 1\n}\n",
-    )]);
+    let (_tmp2, lonely) = workspace(&[("mod/main.tf", "output \"lonely\" {\n  value = 1\n}\n")]);
     let out = id_in(&lonely, "mod/main.tf", "lonely");
     let result = consumers(&lonely, out, 5).unwrap();
     assert!(
@@ -436,8 +441,14 @@ fn chart() -> (tempfile::TempDir, Index) {
     workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         ("app/values.yaml", PARENT_VALUES),
-        ("app/values-prod.yaml", "mysql:\n  image:\n    tag: \"8.4\"\n"),
-        ("app/charts/mysql/Chart.yaml", "name: mysql\nversion: 8.0.0\n"),
+        (
+            "app/values-prod.yaml",
+            "mysql:\n  image:\n    tag: \"8.4\"\n",
+        ),
+        (
+            "app/charts/mysql/Chart.yaml",
+            "name: mysql\nversion: 8.0.0\n",
+        ),
         ("app/charts/mysql/values.yaml", SUBCHART_VALUES),
         ("app/templates/deployment.yaml", DEPLOYMENT),
     ])
@@ -577,12 +588,17 @@ fn a_value_read_inside_a_template_action_is_render_dependent() {
     let result = provenance(&index, image, 6).unwrap();
 
     assert!(
-        result.stopped_because(|r| matches!(r, StopReason::RenderDependent(a) if a.contains(".Values.image.tag"))),
+        result.stopped_because(
+            |r| matches!(r, StopReason::RenderDependent(a) if a.contains(".Values.image.tag"))
+        ),
         "got {:?}",
         result.stops
     );
     assert!(
-        result.hops.iter().any(|h| h.kind == EdgeKind::TemplateAction),
+        result
+            .hops
+            .iter()
+            .any(|h| h.kind == EdgeKind::TemplateAction),
         "{:?}",
         hop_texts(&result)
     );
@@ -649,7 +665,9 @@ fn a_key_no_template_reads_says_so_instead_of_reporting_nothing() {
     let repository = key_with_path(&index, "charts/mysql/values.yaml", "image.repository");
     let result = consumers(&index, repository, 5).unwrap();
     assert!(
-        result.stopped_because(|r| matches!(r, StopReason::Origin(o) if o.contains("no template action"))),
+        result.stopped_because(
+            |r| matches!(r, StopReason::Origin(o) if o.contains("no template action"))
+        ),
         "got {:?}",
         result.stops
     );
@@ -678,7 +696,8 @@ fn an_alias_takes_its_value_from_its_anchor() {
         hop_texts(&result)
     );
     assert!(
-        result.stopped_because(|r| matches!(r, StopReason::Origin(o) if o.contains("anchor &base"))),
+        result
+            .stopped_because(|r| matches!(r, StopReason::Origin(o) if o.contains("anchor &base"))),
         "got {:?}",
         result.stops
     );
@@ -910,11 +929,7 @@ fn a_custom_property_chain_is_followed_through_var() {
         "ui/app.css",
         ":root { --brand: red; --accent: var(--brand); }\n.btn { color: var(--accent); }\n",
     )]);
-    let accent = index
-        .symbols
-        .iter()
-        .find(|s| s.name == "--accent")
-        .unwrap();
+    let accent = index.symbols.iter().find(|s| s.name == "--accent").unwrap();
     let result = provenance(&index, accent.id, 5).unwrap();
 
     assert!(
@@ -923,7 +938,10 @@ fn a_custom_property_chain_is_followed_through_var() {
         hop_texts(&result)
     );
     assert!(
-        result.competitions.iter().any(|c| c.subject.contains("--brand")),
+        result
+            .competitions
+            .iter()
+            .any(|c| c.subject.contains("--brand")),
         "the chain must reach --brand: {:?}",
         result.competitions
     );
@@ -943,7 +961,10 @@ fn a_var_chain_respects_the_depth_limit() {
     let a = index.symbols.iter().find(|s| s.name == "--a").unwrap();
     let result = provenance(&index, a.id, 1).unwrap();
     assert!(
-        result.stops.iter().any(|(_, r)| *r == StopReason::DepthLimit),
+        result
+            .stops
+            .iter()
+            .any(|(_, r)| *r == StopReason::DepthLimit),
         "got {:?}",
         result.stops
     );
@@ -951,10 +972,7 @@ fn a_var_chain_respects_the_depth_limit() {
 
 #[test]
 fn an_undeclared_custom_property_is_reported_unresolved() {
-    let (_tmp, index) = workspace(&[(
-        "ui/app.css",
-        ":root { --a: var(--never-declared); }\n",
-    )]);
+    let (_tmp, index) = workspace(&[("ui/app.css", ":root { --a: var(--never-declared); }\n")]);
     let a = index.symbols.iter().find(|s| s.name == "--a").unwrap();
     let result = provenance(&index, a.id, 5).unwrap();
     assert!(
@@ -1082,7 +1100,6 @@ fn specificity_is_exposed_for_callers_that_need_it() {
     assert!(specificity(".a") > specificity("a"));
 }
 
-
 #[test]
 fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
     // `-var` and `*.tfvars` reach the root module only: a child module's inputs are
@@ -1108,7 +1125,11 @@ fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
         competition.model
     );
     let winner = competition.winner().expect("the caller's argument wins");
-    assert!(winner.hop.text.contains("cidr = var.region"), "{}", winner.hop.text);
+    assert!(
+        winner.hop.text.contains("cidr = var.region"),
+        "{}",
+        winner.hop.text
+    );
     assert!(winner.hop.file.ends_with("infra/main.tf"));
     assert!(
         competition
@@ -1119,13 +1140,20 @@ fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
         competition.losers()
     );
     assert!(
-        competition.sources.iter().all(|s| !s.hop.text.contains("ignored")),
+        competition
+            .sources
+            .iter()
+            .all(|s| !s.hop.text.contains("ignored")),
         "a root-module tfvars entry must not be offered as a source: {:?}",
         competition.sources
     );
 
     // And the caller's expression keeps going.
-    assert!(has_hop(&result, "var.region = \"eu-west-1\""), "{:?}", hop_texts(&result));
+    assert!(
+        has_hop(&result, "var.region = \"eu-west-1\""),
+        "{:?}",
+        hop_texts(&result)
+    );
     assert!(competition.decided, "one caller, one value");
 }
 
@@ -1160,11 +1188,11 @@ fn a_module_called_twice_reports_both_instances_and_picks_neither() {
 #[test]
 fn a_child_module_input_the_caller_never_passes_is_reported() {
     let (_tmp, index) = workspace(&[
+        ("infra/main.tf", "module \"m\" {\n  source = \"./mod\"\n}\n"),
         (
-            "infra/main.tf",
-            "module \"m\" {\n  source = \"./mod\"\n}\n",
+            "infra/mod/main.tf",
+            "variable \"needed\" {\n  type = string\n}\n",
         ),
-        ("infra/mod/main.tf", "variable \"needed\" {\n  type = string\n}\n"),
     ]);
     let needed = id_in(&index, "mod/main.tf", "needed");
     let result = provenance(&index, needed, 5).unwrap();

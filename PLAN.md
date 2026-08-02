@@ -28,9 +28,16 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 | D9 | Every command has `--json` output; mutations default to dry-run unified diff, `--write` to apply, multi-file apply is atomic (all-or-nothing). | CLI-native + agent-friendly |
 | D10 | Do not build on stack-graphs (archived 2025-09). Scope resolution via our own locals-style queries; graph construction may use tree-sitter-graph if the DSL earns its keep. | §3 |
 
-**Open decisions** (revisit when reached): final tool name; whether extract-function for
-Zig/Bash is worth the CFG work (Stage 5); LSP backend scope (Stage 8); whether TSX
-`className` handling should understand `clsx`/template strings (Stage 7).
+**Open decisions.** One remains: whether to add the optional LSP delegation backend
+(Stage 8). It is the only route to type-correct method resolution in Rust, Go,
+TypeScript and Python, and it costs server lifecycle management, per-language project
+discovery, version skew, and the self-contained-binary property the tool has today.
+Recommendation on file: skip it.
+
+Resolved since: the tool is `fun-refactor`, binary `fr`; extract-function landed for
+both Zig and Bash without needing a CFG; and TSX `className` handles plain attribute
+values but not helper calls or template literals — recorded as BUGS.md B14 rather than
+left as an open question, because it is a gap with known behaviour, not a decision.
 
 ## Language tiers
 
@@ -313,10 +320,38 @@ attached to every non-supported cell, and a test asserts the README matches. Tha
 exists because the hand-written version drifted twice — once hiding 27 unbuilt cells,
 once publishing six working ones as refused.
 
-Open limitations are in BUGS.md. All four are characterised rather than silent, and
+Open limitations are in BUGS.md. All five are characterised rather than silent, and
 none is a missing feature: reachability under dynamic dispatch (inherent), Helm
-values passed on a command line (invisible to a workspace scan), three SCSS forms the
-grammar does not cover (upstream), and deep Terraform index traversals.
+values passed on a command line (invisible to a workspace scan), CSS classes named
+inside TSX helper calls (a per-library convention, measured), SCSS forms the grammar
+does not cover (upstream), and `tree-sitter-go` parsing a user-defined `new` as the
+builtin (upstream).
+
+### What running it on real code found
+
+The fixture corpora test what we thought to write down. Running the tool over
+grafana/grafana (16,525 files, 10.9s) and helm/helm found ten defects that 1,200
+tests did not, and two of them changed program meaning while parsing cleanly — the
+class no reparse check can catch:
+
+- `guard-clause` hoisted code out from under the `if` guarding it in Go. **1,258 of
+  1,498 applications over 250 files of `pkg/services` were wrong** (84%); the cause
+  was a grammar wrapper node counted as a statement, in a predicate that had been
+  copied into two modules and drifted.
+- de Morgan dropped the brackets its result needed, turning `x && !(a && b)` into
+  `x && !a || !b`.
+
+The rest were loud but real: micro-rewrites published for seven languages and working
+in three, `extract --function` emitting `x: : number`, and moves producing files that
+parse and do not compile. BUGS.md B16–B25 records each with its measurement.
+
+The lesson is recorded here because it should shape what gets tested next: a
+capability matrix derived from code predicates proves a refactoring is *reachable*
+for a language, not that it *works* there. The rewrites and extract-function now have
+per-language tests that apply the operation and reparse the result, which is what
+caught these once the shape was known. Extending that pattern to the remaining
+operations is the highest-value work left, and running against a second large
+codebase in a different language mix is how the next ten will be found.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `rewrite`,

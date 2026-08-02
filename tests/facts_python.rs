@@ -24,7 +24,11 @@ fn facts(src: &str) -> FileFacts {
 /// which is the failure mode of overlapping query patterns.
 fn one<'a>(f: &'a FileFacts, name: &str) -> &'a Symbol {
     let found: Vec<_> = f.symbols.iter().filter(|s| s.name == name).collect();
-    assert_eq!(found.len(), 1, "expected exactly one `{name}`, got {found:?}");
+    assert_eq!(
+        found.len(),
+        1,
+        "expected exactly one `{name}`, got {found:?}"
+    );
     found[0]
 }
 
@@ -110,7 +114,12 @@ fn no_definition_is_captured_twice() {
     let before = spans.len();
     spans.sort();
     spans.dedup_by_key(|(span, _)| *span);
-    assert_eq!(before, spans.len(), "duplicate definitions in {:?}", f.symbols);
+    assert_eq!(
+        before,
+        spans.len(),
+        "duplicate definitions in {:?}",
+        f.symbols
+    );
 }
 
 #[test]
@@ -126,7 +135,10 @@ fn functions_are_found_with_identifier_only_name_spans() {
     assert_eq!(alpha.full_span.text(src), "def alpha():\n    pass");
 
     // `async` belongs to the definition, so full_span starts at it.
-    assert_eq!(one(&f, "beta").full_span.text(src), "async def beta(x):\n    return x");
+    assert_eq!(
+        one(&f, "beta").full_span.text(src),
+        "async def beta(x):\n    return x"
+    );
 }
 
 #[test]
@@ -160,7 +172,12 @@ fn a_class_is_a_symbol_and_also_qualifies_its_methods() {
     assert_eq!(render.qualified_name(), "Widget::render");
     assert_eq!(render.name_span.text(src), "render");
     // The method is nested inside the class symbol.
-    assert_eq!(render.container.map(|id| f.symbol(id).unwrap().name.as_str()), Some("Widget"));
+    assert_eq!(
+        render
+            .container
+            .map(|id| f.symbol(id).unwrap().name.as_str()),
+        Some("Widget")
+    );
 }
 
 #[test]
@@ -183,7 +200,12 @@ fn a_function_nested_in_a_method_inherits_the_class_qualifier() {
     assert_eq!(inner.kind, SymbolKind::Method);
     assert_eq!(inner.qualifier.as_deref(), Some("C"));
     // Its containing symbol is still the method it is written in.
-    assert_eq!(inner.container.map(|id| f.symbol(id).unwrap().name.as_str()), Some("m"));
+    assert_eq!(
+        inner
+            .container
+            .map(|id| f.symbol(id).unwrap().name.as_str()),
+        Some("m")
+    );
 }
 
 #[test]
@@ -225,7 +247,10 @@ fn lambda_parameters_are_captured() {
 fn module_assignments_split_into_constants_and_variables() {
     let src = "MAX_SIZE = 10\nDEBUG = False\nsetting = 1\n";
     let f = facts(src);
-    assert_eq!(names_of(&f, SymbolKind::Constant), vec!["MAX_SIZE", "DEBUG"]);
+    assert_eq!(
+        names_of(&f, SymbolKind::Constant),
+        vec!["MAX_SIZE", "DEBUG"]
+    );
     assert_eq!(names_of(&f, SymbolKind::Variable), vec!["setting"]);
     assert_eq!(one(&f, "MAX_SIZE").name_span.text(src), "MAX_SIZE");
     assert_eq!(one(&f, "MAX_SIZE").full_span.text(src), "MAX_SIZE = 10");
@@ -249,8 +274,17 @@ fn the_underscore_convention_decides_exportedness() {
     for public in ["free", "coro", "Widget", "CONST", "value", "Alias", "kind"] {
         assert!(one(&f, public).exported, "{public} should be exported");
     }
-    for private in ["_helper", "_HIDDEN_CONST", "_private", "_secret", "_internal"] {
-        assert!(!one(&f, private).exported, "{private} should not be exported");
+    for private in [
+        "_helper",
+        "_HIDDEN_CONST",
+        "_private",
+        "_secret",
+        "_internal",
+    ] {
+        assert!(
+            !one(&f, private).exported,
+            "{private} should not be exported"
+        );
     }
 }
 
@@ -380,12 +414,17 @@ fn global_and_nonlocal_names_are_references_not_definitions() {
     assert_eq!(const_defs[0].kind, SymbolKind::Constant);
 
     let global_offset = src.find("global CONST").unwrap() + "global ".len();
-    let r = f.reference_at(global_offset).expect("global name is a reference");
+    let r = f
+        .reference_at(global_offset)
+        .expect("global name is a reference");
     assert_eq!(r.name, "CONST");
     assert_eq!(r.span.text(src), "CONST");
 
     let nonlocal_offset = src.find("nonlocal v").unwrap() + "nonlocal ".len();
-    assert_eq!(f.reference_at(nonlocal_offset).map(|r| r.name.as_str()), Some("v"));
+    assert_eq!(
+        f.reference_at(nonlocal_offset).map(|r| r.name.as_str()),
+        Some("v")
+    );
 }
 
 #[test]
@@ -538,7 +577,10 @@ fn symbol_and_reference_lookup_by_offset() {
     let src = "def alpha():\n    pass\n\n\ndef beta():\n    alpha()\n";
     let f = facts(src);
     let def_offset = src.find("alpha").unwrap() + 1;
-    assert_eq!(f.symbol_at(def_offset).map(|s| s.name.as_str()), Some("alpha"));
+    assert_eq!(
+        f.symbol_at(def_offset).map(|s| s.name.as_str()),
+        Some("alpha")
+    );
     let call_offset = src.rfind("alpha").unwrap() + 1;
     assert_eq!(
         f.reference_at(call_offset).map(|r| r.name.as_str()),

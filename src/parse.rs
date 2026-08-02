@@ -2,12 +2,15 @@
 //!
 //! Grammars are loaded once into a [`Parsers`] handle and reused. Parsing never
 //! rewrites the source: byte offsets in the resulting tree always index the original
-//! text, which is what the edit engine relies on.
+//! text, which is what the edit engine relies on. That holds for the two languages
+//! that are not parsed as written — Helm, whose template actions are masked to keep
+//! the YAML grammar happy, and Markdown, whose inline content is parsed a second time
+//! by a second grammar — because both preserve every byte offset.
 
 use crate::lang::Language;
 use crate::span::Span;
 use anyhow::{Context, Result};
-use tree_sitter::{Node, Parser, Tree};
+use tree_sitter::{Node, Parser, Range, Tree};
 
 /// Loaded tree-sitter grammars.
 pub struct Parsers;
@@ -39,7 +42,20 @@ impl Parsers {
             Language::Hcl => tree_sitter_hcl::LANGUAGE.into(),
             Language::Yaml | Language::Helm => tree_sitter_yaml::LANGUAGE.into(),
             Language::Xml => tree_sitter_xml::LANGUAGE_XML.into(),
-            Language::Markdown => tree_sitter_markdown_fork::language(),
+            Language::Markdown => tree_sitter_md_025::LANGUAGE.into(),
+        }
+    }
+
+    /// The second grammar a language needs, for grammars that parse block structure
+    /// and inline content separately.
+    ///
+    /// Markdown is the only such language: its block grammar leaves the contents of
+    /// every paragraph, heading and table cell as an opaque `inline` node, and the
+    /// inline grammar is what turns those bytes into links, labels and destinations.
+    fn inline_grammar(lang: Language) -> Option<tree_sitter::Language> {
+        match lang {
+            Language::Markdown => Some(tree_sitter_md_025::INLINE_LANGUAGE.into()),
+            _ => None,
         }
     }
 
@@ -65,9 +81,16 @@ impl Parsers {
             .parse(&parse_input, None)
             .with_context(|| format!("parsing {lang} source"))?;
 
+        let inline_trees = match Self::inline_grammar(lang) {
+            Some(grammar) => parse_inline_content(&grammar, &tree, &parse_input)
+                .with_context(|| format!("parsing {lang} inline content"))?,
+            None => Vec::new(),
+        };
+
         Ok(Parsed {
             language: lang,
             tree,
+            inline_trees,
             template_actions,
         })
     }
@@ -79,10 +102,100 @@ impl Default for Parsers {
     }
 }
 
+/// Parse every opaque inline node of a block tree with the inline grammar.
+///
+/// Each sub-tree is parsed from the *whole* source with tree-sitter's included ranges
+/// restricted to one inline node, so every byte offset in the result indexes the
+/// original document — the same property Helm masking preserves, and the one the edit
+/// engine depends on. Parsing the ranges one node at a time rather than all at once
+/// also keeps the nodes independent: a stray `[` at the end of one paragraph cannot
+/// pair with a `]` in the next.
+fn parse_inline_content(
+    grammar: &tree_sitter::Language,
+    block_tree: &Tree,
+    source: &str,
+) -> Result<Vec<Tree>> {
+    let mut parser = Parser::new();
+    parser
+        .set_language(grammar)
+        .context("loading the inline grammar")?;
+
+    let mut trees = Vec::new();
+    for ranges in inline_ranges(block_tree) {
+        parser
+            .set_included_ranges(&ranges)
+            .context("restricting the inline parse to one node")?;
+        let tree = parser.parse(source, None).context("inline parse")?;
+        trees.push(tree);
+    }
+    Ok(trees)
+}
+
+/// The byte ranges holding inline content, one entry per inline node.
+///
+/// A node's own named children are cut out of its ranges: multi-line inline content
+/// inside a list item or block quote carries `block_continuation` markers, and feeding
+/// the `>` or the indent to the inline parser would make it part of the text.
+fn inline_ranges(block_tree: &Tree) -> Vec<Vec<Range>> {
+    let mut all = Vec::new();
+    let mut cursor = block_tree.walk();
+    let mut recurse = true;
+    loop {
+        let node = cursor.node();
+        // `pipe_table_cell` holds inline content too, so links in a table are found.
+        if matches!(node.kind(), "inline" | "pipe_table_cell") {
+            let ranges = ranges_excluding_children(node);
+            if ranges.iter().any(|r| r.end_byte > r.start_byte) {
+                all.push(ranges);
+            }
+            recurse = false;
+        }
+        if recurse && cursor.goto_first_child() {
+            continue;
+        }
+        recurse = true;
+        if cursor.goto_next_sibling() {
+            continue;
+        }
+        loop {
+            if !cursor.goto_parent() {
+                return all;
+            }
+            if cursor.goto_next_sibling() {
+                break;
+            }
+        }
+    }
+}
+
+/// A node's range minus the ranges of its named children.
+fn ranges_excluding_children(node: Node<'_>) -> Vec<Range> {
+    let mut remaining = node.range();
+    let mut ranges = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        let child = child.range();
+        ranges.push(Range {
+            start_byte: remaining.start_byte,
+            start_point: remaining.start_point,
+            end_byte: child.start_byte,
+            end_point: child.start_point,
+        });
+        remaining.start_byte = child.end_byte;
+        remaining.start_point = child.end_point;
+    }
+    ranges.push(remaining);
+    ranges
+}
+
 /// A parsed source file.
 pub struct Parsed {
     pub language: Language,
     pub tree: Tree,
+    /// Sub-trees of the inline content, for languages whose grammar splits block and
+    /// inline parsing (Markdown). Every byte offset in them indexes the original
+    /// source, exactly as in [`Parsed::tree`].
+    pub inline_trees: Vec<Tree>,
     /// Byte spans of Helm `{{ ... }}` template actions, masked out before YAML parsing.
     pub template_actions: Vec<Span>,
 }
@@ -92,9 +205,19 @@ impl Parsed {
         self.tree.root_node()
     }
 
-    /// Does the tree contain any ERROR or MISSING node?
+    /// The root of every inline sub-tree, in source order.
+    pub fn inline_roots(&self) -> impl Iterator<Item = Node<'_>> {
+        self.inline_trees.iter().map(|tree| tree.root_node())
+    }
+
+    /// Every root that describes this file: the block tree, then the inline sub-trees.
+    pub fn roots(&self) -> impl Iterator<Item = Node<'_>> {
+        std::iter::once(self.root()).chain(self.inline_roots())
+    }
+
+    /// Does any tree contain an ERROR or MISSING node?
     pub fn has_errors(&self) -> bool {
-        self.root().has_error()
+        self.roots().any(|root| root.has_error())
     }
 
     /// Byte spans of every ERROR and MISSING node, in source order.
@@ -103,47 +226,92 @@ impl Parsed {
     /// introduces new syntax errors is rejected rather than written.
     pub fn error_spans(&self) -> Vec<Span> {
         let mut errors = Vec::new();
-        let mut cursor = self.root().walk();
-        let mut recurse = true;
-        loop {
-            let node = cursor.node();
-            if node.is_error() || node.is_missing() {
-                errors.push(Span::from(node));
-                // No need to descend into a subtree already known to be broken.
-                recurse = false;
-            }
-            if recurse && cursor.goto_first_child() {
-                continue;
-            }
-            recurse = true;
-            if cursor.goto_next_sibling() {
-                continue;
-            }
-            loop {
-                if !cursor.goto_parent() {
-                    errors.sort();
-                    // Some grammars flag a subtree as erroneous without producing an
-                    // ERROR or MISSING node anywhere in it (tree-sitter-zig does this
-                    // for an empty container body). Reporting nothing here would let
-                    // the edit engine's before/after comparison see no change and
-                    // accept an edit that broke the file, so fall back to the
-                    // narrowest node that still reports an error.
-                    if errors.is_empty() && self.root().has_error() {
-                        errors.push(innermost_error_span(self.root()));
-                    }
-                    return errors;
-                }
-                if cursor.goto_next_sibling() {
-                    break;
-                }
-            }
+        for root in self.roots() {
+            collect_error_spans(root, &mut errors);
         }
+        errors.sort();
+        errors
     }
 
-    /// The smallest named node whose span contains `offset`.
+    /// The smallest named node whose span contains `offset`, across every tree.
     pub fn node_at(&self, offset: usize) -> Option<Node<'_>> {
-        self.root()
-            .named_descendant_for_byte_range(offset, offset.saturating_add(1))
+        self.smallest_covering(offset, offset.saturating_add(1), |root, start, end| {
+            root.named_descendant_for_byte_range(start, end)
+        })
+    }
+
+    /// The smallest node covering `start..end`, across every tree.
+    ///
+    /// Where an inline sub-tree and the block tree both answer, the inline answer
+    /// wins: it describes the same bytes, and describes them in more detail.
+    pub fn descendant_at(&self, start: usize, end: usize) -> Option<Node<'_>> {
+        self.smallest_covering(start, end.max(start), |root, start, end| {
+            root.descendant_for_byte_range(start, end)
+        })
+    }
+
+    fn smallest_covering(
+        &self,
+        start: usize,
+        end: usize,
+        lookup: impl Fn(Node<'_>, usize, usize) -> Option<Node<'_>>,
+    ) -> Option<Node<'_>> {
+        let mut best: Option<Node<'_>> = None;
+        for root in self.roots() {
+            // An inline sub-tree covers only its own node, and still answers for a
+            // range outside it — with its root. Those answers are discarded here.
+            let Some(node) =
+                lookup(root, start, end).filter(|n| n.start_byte() <= start && end <= n.end_byte())
+            else {
+                continue;
+            };
+            let len = |n: &Node<'_>| n.end_byte() - n.start_byte();
+            // `<=` rather than `<`: the sub-trees come last, so a tie goes to the
+            // more detailed one.
+            if best.is_none_or(|current| len(&node) <= len(&current)) {
+                best = Some(node);
+            }
+        }
+        best
+    }
+}
+
+/// Append the span of every ERROR and MISSING node under `root`.
+fn collect_error_spans(root: Node<'_>, errors: &mut Vec<Span>) {
+    let before = errors.len();
+    let mut cursor = root.walk();
+    let mut recurse = true;
+    loop {
+        let node = cursor.node();
+        if node.is_error() || node.is_missing() {
+            errors.push(Span::from(node));
+            // No need to descend into a subtree already known to be broken.
+            recurse = false;
+        }
+        if recurse && cursor.goto_first_child() {
+            continue;
+        }
+        recurse = true;
+        if cursor.goto_next_sibling() {
+            continue;
+        }
+        loop {
+            if !cursor.goto_parent() {
+                // Some grammars flag a subtree as erroneous without producing an
+                // ERROR or MISSING node anywhere in it (tree-sitter-zig does this
+                // for an empty container body). Reporting nothing here would let
+                // the edit engine's before/after comparison see no change and
+                // accept an edit that broke the file, so fall back to the
+                // narrowest node that still reports an error.
+                if errors.len() == before && root.has_error() {
+                    errors.push(innermost_error_span(root));
+                }
+                return;
+            }
+            if cursor.goto_next_sibling() {
+                break;
+            }
+        }
     }
 }
 
@@ -239,28 +407,21 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
 
 /// Is this span the first thing on its line, i.e. in key rather than value position?
 fn starts_the_line(source: &str, span: Span) -> bool {
-    let line_start = source[..span.start]
-        .rfind('\n')
-        .map(|i| i + 1)
-        .unwrap_or(0);
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
     source[line_start..span.start].trim().is_empty()
 }
 
 /// Is every non-whitespace byte on this span's line part of some template action?
 fn line_is_only_actions(source: &str, spans: &[Span], span: Span) -> bool {
     let bytes = source.as_bytes();
-    let line_start = source[..span.start]
-        .rfind('\n')
-        .map(|i| i + 1)
-        .unwrap_or(0);
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
     let line_end = source[span.end..]
         .find('\n')
         .map(|i| span.end + i)
         .unwrap_or(source.len());
 
-    (line_start..line_end).all(|i| {
-        bytes[i].is_ascii_whitespace() || spans.iter().any(|s| s.contains_offset(i))
-    })
+    (line_start..line_end)
+        .all(|i| bytes[i].is_ascii_whitespace() || spans.iter().any(|s| s.contains_offset(i)))
 }
 
 #[cfg(test)]
@@ -279,13 +440,22 @@ mod tests {
             (Language::Rust, "fn main() { println!(\"hi\"); }\n"),
             (Language::Go, "package main\n\nfunc main() {}\n"),
             (Language::Zig, "pub fn main() void {}\n"),
-            (Language::TypeScript, "export function f(a: number) { return a; }\n"),
-            (Language::Tsx, "export const App = () => <div className=\"x\" />;\n"),
+            (
+                Language::TypeScript,
+                "export function f(a: number) { return a; }\n",
+            ),
+            (
+                Language::Tsx,
+                "export const App = () => <div className=\"x\" />;\n",
+            ),
             (Language::Python, "def main():\n    return 1\n"),
             (Language::Bash, "main() {\n  echo hi\n}\n"),
             (Language::Html, "<html><body id=\"root\"></body></html>\n"),
             (Language::Css, ".btn { color: red; }\n"),
-            (Language::Hcl, "resource \"aws_s3_bucket\" \"b\" {\n  bucket = var.name\n}\n"),
+            (
+                Language::Hcl,
+                "resource \"aws_s3_bucket\" \"b\" {\n  bucket = var.name\n}\n",
+            ),
             (Language::Yaml, "key: value\nlist:\n  - a\n"),
             (Language::Xml, "<root><child id=\"a\"/></root>\n"),
             (Language::Markdown, "# Title\n\nSome text.\n"),
@@ -299,7 +469,10 @@ mod tests {
                 "{lang} produced parse errors: {:?}",
                 parsed.error_spans()
             );
-            assert!(parsed.root().end_byte() > 0, "{lang} produced an empty tree");
+            assert!(
+                parsed.root().end_byte() > 0,
+                "{lang} produced an empty tree"
+            );
         }
     }
 
@@ -332,14 +505,8 @@ mod tests {
         );
         assert_eq!(parsed.template_actions.len(), 2);
         // Spans must still index the ORIGINAL source, not the masked copy.
-        assert_eq!(
-            parsed.template_actions[0].text(src),
-            "{{ .Values.name }}"
-        );
-        assert_eq!(
-            parsed.template_actions[1].text(src),
-            "{{- .Release.ns -}}"
-        );
+        assert_eq!(parsed.template_actions[0].text(src), "{{ .Values.name }}");
+        assert_eq!(parsed.template_actions[1].text(src), "{{- .Release.ns -}}");
     }
 
     #[test]
@@ -395,6 +562,63 @@ mod tests {
         let offset = src.find("alpha").unwrap();
         let node = parsed.node_at(offset).expect("node at identifier");
         assert_eq!(Span::from(node).text(src), "alpha");
+    }
+
+    #[test]
+    fn markdown_inline_content_is_parsed_into_sub_trees() {
+        // The block grammar leaves paragraph text as an opaque `inline` node; the
+        // second pass is what turns it into a link.
+        let src = "# Title\n\nSee [text](#title) here.\n";
+        let parsed = parse(Language::Markdown, src);
+        assert!(!parsed.has_errors(), "{:?}", parsed.error_spans());
+
+        // One sub-tree for the heading's content, one for the paragraph's.
+        assert_eq!(parsed.inline_roots().count(), 2);
+        let link = parsed
+            .inline_roots()
+            .find_map(|root| {
+                let mut cursor = root.walk();
+                let found = root
+                    .named_children(&mut cursor)
+                    .find(|n| n.kind() == "inline_link");
+                found
+            })
+            .expect("the paragraph's link");
+        assert_eq!(Span::from(link).text(src), "[text](#title)");
+    }
+
+    #[test]
+    fn markdown_inline_spans_index_the_original_document() {
+        // The property everything downstream depends on: the inline parser is handed
+        // the whole source with its ranges narrowed, so it can only ever report
+        // offsets into the original document.
+        let lead = "Filler paragraph that shifts every following offset.\n\n";
+        let src = format!("{lead}A [label][target] link.\n");
+        let parsed = parse(Language::Markdown, &src);
+
+        let root = parsed.inline_roots().last().expect("the second paragraph");
+        assert_eq!(root.start_byte(), lead.len());
+
+        let offset = src.find("target").unwrap();
+        let node = parsed.node_at(offset).expect("a node at the label");
+        // The inline tree answers, not the block tree's opaque `inline` node.
+        assert_eq!(node.kind(), "link_label");
+        assert_eq!(Span::from(node).text(&src), "[target]");
+    }
+
+    #[test]
+    fn markdown_that_aborted_the_previous_grammar_now_parses() {
+        // tree-sitter-markdown-fork 0.7 hit an assert() in its C++ inline scanner on
+        // this shape and called abort(), killing the process mid-run.
+        let cell = "c".repeat(400);
+        let dash = "-".repeat(400);
+        let src = format!(
+            "| {} |\n| {} |\n",
+            [cell.as_str(); 4].join(" | "),
+            [dash.as_str(); 4].join(" | ")
+        );
+        let parsed = parse(Language::Markdown, &src);
+        assert!(!parsed.has_errors(), "{:?}", parsed.error_spans());
     }
 
     #[test]

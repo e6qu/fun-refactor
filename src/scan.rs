@@ -123,7 +123,10 @@ mod tests {
         let tmp = workspace();
         let result = scan(tmp.path(), &ScanOptions::default()).unwrap();
         assert!(
-            !result.files.iter().any(|f| f.path.ends_with("generated.rs")),
+            !result
+                .files
+                .iter()
+                .any(|f| f.path.ends_with("generated.rs")),
             "ignored directory should not be scanned"
         );
 

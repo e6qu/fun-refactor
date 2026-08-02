@@ -1,0 +1,38 @@
+name: CI
+
+# Pull requests only. A push to `main` is a merge of a branch CI has already
+# checked, so running it again buys nothing and costs the minutes twice.
+on:
+  pull_request:
+
+# A new commit on a pull request makes the run in flight for the old one pointless.
+# Without this it keeps going to the end and bills for it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+
+      # The tree-sitter grammars are C, and there is one per language, so a cold
+      # build is minutes rather than seconds.
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --all-targets
