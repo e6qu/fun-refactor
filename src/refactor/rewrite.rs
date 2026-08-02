@@ -129,7 +129,69 @@ fn supported(language: Language) -> bool {
             | Language::TypeScript
             | Language::Tsx
             | Language::Python
+            | Language::Bash
     )
+}
+
+/// The three pieces of an `if`, however the grammar spells them.
+struct IfParts {
+    condition: Span,
+    consequence: Span,
+    alternative: Option<Span>,
+}
+
+/// Locate an `if`'s condition and branches.
+///
+/// Most grammars expose all three as fields. Bash exposes only the condition: its
+/// branches are delimited by the `then`, `else` and `fi` keyword tokens, with the
+/// statements sitting as bare children in between.
+fn if_parts(node: Node<'_>) -> Option<IfParts> {
+    let condition = Span::from(node.child_by_field_name("condition")?);
+
+    if let Some(consequence) = node.child_by_field_name("consequence") {
+        return Some(IfParts {
+            condition,
+            consequence: Span::from(consequence),
+            alternative: node
+                .child_by_field_name("alternative")
+                .map(|a| Span::from(else_body_of(a))),
+        });
+    }
+
+    // Bash: walk the children, using the keywords as boundaries.
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.children(&mut cursor).collect();
+
+    let then_end = children
+        .iter()
+        .find(|c| c.kind() == "then")
+        .map(|c| c.end_byte())?;
+    let else_clause = children.iter().find(|c| c.kind().contains("else"));
+    let fi_start = children
+        .iter()
+        .find(|c| c.kind() == "fi")
+        .map(|c| c.start_byte());
+
+    let consequence_end = else_clause
+        .map(|c| c.start_byte())
+        .or(fi_start)
+        .unwrap_or(node.end_byte());
+
+    let alternative = else_clause.and_then(|clause| {
+        let mut inner = clause.walk();
+        let kids: Vec<Node> = clause.children(&mut inner).collect();
+        let start = kids
+            .iter()
+            .find(|c| c.kind() == "else")
+            .map(|c| c.end_byte())?;
+        Some(Span::new(start, clause.end_byte()))
+    });
+
+    Some(IfParts {
+        condition,
+        consequence: Span::new(then_end, consequence_end),
+        alternative,
+    })
 }
 
 /// Swap an if/else's branches and negate its condition.
@@ -142,19 +204,12 @@ fn invert_if(
     let node = enclosing_if(parsed, offset)
         .ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
 
-    let condition = node
-        .child_by_field_name("condition")
-        .ok_or_else(|| anyhow::anyhow!("could not find the condition"))?;
-    let consequence = node
-        .child_by_field_name("consequence")
-        .ok_or_else(|| anyhow::anyhow!("could not find the `if` body"))?;
-    let alternative = node.child_by_field_name("alternative").ok_or_else(|| {
+    let parts = if_parts(node)
+        .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
+    let alternative = parts.alternative.ok_or_else(|| {
         anyhow::anyhow!("this `if` has no `else`; there is nothing to swap it with")
     })?;
-
-    // Python spells the else branch as a clause; the block inside it is what swaps.
-    let else_body = else_body_of(alternative);
-    let negated = negate(Span::from(condition).text(source), language);
+    let negated = negate(parts.condition.text(source), language);
 
     let whole = Span::from(node);
     let text = whole.text(source);
@@ -163,9 +218,9 @@ fn invert_if(
     // Rebuild by splicing the three parts, so everything between them — spacing,
     // keywords, comments — survives exactly.
     let base = whole.start;
-    let cond = Span::from(condition);
-    let cons = Span::from(consequence);
-    let alt = Span::from(else_body);
+    let cond = parts.condition;
+    let cons = parts.consequence;
+    let alt = alternative;
 
     out.push_str(&text[..cond.start - base]);
     out.push_str(&negated);
@@ -239,16 +294,11 @@ fn guard_clause(
     let node = enclosing_if(parsed, offset)
         .ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
 
-    if node.child_by_field_name("alternative").is_some() {
+    let parts = if_parts(node)
+        .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
+    if parts.alternative.is_some() {
         anyhow::bail!("this `if` has an `else`; invert it instead of guarding");
     }
-
-    let condition = node
-        .child_by_field_name("condition")
-        .ok_or_else(|| anyhow::anyhow!("could not find the condition"))?;
-    let consequence = node
-        .child_by_field_name("consequence")
-        .ok_or_else(|| anyhow::anyhow!("could not find the `if` body"))?;
 
     // The `if` must be the last thing in its enclosing block, or an early return
     // would skip whatever follows. The comparison is against the statement the `if`
@@ -267,12 +317,13 @@ fn guard_clause(
         );
     }
 
-    let negated = negate(Span::from(condition).text(source), language);
-    let body = strip_block(Span::from(consequence), source);
+    let negated = negate(parts.condition.text(source), language);
+    let body = strip_block(parts.consequence, source);
     let indent = crate::edit::line_indent(source, Span::from(node).start);
 
     let guard = match language {
         Language::Python => format!("if {negated}:\n{indent}    return\n"),
+        Language::Bash => format!("if {negated}; then\n{indent}    return\n{indent}fi\n"),
         _ => format!("if {negated} {{\n{indent}    return;\n{indent}}}\n"),
     };
 
@@ -310,13 +361,26 @@ fn guard_clause(
     Ok((Span::from(node), format!("{guard}{body_text}")))
 }
 
+/// Is this node kind a container whose children are statements?
+///
+/// Shell function bodies are `compound_statement`, which no other grammar in the set
+/// uses, so the list is not the same as the one extraction uses.
+fn is_statement_container(kind: &str) -> bool {
+    kind.contains("block")
+        || kind.contains("body")
+        || kind == "source_file"
+        || kind == "module"
+        || kind == "program"
+        || kind == "compound_statement"
+        || kind == "subshell"
+}
+
 /// The statement a node forms, and the block that statement sits in.
 fn statement_in_block(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
     let mut current = node;
     for _ in 0..8 {
         let parent = current.parent()?;
-        let kind = parent.kind();
-        if kind.contains("block") || kind.contains("body") || kind == "source_file" {
+        if is_statement_container(parent.kind()) {
             return Some((current, parent));
         }
         current = parent;
@@ -354,6 +418,8 @@ fn enclosing_kind<'a>(
 fn boolean_spelling(language: Language) -> (&'static str, &'static str, &'static str) {
     match language {
         Language::Python => ("not ", "and", "or"),
+        // Shell negates a command with `! cmd`, so the sigil needs its space.
+        Language::Bash => ("! ", "&&", "||"),
         _ => ("!", "&&", "||"),
     }
 }
@@ -395,8 +461,10 @@ fn negate(expression: &str, language: Language) -> String {
         }
     }
 
-    // A compound expression needs brackets so the negation binds to all of it.
-    if trimmed.contains(' ') && !is_parenthesised(trimmed) {
+    // A compound expression needs brackets so the negation binds to all of it —
+    // except in shell, where `( … )` opens a subshell. Negating a command there is
+    // just `! cmd`, and adding brackets would change what the code does.
+    if language != Language::Bash && trimmed.contains(' ') && !is_parenthesised(trimmed) {
         format!("{not_token}({trimmed})")
     } else {
         format!("{not_token}{trimmed}")

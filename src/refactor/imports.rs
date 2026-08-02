@@ -85,9 +85,19 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
 
     if !organizable(info.language) {
+        // Say why, not just no. For CSS the answer is not "unimplemented" but
+        // "changing this order changes what the stylesheet means".
+        let reason = match info.language {
+            Language::Css | Language::Scss => {
+                "CSS @import order is semantic — a later import's rules beat an \
+                 earlier one's in the cascade, and @import must precede all other \
+                 rules — so sorting or removing them would change which styles apply"
+            }
+            _ => "this language has no import statements to organize",
+        };
         return Err(Refusal::Unsupported {
             operation: "organize imports".into(),
-            language: info.language.name().into(),
+            language: format!("{}: {reason}", info.language.name()),
         }
         .into());
     }

@@ -212,3 +212,40 @@ fn refuses_unsupported_languages() {
         "got: {err}"
     );
 }
+
+#[test]
+fn invert_if_works_in_bash() {
+    // Bash exposes only a `condition` field; its branches are delimited by the
+    // `then`, `else` and `fi` keywords with statements sitting bare in between.
+    let src = "if [ -n \"$x\" ]; then\n  go\nelse\n  wait\nfi\n";
+    let (tmp, index) = workspace(&[("a.sh", src)]);
+    let path = tmp.path().join("a.sh");
+
+    let out = rewritten(&index, &path, src.find("if [").unwrap(), Rewrite::InvertIf);
+    assert!(out.contains("! [ -n \"$x\" ]"), "got:\n{out}");
+    assert!(
+        out.find("wait").unwrap() < out.find("go").unwrap(),
+        "branches should be swapped:\n{out}"
+    );
+}
+
+#[test]
+fn guard_clause_works_in_bash() {
+    let src = "main() {\n  setup\n  if [ -n \"$x\" ]; then\n    go\n  fi\n}\n";
+    let (tmp, index) = workspace(&[("a.sh", src)]);
+    let path = tmp.path().join("a.sh");
+
+    let out = rewritten(&index, &path, src.find("if [").unwrap(), Rewrite::GuardClause);
+    assert!(out.contains("! [ -n \"$x\" ]"), "got:\n{out}");
+    assert!(out.contains("return"), "got:\n{out}");
+}
+
+#[test]
+fn bash_rewrites_still_parse() {
+    let src = "if [ -n \"$x\" ]; then\n  go\nelse\n  wait\nfi\n";
+    let (tmp, index) = workspace(&[("a.sh", src)]);
+    let path = tmp.path().join("a.sh");
+    let plan = rewrite::apply(&index, &path, src.find("if [").unwrap(), Rewrite::InvertIf).unwrap();
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .expect("an inverted shell conditional must still parse");
+}
