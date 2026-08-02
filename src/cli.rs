@@ -104,12 +104,15 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
-    /// Replace a variable's uses with its value and remove the binding.
+    /// Replace a variable's uses with its value, or a call with the callee's body.
     ///
     /// Prints a diff by default; pass --write to apply it.
     Inline {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
+        /// Inline the call at that position rather than a variable.
+        #[arg(long)]
+        call: bool,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
         write: bool,
@@ -286,7 +289,11 @@ pub fn run() -> Result<()> {
             all,
             write,
         } => cmd_extract(&cli, range, name, *function, *all, *write),
-        Command::Inline { target, write } => cmd_inline(&cli, target, *write),
+        Command::Inline {
+            target,
+            call,
+            write,
+        } => cmd_inline(&cli, target, *call, *write),
         Command::Restructure {
             pattern,
             template,
@@ -503,8 +510,32 @@ fn cmd_extract(
     present(cli, &plan.edits, &summary, write)
 }
 
-fn cmd_inline(cli: &Cli, target: &str, write: bool) -> Result<()> {
+fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
+
+    if as_call {
+        // A call has no symbol of its own, so this form needs a position.
+        let pos = parse_position(target).ok_or_else(|| {
+            anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
+        })?;
+        let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+        let source = std::fs::read_to_string(&path)
+            .with_context(|| format!("reading {}", path.display()))?;
+        let offset = LineIndex::new(&source)
+            .offset(
+                LineCol {
+                    line: pos.line,
+                    col: pos.col,
+                },
+                &source,
+            )
+            .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
+
+        let plan = crate::refactor::inline::call(&index, &path, offset)?;
+        let summary = format!("inlined the call to {} as `{}`", plan.function, plan.expansion);
+        return present(cli, &plan.edits, &summary, write);
+    }
+
     let symbol = resolve_target(&index, target)?;
     let plan = crate::refactor::inline::variable(&index, symbol.id)?;
     let summary = format!(

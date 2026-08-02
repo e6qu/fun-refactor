@@ -179,7 +179,7 @@ semantics per tier.
 against `terraform console` / `helm template` outputs on fixtures; CSS answers match browser
 devtools on fixtures.
 
-### Stage 5 — Extract & inline — **PARTIAL**: extract/inline variable done; extract function and inline call not started
+### Stage 5 — Extract & inline — **DONE**
 
 **Goal**: the extract/inline family, powered by Stage 4 dataflow.
 
@@ -310,8 +310,7 @@ resolution), Stage 2 (rename, including cross-language), Stage 3 (call graph +
 catalog-driven entry points), Stage 4 (imperative def-use flow + config-language
 provenance), Stage 6 (move, change signature, safe delete, organize imports).
 
-**Partial**: Stage 5 (extract/inline *variable* done; extract function and inline
-call not started), Stage 7 (cross-language rename and `fr impact` done; Helm value
+**Partial**: Stage 7 (cross-language rename and `fr impact` done; Helm value
 → env var → code stitching not started), Stage 8 (pattern restructuring done;
 micro-rewrites, LSP backend and daemon not started).
 
@@ -321,8 +320,6 @@ Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inlin
 
 ### Remaining
 
-- Stage 5: extract function (needs the ins→params / outs→returns data-flow analysis),
-  inline call.
 - Stage 7: stitched flows across the code/config boundary (Helm value → container env
   → `os.environ` read).
 - Stage 8: the `refactor.rewrite.*` micro-transform tail, Piranha-style cascading

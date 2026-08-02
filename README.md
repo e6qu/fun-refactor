@@ -37,6 +37,8 @@ survey the design is based on, with sources.
 | flow (def-use) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — |
 | provenance | — | — | — | — | — | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | extract / inline var | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
+| extract function | ✓ | ✓ | — | ✓ | ✓ | — | — | — | — | — | — | — |
+| inline call | ✓ | ✓ | — | ✓ | ✓ | — | — | — | — | — | — | — |
 | change signature | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
 | move to file | — | — | — | ✓ | ✓ | — | — | — | — | — | — | — |
 | safe delete | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -56,7 +58,9 @@ fr def <name|path:line:col>   # where is it defined
 fr refs <target>              # where is it used, with confidence per site
 fr rename <target> <new>      # rename it and everything that points at it
 fr extract <path:l:c-l:c> <n> # extract an expression into a binding
+fr extract <range> <n> --function   # extract statements into a function
 fr inline <target>            # replace a variable's uses with its value
+fr inline <path:l:c> --call   # replace a call with the callee's body
 fr signature <target> remove:1  # change parameters, update every call site
 fr move <target> <dest-file>  # move a symbol, update imports
 fr delete <target>            # delete it, refusing if anything uses it
@@ -114,12 +118,10 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–4 and 6 of [PLAN.md](PLAN.md) are complete; 5, 7 and 8 are partial. 572
-tests.
+Stages 0–6 of [PLAN.md](PLAN.md) are complete; 7 and 8 are partial. 603 tests.
 
-Not yet built: extract *function* (needs the ins→params/outs→returns analysis),
-inline call, stitched Helm-value→env-var→code flows, the micro-rewrite tail, and the
-optional LSP backend.
+Not yet built: stitched Helm-value→env-var→code flows, the micro-rewrite tail, and
+the optional LSP backend.
 
 Known limitations are tracked in [BUGS.md](BUGS.md) — notably SCSS runs on the CSS
 grammar, Helm template actions are masked before YAML parsing so `.Values` references
