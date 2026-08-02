@@ -86,6 +86,31 @@ enum Command {
         #[arg(long, default_value = "1")]
         depth: usize,
     },
+    /// Extract an expression into a named binding.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Extract {
+        /// The expression to extract, as `path:line:col-line:col`.
+        range: String,
+        /// Name for the new binding.
+        name: String,
+        /// Replace every identical occurrence in the same block.
+        #[arg(long)]
+        all: bool,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
+    /// Replace a variable's uses with its value and remove the binding.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Inline {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Trace where a value comes from or goes to.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
@@ -177,6 +202,13 @@ pub fn run() -> Result<()> {
             target,
             depth,
         } => cmd_flow(&cli, direction, target, *depth),
+        Command::Extract {
+            range,
+            name,
+            all,
+            write,
+        } => cmd_extract(&cli, range, name, *all, *write),
+        Command::Inline { target, write } => cmd_inline(&cli, target, *write),
         Command::Graph { dot } => cmd_graph(&cli, *dot),
         Command::Entrypoints {
             kind,
@@ -247,6 +279,113 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
         }
     }
     Ok(())
+}
+
+/// Render a plan's diff, report what it did, and optionally commit it.
+fn present(
+    cli: &Cli,
+    edits: &crate::edit::EditSet,
+    summary: &str,
+    write: bool,
+) -> Result<()> {
+    let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
+
+    if cli.json {
+        let changes: Vec<_> = outcomes
+            .iter()
+            .map(|o| serde_json::json!({ "path": o.path, "diff": o.unified_diff() }))
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "summary": summary,
+                "files_changed": outcomes.len(),
+                "applied": write,
+                "changes": changes,
+            }))?
+        );
+        if write {
+            crate::edit::commit(&outcomes)?;
+        }
+        return Ok(());
+    }
+
+    for outcome in &outcomes {
+        print!("{}", outcome.unified_diff());
+    }
+    println!("\n{summary}");
+    if write {
+        let count = crate::edit::commit(&outcomes)?;
+        println!("Applied to {count} file(s).");
+    } else {
+        println!("\nNothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+/// Parse `path:line:col-line:col` into a byte span.
+fn parse_range(spec: &str) -> Result<(PathBuf, LineCol, LineCol)> {
+    let (head, end_col) = spec
+        .rsplit_once(':')
+        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
+    let (head, end_line) = head
+        .rsplit_once('-')
+        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
+    let (path, start_col) = head
+        .rsplit_once(':')
+        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
+    let (path, start_line) = path
+        .rsplit_once(':')
+        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
+
+    Ok((
+        PathBuf::from(path),
+        LineCol {
+            line: start_line.parse()?,
+            col: start_col.parse()?,
+        },
+        LineCol {
+            line: end_line.parse()?,
+            col: end_col.parse()?,
+        },
+    ))
+}
+
+fn cmd_extract(cli: &Cli, range: &str, name: &str, all: bool, write: bool) -> Result<()> {
+    let (path, start, end) = parse_range(range)?;
+    let path = path.canonicalize().unwrap_or(path);
+    let source = std::fs::read_to_string(&path)
+        .with_context(|| format!("reading {}", path.display()))?;
+    let index_of_lines = LineIndex::new(&source);
+    let span = crate::span::Span::new(
+        index_of_lines
+            .offset(start, &source)
+            .ok_or_else(|| anyhow::anyhow!("{start} is outside {}", path.display()))?,
+        index_of_lines
+            .offset(end, &source)
+            .ok_or_else(|| anyhow::anyhow!("{end} is outside {}", path.display()))?,
+    );
+
+    let index = build_index(cli, &[])?;
+    let plan = crate::refactor::extract::variable(&index, &path, span, name, all)?;
+    let summary = format!(
+        "extracted `{}` into {} ({} occurrence(s) replaced)",
+        plan.expression.trim(),
+        plan.name,
+        plan.occurrences
+    );
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_inline(cli: &Cli, target: &str, write: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let plan = crate::refactor::inline::variable(&index, symbol.id)?;
+    let summary = format!(
+        "inlined `{}` into {} use site(s)",
+        plan.name, plan.use_sites
+    );
+    present(cli, &plan.edits, &summary, write)
 }
 
 fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()> {
@@ -568,7 +707,10 @@ fn resolve_target<'a>(index: &'a Index, target: &str) -> Result<&'a Symbol> {
 
 fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
     let options = scan_options(languages)?;
-    Index::build(&cli.root, &options)
+    // Canonicalise the root so indexed paths match the ones commands resolve from
+    // arguments; otherwise /var and /private/var name the same file but never match.
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    Index::build(&root, &options)
 }
 
 fn cmd_symbols(

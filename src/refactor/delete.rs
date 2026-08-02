@@ -1,0 +1,1 @@
+//! Safe delete. Implementation pending.

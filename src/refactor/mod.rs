@@ -5,6 +5,10 @@
 //! Nothing is ever half-applied, and nothing that could not be verified is rewritten
 //! silently (PLAN.md D8).
 
+pub mod delete;
+pub mod extract;
+pub mod imports;
+pub mod inline;
 pub mod rename;
 
 use crate::model::Confidence;
