@@ -2,3 +2,4 @@
 
 pub mod call_graph;
 pub mod entrypoints;
+pub mod flow;

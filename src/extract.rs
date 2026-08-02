@@ -82,6 +82,59 @@ fn reference_kind(name: &str) -> Option<ReferenceKind> {
     })
 }
 
+/// Narrow a captured span to the bytes that actually name something.
+///
+/// Grammars vary in how tightly they bound a name. Some expose only a quoted string
+/// node (tree-sitter-xml's attribute values have no inner text node at all), and
+/// Markdown's ATX headings include the padding after the `#`. Since a rename rewrites
+/// exactly the bytes of a name span, an unrefined span would produce `id=""new""` or
+/// re-insert the original padding. Trimming here fixes every language at once.
+fn refine_name_span(span: Span, source: &str) -> Span {
+    let text = span.text(source);
+
+    // Leading and trailing whitespace is never part of a name.
+    let start_trim = text.len() - text.trim_start().len();
+    let end_trim = text.len() - text.trim_end().len();
+    let mut start = span.start + start_trim;
+    let mut end = span.end - end_trim;
+
+    // A matched pair of surrounding quotes belongs to the syntax, not the name.
+    if end > start + 1 {
+        let bytes = source.as_bytes();
+        let first = bytes[start];
+        let last = bytes[end - 1];
+        if first == last && matches!(first, b'"' | b'\'' | b'`') {
+            start += 1;
+            end -= 1;
+        }
+    }
+
+    Span::new(start, end.max(start))
+}
+
+/// Split a whitespace-separated attribute value into one span per token.
+///
+/// `class="btn btn-primary"` is a single token in every HTML-ish grammar, but it
+/// references two CSS classes. Renaming one must rewrite only its own bytes, so the
+/// value is fanned out into separate references rather than treated as one name.
+fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
+    let text = span.text(source);
+    if !text.trim().contains(char::is_whitespace) {
+        return vec![span];
+    }
+    let mut spans = Vec::new();
+    let mut offset = 0;
+    for token in text.split_whitespace() {
+        // `find` from the running offset keeps repeated tokens on distinct spans.
+        if let Some(found) = text[offset..].find(token) {
+            let start = span.start + offset + found;
+            spans.push(Span::new(start, start + token.len()));
+            offset += found + token.len();
+        }
+    }
+    spans
+}
+
 /// Ranks reference kinds from most to least specific.
 ///
 /// `foo()` matches both a call pattern and the catch-all identifier pattern; the call
@@ -192,12 +245,15 @@ impl Extractor {
                 // A definition without an identifier cannot be renamed or referenced,
                 // so it is not a usable symbol.
                 if let Some(name_span) = name {
-                    raw_defs.push(RawDef {
-                        kind,
-                        full_span,
-                        name_span,
-                        exported,
-                    });
+                    let name_span = refine_name_span(name_span, source);
+                    if !name_span.is_empty() {
+                        raw_defs.push(RawDef {
+                            kind,
+                            full_span,
+                            name_span,
+                            exported,
+                        });
+                    }
                 }
             }
 
@@ -276,20 +332,30 @@ impl Extractor {
             symbols.iter().map(|s| s.name_span).collect();
         let mut references = Vec::new();
         for r in raw_refs {
-            if def_name_spans.contains(&r.span) {
+            let refined = refine_name_span(r.span, source);
+            if def_name_spans.contains(&refined) || refined.is_empty() {
                 continue;
             }
-            references.push(Reference {
-                name: r.span.text(source).to_string(),
-                span: r.span,
-                file: path.to_path_buf(),
-                language: lang,
-                scope: scope_at(r.span.start),
-                target: None,
-                // Resolution happens in the index, which can see other files.
-                confidence: Confidence::NameOnly,
-                kind: r.kind,
-            });
+            // A string reference may name several things at once (`class="a b"`),
+            // so it fans out into one reference per token.
+            let spans = if r.kind == ReferenceKind::StringRef {
+                split_value_spans(refined, source)
+            } else {
+                vec![refined]
+            };
+            for span in spans {
+                references.push(Reference {
+                    name: span.text(source).to_string(),
+                    span,
+                    file: path.to_path_buf(),
+                    language: lang,
+                    scope: scope_at(span.start),
+                    target: None,
+                    // Resolution happens in the index, which can see other files.
+                    confidence: Confidence::NameOnly,
+                    kind: r.kind,
+                });
+            }
         }
         // One identifier can match several patterns (a call is also an identifier).
         // Keep the most specific kind per span so each use site appears exactly once.
@@ -475,6 +541,61 @@ mod tests {
         let r = f.reference_at(impl_offset).expect("impl type is a reference");
         assert_eq!(r.name, "S");
         assert_eq!(r.kind, ReferenceKind::Type);
+    }
+
+    #[test]
+    fn name_spans_are_trimmed_of_quotes_and_padding() {
+        // Whitespace padding is never part of a name.
+        let src = r#"x = "  padded  ""#;
+        assert_eq!(refine_name_span(Span::new(5, 15), src).text(src), "padded");
+
+        // A matched quote pair belongs to the syntax, not the name: without this a
+        // rename would write id=""new"".
+        let quoted = "id=\"main\"";
+        let span = Span::new(3, 9);
+        assert_eq!(span.text(quoted), "\"main\"");
+        assert_eq!(refine_name_span(span, quoted).text(quoted), "main");
+
+        // Padding around a Markdown heading title.
+        let heading = "#   Title   ";
+        let span = Span::new(1, heading.len());
+        assert_eq!(refine_name_span(span, heading).text(heading), "Title");
+
+        // Unmatched quotes are left alone rather than half-trimmed.
+        let odd = "\"unclosed";
+        assert_eq!(
+            refine_name_span(Span::new(0, odd.len()), odd).text(odd),
+            "\"unclosed"
+        );
+    }
+
+    #[test]
+    fn multi_valued_attributes_split_into_one_reference_per_token() {
+        // `class="btn btn-primary"` names two CSS classes; renaming one must rewrite
+        // only its own bytes.
+        let src = "class=\"btn btn-primary\"";
+        let value = Span::new(7, 22);
+        assert_eq!(value.text(src), "btn btn-primary");
+
+        let spans = split_value_spans(value, src);
+        assert_eq!(spans.len(), 2);
+        assert_eq!(spans[0].text(src), "btn");
+        assert_eq!(spans[1].text(src), "btn-primary");
+
+        // A single-valued attribute stays one span.
+        let single = "class=\"solo\"";
+        let span = Span::new(7, 11);
+        assert_eq!(split_value_spans(span, single).len(), 1);
+    }
+
+    #[test]
+    fn repeated_tokens_get_distinct_spans() {
+        let src = "a a";
+        let spans = split_value_spans(Span::new(0, 3), src);
+        assert_eq!(spans.len(), 2);
+        assert_ne!(spans[0], spans[1], "each occurrence needs its own span");
+        assert_eq!(spans[0], Span::new(0, 1));
+        assert_eq!(spans[1], Span::new(2, 3));
     }
 
     #[test]
