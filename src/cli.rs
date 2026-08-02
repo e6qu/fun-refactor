@@ -122,6 +122,14 @@ enum Command {
         #[arg(long, default_value = "5")]
         depth: usize,
     },
+    /// Show everything a change to a symbol could affect.
+    Impact {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// How far to follow call edges backwards (0 disables the call walk).
+        #[arg(long, default_value = "3")]
+        caller_depth: usize,
+    },
     /// Export the call graph.
     Graph {
         /// Emit Graphviz DOT.
@@ -209,6 +217,10 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_extract(&cli, range, name, *all, *write),
         Command::Inline { target, write } => cmd_inline(&cli, target, *write),
+        Command::Impact {
+            target,
+            caller_depth,
+        } => cmd_impact(&cli, target, *caller_depth),
         Command::Graph { dot } => cmd_graph(&cli, *dot),
         Command::Entrypoints {
             kind,
@@ -439,6 +451,46 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
         );
     } else {
         print!("{}", result.format_tree());
+    }
+    Ok(())
+}
+
+fn cmd_impact(cli: &Cli, target: &str, caller_depth: usize) -> Result<()> {
+    use crate::analysis::impact;
+
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let result = impact::analyse(&index, symbol.id, caller_depth)?;
+
+    if cli.json {
+        let items: Vec<_> = result
+            .items
+            .iter()
+            .map(|i| {
+                serde_json::json!({
+                    "file": i.file,
+                    "language": i.language.name(),
+                    "line": i.line,
+                    "col": i.col,
+                    "kind": i.kind.as_str(),
+                    "confidence": i.confidence.as_str(),
+                    "detail": i.detail,
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "symbol": symbol.qualified_name(),
+                "files": result.files().len(),
+                "languages": result.languages().iter().map(|l| l.name()).collect::<Vec<_>>(),
+                "by_kind": result.by_kind(),
+                "by_confidence": result.by_confidence(),
+                "items": items,
+            }))?
+        );
+    } else {
+        print!("{}", impact::format_report(&index, &result));
     }
     Ok(())
 }

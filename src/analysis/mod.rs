@@ -3,4 +3,5 @@
 pub mod call_graph;
 pub mod entrypoints;
 pub mod flow;
+pub mod impact;
 pub mod provenance;
