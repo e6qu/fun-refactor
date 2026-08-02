@@ -6,21 +6,97 @@
 //! file and a `parse` in another became one node. Here every edge comes from a
 //! resolved reference and carries the [`Confidence`] of that resolution, so callers
 //! can distinguish a proven call from a plausible one.
+//!
+//! On top of that sits a second layer: **class hierarchy analysis** ([`Hierarchy`]).
+//! A call through a `dyn Trait`, an interface value or a base-class reference names
+//! no single definition, and resolution correctly refuses to invent one — but the
+//! workspace does say which types implement the abstraction, and every one of their
+//! implementations is a possible callee. Those edges are added with
+//! [`Confidence::FieldBased`] and an [`EdgeOrigin::Hierarchy`] tag, so nothing
+//! downstream can mistake a candidate for a proven call: they are dashed in DOT,
+//! counted separately by [`CallGraph::origin_breakdown`], and a symbol kept off the
+//! unused list by one of them can be told exactly why.
 
 use crate::index::Index;
+use crate::lang::Language;
 use crate::model::{Confidence, ReferenceKind, Symbol, SymbolId, SymbolKind};
+use crate::parse::Parsers;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use std::path::{Path, PathBuf};
+use tree_sitter::Node;
 
 /// A call edge between two functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallEdge {
     /// Byte offset of the call site.
     pub offset: usize,
-    pub file: std::path::PathBuf,
+    pub file: PathBuf,
     pub confidence: Confidence,
+    /// Whether a resolved reference produced this edge or hierarchy analysis did.
+    pub origin: EdgeOrigin,
+}
+
+/// Where a call edge came from.
+///
+/// Kept beside the [`Confidence`] rather than folded into it: an edge can be
+/// unproven for two quite different reasons, and "the resolver was unsure" is not
+/// the same claim as "this is one of the implementations dynamic dispatch could
+/// pick".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum EdgeOrigin {
+    /// A reference the index resolved to this definition.
+    Resolved,
+    /// Class hierarchy analysis: the call site could not name one definition, and
+    /// this is one of the implementations the workspace's own declarations admit.
+    Hierarchy(HierarchyBasis),
+}
+
+impl EdgeOrigin {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            EdgeOrigin::Resolved => "resolved",
+            EdgeOrigin::Hierarchy(basis) => basis.as_str(),
+        }
+    }
+
+    pub fn is_hierarchy(&self) -> bool {
+        matches!(self, EdgeOrigin::Hierarchy(_))
+    }
+}
+
+/// What licensed a hierarchy edge, strongest evidence first.
+///
+/// The ordering is the precedence used when two abstractions reach the same
+/// implementation: a declared relationship beats a bare name match.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum HierarchyBasis {
+    /// Rust: an `impl Trait for Type` block names the trait outright.
+    ImplementedTrait,
+    /// Go: the type's method set covers the interface's. Go has no `implements`
+    /// keyword — covering the method set *is* implementing the interface — so
+    /// name-and-arity matching is the language's own rule, not a guess.
+    InterfaceMethodSet,
+    /// A declared supertype: TypeScript `implements` / `extends`, Python
+    /// `class C(Base)`.
+    DeclaredSupertype,
+    /// No declared relationship: the receiver's type is unknown and only the method
+    /// name matched. This is the field-based heuristic (Feldthaus et al., ICSE'13),
+    /// deliberately unsound and used for TypeScript only.
+    MethodName,
+}
+
+impl HierarchyBasis {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HierarchyBasis::ImplementedTrait => "implemented-trait",
+            HierarchyBasis::InterfaceMethodSet => "interface-method-set",
+            HierarchyBasis::DeclaredSupertype => "declared-supertype",
+            HierarchyBasis::MethodName => "method-name",
+        }
+    }
 }
 
 /// A directed graph of callables.
@@ -31,6 +107,9 @@ pub struct CallGraph {
     /// Call sites whose callee could not be resolved, kept so they can be reported
     /// rather than silently dropped.
     pub unresolved: Vec<UnresolvedCall>,
+    /// Files whose hierarchy could not be read or parsed, so the caller can see that
+    /// the dispatch layer is incomplete for them rather than assume it is empty.
+    pub hierarchy_gaps: Vec<(PathBuf, String)>,
 }
 
 /// A call site we could see but not resolve to a definition.
@@ -38,7 +117,7 @@ pub struct CallGraph {
 pub struct UnresolvedCall {
     pub caller: Option<SymbolId>,
     pub callee_name: String,
-    pub file: std::path::PathBuf,
+    pub file: PathBuf,
     pub offset: usize,
     pub confidence: Confidence,
 }
@@ -54,8 +133,23 @@ pub enum Direction2 {
 
 impl CallGraph {
     /// Build a call graph from a resolved index.
+    ///
+    /// This runs both layers: resolved references first, then the hierarchy
+    /// fan-out for every method call site the first layer could not pin down. The
+    /// second layer costs one parse per imperative file, which is what it takes to
+    /// see an `impl Trait for T` or an `implements` clause — the index keeps a
+    /// method's owning type but not the abstraction that type answers to.
     pub fn build(index: &Index) -> Self {
-        let mut cg = CallGraph::default();
+        let hierarchy = Hierarchy::scan(index);
+        Self::build_with(index, &hierarchy)
+    }
+
+    /// Build against a hierarchy that has already been scanned.
+    pub fn build_with(index: &Index, hierarchy: &Hierarchy) -> Self {
+        let mut cg = CallGraph {
+            hierarchy_gaps: hierarchy.gaps.clone(),
+            ..CallGraph::default()
+        };
 
         // Every callable becomes a node, so a function with no edges still appears.
         for symbol in &index.symbols {
@@ -64,11 +158,17 @@ impl CallGraph {
             }
         }
 
+        // Call sites already accounted for, so the hierarchy layer neither duplicates
+        // an edge nor reports the same site unresolved twice.
+        let mut seen_sites: HashSet<(PathBuf, usize)> = HashSet::new();
+        let mut edges: HashSet<(SymbolId, SymbolId, usize)> = HashSet::new();
+
         for reference in &index.references {
             if reference.kind != ReferenceKind::Call {
                 continue;
             }
             let caller = enclosing_callable(index, &reference.file, reference.span.start);
+            seen_sites.insert((reference.file.clone(), reference.span.start));
 
             match reference.target.and_then(|t| index.symbol(t)) {
                 Some(callee) if callee.kind.is_callable() => {
@@ -84,6 +184,7 @@ impl CallGraph {
                         });
                         continue;
                     };
+                    edges.insert((caller_id, callee.id, reference.span.start));
                     let from = cg.node_for(caller_id);
                     let to = cg.node_for(callee.id);
                     cg.graph.add_edge(
@@ -93,6 +194,7 @@ impl CallGraph {
                             offset: reference.span.start,
                             file: reference.file.clone(),
                             confidence: reference.confidence,
+                            origin: EdgeOrigin::Resolved,
                         },
                     );
                 }
@@ -107,7 +209,168 @@ impl CallGraph {
                 }
             }
         }
+
+        cg.add_dispatch_edges(index, hierarchy, &mut seen_sites, &mut edges);
         cg
+    }
+
+    /// The hierarchy layer: fan a method call site out to every implementation the
+    /// workspace's declarations admit.
+    ///
+    /// Two things happen here. A method call whose query set files it as a field
+    /// access rather than a call (Rust `x.m()`) still resolved, and becomes the
+    /// ordinary resolved edge it always was. And a site that resolved to nothing, or
+    /// to a candidate too weak to rewrite, gets one edge per plausible implementation
+    /// — never replacing a proven answer, only filling in where there was none.
+    fn add_dispatch_edges(
+        &mut self,
+        index: &Index,
+        hierarchy: &Hierarchy,
+        seen_sites: &mut HashSet<(PathBuf, usize)>,
+        edges: &mut HashSet<(SymbolId, SymbolId, usize)>,
+    ) {
+        let methods = methods_by_owner(index);
+        // Dispatch targets depend only on the family and the method name, and a
+        // workspace calls the same name from many places.
+        let mut targets_for: HashMap<(Family, String), Vec<(String, HierarchyBasis)>> =
+            HashMap::new();
+
+        for (file, sites) in &hierarchy.call_sites {
+            for site in sites {
+                let reference = index.reference_at(file, site.offset);
+
+                // The hierarchy scan reads the file itself, so a source that has moved
+                // on since the index was built would silently put every offset in the
+                // wrong place. The reference standing at the call site has to be the
+                // same name, or the two views disagree and this file gets no dispatch
+                // edges — reported, not assumed away.
+                let Some(reference) = reference.filter(|r| r.name == site.name) else {
+                    let gap = (
+                        file.clone(),
+                        format!(
+                            "call site at byte {} names '{}', but the indexed source has no \
+                             such reference there; dispatch edges for this file were skipped",
+                            site.offset, site.name
+                        ),
+                    );
+                    if !self.hierarchy_gaps.iter().any(|(path, _)| path == file) {
+                        self.hierarchy_gaps.push(gap);
+                    }
+                    continue;
+                };
+                let resolved = reference
+                    .target
+                    .and_then(|t| index.symbol(t))
+                    .filter(|s| s.kind.is_callable());
+                let caller = enclosing_callable(index, file, site.offset);
+
+                // A site that resolved well enough to rewrite has one answer, and
+                // fanning out from there would only inflate the graph.
+                if resolved.is_some() && reference.confidence.is_safe_to_rewrite() {
+                    self.add_resolved_site(
+                        file, site, reference, resolved, caller, edges, seen_sites,
+                    );
+                    continue;
+                }
+
+                let targets = targets_for
+                    .entry((site.family, site.name.clone()))
+                    .or_insert_with(|| hierarchy.dispatch_targets(site.family, &site.name));
+
+                let mut candidates = 0usize;
+                for (owner, basis) in targets.iter() {
+                    let key = (site.family, owner.clone(), site.name.clone());
+                    let Some(implementations) = methods.get(&key) else {
+                        continue;
+                    };
+                    for callee in implementations {
+                        candidates += 1;
+                        let Some(caller_id) = caller else { continue };
+                        if !edges.insert((caller_id, *callee, site.offset)) {
+                            continue;
+                        }
+                        let from = self.node_for(caller_id);
+                        let to = self.node_for(*callee);
+                        self.graph.add_edge(
+                            from,
+                            to,
+                            CallEdge {
+                                offset: site.offset,
+                                file: file.clone(),
+                                // Plausible, never proven: which implementation runs
+                                // is a runtime fact.
+                                confidence: Confidence::FieldBased,
+                                origin: EdgeOrigin::Hierarchy(*basis),
+                            },
+                        );
+                        seen_sites.insert((file.clone(), site.offset));
+                    }
+                }
+
+                // Nothing in the hierarchy to point at: the index's own weak answer,
+                // if it had one, is better than no edge and is kept with the
+                // confidence it earned.
+                if candidates == 0 {
+                    self.add_resolved_site(
+                        file, site, reference, resolved, caller, edges, seen_sites,
+                    );
+                }
+
+                // Nothing to point at, or nowhere to point from: the site is still a
+                // call, and stays visible as one.
+                let unaccounted = (candidates == 0 && resolved.is_none()) || caller.is_none();
+                if unaccounted && seen_sites.insert((file.clone(), site.offset)) {
+                    self.unresolved.push(UnresolvedCall {
+                        caller,
+                        callee_name: site.name.clone(),
+                        file: file.clone(),
+                        offset: site.offset,
+                        confidence: reference.confidence,
+                    });
+                }
+            }
+        }
+    }
+
+    /// Add the edge a resolved reference already earned.
+    ///
+    /// Only for sites whose reference the query set files as a field access rather
+    /// than a call: Rust's `x.m()` is a `field_expression`, and the resolved-reference
+    /// pass skips it, so a perfectly ordinary method call produced no edge at all.
+    #[allow(clippy::too_many_arguments)]
+    fn add_resolved_site(
+        &mut self,
+        file: &Path,
+        site: &CallSite,
+        reference: &crate::model::Reference,
+        resolved: Option<&Symbol>,
+        caller: Option<SymbolId>,
+        edges: &mut HashSet<(SymbolId, SymbolId, usize)>,
+        seen_sites: &mut HashSet<(PathBuf, usize)>,
+    ) {
+        let (Some(callee), Some(caller_id)) = (resolved, caller) else {
+            return;
+        };
+        if reference.kind == ReferenceKind::Call {
+            // Already an edge: the resolved-reference pass owns this site.
+            return;
+        }
+        if !edges.insert((caller_id, callee.id, site.offset)) {
+            return;
+        }
+        let from = self.node_for(caller_id);
+        let to = self.node_for(callee.id);
+        self.graph.add_edge(
+            from,
+            to,
+            CallEdge {
+                offset: site.offset,
+                file: file.to_path_buf(),
+                confidence: reference.confidence,
+                origin: EdgeOrigin::Resolved,
+            },
+        );
+        seen_sites.insert((file.to_path_buf(), site.offset));
     }
 
     fn node_for(&mut self, id: SymbolId) -> NodeIndex {
@@ -223,7 +486,22 @@ impl CallGraph {
     }
 
     /// Everything reachable from any of `seeds`, following calls forwards.
+    ///
+    /// Hierarchy edges count: a method only dynamic dispatch reaches is reached.
     pub fn reachable_from(&self, seeds: &[SymbolId]) -> HashSet<SymbolId> {
+        self.reachable_via(seeds, true)
+    }
+
+    /// Everything reachable from `seeds` following **resolved** edges only.
+    ///
+    /// The difference between this and [`CallGraph::reachable_from`] is exactly what
+    /// hierarchy analysis contributed, which is what lets a report say why a symbol
+    /// was spared rather than just dropping it.
+    pub fn reachable_from_resolved(&self, seeds: &[SymbolId]) -> HashSet<SymbolId> {
+        self.reachable_via(seeds, false)
+    }
+
+    fn reachable_via(&self, seeds: &[SymbolId], hierarchy: bool) -> HashSet<SymbolId> {
         let mut seen: HashSet<SymbolId> = HashSet::new();
         let mut queue: VecDeque<SymbolId> = VecDeque::new();
         for seed in seeds {
@@ -232,13 +510,57 @@ impl CallGraph {
             }
         }
         while let Some(id) = queue.pop_front() {
-            for (callee, _) in self.callees(id) {
+            let Some(node) = self.nodes.get(&id) else {
+                continue;
+            };
+            for edge in self.graph.edges_directed(*node, Direction::Outgoing) {
+                if !hierarchy && edge.weight().origin.is_hierarchy() {
+                    continue;
+                }
+                let callee = self.graph[edge.target()];
                 if seen.insert(callee) {
                     queue.push_back(callee);
                 }
             }
         }
         seen
+    }
+
+    /// Callers that reach `id` only because hierarchy analysis says they might,
+    /// with the evidence for each.
+    pub fn hierarchy_callers(&self, id: SymbolId) -> Vec<(SymbolId, HierarchyBasis)> {
+        let Some(node) = self.nodes.get(&id) else {
+            return Vec::new();
+        };
+        let mut out: Vec<(SymbolId, HierarchyBasis)> = self
+            .graph
+            .edges_directed(*node, Direction::Incoming)
+            .filter_map(|e| match e.weight().origin {
+                EdgeOrigin::Hierarchy(basis) => Some((self.graph[e.source()], basis)),
+                EdgeOrigin::Resolved => None,
+            })
+            .collect();
+        out.sort();
+        out.dedup();
+        out
+    }
+
+    /// How many edges hierarchy analysis contributed, rather than resolution.
+    pub fn hierarchy_edge_count(&self) -> usize {
+        self.graph
+            .edge_references()
+            .filter(|e| e.weight().origin.is_hierarchy())
+            .count()
+    }
+
+    /// Counts by what produced each edge: resolution, or one kind of hierarchy
+    /// evidence. A graph must never quietly grow candidates.
+    pub fn origin_breakdown(&self) -> BTreeMap<&'static str, usize> {
+        let mut counts: BTreeMap<&'static str, usize> = BTreeMap::new();
+        for edge in self.graph.edge_references() {
+            *counts.entry(edge.weight().origin.as_str()).or_default() += 1;
+        }
+        counts
     }
 
     /// Render as Graphviz DOT.
@@ -257,15 +579,20 @@ impl CallGraph {
         for edge in self.graph.edge_references() {
             let from = self.graph[edge.source()];
             let to = self.graph[edge.target()];
-            // Unproven edges are dashed so a picture cannot overstate certainty.
+            // Unproven edges are dashed so a picture cannot overstate certainty, and
+            // a dispatch candidate says what made it a candidate.
             let style = if edge.weight().confidence.is_safe_to_rewrite() {
                 "solid"
             } else {
                 "dashed"
             };
+            let label = match edge.weight().origin {
+                EdgeOrigin::Resolved => String::new(),
+                EdgeOrigin::Hierarchy(basis) => format!(", label=\"{}\"", basis.as_str()),
+            };
             out.push_str(&format!(
-                "  n{} -> n{} [style={}];\n",
-                from.0, to.0, style
+                "  n{} -> n{} [style={}{}];\n",
+                from.0, to.0, style, label
             ));
         }
         out.push_str("}\n");
@@ -339,7 +666,7 @@ impl TraceResult {
 }
 
 /// The innermost callable whose body contains `offset`.
-fn enclosing_callable(index: &Index, file: &std::path::Path, offset: usize) -> Option<SymbolId> {
+fn enclosing_callable(index: &Index, file: &Path, offset: usize) -> Option<SymbolId> {
     let info = index.file(file)?;
     info.symbols
         .iter()
@@ -351,6 +678,594 @@ fn enclosing_callable(index: &Index, file: &std::path::Path, offset: usize) -> O
 
 fn escape_dot(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+// ------------------------------------------------------- class hierarchy analysis
+
+/// Languages whose types share one hierarchy namespace.
+///
+/// A Go `Shape` and a TypeScript `Shape` are unrelated names that never dispatch to
+/// each other, so the family is part of every key. TSX is TypeScript: a class in a
+/// `.tsx` file implements an interface declared in a `.ts` one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum Family {
+    Rust,
+    Go,
+    Ts,
+    Python,
+}
+
+impl Family {
+    /// The family a language belongs to, or `None` when it has no type hierarchy to
+    /// analyse. Zig dispatches through comptime duck typing and Bash has no methods
+    /// at all; neither declares an implements-relationship anything could read.
+    fn of(language: Language) -> Option<Family> {
+        match language {
+            Language::Rust => Some(Family::Rust),
+            Language::Go => Some(Family::Go),
+            Language::TypeScript | Language::Tsx => Some(Family::Ts),
+            Language::Python => Some(Family::Python),
+            _ => None,
+        }
+    }
+}
+
+/// A type name within one family.
+type TypeKey = (Family, String);
+
+/// A call written in method-call syntax: `receiver.name(...)`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CallSite {
+    /// Byte offset of the method name, which is also the reference's span start.
+    offset: usize,
+    name: String,
+    family: Family,
+}
+
+/// The type hierarchy a workspace states outright.
+///
+/// This is the input class hierarchy analysis needs and the index does not keep: a
+/// [`Symbol`] records the *type* that owns a method (`qualifier`), but not the trait,
+/// interface or base class that type answers to. Recovering it costs one parse per
+/// file, the same price [`crate::refactor::delete::find_unused`] already pays to read
+/// string literals.
+///
+/// Nothing here is inferred. Every entry is a declaration someone wrote: an `impl
+/// Trait for Type`, an `implements` clause, a `class C(Base)` line, or — in Go, where
+/// no `implements` keyword exists — a method set that covers an interface's, which is
+/// the whole of what implementing an interface means there.
+#[derive(Debug, Default)]
+pub struct Hierarchy {
+    /// Methods an abstraction declares, name to arity: a Rust trait, a Go interface,
+    /// a TypeScript interface or class, a Python class.
+    declares: HashMap<TypeKey, BTreeMap<String, usize>>,
+    /// Which abstractions declare a given method name — the reverse of `declares`,
+    /// so a call site asks about its own name instead of walking every type.
+    declarers: HashMap<(Family, String), BTreeSet<String>>,
+    /// Supertypes a type names outright, from `impl T for X`, `implements`,
+    /// `extends`, a Rust supertrait bound or a Python base class list.
+    supertypes: HashMap<TypeKey, BTreeSet<String>>,
+    /// The reverse of `supertypes`: who declares each type as theirs, one level down.
+    direct_subtypes: HashMap<TypeKey, BTreeSet<String>>,
+    /// Concrete method sets, name to arity. Go only: it is the sole language here
+    /// where implementing an interface is a structural fact rather than a declared
+    /// one, so it is the only one that needs to compare method sets.
+    method_sets: HashMap<TypeKey, BTreeMap<String, usize>>,
+    /// Method-call syntax sites per file.
+    call_sites: BTreeMap<PathBuf, Vec<CallSite>>,
+    /// Files that could not be read or parsed. A gap costs edges, never invents
+    /// them, but it is reported rather than passed off as an empty hierarchy.
+    pub gaps: Vec<(PathBuf, String)>,
+}
+
+impl Hierarchy {
+    /// Read every file in the index that belongs to a family with a hierarchy.
+    pub fn scan(index: &Index) -> Self {
+        let parsers = Parsers::new();
+        let mut hierarchy = Hierarchy::default();
+
+        for (path, info) in index.files() {
+            let Some(family) = Family::of(info.language) else {
+                continue;
+            };
+            let source = match std::fs::read_to_string(path) {
+                Ok(source) => source,
+                Err(error) => {
+                    hierarchy.gaps.push((path.clone(), error.to_string()));
+                    continue;
+                }
+            };
+            let parsed = match parsers.parse(info.language, &source) {
+                Ok(parsed) => parsed,
+                Err(error) => {
+                    hierarchy.gaps.push((path.clone(), error.to_string()));
+                    continue;
+                }
+            };
+
+            let mut sites: Vec<CallSite> = Vec::new();
+            let mut visit = |node: Node| match family {
+                Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
+                Family::Go => hierarchy.visit_go(node, &source, &mut sites),
+                Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
+                Family::Python => hierarchy.visit_python(node, &source, &mut sites),
+            };
+            walk(parsed.root(), &mut visit);
+            if !sites.is_empty() {
+                hierarchy.call_sites.insert(path.clone(), sites);
+            }
+        }
+        hierarchy
+    }
+
+    /// The types a call to `method` could dispatch to, with the evidence for each.
+    ///
+    /// Every abstraction that declares the name contributes its implementations. A
+    /// type reached two ways keeps the stronger evidence.
+    fn dispatch_targets(&self, family: Family, method: &str) -> Vec<(String, HierarchyBasis)> {
+        let mut targets: BTreeMap<String, HierarchyBasis> = BTreeMap::new();
+        let mut note = |name: String, basis: HierarchyBasis| {
+            targets
+                .entry(name)
+                .and_modify(|existing| *existing = (*existing).min(basis))
+                .or_insert(basis);
+        };
+
+        let declaring = match self.declarers.get(&(family, method.to_string())) {
+            Some(declaring) => declaring,
+            None => return Vec::new(),
+        };
+        for abstraction in declaring {
+            let Some(declared) = self.declares.get(&(family, abstraction.clone())) else {
+                continue;
+            };
+            match family {
+                // The trait itself keeps its declaration (and any default body)
+                // live; `impl Trait for T` supplies the rest.
+                Family::Rust => {
+                    note(abstraction.clone(), HierarchyBasis::ImplementedTrait);
+                    for implementor in self.subtypes(family, abstraction) {
+                        note(implementor, HierarchyBasis::ImplementedTrait);
+                    }
+                }
+                Family::Go => {
+                    note(abstraction.clone(), HierarchyBasis::InterfaceMethodSet);
+                    for implementor in self.go_implementors(declared) {
+                        note(implementor, HierarchyBasis::InterfaceMethodSet);
+                    }
+                }
+                // The declaring class is reached by its own name alone — that is the
+                // field-based heuristic and it is labelled as such. Its subclasses
+                // are reached by a declared relationship, which is stronger.
+                Family::Ts => {
+                    note(abstraction.clone(), HierarchyBasis::MethodName);
+                    for subclass in self.subtypes(family, abstraction) {
+                        note(subclass, HierarchyBasis::DeclaredSupertype);
+                    }
+                }
+                // Python gets no name-only tier: bucketing call sites by method name
+                // over-links Python badly (PyCG, ICSE'21), so a class outside every
+                // hierarchy contributes nothing.
+                Family::Python => {
+                    let subclasses = self.subtypes(family, abstraction);
+                    if subclasses.is_empty() {
+                        continue;
+                    }
+                    note(abstraction.clone(), HierarchyBasis::DeclaredSupertype);
+                    for subclass in subclasses {
+                        note(subclass, HierarchyBasis::DeclaredSupertype);
+                    }
+                }
+            }
+        }
+        targets.into_iter().collect()
+    }
+
+    /// Types that name `abstraction` as a supertype, transitively.
+    fn subtypes(&self, family: Family, abstraction: &str) -> BTreeSet<String> {
+        let mut found: BTreeSet<String> = BTreeSet::new();
+        let mut frontier: Vec<String> = vec![abstraction.to_string()];
+
+        while let Some(current) = frontier.pop() {
+            let Some(children) = self.direct_subtypes.get(&(family, current)) else {
+                continue;
+            };
+            for child in children {
+                // A cyclic `extends` is not legal in any of these languages, but a
+                // workspace can still contain one; visiting each name once means it
+                // cannot loop here.
+                if child != abstraction && found.insert(child.clone()) {
+                    frontier.push(child.clone());
+                }
+            }
+        }
+        found
+    }
+
+    /// Go types whose method set covers `required`.
+    ///
+    /// This is Go's rule verbatim, minus the types: a method's name and its number of
+    /// parameters are what the syntax shows, and two same-named methods of the same
+    /// arity but different signatures are indistinguishable here. That widens the
+    /// candidate set; it never narrows it.
+    fn go_implementors(&self, required: &BTreeMap<String, usize>) -> BTreeSet<String> {
+        let mut found = BTreeSet::new();
+        for ((family, name), methods) in &self.method_sets {
+            if *family != Family::Go {
+                continue;
+            }
+            if required
+                .iter()
+                .all(|(method, arity)| methods.get(method) == Some(arity))
+            {
+                found.insert(name.clone());
+            }
+        }
+        found
+    }
+
+    fn declare(&mut self, key: TypeKey, method: String, arity: usize) {
+        self.declarers
+            .entry((key.0, method.clone()))
+            .or_default()
+            .insert(key.1.clone());
+        self.declares.entry(key).or_default().insert(method, arity);
+    }
+
+    fn add_supertype(&mut self, key: TypeKey, supertype: String) {
+        self.direct_subtypes
+            .entry((key.0, supertype.clone()))
+            .or_default()
+            .insert(key.1.clone());
+        self.supertypes.entry(key).or_default().insert(supertype);
+    }
+
+    // ------------------------------------------------------------------ Rust
+    fn visit_rust(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
+        match node.kind() {
+            "trait_item" => {
+                let Some(name) = field_text(node, "name", source) else {
+                    return;
+                };
+                let key = (Family::Rust, name);
+                // A trait with no methods still declares itself, so an empty entry is
+                // created deliberately.
+                self.declares.entry(key.clone()).or_default();
+                if let Some(body) = node.child_by_field_name("body") {
+                    for member in named_children(body) {
+                        if !matches!(member.kind(), "function_item" | "function_signature_item") {
+                            continue;
+                        }
+                        if let Some(method) = field_text(member, "name", source) {
+                            self.declare(key.clone(), method, arity(member));
+                        }
+                    }
+                }
+                // `trait Circle: Shape` — implementing Circle implements Shape.
+                if let Some(bounds) = node.child_by_field_name("bound") {
+                    for supertrait in type_identifiers(bounds, source) {
+                        self.add_supertype(key.clone(), supertrait);
+                    }
+                }
+            }
+            "impl_item" => {
+                let (Some(trait_node), Some(type_node)) = (
+                    node.child_by_field_name("trait"),
+                    node.child_by_field_name("type"),
+                ) else {
+                    return;
+                };
+                let (Some(trait_name), Some(type_name)) = (
+                    type_identifiers(trait_node, source).into_iter().next(),
+                    type_identifiers(type_node, source).into_iter().next(),
+                ) else {
+                    return;
+                };
+                self.add_supertype((Family::Rust, type_name), trait_name);
+            }
+            "call_expression" => {
+                if let Some(function) = node.child_by_field_name("function") {
+                    if function.kind() == "field_expression" {
+                        push_site(function, "field", source, Family::Rust, sites);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // -------------------------------------------------------------------- Go
+    fn visit_go(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
+        match node.kind() {
+            "type_spec" => {
+                let (Some(name), Some(body)) =
+                    (field_text(node, "name", source), node.child_by_field_name("type"))
+                else {
+                    return;
+                };
+                if body.kind() != "interface_type" {
+                    return;
+                }
+                let key = (Family::Go, name);
+                self.declares.entry(key.clone()).or_default();
+                for member in named_children(body) {
+                    if member.kind() != "method_elem" {
+                        continue;
+                    }
+                    if let Some(method) = field_text(member, "name", source) {
+                        self.declare(key.clone(), method, arity(member));
+                    }
+                }
+            }
+            "method_declaration" => {
+                let (Some(receiver), Some(method)) = (
+                    node.child_by_field_name("receiver"),
+                    field_text(node, "name", source),
+                ) else {
+                    return;
+                };
+                let Some(owner) = type_identifiers(receiver, source).into_iter().next() else {
+                    return;
+                };
+                self.method_sets
+                    .entry((Family::Go, owner))
+                    .or_default()
+                    .insert(method, arity(node));
+            }
+            "call_expression" => {
+                if let Some(function) = node.child_by_field_name("function") {
+                    if function.kind() == "selector_expression" {
+                        push_site(function, "field", source, Family::Go, sites);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // ------------------------------------------------------------ TypeScript
+    fn visit_ts(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
+        match node.kind() {
+            "class_declaration" | "abstract_class_declaration" | "interface_declaration" => {
+                let Some(name) = field_text(node, "name", source) else {
+                    return;
+                };
+                let key = (Family::Ts, name);
+                self.declares.entry(key.clone()).or_default();
+
+                for child in named_children(node) {
+                    match child.kind() {
+                        // `class C extends B implements I` and `interface I extends J`.
+                        "class_heritage" | "extends_type_clause" => {
+                            for supertype in heritage_names(child, source) {
+                                self.add_supertype(key.clone(), supertype);
+                            }
+                        }
+                        "class_body" | "interface_body" => {
+                            for member in named_children(child) {
+                                let is_method = matches!(
+                                    member.kind(),
+                                    "method_definition"
+                                        | "method_signature"
+                                        | "abstract_method_signature"
+                                ) || is_arrow_field(member);
+                                if !is_method {
+                                    continue;
+                                }
+                                if let Some(method) = field_text(member, "name", source) {
+                                    self.declare(key.clone(), method, arity(member));
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            "call_expression" => {
+                if let Some(function) = node.child_by_field_name("function") {
+                    if function.kind() == "member_expression" {
+                        push_site(function, "property", source, Family::Ts, sites);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // ---------------------------------------------------------------- Python
+    fn visit_python(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
+        match node.kind() {
+            "class_definition" => {
+                let Some(name) = field_text(node, "name", source) else {
+                    return;
+                };
+                let key = (Family::Python, name);
+                self.declares.entry(key.clone()).or_default();
+
+                if let Some(bases) = node.child_by_field_name("superclasses") {
+                    for base in named_children(bases) {
+                        // `class C(Base)` and `class C(mod.Base)`; a keyword argument
+                        // such as `metaclass=` names no base and is skipped.
+                        let base_name = match base.kind() {
+                            "identifier" => Some(text(base, source).to_string()),
+                            "attribute" => field_text(base, "attribute", source),
+                            _ => None,
+                        };
+                        if let Some(base_name) = base_name {
+                            self.add_supertype(key.clone(), base_name);
+                        }
+                    }
+                }
+                if let Some(body) = node.child_by_field_name("body") {
+                    for member in named_children(body) {
+                        if member.kind() != "function_definition" {
+                            continue;
+                        }
+                        if let Some(method) = field_text(member, "name", source) {
+                            self.declare(key.clone(), method, arity(member));
+                        }
+                    }
+                }
+            }
+            "call" => {
+                if let Some(function) = node.child_by_field_name("function") {
+                    if function.kind() == "attribute" {
+                        push_site(function, "attribute", source, Family::Python, sites);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Every callable a type owns, keyed by family, owning type and method name.
+///
+/// This is the bridge from a hierarchy's type names back to the index's symbols.
+fn methods_by_owner(index: &Index) -> HashMap<(Family, String, String), Vec<SymbolId>> {
+    let mut methods: HashMap<(Family, String, String), Vec<SymbolId>> = HashMap::new();
+    for symbol in &index.symbols {
+        if !symbol.kind.is_callable() {
+            continue;
+        }
+        let (Some(family), Some(owner)) = (Family::of(symbol.language), symbol.qualifier.as_ref())
+        else {
+            continue;
+        };
+        methods
+            .entry((family, owner.clone(), symbol.name.clone()))
+            .or_default()
+            .push(symbol.id);
+    }
+    methods
+}
+
+/// Visit every node of a tree, iteratively — a deeply nested expression must not
+/// depend on the stack depth of the analysis.
+fn walk(root: Node, visit: &mut impl FnMut(Node)) {
+    let mut cursor = root.walk();
+    loop {
+        visit(cursor.node());
+        if cursor.goto_first_child() {
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return;
+            }
+        }
+    }
+}
+
+fn text<'a>(node: Node, source: &'a str) -> &'a str {
+    &source[node.byte_range()]
+}
+
+fn field_text(node: Node, field: &str, source: &str) -> Option<String> {
+    node.child_by_field_name(field)
+        .map(|child| text(child, source).to_string())
+}
+
+fn named_children<'a>(node: Node<'a>) -> Vec<Node<'a>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor).collect()
+}
+
+/// Record the method name of a call written as `receiver.name(...)`.
+fn push_site(
+    accessor: Node,
+    field: &str,
+    source: &str,
+    family: Family,
+    sites: &mut Vec<CallSite>,
+) {
+    if let Some(name) = accessor.child_by_field_name(field) {
+        sites.push(CallSite {
+            offset: name.start_byte(),
+            name: text(name, source).to_string(),
+            family,
+        });
+    }
+}
+
+/// Type names mentioned in a type position, outermost first.
+///
+/// `&mut Wrapper<T>` names `Wrapper`, `fmt::Display` names `Display`, and a Go
+/// receiver `(a *A)` names `A`: the generic argument, the module path and the binding
+/// are none of them type names, and only the grammar's `type_identifier` nodes are.
+fn type_identifiers(node: Node, source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut visit = |child: Node| {
+        if child.kind() == "type_identifier" {
+            names.push(text(child, source).to_string());
+        }
+    };
+    walk(node, &mut visit);
+    names
+}
+
+/// Names in a TypeScript heritage clause: `extends B implements I, J`.
+fn heritage_names(node: Node, source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    for clause in named_children(node) {
+        // `class_heritage` wraps the clauses; `extends_type_clause` is one itself.
+        let parts = match clause.kind() {
+            "extends_clause" | "implements_clause" => named_children(clause),
+            _ => vec![clause],
+        };
+        for part in parts {
+            // A type argument list belongs to the supertype, not beside it.
+            if matches!(part.kind(), "type_identifier" | "identifier" | "nested_type_identifier") {
+                let name = text(part, source);
+                names.push(name.rsplit('.').next().unwrap_or(name).to_string());
+            }
+        }
+    }
+    names
+}
+
+/// A class field holding an arrow function is a method in everything but spelling,
+/// and the fact queries already index it as one.
+fn is_arrow_field(node: Node) -> bool {
+    node.kind() == "public_field_definition"
+        && node.child_by_field_name("value").is_some_and(|value| {
+            matches!(
+                value.kind(),
+                "arrow_function" | "function_expression" | "generator_function"
+            )
+        })
+}
+
+/// How many parameters a declaration takes.
+///
+/// Only Go compares these — implementing an interface there is a structural fact —
+/// but every family records them, because the number is what the syntax shows and
+/// dropping it would leave Go's rule half-expressed.
+fn arity(node: Node) -> usize {
+    let Some(parameters) = node.child_by_field_name("parameters") else {
+        return 0;
+    };
+    let mut count = 0;
+    for parameter in named_children(parameters) {
+        match parameter.kind() {
+            // Go groups names: `(a, b int)` is one declaration of two parameters.
+            "parameter_declaration" => {
+                let names = named_children(parameter)
+                    .iter()
+                    .filter(|child| child.kind() == "identifier")
+                    .count();
+                count += names.max(1);
+            }
+            // A Rust receiver is not a parameter. Python's `self` is written as one,
+            // and both sides of any comparison carry it, so it needs no special case.
+            "self_parameter" | "comment" => {}
+            _ => count += 1,
+        }
+    }
+    count
 }
 
 /// Symbols that are callable, for reporting.
@@ -505,6 +1420,43 @@ mod tests {
         assert!(dot.starts_with("digraph calls {"));
         assert!(dot.contains("leaf"));
         assert!(dot.contains("style=solid"), "a proven edge should be solid");
+    }
+
+    #[test]
+    fn a_file_the_hierarchy_pass_cannot_read_is_reported() {
+        // The dispatch layer reads files itself. One it cannot read yields no edges,
+        // which widens the unused list rather than narrowing it — but pretending the
+        // file simply had no hierarchy would hide the difference.
+        let (tmp, index) = workspace(&[(
+            "a.rs",
+            "trait T { fn m(&self); }\nstruct S;\nimpl T for S { fn m(&self) {} }\n",
+        )]);
+        std::fs::remove_file(tmp.path().join("a.rs")).unwrap();
+
+        let cg = CallGraph::build(&index);
+        assert_eq!(cg.hierarchy_gaps.len(), 1, "got {:?}", cg.hierarchy_gaps);
+        assert!(cg.hierarchy_gaps[0].0.ends_with("a.rs"));
+    }
+
+    #[test]
+    fn a_dispatch_candidate_is_never_a_proven_edge() {
+        let (_tmp, index) = workspace(&[(
+            "a.rs",
+            "trait T { fn m(&self); }\nstruct A;\nstruct B;\nimpl T for A { fn m(&self) {} }\n\
+             impl T for B { fn m(&self) {} }\nfn go(t: &dyn T) { t.m(); }\n",
+        )]);
+        let cg = CallGraph::build(&index);
+        assert_eq!(cg.hierarchy_edge_count(), 3, "two impls and the declaration");
+        for (_, edge) in cg.callees(id_of(&index, "go")) {
+            assert_eq!(edge.confidence, Confidence::FieldBased);
+            assert!(edge.origin.is_hierarchy());
+        }
+        assert_eq!(
+            cg.origin_breakdown().get("implemented-trait"),
+            Some(&3),
+            "{:?}",
+            cg.origin_breakdown()
+        );
     }
 
     #[test]

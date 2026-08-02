@@ -13,9 +13,12 @@
 //!   destroys the hop chain; here every hop is retained with its own file, line and
 //!   expression text, and nothing is ever rewritten.
 //! - **Helm**: a values key has a defined override order — subchart defaults, then
-//!   each enclosing parent chart, then user-supplied `-f` files, then `--set`. Every
-//!   competing source visible in the workspace is reported with its precedence, the
-//!   winner is marked, and the losers stay visible.
+//!   each enclosing parent chart, then user-supplied `-f` files in command-line
+//!   order, then `--set`. Every competing source visible in the workspace is
+//!   reported with its precedence, the winner is marked, and the losers stay
+//!   visible. The last two levels are not in the workspace at all, they are in the
+//!   invocation — so a caller who knows it supplies it as [`ValuesInputs`], and the
+//!   same order then decides outright what it otherwise leaves open.
 //! - **CSS**: the cascade *is* a spec'd provenance algorithm (origin → layer →
 //!   specificity → source order). Losing declarations are reported, struck through
 //!   rather than discarded, which is the DevTools model.
@@ -37,7 +40,10 @@
 //!   ([`StopReason::ComputedAtApply`]);
 //! - competing sources whose relative order is not visible in the workspace — two
 //!   `-f` files, two `@layer`s, two stylesheets — are all listed and the winner is
-//!   left undecided ([`StopReason::PrecedenceUndetermined`]).
+//!   left undecided ([`StopReason::PrecedenceUndetermined`]);
+//! - a Helm competition decided by the inputs a caller supplied is decided *given
+//!   those inputs*, and says which one decided it and which channel it was never
+//!   told about ([`StopReason::DecidedGivenInputs`]).
 
 use crate::helm;
 use crate::index::Index;
@@ -133,6 +139,17 @@ pub enum StopReason {
     ComputedAtApply(String),
     /// Several sources compete and the workspace does not show which wins.
     PrecedenceUndetermined(String),
+    /// A competition the caller's [`ValuesInputs`] decided.
+    ///
+    /// `unsupplied` names the channels the caller said nothing about. While it is
+    /// non-empty the answer holds *given what was supplied* and no further: an
+    /// input that was never mentioned outranks what is listed here.
+    DecidedGivenInputs {
+        subject: String,
+        /// The source that supplies the value, as written.
+        decided_by: String,
+        unsupplied: Vec<String>,
+    },
     /// A config language with no value-substitution model to follow.
     UnsupportedLanguage(Language),
     /// The symbol holds no value at all (a resource block, a chart heading…).
@@ -173,6 +190,24 @@ impl std::fmt::Display for StopReason {
             ),
             StopReason::PrecedenceUndetermined(what) => {
                 write!(f, "precedence undetermined: {what}")
+            }
+            StopReason::DecidedGivenInputs {
+                subject,
+                decided_by,
+                unsupplied,
+            } => {
+                if unsupplied.is_empty() {
+                    write!(
+                        f,
+                        "{subject} is decided by {decided_by}, the strongest of the inputs supplied"
+                    )
+                } else {
+                    write!(
+                        f,
+                        "{subject} is decided given the inputs supplied, by {decided_by}; {} not listed here would change it",
+                        unsupplied.join(" and ")
+                    )
+                }
             }
             StopReason::UnsupportedLanguage(lang) => write!(
                 f,
@@ -268,6 +303,10 @@ pub struct Competition {
     /// A channel that ranks *between* two listed sources does make the competition
     /// undecided, which is why Terraform's `TF_VAR_*` leaves one undecided and
     /// Helm's `-f`, which outranks every values file in the chart, does not.
+    ///
+    /// A Helm competition a caller's [`ValuesInputs`] settles is decided here, and
+    /// says through [`StopReason::DecidedGivenInputs`] which input settled it and
+    /// which channel it was never told about.
     pub decided: bool,
     /// Sorted strongest first.
     pub sources: Vec<CompetingSource>,
@@ -371,14 +410,160 @@ pub fn applies_to(index: &Index, file: &Path) -> bool {
         .is_some_and(|info| info.language.class() == LanguageClass::Config)
 }
 
+/// What only the caller knows: the values inputs of a `helm` invocation.
+///
+/// A workspace scan sees the chart. It cannot see whether a `values-prod.yaml`
+/// beside it is ever passed, in which order two `-f` files were written, or that a
+/// `--set` overrides both. Supplying that turns the undecided half of Helm's
+/// precedence order into a decided one; supplying nothing leaves every answer
+/// exactly as it was.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ValuesInputs {
+    /// `-f`/`--values` files in command-line order. Later wins, as Helm merges
+    /// them left to right.
+    pub files: Vec<PathBuf>,
+    /// `--set` and `--set-string` assignments, which outrank every `-f` file.
+    pub sets: Vec<helm::SetValue>,
+}
+
+/// The `file` a hop carries when its source is the command line and not a file.
+/// Such a hop has line 0: there is no line to point at.
+pub const COMMAND_LINE: &str = "<command line>";
+
+impl ValuesInputs {
+    /// Parse the raw flag strings a CLI collects.
+    ///
+    /// `sets` and `set_strings` arrive as two lists because that is how flags
+    /// parse, and their relative order is lost in the process. That order only
+    /// matters when both set the same key, so exactly that case is refused rather
+    /// than resolved by picking one.
+    pub fn parse(files: &[PathBuf], sets: &[String], set_strings: &[String]) -> Result<Self> {
+        let mut parsed: Vec<helm::SetValue> = Vec::new();
+        for argument in sets {
+            parsed.extend(helm::parse_set(argument, false)?);
+        }
+        let plain = parsed.len();
+        for argument in set_strings {
+            parsed.extend(helm::parse_set(argument, true)?);
+        }
+        for set in &parsed[plain..] {
+            if let Some(clash) = parsed[..plain].iter().find(|s| s.keys() == set.keys()) {
+                bail!(
+                    "`--set {}` and `--set-string {}` both set {}, and the order they were \
+                     written in is not recoverable from the flags; write both as --set or \
+                     both as --set-string",
+                    clash.text,
+                    set.text,
+                    set.keys().join(".")
+                );
+            }
+        }
+        Ok(Self {
+            files: files.to_vec(),
+            sets: parsed,
+        })
+    }
+
+    /// Nothing was supplied: every answer is the workspace-only one.
+    pub fn is_empty(&self) -> bool {
+        self.files.is_empty() && self.sets.is_empty()
+    }
+
+    /// The channels the caller said nothing about, named as they would be written.
+    ///
+    /// A caller who lists `--set` but no `-f` has described part of a command line,
+    /// and an answer from it is only as good as that part.
+    pub fn unsupplied(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        if self.files.is_empty() {
+            out.push("a `-f` values file".to_string());
+        }
+        if self.sets.is_empty() {
+            out.push("a `--set`".to_string());
+        }
+        out
+    }
+
+    /// The inputs as a command line, for messages.
+    pub fn describe(&self) -> String {
+        let mut parts: Vec<String> = self
+            .files
+            .iter()
+            .map(|f| format!("-f {}", f.display()))
+            .collect();
+        parts.extend(self.sets.iter().map(|s| s.to_string()));
+        parts.join(" ")
+    }
+
+    /// Resolve every `-f` path to the file the index holds, refusing anything it
+    /// cannot read: a file whose keys are invisible cannot be ranked against the
+    /// chart's, and pretending otherwise would drop an override silently.
+    pub fn resolve(&self, index: &Index) -> Result<Self> {
+        let mut files = Vec::new();
+        for given in &self.files {
+            files.push(resolve_values_file(index, given)?);
+        }
+        Ok(Self {
+            files,
+            sets: self.sets.clone(),
+        })
+    }
+
+    /// The `-f` position of a file, counting from 1, if it is one of them.
+    fn file_position(&self, path: &Path) -> Option<usize> {
+        self.files.iter().position(|f| f == path).map(|i| i + 1)
+    }
+}
+
+/// Find the indexed file a `-f` argument names.
+fn resolve_values_file(index: &Index, given: &Path) -> Result<PathBuf> {
+    let canonical = given.canonicalize().ok();
+    if let Some(path) = canonical.as_ref().filter(|p| index.file(p).is_some()) {
+        return Ok(path.clone());
+    }
+    let matches: Vec<PathBuf> = index
+        .files()
+        .map(|(path, _)| path.clone())
+        .filter(|path| Some(path) == canonical.as_ref() || path.ends_with(given))
+        .collect();
+    match matches.len() {
+        1 => Ok(matches[0].clone()),
+        0 => bail!(
+            "`-f {}` is not in the scanned workspace, so its keys cannot be ranked against \
+             the chart's; scan the directory holding it, or drop the flag",
+            given.display()
+        ),
+        _ => bail!(
+            "`-f {}` matches {} scanned files ({}); give a path that names one",
+            given.display(),
+            matches.len(),
+            matches
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    }
+}
+
 /// Trace backwards: where does this configured value come from?
 pub fn provenance(index: &Index, symbol: SymbolId, max_depth: usize) -> Result<Provenance> {
+    provenance_with_inputs(index, symbol, max_depth, &ValuesInputs::default())
+}
+
+/// Trace backwards, told what the `helm` command line supplies.
+pub fn provenance_with_inputs(
+    index: &Index,
+    symbol: SymbolId,
+    max_depth: usize,
+    inputs: &ValuesInputs,
+) -> Result<Provenance> {
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
     refuse_imperative(sym)?;
 
-    let mut ctx = Ctx::new(index, max_depth, Direction::Backward, symbol);
+    let mut ctx = Ctx::new(index, max_depth, Direction::Backward, symbol, inputs.resolve(index)?);
     match sym.language {
         Language::Hcl => ctx.hcl_backward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_backward(sym, EdgeKind::Declaration, 0)?,
@@ -390,12 +575,22 @@ pub fn provenance(index: &Index, symbol: SymbolId, max_depth: usize) -> Result<P
 
 /// Trace forwards: what consumes this configured value?
 pub fn consumers(index: &Index, symbol: SymbolId, max_depth: usize) -> Result<Provenance> {
+    consumers_with_inputs(index, symbol, max_depth, &ValuesInputs::default())
+}
+
+/// Trace forwards, told what the `helm` command line supplies.
+pub fn consumers_with_inputs(
+    index: &Index,
+    symbol: SymbolId,
+    max_depth: usize,
+    inputs: &ValuesInputs,
+) -> Result<Provenance> {
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
     refuse_imperative(sym)?;
 
-    let mut ctx = Ctx::new(index, max_depth, Direction::Forward, symbol);
+    let mut ctx = Ctx::new(index, max_depth, Direction::Forward, symbol, inputs.resolve(index)?);
     match sym.language {
         Language::Hcl => ctx.hcl_forward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_forward(sym, 0)?,
@@ -431,10 +626,19 @@ struct Ctx<'a> {
     /// (directly or through another) terminates.
     included: HashSet<String>,
     sources: HashMap<PathBuf, String>,
+    /// What the caller says the `helm` command line supplies, with every `-f` path
+    /// already resolved to a file the index holds.
+    inputs: ValuesInputs,
 }
 
 impl<'a> Ctx<'a> {
-    fn new(index: &'a Index, max_depth: usize, direction: Direction, root: SymbolId) -> Self {
+    fn new(
+        index: &'a Index,
+        max_depth: usize,
+        direction: Direction,
+        root: SymbolId,
+        inputs: ValuesInputs,
+    ) -> Self {
         Self {
             index,
             max_depth,
@@ -448,6 +652,22 @@ impl<'a> Ctx<'a> {
             seen: HashSet::new(),
             included: HashSet::new(),
             sources: HashMap::new(),
+            inputs,
+        }
+    }
+
+    /// A hop whose source is the command line: it has a value and a precedence,
+    /// but no file and no line to point at.
+    fn command_line_hop(&self, kind: EdgeKind, text: impl Into<String>, depth: usize) -> Hop {
+        Hop {
+            symbol: None,
+            kind,
+            text: text.into(),
+            file: PathBuf::from(COMMAND_LINE),
+            span: Span::new(0, 0),
+            line: 0,
+            depth,
+            confidence: Confidence::Exact,
         }
     }
 
@@ -1371,12 +1591,51 @@ fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
 /// depth of chart nesting below it.
 const USER_SUPPLIED: u32 = 100;
 
+/// Rank of the first `--set`. Helm applies `--set` after every `-f`, so this sits
+/// above `USER_SUPPLIED` plus any number of supplied files.
+const SET_SUPPLIED: u32 = 1_000_000;
+
+/// Where a candidate value is written.
+enum ValuesOrigin {
+    /// A key in a values file.
+    Key { file: PathBuf, symbol: SymbolId },
+    /// An assignment on the command line, which is in no file at all.
+    Set(helm::SetValue),
+}
+
 /// A candidate source for one Helm values key.
 struct ValuesSource {
     rank: u32,
     label: String,
-    file: PathBuf,
-    symbol: SymbolId,
+    origin: ValuesOrigin,
+    /// False for a values file the supplied inputs say is never passed. It is still
+    /// listed — it is what the next reader will reach for — but it supplies nothing
+    /// in the invocation described, so it cannot win.
+    participates: bool,
+}
+
+impl ValuesSource {
+    /// The source as a caller would name it: the assignment or the flag they
+    /// wrote, or the chart level when the chart's own value stands.
+    fn describe(&self) -> String {
+        match &self.origin {
+            ValuesOrigin::Set(set) => set.describe(),
+            ValuesOrigin::Key { file, .. } if self.rank >= USER_SUPPLIED => {
+                format!("`-f {}`", file_name(file))
+            }
+            ValuesOrigin::Key { .. } => self.label.clone(),
+        }
+    }
+
+    /// Sorted weakest first: sources that take no part sink below the ones that do,
+    /// so the strongest *effective* source is always last.
+    fn sort_key(&self) -> (bool, u32, String) {
+        let name = match &self.origin {
+            ValuesOrigin::Key { file, .. } => file_name(file),
+            ValuesOrigin::Set(set) => set.text.clone(),
+        };
+        (self.participates, self.rank, name)
+    }
 }
 
 impl Ctx<'_> {
@@ -1684,15 +1943,28 @@ impl Ctx<'_> {
         };
         let values = chart.join("values.yaml");
         let Some(symbol) = self.find_key(&values, path) else {
+            // No values file declares it. An input that supplies it is then the
+            // whole answer: it does not override a default, it introduces the key.
+            if self.helm_introduced_key(&chart, path, depth)? {
+                return Ok(());
+            }
             self.stop(
                 depth,
                 StopReason::ExternalInput {
                     name: format!(".Values.{}", path.join(".")),
                     required: true,
-                    sources: format!(
-                        "outside the chart: no such key in {}, so it must come from -f or --set",
-                        values.display()
-                    ),
+                    sources: if self.inputs.is_empty() {
+                        format!(
+                            "outside the chart: no such key in {}, so it must come from -f or --set",
+                            values.display()
+                        )
+                    } else {
+                        format!(
+                            "outside the chart: no such key in {}, and the inputs supplied ({}) set none either",
+                            values.display(),
+                            self.inputs.describe()
+                        )
+                    },
                 },
             );
             return Ok(());
@@ -1701,9 +1973,58 @@ impl Ctx<'_> {
         self.yaml_backward(target, EdgeKind::Substitution, depth)
     }
 
-    /// Report every values file that supplies this key, in Helm's override order.
+    /// A key no values file in the chart declares, which the supplied inputs
+    /// nonetheless set. Returns false when no input sets it.
+    fn helm_introduced_key(
+        &mut self,
+        chart: &Path,
+        path: &[String],
+        depth: usize,
+    ) -> Result<bool> {
+        if self.inputs.is_empty() {
+            return Ok(false);
+        }
+        // A template's `.Values` are its own chart's; the command line addresses
+        // them from the outermost chart, under each subchart's name.
+        let addressed = chart_levels(chart, path)
+            .last()
+            .map(|(_, level_path)| level_path.clone())
+            .unwrap_or_else(|| path.to_vec());
+        let candidates = self.helm_input_candidates(&addressed)?;
+        if candidates.is_empty() {
+            return Ok(false);
+        }
+        for candidate in &candidates {
+            let what = match &candidate.origin {
+                ValuesOrigin::Set(set) => set.describe(),
+                ValuesOrigin::Key { file, .. } => format!("`-f {}`", file_name(file)),
+            };
+            self.stop(
+                depth,
+                StopReason::Origin(format!(
+                    "{what} introduces .Values.{}, a key no values file in {} declares",
+                    addressed.join("."),
+                    short(chart)
+                )),
+            );
+        }
+        self.helm_competition(
+            format!("values key {} (introduced by the inputs supplied)", addressed.join(".")),
+            candidates,
+            depth,
+        )?;
+        Ok(true)
+    }
+
+    /// A file whose keys are chart values: any `values*.yaml` beside a chart, and
+    /// any file the caller passed with `-f`, whatever it happens to be named.
+    fn is_values_source(&self, path: &Path) -> bool {
+        is_values_file(path) || self.inputs.files.iter().any(|f| f == path)
+    }
+
+    /// Report every source that supplies this key, in Helm's override order.
     fn helm_values_competition(&mut self, sym: &Symbol, depth: usize) -> Result<bool> {
-        if !is_values_file(&sym.file) {
+        if !self.is_values_source(&sym.file) {
             return Ok(false);
         }
         let Some(chart) = chart_root(&sym.file) else {
@@ -1715,8 +2036,34 @@ impl Ctx<'_> {
         // entry in a parent chart addresses the `image.tag` of subchart `mysql`.
         let (owner, local) = self.descend_to_subchart(&chart, &path);
         let levels = chart_levels(&owner, &local);
+        // A `-f` file and a `--set` are merged into the values of the *outermost*
+        // chart, so a subchart key is theirs only under its parent's prefix.
+        let addressed = levels
+            .last()
+            .map(|(_, level_path)| level_path.clone())
+            .unwrap_or_else(|| local.clone());
 
-        let mut candidates: Vec<ValuesSource> = Vec::new();
+        let mut candidates = self.helm_chart_candidates(&levels)?;
+        candidates.extend(self.helm_input_candidates(&addressed)?);
+        self.helm_competition(
+            format!("values key {}", local.join(".")),
+            candidates,
+            depth,
+        )
+    }
+
+    /// The values files of a chart and each chart enclosing it.
+    ///
+    /// A `values-*.yaml` beside a chart is a file *someone may pass* with `-f`.
+    /// Whether they do, and in which order, is the command line: with no inputs
+    /// supplied it ranks above every chart file but decides nothing, and with
+    /// inputs supplied it is either one of them or takes no part at all.
+    fn helm_chart_candidates(
+        &mut self,
+        levels: &[(PathBuf, Vec<String>)],
+    ) -> Result<Vec<ValuesSource>> {
+        let supplied = !self.inputs.is_empty();
+        let mut out = Vec::new();
         for (rank, (dir, level_path)) in levels.iter().enumerate() {
             let files: Vec<PathBuf> = self
                 .index
@@ -1729,125 +2076,292 @@ impl Ctx<'_> {
                     continue;
                 };
                 let is_defaults = file_name(&file) == "values.yaml";
-                candidates.push(ValuesSource {
-                    rank: if is_defaults { rank as u32 } else { USER_SUPPLIED },
-                    label: if is_defaults {
-                        if rank == 0 {
+                if is_defaults {
+                    out.push(ValuesSource {
+                        rank: rank as u32,
+                        label: if rank == 0 {
                             format!("chart defaults ({})", file_name(dir))
                         } else {
                             format!("parent chart values ({})", file_name(dir))
-                        }
+                        },
+                        origin: ValuesOrigin::Key {
+                            file,
+                            symbol,
+                        },
+                        participates: true,
+                    });
+                    continue;
+                }
+                if self.inputs.file_position(&file).is_some() {
+                    // Passed with `-f`: it competes at the position it was passed
+                    // in, against the outermost chart's key path, not this one.
+                    continue;
+                }
+                out.push(ValuesSource {
+                    rank: USER_SUPPLIED,
+                    label: if supplied {
+                        format!("-f {} (not passed)", file_name(&file))
                     } else {
                         format!("user-supplied -f {}", file_name(&file))
                     },
-                    file,
-                    symbol,
+                    origin: ValuesOrigin::Key { file, symbol },
+                    participates: !supplied,
                 });
             }
         }
-        if candidates.len() < 2 && !candidates.iter().any(|c| c.rank == USER_SUPPLIED) {
+        Ok(out)
+    }
+
+    /// The sources the caller supplied that set this key: each `-f` file at its
+    /// position on the command line, then each `--set` above all of them.
+    fn helm_input_candidates(&mut self, addressed: &[String]) -> Result<Vec<ValuesSource>> {
+        let mut out = Vec::new();
+        let files = self.inputs.files.clone();
+        let total = files.len();
+        for (i, file) in files.iter().enumerate() {
+            let Some(symbol) = self.find_key(file, addressed) else {
+                continue;
+            };
+            out.push(ValuesSource {
+                rank: USER_SUPPLIED + 1 + i as u32,
+                label: format!(
+                    "user-supplied -f {} ({} of {})",
+                    file_name(file),
+                    i + 1,
+                    total
+                ),
+                origin: ValuesOrigin::Key {
+                    file: file.clone(),
+                    symbol,
+                },
+                participates: true,
+            });
+        }
+        for (i, set) in self.inputs.sets.clone().into_iter().enumerate() {
+            if set.keys() != addressed {
+                continue;
+            }
+            out.push(ValuesSource {
+                rank: SET_SUPPLIED + i as u32,
+                label: format!("{} on the command line", set.flag()),
+                origin: ValuesOrigin::Set(set),
+                participates: true,
+            });
+        }
+        Ok(out)
+    }
+
+    /// Rank candidate sources against each other, mark the winner and keep every
+    /// loser. Returns false when there was no competition to report.
+    fn helm_competition(
+        &mut self,
+        subject: String,
+        mut candidates: Vec<ValuesSource>,
+        depth: usize,
+    ) -> Result<bool> {
+        let supplied = !self.inputs.is_empty();
+        if candidates.len() < 2 && !candidates.iter().any(|c| c.rank >= USER_SUPPLIED) {
             // A single source is not a competition; the key stands as written.
+            if supplied {
+                self.stop(
+                    depth,
+                    StopReason::DecidedGivenInputs {
+                        subject,
+                        decided_by: candidates
+                            .first()
+                            .map(|c| c.label.clone())
+                            .unwrap_or_else(|| "nothing in the chart".to_string()),
+                        unsupplied: self.inputs.unsupplied(),
+                    },
+                );
+            } else {
+                self.stop(
+                    depth,
+                    StopReason::ExternalInput {
+                        name: subject,
+                        required: false,
+                        sources: "`-f` files and `--set` on the helm command line".to_string(),
+                    },
+                );
+            }
+            return Ok(false);
+        }
+
+        candidates.sort_by_key(|c| c.sort_key());
+        let effective: Vec<usize> = (0..candidates.len())
+            .filter(|i| candidates[*i].participates)
+            .collect();
+        if effective.is_empty() {
+            // Every source setting this key is a file the inputs say is not passed.
+            // There is no competition to hold: in the invocation described, nothing
+            // supplies the key at all, and naming the files that would is the answer.
+            let ignored: Vec<String> = candidates.iter().map(|c| c.describe()).collect();
             self.stop(
                 depth,
                 StopReason::ExternalInput {
-                    name: format!("values key {}", local.join(".")),
-                    required: false,
-                    sources: "`-f` files and `--set` on the helm command line".to_string(),
+                    name: subject,
+                    required: true,
+                    sources: format!(
+                        "only {} sets it, and the inputs supplied ({}) do not pass it",
+                        ignored.join(" and "),
+                        self.inputs.describe()
+                    ),
                 },
             );
             return Ok(false);
         }
-
-        candidates.sort_by(|a, b| {
-            a.rank
-                .cmp(&b.rank)
-                .then_with(|| file_name(&a.file).cmp(&file_name(&b.file)))
-        });
-        let top_rank = candidates.last().map(|c| c.rank).unwrap_or_default();
-        let contested = candidates.iter().filter(|c| c.rank == top_rank).count() > 1;
-        let winner = candidates.len() - 1;
-
-        // A `values-*.yaml` beside a chart is a file *someone may pass* with `-f`.
-        // Whether they do, and in which order, is the command line — the one thing a
-        // workspace scan cannot see. Competitions between chart values files have no
-        // such gap: their order is fixed by the chart hierarchy.
-        let user_supplied: Vec<String> = candidates
+        let top_rank = effective
             .iter()
-            .filter(|c| c.rank == USER_SUPPLIED)
-            .map(|c| file_name(&c.file))
-            .collect();
-        let decided = !contested && user_supplied.is_empty();
+            .map(|i| candidates[*i].rank)
+            .max()
+            .unwrap_or_default();
+        let contested = effective
+            .iter()
+            .filter(|i| candidates[**i].rank == top_rank)
+            .count()
+            > 1;
+        let winner = if contested {
+            None
+        } else {
+            effective.last().copied()
+        };
 
+        // Without inputs, every `values-*.yaml` in the workspace is a file that may
+        // or may not be passed, so the answer is open however the ranks fall. With
+        // inputs, the command line is described and the order decides.
+        let undecided_files: Vec<String> = candidates
+            .iter()
+            .filter(|c| c.rank == USER_SUPPLIED && c.participates)
+            .filter_map(|c| match &c.origin {
+                ValuesOrigin::Key { file, .. } => Some(file_name(file)),
+                ValuesOrigin::Set(_) => None,
+            })
+            .collect();
+        let decided = if supplied {
+            winner.is_some()
+        } else {
+            !contested && undecided_files.is_empty()
+        };
+
+        let winning_label = winner.map(|i| candidates[i].label.clone());
+        let winning_description = winner.map(|i| candidates[i].describe());
         let mut sources = Vec::new();
         for (i, candidate) in candidates.iter().enumerate() {
-            let text = self.source(&candidate.file)?;
-            let symbol = self.index.symbol(candidate.symbol).expect("key exists");
-            let hop = self.hop(
-                Some(candidate.symbol),
-                EdgeKind::Override,
-                snippet(symbol.full_span.text(&text)),
-                &candidate.file,
-                symbol.full_span,
-                depth + 1,
-            )?;
+            let wins = winner == Some(i);
+            let reason = self.helm_reason(candidate, wins, contested, top_rank, &winning_label);
+            let hop = match &candidate.origin {
+                ValuesOrigin::Key { file, symbol } => {
+                    let text = self.source(file)?;
+                    let key = self.index.symbol(*symbol).expect("key exists");
+                    let span = key.full_span;
+                    let snippet = snippet(span.text(&text));
+                    self.hop(Some(*symbol), EdgeKind::Override, snippet, file, span, depth + 1)?
+                }
+                ValuesOrigin::Set(set) => {
+                    self.command_line_hop(EdgeKind::Override, set.to_string(), depth + 1)
+                }
+            };
             sources.push(CompetingSource {
                 hop,
                 precedence: Precedence::level(candidate.rank, candidate.label.clone()),
-                wins: i == winner && !contested,
-                reason: if contested && candidate.rank == top_rank {
-                    "ties with another source at the same level; -f order decides".to_string()
-                } else if i == winner && candidate.rank == USER_SUPPLIED {
-                    format!(
-                        "highest-precedence source visible in the workspace, and applies only when the command line passes `-f {}`",
-                        file_name(&candidate.file)
-                    )
-                } else if i == winner {
-                    "highest-precedence source visible in the workspace".to_string()
-                } else {
-                    format!("overridden by {}", candidates[winner].label)
-                },
+                wins,
+                reason,
             });
         }
         sources.reverse();
         for source in &sources {
             self.push_hop(source.hop.clone());
         }
+
         // Only the genuinely command-line-dependent cases are undecided, and each
         // says which input would decide it.
         if contested {
             self.stop(
                 depth,
                 StopReason::PrecedenceUndetermined(format!(
-                    "{} is set by {}; the winner is whichever `-f` comes last on the helm command line",
-                    local.join("."),
-                    user_supplied.join(" and ")
+                    "{subject} is set by {}; the winner is whichever `-f` comes last on the helm command line",
+                    undecided_files.join(" and ")
                 )),
             );
-        } else if let Some(file) = user_supplied.first() {
+        } else if let Some(file) = undecided_files.first() {
             self.stop(
                 depth,
                 StopReason::PrecedenceUndetermined(format!(
-                    "{} is set by the chart's values and by {file}, which applies only if the command line passes `-f {file}`",
-                    local.join(".")
+                    "{subject} is set by the chart's values and by {file}, which applies only if the command line passes `-f {file}`"
                 )),
             );
         }
         self.out.competitions.push(Competition {
-            subject: format!("values key {}", local.join(".")),
-            model: "helm: subchart values.yaml < parent chart values.yaml < user-supplied -f files < --set"
+            subject: subject.clone(),
+            model: "helm: subchart values.yaml < parent chart values.yaml < user-supplied -f files, in order < --set"
                 .to_string(),
             decided,
             sources,
         });
-        self.stop(
-            depth,
-            StopReason::ExternalInput {
-                name: format!("values key {}", local.join(".")),
-                required: false,
-                sources: "`-f` files and `--set` on the helm command line".to_string(),
-            },
-        );
+        if supplied {
+            self.stop(
+                depth,
+                StopReason::DecidedGivenInputs {
+                    subject,
+                    decided_by: winning_description
+                        .unwrap_or_else(|| "nothing: no input supplied sets it".to_string()),
+                    unsupplied: self.inputs.unsupplied(),
+                },
+            );
+        } else {
+            self.stop(
+                depth,
+                StopReason::ExternalInput {
+                    name: subject,
+                    required: false,
+                    sources: "`-f` files and `--set` on the helm command line".to_string(),
+                },
+            );
+        }
         Ok(true)
+    }
+
+    /// Why one source won or lost, in the terms that decided it.
+    fn helm_reason(
+        &self,
+        candidate: &ValuesSource,
+        wins: bool,
+        contested: bool,
+        top_rank: u32,
+        winning_label: &Option<String>,
+    ) -> String {
+        if !candidate.participates {
+            return "not among the `-f` files supplied, so it sets nothing in this invocation"
+                .to_string();
+        }
+        if contested && candidate.rank == top_rank {
+            return "ties with another source at the same level; -f order decides".to_string();
+        }
+        if wins {
+            return match (&candidate.origin, candidate.rank) {
+                (ValuesOrigin::Set(set), _) => format!(
+                    "{} outranks every values file, so it decides this key",
+                    set.describe()
+                ),
+                (ValuesOrigin::Key { file, .. }, rank) if rank > USER_SUPPLIED => format!(
+                    "the last `-f` supplied that sets this key (`-f {}`)",
+                    file_name(file)
+                ),
+                (ValuesOrigin::Key { file, .. }, USER_SUPPLIED) => format!(
+                    "highest-precedence source visible in the workspace, and applies only when the command line passes `-f {}`",
+                    file_name(file)
+                ),
+                _ if !self.inputs.is_empty() => {
+                    "the inputs supplied set no value for this key, so the chart's own value stands"
+                        .to_string()
+                }
+                _ => "highest-precedence source visible in the workspace".to_string(),
+            };
+        }
+        match winning_label {
+            Some(label) => format!("overridden by {label}"),
+            None => "no source here supplies the value".to_string(),
+        }
     }
 
     /// The dotted key path of a mapping key, read off the container chain.

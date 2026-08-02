@@ -139,7 +139,7 @@ fn locate(file: &Path, span: Span) -> Location {
     }
 }
 
-fn definition_of(index: &Index, symbol: &Symbol, role: DefinitionRole) -> Definition {
+fn definition_of(symbol: &Symbol, role: DefinitionRole) -> Definition {
     Definition {
         symbol: symbol.id,
         name: symbol.name.clone(),
@@ -168,7 +168,7 @@ pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
         };
     };
 
-    let mut definitions = vec![definition_of(index, symbol, DefinitionRole::Primary)];
+    let mut definitions = vec![definition_of(symbol, DefinitionRole::Primary)];
 
     // Other sites declaring the same entity: a CSS class written by several rules.
     for other in index.definition_group(symbol_id) {
@@ -176,18 +176,14 @@ pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
             continue;
         }
         if let Some(sibling) = index.symbol(other) {
-            definitions.push(definition_of(index, sibling, DefinitionRole::SameEntity));
+            definitions.push(definition_of(sibling, DefinitionRole::SameEntity));
         }
     }
 
     // Concrete implementations, when the thing asked about is an abstraction.
     for implementation in implementations_of(index, symbol_id) {
         if let Some(concrete) = index.symbol(implementation) {
-            definitions.push(definition_of(
-                index,
-                concrete,
-                DefinitionRole::Implementation,
-            ));
+            definitions.push(definition_of(concrete, DefinitionRole::Implementation));
         }
     }
 
