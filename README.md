@@ -128,7 +128,10 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 673 tests.
+Stages 0–4 and 7 of [PLAN.md](PLAN.md) are complete. Stages 5, 6 and 8 are partial:
+27 cells of the plan's feature × language matrix are promised and not yet built,
+almost all of them the config- and markup-language forms of extract, inline, move,
+change-signature and restructure. PLAN.md's progress log lists them. 676 tests.
 
 Not yet built: the optional LSP delegation backend. (A watch-mode daemon is on the
 plan but the fact cache already recovers most of what it would have saved.)
