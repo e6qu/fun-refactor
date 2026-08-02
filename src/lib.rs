@@ -9,6 +9,7 @@
 
 pub mod analysis;
 pub mod cache;
+pub mod capabilities;
 pub mod cli;
 pub mod edit;
 pub mod extract;

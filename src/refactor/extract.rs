@@ -66,7 +66,7 @@ pub fn variable(
         _ => {}
     }
 
-    if !supports_extract(language) {
+    if !supports_imperative_extract(language) {
         return Err(Refusal::Unsupported {
             operation: "extract variable".into(),
             language: language.to_string(),
@@ -138,7 +138,8 @@ pub fn variable(
 }
 
 /// Is extract-variable meaningful for this language?
-fn supports_extract(language: Language) -> bool {
+/// Languages whose extraction goes through the generic statement-based path.
+fn supports_imperative_extract(language: Language) -> bool {
     matches!(
         language,
         Language::Rust
@@ -148,6 +149,26 @@ fn supports_extract(language: Language) -> bool {
             | Language::Tsx
             | Language::Python
     )
+}
+
+/// Can a value be extracted into a named binding in this language?
+///
+/// The single authority for the capability table. It has to account for the
+/// config-language paths `variable()` dispatches to before reaching the generic one —
+/// consulting only the imperative predicate is what made the published matrix wrong.
+pub fn supports_extract(language: Language) -> bool {
+    supports_imperative_extract(language)
+        || matches!(
+            language,
+            Language::Hcl
+                | Language::Yaml
+                | Language::Helm
+                | Language::Css
+                | Language::Scss
+                | Language::Markdown
+                | Language::Bash
+                | Language::Xml
+        )
 }
 
 /// How a binding is written in each language.
@@ -539,7 +560,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         _ => {}
     }
 
-    if !supports_extract_function(language) {
+    if !supports_imperative_extract_function(language) {
         return Err(Refusal::Unsupported {
             operation: "extract function".into(),
             language: language.to_string(),
@@ -725,13 +746,13 @@ fn requires_explicit_types(language: Language) -> bool {
     matches!(language, Language::Rust | Language::Go | Language::Zig)
 }
 
-/// Is extract-function meaningful for this language?
+/// Languages whose extraction goes through the generic data-flow path.
 ///
 /// Zig is here on the same footing as Rust and Go: all three require a written type
 /// on every parameter, and none of them is refused for that in the abstract. What is
 /// refused is the individual selection whose parameter or return type was never
 /// written down — [`requires_explicit_types`] names the bindings and stops there.
-fn supports_extract_function(language: Language) -> bool {
+fn supports_imperative_extract_function(language: Language) -> bool {
     matches!(
         language,
         Language::Rust
@@ -741,6 +762,15 @@ fn supports_extract_function(language: Language) -> bool {
             | Language::Tsx
             | Language::Python
     )
+}
+
+/// Can a region be extracted into something callable in this language?
+///
+/// Helm gets there by a different route — a named template in `_helpers.tpl` rather
+/// than a function with parameters — so the capability table has to ask this rather
+/// than the imperative predicate alone.
+pub fn supports_extract_function(language: Language) -> bool {
+    supports_imperative_extract_function(language) || language == Language::Helm
 }
 
 /// Widen a selection to the complete statements it touches.

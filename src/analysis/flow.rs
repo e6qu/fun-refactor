@@ -390,7 +390,7 @@ fn value_of_definition<'a>(
 fn enclosing_assignment_target(
     index: &Index,
     parsed: &crate::parse::Parsed,
-    file: &PathBuf,
+    file: &Path,
     span: Span,
 ) -> Option<SymbolId> {
     let mut node = parsed.root().descendant_for_byte_range(span.start, span.end)?;

@@ -1199,7 +1199,7 @@ fn hcl_indexed_addresses(
     let parsers = Parsers::new();
     let mut out = BTreeSet::new();
 
-    for (_, (language, source)) in sources {
+    for (language, source) in sources.values() {
         if *language != Language::Hcl {
             continue;
         }

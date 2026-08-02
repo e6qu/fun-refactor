@@ -315,6 +315,14 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
     counts
 }
 
+/// Does the catalog have any rule that could fire for this language?
+pub fn has_rules_for(catalog: &Catalog, language: Language) -> bool {
+    catalog
+        .rules
+        .iter()
+        .any(|r| r.languages.iter().any(|l| l == language.name() || l == "*"))
+}
+
 /// Languages with no entry-point rules at all, so gaps in coverage are visible.
 pub fn languages_without_rules(catalog: &Catalog) -> Vec<&'static str> {
     Language::ALL

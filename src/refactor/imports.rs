@@ -644,7 +644,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 /// rules — so sorting would change what the stylesheet means. The markup and config
 /// languages have no import construct at all, and Bash `source` is an executed
 /// statement rather than a declaration.
-fn organizable(language: Language) -> bool {
+pub fn organizable(language: Language) -> bool {
     matches!(
         language,
         Language::Rust

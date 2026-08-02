@@ -247,16 +247,23 @@ fn typescript_an_inline_type_specifier_marks_the_statement_type_only() {
 
 #[test]
 fn typescript_a_value_import_used_only_under_typeof_is_kept() {
-    // `typeof Foo` in a type position is a `type_query`, which no `@reference` capture
-    // reports, so name-based liveness sees an unused import and would break the build.
-    kept_because(
+    // `typeof Foo` is a `type_query`, and `queries/typescript/facts.scm` now captures
+    // it — so the import is kept because it is genuinely referenced, not held back by
+    // a guard. That is the better outcome: no warning is needed to explain it.
+    let (removed, warnings) = outcome(
         &[(
             "a.ts",
             "import { Foo } from './m';\n\nexport type B = typeof Foo;\n",
         )],
         "a.ts",
-        "./m",
-        "typeof Foo",
+    );
+    assert!(
+        !removed.iter().any(|r| r == "./m"),
+        "a value used under `typeof` is a use: {removed:?}"
+    );
+    assert!(
+        !warnings.iter().any(|w| w.contains("typeof")),
+        "no hold-back guard should be needed here: {warnings:?}"
     );
 }
 
