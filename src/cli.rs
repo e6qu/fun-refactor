@@ -721,8 +721,10 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
     }
     println!("\n{} symbol(s) with no detected use", unused.len());
     println!(
-        "Reachability follows resolved edges only. Dynamic dispatch, reflection and \n\
-         calls through unresolved names are not counted, so this list can name live code."
+        "Reachability follows resolved edges only, so code reached through a trait \n\
+         object, an interface value or a function held in a map can still appear here. \n\
+         Symbols whose name is spelled in any string literal are deliberately left off, \n\
+         since a handler table or a reflective lookup would find them."
     );
     Ok(())
 }
@@ -976,6 +978,7 @@ fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
                     "declared_line": c.declared_line,
                     "values_path": c.values_path,
                     "values_file": c.values_file,
+                    "conditional_on": c.conditional_on,
                     "reads": c.reads.iter().map(|r| serde_json::json!({
                         "file": r.file,
                         "line": r.line,
