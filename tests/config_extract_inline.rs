@@ -1371,18 +1371,14 @@ fn untouched_regions_survive_every_config_extraction() {
 }
 
 #[test]
-fn html_and_xml_remain_refused_for_extract_variable() {
-    // The matrix marks these cells n/a: neither language has a construct that names a
-    // value, so there is nothing to extract into.
-    let ws = workspace(&[
-        ("page.html", "<div id=\"main\">hello</div>\n"),
-        ("data.xml", "<root><a>hello</a></root>\n"),
-    ]);
-    for name in ["page.html", "data.xml"] {
-        let path = ws.path(name);
-        let err = extract::variable(&ws.index, &path, Span::new(1, 4), "x", false)
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains("not supported for"), "{name}: {err}");
-    }
+fn html_remains_refused_for_extract_variable() {
+    // HTML has no binding form at all: a reusable value there is a CSS custom
+    // property, which belongs to the stylesheet. XML does have one — the DTD
+    // entity — and is covered in tests/extract_inline_remaining.rs.
+    let ws = workspace(&[("page.html", "<div id=\"main\">hello</div>\n")]);
+    let path = ws.path("page.html");
+    let err = extract::variable(&ws.index, &path, Span::new(1, 4), "x", false)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("not supported for"), "got: {err}");
 }

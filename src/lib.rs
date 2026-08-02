@@ -12,6 +12,7 @@ pub mod cache;
 pub mod cli;
 pub mod edit;
 pub mod extract;
+pub mod helm;
 pub mod index;
 pub mod lang;
 pub mod model;

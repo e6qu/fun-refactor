@@ -7,7 +7,7 @@
 //! spacing inside it survive.
 
 use super::Refusal;
-use crate::edit::{line_indent, Edit, EditSet};
+use crate::edit::{full_line_span, line_indent, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::SymbolKind;
@@ -58,6 +58,11 @@ pub fn variable(
         Language::Markdown => {
             return markdown_link_definition(index, file, span, name, all_occurrences)
         }
+        // Bash has bindings, but neither the generic statement walk nor the generic
+        // reference spelling survives contact with shell quoting, so it gets its own.
+        Language::Bash => return bash_variable(index, file, span, name, all_occurrences),
+        // XML's only binding form is the internal DTD entity.
+        Language::Xml => return xml_entity(file, span, name, all_occurrences),
         _ => {}
     }
 
@@ -515,10 +520,23 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
 
-    // Helm's analogue of a function is a named template, which lives in `_helpers.tpl`
-    // and is called through `include`.
-    if language == Language::Helm {
-        return helm_named_template(file, span, name);
+    // Each of these languages has something that plays a function's role — a shell
+    // function, an SCSS mixin, a Helm named template — but none of them reaches it
+    // through the generic dataflow analysis, so each has its own arm.
+    match language {
+        Language::Helm => return helm_named_template(file, span, name),
+        Language::Bash => return bash_function(index, file, span, name),
+        Language::Scss => return scss_mixin(index, file, span, name),
+        // A mixin is a Sass invention. Plain CSS has no construct that names a group
+        // of declarations, so there is nothing here to extract into.
+        Language::Css => anyhow::bail!(
+            "plain CSS has no mixin, function or any other construct that names a group \
+             of declarations, so there is nothing to extract into. `@mixin` / `@include` \
+             are Sass, and the SCSS grammar is the only one here that parses them — \
+             rename {} to `.scss` if that is what was meant",
+            file.display()
+        ),
+        _ => {}
     }
 
     if !supports_extract_function(language) {
@@ -707,11 +725,18 @@ fn requires_explicit_types(language: Language) -> bool {
     matches!(language, Language::Rust | Language::Go | Language::Zig)
 }
 
+/// Is extract-function meaningful for this language?
+///
+/// Zig is here on the same footing as Rust and Go: all three require a written type
+/// on every parameter, and none of them is refused for that in the abstract. What is
+/// refused is the individual selection whose parameter or return type was never
+/// written down — [`requires_explicit_types`] names the bindings and stops there.
 fn supports_extract_function(language: Language) -> bool {
     matches!(
         language,
         Language::Rust
             | Language::Go
+            | Language::Zig
             | Language::TypeScript
             | Language::Tsx
             | Language::Python
@@ -935,6 +960,16 @@ fn render_function(
             };
             format!("\n\nfn {name}({params}){ret} {{\n{reindented}{tail}\n}}")
         }
+        Language::Zig => {
+            // Zig writes the return type after the parameter list with no arrow, and
+            // it is not optional: a function that yields nothing still says `void`.
+            let ret = return_type.unwrap_or("void");
+            let tail = match returns.first() {
+                Some(r) => format!("\n{body_indent}return {r};"),
+                None => String::new(),
+            };
+            format!("\n\nfn {name}({params}) {ret} {{\n{reindented}{tail}\n}}")
+        }
         Language::Go => {
             let ret = match return_type {
                 Some(ty) => format!(" {ty}"),
@@ -995,6 +1030,24 @@ fn ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
         }
         current = current.parent()?;
     }
+}
+
+/// The innermost *strict* ancestor of `node` with this kind.
+fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut current = node.parent()?;
+    loop {
+        if current.kind() == kind {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+/// The first child of `node` with this kind, anonymous children included.
+fn child_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut cursor = node.walk();
+    let found = node.children(&mut cursor).find(|c| c.kind() == kind);
+    found
 }
 
 /// Named children of `node` with a given kind.
@@ -1367,15 +1420,6 @@ fn css_custom_property(
     let source = std::fs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
-        if false {
-            anyhow::bail!(
-                "{} does not parse under the CSS grammar, which is the only one available \
-                 for SCSS here — SCSS-only syntax (`$variables`, `@mixin`/`@include`, \
-                 `@use`) is not CSS. The selection cannot be located reliably in a broken \
-                 tree, so nothing is rewritten",
-                file.display()
-            );
-        }
         anyhow::bail!(
             "{} has syntax errors, so the selection cannot be located reliably",
             file.display()
@@ -1383,9 +1427,7 @@ fn css_custom_property(
     }
 
     // An SCSS variable keeps its `$`; a custom property is normalised to `--name`.
-    let property = if scss_variable {
-        name.to_string()
-    } else if name.starts_with("--") {
+    let property = if scss_variable || name.starts_with("--") {
         name.to_string()
     } else {
         format!("--{name}")
@@ -1863,4 +1905,926 @@ fn helm_helpers_path(file: &Path, chart_root: &Path) -> std::path::PathBuf {
         dir = current.parent();
     }
     chart_root.join("templates").join("_helpers.tpl")
+}
+
+// -------------------------------------------------------------------------- Bash
+//
+// Shell has bindings, so "extract variable" means what it means everywhere else. What
+// is different is that the *spelling of a reference decides its semantics*: `"$name"`
+// is exactly one word whatever it holds, while a bare `$name` is split on `$IFS` and
+// then glob-expanded. Neither spelling is right everywhere, so the one that reproduces
+// what the selected bytes already did is the one written — see `bash_reference`.
+//
+// Shell also has no block scope. A variable assigned anywhere is visible from that
+// point to the end of the shell, which is why the binding goes on its own line
+// immediately before the statement it came out of and why an extraction can never
+// need parameter analysis.
+
+/// A shell variable or function name: a letter or underscore, then word characters.
+fn is_shell_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// The node kinds that hold a value worth naming.
+const BASH_VALUE_KINDS: &[&str] = &[
+    "command_substitution",
+    "process_substitution",
+    "arithmetic_expansion",
+    "string",
+    "raw_string",
+    "ansi_c_string",
+    "translated_string",
+    "concatenation",
+    "word",
+    "number",
+];
+
+/// Extract a command substitution or literal into a shell variable.
+///
+/// The binding is written `name=<value bytes>` on its own line directly before the
+/// statement the value came from, at that statement's indentation, and the selection
+/// becomes a reference to it.
+///
+/// Quoting is the whole difficulty, and the reference is spelled to reproduce what the
+/// original bytes did rather than to look tidy: `${name}` when the selection was
+/// already inside double quotes, `"$name"` wherever quoting cannot change the result,
+/// and a bare `$name` only where the original expansion really was subject to word
+/// splitting and globbing — there, `"$name"` would collapse several words into one and
+/// silently change the command's arguments.
+fn bash_variable(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+    all_occurrences: bool,
+) -> Result<ExtractPlan> {
+    if !is_shell_name(name) {
+        return Err(invalid(
+            name,
+            "a shell variable name must start with a letter or underscore and contain \
+             only letters, digits and underscores",
+        ));
+    }
+    if !index.find_symbols(name, Some(file)).is_empty() {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Bash, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} has syntax errors, so the selection cannot be located reliably",
+            file.display()
+        );
+    }
+
+    let node = descendant_at(&parsed, span)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+
+    if let Some(existing) = bash_expansion_at(node) {
+        anyhow::bail!(
+            "`{}` is already a variable expansion; extracting it would only create an alias",
+            Span::from(existing).text(&source)
+        );
+    }
+
+    let value = bash_extractable(node).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no command substitution or literal at bytes {span} in {}; select a `$( … )`, \
+             a quoted string or a bare word",
+            file.display()
+        )
+    })?;
+    if strict_ancestor_of_kind(value, "command_name").is_some() || value.parent().is_none() {
+        anyhow::bail!(
+            "`{}` is the name of a command, not a value; a variable in command position \
+             would be re-split and re-globbed before the shell looked it up",
+            Span::from(value).text(&source)
+        );
+    }
+    if strict_ancestor_of_kind(value, "heredoc_body").is_some() {
+        anyhow::bail!(
+            "the selection is inside a here-document body, whose bytes are data rather \
+             than a value position; a binding cannot be spliced in front of it"
+        );
+    }
+
+    let value_span = Span::from(value);
+    let value_text = value_span.text(&source).to_string();
+
+    let statement = bash_statement(value)?;
+    let statement_span = Span::from(statement);
+    let indent = line_indent(&source, statement_span.start);
+
+    // An occurrence before the assignment would read a variable that is not set yet,
+    // so only the ones from the insertion point onwards are rewritten.
+    let targets: Vec<Node> = if all_occurrences {
+        let found = collect_nodes(parsed.root(), |n| {
+            n.kind() == value.kind()
+                && n.start_byte() >= statement_span.start
+                && Span::from(n).text(&source) == value_text
+        });
+        if found.is_empty() {
+            vec![value]
+        } else {
+            found
+        }
+    } else {
+        vec![value]
+    };
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(statement_span.start, statement_span.start),
+            format!("{name}={value_text}\n{indent}"),
+            format!("introduce {name}"),
+        ),
+    );
+    for target in &targets {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                Span::from(*target),
+                bash_reference(*target, &source, name),
+                format!("use {name}"),
+            ),
+        );
+    }
+
+    Ok(ExtractPlan {
+        name: name.to_string(),
+        expression: value_text,
+        edits,
+        occurrences: targets.len(),
+    })
+}
+
+/// The `$X` / `${X}` the selection lands on, if it lands on one.
+fn bash_expansion_at(node: Node<'_>) -> Option<Node<'_>> {
+    if matches!(node.kind(), "expansion" | "simple_expansion") {
+        return Some(node);
+    }
+    if node.kind() == "variable_name" || node.kind() == "special_variable_name" {
+        let parent = node.parent()?;
+        if matches!(parent.kind(), "expansion" | "simple_expansion") {
+            return Some(parent);
+        }
+    }
+    None
+}
+
+/// The value node covering the selection: itself or the innermost ancestor that holds
+/// a value, stopping before the search escapes into statement territory.
+fn bash_extractable(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node;
+    loop {
+        if BASH_VALUE_KINDS.contains(&current.kind()) {
+            return Some(current);
+        }
+        let parent = current.parent()?;
+        if bash_is_statement_container(parent.kind()) {
+            return None;
+        }
+        current = parent;
+    }
+}
+
+/// Node kinds whose children are complete statements, so a binding may be spliced in
+/// front of any one of them.
+fn bash_is_statement_container(kind: &str) -> bool {
+    matches!(
+        kind,
+        "program"
+            | "compound_statement"
+            | "subshell"
+            | "do_group"
+            | "case_item"
+            | "else_clause"
+            | "command_substitution"
+            | "process_substitution"
+    )
+}
+
+/// The statement the value belongs to — the one the binding goes in front of.
+///
+/// Two positions have no statement in front of them and are refused rather than
+/// approximated: the condition of an `if`, which the binding would be tested instead
+/// of, and the condition of a loop, which is re-evaluated on every iteration and so
+/// cannot be hoisted out without changing how many times it runs.
+fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
+    let mut current = node;
+    loop {
+        let Some(parent) = current.parent() else {
+            anyhow::bail!("the selection is not inside a statement");
+        };
+        if bash_is_statement_container(parent.kind()) {
+            return Ok(current);
+        }
+        match parent.kind() {
+            // `if`/`elif` hold their condition as an ordinary child alongside the
+            // body, so position relative to `then` is what tells them apart.
+            "if_statement" | "elif_clause" => {
+                match child_of_kind(parent, "then") {
+                    Some(then) if current.start_byte() >= then.end_byte() => return Ok(current),
+                    _ => anyhow::bail!(
+                        "the selection is part of the condition of an `if`; a binding \
+                         spliced in front of it would become the command whose exit \
+                         status is tested"
+                    ),
+                }
+            }
+            "while_statement" | "until_statement" | "c_style_for_statement" => anyhow::bail!(
+                "the selection is part of a loop's condition, which the shell \
+                 re-evaluates on every iteration; hoisting it into a variable before \
+                 the loop would evaluate it exactly once"
+            ),
+            _ => current = parent,
+        }
+    }
+}
+
+/// How one occurrence must be spelled so the shell still sees the same words.
+fn bash_reference(occurrence: Node<'_>, source: &str, name: &str) -> String {
+    // Inside double quotes the expansion is already protected from splitting, and a
+    // second pair of quotes would end the string rather than nest inside it.
+    if strict_ancestor_of_kind(occurrence, "string").is_some() {
+        return format!("${{{name}}}");
+    }
+    if bash_would_split(occurrence, source) {
+        // The original was split on `$IFS` and glob-expanded where it stands. `"$name"`
+        // would make it a single literal word, which is a different command line.
+        format!("${name}")
+    } else {
+        format!("\"${name}\"")
+    }
+}
+
+/// Would the bytes at this position have been word-split and glob-expanded?
+fn bash_would_split(node: Node<'_>, source: &str) -> bool {
+    // The right-hand side of an assignment is never split, whatever it holds.
+    if node
+        .parent()
+        .is_some_and(|p| p.kind() == "variable_assignment")
+    {
+        return false;
+    }
+    match node.kind() {
+        // A quoted literal is already exactly one word.
+        "string" | "raw_string" | "ansi_c_string" | "translated_string" => false,
+        // A bare word cannot contain whitespace, so only globbing is in play.
+        "word" | "number" => Span::from(node).text(source).contains(['*', '?', '[']),
+        // Anything computed at run time can expand to any number of words.
+        _ => true,
+    }
+}
+
+/// Extract statements into a shell function.
+///
+/// The function is written before the one the selection came from, or at the top of
+/// the script when the selection is not in a function — either way, before the call,
+/// which is what the shell requires: a function has to have been *defined* by the time
+/// the call runs, and definition happens in file order.
+///
+/// There is no parameter analysis, and there is none to do. Shell has no block scope:
+/// every name a shell function reads is either global or a caller's `local`, both of
+/// which stay readable from the new function, so no binding has to cross the boundary.
+/// The one thing that does not survive the move is the positional parameters — `$1`
+/// inside a function is that function's first argument, not the enclosing one's — so a
+/// region that reads them is refused instead of silently rebound.
+fn bash_function(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+) -> Result<ExtractFunctionPlan> {
+    if !is_shell_name(name) {
+        return Err(invalid(
+            name,
+            "a shell function name must start with a letter or underscore and contain \
+             only letters, digits and underscores",
+        ));
+    }
+    if !index.find_symbols(name, Some(file)).is_empty() {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Bash, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} has syntax errors, so the selection cannot be located reliably",
+            file.display()
+        );
+    }
+
+    let region = whole_lines(&source, span);
+    if region.text(&source).trim().is_empty() {
+        anyhow::bail!("the selection at bytes {span} is blank; select the lines to extract");
+    }
+
+    // A call can stand in for whole statements only. Half of one is not a thing a
+    // function can hold.
+    if let Some(cut) = bash_straddling_node(&parsed, region) {
+        anyhow::bail!(
+            "the selection cuts across a `{}` at bytes {}; select whole statements — a \
+             call can replace a statement but not part of one",
+            cut.kind(),
+            Span::from(cut)
+        );
+    }
+
+    let positional = bash_positional_parameters(&parsed, region, &source);
+    if !positional.is_empty() {
+        anyhow::bail!(
+            "the selected code reads the positional parameter(s) {}. Inside a shell \
+             function those name that function's own arguments, so moving the code \
+             would rebind them to whatever the call passes — which is nothing. Read \
+             them into named variables first",
+            positional.join(", ")
+        );
+    }
+
+    if let Some(word) = bash_escaping_control_flow(&parsed, region, &source) {
+        anyhow::bail!(
+            "the selected code contains a `{word}` that leaves the enclosing function or \
+             loop; a call cannot reproduce that, so this region cannot be extracted as-is"
+        );
+    }
+
+    if let Some(local) = bash_local_used_after(&parsed, region, &source) {
+        anyhow::bail!(
+            "the selection declares `local {local}` and `{local}` is read after it. A \
+             `local` belongs to the function that declares it, so moving the declaration \
+             into a new function would leave the later read seeing the outer value"
+        );
+    }
+
+    let enclosing = bash_enclosing_function(&parsed, region.start);
+    let insert_at = match enclosing {
+        Some(function) => full_line_span(&source, function.start_byte()).start,
+        None => bash_script_top(&parsed, &source),
+    };
+    let definition_indent = line_indent(&source, insert_at);
+    let region_indent = line_indent(&source, region.start);
+    let body = region.text(&source).to_string();
+
+    let mut definition = format!("{definition_indent}{name}() {{\n");
+    for line in body.lines() {
+        if line.trim().is_empty() {
+            definition.push('\n');
+        } else {
+            let stripped = line.strip_prefix(region_indent.as_str()).unwrap_or(line);
+            definition.push_str(&format!("{definition_indent}  {stripped}\n"));
+        }
+    }
+    definition.push_str(&format!("{definition_indent}}}\n\n"));
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(insert_at, insert_at),
+            definition,
+            format!("define {name}"),
+        ),
+    );
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(region, format!("{region_indent}{name}\n"), format!("call {name}")),
+    );
+
+    Ok(ExtractFunctionPlan {
+        name: name.to_string(),
+        edits,
+        parameters: Vec::new(),
+        returns: Vec::new(),
+        body,
+    })
+}
+
+/// A node with one end inside the region and the other outside it.
+fn bash_straddling_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Node<'a>> {
+    collect_nodes(parsed.root(), |n| {
+        let span = Span::from(n);
+        span.overlaps(region) && !region.contains(span) && !span.contains(region)
+    })
+    .into_iter()
+    .next()
+}
+
+/// `$1`, `$2`, `$@`, `$*` and `$#` read inside the region.
+fn bash_positional_parameters(parsed: &Parsed, region: Span, source: &str) -> Vec<String> {
+    let mut found: Vec<String> = collect_nodes(parsed.root(), |n| {
+        if !region.contains(Span::from(n)) {
+            return false;
+        }
+        let text = Span::from(n).text(source);
+        match n.kind() {
+            // `$0` is the script's own name and keeps it inside a function.
+            "variable_name" => text.chars().all(|c| c.is_ascii_digit()) && text != "0",
+            "special_variable_name" => matches!(text, "@" | "*" | "#"),
+            _ => false,
+        }
+    })
+    .into_iter()
+    .map(|n| format!("${}", Span::from(n).text(source)))
+    .collect();
+    found.sort();
+    found.dedup();
+    found
+}
+
+/// A `return`, `break` or `continue` in the region that would leave it.
+fn bash_escaping_control_flow(
+    parsed: &Parsed,
+    region: Span,
+    source: &str,
+) -> Option<&'static str> {
+    for node in collect_nodes(parsed.root(), |n| {
+        n.kind() == "command" && region.contains(Span::from(n))
+    }) {
+        let Some(word) = node
+            .child_by_field_name("name")
+            .map(|n| Span::from(n).text(source).trim())
+        else {
+            continue;
+        };
+        match word {
+            // A `return` inside the new function would return from *it*, not from the
+            // function the code used to live in.
+            "return" => return Some("return"),
+            "break" | "continue" if !has_enclosing_loop_within(node, region) => {
+                return Some(if word == "break" { "break" } else { "continue" })
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// A `local` declared inside the region whose name is read after it.
+fn bash_local_used_after(parsed: &Parsed, region: Span, source: &str) -> Option<String> {
+    let declared: Vec<String> = collect_nodes(parsed.root(), |n| {
+        n.kind() == "declaration_command"
+            && region.contains(Span::from(n))
+            && ["local", "declare", "typeset"]
+                .iter()
+                .any(|keyword| child_of_kind(n, keyword).is_some())
+    })
+    .into_iter()
+    .flat_map(|n| {
+        let mut cursor = n.walk();
+        let names: Vec<String> = n
+            .named_children(&mut cursor)
+            .filter_map(|c| match c.kind() {
+                "variable_assignment" => c.child_by_field_name("name"),
+                "variable_name" => Some(c),
+                _ => None,
+            })
+            .map(|c| Span::from(c).text(source).to_string())
+            .collect();
+        names
+    })
+    .collect();
+    if declared.is_empty() {
+        return None;
+    }
+
+    collect_nodes(parsed.root(), |n| {
+        n.kind() == "variable_name"
+            && n.start_byte() >= region.end
+            && declared.iter().any(|d| d == Span::from(n).text(source))
+    })
+    .into_iter()
+    .next()
+    .map(|n| Span::from(n).text(source).to_string())
+}
+
+/// The innermost `f() { … }` whose bytes contain `offset`.
+fn bash_enclosing_function(parsed: &Parsed, offset: usize) -> Option<Node<'_>> {
+    collect_nodes(parsed.root(), |n| {
+        n.kind() == "function_definition" && Span::from(n).contains_offset(offset)
+    })
+    .into_iter()
+    .min_by_key(|n| Span::from(*n).len())
+}
+
+/// Where a definition may be written at the top of a script: after the shebang and any
+/// leading comments, which are the one thing that has to stay first.
+fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
+    let root = parsed.root();
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if child.kind() == "comment" {
+            continue;
+        }
+        return full_line_span(source, child.start_byte()).start;
+    }
+    source.len()
+}
+
+// -------------------------------------------------------------------------- SCSS
+
+/// Extract declarations into an SCSS `@mixin`, called back through `@include`.
+///
+/// A mixin is defined at the top level of the stylesheet, so it can no longer see
+/// anything the rule it came from had in scope. Sass resolves a `$variable` where the
+/// mixin is *defined*, not where it is included, so every `$variable` the selection
+/// reads from outside itself becomes a parameter and is passed at the include site;
+/// that is what keeps the meaning identical whether the variable was a file-level one
+/// or declared inside the rule.
+///
+/// Sass also evaluates a stylesheet top-down, so the definition goes above every rule
+/// rather than beside the one it came from — a mixin included before it is declared is
+/// an error, not a forward reference.
+fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
+    if name.is_empty()
+        || !name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+        || !name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(invalid(
+            name,
+            "a mixin name must start with a letter or underscore and contain only \
+             letters, digits, underscores and dashes",
+        ));
+    }
+    if !index.find_symbols(name, Some(file)).is_empty() {
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Scss, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} does not parse cleanly, so the selection cannot be located reliably",
+            file.display()
+        );
+    }
+
+    // A line selection starts on the line's indentation, which belongs to no
+    // declaration, so the search starts at the first real content inside it.
+    let text = span.text(&source);
+    let lead = text.len() - text.trim_start().len();
+    let trail = text.len() - text.trim_end().len();
+    let content = Span::new(span.start + lead, span.end.saturating_sub(trail));
+    if content.is_empty() {
+        anyhow::bail!("the selection at bytes {span} is blank; select the declarations to extract");
+    }
+
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(content.start, content.start)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+    let block = strict_ancestor_of_kind(node, "block").ok_or_else(|| {
+        anyhow::anyhow!(
+            "the selection at bytes {span} is not inside a rule's `{{ … }}`; a mixin \
+             holds a rule's declarations, so there have to be some to move"
+        )
+    })?;
+    if !block.parent().is_some_and(|p| p.kind() == "rule_set") {
+        anyhow::bail!(
+            "the selection is inside a `{}`, not a rule. Only declarations written \
+             directly in a rule can move into a mixin",
+            block
+                .parent()
+                .map(|p| p.kind().to_string())
+                .unwrap_or_default()
+        );
+    }
+
+    let mut cursor = block.walk();
+    let selected: Vec<Node> = block
+        .named_children(&mut cursor)
+        .filter(|c| Span::from(*c).overlaps(content))
+        .collect();
+    let (Some(first), Some(last)) = (selected.first(), selected.last()) else {
+        anyhow::bail!("the selection at bytes {span} covers no complete declaration");
+    };
+    if let Some(other) = selected.iter().find(|c| c.kind() != "declaration") {
+        anyhow::bail!(
+            "the selection contains a `{}`; only declarations move into a mixin \
+             unchanged, so this region is refused rather than reinterpreted",
+            other.kind()
+        );
+    }
+    let region = Span::new(first.start_byte(), last.end_byte());
+
+    // A `$variable` the selection declares itself travels with it; every other one has
+    // to be handed in, because the mixin is defined where the rule's scope is not.
+    let declared_inside: Vec<String> = collect_nodes(parsed.root(), |n| {
+        n.kind() == "property_name"
+            && region.contains(Span::from(n))
+            && Span::from(n).text(&source).starts_with('$')
+    })
+    .into_iter()
+    .map(|n| Span::from(n).text(&source).to_string())
+    .collect();
+
+    let mut parameters: Vec<Parameter> = Vec::new();
+    for node in collect_nodes(parsed.root(), |n| {
+        n.kind() == "variable" && region.contains(Span::from(n))
+    }) {
+        let text = Span::from(node).text(&source).to_string();
+        if declared_inside.contains(&text) || parameters.iter().any(|p| p.name == text) {
+            continue;
+        }
+        parameters.push(Parameter {
+            name: text,
+            type_annotation: None,
+        });
+    }
+
+    let signature = if parameters.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "({})",
+            parameters
+                .iter()
+                .map(|p| p.name.clone())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
+
+    let body = region.text(&source).to_string();
+    let region_indent = line_indent(&source, region.start);
+    let mut definition = format!("@mixin {name}{signature} {{\n");
+    for line in body.lines() {
+        if line.trim().is_empty() {
+            definition.push('\n');
+        } else {
+            let stripped = line.strip_prefix(region_indent.as_str()).unwrap_or(line);
+            definition.push_str(&format!("  {stripped}\n"));
+        }
+    }
+    definition.push_str("}\n\n");
+
+    let insert_at = css_insertion_point(&parsed, &source);
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(insert_at, insert_at),
+            definition,
+            format!("define @mixin {name}"),
+        ),
+    );
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            region,
+            format!("@include {name}{signature};"),
+            format!("include {name}"),
+        ),
+    );
+
+    Ok(ExtractFunctionPlan {
+        name: name.to_string(),
+        edits,
+        parameters,
+        returns: Vec::new(),
+        body,
+    })
+}
+
+// --------------------------------------------------------------------------- XML
+
+/// Extract repeated text into an internal-subset entity.
+///
+/// XML's one binding form is the general entity: `<!ENTITY name "value">` inside the
+/// `<!DOCTYPE …[ … ]>` internal subset, referred to as `&name;`. The subset is created
+/// when the document has none, which is why the root element's name has to be known —
+/// a `<!DOCTYPE>` names the root element and a document whose doctype names something
+/// else is not well-formed.
+fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Result<ExtractPlan> {
+    if !is_xml_name(name) {
+        return Err(invalid(
+            name,
+            "an XML entity name must start with a letter or underscore and contain only \
+             letters, digits, `.`, `-`, `_` and `:`",
+        ));
+    }
+    if matches!(name, "lt" | "gt" | "amp" | "quot" | "apos") {
+        return Err(invalid(
+            name,
+            "that is one of XML's five predefined entities, which may not be redeclared \
+             with a different value",
+        ));
+    }
+
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Xml, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} has syntax errors, so the selection cannot be located reliably",
+            file.display()
+        );
+    }
+
+    let doctype = collect_nodes(parsed.root(), |n| n.kind() == "doctypedecl")
+        .into_iter()
+        .next();
+    if let Some(existing) = doctype.and_then(|d| xml_entity_declaration(d, &source, name)) {
+        let _ = existing;
+        return Err(Refusal::NameCollision {
+            existing: name.to_string(),
+            file: file.to_path_buf(),
+        }
+        .into());
+    }
+
+    let node = descendant_at(&parsed, span)
+        .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
+    let inner = xml_text_extent(node).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no attribute value or element text at bytes {span} in {}; an entity stands \
+             in for text, so select the text of an attribute value or the character \
+             data of an element",
+            file.display()
+        )
+    })?;
+
+    // The selection is clipped to the text it lands in, so a selection that takes the
+    // attribute's quotes with it still names the value between them.
+    let start = span.start.max(inner.start);
+    let end = span.end.min(inner.end).max(start);
+    let raw = &source[start..end];
+    let lead = raw.len() - raw.trim_start().len();
+    let trail = raw.len() - raw.trim_end().len();
+    let target = Span::new(start + lead, end.saturating_sub(trail));
+    if target.is_empty() {
+        anyhow::bail!(
+            "the selection at bytes {span} covers no text in {}; select the characters \
+             the entity should stand for",
+            file.display()
+        );
+    }
+    let value_text = target.text(&source).to_string();
+
+    if value_text.contains(['<', '&', '%']) {
+        anyhow::bail!(
+            "`{value_text}` contains `<`, `&` or `%`. Those are markup inside an entity \
+             value and would be re-parsed rather than copied, so the entity would not \
+             stand for the same text"
+        );
+    }
+    let quote = match (value_text.contains('"'), value_text.contains('\'')) {
+        (false, _) => '"',
+        (true, false) => '\'',
+        (true, true) => anyhow::bail!(
+            "`{value_text}` contains both `\"` and `'`, so there is no quote character \
+             left to write the entity declaration with"
+        ),
+    };
+
+    let mut targets = vec![target];
+    if all_occurrences {
+        for node in collect_nodes(parsed.root(), |n| {
+            matches!(n.kind(), "AttValue" | "CharData")
+        }) {
+            let Some(extent) = xml_text_extent(node) else {
+                continue;
+            };
+            let text = extent.text(&source);
+            let mut base = 0usize;
+            while let Some(found) = text[base..].find(&value_text) {
+                let at = extent.start + base + found;
+                targets.push(Span::new(at, at + value_text.len()));
+                base += found + value_text.len();
+            }
+        }
+    }
+    targets.sort();
+    targets.dedup();
+
+    let declaration = format!("<!ENTITY {name} {quote}{value_text}{quote}>");
+    let (insert_at, insert_text) = match doctype {
+        Some(doctype) => {
+            let declarations = named_children_of_kind(doctype, "GEDecl");
+            match declarations.last() {
+                Some(last) => {
+                    let indent = line_indent(&source, last.start_byte());
+                    (last.end_byte(), format!("\n{indent}{declaration}"))
+                }
+                None => match child_of_kind(doctype, "[") {
+                    // An internal subset that is present but empty.
+                    Some(bracket) => (bracket.end_byte(), format!("\n  {declaration}\n")),
+                    // `<!DOCTYPE root>` — the subset has to be opened first.
+                    None => (
+                        doctype.end_byte().saturating_sub(1),
+                        format!(" [\n  {declaration}\n]"),
+                    ),
+                },
+            }
+        }
+        None => {
+            let root = xml_root_element(&parsed).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "{} has no root element, so a `<!DOCTYPE>` cannot name one",
+                    file.display()
+                )
+            })?;
+            let root_name = child_of_kind(root, "STag")
+                .or_else(|| child_of_kind(root, "EmptyElemTag"))
+                .and_then(|tag| child_of_kind(tag, "Name"))
+                .map(|n| Span::from(n).text(&source).to_string())
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "the root element of {} has no name to write into the \
+                         `<!DOCTYPE>`",
+                        file.display()
+                    )
+                })?;
+            (
+                full_line_span(&source, root.start_byte()).start,
+                format!("<!DOCTYPE {root_name} [\n  {declaration}\n]>\n"),
+            )
+        }
+    };
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            Span::new(insert_at, insert_at),
+            insert_text,
+            format!("declare &{name};"),
+        ),
+    );
+    for target in &targets {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(*target, format!("&{name};"), format!("use &{name};")),
+        );
+    }
+
+    Ok(ExtractPlan {
+        name: name.to_string(),
+        expression: value_text,
+        edits,
+        occurrences: targets.len(),
+    })
+}
+
+/// An XML `Name`, restricted to the ASCII subset this tool is prepared to rewrite.
+fn is_xml_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_' | ':'))
+}
+
+/// The text a node holds: an attribute value without its quotes, or character data.
+///
+/// tree-sitter-xml matches the characters between an `AttValue`'s quotes with an
+/// anonymous rule, so they never become a node of their own and the byte range has to
+/// be worked out from the quotes instead.
+fn xml_text_extent(node: Node<'_>) -> Option<Span> {
+    let span = Span::from(node);
+    match node.kind() {
+        "AttValue" if span.len() >= 2 => Some(Span::new(span.start + 1, span.end - 1)),
+        "CharData" => Some(span),
+        _ => None,
+    }
+}
+
+/// The `<!ENTITY name …>` declaration for `name`, if the doctype has one.
+fn xml_entity_declaration<'a>(doctype: Node<'a>, source: &str, name: &str) -> Option<Node<'a>> {
+    named_children_of_kind(doctype, "GEDecl")
+        .into_iter()
+        .find(|d| {
+            child_of_kind(*d, "Name").is_some_and(|n| Span::from(n).text(source) == name)
+        })
+}
+
+/// The document's root element.
+fn xml_root_element<'a>(parsed: &'a Parsed) -> Option<Node<'a>> {
+    let root = parsed.root();
+    let mut cursor = root.walk();
+    let found = root
+        .named_children(&mut cursor)
+        .find(|c| c.kind() == "element");
+    found
 }

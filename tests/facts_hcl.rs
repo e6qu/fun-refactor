@@ -497,21 +497,84 @@ fn empty_labels_define_nothing() {
 }
 
 #[test]
-fn splat_and_index_traversals_lose_the_trailing_segments() {
-    // `aws_instance.web[*].id` puts the trailing steps under `splat`/`index`
-    // rather than flat `get_attr` children, so only the address itself is
-    // recovered. The address is the renameable part, so this is a partial —
-    // not a wrong — answer.
+fn a_splat_keeps_its_trailing_segments() {
+    // `aws_instance.web[*].id` hangs the trailing steps off a `splat` node instead of
+    // continuing the flat `get_attr` run, so the sibling-anchored patterns stop at the
+    // address. Matching inside the splat recovers the attribute read; it is a field,
+    // exactly as it would be without the `[*]`.
     let src = "output \"ids\" {\n  value = aws_instance.web[*].id\n}\n";
     let f = hcl(src);
     let web = refs(&f, "web");
     assert_eq!(web.len(), 1, "the address must still resolve: {web:?}");
     assert_eq!(web[0].kind, ReferenceKind::Identifier);
+    let id = refs(&f, "id");
+    assert_eq!(id.len(), 1, "got {:?}", f.references);
+    assert_eq!(id[0].kind, ReferenceKind::Field);
+    assert_eq!(id[0].span.text(src), "id");
+}
+
+#[test]
+fn a_legacy_attr_splat_keeps_its_trailing_segments_too() {
+    // `.*.` is the older spelling and lands under `attr_splat` rather than
+    // `full_splat`, which is a different node kind and so a different pattern.
+    let src = "output \"ids\" {\n  value = aws_instance.web.*.id\n}\n";
+    let f = hcl(src);
+    let id = refs(&f, "id");
+    assert_eq!(id.len(), 1, "got {:?}", f.references);
+    assert_eq!(id[0].kind, ReferenceKind::Field);
+}
+
+#[test]
+fn a_splat_keeps_every_trailing_segment_not_just_the_first() {
+    let src = "output \"ids\" {\n  value = aws_instance.web[*].id.name\n}\n";
+    let f = hcl(src);
+    for segment in ["id", "name"] {
+        let r = refs(&f, segment);
+        assert_eq!(r.len(), 1, "{segment}: got {:?}", f.references);
+        assert_eq!(r[0].kind, ReferenceKind::Field, "{segment}");
+    }
+}
+
+#[test]
+fn an_index_keeps_the_segments_that_follow_it() {
+    // `x.y[0].z` does leave `.z` as a flat sibling, but the `index` node between it
+    // and the root breaks the anchored run, so the address resolved and the attribute
+    // read did not. `y` must stay the renameable identifier, not become a field.
+    let src = "output \"a\" {\n  value = x.y[0].z\n}\n";
+    let f = hcl(src);
+    let y = refs(&f, "y");
+    assert_eq!(y.len(), 1, "got {:?}", f.references);
+    assert_eq!(y[0].kind, ReferenceKind::Identifier, "the address is renameable");
+    let z = refs(&f, "z");
+    assert_eq!(z.len(), 1, "got {:?}", f.references);
+    assert_eq!(z[0].kind, ReferenceKind::Field);
+}
+
+#[test]
+fn an_index_keeps_two_segments_but_not_a_third() {
+    // Each step past an index needs its own pattern, and two is where this stops. The
+    // third segment is a known partial: the address and the first reads survive, so
+    // nothing is *wrong*, only incomplete.
+    let src = "output \"a\" {\n  value = x.y[0].z.w.q\n}\n";
+    let f = hcl(src);
+    assert_eq!(refs(&f, "z").len(), 1, "got {:?}", f.references);
+    assert_eq!(refs(&f, "w").len(), 1, "got {:?}", f.references);
     assert!(
-        refs(&f, "id").is_empty(),
-        "trailing segment after a splat is not extracted: {:?}",
+        refs(&f, "q").is_empty(),
+        "the third step past an index is not captured: {:?}",
         f.references
     );
+}
+
+#[test]
+fn an_index_expression_is_still_read_as_a_traversal() {
+    // `count.index` inside the brackets is its own expression and keeps its own
+    // reference; the splat patterns must not swallow it.
+    let src = "output \"a\" {\n  value = aws_instance.web[count.index].id\n}\n";
+    let f = hcl(src);
+    assert_eq!(refs(&f, "web")[0].kind, ReferenceKind::Identifier);
+    assert_eq!(refs(&f, "index")[0].kind, ReferenceKind::Field);
+    assert_eq!(refs(&f, "id")[0].kind, ReferenceKind::Field);
 }
 
 #[test]

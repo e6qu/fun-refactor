@@ -5,7 +5,7 @@
 //! extend to guessing: a call site that did not resolve conclusively is reported and
 //! the whole operation refuses, because a half-updated signature does not compile.
 //!
-//! Two languages spell "signature" differently:
+//! Three languages spell "signature" differently:
 //!
 //!   * SCSS. `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a
 //!     call, so the ordinary machinery below handles both once it knows that an
@@ -18,15 +18,20 @@
 //!     positional, so a change addresses a position in the variables' document order
 //!     and rewrites the *named* argument at every call site. That is different enough
 //!     to get its own path: [`terraform_module`].
+//!   * Bash. A shell function declares nothing at all, so there is no parameter list
+//!     to edit — but there is still a signature: the positional parameters `$1 $2 …`
+//!     the body reads, and the words every call site passes. Changing it renumbers the
+//!     one and rewrites the other: [`shell_function`].
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Confidence, Symbol, SymbolId, SymbolKind};
+use crate::model::{Confidence, Reference, ReferenceKind, Symbol, SymbolId, SymbolKind};
 use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 use tree_sitter::Node;
 
@@ -52,6 +57,8 @@ pub enum Subject {
     Callable,
     /// A Terraform module directory, whose arguments are named.
     TerraformModule,
+    /// A shell function, whose parameters are the `$1 $2 …` its body reads.
+    ShellFunction,
 }
 
 /// A signature change worked out but not applied.
@@ -64,6 +71,9 @@ pub struct SignaturePlan {
     pub edits: EditSet,
     /// Call sites updated.
     pub call_sites: usize,
+    /// Things the change saw and deliberately did not act on. A note never blocks the
+    /// change; it says what was left alone and why, so a reader can check it.
+    pub notes: Vec<String>,
 }
 
 /// Apply `change` to `symbol` and every call site.
@@ -75,6 +85,10 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     // A Terraform module's signature is its directory's `variable` blocks.
     if sym.language == Language::Hcl {
         return terraform_module(index, sym, change);
+    }
+    // A shell function's signature is the numbering of its positional parameters.
+    if sym.language == Language::Bash {
+        return shell_function(index, sym, change);
     }
 
     if !matches!(sym.kind, SymbolKind::Function | SymbolKind::Method) {
@@ -207,6 +221,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         change,
         edits,
         call_sites,
+        notes: Vec::new(),
     })
 }
 
@@ -456,6 +471,754 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
         .collect()
 }
 
+// -------------------------------------------------------- Bash functions
+//
+// `greet() { … }` declares no parameters. What a caller can observe is still a
+// signature, though: the positional parameters `$1`, `$2`, … the body reads, and the
+// words each call site passes. Changing it is therefore two rewrites that have to
+// agree — renumber the body, and reorder the call sites — and both halves have to be
+// provable before either is written.
+//
+// Shell semantics put several shapes out of reach:
+//
+//   * `$@`, `$*` and `shift` consume the parameter list wholesale. Nothing that
+//     renumbers individual references can follow them, so a body using one refuses.
+//   * An unquoted expansion or a glob is one *word* in the syntax and any number of
+//     arguments at run time, so nothing after it has a knowable position. Only the
+//     positions a change actually touches need to be determinate, so `f a "$@"` can
+//     still lose its first argument while `f $x b` cannot.
+//   * `$12` is not parameter 12: the shell reads `$` plus digits as `${1}` followed by
+//     the literal `2`. tree-sitter reports one two-digit name, so a multi-digit
+//     unbraced reference refuses rather than being renumbered on the grammar's word.
+//
+// Which call sites exist is a second problem. Bash resolves a command name at run
+// time against whatever `source` has already run, so the index resolves only
+// same-file calls. The call surface is reconstructed here from the `source` graph,
+// and a caller that cannot be tied to the definition is reported rather than edited.
+
+/// A positional parameter reference inside a function body.
+#[derive(Debug, Clone, Copy)]
+struct Positional {
+    /// The digits alone, so a renumber rewrites `$2` and `${2}` the same way.
+    span: Span,
+    number: usize,
+    /// `${12}` can hold two digits; `$12` cannot.
+    braced: bool,
+}
+
+/// One command invocation of the function being changed.
+struct ShellCall {
+    /// Span of the command name, where a first argument has to be inserted.
+    name: Span,
+    /// The argument words, in source order.
+    arguments: Vec<Span>,
+}
+
+/// Change the positional signature of the shell function `sym`.
+fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<SignaturePlan> {
+    if sym.kind != SymbolKind::Function {
+        anyhow::bail!(
+            "'{}' is a {}; only a shell function has positional parameters",
+            sym.name,
+            sym.kind.as_str()
+        );
+    }
+    // Two functions of one name make every call site ambiguous, and bash resolves
+    // the ambiguity at run time by whichever definition ran last.
+    if let Some(twin) = index.symbols.iter().find(|s| {
+        s.id != sym.id
+            && s.name == sym.name
+            && s.kind == SymbolKind::Function
+            && s.language == Language::Bash
+    }) {
+        return Err(Refusal::NameCollision {
+            existing: sym.name.clone(),
+            file: twin.file.clone(),
+        }
+        .into());
+    }
+    reject_hidden_call_sites(index, sym)?;
+
+    let mut notes: Vec<String> = Vec::new();
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(Language::Bash, &source)?;
+    let definition = shell_function_node(&parsed, sym)?;
+    let positionals = shell_positionals(definition, &source, sym, &mut notes)?;
+
+    // Renumber the body first: what the body reads decides whether the change is
+    // legal at all.
+    let mut edits = EditSet::new();
+    let mut renumbered: Vec<Span> = Vec::new();
+    for reference in &positionals {
+        let renumbered_to = match &change {
+            Change::Remove(at) => {
+                let gone = at + 1;
+                if reference.number == gone {
+                    anyhow::bail!(
+                        "the body of `{}` still reads ${gone}, the parameter being removed; \
+                         nothing would supply it afterwards",
+                        sym.name
+                    );
+                }
+                if reference.number > gone {
+                    reference.number - 1
+                } else {
+                    reference.number
+                }
+            }
+            Change::Move { from, to } => {
+                let (a, b) = (from + 1, to + 1);
+                if reference.number == a {
+                    b
+                } else if reference.number == b {
+                    a
+                } else {
+                    reference.number
+                }
+            }
+            Change::Add { at, .. } => {
+                let inserted = at + 1;
+                if reference.number >= inserted {
+                    reference.number + 1
+                } else {
+                    reference.number
+                }
+            }
+        };
+        if renumbered_to == reference.number {
+            continue;
+        }
+        edits.add(
+            sym.file.clone(),
+            Edit::new(
+                reference.span,
+                shell_positional_text(renumbered_to, reference.braced),
+                format!("${} is now ${renumbered_to}", reference.number),
+            ),
+        );
+        renumbered.push(reference.span);
+    }
+
+    // A declaration is what bash does not have; saying so beats silently dropping
+    // text the caller supplied.
+    if let Change::Add { declaration, .. } = &change {
+        if !declaration.trim().is_empty() {
+            notes.push(format!(
+                "a shell function declares no parameters, so the declaration `{}` was not \
+                 written anywhere; only the argument and the body's numbering changed",
+                first_line(declaration)
+            ));
+        }
+    }
+
+    let calls = shell_call_files(index, sym, &mut notes)?;
+    if let Change::Add { argument, .. } = &change {
+        if argument.trim().is_empty() && !calls.is_empty() {
+            anyhow::bail!(
+                "`{}` is called from {} site(s) and shell arguments are positional, so an \
+                 added parameter needs a word to pass; supply an argument",
+                sym.name,
+                calls.values().map(|v| v.len()).sum::<usize>()
+            );
+        }
+    }
+
+    let mut call_sites = 0usize;
+    for (file, references) in &calls {
+        let call_source = std::fs::read_to_string(file)?;
+        let call_parsed = Parsers::new().parse(Language::Bash, &call_source)?;
+        for reference in references {
+            let call = shell_call_at(&call_parsed, sym, file, reference.span)?;
+            shell_check_positions(&call, &call_parsed, &call_source, sym, file, &change)?;
+            shell_rewrite_call(
+                &mut edits,
+                file,
+                &call_source,
+                &call,
+                sym,
+                &change,
+                &mut notes,
+            )?;
+            call_sites += 1;
+        }
+    }
+
+    // A recursive call passing `$1` would have the same bytes rewritten twice, once
+    // as an argument and once as a renumbered reference.
+    reject_shell_edit_collisions(&edits, &sym.file, sym, &renumbered)?;
+
+    // A change that rewrites nothing is not a change. Saying so is the only way the
+    // caller learns that the position they named exists nowhere.
+    if edits.is_empty() {
+        anyhow::bail!(
+            "the change leaves `{}` exactly as it was: no call site and no reference in \
+             its body names that position.{}",
+            sym.name,
+            notes
+                .iter()
+                .map(|n| format!("\n  {n}"))
+                .collect::<String>()
+        );
+    }
+
+    Ok(SignaturePlan {
+        subject: sym.name.clone(),
+        subject_kind: Subject::ShellFunction,
+        change,
+        edits,
+        call_sites,
+        notes,
+    })
+}
+
+/// The `function_definition` node `sym` names.
+fn shell_function_node<'a>(parsed: &'a Parsed, sym: &Symbol) -> Result<Node<'a>> {
+    let mut node = parsed
+        .root()
+        .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "could not locate `{}` in {} after reparsing it",
+                sym.name,
+                sym.file.display()
+            )
+        })?;
+    for _ in 0..8 {
+        if node.kind() == "function_definition" {
+            return Ok(node);
+        }
+        let Some(parent) = node.parent() else { break };
+        node = parent;
+    }
+    anyhow::bail!(
+        "`{}` at {} is not a function definition this grammar exposes",
+        sym.name,
+        location(&sym.file, sym.name_span.start)
+    )
+}
+
+/// Every `$1`-style reference in a function body, refusing on the shapes no
+/// renumbering can follow.
+fn shell_positionals(
+    definition: Node<'_>,
+    source: &str,
+    sym: &Symbol,
+    notes: &mut Vec<String>,
+) -> Result<Vec<Positional>> {
+    let mut out: Vec<Positional> = Vec::new();
+    let mut reads_count = false;
+
+    for node in descendants(definition) {
+        let text = Span::from(node).text(source);
+        match node.kind() {
+            // A nested function has positional parameters of its own, and no rule
+            // says which `$1` inside the body belongs to which.
+            "function_definition" if node.id() != definition.id() => anyhow::bail!(
+                "`{}` defines a nested function at {}; its `$1` names that function's \
+                 first argument, not this one's, so the body cannot be renumbered",
+                sym.name,
+                location(&sym.file, node.start_byte())
+            ),
+            "special_variable_name" if text == "@" || text == "*" => anyhow::bail!(
+                "the body of `{}` uses `${text}` at {}, which expands to the whole \
+                 parameter list; renumbering individual references cannot follow it",
+                sym.name,
+                location(&sym.file, node.start_byte())
+            ),
+            "special_variable_name" if text == "#" => reads_count = true,
+            "command_name" if text == "shift" => anyhow::bail!(
+                "the body of `{}` calls `shift` at {}, which renumbers the parameters at \
+                 run time; a static renumbering cannot follow it",
+                sym.name,
+                location(&sym.file, node.start_byte())
+            ),
+            "command_name" if text == "set" => {
+                if shell_command_resets_parameters(node, source) {
+                    anyhow::bail!(
+                        "the body of `{}` calls `set --` at {}, which replaces the \
+                         positional parameters wholesale; a static renumbering cannot \
+                         follow it",
+                        sym.name,
+                        location(&sym.file, node.start_byte())
+                    );
+                }
+            }
+            "variable_name" if !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit()) => {
+                let braced = match node.parent().map(|p| p.kind()) {
+                    Some("expansion") => true,
+                    Some("simple_expansion") => false,
+                    other => anyhow::bail!(
+                        "`${text}` at {} sits inside a {} rather than an expansion, so the \
+                         tool cannot tell what rewriting it would mean",
+                        location(&sym.file, node.start_byte()),
+                        other.unwrap_or("(nothing)")
+                    ),
+                };
+                // `$0` is the script's name, not a parameter, and survives any change.
+                let number: usize = text.parse()?;
+                if number == 0 {
+                    continue;
+                }
+                if !braced && text.len() > 1 {
+                    anyhow::bail!(
+                        "`${text}` at {} is not parameter {text}: the shell reads `$` and one \
+                         digit, then `{}` as literal text. Write it as `${{{text}}}` first if \
+                         that is what was meant",
+                        location(&sym.file, node.start_byte()),
+                        &text[1..]
+                    );
+                }
+                out.push(Positional {
+                    span: Span::from(node),
+                    number,
+                    braced,
+                });
+            }
+            _ => {}
+        }
+    }
+
+    if reads_count {
+        notes.push(format!(
+            "the body of `{}` reads `$#`, the parameter count; the change alters it and \
+             no renumbering can compensate",
+            sym.name
+        ));
+    }
+    out.sort_by_key(|p| p.span.start);
+    Ok(out)
+}
+
+/// Does this `set` command replace the positional parameters?
+fn shell_command_resets_parameters(name: Node<'_>, source: &str) -> bool {
+    let Some(command) = name.parent() else {
+        return false;
+    };
+    let mut cursor = command.walk();
+    let found = command
+        .children_by_field_name("argument", &mut cursor)
+        .any(|argument| Span::from(argument).text(source) == "--");
+    found
+}
+
+/// How a renumbered reference is spelled.
+///
+/// `$9` renumbered to 10 cannot stay unbraced: the shell would read `$10` as `${1}0`.
+/// Replacing the digits with `{10}` turns the surviving `$` into `${10}`.
+fn shell_positional_text(number: usize, braced: bool) -> String {
+    if braced || number < 10 {
+        number.to_string()
+    } else {
+        format!("{{{number}}}")
+    }
+}
+
+/// Every command invocation of `sym` that can be tied to it, grouped by file.
+///
+/// Bash has no import that binds a name: a command is whatever `source` put in scope
+/// by the time the line runs. So a call is attributed to this function only when its
+/// file is the defining file or reaches it through a chain of literal `source` paths.
+/// Anything else is either an external command of the same name — reported and left
+/// alone — or a file whose scope cannot be known, which refuses.
+fn shell_call_files<'a>(
+    index: &'a Index,
+    sym: &Symbol,
+    notes: &mut Vec<String>,
+) -> Result<BTreeMap<PathBuf, Vec<&'a Reference>>> {
+    let (sources, opaque) = shell_source_graph(index);
+
+    let mut by_file: BTreeMap<PathBuf, Vec<&Reference>> = BTreeMap::new();
+    for reference in &index.references {
+        if reference.language != Language::Bash
+            || reference.kind != ReferenceKind::Call
+            || reference.name != sym.name
+        {
+            continue;
+        }
+        by_file
+            .entry(reference.file.clone())
+            .or_default()
+            .push(reference);
+    }
+
+    let mut out: BTreeMap<PathBuf, Vec<&Reference>> = BTreeMap::new();
+    for (file, references) in by_file {
+        if file != sym.file && opaque.contains(&file) {
+            return Err(Refusal::TooWeak {
+                confidence: Confidence::NameOnly,
+                detail: format!(
+                    "{} calls `{}` and also sources a path that is not a literal, so what \
+                     is in scope there cannot be known",
+                    file.display(),
+                    sym.name
+                ),
+            }
+            .into());
+        }
+        if file == sym.file || shell_reaches(&sources, &file, &sym.file) {
+            let mut references = references;
+            references.sort_by_key(|r| r.span.start);
+            out.insert(file, references);
+            continue;
+        }
+        notes.push(format!(
+            "{} runs `{}` {} time(s) but never sources {}, so those are a different \
+             command and were left alone",
+            file.display(),
+            sym.name,
+            references.len(),
+            sym.file.display()
+        ));
+    }
+    Ok(out)
+}
+
+/// The `source` graph of the workspace, plus the files whose sourcing is not literal.
+pub(super) fn shell_source_graph(index: &Index) -> (BTreeMap<PathBuf, Vec<PathBuf>>, BTreeSet<PathBuf>) {
+    let mut sources: BTreeMap<PathBuf, Vec<PathBuf>> = BTreeMap::new();
+    let mut opaque: BTreeSet<PathBuf> = BTreeSet::new();
+
+    for (path, info) in index.files() {
+        if info.language != Language::Bash {
+            continue;
+        }
+        let Some(dir) = path.parent() else { continue };
+        for import in &info.imports {
+            if !is_literal_shell_path(&import.path) {
+                opaque.insert(path.clone());
+                continue;
+            }
+            sources
+                .entry(path.clone())
+                .or_default()
+                .push(normalize(&dir.join(&import.path)));
+        }
+    }
+    (sources, opaque)
+}
+
+/// Is this `source` argument a fixed path, rather than one computed at run time?
+fn is_literal_shell_path(path: &str) -> bool {
+    !path.is_empty() && !path.contains(['$', '`', '*', '?', '[', '~'])
+}
+
+/// Does `from` reach `target` by following `source` statements?
+pub(super) fn shell_reaches(sources: &BTreeMap<PathBuf, Vec<PathBuf>>, from: &Path, target: &Path) -> bool {
+    let mut seen: BTreeSet<PathBuf> = BTreeSet::new();
+    let mut queue = vec![from.to_path_buf()];
+    while let Some(file) = queue.pop() {
+        if !seen.insert(file.clone()) {
+            continue;
+        }
+        let Some(sourced) = sources.get(&file) else {
+            continue;
+        };
+        for next in sourced {
+            if next == target {
+                return true;
+            }
+            queue.push(next.clone());
+        }
+    }
+    false
+}
+
+/// The command invocation whose name occupies `span`.
+fn shell_call_at(parsed: &Parsed, sym: &Symbol, file: &Path, span: Span) -> Result<ShellCall> {
+    let mut node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "could not locate the call to `{}` at {}",
+                sym.name,
+                location(file, span.start)
+            )
+        })?;
+    // `command_substitution` also contains "command", so the kind is matched whole.
+    for _ in 0..8 {
+        if node.kind() == "command" {
+            break;
+        }
+        let Some(parent) = node.parent() else {
+            anyhow::bail!(
+                "the call to `{}` at {} is not a command invocation this grammar exposes",
+                sym.name,
+                location(file, span.start)
+            )
+        };
+        node = parent;
+    }
+    if node.kind() != "command" {
+        anyhow::bail!(
+            "the call to `{}` at {} is not a command invocation this grammar exposes",
+            sym.name,
+            location(file, span.start)
+        );
+    }
+
+    let name = node.child_by_field_name("name").ok_or_else(|| {
+        anyhow::anyhow!(
+            "the command at {} has no name node",
+            location(file, node.start_byte())
+        )
+    })?;
+    // A name that does not coincide with the reference means the reference was an
+    // argument of some other command, which is not a call at all.
+    if !Span::from(name).contains(span) {
+        anyhow::bail!(
+            "`{}` at {} is an argument of another command, not a call to the function",
+            sym.name,
+            location(file, span.start)
+        );
+    }
+
+    let mut cursor = node.walk();
+    let arguments: Vec<Span> = node
+        .children_by_field_name("argument", &mut cursor)
+        .map(Span::from)
+        .collect();
+    Ok(ShellCall {
+        name: Span::from(name),
+        arguments,
+    })
+}
+
+/// Refuse unless every position this change reads or moves is exactly one argument.
+///
+/// Only the prefix up to the highest position touched has to be determinate: what
+/// follows shifts uniformly whatever it expands to, so `f a "$@"` survives losing its
+/// first argument even though `"$@"` is any number of words.
+fn shell_check_positions(
+    call: &ShellCall,
+    parsed: &Parsed,
+    source: &str,
+    sym: &Symbol,
+    file: &Path,
+    change: &Change,
+) -> Result<()> {
+    let required = match change {
+        Change::Remove(at) => at + 1,
+        Change::Move { from, to } => from.max(to) + 1,
+        Change::Add { at, .. } => *at,
+    };
+    for span in call.arguments.iter().take(required) {
+        if let Some(reason) = shell_argument_is_indeterminate(parsed, source, *span) {
+            return Err(Refusal::TooWeak {
+                confidence: Confidence::NameOnly,
+                detail: format!(
+                    "the call to `{}` at {} passes {}, so the position of everything \
+                     after it is only known at run time",
+                    sym.name,
+                    location(file, span.start),
+                    reason
+                ),
+            }
+            .into());
+        }
+    }
+    Ok(())
+}
+
+/// Why an argument cannot be treated as exactly one positional parameter.
+fn shell_argument_is_indeterminate(parsed: &Parsed, source: &str, span: Span) -> Option<String> {
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)?;
+    shell_word_problem(node, source)
+}
+
+/// Recursive form of [`shell_argument_is_indeterminate`], over an already-found node.
+fn shell_word_problem(node: Node<'_>, source: &str) -> Option<String> {
+    let text = Span::from(node).text(source);
+    // `$@` expands to one word per parameter wherever it appears, quoted or not, and
+    // unquoted `$*` splits on IFS.
+    for inner in descendants(node) {
+        if inner.kind() == "special_variable_name" {
+            let name = Span::from(inner).text(source);
+            if name == "@" || name == "*" {
+                return Some(format!(
+                    "`${name}`, which stands for the whole parameter list"
+                ));
+            }
+        }
+    }
+    match node.kind() {
+        "word" => text.contains(['*', '?', '[', '{']).then(|| {
+            format!("`{text}`, a glob or brace expansion that can become any number of words")
+        }),
+        "string" | "raw_string" | "ansi_c_string" | "translated_string" | "number" => None,
+        "concatenation" => {
+            let mut cursor = node.walk();
+            let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
+            children
+                .into_iter()
+                .find_map(|child| shell_word_problem(child, source))
+        }
+        other => Some(format!(
+            "`{text}`, {} the shell splits into words at run time; quote it to make it \
+             one argument",
+            match other {
+                "simple_expansion" | "expansion" => "an unquoted expansion",
+                "command_substitution" => "an unquoted command substitution",
+                "process_substitution" => "a process substitution",
+                "arithmetic_expansion" => "an unquoted arithmetic expansion",
+                _ => "a word",
+            }
+        )),
+    }
+}
+
+/// Rewrite one call site's argument words.
+fn shell_rewrite_call(
+    edits: &mut EditSet,
+    file: &Path,
+    source: &str,
+    call: &ShellCall,
+    sym: &Symbol,
+    change: &Change,
+    notes: &mut Vec<String>,
+) -> Result<()> {
+    match change {
+        Change::Remove(at) => {
+            let Some(target) = call.arguments.get(*at) else {
+                notes.push(format!(
+                    "{}: the call to `{}` passes {} argument(s), so it has nothing at \
+                     position {at} to remove",
+                    location(file, call.name.start),
+                    sym.name,
+                    call.arguments.len()
+                ));
+                return Ok(());
+            };
+            edits.add(
+                file.to_path_buf(),
+                Edit::new(
+                    shell_argument_removal(&call.arguments, *at, call.name, *target),
+                    "",
+                    format!("drop argument {at} of `{}`", sym.name),
+                ),
+            );
+        }
+        Change::Move { from, to } => {
+            let (Some(a), Some(b)) = (call.arguments.get(*from), call.arguments.get(*to)) else {
+                notes.push(format!(
+                    "{}: the call to `{}` passes {} argument(s), so positions {from} and \
+                     {to} are not both present and its arguments were left alone",
+                    location(file, call.name.start),
+                    sym.name,
+                    call.arguments.len()
+                ));
+                return Ok(());
+            };
+            edits.add(
+                file.to_path_buf(),
+                Edit::new(*a, b.text(source), format!("move argument {from}")),
+            );
+            edits.add(
+                file.to_path_buf(),
+                Edit::new(*b, a.text(source), format!("move argument {to}")),
+            );
+        }
+        Change::Add { at, argument, .. } => {
+            if *at > call.arguments.len() {
+                anyhow::bail!(
+                    "the call to `{}` at {} passes {} argument(s), so inserting at position \
+                     {at} would land at position {} instead",
+                    sym.name,
+                    location(file, call.name.start),
+                    call.arguments.len(),
+                    call.arguments.len()
+                );
+            }
+            match call.arguments.get(*at) {
+                Some(before) => edits.add(
+                    file.to_path_buf(),
+                    Edit::new(
+                        Span::new(before.start, before.start),
+                        format!("{argument} "),
+                        format!("pass a new argument {at} to `{}`", sym.name),
+                    ),
+                ),
+                None => {
+                    let anchor = call
+                        .arguments
+                        .last()
+                        .map(|a| a.end)
+                        .unwrap_or(call.name.end);
+                    edits.add(
+                        file.to_path_buf(),
+                        Edit::new(
+                            Span::new(anchor, anchor),
+                            format!(" {argument}"),
+                            format!("pass a new argument {at} to `{}`", sym.name),
+                        ),
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The bytes a removed argument takes with it: itself plus one separating run of
+/// whitespace, so the surviving words stay separated exactly once.
+fn shell_argument_removal(arguments: &[Span], at: usize, name: Span, target: Span) -> Span {
+    match arguments.get(at + 1) {
+        Some(next) => Span::new(target.start, next.start),
+        None => {
+            let previous = if at == 0 {
+                name.end
+            } else {
+                arguments[at - 1].end
+            };
+            Span::new(previous, target.end)
+        }
+    }
+}
+
+/// Refuse when a call site inside the function's own body passes bytes the body
+/// renumbering also rewrites.
+fn reject_shell_edit_collisions(
+    edits: &EditSet,
+    file: &Path,
+    sym: &Symbol,
+    renumbered: &[Span],
+) -> Result<()> {
+    let Some(list) = edits.edits_for(file) else {
+        return Ok(());
+    };
+    for edit in list {
+        if renumbered.contains(&edit.span) {
+            continue;
+        }
+        if let Some(clash) = renumbered.iter().find(|span| span.overlaps(edit.span)) {
+            anyhow::bail!(
+                "the recursive call to `{}` at {} passes a positional parameter that this \
+                 change also renumbers; the same bytes would be rewritten twice",
+                sym.name,
+                location(file, clash.start)
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Every node of a subtree, the root included.
+fn descendants(node: Node<'_>) -> Vec<Node<'_>> {
+    let mut out = Vec::new();
+    let mut stack = vec![node];
+    while let Some(current) = stack.pop() {
+        out.push(current);
+        let mut cursor = current.walk();
+        for child in current.children(&mut cursor) {
+            stack.push(child);
+        }
+    }
+    out
+}
+
 // ----------------------------------------------------- Terraform modules
 
 /// A `variable "x" { ... }` block declared in the target module's directory.
@@ -662,6 +1425,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
         change,
         edits,
         call_sites,
+        notes: Vec::new(),
     })
 }
 
@@ -1207,24 +1971,35 @@ pub fn describe(index: &Index, plan: &SignaturePlan) -> String {
     let noun = match plan.subject_kind {
         Subject::Callable => "parameter",
         Subject::TerraformModule => "module variable",
+        Subject::ShellFunction => "positional parameter",
     };
     let what = match &plan.change {
         Change::Remove(i) => format!("removed {noun} {i}"),
         Change::Move { from, to } => format!("moved {noun} {from} to position {to}"),
         Change::Add {
-            at, declaration, ..
+            at,
+            declaration,
+            argument,
         } => {
-            format!(
-                "added {noun} `{}` at position {at}",
-                first_line(declaration)
-            )
+            // A shell function has no declaration, so the argument is the only text
+            // there is to name the new parameter by.
+            let shown = match plan.subject_kind {
+                Subject::ShellFunction => argument,
+                _ => declaration,
+            };
+            format!("added {noun} `{}` at position {at}", first_line(shown))
         }
     };
     let _ = index;
-    format!(
+    let mut out = format!(
         "{}: {what}, updating {} call site(s)",
         plan.subject, plan.call_sites
-    )
+    );
+    for note in &plan.notes {
+        out.push_str("\n  note: ");
+        out.push_str(note);
+    }
+    out
 }
 
 /// The first line of a declaration, for one-line summaries.

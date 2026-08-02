@@ -44,6 +44,14 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             return css_custom_property(index, symbol)
         }
         (Language::Markdown, SymbolKind::LinkDef) => return markdown_link_definition(index, symbol),
+        // Shell quoting decides what a substitution means, so bash cannot go through
+        // the generic path, which would splice a value into `${…}` and change it.
+        (Language::Bash, SymbolKind::Variable | SymbolKind::Constant) => {
+            return bash_variable(index, symbol)
+        }
+        // XML's binding form is the internal-subset entity. See `xml_entity` for why
+        // this arm is not reachable from the CLI yet.
+        (Language::Xml, SymbolKind::Constant) => return xml_entity(&sym.file, &sym.name),
         _ => {}
     }
 
@@ -1412,4 +1420,535 @@ fn markdown_definition_removal(source: &str, definition: Span) -> Span {
         }
     }
     Span::new(start, line.end)
+}
+
+// -------------------------------------------------------------------------- Bash
+
+/// Every node in the tree, in source order, that `keep` accepts.
+fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> Vec<Node<'a>> {
+    let mut out = Vec::new();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if keep(node) {
+            out.push(node);
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.children(&mut cursor));
+    }
+    out.sort_by_key(|n| (n.start_byte(), n.end_byte()));
+    out
+}
+
+/// The innermost *strict* ancestor of `node` with this kind.
+fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut current = node.parent()?;
+    loop {
+        if current.kind() == kind {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+/// Inline a shell variable: substitute its value at every `$name` / `${name}` and
+/// delete the assignment.
+///
+/// Three things make this refusable where other languages' inlining is not.
+///
+/// * Shell has no block scope, so a second assignment anywhere in the file changes
+///   the value every use after it sees; one substitution cannot be right for both.
+/// * An `export`ed variable is read by every child process this script starts, and
+///   nothing in this workspace can prove none of them wants it.
+/// * `'$name'` inside single quotes is not a use at all — the shell performs no
+///   expansion there — so deleting the assignment would leave text that looks like a
+///   use and no longer is. That is reported rather than quietly ignored.
+///
+/// Quoting decides the substitution, mirroring the extraction: a use inside double
+/// quotes takes a quoted value's *contents*, and an unquoted use takes a quoted value
+/// only when its contents are a single plain word — otherwise the value would be
+/// word-split and glob-expanded where `$name` never was.
+fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
+    let sym = index
+        .symbol(symbol)
+        .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
+
+    if sym.exported {
+        anyhow::bail!(
+            "`{}` is exported, so it is part of the environment of every command this \
+             script runs. Inlining it here would take it out of that environment, and \
+             nothing in this workspace can show that no child process reads it",
+            sym.name
+        );
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let parsed = Parsers::new().parse(sym.language, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} has syntax errors, so the declaration cannot be located reliably",
+            sym.file.display()
+        );
+    }
+
+    let assignment = node_covering(&parsed, sym.full_span)
+        .and_then(|n| ancestor_of_kind(n, "variable_assignment"))
+        .filter(|a| Span::from(*a) == sym.full_span)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "`{}` is not bound by an assignment — a `for` loop variable and a bare \
+                 `local {}` have no value to substitute",
+                sym.name,
+                sym.name
+            )
+        })?;
+
+    // `FOO=bar cmd` sets FOO for that one command only; `$FOO` anywhere else is a
+    // different variable, and removing the prefix would change the command's
+    // environment rather than inline anything.
+    if assignment.parent().is_some_and(|p| p.kind() == "command") {
+        anyhow::bail!(
+            "`{}=…` is a prefix of a single command, so it is visible only inside that \
+             command's environment; a `${}` elsewhere is not a use of it",
+            sym.name,
+            sym.name
+        );
+    }
+
+    let value = assignment.child_by_field_name("value").ok_or_else(|| {
+        anyhow::anyhow!(
+            "`{}=` binds the empty string; there is nothing to inline",
+            sym.name
+        )
+    })?;
+    let value_text = Span::from(value).text(&source).to_string();
+
+    // Shell has no block scope: a later assignment changes every use after it.
+    if let Some(other) = bash_other_binding(&parsed, &source, &sym.name, sym.full_span) {
+        let pos = LineIndex::new(&source).line_col(other, &source);
+        anyhow::bail!(
+            "`{}` is assigned again at line {}. Shell has no block scope, so every use \
+             after that line reads the second value and one substitution cannot be \
+             right for both",
+            sym.name,
+            pos.line
+        );
+    }
+
+    if let Some(quoted) = bash_single_quoted_mention(&parsed, &source, &sym.name) {
+        anyhow::bail!(
+            "`{}` at bytes {} is inside single quotes, where the shell expands nothing — \
+             that text is a literal `${}`, not a use. Removing the assignment would \
+             leave it reading like one",
+            Span::from(quoted).text(&source),
+            Span::from(quoted),
+            sym.name
+        );
+    }
+
+    let references = index.references_to(symbol);
+    if references.is_empty() {
+        anyhow::bail!(
+            "`{}` has no uses; inlining would only delete it — use `fr delete` if that \
+             is the intent",
+            sym.name
+        );
+    }
+    for reference in &references {
+        if !reference.confidence.is_safe_to_rewrite() {
+            return Err(Refusal::TooWeak {
+                confidence: reference.confidence,
+                detail: format!(
+                    "a use of `{}` at {}:{} did not resolve conclusively",
+                    sym.name,
+                    reference.file.display(),
+                    LineIndex::new(&source)
+                        .line_col(reference.span.start, &source)
+                        .line
+                ),
+            }
+            .into());
+        }
+        // Shell's namespace is global across everything a script sources, so a use in
+        // another file may have been set by a third script between the two.
+        if reference.file != sym.file {
+            anyhow::bail!(
+                "`{}` is used in {}, a different script. Shell variables live in one \
+                 global namespace shared by everything a run sources, so what that use \
+                 reads depends on the order the scripts run in, which is not visible \
+                 here",
+                sym.name,
+                reference.file.display()
+            );
+        }
+    }
+
+    let mut edits = EditSet::new();
+    for reference in &references {
+        let use_node = node_covering(&parsed, reference.span).ok_or_else(|| {
+            anyhow::anyhow!(
+                "a use of `{}` at byte {} could not be located in the tree",
+                sym.name,
+                reference.span.start
+            )
+        })?;
+        let expansion = bash_expansion_of(use_node, &source, &sym.name)?;
+        let (target, replacement) =
+            match bash_redundant_quotes(expansion, &source, &sym.name) {
+                // `x="$name"` on the right of an assignment is one word however it is
+                // written, so the quotes may go with the expansion and the value keeps
+                // its own — which is what makes an extraction reversible byte for byte.
+                Some(quoted) => (quoted, Span::from(value).text(&source).to_string()),
+                None => (
+                    Span::from(expansion),
+                    bash_substitution(expansion, value, &source, &sym.name)?,
+                ),
+            };
+        edits.add(
+            reference.file.clone(),
+            Edit::new(target, replacement, format!("inline {}", sym.name)),
+        );
+    }
+
+    // `local x=…` and `declare -i n=…` own the line, not just the assignment; taking
+    // only the assignment would leave a bare `local` behind.
+    let removal_target = assignment
+        .parent()
+        .filter(|p| p.kind() == "declaration_command")
+        .filter(|p| named_children_of_kind(*p, "variable_assignment").len() == 1)
+        .map(Span::from)
+        .unwrap_or(sym.full_span);
+    edits.add(
+        sym.file.clone(),
+        Edit::new(
+            tight_removal_span(&source, removal_target),
+            "",
+            format!("remove binding of {}", sym.name),
+        ),
+    );
+
+    Ok(InlinePlan {
+        name: sym.name.clone(),
+        value: value_text,
+        edits,
+        use_sites: references.len(),
+    })
+}
+
+/// Another binding of the same name: a second assignment, or a `for` loop that
+/// rebinds it. Returns the offset of the rebinding.
+fn bash_other_binding(
+    parsed: &Parsed,
+    source: &str,
+    name: &str,
+    declaration: Span,
+) -> Option<usize> {
+    collect_nodes(parsed.root(), |n| {
+        if Span::from(n) == declaration {
+            return false;
+        }
+        let bound = match n.kind() {
+            "variable_assignment" => n.child_by_field_name("name"),
+            "for_statement" => n.child_by_field_name("variable"),
+            _ => None,
+        };
+        bound.is_some_and(|b| Span::from(b).text(source) == name)
+    })
+    .into_iter()
+    .next()
+    .map(|n| n.start_byte())
+}
+
+/// A `$name` or `${name}` written inside single quotes, where it is literal text.
+fn bash_single_quoted_mention<'a>(
+    parsed: &'a Parsed,
+    source: &str,
+    name: &str,
+) -> Option<Node<'a>> {
+    collect_nodes(parsed.root(), |n| n.kind() == "raw_string")
+        .into_iter()
+        .find(|n| bash_mentions(Span::from(*n).text(source), name))
+}
+
+/// Does this text contain `$name` or `${name}` as a whole word?
+fn bash_mentions(text: &str, name: &str) -> bool {
+    let braced = format!("${{{name}}}");
+    if text.contains(&braced) {
+        return true;
+    }
+    let plain = format!("${name}");
+    let mut base = 0usize;
+    while let Some(found) = text[base..].find(&plain) {
+        let after = base + found + plain.len();
+        let next = text[after..].chars().next();
+        if next.is_none_or(|c| !(c.is_alphanumeric() || c == '_')) {
+            return true;
+        }
+        base = after;
+    }
+    false
+}
+
+/// The `$name` / `${name}` a reference span sits inside.
+fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Node<'a>> {
+    let Some(parent) = node.parent() else {
+        anyhow::bail!("a use of `{name}` has no enclosing expansion");
+    };
+    match parent.kind() {
+        "simple_expansion" => Ok(parent),
+        "expansion" => {
+            // `${name:-default}`, `${#name}`, `${name%.c}` and friends do more than
+            // read the variable; substituting the value for the whole expansion would
+            // drop the operator, and substituting it inside would not parse.
+            let text = Span::from(parent).text(source);
+            if text == format!("${{{name}}}") {
+                Ok(parent)
+            } else {
+                anyhow::bail!(
+                    "the use `{text}` applies a parameter expansion operator to \
+                     `{name}`; the value cannot be substituted without dropping it"
+                )
+            }
+        }
+        other => anyhow::bail!(
+            "a use of `{name}` at byte {} is written as a bare `{other}` rather than \
+             `${name}` or `${{{name}}}`; refusing to guess what the shell reads there",
+            node.start_byte()
+        ),
+    }
+}
+
+/// The span of a `"$name"` whose quotes are doing no work: a string holding nothing
+/// but this expansion, standing on the right of an assignment, where the shell splits
+/// nothing whatever the value turns out to be.
+///
+/// Everywhere else the quotes are load-bearing — `"$name"` as a command argument is
+/// one word and the value alone might not be — so this returns `None` and the value
+/// is spliced inside the quotes instead.
+fn bash_redundant_quotes(expansion: Node<'_>, source: &str, name: &str) -> Option<Span> {
+    let string = expansion.parent().filter(|p| p.kind() == "string")?;
+    let text = Span::from(string).text(source);
+    if text != format!("\"${name}\"") && text != format!("\"${{{name}}}\"") {
+        return None;
+    }
+    let assignment = string.parent().filter(|p| p.kind() == "variable_assignment")?;
+    let value = assignment.child_by_field_name("value")?;
+    (value.id() == string.id()).then(|| Span::from(string))
+}
+
+/// The exact bytes to write at one use site.
+fn bash_substitution(
+    use_site: Node<'_>,
+    value: Node<'_>,
+    source: &str,
+    name: &str,
+) -> Result<String> {
+    let verbatim = Span::from(value).text(source);
+    let inner = || {
+        let span = Span::from(value);
+        source[span.start + 1..span.end - 1].to_string()
+    };
+    let in_double_quotes = strict_ancestor_of_kind(use_site, "string").is_some();
+
+    if in_double_quotes {
+        return match value.kind() {
+            // Already a double-quoted literal: its contents keep their meaning when
+            // they move inside another pair of double quotes.
+            "string" => Ok(inner()),
+            "raw_string" => {
+                let text = inner();
+                if text.contains(['$', '`', '\\', '"']) {
+                    anyhow::bail!(
+                        "`{name}` holds the single-quoted text `{text}`, which is \
+                         literal, but the use site is inside double quotes where `$`, \
+                         backtick, `\\` and `\"` are not. Substituting it would change \
+                         what the shell reads"
+                    );
+                }
+                Ok(text)
+            }
+            "ansi_c_string" => anyhow::bail!(
+                "`{name}` holds a `$'…'` string, whose escapes are interpreted when the \
+                 assignment runs, not where the value is used; there is no spelling of \
+                 it that means the same inside double quotes"
+            ),
+            _ => Ok(verbatim.to_string()),
+        };
+    }
+
+    match value.kind() {
+        "string" | "raw_string" => {
+            let text = inner();
+            if bash_is_one_plain_word(&text) {
+                Ok(text)
+            } else {
+                anyhow::bail!(
+                    "`{name}` holds `{verbatim}` and this use is unquoted, where the \
+                     shell splits on `$IFS` and expands globs. `\"$` `{name}\"` never \
+                     did either, so there is no substitution here that keeps the \
+                     meaning — quote the use site first"
+                )
+            }
+        }
+        _ => Ok(verbatim.to_string()),
+    }
+}
+
+/// Is this text a single word that survives word splitting and expansion untouched?
+fn bash_is_one_plain_word(text: &str) -> bool {
+    !text.is_empty()
+        && !text.chars().any(|c| {
+            c.is_whitespace()
+                || matches!(
+                    c,
+                    '*' | '?'
+                        | '['
+                        | ']'
+                        | '$'
+                        | '`'
+                        | '\\'
+                        | '~'
+                        | '{'
+                        | '}'
+                        | '"'
+                        | '\''
+                        | '#'
+                        | ';'
+                        | '&'
+                        | '|'
+                        | '<'
+                        | '>'
+                        | '('
+                        | ')'
+                )
+        })
+}
+
+// --------------------------------------------------------------------------- XML
+
+/// Inline an XML internal-subset entity: substitute its replacement text at every
+/// `&name;` and delete the `<!ENTITY …>`, taking the `<!DOCTYPE …>` an extraction
+/// created with it when nothing else is left inside.
+///
+/// This is the exact inverse of `extract::variable` on an XML file, and it is a
+/// standalone function rather than only a `variable()` arm because an entity has no
+/// [`SymbolId`]: `queries/xml/facts.scm` declares element ids and namespace prefixes
+/// and nothing else, so no entity reaches the index and the arm in `variable()` cannot
+/// fire until that query captures `(GEDecl (Name) @name) @definition.constant` and
+/// `(EntityRef (Name) @reference.identifier)`.
+pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
+    let source = std::fs::read_to_string(file)?;
+    let parsed = Parsers::new().parse(Language::Xml, &source)?;
+    if parsed.has_errors() {
+        anyhow::bail!(
+            "{} has syntax errors, so the declaration cannot be located reliably",
+            file.display()
+        );
+    }
+
+    let doctype = collect_nodes(parsed.root(), |n| n.kind() == "doctypedecl")
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "{} has no `<!DOCTYPE … [ … ]>` internal subset, so it declares no \
+                 entities",
+                file.display()
+            )
+        })?;
+
+    let declaration = named_children_of_kind(doctype, "GEDecl")
+        .into_iter()
+        .find(|d| xml_child_name(*d, &source).as_deref() == Some(name))
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "the internal subset of {} declares no `<!ENTITY {name} …>`",
+                file.display()
+            )
+        })?;
+
+    let value_node = named_children_of_kind(declaration, "EntityValue")
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            anyhow::anyhow!("`<!ENTITY {name}>` has no replacement text to substitute")
+        })?;
+    let value_span = Span::from(value_node);
+    let value = source[value_span.start + 1..value_span.end - 1].to_string();
+
+    if value.contains(['&', '%', '<']) {
+        anyhow::bail!(
+            "`{name}` expands to `{value}`, which contains markup (`&`, `%` or `<`). \
+             That is re-parsed where the entity is referenced, so pasting the text in \
+             would not mean the same thing"
+        );
+    }
+
+    let uses: Vec<Node> = collect_nodes(parsed.root(), |n| {
+        n.kind() == "EntityRef" && xml_child_name(n, &source).as_deref() == Some(name)
+    });
+    if uses.is_empty() {
+        anyhow::bail!(
+            "`&{name};` is never referenced; inlining would only delete the declaration \
+             — use `fr delete` if that is the intent"
+        );
+    }
+
+    let mut edits = EditSet::new();
+    for use_site in &uses {
+        // Inside an attribute value the delimiter cannot appear unescaped, and an
+        // entity reference is the only way to write it there.
+        if let Some(attribute) = strict_ancestor_of_kind(*use_site, "AttValue") {
+            let quote = source.as_bytes()[attribute.start_byte()] as char;
+            if value.contains(quote) {
+                anyhow::bail!(
+                    "`{name}` expands to `{value}`, which contains the `{quote}` that \
+                     delimits the attribute value at byte {}; substituting it would end \
+                     the attribute early",
+                    attribute.start_byte()
+                );
+            }
+        }
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                Span::from(*use_site),
+                value.clone(),
+                format!("inline &{name};"),
+            ),
+        );
+    }
+
+    // The doctype an extraction created goes away with its last entity; one that
+    // carries anything else keeps its shape and loses only this line.
+    let mut cursor = doctype.walk();
+    let others = doctype
+        .named_children(&mut cursor)
+        .filter(|c| c.id() != declaration.id() && c.kind() != "Name")
+        .count();
+    let removal = if others == 0 {
+        block_removal_span(&source, Span::from(doctype))
+    } else {
+        block_removal_span(&source, Span::from(declaration))
+    };
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(removal, "", format!("remove <!ENTITY {name}>")),
+    );
+
+    Ok(InlinePlan {
+        name: name.to_string(),
+        value,
+        edits,
+        use_sites: uses.len(),
+    })
+}
+
+/// The text of a node's first `Name` child.
+fn xml_child_name(node: Node<'_>, source: &str) -> Option<String> {
+    let mut cursor = node.walk();
+    let found = node
+        .children(&mut cursor)
+        .find(|c| c.kind() == "Name")
+        .map(|c| Span::from(c).text(source).to_string());
+    found
 }

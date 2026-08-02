@@ -18,6 +18,7 @@ use crate::model::{Confidence, SymbolId};
 use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
+use petgraph::graph::{DiGraph, NodeIndex};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -202,14 +203,25 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
 /// count, so dead recursive code is still found) and the call graph cannot reach it
 /// from any given entry point.
 ///
-/// **The result is a candidate list, not a delete list.** Reachability follows
-/// *resolved* call edges only, and a call the index could not resolve produces no edge
-/// at all. So anything reached exclusively by dynamic dispatch — a trait object or
-/// interface value, a function held in a map or struct field, reflection, a
-/// string-keyed handler table, a name assembled at runtime — is live code that will
-/// appear in this list. The same is true of a symbol used only from a file that failed
-/// to parse. Mutually recursive dead code is the opposite error: the pair reference
-/// each other, so neither is reported. Feed each candidate to [`plan`] before acting.
+/// Two corrections are applied on top of that, because the raw answer is wrong in both
+/// directions:
+///
+/// * A symbol whose name appears in a **string literal** anywhere in the workspace is
+///   left off the list. Reflection, a handler table keyed by name, a route string, a
+///   template — every one of them reaches code through a name no resolver follows, and
+///   the string is the only trace they leave.
+/// * A **cycle** of symbols that reference only each other is reported as dead when no
+///   member is reachable from an entry point and nothing outside the cycle references
+///   any member. Mutual recursion otherwise hides a whole dead component, because every
+///   member does have an incoming reference.
+///
+/// **The result is still a candidate list, not a delete list**, and the remaining gap
+/// is not closable by guessing. Reachability follows *resolved* call edges only, and a
+/// call the index could not resolve produces no edge at all, so code reached only
+/// through a trait object or interface value, a function held in a map or a struct
+/// field, or a name assembled at runtime from pieces is live code with nothing to
+/// distinguish it from dead code. The same is true of a symbol used only from a file
+/// that failed to parse. Feed each candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
     let call_graph = CallGraph::build(index);
     let reachable = call_graph.reachable_from(entrypoints);
@@ -229,14 +241,135 @@ pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
         referenced.insert(id);
     }
 
+    let named_in_a_string = names_in_string_literals(index);
+    let dead_cycles = dead_reference_cycles(index, &reachable);
+
     let mut unused: Vec<SymbolId> = index
         .symbols
         .iter()
-        .filter(|s| !reachable.contains(&s.id) && !referenced.contains(&s.id))
+        .filter(|s| {
+            let orphaned = !reachable.contains(&s.id) && !referenced.contains(&s.id);
+            (orphaned || dead_cycles.contains(&s.id)) && !named_in_a_string.contains(&s.name)
+        })
         .map(|s| s.id)
         .collect();
     unused.sort();
     unused
+}
+
+/// Every identifier-shaped word inside a string literal anywhere in the workspace.
+///
+/// A name that a resolver never sees but a string spells out is the signature of
+/// reflection and of handler tables, and neither leaves anything else behind. Words are
+/// taken both whole and split on `-`, so a CSS `class="btn-primary"` answers for
+/// `btn-primary` and for `btn`. Files that cannot be read or parsed contribute nothing
+/// and are skipped: this widens the unused list rather than narrowing it, and the
+/// caller is already told about parse errors by [`plan`].
+fn names_in_string_literals(index: &Index) -> HashSet<String> {
+    let parsers = Parsers::new();
+    let mut names = HashSet::new();
+
+    for (path, info) in index.files() {
+        let Ok(source) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        let Ok(parsed) = parsers.parse(info.language, &source) else {
+            continue;
+        };
+        for span in spans_of(&parsed, is_string_kind) {
+            for word in span.text(&source).split(|c: char| {
+                !(c.is_alphanumeric() || c == '_' || c == '$' || c == '-')
+            }) {
+                if word.is_empty() {
+                    continue;
+                }
+                names.insert(word.to_string());
+                for part in word.split('-').filter(|p| !p.is_empty()) {
+                    names.insert(part.to_string());
+                }
+            }
+        }
+    }
+    names
+}
+
+/// Members of reference cycles that nothing outside the cycle can reach.
+///
+/// The per-symbol check asks "does anything reference this?", which mutual recursion
+/// always answers yes to. The question a cycle needs is whether anything *outside* it
+/// references any member; if not, and no member is reachable from an entry point, the
+/// component is dead as a whole. Every symbol kind participates, not just callables: a
+/// pair of CSS classes or Terraform locals can reference each other just as happily.
+fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSet<SymbolId> {
+    let mut graph: DiGraph<SymbolId, ()> = DiGraph::new();
+    let mut nodes: HashMap<SymbolId, NodeIndex> = HashMap::new();
+    // Who references each symbol: `None` stands for a reference outside every
+    // definition, which is a use by top-level code and keeps the target alive.
+    let mut incoming: HashMap<SymbolId, HashSet<Option<SymbolId>>> = HashMap::new();
+
+    for reference in &index.references {
+        let Some(target) = reference.target else {
+            continue;
+        };
+        if index.symbol(target).is_none() {
+            continue;
+        }
+        let owner = enclosing_symbol(index, &reference.file, reference.span);
+        if owner == Some(target) {
+            // A recursive call disappears with the definition it sits in.
+            continue;
+        }
+        incoming.entry(target).or_default().insert(owner);
+        if let Some(owner) = owner {
+            let from = *nodes
+                .entry(owner)
+                .or_insert_with(|| graph.add_node(owner));
+            let to = *nodes
+                .entry(target)
+                .or_insert_with(|| graph.add_node(target));
+            graph.add_edge(from, to, ());
+        }
+    }
+
+    let mut dead = HashSet::new();
+    for component in petgraph::algo::tarjan_scc(&graph) {
+        if component.len() < 2 {
+            continue;
+        }
+        let members: HashSet<SymbolId> = component.iter().map(|node| graph[*node]).collect();
+        if members.iter().any(|id| reachable.contains(id)) {
+            continue;
+        }
+        let held_from_outside = members.iter().any(|id| {
+            incoming
+                .get(id)
+                .is_some_and(|from| from.iter().any(|owner| !owner.is_some_and(|o| members.contains(&o))))
+        });
+        if held_from_outside {
+            continue;
+        }
+        dead.extend(members);
+    }
+    dead
+}
+
+/// The innermost definition whose bytes enclose `span`, if any.
+fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> {
+    let info = index.file(file)?;
+    let mut best: Option<(usize, SymbolId)> = None;
+    for id in &info.symbols {
+        let Some(symbol) = index.symbol(*id) else {
+            continue;
+        };
+        if !symbol.full_span.contains(span) {
+            continue;
+        }
+        let width = symbol.full_span.end - symbol.full_span.start;
+        if best.is_none_or(|(widest, _)| width < widest) {
+            best = Some((width, *id));
+        }
+    }
+    best.map(|(_, id)| id)
 }
 
 /// The bytes a delete should actually remove.
@@ -417,16 +550,31 @@ fn textual_occurrences(
     Ok(warnings)
 }
 
+/// Does this node kind hold a string literal?
+fn is_string_kind(kind: &str) -> bool {
+    kind.contains("string") || kind.contains("char_literal")
+}
+
 /// Spans of string literals, comments and Helm template actions.
 fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
     let mut spans: Vec<Span> = parsed.template_actions.clone();
+    spans.extend(spans_of(parsed, |kind| {
+        is_string_kind(kind) || kind.contains("comment")
+    }));
+    spans.sort();
+    spans.dedup();
+    spans
+}
+
+/// Spans of every node whose kind `wanted` accepts, without recursing into a match.
+fn spans_of(parsed: &Parsed, wanted: impl Fn(&str) -> bool) -> Vec<Span> {
+    let mut spans: Vec<Span> = Vec::new();
     let mut cursor = parsed.root().walk();
     let mut recurse = true;
 
     loop {
         let node = cursor.node();
-        let kind = node.kind();
-        if kind.contains("string") || kind.contains("comment") || kind.contains("char_literal") {
+        if wanted(node.kind()) {
             spans.push(Span::from(node));
             recurse = false;
         }

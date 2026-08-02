@@ -26,18 +26,28 @@
 //! - **Markdown** — a section is a heading and everything under it up to the next
 //!   heading of the same or higher level. In-repo links to the anchors that left are
 //!   repointed at the new document.
+//! - **Zig** — a file is a namespace reached through `const other = @import("other.zig")`,
+//!   so a moved declaration is named `other.thing` afterwards. The move writes the
+//!   `@import` where one is missing and qualifies the uses that were bare.
+//! - **Bash** — there is no import that binds a name, only `source`, which splices a
+//!   whole script in. A moved function therefore needs every surviving caller to
+//!   source its new home.
+//! - **YAML / Helm** — a values key is addressed by its path, and the path of a
+//!   top-level key does not mention the file it lives in. Moving one between values
+//!   files changes no reference at all; what it can change is whether the file is
+//!   loaded, which is warned about.
 //!
-//! Everything else refuses: Zig, Bash, HTML, XML, YAML and Helm have no move that can
-//! be made correct from two paths alone.
+//! HTML and XML stay refused: an element has no name that another document imports,
+//! so there is no reference for a move to repoint and no reachability to preserve.
 
 use super::Refusal;
-use crate::edit::{full_line_span, Edit, EditSet};
+use crate::edit::{full_line_span, line_indent, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::{Symbol, SymbolId, SymbolKind};
 use crate::span::{LineIndex, Span};
 use anyhow::{bail, Result};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 /// A move worked out but not applied.
@@ -104,12 +114,18 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         Language::Hcl => move_hcl(index, sym, destination),
         Language::Css | Language::Scss => move_css(index, sym, destination),
         Language::Markdown => move_markdown(index, sym, destination),
-        other => Err(Refusal::Unsupported {
+        Language::Zig => move_zig(index, sym, destination),
+        Language::Bash => move_bash(index, sym, destination),
+        Language::Yaml | Language::Helm => move_values_key(index, sym, destination),
+        // An element is addressed by its position in one document, or by an id that
+        // every other document reaches through a URL rather than an import. There is
+        // no reference a move could repoint and no reachability it could preserve.
+        other @ (Language::Html | Language::Xml) => Err(Refusal::Unsupported {
             operation: "move to file".into(),
             language: format!(
-                "{other} — a moved definition cannot be reached from its old use sites \
-                 in this language, and a move that leaves dangling references is worse \
-                 than no move at all"
+                "{other} — an element has no name that another document imports, so \
+                 moving one between files changes what each document *is* rather than \
+                 where a definition lives"
             ),
         }
         .into()),
@@ -1509,6 +1525,683 @@ fn normalise(path: &Path) -> PathBuf {
 }
 
 // ---------------------------------------------------------------------------
+// Zig: a file is a namespace, reached through `@import`.
+// ---------------------------------------------------------------------------
+
+fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.container.is_some() {
+        bail!(
+            "'{}' is nested inside another declaration; only top-level declarations can \
+             be moved",
+            sym.name
+        );
+    }
+    if let Some(existing) = zig_top_level(index, destination)
+        .into_iter()
+        .find(|s| s.name == sym.name)
+    {
+        return Err(Refusal::NameCollision {
+            existing: existing.name.clone(),
+            file: destination.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    // A `///` doc comment is `//`-prefixed, so the Go widening reads it too.
+    let removal = with_go_doc_comment(&source, whole_lines(&source, sym.full_span));
+    let moved_text = removal.text(&source).to_string();
+
+    let outside: Vec<&crate::model::Reference> = index
+        .references_to(sym.id)
+        .into_iter()
+        .filter(|r| !(r.file == sym.file && removal.contains(r.span)))
+        .collect();
+
+    // Zig's `pub` is what makes a declaration visible through an `@import`. Without
+    // it, everything that names the declaration today stops compiling the moment it
+    // stops sharing a file with them.
+    if !sym.exported {
+        let stranded = outside.iter().filter(|r| r.file != *destination).count();
+        if stranded > 0 {
+            bail!(
+                "'{}' is not `pub`, so only {} can name it; moving it to {} would put it \
+                 out of reach of {} use site(s). Mark it `pub` first.",
+                sym.name,
+                sym.file.display(),
+                destination.display(),
+                stranded
+            );
+        }
+    }
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move {} out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move {} in", sym.name),
+    );
+
+    let mut by_file: BTreeMap<PathBuf, Vec<&crate::model::Reference>> = BTreeMap::new();
+    for reference in &outside {
+        if reference.file == *destination {
+            continue;
+        }
+        by_file
+            .entry(reference.file.clone())
+            .or_default()
+            .push(reference);
+    }
+
+    for (file, references) in &by_file {
+        let text = std::fs::read_to_string(file)?;
+        let parsed = crate::parse::Parsers::new().parse(Language::Zig, &text)?;
+
+        // Whatever this file already calls the destination, or what it would have to
+        // start calling it.
+        let existing = zig_import_binding(index, file, destination);
+        let namespace = match &existing {
+            Some(local) => local.clone(),
+            None => {
+                let Some(path) = zig_import_path(file, destination) else {
+                    return Err(Refusal::Unsupported {
+                        operation: "move to file".into(),
+                        language: format!(
+                            "zig — {} would have to reach {} through a relative path that \
+                             climbs above its own directory. Zig refuses an `@import` that \
+                             leaves the module root, and where that root is cannot be read \
+                             off the two paths, so no import can be written for it",
+                            file.display(),
+                            destination.display()
+                        ),
+                    }
+                    .into());
+                };
+                let local = zig_namespace_name(destination)?;
+                if let Some(clash) = zig_top_level(index, file)
+                    .into_iter()
+                    .find(|s| s.name == local)
+                {
+                    return Err(Refusal::NameCollision {
+                        existing: clash.name.clone(),
+                        file: file.clone(),
+                    }
+                    .into());
+                }
+                let at = zig_import_insertion_point(&text);
+                plan.edits.add(
+                    file.clone(),
+                    Edit::new(
+                        Span::new(at, at),
+                        format!("const {local} = @import(\"{path}\");\n"),
+                        format!("import {} from its new home", sym.name),
+                    ),
+                );
+                plan.imports_added.push(file.clone());
+                local
+            }
+        };
+
+        let mut repointed: Vec<Span> = Vec::new();
+        for reference in references {
+            match zig_qualifier(&parsed, reference.span) {
+                // `other.thing` — the namespace it was reached through has to change.
+                Some(object) => {
+                    let qualifier = Span::from(object).text(&text);
+                    let names_source =
+                        zig_import_binding_target(index, file, qualifier).as_deref() == Some(&*sym.file);
+                    if !names_source {
+                        plan.warnings.push(format!(
+                            "{}: `{qualifier}.{}` is not reached through an `@import` of {}, \
+                             so it was left alone",
+                            location(file, reference.span.start),
+                            sym.name,
+                            sym.file.display()
+                        ));
+                        continue;
+                    }
+                    plan.edits.add(
+                        file.clone(),
+                        Edit::new(
+                            Span::from(object),
+                            namespace.clone(),
+                            format!("{} lives in {} now", sym.name, destination.display()),
+                        ),
+                    );
+                    repointed.push(Span::from(object));
+                }
+                // A bare `thing` only resolves inside the file that declares it.
+                None if *file == sym.file => plan.edits.add(
+                    file.clone(),
+                    Edit::new(
+                        Span::new(reference.span.start, reference.span.start),
+                        format!("{namespace}."),
+                        format!("{} lives in {} now", sym.name, destination.display()),
+                    ),
+                ),
+                None => plan.warnings.push(format!(
+                    "{}: `{}` is named without a namespace in a file that does not declare \
+                     it, which Zig cannot resolve either way; it was left alone",
+                    location(file, reference.span.start),
+                    sym.name
+                )),
+            }
+        }
+
+        // A namespace kept only for the declaration that left is dead weight, and Zig
+        // does not complain about an unused container-level const the way it does
+        // about an unused local, so nothing else would say it.
+        if let Some(old) = zig_import_binding(index, file, &sym.file) {
+            let still_used = index.file(file).is_some_and(|info| {
+                info.references
+                    .iter()
+                    .map(|i| &index.references[*i])
+                    .any(|r| r.name == old && !repointed.contains(&r.span))
+            });
+            if !still_used {
+                plan.warnings.push(format!(
+                    "{} imports {} as `{old}` only for `{}`; that import may now be unused",
+                    file.display(),
+                    sym.file.display(),
+                    sym.name
+                ));
+            }
+        }
+    }
+
+    warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+    Ok(plan)
+}
+
+/// Top-level declarations of a Zig file.
+fn zig_top_level<'a>(index: &'a Index, file: &Path) -> Vec<&'a Symbol> {
+    let Some(info) = index.file(file) else {
+        return Vec::new();
+    };
+    info.symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.container.is_none())
+        .collect()
+}
+
+/// The local name `file` binds the `@import` of `target` to, if it has one.
+fn zig_import_binding(index: &Index, file: &Path, target: &Path) -> Option<String> {
+    let info = index.file(file)?;
+    info.imports.iter().find_map(|import| {
+        (zig_import_file(file, &import.path).as_deref() == Some(target))
+            .then(|| zig_import_local(import))
+            .flatten()
+    })
+}
+
+/// The file `local` names in `file`, if `local` binds an `@import` of a Zig source.
+fn zig_import_binding_target(index: &Index, file: &Path, local: &str) -> Option<PathBuf> {
+    let info = index.file(file)?;
+    info.imports.iter().find_map(|import| {
+        (zig_import_local(import).as_deref() == Some(local))
+            .then(|| zig_import_file(file, &import.path))
+            .flatten()
+    })
+}
+
+fn zig_import_local(import: &crate::model::Import) -> Option<String> {
+    import
+        .names
+        .first()
+        .map(|n| n.local.clone())
+        .or_else(|| import.alias.clone())
+}
+
+/// The workspace file an `@import` path names, or `None` for a package such as `std`.
+fn zig_import_file(from: &Path, path: &str) -> Option<PathBuf> {
+    if !path.ends_with(".zig") {
+        return None;
+    }
+    Some(normalise(&from.parent()?.join(path)))
+}
+
+/// The path `from` would have to write to `@import` `to`.
+///
+/// `None` when the path would have to climb above `from`'s own directory: Zig rejects
+/// an `@import` that leaves the module root, and nothing in two file paths says where
+/// that root is.
+fn zig_import_path(from: &Path, to: &Path) -> Option<String> {
+    let rest = to.strip_prefix(from.parent()?).ok()?;
+    let mut parts = Vec::new();
+    for component in rest.components() {
+        parts.push(component.as_os_str().to_str()?.to_string());
+    }
+    (!parts.is_empty()).then(|| parts.join("/"))
+}
+
+/// The identifier a new `@import` of `destination` is bound to.
+fn zig_namespace_name(destination: &Path) -> Result<String> {
+    let stem = destination
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| anyhow::anyhow!("{} has no file name", destination.display()))?;
+    let mut out = String::with_capacity(stem.len());
+    for ch in stem.chars() {
+        out.push(if ch.is_ascii_alphanumeric() || ch == '_' {
+            ch
+        } else {
+            '_'
+        });
+    }
+    if out.starts_with(|c: char| c.is_ascii_digit()) {
+        out.insert(0, '_');
+    }
+    if out.is_empty() {
+        bail!(
+            "{} has no file name a Zig identifier can be derived from",
+            destination.display()
+        );
+    }
+    Ok(out)
+}
+
+/// The `object` of `object.member` when `span` is the member, or `None` when the use
+/// is a bare identifier.
+fn zig_qualifier<'a>(
+    parsed: &'a crate::parse::Parsed,
+    span: Span,
+) -> Option<tree_sitter::Node<'a>> {
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)?;
+    let parent = node.parent()?;
+    if parent.kind() != "field_expression" {
+        return None;
+    }
+    if parent.child_by_field_name("member").map(Span::from) != Some(Span::from(node)) {
+        return None;
+    }
+    parent.child_by_field_name("object")
+}
+
+/// Where a new `@import` goes: after the file header and any `@import`s already there.
+fn zig_import_insertion_point(source: &str) -> usize {
+    let mut offset = 0;
+    let mut point = 0;
+    for line in source.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        let is_import = (trimmed.starts_with("const ") || trimmed.starts_with("pub const "))
+            && trimmed.contains("@import(");
+        if trimmed.starts_with("//") || is_import {
+            point = offset + line.len();
+        } else if !trimmed.is_empty() {
+            break;
+        }
+        offset += line.len();
+    }
+    point
+}
+
+// ---------------------------------------------------------------------------
+// Bash: there is no import, only `source`.
+// ---------------------------------------------------------------------------
+
+fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    use super::signature::{shell_reaches, shell_source_graph};
+
+    if sym.kind != SymbolKind::Function {
+        bail!(
+            "'{}' is a {}; only a function can be moved between scripts. A variable's \
+             value depends on when its assignment ran, so moving one changes what it \
+             holds rather than where it lives",
+            sym.name,
+            sym.kind.as_str()
+        );
+    }
+    if sym.container.is_some() {
+        bail!(
+            "'{}' is defined inside another function or subshell; only a top-level \
+             function can be moved",
+            sym.name
+        );
+    }
+    if let Some(existing) = index
+        .file(destination)
+        .into_iter()
+        .flat_map(|info| info.symbols.iter())
+        .filter_map(|id| index.symbol(*id))
+        .find(|s| s.name == sym.name && s.kind == SymbolKind::Function)
+    {
+        return Err(Refusal::NameCollision {
+            existing: existing.name.clone(),
+            file: destination.to_path_buf(),
+        }
+        .into());
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let removal = with_shell_comment(&source, whole_lines(&source, sym.full_span));
+    let moved_text = removal.text(&source).to_string();
+
+    let (mut sources, opaque) = shell_source_graph(index);
+
+    // Everything that still runs the name after the definition has left.
+    let mut callers: BTreeMap<PathBuf, usize> = BTreeMap::new();
+    for reference in &index.references {
+        if reference.language != Language::Bash
+            || reference.kind != crate::model::ReferenceKind::Call
+            || reference.name != sym.name
+            || reference.file == *destination
+        {
+            continue;
+        }
+        if reference.file == sym.file && removal.contains(reference.span) {
+            continue;
+        }
+        *callers.entry(reference.file.clone()).or_default() += 1;
+    }
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move {} out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move {} in", sym.name),
+    );
+
+    let mut sourced_anywhere = false;
+    for (file, uses) in &callers {
+        // A caller that computes what it sources could already have the function in
+        // scope, or not; nothing in the text says which.
+        if opaque.contains(file) {
+            return Err(Refusal::TooWeak {
+                confidence: crate::model::Confidence::NameOnly,
+                detail: format!(
+                    "{} runs `{}` and sources a path that is not a literal, so what is \
+                     already in its scope cannot be known",
+                    file.display(),
+                    sym.name
+                ),
+            }
+            .into());
+        }
+        // A caller that never sourced the defining file was never running this
+        // function, so the move does not break it.
+        if *file != sym.file && !shell_reaches(&sources, file, &sym.file) {
+            plan.warnings.push(format!(
+                "{} runs `{}` {uses} time(s) but never sources {}, so it was already \
+                 calling something else and was left alone",
+                file.display(),
+                sym.name,
+                sym.file.display()
+            ));
+            continue;
+        }
+        if shell_reaches(&sources, file, destination) {
+            continue;
+        }
+
+        let Some(dir) = file.parent() else {
+            bail!("{} is not inside a directory", file.display());
+        };
+        let Some(path) = shell_source_path(dir, destination) else {
+            bail!(
+                "cannot express {} relative to {}",
+                destination.display(),
+                dir.display()
+            );
+        };
+        let text = std::fs::read_to_string(file).unwrap_or_default();
+        let at = shell_prelude_end(&text);
+        plan.edits.add(
+            file.clone(),
+            Edit::new(
+                Span::new(at, at),
+                format!("source \"{path}\"\n"),
+                format!("{} lives in {} now", sym.name, destination.display()),
+            ),
+        );
+        plan.imports_added.push(file.clone());
+        // A file that sources the destination now puts it in scope for whatever
+        // sources *it*, so a later caller needs no second `source`.
+        sources
+            .entry(file.clone())
+            .or_default()
+            .push(normalise(destination));
+        sourced_anywhere = true;
+    }
+
+    if sourced_anywhere {
+        plan.warnings.push(format!(
+            "`source` resolves a relative path against the working directory, not the \
+             script's own location, so the added lines only work when the scripts are run \
+             from the right directory. Consider `source \"$(dirname \"${{BASH_SOURCE[0]}}\")/{}\"`.",
+            destination
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("lib.sh")
+        ));
+    }
+
+    Ok(plan)
+}
+
+/// Widen a removal to swallow the `#` comment block written directly above.
+fn with_shell_comment(source: &str, span: Span) -> Span {
+    let mut start = span.start;
+    while start > 0 {
+        let previous = full_line_span(source, start - 1);
+        let trimmed = previous.text(source).trim_start();
+        // The shebang belongs to the file, never to the definition below it.
+        if !trimmed.starts_with('#') || trimmed.starts_with("#!") {
+            break;
+        }
+        start = previous.start;
+    }
+    Span::new(start, span.end)
+}
+
+/// The path a `source` in `from_dir` has to write to reach `to`.
+///
+/// A bare `source lib.sh` searches `$PATH`, so a same-directory target still needs an
+/// explicit `./`.
+fn shell_source_path(from_dir: &Path, to: &Path) -> Option<String> {
+    let link = relative_link(from_dir, to)?;
+    Some(if link.starts_with('.') {
+        link
+    } else {
+        format!("./{link}")
+    })
+}
+
+/// Where a `source` line goes: after the shebang, the header comments and whatever the
+/// script already sources.
+fn shell_prelude_end(source: &str) -> usize {
+    let mut offset = 0;
+    let mut point = 0;
+    for line in source.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        let is_prelude = trimmed.starts_with('#')
+            || trimmed.starts_with("set ")
+            || trimmed.starts_with("source ")
+            || trimmed.starts_with(". ");
+        if is_prelude {
+            point = offset + line.len();
+        } else if !trimmed.is_empty() {
+            break;
+        }
+        offset += line.len();
+    }
+    point
+}
+
+// ---------------------------------------------------------------------------
+// YAML and Helm: a values key is addressed by its path, which names no file.
+// ---------------------------------------------------------------------------
+
+fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.kind != SymbolKind::Key {
+        bail!(
+            "'{}' is a {}; only a mapping key and the subtree under it can move between \
+             values files. An anchor is resolved within one document and does not \
+             survive leaving it",
+            sym.name,
+            sym.kind.as_str()
+        );
+    }
+    if let Some(container) = sym.container.and_then(|id| index.symbol(id)) {
+        bail!(
+            "'{}' is nested under `{}`, so its address is the whole path down to it. \
+             Appending it to the top level of {} would change that path and every \
+             reference with it; only a top-level key can be moved",
+            sym.name,
+            container.name,
+            destination.display()
+        );
+    }
+
+    let source = std::fs::read_to_string(&sym.file)?;
+    let indent = line_indent(&source, sym.full_span.start);
+    if !indent.is_empty() {
+        bail!(
+            "'{}' at {} is indented by {} column(s) although nothing encloses it, so what \
+             mapping it belongs to cannot be told from the text; refusing to guess an \
+             indentation for it in {}",
+            sym.name,
+            location(&sym.file, sym.full_span.start),
+            indent.len(),
+            destination.display()
+        );
+    }
+
+    // Appending to a file that holds several documents would land the key in the last
+    // one, which is a choice this tool has no way to make.
+    for file in [&sym.file, &destination.to_path_buf()] {
+        let text = std::fs::read_to_string(file).unwrap_or_default();
+        let language = crate::lang::detect(file).unwrap_or(sym.language);
+        if yaml_document_count(language, &text)? > 1 {
+            bail!(
+                "{} holds more than one document; which one a top-level key belongs to is \
+                 not decidable from the key alone",
+                file.display()
+            );
+        }
+    }
+
+    if let Some(existing) = index
+        .file(destination)
+        .into_iter()
+        .flat_map(|info| info.symbols.iter())
+        .filter_map(|id| index.symbol(*id))
+        .find(|s| s.container.is_none() && s.kind == SymbolKind::Key && s.name == sym.name)
+    {
+        return Err(Refusal::NameCollision {
+            existing: existing.name.clone(),
+            file: destination.to_path_buf(),
+        }
+        .into());
+    }
+
+    // The destination's own top level must really be at column zero, or a key appended
+    // there joins nothing.
+    let destination_source = std::fs::read_to_string(destination).unwrap_or_default();
+    for key in index
+        .file(destination)
+        .into_iter()
+        .flat_map(|info| info.symbols.iter())
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.container.is_none() && s.kind == SymbolKind::Key)
+    {
+        let existing_indent = line_indent(&destination_source, key.full_span.start);
+        if !existing_indent.is_empty() {
+            bail!(
+                "the top-level keys of {} are indented by {} column(s), so a key appended \
+                 at column zero would not join the same mapping",
+                destination.display(),
+                existing_indent.len()
+            );
+        }
+    }
+
+    let removal = with_yaml_comment(&source, whole_lines(&source, sym.full_span));
+    let moved_text = removal.text(&source).to_string();
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, "", format!("move `{}` out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        &moved_text,
+        format!("move `{}` in", sym.name),
+    );
+
+    // Nothing to repoint: `.Values.<key>` names a path, and a top-level key's path is
+    // the same in every values file. What changes is whether the file is read at all.
+    let file_name = sym
+        .file
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
+    if file_name.eq_ignore_ascii_case("values.yaml") {
+        plan.warnings.push(format!(
+            "`helm install` reads only values.yaml by default, so `{}` will be unset \
+             unless {} is passed with `-f`",
+            sym.name,
+            destination.display()
+        ));
+    }
+    if sym.file.parent() != destination.parent() {
+        plan.warnings.push(format!(
+            "{} is not in the same directory as {}; check that whatever loads the values \
+             still finds it",
+            destination.display(),
+            sym.file.display()
+        ));
+    }
+
+    Ok(plan)
+}
+
+/// How many documents a YAML file holds.
+fn yaml_document_count(language: Language, source: &str) -> Result<usize> {
+    if source.trim().is_empty() {
+        return Ok(0);
+    }
+    let parsed = crate::parse::Parsers::new().parse(language, source)?;
+    let root = parsed.root();
+    let mut cursor = root.walk();
+    let count = root
+        .named_children(&mut cursor)
+        .filter(|c| c.kind() == "document")
+        .count();
+    Ok(count)
+}
+
+/// Widen a removal to swallow the `#` comment block written directly above the key.
+///
+/// A comment block that opens the file describes the file, not the first key in it, so
+/// it stays behind.
+fn with_yaml_comment(source: &str, span: Span) -> Span {
+    let mut start = span.start;
+    while start > 0 {
+        let previous = full_line_span(source, start - 1);
+        if !previous.text(source).trim_start().starts_with('#') || previous.start == 0 {
+            break;
+        }
+        start = previous.start;
+    }
+    Span::new(start, span.end)
+}
+
+// ---------------------------------------------------------------------------
 // Shared machinery.
 // ---------------------------------------------------------------------------
 
@@ -1677,7 +2370,27 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
                 matches!(s.kind, SymbolKind::Selector | SymbolKind::ElementId)
             }
             Language::Markdown => s.kind == SymbolKind::Heading,
-            _ => false,
+            Language::Zig => {
+                s.container.is_none()
+                    && matches!(
+                        s.kind,
+                        SymbolKind::Function
+                            | SymbolKind::Struct
+                            | SymbolKind::Enum
+                            | SymbolKind::TypeAlias
+                            | SymbolKind::Constant
+                            | SymbolKind::Variable
+                    )
+            }
+            // A variable's value depends on when its assignment ran, so only a
+            // function is a definition a move can carry.
+            Language::Bash => s.container.is_none() && s.kind == SymbolKind::Function,
+            // A nested key's path is its address; only a top-level key keeps the same
+            // path in another file.
+            Language::Yaml | Language::Helm => {
+                s.container.is_none() && s.kind == SymbolKind::Key
+            }
+            Language::Html | Language::Xml => false,
         })
         .map(|s| s.id)
         .collect()
@@ -1766,9 +2479,15 @@ mod tests {
 
     #[test]
     fn refuses_languages_with_no_derivable_reachability() {
-        let (tmp, index) = workspace(&[("a.zig", "fn thing() void {}\n"), ("b.zig", "\n")]);
-        let id = index.find_symbols("thing", None)[0].id;
-        let err = to_file(&index, id, &tmp.path().join("b.zig")).unwrap_err();
+        // An element id is not a name another document imports, so there is nothing a
+        // move could repoint and no reachability it could preserve.
+        let (tmp, index) = workspace(&[
+            ("a.html", "<div id=\"thing\">x</div>\n"),
+            ("b.html", "<p>y</p>\n"),
+        ]);
+        let found = index.find_symbols("thing", None);
+        assert!(!found.is_empty(), "the id must be extracted to be refused");
+        let err = to_file(&index, found[0].id, &tmp.path().join("b.html")).unwrap_err();
         assert!(
             err.downcast_ref::<Refusal>()
                 .is_some_and(|r| matches!(r, Refusal::Unsupported { .. })),

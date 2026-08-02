@@ -184,7 +184,7 @@ enum Command {
         /// The flag's name.
         flag: String,
         /// The value to assume it always had.
-        #[arg(long, default_value = "true")]
+        #[arg(long, action = clap::ArgAction::Set, default_value_t = true)]
         value: bool,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -777,6 +777,18 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: bool, write: bool) -> Result<()
                 round.description,
                 round.files_touched
             );
+        }
+        println!();
+    }
+
+    // A partial cascade is still useful, but only if it says what it left undone.
+    if !plan.unfinished.is_empty() && !cli.json {
+        println!("Left undone:");
+        for item in plan.unfinished.iter().take(20) {
+            println!("  {item}");
+        }
+        if plan.unfinished.len() > 20 {
+            println!("  … and {} more", plan.unfinished.len() - 20);
         }
         println!();
     }

@@ -172,8 +172,9 @@ fn rust_refuses_when_a_parameter_type_was_never_written() {
 
 #[test]
 fn refuses_unsupported_languages() {
-    let (tmp, index) = workspace(&[("a.sh", "main() {\n  echo hi\n}\n")]);
-    let path = tmp.path().join("a.sh");
+    // Bash grew extract-function; HTML has nothing callable to extract into.
+    let (tmp, index) = workspace(&[("page.html", "<div><p>hi</p></div>\n")]);
+    let path = tmp.path().join("page.html");
     let err = extract::function(&index, &path, Span::new(0, 5), "f").unwrap_err();
     assert!(
         err.downcast_ref::<fun_refactor::refactor::Refusal>()

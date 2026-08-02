@@ -66,3 +66,13 @@
   (#match? @reference.identifier "^[^:]+:")
   (#not-match? @reference.identifier "^xmlns:")
   (#not-match? @reference.identifier "^xml:"))
+
+; ------------------------------------------------------------ DTD entities
+; An internal-subset entity is XML's only binding form: `<!ENTITY brand "Acme">`
+; declares a name that `&brand;` substitutes. Capturing both puts entities in the
+; index, so rename and inline reach them like any other symbol.
+(GEDecl
+  (Name) @name) @definition.constant
+
+(EntityRef
+  (Name) @reference.identifier)

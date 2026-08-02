@@ -29,14 +29,17 @@
 //! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`
 //!   — outside the code entirely ([`StopReason::ExternalInput`]);
 //! - a Helm value read inside a `{{ ... }}` action is masked before parsing
-//!   (`src/parse.rs`) and its use is decided by the template engine at render time
-//!   ([`StopReason::RenderDependent`]);
+//!   (`src/parse.rs`), so the action is read back by [`crate::helm`] rather than by
+//!   the YAML queries: the `.Values` paths it names are resolved, and what remains
+//!   for the template engine — which branch renders, what the release supplies —
+//!   is reported as [`StopReason::RenderDependent`] and [`StopReason::Conditional`];
 //! - a resource attribute is computed by a provider at apply time
 //!   ([`StopReason::ComputedAtApply`]);
 //! - competing sources whose relative order is not visible in the workspace — two
 //!   `-f` files, two `@layer`s, two stylesheets — are all listed and the winner is
 //!   left undecided ([`StopReason::PrecedenceUndetermined`]).
 
+use crate::helm;
 use crate::index::Index;
 use crate::lang::{Language, LanguageClass};
 use crate::model::{Confidence, Reference, ReferenceKind, Symbol, SymbolId, SymbolKind};
@@ -77,6 +80,8 @@ pub enum EdgeKind {
     ModuleOutput,
     /// A `{{ ... }}` template action: the link is textual, the value is render-time.
     TemplateAction,
+    /// A `define`d template body, or a site that `include`s one.
+    NamedTemplate,
     /// A CSS `var()` reference.
     VarFunction,
     /// A use site (forward direction).
@@ -93,6 +98,7 @@ impl EdgeKind {
             EdgeKind::Expansion => "expansion",
             EdgeKind::ModuleOutput => "module-output",
             EdgeKind::TemplateAction => "template-action",
+            EdgeKind::NamedTemplate => "named-template",
             EdgeKind::VarFunction => "var()",
             EdgeKind::Use => "use",
         }
@@ -120,6 +126,9 @@ pub enum StopReason {
     /// The value is decided inside a `{{ ... }}` template action, which is masked
     /// before parsing and evaluated by the template engine, not by us.
     RenderDependent(String),
+    /// Something renders only when a template conditional holds. The condition is
+    /// named, so this says *when* rather than merely *maybe*.
+    Conditional { what: String, condition: String },
     /// A provider computes this at apply time; no configuration holds it.
     ComputedAtApply(String),
     /// Several sources compete and the workspace does not show which wins.
@@ -153,6 +162,10 @@ impl std::fmt::Display for StopReason {
             StopReason::RenderDependent(what) => write!(
                 f,
                 "render-dependent: {what} is decided inside a template action, which is masked before parsing and evaluated at render time"
+            ),
+            StopReason::Conditional { what, condition } => write!(
+                f,
+                "conditional: {what} renders only under `{condition}`, which the values are not known well enough to decide here"
             ),
             StopReason::ComputedAtApply(what) => write!(
                 f,
@@ -247,7 +260,14 @@ pub struct Competition {
     pub subject: String,
     /// The precedence model applied, stated in full.
     pub model: String,
-    /// False when something outside the workspace could still change the answer.
+    /// False when the workspace does not show which of *these* sources wins.
+    ///
+    /// A channel outside the workspace that could pre-empt every source listed —
+    /// `--set`, `-var` — is a [`StopReason::ExternalInput`] stop, not an undecided
+    /// competition: it replaces the answer rather than reordering the candidates.
+    /// A channel that ranks *between* two listed sources does make the competition
+    /// undecided, which is why Terraform's `TF_VAR_*` leaves one undecided and
+    /// Helm's `-f`, which outranks every values file in the chart, does not.
     pub decided: bool,
     /// Sorted strongest first.
     pub sources: Vec<CompetingSource>,
@@ -407,6 +427,9 @@ struct Ctx<'a> {
     out: Provenance,
     /// Symbols already expanded, so cyclic configuration terminates.
     seen: HashSet<SymbolId>,
+    /// Named Helm templates already followed, so a `define` that includes itself
+    /// (directly or through another) terminates.
+    included: HashSet<String>,
     sources: HashMap<PathBuf, String>,
 }
 
@@ -423,6 +446,7 @@ impl<'a> Ctx<'a> {
                 stops: Vec::new(),
             },
             seen: HashSet::new(),
+            included: HashSet::new(),
             sources: HashMap::new(),
         }
     }
@@ -709,6 +733,8 @@ impl Ctx<'_> {
                 subject: format!("input variable var.{}", sym.name),
                 model: "terraform: default < TF_VAR_* < terraform.tfvars < *.auto.tfvars < -var/-var-file"
                     .to_string(),
+                // `TF_VAR_*` ranks *between* the sources listed here, so it can
+                // change which of them supplies the value, not merely replace it.
                 decided: false,
                 sources: competing,
             });
@@ -1340,6 +1366,11 @@ fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
 
 // --------------------------------------------------------------- YAML / Helm
 
+/// Rank of a `values-*.yaml` file beside a chart: above every chart values file,
+/// because `-f` outranks all of them, and far enough above to leave room for any
+/// depth of chart nesting below it.
+const USER_SUPPLIED: u32 = 100;
+
 /// A candidate source for one Helm values key.
 struct ValuesSource {
     rank: u32,
@@ -1424,63 +1455,218 @@ impl Ctx<'_> {
         Ok(())
     }
 
-    /// If this key's value is a `{{ ... }}` action, report it as render-dependent
-    /// and follow any `.Values.*` it names — textually, because the action's bytes
-    /// are masked out before parsing.
+    /// What a Helm template says about one key: the actions that supply its value,
+    /// and the conditionals that decide whether the key renders at all.
+    ///
+    /// Both live inside `{{ ... }}` bytes that are masked before the YAML parse, so
+    /// neither is visible to the index; [`crate::helm`] reads them back.
     fn helm_template_value(&mut self, sym: &Symbol, depth: usize) -> Result<bool> {
         if sym.language != Language::Helm {
             return Ok(false);
         }
         let source = self.source(&sym.file)?;
         let parsed = Parsers::new().parse(Language::Helm, &source)?;
+        let template = helm::Template::of(&source, &parsed);
+
+        // The key is written unconditionally in the masked tree, but a `{{- if }}`
+        // wrapping it decides whether the rendered manifest holds it at all.
+        for guard in template.conditions_at(sym.name_span.start) {
+            self.stop(
+                depth,
+                StopReason::Conditional {
+                    what: format!("key '{}'", sym.name),
+                    condition: guard.describe(),
+                },
+            );
+            // The condition is itself an action reading values, so "when does this
+            // key exist" gets an answer rather than only a name.
+            let opener = template.regions[guard.region].open;
+            self.helm_action(&sym.file, &template, opener, depth + 1)?;
+        }
+
         let lines = LineIndex::new(&source);
         let line = lines.line_col(sym.name_span.start, &source).line;
         let Some(line_span) = lines.line_span(line) else {
             return Ok(false);
         };
-        let actions: Vec<Span> = parsed
-            .template_actions
-            .iter()
-            .copied()
-            .filter(|a| a.start >= sym.name_span.end && a.start < line_span.end)
+        // A key's value is what follows it on its own line.
+        let value_span = Span::new(sym.name_span.end, line_span.end.max(sym.name_span.end));
+        let actions: Vec<usize> = template
+            .actions_in(value_span)
+            .into_iter()
+            .map(|(index, _)| index)
             .collect();
         if actions.is_empty() {
             return Ok(false);
         }
 
         for action in actions {
-            let text = action.text(&source).to_string();
-            // The link out of a masked action is textual, so it never claims more
-            // than a name match.
+            self.helm_action(&sym.file, &template, action, depth + 1)?;
+        }
+        Ok(true)
+    }
+
+    /// Record one template action: what decides it, and where the values it names
+    /// come from.
+    fn helm_action(
+        &mut self,
+        file: &Path,
+        template: &helm::Template,
+        index: usize,
+        depth: usize,
+    ) -> Result<()> {
+        let action = &template.actions[index];
+        let text = action.text.clone();
+        let span = action.span;
+
+        // The link out of a masked action is name-keyed, so it never claims more
+        // than a name match.
+        let hop = Hop {
+            confidence: Confidence::NameOnly,
+            ..self.hop(None, EdgeKind::TemplateAction, text.clone(), file, span, depth)?
+        };
+        self.push_hop(hop);
+        self.stop(depth, StopReason::RenderDependent(text.clone()));
+
+        for guard in template.conditions_at(span.start) {
+            self.stop(
+                depth,
+                StopReason::Conditional {
+                    what: text.clone(),
+                    condition: guard.describe(),
+                },
+            );
+        }
+        for problem in &action.problems {
+            self.stop(
+                depth,
+                StopReason::Unresolved(format!("{text}: {problem}")),
+            );
+        }
+
+        for path in template.values_paths_of(index) {
+            self.helm_values_key(file, &path, depth + 1)?;
+        }
+        for builtin in action.builtins() {
+            self.stop(
+                depth + 1,
+                StopReason::ExternalInput {
+                    name: format!(".{}", builtin.as_str()),
+                    required: true,
+                    sources: "Helm's built-in objects, supplied at render time".to_string(),
+                },
+            );
+        }
+        for name in action.invokes.clone() {
+            self.helm_named_template(file, &name, depth + 1)?;
+        }
+        Ok(())
+    }
+
+    /// Follow `include "name"` into the `define "name"` that supplies its text.
+    ///
+    /// Helm's named templates share one namespace across a chart and its subcharts,
+    /// so the search covers the whole chart tree rather than one directory.
+    fn helm_named_template(&mut self, from: &Path, name: &str, depth: usize) -> Result<()> {
+        if self.over_depth(depth) {
+            return Ok(());
+        }
+        if !self.included.insert(name.to_string()) {
+            return Ok(());
+        }
+        let defines = self.helm_defines(from, name)?;
+        if defines.is_empty() {
+            self.stop(
+                depth,
+                StopReason::Unresolved(format!(
+                    "template {name:?} is included here but no `define` in the chart declares it"
+                )),
+            );
+            return Ok(());
+        }
+        for (file, body) in defines {
             let hop = Hop {
                 confidence: Confidence::NameOnly,
                 ..self.hop(
                     None,
-                    EdgeKind::TemplateAction,
-                    text.clone(),
-                    &sym.file,
-                    action,
-                    depth + 1,
+                    EdgeKind::NamedTemplate,
+                    format!("define {name:?}"),
+                    &file,
+                    body,
+                    depth,
                 )?
             };
             self.push_hop(hop);
-            self.stop(depth + 1, StopReason::RenderDependent(text.clone()));
 
-            for path in values_paths_in(&text) {
-                self.helm_values_key(&sym.file, &path, depth + 2)?;
-            }
-            for builtin in builtins_in(&text) {
-                self.stop(
-                    depth + 2,
-                    StopReason::ExternalInput {
-                        name: builtin,
-                        required: true,
-                        sources: "Helm's built-in objects, supplied at render time".to_string(),
-                    },
-                );
+            let source = self.source(&file)?;
+            let parsed = Parsers::new().parse(Language::Helm, &source)?;
+            let template = helm::Template::of(&source, &parsed);
+            let inside: Vec<usize> = template
+                .actions_in(body)
+                .into_iter()
+                .map(|(index, _)| index)
+                .collect();
+            for index in inside {
+                self.helm_action(&file, &template, index, depth + 1)?;
             }
         }
-        Ok(true)
+        Ok(())
+    }
+
+    /// Every `define "name"` in the chart tree holding `from`, with its body span.
+    fn helm_defines(&mut self, from: &Path, name: &str) -> Result<Vec<(PathBuf, Span)>> {
+        let mut out = Vec::new();
+        for file in self.helm_chart_files(from) {
+            let source = self.source(&file)?;
+            let parsed = Parsers::new().parse(Language::Helm, &source)?;
+            let template = helm::Template::of(&source, &parsed);
+            for define in template.defines.iter().filter(|d| d.name == name) {
+                out.push((file.clone(), define.body));
+            }
+        }
+        Ok(out)
+    }
+
+    /// Every Helm file of the outermost chart enclosing `from`, subcharts included.
+    fn helm_chart_files(&self, from: &Path) -> Vec<PathBuf> {
+        let Some(chart) = chart_root(from) else {
+            return Vec::new();
+        };
+        let root = chart_levels(&chart, &[])
+            .pop()
+            .map(|(dir, _)| dir)
+            .unwrap_or(chart);
+        self.index
+            .files()
+            .filter(|(path, info)| info.language == Language::Helm && path.starts_with(&root))
+            .map(|(path, _)| path.clone())
+            .collect()
+    }
+
+    /// Every action in the chart that includes one named template.
+    fn helm_include_sites(&mut self, from: &Path, name: &str, depth: usize) -> Result<usize> {
+        let mut sites = 0;
+        for file in self.helm_chart_files(from) {
+            let source = self.source(&file)?;
+            let parsed = Parsers::new().parse(Language::Helm, &source)?;
+            let template = helm::Template::of(&source, &parsed);
+            let calls: Vec<(String, Span)> = template
+                .invocations_of(name)
+                .map(|call| {
+                    let action = &template.actions[call.action];
+                    (action.text.clone(), action.span)
+                })
+                .collect();
+            for (text, span) in calls {
+                sites += 1;
+                let hop = Hop {
+                    confidence: Confidence::NameOnly,
+                    ..self.hop(None, EdgeKind::NamedTemplate, text, &file, span, depth)?
+                };
+                self.push_hop(hop);
+            }
+        }
+        Ok(sites)
     }
 
     /// Resolve a dotted `.Values` path against the chart's values files.
@@ -1544,7 +1730,7 @@ impl Ctx<'_> {
                 };
                 let is_defaults = file_name(&file) == "values.yaml";
                 candidates.push(ValuesSource {
-                    rank: if is_defaults { rank as u32 } else { 100 },
+                    rank: if is_defaults { rank as u32 } else { USER_SUPPLIED },
                     label: if is_defaults {
                         if rank == 0 {
                             format!("chart defaults ({})", file_name(dir))
@@ -1559,7 +1745,7 @@ impl Ctx<'_> {
                 });
             }
         }
-        if candidates.len() < 2 && !candidates.iter().any(|c| c.rank == 100) {
+        if candidates.len() < 2 && !candidates.iter().any(|c| c.rank == USER_SUPPLIED) {
             // A single source is not a competition; the key stands as written.
             self.stop(
                 depth,
@@ -1581,6 +1767,17 @@ impl Ctx<'_> {
         let contested = candidates.iter().filter(|c| c.rank == top_rank).count() > 1;
         let winner = candidates.len() - 1;
 
+        // A `values-*.yaml` beside a chart is a file *someone may pass* with `-f`.
+        // Whether they do, and in which order, is the command line — the one thing a
+        // workspace scan cannot see. Competitions between chart values files have no
+        // such gap: their order is fixed by the chart hierarchy.
+        let user_supplied: Vec<String> = candidates
+            .iter()
+            .filter(|c| c.rank == USER_SUPPLIED)
+            .map(|c| file_name(&c.file))
+            .collect();
+        let decided = !contested && user_supplied.is_empty();
+
         let mut sources = Vec::new();
         for (i, candidate) in candidates.iter().enumerate() {
             let text = self.source(&candidate.file)?;
@@ -1599,6 +1796,11 @@ impl Ctx<'_> {
                 wins: i == winner && !contested,
                 reason: if contested && candidate.rank == top_rank {
                     "ties with another source at the same level; -f order decides".to_string()
+                } else if i == winner && candidate.rank == USER_SUPPLIED {
+                    format!(
+                        "highest-precedence source visible in the workspace, and applies only when the command line passes `-f {}`",
+                        file_name(&candidate.file)
+                    )
                 } else if i == winner {
                     "highest-precedence source visible in the workspace".to_string()
                 } else {
@@ -1610,11 +1812,22 @@ impl Ctx<'_> {
         for source in &sources {
             self.push_hop(source.hop.clone());
         }
+        // Only the genuinely command-line-dependent cases are undecided, and each
+        // says which input would decide it.
         if contested {
             self.stop(
                 depth,
                 StopReason::PrecedenceUndetermined(format!(
-                    "several user-supplied values files set {}; their order is the order of -f on the command line",
+                    "{} is set by {}; the winner is whichever `-f` comes last on the helm command line",
+                    local.join("."),
+                    user_supplied.join(" and ")
+                )),
+            );
+        } else if let Some(file) = user_supplied.first() {
+            self.stop(
+                depth,
+                StopReason::PrecedenceUndetermined(format!(
+                    "{} is set by the chart's values and by {file}, which applies only if the command line passes `-f {file}`",
                     local.join(".")
                 )),
             );
@@ -1623,7 +1836,7 @@ impl Ctx<'_> {
             subject: format!("values key {}", local.join(".")),
             model: "helm: subchart values.yaml < parent chart values.yaml < user-supplied -f files < --set"
                 .to_string(),
-            decided: false,
+            decided,
             sources,
         });
         self.stop(
@@ -1758,31 +1971,65 @@ impl Ctx<'_> {
             .map(|(p, _)| p.clone())
             .collect();
         let mut readers = 0;
-        for template in templates {
-            let text = self.source(&template)?;
+        for file in templates {
+            let text = self.source(&file)?;
             let parsed = Parsers::new().parse(Language::Helm, &text)?;
-            for action in parsed.template_actions.clone() {
-                let action_text = action.text(&text).to_string();
-                if !values_paths_in(&action_text)
-                    .iter()
-                    .any(|p| p.join(".") == dotted)
-                {
-                    continue;
-                }
+            let template = helm::Template::of(&text, &parsed);
+            let matching: Vec<usize> = (0..template.actions.len())
+                .filter(|index| {
+                    template
+                        .values_paths_of(*index)
+                        .iter()
+                        .any(|p| p.join(".") == dotted)
+                })
+                .collect();
+            for index in matching {
                 readers += 1;
+                let action = &template.actions[index];
+                let action_text = action.text.clone();
+                let span = action.span;
                 let hop = Hop {
                     confidence: Confidence::NameOnly,
                     ..self.hop(
                         None,
                         EdgeKind::TemplateAction,
                         action_text.clone(),
-                        &template,
-                        action,
+                        &file,
+                        span,
                         depth + 1,
                     )?
                 };
                 self.push_hop(hop);
-                self.stop(depth + 1, StopReason::RenderDependent(action_text));
+                self.stop(depth + 1, StopReason::RenderDependent(action_text.clone()));
+
+                // A read under a conditional is a read that may not happen; the
+                // condition is what decides it, so name it rather than imply always.
+                for guard in template.conditions_at(span.start) {
+                    self.stop(
+                        depth + 1,
+                        StopReason::Conditional {
+                            what: action_text.clone(),
+                            condition: guard.describe(),
+                        },
+                    );
+                }
+
+                // A read inside a `define` happens wherever that template is
+                // included, so the consumers are the include sites, not the body.
+                let define = template
+                    .define_containing(span.start)
+                    .map(|define| define.name.clone());
+                if let Some(name) = define {
+                    let sites = self.helm_include_sites(&file, &name, depth + 2)?;
+                    if sites == 0 {
+                        self.stop(
+                            depth + 2,
+                            StopReason::Origin(format!(
+                                "{dotted} is read by template {name:?}, which nothing in the chart includes"
+                            )),
+                        );
+                    }
+                }
             }
         }
         if readers == 0 {
@@ -1796,48 +2043,6 @@ impl Ctx<'_> {
         }
         Ok(())
     }
-}
-
-/// Every `.Values.a.b.c` path named inside a template action.
-pub(crate) fn values_paths_in(action: &str) -> Vec<Vec<String>> {
-    let mut out = Vec::new();
-    let bytes = action.as_bytes();
-    let needle = b".Values.";
-    let mut i = 0;
-    while i + needle.len() <= bytes.len() {
-        if &bytes[i..i + needle.len()] != needle {
-            i += 1;
-            continue;
-        }
-        let mut j = i + needle.len();
-        while j < bytes.len()
-            && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_' || bytes[j] == b'-' || bytes[j] == b'.')
-        {
-            j += 1;
-        }
-        let path: Vec<String> = action[i + needle.len()..j]
-            .trim_end_matches('.')
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .map(str::to_string)
-            .collect();
-        if !path.is_empty() {
-            out.push(path);
-        }
-        i = j.max(i + 1);
-    }
-    out.dedup();
-    out
-}
-
-/// Helm's built-in objects named inside a template action. Their values come from
-/// the release, not from any file in the workspace.
-fn builtins_in(action: &str) -> Vec<String> {
-    ["Release", "Chart", "Capabilities", "Template", "Files"]
-        .iter()
-        .filter(|name| action.contains(&format!(".{name}.")))
-        .map(|name| format!(".{name}"))
-        .collect()
 }
 
 /// The scalar text a `key: value` pair binds, when the pair holds one.
@@ -2765,26 +2970,4 @@ mod tests {
         assert_eq!(namespace_before(bare, span), None);
     }
 
-    #[test]
-    fn values_paths_are_extracted_from_a_masked_action() {
-        let paths = values_paths_in("{{ .Values.image.repository }}:{{ .Values.image.tag }}");
-        assert_eq!(
-            paths,
-            vec![
-                vec!["image".to_string(), "repository".to_string()],
-                vec!["image".to_string(), "tag".to_string()]
-            ]
-        );
-        // Pipelines and defaults do not corrupt the path.
-        assert_eq!(
-            values_paths_in("{{ .Values.replicaCount | default 3 }}"),
-            vec![vec!["replicaCount".to_string()]]
-        );
-    }
-
-    #[test]
-    fn helm_builtins_are_recognised_as_external() {
-        assert_eq!(builtins_in("{{ .Release.Name }}"), vec![".Release"]);
-        assert!(builtins_in("{{ .Values.x }}").is_empty());
-    }
 }
