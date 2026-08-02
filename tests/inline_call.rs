@@ -166,3 +166,38 @@ fn the_result_still_parses() {
             .expect("inlining must not break the file");
     assert_eq!(outcomes.len(), 1);
 }
+
+#[test]
+fn works_for_go_despite_its_statement_list_wrapper() {
+    // tree-sitter-go interposes a `statement_list` between a block and its
+    // statements, which once made every Go function look multi-statement.
+    let src = "package main\n\nfunc double(x int) int { return x * 2 }\n\nfunc main() { y := double(3); _ = y }\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("y := (3 * 2)"), "got:\n{out}");
+}
+
+#[test]
+fn works_for_typescript() {
+    let src = "function double(x: number) { return x * 2; }\nfunction main() { const y = double(3); }\n";
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("const y = (3 * 2);"), "got:\n{out}");
+}
+
+#[test]
+fn works_for_zig() {
+    let src = "fn double(x: i32) i32 { return x * 2; }\npub fn main() void { const y = double(3); _ = y; }\n";
+    let (tmp, index) = workspace(&[("a.zig", src)]);
+    let path = tmp.path().join("a.zig");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("const y = (3 * 2);"), "got:\n{out}");
+}

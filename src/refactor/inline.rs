@@ -498,8 +498,24 @@ fn single_expression_body<'a>(
     source: &str,
 ) -> Option<Span> {
     let body = declaration.child_by_field_name("body")?;
-    let mut cursor = body.walk();
-    let statements: Vec<tree_sitter::Node> = body
+    // Some grammars interpose a list node between a block and its statements
+    // (tree-sitter-go wraps them in `statement_list`); descend through it, or the
+    // wrapper itself looks like the single statement.
+    let mut block = body;
+    loop {
+        let mut cursor = block.walk();
+        let children: Vec<tree_sitter::Node> = block
+            .named_children(&mut cursor)
+            .filter(|n| !n.kind().contains("comment"))
+            .collect();
+        match children.as_slice() {
+            [only] if only.kind().ends_with("_list") => block = *only,
+            _ => break,
+        }
+    }
+
+    let mut cursor = block.walk();
+    let statements: Vec<tree_sitter::Node> = block
         .named_children(&mut cursor)
         .filter(|n| !n.kind().contains("comment"))
         .collect();
@@ -507,29 +523,54 @@ fn single_expression_body<'a>(
         return None;
     }
 
-    let only = statements[0];
-    let kind = only.kind();
-    // `return expr` and a bare trailing expression both qualify.
-    if kind.contains("return") {
-        let mut inner = only.walk();
-        let value = only.named_children(&mut inner).next()?;
-        return Some(Span::from(value));
+    // Peel the wrappers grammars put between a block and the value it yields:
+    // an expression statement, a return statement, or a return expression nested
+    // inside one (Zig spells it `expression_statement > return_expression`). Doing
+    // this in a loop rather than a fixed order keeps the `return` keyword from being
+    // inlined along with the value.
+    let mut node = statements[0];
+    for _ in 0..4 {
+        let kind = node.kind();
+
+        let is_return = kind.contains("return") || {
+            let mut walker = node.walk();
+            let found = node.children(&mut walker).any(|c| c.kind() == "return");
+            found
+        };
+        let is_wrapper = kind.contains("expression_statement");
+
+        if !is_return && !is_wrapper {
+            break;
+        }
+        // A statement kind we do not recognise cannot be reduced to one expression.
+        let mut inner = node.walk();
+        let Some(next) = node.named_children(&mut inner).next() else {
+            return None;
+        };
+        node = next;
     }
-    if kind.contains("expression_statement") {
-        let mut inner = only.walk();
-        let value = only.named_children(&mut inner).next()?;
-        return Some(Span::from(value));
-    }
+
+    // Anything still statement-shaped is not a single expression.
+    let kind = node.kind();
     if kind.contains("statement") || kind.contains("declaration") {
         return None;
     }
     let _ = source;
-    Some(Span::from(only))
+    Some(Span::from(node))
 }
 
 /// Parameter names of a declaration, in order.
 fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
-    let Some(list) = declaration.child_by_field_name("parameters") else {
+    // Most grammars expose the list through a `parameters` field; those that do not
+    // still name the node itself for what it holds.
+    let list = declaration.child_by_field_name("parameters").or_else(|| {
+        let mut cursor = declaration.walk();
+        let found = declaration
+            .named_children(&mut cursor)
+            .find(|c| c.kind().contains("parameter"));
+        found
+    });
+    let Some(list) = list else {
         return Vec::new();
     };
     let mut cursor = list.walk();
@@ -548,8 +589,27 @@ fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<Stri
 
 /// Argument texts of a call, in order.
 fn argument_texts(call: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
-    let Some(list) = call.child_by_field_name("arguments") else {
-        return Vec::new();
+    // As with parameters, not every grammar exposes an `arguments` field.
+    let list = call.child_by_field_name("arguments").or_else(|| {
+        let mut cursor = call.walk();
+        let found = call
+            .named_children(&mut cursor)
+            .find(|c| c.kind().contains("argument"));
+        found
+    });
+    // Some grammars have no argument-list node at all: tree-sitter-zig hangs the
+    // arguments directly off the call, after the callee.
+    let Some(list) = list else {
+        let mut cursor = call.walk();
+        let children: Vec<tree_sitter::Node> = call
+            .named_children(&mut cursor)
+            .filter(|n| !n.kind().contains("comment"))
+            .collect();
+        return children
+            .into_iter()
+            .skip(1)
+            .map(|n| Span::from(n).text(source).trim().to_string())
+            .collect();
     };
     let mut cursor = list.walk();
     list.named_children(&mut cursor)
