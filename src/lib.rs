@@ -14,5 +14,6 @@ pub mod index;
 pub mod lang;
 pub mod model;
 pub mod parse;
+pub mod refactor;
 pub mod scan;
 pub mod span;

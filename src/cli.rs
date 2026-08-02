@@ -68,6 +68,18 @@ enum Command {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
     },
+    /// Rename a symbol and every reference that provably points at it.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Rename {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// The new name.
+        new_name: String,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// List references to a symbol.
     Refs {
         /// Position as `path:line:col`, or a bare symbol name.
@@ -102,7 +114,82 @@ pub fn run() -> Result<()> {
             target,
             include_unresolved,
         } => cmd_refs(&cli, target, *include_unresolved),
+        Command::Rename {
+            target,
+            new_name,
+            write,
+        } => cmd_rename(&cli, target, new_name, *write),
     }
+}
+
+fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let plan = crate::refactor::rename::plan(&index, symbol.id, new_name)?;
+
+    let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
+
+    if cli.json {
+        let files: Vec<_> = outcomes
+            .iter()
+            .map(|o| {
+                serde_json::json!({
+                    "path": o.path,
+                    "diff": o.unified_diff(),
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "old_name": plan.old_name,
+                "new_name": plan.new_name,
+                "files_changed": outcomes.len(),
+                "reference_edits": plan.reference_edits,
+                "applied": write,
+                "changes": files,
+                "warnings": plan.warnings,
+            }))?
+        );
+        if write {
+            crate::edit::commit(&outcomes)?;
+        }
+        return Ok(());
+    }
+
+    for outcome in &outcomes {
+        print!("{}", outcome.unified_diff());
+    }
+
+    println!(
+        "\n{} → {}: {} site(s) across {} file(s)",
+        plan.old_name,
+        plan.new_name,
+        plan.reference_edits + 1,
+        outcomes.len()
+    );
+
+    if !plan.warnings.is_empty() {
+        let grouped = crate::refactor::rename::group_warnings(&plan.warnings);
+        println!("\nNot changed — review these yourself:");
+        for (kind, warnings) in grouped {
+            println!("  {} ({}):", kind, warnings.len());
+            for w in warnings.iter().take(10) {
+                println!("    {}:{}:{}  {}", w.file.display(), w.line, w.col, w.detail);
+            }
+            if warnings.len() > 10 {
+                println!("    … and {} more", warnings.len() - 10);
+            }
+        }
+    }
+
+    if write {
+        let count = crate::edit::commit(&outcomes)?;
+        println!("\nApplied to {count} file(s).");
+    } else {
+        println!("\nNothing written. Re-run with --write to apply.");
+    }
+    Ok(())
 }
 
 /// A position in a file, given as `path:line:col`.
