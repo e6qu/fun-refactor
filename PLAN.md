@@ -233,7 +233,7 @@ refs must fail with the ref list).
 **Exit**: cross-language fixtures (mini app: Terraform + Helm + Python service + TSX front
 end) with stitched-flow snapshot tests.
 
-### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring done; micro-rewrites, LSP backend and daemon not started
+### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring and micro-rewrites done; LSP backend and daemon not started
 
 - Micro-rewrite tail (per-language `refactor.rewrite.*` equivalents: invert-if, guard
   clauses, de Morgan, fill-struct where syntax allows).
@@ -310,8 +310,8 @@ resolution), Stage 2 (rename, including cross-language), Stage 3 (call graph +
 catalog-driven entry points), Stage 4 (imperative def-use flow + config-language
 provenance), Stage 6 (move, change signature, safe delete, organize imports).
 
-**Partial**: Stage 8 (pattern restructuring done; micro-rewrites, LSP backend and
-daemon not started).
+**Partial**: Stage 8 (pattern restructuring and micro-rewrites done; the optional
+LSP delegation backend and daemon/watch mode not started).
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `callers`,
@@ -319,5 +319,5 @@ Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inlin
 
 ### Remaining
 
-- Stage 8: the `refactor.rewrite.*` micro-transform tail, Piranha-style cascading
-  cleanup, optional LSP delegation backend, daemon/watch mode.
+- Stage 8: Piranha-style cascading cleanup, the optional LSP delegation backend,
+  daemon/watch mode.

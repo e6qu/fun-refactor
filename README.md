@@ -44,6 +44,7 @@ survey the design is based on, with sources.
 | safe delete | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | organize imports | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
 | restructure | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| micro-rewrites | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
 
 A `—` is a deliberate refusal, not a silent no-op: the tool tells you the operation
 does not apply and why.
@@ -67,6 +68,8 @@ fr delete <target>            # delete it, refusing if anything uses it
 fr unused                     # symbols nothing appears to use
 fr imports <file>             # drop unused imports, sort the rest
 fr restructure 'old($X)' 'new($X)' --lang rust
+fr rewrite <path:l:c>         # list local transformations that apply here
+fr rewrite <path:l:c> guard-clause   # ...and apply one
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call
 fr graph --dot                # the call graph
@@ -119,10 +122,10 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 611 tests.
+Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 633 tests.
 
-Not yet built: the `refactor.rewrite.*` micro-transform tail and the optional LSP
-delegation backend.
+Not yet built: the optional LSP delegation backend, and a daemon/watch mode for
+incremental reindexing.
 
 Known limitations are tracked in [BUGS.md](BUGS.md) — notably SCSS runs on the CSS
 grammar, Helm template actions are masked before YAML parsing so `.Values` references
