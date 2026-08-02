@@ -5,3 +5,4 @@ pub mod entrypoints;
 pub mod flow;
 pub mod impact;
 pub mod provenance;
+pub mod stitch;

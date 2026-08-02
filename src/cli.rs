@@ -194,6 +194,15 @@ enum Command {
         #[arg(long, default_value = "5")]
         depth: usize,
     },
+    /// Trace configuration values into the code that reads them.
+    Stitch {
+        /// Only chains for this environment variable.
+        #[arg(long)]
+        env: Option<String>,
+        /// Only variables nothing in the workspace reads.
+        #[arg(long)]
+        orphaned: bool,
+    },
     /// Show everything a change to a symbol could affect.
     Impact {
         /// Position as `path:line:col`, or a bare symbol name.
@@ -313,6 +322,7 @@ pub fn run() -> Result<()> {
             change,
             write,
         } => cmd_signature(&cli, target, change, *write),
+        Command::Stitch { env, orphaned } => cmd_stitch(&cli, env.as_deref(), *orphaned),
         Command::Impact {
             target,
             caller_depth,
@@ -804,6 +814,56 @@ fn cmd_flow(cli: &Cli, direction: &str, target: &str, depth: usize) -> Result<()
     } else {
         print!("{}", result.format_tree());
     }
+    Ok(())
+}
+
+fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
+    use crate::analysis::stitch;
+
+    let index = build_index(cli, &[])?;
+    let mut chains = match env {
+        Some(name) => stitch::for_variable(&index, name)?,
+        None => stitch::chains(&index)?,
+    };
+    if orphaned_only {
+        chains.retain(|c| c.is_orphaned());
+    }
+
+    if cli.json {
+        let payload: Vec<_> = chains
+            .iter()
+            .map(|c| {
+                serde_json::json!({
+                    "env_var": c.env_var,
+                    "declared_in": c.declared_in,
+                    "declared_line": c.declared_line,
+                    "values_path": c.values_path,
+                    "values_file": c.values_file,
+                    "reads": c.reads.iter().map(|r| serde_json::json!({
+                        "file": r.file,
+                        "line": r.line,
+                        "language": r.language.name(),
+                        "confidence": r.confidence.as_str(),
+                    })).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    if chains.is_empty() {
+        println!("No configuration-to-code chains found.");
+        return Ok(());
+    }
+
+    print!("{}", stitch::format_chains(&chains));
+    println!(
+        "{} chain(s). The link from a manifest to a program is the variable's name, \n\
+         which is a string on both sides -- nothing can prove the two refer to the \n\
+         same variable, so those hops are reported as name-only.",
+        chains.len()
+    );
     Ok(())
 }
 

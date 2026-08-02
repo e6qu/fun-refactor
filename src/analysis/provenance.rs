@@ -1799,7 +1799,7 @@ impl Ctx<'_> {
 }
 
 /// Every `.Values.a.b.c` path named inside a template action.
-fn values_paths_in(action: &str) -> Vec<Vec<String>> {
+pub(crate) fn values_paths_in(action: &str) -> Vec<Vec<String>> {
     let mut out = Vec::new();
     let bytes = action.as_bytes();
     let needle = b".Values.";

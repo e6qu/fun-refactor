@@ -75,6 +75,7 @@ fr flow fwd <target>          # where does it go
                               #   (def-use for code, substitution/override
                               #    provenance for config languages)
 fr impact <target>            # everything a change could affect
+fr stitch                     # config values traced into the code reading them
 fr entrypoints --kind http-route
 ```
 
@@ -118,10 +119,10 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–6 of [PLAN.md](PLAN.md) are complete; 7 and 8 are partial. 603 tests.
+Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 611 tests.
 
-Not yet built: stitched Helm-value→env-var→code flows, the micro-rewrite tail, and
-the optional LSP backend.
+Not yet built: the `refactor.rewrite.*` micro-transform tail and the optional LSP
+delegation backend.
 
 Known limitations are tracked in [BUGS.md](BUGS.md) — notably SCSS runs on the CSS
 grammar, Helm template actions are masked before YAML parsing so `.Values` references

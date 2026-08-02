@@ -218,7 +218,7 @@ no-op on fixtures; behavior deltas vs rust-analyzer/gopls documented.
 **Exit**: per-feature cross-language corpora; safety-refusal tests (delete/move/sig with live
 refs must fail with the ref list).
 
-### Stage 7 — Cross-language intelligence — **PARTIAL**: cross-language rename and `fr impact` done; Helm→env→code stitching not started
+### Stage 7 — Cross-language intelligence — **DONE**
 
 **Goal**: the queries nothing else can answer; mostly composition of existing layers.
 
@@ -310,9 +310,8 @@ resolution), Stage 2 (rename, including cross-language), Stage 3 (call graph +
 catalog-driven entry points), Stage 4 (imperative def-use flow + config-language
 provenance), Stage 6 (move, change signature, safe delete, organize imports).
 
-**Partial**: Stage 7 (cross-language rename and `fr impact` done; Helm value
-→ env var → code stitching not started), Stage 8 (pattern restructuring done;
-micro-rewrites, LSP backend and daemon not started).
+**Partial**: Stage 8 (pattern restructuring done; micro-rewrites, LSP backend and
+daemon not started).
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `callers`,
@@ -320,7 +319,5 @@ Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inlin
 
 ### Remaining
 
-- Stage 7: stitched flows across the code/config boundary (Helm value → container env
-  → `os.environ` read).
 - Stage 8: the `refactor.rewrite.*` micro-transform tail, Piranha-style cascading
   cleanup, optional LSP delegation backend, daemon/watch mode.
