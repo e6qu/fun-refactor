@@ -60,50 +60,90 @@ impl Index {
         scan_result: &ScanResult,
         cache: Option<&crate::cache::Cache>,
     ) -> Result<Self> {
-        let parsers = Parsers::new();
-        let mut extractor = Extractor::new();
-        let mut index = Index::default();
+        use rayon::prelude::*;
 
+        let mut index = Index::default();
         for (path, size) in &scan_result.skipped_too_large {
             index
                 .skipped
                 .push((path.clone(), format!("exceeds size limit ({size} bytes)")));
         }
 
-        for file in &scan_result.files {
-            let source = match std::fs::read_to_string(&file.path) {
-                Ok(s) => s,
-                Err(e) => {
-                    index.skipped.push((file.path.clone(), e.to_string()));
-                    continue;
-                }
-            };
-            // A cached entry carries its own parse-error flag, so a hit skips
-            // parsing entirely rather than reparsing to ask.
-            let key = cache.map(|_| crate::cache::Cache::key(file.language, &source));
-            if let (Some(cache), Some(key)) = (cache, key.as_deref()) {
-                if let Some(facts) = cache.get(key, &file.path) {
-                    let had_errors = facts.had_parse_errors;
-                    index.add_file(facts, file.language, had_errors);
-                    continue;
-                }
-            }
+        // Extraction is per-file and shares nothing, so it parallelises cleanly. The
+        // results are collected in scan order and merged serially afterwards, because
+        // symbol ids are assigned by position and must not depend on thread timing.
+        let extracted: Vec<Result<Option<(usize, FileFacts)>>> = scan_result
+            .files
+            .par_iter()
+            .enumerate()
+            .map(|(position, file)| {
+                let source = match std::fs::read_to_string(&file.path) {
+                    Ok(s) => s,
+                    // Reported by the caller once results are merged.
+                    Err(e) => return Ok(Some((position, Self::unreadable_placeholder(&file.path, e.to_string())))),
+                };
 
-            let parsed = parsers.parse(file.language, &source)?;
-            let had_parse_errors = parsed.has_errors();
-            let mut facts = extractor
-                .extract(&parsed, &file.path, &source)
-                .with_context(|| format!("extracting facts from {}", file.path.display()))?;
-            facts.had_parse_errors = had_parse_errors;
+                // A cached entry carries its own parse-error flag, so a hit skips
+                // parsing entirely rather than reparsing to ask.
+                if let Some(cache) = cache {
+                    let key = crate::cache::Cache::key(file.language, &source);
+                    if let Some(facts) = cache.get(&key, &file.path) {
+                        return Ok(Some((position, facts)));
+                    }
+                }
 
-            if let (Some(cache), Some(key)) = (cache, key.as_deref()) {
-                cache.put(key, &facts);
+                // Parsers and compiled queries are not shareable across threads, so
+                // each worker builds its own. Query compilation is the cost here and
+                // it is paid once per thread, not once per file.
+                let parsers = Parsers::new();
+                let mut extractor = Extractor::new();
+                let parsed = parsers.parse(file.language, &source)?;
+                let had_parse_errors = parsed.has_errors();
+                let mut facts = extractor
+                    .extract(&parsed, &file.path, &source)
+                    .with_context(|| format!("extracting facts from {}", file.path.display()))?;
+                facts.had_parse_errors = had_parse_errors;
+
+                if let Some(cache) = cache {
+                    let key = crate::cache::Cache::key(file.language, &source);
+                    cache.put(&key, &facts);
+                }
+                Ok(Some((position, facts)))
+            })
+            .collect();
+
+        let mut ordered: Vec<(usize, FileFacts)> = Vec::with_capacity(extracted.len());
+        for outcome in extracted {
+            if let Some(entry) = outcome? {
+                ordered.push(entry);
             }
-            index.add_file(facts, file.language, had_parse_errors);
+        }
+        ordered.sort_by_key(|(position, _)| *position);
+
+        for (position, facts) in ordered {
+            let file = &scan_result.files[position];
+            if let Some(reason) = facts.unreadable.clone() {
+                index.skipped.push((file.path.clone(), reason));
+                continue;
+            }
+            let had_errors = facts.had_parse_errors;
+            index.add_file(facts, file.language, had_errors);
         }
 
         index.resolve();
         Ok(index)
+    }
+
+    /// Placeholder facts marking a file that could not be read.
+    ///
+    /// Carrying the failure through the parallel stage keeps the reporting in one
+    /// place instead of needing a second channel out of the worker.
+    fn unreadable_placeholder(path: &Path, error: String) -> FileFacts {
+        FileFacts {
+            path: path.to_path_buf(),
+            unreadable: Some(error),
+            ..Default::default()
+        }
     }
 
     /// Build an index from sources held in memory rather than read from disk.

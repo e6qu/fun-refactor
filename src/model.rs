@@ -284,6 +284,10 @@ pub struct FileFacts {
     /// answers the question without reparsing.
     #[serde(default)]
     pub had_parse_errors: bool,
+    /// Set when the file could not be read at all, so a parallel worker can report
+    /// the failure through its result rather than needing a second channel.
+    #[serde(skip)]
+    pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,
     pub references: Vec<Reference>,
     pub scopes: Vec<Scope>,

@@ -19,6 +19,17 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
 ## Fixed
 
+- [x] B3: Deleting a CSS selector left its `{ ... }` block orphaned. A selector's
+  `full_span` is the selector — which is what a rename needs — so the *delete* widens
+  it instead: the whole rule when the selector is alone on it, or just that selector
+  and its comma when the rule has others.
+- [x] B6: Consecutive standalone Go `import "x"` lines were not sorted, because the
+  `import` keyword sits outside the `import_spec` span and so looked like unrelated
+  code ending the block. A statement now owns its line if only its own introducing
+  keyword precedes it.
+- [x] B9: `.tfvars` top-level attributes now produce `Key` symbols, so values files
+  are in the index rather than needing provenance to walk the tree itself.
+
 - [x] B0a: `LineIndex` invented a phantom trailing line for files ending in a newline,
   so `"a\nb\n"` counted 3 lines and an EOF offset reported a column past the last
   character — `src/span.rs`. Fixed: a trailing newline terminates the final line;
@@ -29,11 +40,6 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
 ## Open (added during implementation)
 
-- [ ] B3: Deleting a CSS selector removes only the selector bytes, orphaning its
-  `{ ... }` block — `queries/css/facts.scm` captures `class_selector` as the
-  definition rather than the enclosing rule set. The reparse check rejects the edit,
-  so nothing reaches disk, but the operation cannot succeed until the query captures
-  the rule set as `full_span`.
 - [ ] B4: Organize-imports decides liveness by name, so a Python module imported for
   a registration side effect, or a TypeScript type used only in a JSDoc comment,
   looks unused. Rust trait-shaped (upper-camel-case) bindings are held back for this
@@ -41,17 +47,10 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 - [ ] B5: `find_unused` follows resolved call edges only, so dynamic dispatch,
   reflection and string-keyed handler tables can put live code on the list, and
   mutual recursion can hide dead code from it. Stated in the command output.
-- [ ] B6: Consecutive standalone Go `import "x"` lines are not sorted — the `import`
-  keyword sits outside the `import_spec` span, so the separator is non-whitespace and
-  ends the block. Parenthesised gofmt-style blocks sort correctly.
 - [ ] B8: Terraform `count`/`for_each`/splat traversals lose their trailing segments
   (`aws_instance.web[*].id` yields the address but not `id`) — the grammar puts those
   steps under `splat`/`index` rather than as flat `get_attr` siblings. The renameable
   part survives; the attribute read is lost.
-- [ ] B9: `.tfvars` top-level attributes produce no symbols, so provenance reads them
-  off the CST directly rather than through the index. A definition capture in
-  `queries/hcl/facts.scm` would put values files in the index and let provenance drop
-  its private path.
 - [ ] B10: Helm values competitions are never *decided*: `--set` and `-f` ordering
   happen at the command line and are invisible to a workspace scan, so two candidate
   sources are reported with no winner and a `PrecedenceUndetermined` stop.

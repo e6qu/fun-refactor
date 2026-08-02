@@ -76,6 +76,15 @@
       . (identifier) @name) @definition.variable)
   (#eq? @_kw "locals"))
 
+; A top-level attribute in a `.tfvars` file assigns a root-module variable. The
+; grammar is shared with `.tf`, where a bare top-level attribute would be invalid,
+; so this pattern only ever fires on values files. Capturing them puts values files
+; in the index instead of leaving provenance to walk the tree itself.
+(config_file
+  (body
+    (attribute
+      . (identifier) @name) @definition.key))
+
 ; ------------------------------------------------------------- references
 ; A traversal is a `variable_expr` root followed by `.step` `get_attr` children,
 ; flat under one `expression`. Which segment is the renameable one depends on the

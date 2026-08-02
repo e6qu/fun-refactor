@@ -47,11 +47,23 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     // Every definition site of the entity, so a CSS class declared by both `.btn` and
     // `.btn:hover` goes away as a whole rather than half.
     let group = index.definition_group(symbol);
-    let sites: Vec<(PathBuf, Span)> = group
-        .iter()
-        .filter_map(|id| index.symbol(*id))
-        .map(|s| (s.file.clone(), s.full_span))
-        .collect();
+    // Some definitions cannot be removed on their own: a CSS selector leaves an
+    // orphaned rule behind, so the span is widened to what actually has to go.
+    let parsers = crate::parse::Parsers::new();
+    let mut sites: Vec<(PathBuf, Span)> = Vec::new();
+    for id in &group {
+        let Some(definition) = index.symbol(*id) else {
+            continue;
+        };
+        let span = match std::fs::read_to_string(&definition.file) {
+            Ok(source) => match parsers.parse(definition.language, &source) {
+                Ok(parsed) => widen_for_delete(&parsed, &source, definition),
+                Err(_) => definition.full_span,
+            },
+            Err(_) => definition.full_span,
+        };
+        sites.push((definition.file.clone(), span));
+    }
 
     let inside_a_site = |file: &Path, span: Span| {
         sites
@@ -233,6 +245,85 @@ pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
 /// and trailing newline included. A blank line immediately after is swallowed too, but
 /// only when the definition was already preceded by a blank line or the start of the
 /// file — otherwise that blank line is a separator belonging to the code that stays.
+/// Widen a symbol's span to the construct that cannot survive without it.
+///
+/// A CSS class selector is its own symbol — that is what a rename rewrites — but the
+/// rule it heads is meaningless once it is gone. If the selector is the only one on
+/// the rule, the whole rule goes; if it is one of several, only that selector and its
+/// comma do, leaving the rule to its remaining selectors.
+fn widen_for_delete(
+    parsed: &crate::parse::Parsed,
+    source: &str,
+    symbol: &crate::model::Symbol,
+) -> Span {
+    use crate::model::SymbolKind;
+    if !matches!(symbol.kind, SymbolKind::Selector | SymbolKind::ElementId)
+        || !matches!(symbol.language, crate::lang::Language::Css | crate::lang::Language::Scss)
+    {
+        return symbol.full_span;
+    }
+
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(symbol.full_span.start, symbol.full_span.end)
+    else {
+        return symbol.full_span;
+    };
+
+    // Climb to the selector as the rule sees it, then to the rule itself.
+    let mut selector = node;
+    while let Some(parent) = selector.parent() {
+        if parent.kind() == "selectors" || parent.kind() == "rule_set" {
+            break;
+        }
+        selector = parent;
+    }
+    let Some(list) = selector.parent() else {
+        return symbol.full_span;
+    };
+
+    let siblings: Vec<tree_sitter::Node> = {
+        let mut cursor = list.walk();
+        list.named_children(&mut cursor)
+            .filter(|c| !c.kind().contains("comment") && !c.kind().contains("block"))
+            .collect()
+    };
+
+    if siblings.len() <= 1 {
+        // The rule has nothing left to apply to.
+        let rule = if list.kind() == "rule_set" {
+            list
+        } else {
+            list.parent().unwrap_or(list)
+        };
+        return Span::from(rule);
+    }
+
+    // One of several: take this selector and the comma joining it to the next.
+    let this = Span::from(selector);
+    let mut end = this.end;
+    let bytes = source.as_bytes();
+    while end < bytes.len() && (bytes[end] == b',' || bytes[end].is_ascii_whitespace()) {
+        let was_comma = bytes[end] == b',';
+        end += 1;
+        if was_comma {
+            while end < bytes.len() && bytes[end] == b' ' {
+                end += 1;
+            }
+            return Span::new(this.start, end);
+        }
+    }
+    // Last in the list: take the preceding comma instead.
+    let mut start = this.start;
+    while start > 0 && (bytes[start - 1] == b' ' || bytes[start - 1] == b',') {
+        start -= 1;
+        if bytes[start] == b',' {
+            break;
+        }
+    }
+    Span::new(start, this.end)
+}
+
 fn deletion_span(source: &str, span: Span) -> Span {
     if span.is_empty() || span.end > source.len() {
         return span;

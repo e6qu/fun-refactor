@@ -513,3 +513,37 @@ fn splat_and_index_traversals_lose_the_trailing_segments() {
         f.references
     );
 }
+
+#[test]
+fn tfvars_attributes_are_definitions() {
+    // A values file assigns root-module variables. The grammar is shared with .tf,
+    // where a bare top-level attribute would be invalid, so this pattern only fires
+    // on values files.
+    let src = "region = \"eu-west-2\"\nreplicas = 3\n";
+    let f = facts(Language::Hcl, src);
+
+    let keys: Vec<&str> = f
+        .symbols
+        .iter()
+        .filter(|s| s.kind == SymbolKind::Key)
+        .map(|s| s.name.as_str())
+        .collect();
+    assert_eq!(keys, vec!["region", "replicas"], "got {keys:?}");
+
+    let region = f.symbols.iter().find(|s| s.name == "region").unwrap();
+    assert_eq!(region.name_span.text(src), "region");
+    assert_eq!(region.full_span.text(src), "region = \"eu-west-2\"");
+}
+
+#[test]
+fn tf_block_arguments_are_still_not_definitions() {
+    // Only *top-level* attributes are values-file assignments; a provider argument
+    // nested in a block is not a renameable address.
+    let src = "resource \"aws_s3_bucket\" \"b\" {\n  bucket = \"x\"\n}\n";
+    let f = facts(Language::Hcl, src);
+    assert!(
+        !f.symbols.iter().any(|s| s.name == "bucket"),
+        "got {:?}",
+        f.symbols.iter().map(|s| &s.name).collect::<Vec<_>>()
+    );
+}
