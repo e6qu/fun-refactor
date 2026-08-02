@@ -29,9 +29,9 @@ fn only_symbol(index: &Index, name: &str) -> SymbolId {
     found[0].id
 }
 
-fn applied(index: &Index, plan: &delete::DeletePlan, path: &PathBuf) -> String {
+/// Apply a plan's edits to one file and return the resulting text.
+fn applied(plan: &delete::DeletePlan, path: &PathBuf) -> String {
     let original = std::fs::read_to_string(path).unwrap();
-    let _ = index;
     match plan.edits.edits_for(path) {
         Some(edits) => apply_to_string(&original, edits).unwrap(),
         None => original,
@@ -128,7 +128,7 @@ fn a_recursive_call_inside_the_definition_does_not_block_its_own_deletion() {
     let plan = delete::plan(&index, only_symbol(&index, "loops"))
         .expect("a self-call is not an outside use");
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {}\n"
     );
 }
@@ -151,7 +151,7 @@ fn deletes_an_unused_definition_whole_line_and_all() {
     assert_eq!(plan.sites, 1);
     assert_eq!(plan.edits.edit_count(), 1);
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {}\n"
     );
 }
@@ -163,7 +163,7 @@ fn everything_around_the_deleted_definition_survives_byte_for_byte() {
 
     let plan = delete::plan(&index, only_symbol(&index, "gone")).unwrap();
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "// keep   this comment\n\nfn keeper() {\n    // spacing   preserved\n}\n"
     );
 }
@@ -175,7 +175,7 @@ fn deleting_the_first_definition_does_not_leave_the_file_starting_blank() {
 
     let plan = delete::plan(&index, only_symbol(&index, "first")).unwrap();
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "fn second() {}\n"
     );
 }
@@ -187,7 +187,7 @@ fn deleting_a_middle_definition_does_not_double_the_blank_lines() {
 
     let plan = delete::plan(&index, only_symbol(&index, "b")).unwrap();
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "fn a() {}\n\nfn c() {}\n"
     );
 }
@@ -200,14 +200,14 @@ fn deletes_in_python_and_go_too() {
 
     let py_plan = delete::plan(&index, only_symbol(&index, "py_gone")).unwrap();
     assert_eq!(
-        applied(&index, &py_plan, &tmp.path().join("a.py")),
+        applied(&py_plan, &tmp.path().join("a.py")),
         "\ndef stays():\n    pass\n",
         "one blank line of the two-line PEP-8 gap is swallowed, not both"
     );
 
     let go_plan = delete::plan(&index, only_symbol(&index, "goGone")).unwrap();
     assert_eq!(
-        applied(&index, &go_plan, &tmp.path().join("b.go")),
+        applied(&go_plan, &tmp.path().join("b.go")),
         "package main\n\nfunc main() {}\n"
     );
 }
@@ -228,7 +228,7 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
 
     // The delete still happens — the string is reported, not obeyed.
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {\n    dispatch(\"handler\");\n}\n"
     );
 }
@@ -256,7 +256,7 @@ fn deleting_a_css_selector_removes_only_the_selector_bytes() {
 
     let plan = delete::plan(&index, only_symbol(&index, "btn")).unwrap();
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("style.css")),
+        applied(&plan, &tmp.path().join("style.css")),
         " { color: red; }\n",
         "the orphaned declaration block is the known gap"
     );
@@ -358,7 +358,33 @@ fn an_unused_symbol_from_find_unused_can_then_be_deleted() {
 
     let plan = delete::plan(&index, orphan).unwrap();
     assert_eq!(
-        applied(&index, &plan, &tmp.path().join("a.rs")),
+        applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {}\n"
     );
+}
+
+#[test]
+fn the_edits_survive_the_engines_reparse_check() {
+    // A plan is only useful if `edit::plan` will accept it: the file must still parse.
+    let source = "fn orphan() {}\n\nfn main() {\n    let x = 1;\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", source)]);
+
+    let plan = delete::plan(&index, only_symbol(&index, "orphan")).unwrap();
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("deleting an unused function must not break the file");
+    assert_eq!(outcomes.len(), 1);
+    assert_eq!(outcomes[0].path, tmp.path().join("a.rs"));
+    assert_eq!(outcomes[0].updated, "fn main() {\n    let x = 1;\n}\n");
+}
+
+#[test]
+fn deleting_a_css_selector_is_rejected_by_the_reparse_check() {
+    // The other half of `deleting_a_css_selector_removes_only_the_selector_bytes`:
+    // the engine catches what the plan gets wrong, so the damage never reaches disk.
+    let (_tmp, index) = workspace(&[("style.css", ".btn { color: red; }\n")]);
+    let plan = delete::plan(&index, only_symbol(&index, "btn")).unwrap();
+    let error = fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .unwrap_err();
+    assert!(error.to_string().contains("edit rejected"), "{error}");
 }

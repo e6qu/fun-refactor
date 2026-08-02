@@ -135,6 +135,32 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Delete a symbol, refusing if anything still uses it.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Delete {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
+    /// List symbols nothing appears to use.
+    Unused {
+        /// Additional catalog directory for entry-point rules.
+        #[arg(long)]
+        catalogs: Option<PathBuf>,
+    },
+    /// Remove unused imports and sort import blocks.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Imports {
+        /// File to organize.
+        file: PathBuf,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Trace where a value comes from or goes to.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
@@ -241,6 +267,9 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_extract(&cli, range, name, *all, *write),
         Command::Inline { target, write } => cmd_inline(&cli, target, *write),
+        Command::Delete { target, write } => cmd_delete(&cli, target, *write),
+        Command::Unused { catalogs } => cmd_unused(&cli, catalogs.as_deref()),
+        Command::Imports { file, write } => cmd_imports(&cli, file, *write),
         Command::Move {
             target,
             destination,
@@ -485,6 +514,98 @@ fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool)
         plan.from.display(),
         plan.to.display(),
         plan.imports_added.len()
+    );
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    let plan = crate::refactor::delete::plan(&index, symbol.id)?;
+
+    if !plan.warnings.is_empty() && !cli.json {
+        println!("Review these before committing:");
+        for w in plan.warnings.iter().take(20) {
+            println!("  {}:{}:{}  {}", w.file.display(), w.line, w.col, w.detail);
+        }
+        if plan.warnings.len() > 20 {
+            println!("  … and {} more", plan.warnings.len() - 20);
+        }
+        println!();
+    }
+
+    let summary = format!("deleted {} ({} definition site(s))", plan.name, plan.sites);
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let mut catalog = Catalog::builtin()?;
+    if let Some(dir) = extra_catalogs {
+        catalog.load_dir(dir)?;
+    }
+    let entrypoints: Vec<_> = catalog.detect(&index).iter().map(|e| e.symbol).collect();
+    let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
+
+    if cli.json {
+        let payload: Vec<_> = unused
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .map(|s| {
+                serde_json::json!({
+                    "name": s.qualified_name(),
+                    "kind": s.kind.as_str(),
+                    "file": s.file,
+                    "language": s.language.name(),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    for symbol in unused.iter().filter_map(|id| index.symbol(*id)) {
+        println!(
+            "{:<12} {:<34} {}",
+            symbol.kind.as_str(),
+            symbol.qualified_name(),
+            symbol.file.display()
+        );
+    }
+    println!("\n{} symbol(s) with no detected use", unused.len());
+    println!(
+        "Reachability follows resolved edges only. Dynamic dispatch, reflection and \n\
+         calls through unresolved names are not counted, so this list can name live code."
+    );
+    Ok(())
+}
+
+fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let path = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
+    let plan = crate::refactor::imports::plan(&index, &path)?;
+
+    if !plan.removed.is_empty() && !cli.json {
+        println!("Removing {} unused import(s):", plan.removed.len());
+        for removed in &plan.removed {
+            println!(
+                "  line {}: {} (binds {})",
+                removed.line,
+                removed.path,
+                removed.bindings.join(", ")
+            );
+        }
+        println!(
+            "\nLiveness is decided by name, so an import kept only for a trait, a \n\
+             registration side effect or a doc comment would look unused. Check these.\n"
+        );
+    }
+
+    let summary = format!(
+        "{}: removed {} import(s), reordered {} block(s)",
+        plan.file.display(),
+        plan.removed.len(),
+        plan.sorted_blocks
     );
     present(cli, &plan.edits, &summary, write)
 }
