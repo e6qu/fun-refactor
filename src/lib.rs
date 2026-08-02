@@ -17,6 +17,7 @@ pub mod helm;
 pub mod index;
 pub mod lang;
 pub mod model;
+pub mod navigate;
 pub mod parse;
 pub mod refactor;
 pub mod scan;

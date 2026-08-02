@@ -155,8 +155,11 @@
 ; An index (`x.y[0].z`) leaves the following steps as flat `get_attr` siblings, but
 ; the `index` node sits between them and the traversal root, so the anchored
 ; patterns above stop at it. Anchoring to the index instead picks the run back up.
-; Two steps are matched, which is one more than any Terraform expression normally
-; needs; a third would need its own pattern.
+;
+; Each step needs its own pattern, because a query cannot say "every sibling after
+; this one". Six are written out: `x.y[0].a.b.c.d.e.f` is already far past anything
+; Terraform expresses, and the depth is asserted by a test so the bound is a decision
+; rather than an accident.
 (expression
   (index)
   . (get_attr (identifier) @reference.field))
@@ -165,6 +168,37 @@
   (index)
   . (get_attr)
   . (get_attr (identifier) @reference.field))
+
+(expression
+  (index)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr (identifier) @reference.field))
+
+(expression
+  (index)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr (identifier) @reference.field))
+
+(expression
+  (index)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr (identifier) @reference.field))
+
+(expression
+  (index)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr)
+  . (get_attr (identifier) @reference.field))
+
 
 (function_call
   . (identifier) @reference.call)
