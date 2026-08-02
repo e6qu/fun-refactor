@@ -378,3 +378,268 @@ mod tests {
         assert_eq!(apply(&plan, &path), "def f():\n    g(a + b)\n");
     }
 }
+
+// ------------------------------------------------------------------- inline call
+
+/// An inlined call worked out but not applied.
+#[derive(Debug)]
+pub struct InlineCallPlan {
+    pub function: String,
+    /// The expression substituted at the call site.
+    pub expansion: String,
+    pub edits: EditSet,
+}
+
+/// Replace the call at `offset` with the callee's body.
+///
+/// Only calls whose result is provably identical are inlined. gopls's inliner exists
+/// to preserve evaluation order, effects and shadowing across arbitrary bodies; this
+/// one takes the conservative half of that problem — a single-expression callee whose
+/// arguments cannot be duplicated unsafely — and refuses everything else by name.
+pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<InlineCallPlan> {
+    let reference = index
+        .reference_at(file, offset)
+        .ok_or_else(|| anyhow::anyhow!("no call at that position"))?;
+    if reference.kind != crate::model::ReferenceKind::Call {
+        anyhow::bail!("'{}' at that position is not a call", reference.name);
+    }
+    if !reference.confidence.is_safe_to_rewrite() {
+        return Err(Refusal::TooWeak {
+            confidence: reference.confidence,
+            detail: format!("the callee of '{}' was not resolved conclusively", reference.name),
+        }
+        .into());
+    }
+
+    let callee = reference
+        .target
+        .and_then(|t| index.symbol(t))
+        .ok_or_else(|| anyhow::anyhow!("'{}' does not resolve to a definition", reference.name))?;
+
+    // Inlining a function into itself would not terminate.
+    if callee.file == *file && callee.full_span.contains_offset(offset) {
+        anyhow::bail!("'{}' calls itself here; inlining would not terminate", callee.name);
+    }
+
+    let callee_source = std::fs::read_to_string(&callee.file)?;
+    let callee_parsed = Parsers::new().parse(callee.language, &callee_source)?;
+    let declaration = callee_parsed
+        .root()
+        .descendant_for_byte_range(callee.full_span.start, callee.full_span.end)
+        .ok_or_else(|| anyhow::anyhow!("could not locate the definition of '{}'", callee.name))?;
+
+    let body_expression = single_expression_body(declaration, &callee_source).ok_or_else(|| {
+        anyhow::anyhow!(
+            "'{}' is not a single-expression function; inlining a multi-statement body \
+             would have to preserve evaluation order and shadowing, which is not supported",
+            callee.name
+        )
+    })?;
+
+    // Pair parameters with the arguments written at this call site.
+    let caller_source = std::fs::read_to_string(file)?;
+    let caller_parsed = Parsers::new().parse(reference.language, &caller_source)?;
+    let call_node = enclosing_call(&caller_parsed, reference.span)
+        .ok_or_else(|| anyhow::anyhow!("could not locate the call expression"))?;
+    let call_span = Span::from(call_node);
+
+    let parameters = parameter_names(declaration, &callee_source);
+    let arguments = argument_texts(call_node, &caller_source);
+    if parameters.len() != arguments.len() {
+        anyhow::bail!(
+            "'{}' takes {} parameter(s) but the call passes {}; inlining would change \
+             the meaning",
+            callee.name,
+            parameters.len(),
+            arguments.len()
+        );
+    }
+
+    // Substituting an argument more than once would evaluate it more than once.
+    let body_text = body_expression.text(&callee_source);
+    for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
+        let uses = count_word(body_text, parameter);
+        if uses > 1 && !is_duplicable(argument) {
+            anyhow::bail!(
+                "'{parameter}' is used {uses} times in the body and the argument \
+                 `{argument}` is not a simple value; inlining would evaluate it more \
+                 than once"
+            );
+        }
+    }
+
+    let mut expansion = substitute_words(body_text, &parameters, &arguments);
+    // The body was an expression in its own right; parenthesise it so it keeps its
+    // meaning inside whatever expression the call sat in.
+    if needs_parentheses(&expansion) {
+        expansion = format!("({expansion})");
+    }
+
+    let mut edits = EditSet::new();
+    edits.add(
+        file.to_path_buf(),
+        Edit::new(
+            call_span,
+            expansion.clone(),
+            format!("inline call to {}", callee.name),
+        ),
+    );
+
+    Ok(InlineCallPlan {
+        function: callee.name.clone(),
+        expansion,
+        edits,
+    })
+}
+
+/// The single expression a function body evaluates to, if that is all it does.
+fn single_expression_body<'a>(
+    declaration: tree_sitter::Node<'a>,
+    source: &str,
+) -> Option<Span> {
+    let body = declaration.child_by_field_name("body")?;
+    let mut cursor = body.walk();
+    let statements: Vec<tree_sitter::Node> = body
+        .named_children(&mut cursor)
+        .filter(|n| !n.kind().contains("comment"))
+        .collect();
+    if statements.len() != 1 {
+        return None;
+    }
+
+    let only = statements[0];
+    let kind = only.kind();
+    // `return expr` and a bare trailing expression both qualify.
+    if kind.contains("return") {
+        let mut inner = only.walk();
+        let value = only.named_children(&mut inner).next()?;
+        return Some(Span::from(value));
+    }
+    if kind.contains("expression_statement") {
+        let mut inner = only.walk();
+        let value = only.named_children(&mut inner).next()?;
+        return Some(Span::from(value));
+    }
+    if kind.contains("statement") || kind.contains("declaration") {
+        return None;
+    }
+    let _ = source;
+    Some(Span::from(only))
+}
+
+/// Parameter names of a declaration, in order.
+fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
+    let Some(list) = declaration.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    let mut cursor = list.walk();
+    list.named_children(&mut cursor)
+        .filter(|n| !n.kind().contains("comment"))
+        .map(|n| {
+            // A typed parameter names itself in its first identifier child.
+            let name = n
+                .child_by_field_name("pattern")
+                .or_else(|| n.child_by_field_name("name"))
+                .unwrap_or(n);
+            Span::from(name).text(source).trim().to_string()
+        })
+        .collect()
+}
+
+/// Argument texts of a call, in order.
+fn argument_texts(call: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
+    let Some(list) = call.child_by_field_name("arguments") else {
+        return Vec::new();
+    };
+    let mut cursor = list.walk();
+    list.named_children(&mut cursor)
+        .filter(|n| !n.kind().contains("comment"))
+        .map(|n| Span::from(n).text(source).trim().to_string())
+        .collect()
+}
+
+/// The call expression containing `span`.
+fn enclosing_call<'a>(parsed: &'a crate::parse::Parsed, span: Span) -> Option<tree_sitter::Node<'a>> {
+    let mut node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)?;
+    for _ in 0..8 {
+        if node.kind().contains("call") {
+            return Some(node);
+        }
+        node = node.parent()?;
+    }
+    None
+}
+
+/// May this argument be substituted more than once without changing behaviour?
+fn is_duplicable(argument: &str) -> bool {
+    // A bare name or a literal has no effects and costs nothing to repeat.
+    let trimmed = argument.trim();
+    !trimmed.is_empty()
+        && trimmed
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '.' || c == '"')
+        && !trimmed.contains('(')
+}
+
+/// Count whole-word occurrences of `word`.
+fn count_word(haystack: &str, word: &str) -> usize {
+    haystack
+        .match_indices(word)
+        .filter(|(i, _)| word_boundary(haystack, *i, word.len()))
+        .count()
+}
+
+/// Replace whole-word occurrences of each name with its argument.
+fn substitute_words(body: &str, names: &[String], values: &[String]) -> String {
+    let mut out = body.to_string();
+    for (name, value) in names.iter().zip(values.iter()) {
+        let mut result = String::with_capacity(out.len());
+        let mut rest = out.as_str();
+        let mut base = 0usize;
+        while let Some(found) = rest.find(name.as_str()) {
+            let absolute = base + found;
+            if word_boundary(&out, absolute, name.len()) {
+                result.push_str(&rest[..found]);
+                result.push_str(value);
+            } else {
+                result.push_str(&rest[..found + name.len()]);
+            }
+            rest = &rest[found + name.len()..];
+            base = absolute + name.len();
+        }
+        result.push_str(rest);
+        out = result;
+    }
+    out
+}
+
+fn word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
+    let before = haystack[..offset]
+        .chars()
+        .next_back()
+        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
+    let after = haystack[offset + len..]
+        .chars()
+        .next()
+        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
+    before && after
+}
+
+/// Does the expansion need wrapping to survive its new context?
+fn needs_parentheses(expansion: &str) -> bool {
+    let trimmed = expansion.trim();
+    // A single token or an already-bracketed expression is safe as-is.
+    if trimmed
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
+    {
+        return false;
+    }
+    if trimmed.starts_with('(') && trimmed.ends_with(')') {
+        return false;
+    }
+    // Anything containing an operator could re-associate with its surroundings.
+    trimmed.contains(|c| matches!(c, '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '&' | '|'))
+}
