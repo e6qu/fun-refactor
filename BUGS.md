@@ -42,10 +42,23 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   which call arguments are class lists, which is a per-library convention (`clsx`,
   `classnames`, `cva`, `tailwind-merge`) rather than a language rule.
 
-- [ ] B11: three SCSS forms fail under `tree-sitter-scss`, each refused rather than
-  mis-handled: empty parentheses on a declaration (`@mixin m()`), empty parentheses on
-  a call (`@include m();`), and a namespaced include after `@use 'x' as t`
-  (`@include t.m(…)`). Fixing these is upstream grammar work.
+- [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse, each surfaced as a parse
+  error rather than mis-handled. Found by hand: empty parentheses on a declaration
+  (`@mixin m()`), empty parentheses on a call (`@include m();`), and a namespaced
+  include after `@use 'x' as t` (`@include t.m(…)`). Found by running over
+  grafana/grafana, where they cost 5 of 8 stylesheets: **`@content`** inside a mixin,
+  and **map literals** (`$m: (a: 1, b: 2)`). The last two are ordinary Sass, so SCSS
+  coverage is materially worse than the three hand-found cases suggested. Fixing any
+  of them is upstream grammar work.
+
+- [ ] B15: `tree-sitter-go` parses `new(…)` as the builtin, which takes a *type*, so
+  a call to a user-defined function named `new` fails — `new("-10s")` and
+  `new(err.Error())` both produce error nodes. In Go `new` is a predeclared
+  identifier, not a keyword, and may be shadowed, so this is an upstream grammar bug
+  rather than invalid source. It accounts for **177 of the 178 Go files** that fail to
+  parse in grafana/grafana (2.9% of 6,214); the remaining one is unexplained. Files
+  still index, since an error node is local to its subtree — what is lost are the
+  facts inside that expression.
 
 ## Fixed
 

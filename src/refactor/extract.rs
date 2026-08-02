@@ -1046,9 +1046,7 @@ fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> 
 
 /// The smallest node covering the selection.
 fn descendant_at<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
-    parsed
-        .root()
-        .descendant_for_byte_range(span.start, span.end.max(span.start))
+    parsed.descendant_at(span.start, span.end.max(span.start))
 }
 
 /// The innermost ancestor of `node` (or `node` itself) with this kind.
@@ -1679,7 +1677,7 @@ fn markdown_link_definition(
 
     let node = descendant_at(&parsed, span)
         .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
-    let link = ancestor_of_kind(node, "link").ok_or_else(|| {
+    let link = markdown_link_ancestor(node).ok_or_else(|| {
         anyhow::anyhow!(
             "no link at bytes {span} in {}; select an inline link `[text](destination)`",
             file.display()
@@ -1694,14 +1692,17 @@ fn markdown_link_definition(
     })?;
 
     let targets: Vec<Span> = if all_occurrences {
-        collect_nodes(parsed.root(), |n| {
-            n.kind() == "link"
-                && markdown_inline_destination(n, &source)
-                    .is_some_and(|(_, d)| d == destination)
-        })
-        .into_iter()
-        .filter_map(|n| markdown_inline_destination(n, &source).map(|(p, _)| p))
-        .collect()
+        parsed
+            .roots()
+            .flat_map(|root| {
+                collect_nodes(root, |n| {
+                    MARKDOWN_LINK_KINDS.contains(&n.kind())
+                        && markdown_inline_destination(n, &source)
+                            .is_some_and(|(_, d)| d == destination)
+                })
+            })
+            .filter_map(|n| markdown_inline_destination(n, &source).map(|(p, _)| p))
+            .collect()
     } else {
         vec![parens]
     };
@@ -1745,6 +1746,31 @@ fn markdown_link_definition(
     })
 }
 
+/// The Markdown node kinds that are links.
+///
+/// All four live in the inline grammar: the block grammar leaves a paragraph's text
+/// opaque, so a link is only ever a node in an inline sub-tree.
+const MARKDOWN_LINK_KINDS: [&str; 4] = [
+    "inline_link",
+    "full_reference_link",
+    "collapsed_reference_link",
+    "shortcut_link",
+];
+
+/// The innermost link enclosing `node`, whichever of the four spellings it is.
+///
+/// Reference links are found too, so selecting one is refused for having no inline
+/// destination rather than for not being a link at all.
+fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node;
+    loop {
+        if MARKDOWN_LINK_KINDS.contains(&current.kind()) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
 /// The `(destination)` of an inline link: the span including both parentheses, and
 /// the text between them (destination plus any title, verbatim).
 fn markdown_inline_destination(link: Node<'_>, source: &str) -> Option<(Span, String)> {
@@ -1764,11 +1790,18 @@ fn markdown_inline_destination(link: Node<'_>, source: &str) -> Option<(Span, St
 
 /// Does the document already end with a link reference definition?
 fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
-    let root = parsed.root();
-    let mut cursor = root.walk();
-    root.named_children(&mut cursor)
-        .last()
-        .is_some_and(|n| n.kind() == "link_reference_definition")
+    // Blocks hang off `section` nodes rather than off the document, so the last block
+    // is at the bottom of the last section.
+    let mut node = parsed.root();
+    loop {
+        let mut cursor = node.walk();
+        let last = node.named_children(&mut cursor).last();
+        match last {
+            Some(last) if last.kind() == "link_reference_definition" => return true,
+            Some(last) if last.kind() == "section" => node = last,
+            _ => return false,
+        }
+    }
 }
 
 // ------------------------------------------------------- Helm named template

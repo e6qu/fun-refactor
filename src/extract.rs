@@ -24,7 +24,7 @@ use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
 use streaming_iterator::StreamingIterator;
-use tree_sitter::{Query, QueryCursor};
+use tree_sitter::{Node, Query, QueryCursor};
 
 /// The query source for a language, for callers that need to fingerprint them.
 pub fn query_source_for(lang: Language) -> Option<&'static str> {
@@ -48,6 +48,30 @@ fn query_source(lang: Language) -> Option<&'static str> {
         Language::Yaml | Language::Helm => include_str!("../queries/yaml/facts.scm"),
         Language::Markdown => include_str!("../queries/markdown/facts.scm"),
     })
+}
+
+/// Separates the halves of a query file that compile against different grammars.
+///
+/// Markdown is parsed by two grammars — one for block structure, one for the inline
+/// content the block grammar leaves opaque — and a query only compiles against the
+/// grammar whose node names it uses. Both halves stay in one file per language, so
+/// `queries/<language>/facts.scm` remains the whole story for that language.
+const INLINE_SECTION: &str = "; ==== inline grammar ====";
+
+/// The half of a language's fact queries that compiles against its main grammar.
+fn block_query_source(lang: Language) -> Option<&'static str> {
+    let source = query_source(lang)?;
+    Some(match source.split_once(INLINE_SECTION) {
+        Some((block, _)) => block,
+        None => source,
+    })
+}
+
+/// The half that compiles against the inline grammar, for languages that have one.
+fn inline_query_source(lang: Language) -> Option<&'static str> {
+    query_source(lang)?
+        .split_once(INLINE_SECTION)
+        .map(|(_, inline)| inline)
 }
 
 fn symbol_kind(name: &str) -> Option<SymbolKind> {
@@ -95,7 +119,7 @@ fn reference_kind(name: &str) -> Option<ReferenceKind> {
 /// Markdown's ATX headings include the padding after the `#`. Since a rename rewrites
 /// exactly the bytes of a name span, an unrefined span would produce `id=""new""` or
 /// re-insert the original padding. Trimming here fixes every language at once.
-fn refine_name_span(span: Span, source: &str) -> Span {
+fn refine_name_span(span: Span, source: &str, lang: Language) -> Span {
     let text = span.text(source);
 
     // Leading and trailing whitespace is never part of a name.
@@ -115,7 +139,31 @@ fn refine_name_span(span: Span, source: &str) -> Span {
         }
     }
 
-    Span::new(start, end.max(start))
+    let span = Span::new(start, end.max(start));
+    if lang == Language::Markdown {
+        return trim_markdown_syntax(span, source);
+    }
+    span
+}
+
+/// Strip the Markdown syntax the grammar leaves inside a name.
+///
+/// A link label is a single node that includes its brackets (`[label]`), and an ATX
+/// heading's content includes the optional closing marker (`## Title ##`). A rename
+/// rewrites exactly the name span, so leaving either in would write `new: /a` for a
+/// link reference definition, or leave a stray `##` on a renamed heading.
+fn trim_markdown_syntax(span: Span, source: &str) -> Span {
+    let text = span.text(source);
+    if text.len() > 1 && text.starts_with('[') && text.ends_with(']') {
+        return Span::new(span.start + 1, span.end - 1);
+    }
+    // CommonMark only reads a trailing run of `#` as a closing marker when a space
+    // precedes it, which is what keeps `# C#` naming the heading `C#`.
+    let without_marker = text.trim_end_matches('#');
+    if without_marker.len() < text.len() && without_marker.ends_with(char::is_whitespace) {
+        return Span::new(span.start, span.start + without_marker.trim_end().len());
+    }
+    span
 }
 
 /// Split a whitespace-separated attribute value into one span per token.
@@ -158,34 +206,58 @@ fn reference_specificity(kind: ReferenceKind) -> u8 {
 /// Compiled queries, cached per language.
 pub struct Extractor {
     queries: HashMap<Language, Query>,
+    inline_queries: HashMap<Language, Query>,
 }
 
 impl Extractor {
     pub fn new() -> Self {
         Self {
             queries: HashMap::new(),
+            inline_queries: HashMap::new(),
         }
     }
 
-    fn query_for(&mut self, lang: Language, grammar: &tree_sitter::Language) -> Result<&Query> {
+    fn compile_query(&mut self, lang: Language, grammar: &tree_sitter::Language) -> Result<()> {
         if let std::collections::hash_map::Entry::Vacant(slot) = self.queries.entry(lang) {
-            let source = query_source(lang)
+            let source = block_query_source(lang)
                 .with_context(|| format!("no fact queries defined for {lang}"))?;
             let query = Query::new(grammar, source)
                 .with_context(|| format!("compiling {lang} fact queries"))?;
             slot.insert(query);
         }
-        Ok(&self.queries[&lang])
+        Ok(())
+    }
+
+    fn compile_inline_query(
+        &mut self,
+        lang: Language,
+        grammar: &tree_sitter::Language,
+    ) -> Result<()> {
+        if let std::collections::hash_map::Entry::Vacant(slot) = self.inline_queries.entry(lang) {
+            let source = inline_query_source(lang)
+                .with_context(|| format!("no inline fact queries defined for {lang}"))?;
+            let query = Query::new(grammar, source)
+                .with_context(|| format!("compiling {lang} inline fact queries"))?;
+            slot.insert(query);
+        }
+        Ok(())
     }
 
     /// Extract every fact from one parsed file.
     pub fn extract(&mut self, parsed: &Parsed, path: &Path, source: &str) -> Result<FileFacts> {
         let lang = parsed.language;
         let root = parsed.root();
-        let grammar = root.language();
-        let query = self.query_for(lang, &grammar)?;
-        let capture_names: Vec<String> =
-            query.capture_names().iter().map(|s| s.to_string()).collect();
+        self.compile_query(lang, &root.language())?;
+        // A language whose grammar splits block and inline parsing (Markdown) hands
+        // over one sub-tree per inline node. Their spans index the same source as the
+        // block tree's, so their facts join the same pass.
+        if let Some(inline_root) = parsed.inline_roots().next() {
+            self.compile_inline_query(lang, &inline_root.language())?;
+        }
+        let mut units: Vec<(&Query, Node<'_>)> = vec![(&self.queries[&lang], root)];
+        if let Some(query) = self.inline_queries.get(&lang) {
+            units.extend(parsed.inline_roots().map(|node| (query, node)));
+        }
 
         // Pass 1: collect raw captures grouped by match.
         let mut raw_scopes: Vec<Span> = vec![Span::from(root)];
@@ -195,80 +267,84 @@ impl Extractor {
         // (container span, name span) for constructs that qualify nested symbols.
         let mut containers: Vec<(Span, Span)> = Vec::new();
 
-        let mut cursor = QueryCursor::new();
-        let mut matches = cursor.matches(query, root, source.as_bytes());
+        for (query, root) in units {
+            let capture_names: Vec<String> =
+                query.capture_names().iter().map(|s| s.to_string()).collect();
+            let mut cursor = QueryCursor::new();
+            let mut matches = cursor.matches(query, root, source.as_bytes());
 
-        while let Some(m) = matches.next() {
-            let mut def: Option<(SymbolKind, Span)> = None;
-            let mut name: Option<Span> = None;
-            let mut exported = false;
-            let mut import_parts = ImportParts::default();
-            let mut is_import = false;
-            let mut container_span: Option<Span> = None;
-            let mut container_name: Option<Span> = None;
+            while let Some(m) = matches.next() {
+                let mut def: Option<(SymbolKind, Span)> = None;
+                let mut name: Option<Span> = None;
+                let mut exported = false;
+                let mut import_parts = ImportParts::default();
+                let mut is_import = false;
+                let mut container_span: Option<Span> = None;
+                let mut container_name: Option<Span> = None;
 
-            for cap in m.captures {
-                let cap_name = &capture_names[cap.index as usize];
-                let span = Span::from(cap.node);
+                for cap in m.captures {
+                    let cap_name = &capture_names[cap.index as usize];
+                    let span = Span::from(cap.node);
 
-                if cap_name == "scope" {
-                    raw_scopes.push(span);
-                } else if cap_name == "name" {
-                    name = Some(span);
-                } else if cap_name == "export" {
-                    exported = true;
-                } else if cap_name == "container" {
-                    container_span = Some(span);
-                } else if cap_name == "container.name" {
-                    container_name = Some(span);
-                } else if let Some(kind) = cap_name
-                    .strip_prefix("definition.")
-                    .and_then(symbol_kind)
-                {
-                    def = Some((kind, span));
-                } else if let Some(kind) = cap_name
-                    .strip_prefix("reference.")
-                    .and_then(reference_kind)
-                {
-                    raw_refs.push(RawRef { kind, span });
-                } else if cap_name == "import" {
-                    is_import = true;
-                    import_parts.span = Some(span);
-                } else if cap_name == "import.path" {
-                    import_parts.path = Some(span);
-                } else if cap_name == "import.alias" {
-                    import_parts.alias = Some(span);
-                } else if cap_name == "import.name" {
-                    import_parts.names.push(span);
-                } else if cap_name == "import.original" {
-                    import_parts.originals.push(span);
-                } else if cap_name == "import.glob" {
-                    import_parts.is_glob = true;
-                }
-            }
-
-            if let Some((kind, full_span)) = def {
-                // A definition without an identifier cannot be renamed or referenced,
-                // so it is not a usable symbol.
-                if let Some(name_span) = name {
-                    let name_span = refine_name_span(name_span, source);
-                    if !name_span.is_empty() {
-                        raw_defs.push(RawDef {
-                            kind,
-                            full_span,
-                            name_span,
-                            exported,
-                        });
+                    if cap_name == "scope" {
+                        raw_scopes.push(span);
+                    } else if cap_name == "name" {
+                        name = Some(span);
+                    } else if cap_name == "export" {
+                        exported = true;
+                    } else if cap_name == "container" {
+                        container_span = Some(span);
+                    } else if cap_name == "container.name" {
+                        container_name = Some(span);
+                    } else if let Some(kind) = cap_name
+                        .strip_prefix("definition.")
+                        .and_then(symbol_kind)
+                    {
+                        def = Some((kind, span));
+                    } else if let Some(kind) = cap_name
+                        .strip_prefix("reference.")
+                        .and_then(reference_kind)
+                    {
+                        raw_refs.push(RawRef { kind, span });
+                    } else if cap_name == "import" {
+                        is_import = true;
+                        import_parts.span = Some(span);
+                    } else if cap_name == "import.path" {
+                        import_parts.path = Some(span);
+                    } else if cap_name == "import.alias" {
+                        import_parts.alias = Some(span);
+                    } else if cap_name == "import.name" {
+                        import_parts.names.push(span);
+                    } else if cap_name == "import.original" {
+                        import_parts.originals.push(span);
+                    } else if cap_name == "import.glob" {
+                        import_parts.is_glob = true;
                     }
                 }
-            }
 
-            if let (Some(span), Some(name_span)) = (container_span, container_name) {
-                containers.push((span, name_span));
-            }
+                if let Some((kind, full_span)) = def {
+                    // A definition without an identifier cannot be renamed or referenced,
+                    // so it is not a usable symbol.
+                    if let Some(name_span) = name {
+                        let name_span = refine_name_span(name_span, source, lang);
+                        if !name_span.is_empty() {
+                            raw_defs.push(RawDef {
+                                kind,
+                                full_span,
+                                name_span,
+                                exported,
+                            });
+                        }
+                    }
+                }
 
-            if is_import {
-                imports.push(import_parts.build(source, path));
+                if let (Some(span), Some(name_span)) = (container_span, container_name) {
+                    containers.push((span, name_span));
+                }
+
+                if is_import {
+                    imports.push(import_parts.build(source, path));
+                }
             }
         }
         containers.sort();
@@ -352,7 +428,7 @@ impl Extractor {
             symbols.iter().map(|s| s.name_span).collect();
         let mut references = Vec::new();
         for r in raw_refs {
-            let refined = refine_name_span(r.span, source);
+            let refined = refine_name_span(r.span, source, lang);
             if def_name_spans.contains(&refined) || refined.is_empty() {
                 continue;
             }
@@ -622,24 +698,53 @@ mod tests {
     fn name_spans_are_trimmed_of_quotes_and_padding() {
         // Whitespace padding is never part of a name.
         let src = r#"x = "  padded  ""#;
-        assert_eq!(refine_name_span(Span::new(5, 15), src).text(src), "padded");
+        assert_eq!(
+            refine_name_span(Span::new(5, 15), src, Language::Rust).text(src),
+            "padded"
+        );
 
         // A matched quote pair belongs to the syntax, not the name: without this a
         // rename would write id=""new"".
         let quoted = "id=\"main\"";
         let span = Span::new(3, 9);
         assert_eq!(span.text(quoted), "\"main\"");
-        assert_eq!(refine_name_span(span, quoted).text(quoted), "main");
+        assert_eq!(
+            refine_name_span(span, quoted, Language::Html).text(quoted),
+            "main"
+        );
 
-        // Padding around a Markdown heading title.
+        // Padding around a Markdown heading title, and the optional closing marker
+        // that this grammar keeps inside the heading content.
         let heading = "#   Title   ";
         let span = Span::new(1, heading.len());
-        assert_eq!(refine_name_span(span, heading).text(heading), "Title");
+        assert_eq!(
+            refine_name_span(span, heading, Language::Markdown).text(heading),
+            "Title"
+        );
+        let closed = "#   Title   #";
+        let span = Span::new(1, closed.len());
+        assert_eq!(
+            refine_name_span(span, closed, Language::Markdown).text(closed),
+            "Title"
+        );
+        // A heading that really ends in `#` keeps it: no space precedes the run.
+        let sharp = "# C#";
+        let span = Span::new(1, sharp.len());
+        assert_eq!(
+            refine_name_span(span, sharp, Language::Markdown).text(sharp),
+            "C#"
+        );
+        // A link label is one node including its brackets.
+        let label = "[label]: /a";
+        assert_eq!(
+            refine_name_span(Span::new(0, 7), label, Language::Markdown).text(label),
+            "label"
+        );
 
         // Unmatched quotes are left alone rather than half-trimmed.
         let odd = "\"unclosed";
         assert_eq!(
-            refine_name_span(Span::new(0, odd.len()), odd).text(odd),
+            refine_name_span(Span::new(0, odd.len()), odd, Language::Rust).text(odd),
             "\"unclosed"
         );
     }
