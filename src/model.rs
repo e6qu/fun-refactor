@@ -170,6 +170,9 @@ pub struct Symbol {
     pub name_span: Span,
     /// Span of the whole definition, including body. This is what a move or delete edits.
     pub full_span: Span,
+    /// Not serialized: every item in a file shares one path, which the cache restores
+    /// on load. Storing it per item made entries several times larger than the source.
+    #[serde(skip)]
     pub file: PathBuf,
     pub language: Language,
     /// Innermost scope containing the definition.
@@ -202,6 +205,8 @@ pub struct Reference {
     pub name: String,
     /// Span of the identifier at the use site. This is what a rename edits.
     pub span: Span,
+    /// Not serialized; see [`Symbol::file`].
+    #[serde(skip)]
     pub file: PathBuf,
     pub language: Language,
     /// Innermost scope containing the reference.
@@ -247,6 +252,8 @@ pub struct Import {
     /// The specific names imported, for languages with named imports.
     pub names: Vec<ImportedName>,
     pub span: Span,
+    /// Not serialized; see [`Symbol::file`].
+    #[serde(skip)]
     pub file: PathBuf,
     /// True for glob imports (`use x::*`, `from m import *`), which make
     /// name resolution ambiguous and force a confidence downgrade.
@@ -273,6 +280,10 @@ impl ImportedName {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FileFacts {
     pub path: PathBuf,
+    /// Whether the file parsed cleanly. Carried with the facts so a cached entry
+    /// answers the question without reparsing.
+    #[serde(default)]
+    pub had_parse_errors: bool,
     pub symbols: Vec<Symbol>,
     pub references: Vec<Reference>,
     pub scopes: Vec<Scope>,

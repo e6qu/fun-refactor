@@ -49,6 +49,17 @@ impl Index {
     }
 
     pub fn build_from_scan(scan_result: &ScanResult) -> Result<Self> {
+        Self::build_with_cache(scan_result, crate::cache::Cache::open().as_ref())
+    }
+
+    /// Build an index, reusing previously extracted facts where the content matches.
+    ///
+    /// Parsing and extraction dominate indexing cost and depend only on a file's bytes
+    /// and the query set, so an unchanged file need never be looked at twice.
+    pub fn build_with_cache(
+        scan_result: &ScanResult,
+        cache: Option<&crate::cache::Cache>,
+    ) -> Result<Self> {
         let parsers = Parsers::new();
         let mut extractor = Extractor::new();
         let mut index = Index::default();
@@ -67,11 +78,27 @@ impl Index {
                     continue;
                 }
             };
+            // A cached entry carries its own parse-error flag, so a hit skips
+            // parsing entirely rather than reparsing to ask.
+            let key = cache.map(|_| crate::cache::Cache::key(file.language, &source));
+            if let (Some(cache), Some(key)) = (cache, key.as_deref()) {
+                if let Some(facts) = cache.get(key, &file.path) {
+                    let had_errors = facts.had_parse_errors;
+                    index.add_file(facts, file.language, had_errors);
+                    continue;
+                }
+            }
+
             let parsed = parsers.parse(file.language, &source)?;
             let had_parse_errors = parsed.has_errors();
-            let facts = extractor
+            let mut facts = extractor
                 .extract(&parsed, &file.path, &source)
                 .with_context(|| format!("extracting facts from {}", file.path.display()))?;
+            facts.had_parse_errors = had_parse_errors;
+
+            if let (Some(cache), Some(key)) = (cache, key.as_deref()) {
+                cache.put(key, &facts);
+            }
             index.add_file(facts, file.language, had_parse_errors);
         }
 

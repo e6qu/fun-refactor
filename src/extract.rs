@@ -26,6 +26,11 @@ use std::path::Path;
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Query, QueryCursor};
 
+/// The query source for a language, for callers that need to fingerprint them.
+pub fn query_source_for(lang: Language) -> Option<&'static str> {
+    query_source(lang)
+}
+
 /// Query sources per language, embedded at compile time.
 fn query_source(lang: Language) -> Option<&'static str> {
     Some(match lang {
@@ -378,6 +383,8 @@ impl Extractor {
 
         Ok(FileFacts {
             path: path.to_path_buf(),
+            // The caller knows whether the parse was clean; extraction does not set it.
+            had_parse_errors: parsed.has_errors(),
             symbols,
             references,
             scopes,

@@ -52,6 +52,7 @@ does not apply and why.
 ## Commands
 
 ```
+fr cache                      # where cached facts live, and how big
 fr scan                       # files it can act on
 fr parse --stats              # syntax health per language
 fr symbols --kind function    # what is defined
@@ -84,6 +85,10 @@ fr entrypoints --kind http-route
 
 Every command takes `--json`. Every mutation prints a diff and changes nothing
 unless you add `--write`, and a multi-file change is applied atomically.
+
+Extracted facts are cached by file content and query set, so a repeated command
+re-reads only what changed — around 3–5× faster on a warm cache. `--no-cache`
+bypasses it; `fr cache --clear` empties it.
 
 ## What it will not do
 
@@ -122,7 +127,7 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 633 tests.
+Stages 0–7 of [PLAN.md](PLAN.md) are complete; 8 is partial. 649 tests.
 
 Not yet built: the optional LSP delegation backend, and a daemon/watch mode for
 incremental reindexing.
