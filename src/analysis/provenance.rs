@@ -1750,6 +1750,17 @@ impl Ctx<'_> {
         if self.over_depth(depth) {
             return Ok(());
         }
+        let source = self.source(&sym.file)?;
+        let hop = self.hop(
+            Some(sym.id),
+            EdgeKind::Declaration,
+            snippet(sym.full_span.text(&source)),
+            &sym.file,
+            sym.full_span,
+            depth,
+        )?;
+        self.push_hop(hop);
+
         match sym.kind {
             SymbolKind::Property => self.css_property(&sym.name, depth, Some(sym.id)),
             SymbolKind::Selector | SymbolKind::ElementId => self.css_selector(sym, depth),

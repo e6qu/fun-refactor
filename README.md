@@ -35,9 +35,13 @@ survey the design is based on, with sources.
 | call graph | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — |
 | entry points | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ |
 | flow (def-use) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — |
-| extract / inline | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
+| provenance | — | — | — | — | — | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| extract / inline var | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
 | change signature | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
 | move to file | — | — | — | ✓ | ✓ | — | — | — | — | — | — | — |
+| safe delete | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| organize imports | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
+| restructure | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 A `—` is a deliberate refusal, not a silent no-op: the tool tells you the operation
 does not apply and why.
@@ -55,11 +59,17 @@ fr extract <path:l:c-l:c> <n> # extract an expression into a binding
 fr inline <target>            # replace a variable's uses with its value
 fr signature <target> remove:1  # change parameters, update every call site
 fr move <target> <dest-file>  # move a symbol, update imports
+fr delete <target>            # delete it, refusing if anything uses it
+fr unused                     # symbols nothing appears to use
+fr imports <file>             # drop unused imports, sort the rest
+fr restructure 'old($X)' 'new($X)' --lang rust
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call
 fr graph --dot                # the call graph
 fr flow back <target>         # where did this value come from
 fr flow fwd <target>          # where does it go
+                              #   (def-use for code, substitution/override
+                              #    provenance for config languages)
 fr impact <target>            # everything a change could affect
 fr entrypoints --kind http-route
 ```
@@ -104,10 +114,17 @@ framework or a language means adding data.
 
 ## Status
 
-Stages 0–3 and most of 5–7 of [PLAN.md](PLAN.md) are implemented, with 485 tests.
+Stages 0–4 and 6 of [PLAN.md](PLAN.md) are complete; 5, 7 and 8 are partial. 572
+tests.
+
+Not yet built: extract *function* (needs the ins→params/outs→returns analysis),
+inline call, stitched Helm-value→env-var→code flows, the micro-rewrite tail, and the
+optional LSP backend.
+
 Known limitations are tracked in [BUGS.md](BUGS.md) — notably SCSS runs on the CSS
-grammar, and Helm template actions are masked before YAML parsing so their contents
-are not yet analysed.
+grammar, Helm template actions are masked before YAML parsing so `.Values` references
+are not yet resolved, and import liveness is decided by name, which cannot see a
+module imported purely for a side effect.
 
 ## Licence
 
