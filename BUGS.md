@@ -26,3 +26,25 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 - [x] B0b: `.gitignore` was ignored outside a git repository, so scans of worktrees
   and exported trees walked `target/`, `node_modules/` etc — `src/scan.rs`. Fixed with
   `WalkBuilder::require_git(false)`.
+
+## Open (added during implementation)
+
+- [ ] B3: Deleting a CSS selector removes only the selector bytes, orphaning its
+  `{ ... }` block — `queries/css/facts.scm` captures `class_selector` as the
+  definition rather than the enclosing rule set. The reparse check rejects the edit,
+  so nothing reaches disk, but the operation cannot succeed until the query captures
+  the rule set as `full_span`.
+- [ ] B4: Organize-imports decides liveness by name, so a Python module imported for
+  a registration side effect, or a TypeScript type used only in a JSDoc comment,
+  looks unused. Rust trait-shaped (upper-camel-case) bindings are held back for this
+  reason; the equivalent guard does not exist for other languages.
+- [ ] B5: `find_unused` follows resolved call edges only, so dynamic dispatch,
+  reflection and string-keyed handler tables can put live code on the list, and
+  mutual recursion can hide dead code from it. Stated in the command output.
+- [ ] B6: Consecutive standalone Go `import "x"` lines are not sorted — the `import`
+  keyword sits outside the `import_spec` span, so the separator is non-whitespace and
+  ends the block. Parenthesised gofmt-style blocks sort correctly.
+- [ ] B7: Helm `.Values` references live inside masked template actions and are
+  therefore invisible to the YAML queries. Resolving them needs a template-aware pass
+  over `Parsed::template_actions`; provenance reports them as render-dependent rather
+  than guessing.

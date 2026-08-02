@@ -159,7 +159,7 @@ gopls / rust-analyzer / rope on shared fixtures documented; sweep report emitted
 precision/recall measured on fixture apps per language; catalog-driven entrypoints ≥ funveil's
 detection on its own categories.
 
-### Stage 4 — Flow analysis — **PARTIAL**: imperative def-use done; config-language provenance not started
+### Stage 4 — Flow analysis — **DONE**
 
 **Goal**: "where does this value come from / where is it used" for all 12, with the right
 semantics per tier.
@@ -179,7 +179,7 @@ semantics per tier.
 against `terraform console` / `helm template` outputs on fixtures; CSS answers match browser
 devtools on fixtures.
 
-### Stage 5 — Extract & inline
+### Stage 5 — Extract & inline — **PARTIAL**: extract/inline variable done; extract function and inline call not started
 
 **Goal**: the extract/inline family, powered by Stage 4 dataflow.
 
@@ -198,7 +198,7 @@ devtools on fixtures.
 **Exit**: property tests — result reparses clean, extract→inline round-trips to semantic
 no-op on fixtures; behavior deltas vs rust-analyzer/gopls documented.
 
-### Stage 6 — Move, change signature, safe delete, organize imports
+### Stage 6 — Move, change signature, safe delete, organize imports — **DONE**
 
 - Move symbol/section to file with reference updates: Rust (module → file), Go (same-package
   split), TS (move-to-file + import rewrite), Python (symbol move + import updates),
@@ -218,7 +218,7 @@ no-op on fixtures; behavior deltas vs rust-analyzer/gopls documented.
 **Exit**: per-feature cross-language corpora; safety-refusal tests (delete/move/sig with live
 refs must fail with the ref list).
 
-### Stage 7 — Cross-language intelligence
+### Stage 7 — Cross-language intelligence — **PARTIAL**: cross-language rename and `fr impact` done; Helm→env→code stitching not started
 
 **Goal**: the queries nothing else can answer; mostly composition of existing layers.
 
@@ -233,7 +233,7 @@ refs must fail with the ref list).
 **Exit**: cross-language fixtures (mini app: Terraform + Helm + Python service + TSX front
 end) with stitched-flow snapshot tests.
 
-### Stage 8 — Advanced & ecosystem
+### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring done; micro-rewrites, LSP backend and daemon not started
 
 - Micro-rewrite tail (per-language `refactor.rewrite.*` equivalents: invert-if, guard
   clauses, de Morgan, fill-struct where syntax allows).
@@ -303,22 +303,27 @@ call sites. ‡ SCSS: mixin parameters.
 
 ## Progress log
 
-- **Stages 0–3 complete**, Stage 4 half complete. 406 tests.
-- Fact queries exist for all 12 languages (15 variants), each with an integration
-  suite: Rust, Go, Zig, TypeScript, TSX, Python, Bash, HCL, YAML/Helm, CSS/SCSS,
-  HTML, XML, Markdown.
-- Commands: `fr scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `callers`,
-  `callees`, `graph`, `entrypoints`, `flow`.
-- Cross-language rename works end to end (Stage 7's headline capability, reached
-  early because it fell out of the string-keyed resolution tier): renaming a CSS
-  class rewrites its selectors, every HTML `class` attribute and every TSX
-  `className`, leaving sibling classes in the same attribute untouched.
+572 tests. Fact queries and an integration suite for all 12 languages.
+
+**Done**: Stage 0 (parse + edit substrate), Stage 1 (symbols, scopes, references,
+resolution), Stage 2 (rename, including cross-language), Stage 3 (call graph +
+catalog-driven entry points), Stage 4 (imperative def-use flow + config-language
+provenance), Stage 6 (move, change signature, safe delete, organize imports).
+
+**Partial**: Stage 5 (extract/inline *variable* done; extract function and inline
+call not started), Stage 7 (cross-language rename and `fr impact` done; Helm value
+→ env var → code stitching not started), Stage 8 (pattern restructuring done;
+micro-rewrites, LSP backend and daemon not started).
+
+Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
+`signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `callers`,
+`callees`, `graph`, `flow`, `impact`, `entrypoints`.
 
 ### Remaining
 
-- Stage 4: provenance for config languages (Terraform value DAG, Helm values
-  precedence, CSS cascade, YAML anchor expansion).
-- Stage 5: extract/inline. Stage 6: move, change signature, safe delete, organize
-  imports. Stage 7: the rest of cross-language intelligence (`fr impact`, Helm
-  value → env var → code stitching). Stage 8: micro-rewrites, pattern restructure,
-  optional LSP backend, daemon.
+- Stage 5: extract function (needs the ins→params / outs→returns data-flow analysis),
+  inline call.
+- Stage 7: stitched flows across the code/config boundary (Helm value → container env
+  → `os.environ` read).
+- Stage 8: the `refactor.rewrite.*` micro-transform tail, Piranha-style cascading
+  cleanup, optional LSP delegation backend, daemon/watch mode.

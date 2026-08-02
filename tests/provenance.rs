@@ -209,7 +209,13 @@ fn a_variable_with_a_default_is_still_externally_overridable() {
     )));
     let competition = &result.competitions[0];
     assert_eq!(competition.sources.len(), 1);
-    assert!(competition.winner().unwrap().hop.text.contains("us-east-1"));
+    let winner = competition.winner().unwrap();
+    assert!(winner.hop.text.contains("us-east-1"));
+    assert_eq!(
+        winner.hop.kind,
+        EdgeKind::Default,
+        "a default is a fallback, not an override"
+    );
     assert!(
         !competition.decided,
         "-var on the CLI is invisible from the workspace, so nothing is final"
