@@ -9,6 +9,7 @@
 //! resolution that produced it, and callers decide how much of the tail to show
 //! rather than being handed one result that looks certain.
 
+use crate::analysis::call_graph::Hierarchy;
 use crate::index::Index;
 use crate::model::{Confidence, ReferenceKind, Symbol, SymbolId, SymbolKind};
 use crate::span::{LineIndex, Span};
@@ -161,6 +162,15 @@ pub fn definitions_at(index: &Index, file: &Path, offset: usize) -> Option<Defin
 
 /// Every definition of a known symbol.
 pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
+    definitions_with(&Hierarchy::scan(index), index, symbol_id)
+}
+
+/// [`definitions_of`] against an already-scanned hierarchy.
+pub fn definitions_with(
+    hierarchy: &Hierarchy,
+    index: &Index,
+    symbol_id: SymbolId,
+) -> Definitions {
     let Some(symbol) = index.symbol(symbol_id) else {
         return Definitions {
             query: String::new(),
@@ -181,7 +191,7 @@ pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
     }
 
     // Concrete implementations, when the thing asked about is an abstraction.
-    for implementation in implementations_of(index, symbol_id) {
+    for implementation in implementations_with(hierarchy, index, symbol_id) {
         if let Some(concrete) = index.symbol(implementation) {
             definitions.push(definition_of(concrete, DefinitionRole::Implementation));
         }
@@ -200,42 +210,24 @@ pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
 
 /// Concrete implementations of an abstract declaration.
 ///
-/// A method declared on a trait or interface is implemented by same-named methods on
-/// the types that satisfy it. Without type information the relationship is matched by
-/// name, which is exactly the class-hierarchy analysis the call graph uses — so these
-/// are offered as candidates, never as proof.
+/// This is the same question the call graph asks at a dispatch site, answered through
+/// the same [`Hierarchy`] — a Rust `impl Trait for Type`, a Go interface whose method
+/// set a type covers, a TypeScript `implements` clause, a Python base class. Sharing
+/// it means navigation and the graph cannot disagree about what implements what.
+///
+/// Scanning the hierarchy costs a parse per file, so a caller answering many
+/// questions should scan once and use [`implementations_with`].
 pub fn implementations_of(index: &Index, symbol_id: SymbolId) -> Vec<SymbolId> {
-    let Some(symbol) = index.symbol(symbol_id) else {
-        return Vec::new();
-    };
-    if symbol.kind != SymbolKind::Method {
-        return Vec::new();
-    }
+    implementations_with(&Hierarchy::scan(index), index, symbol_id)
+}
 
-    // The declaring type is abstract when it is a trait or interface.
-    let Some(declaring) = symbol.qualifier.as_deref() else {
-        return Vec::new();
-    };
-    let declared_on_abstraction = index
-        .find_symbols(declaring, None)
-        .iter()
-        .any(|s| matches!(s.kind, SymbolKind::Trait | SymbolKind::Interface));
-    if !declared_on_abstraction {
-        return Vec::new();
-    }
-
-    let mut found: Vec<SymbolId> = index
-        .symbols
-        .iter()
-        .filter(|s| s.id != symbol_id)
-        .filter(|s| s.kind == SymbolKind::Method && s.name == symbol.name)
-        // A method on the abstraction itself is the declaration, not an implementation.
-        .filter(|s| s.qualifier.as_deref() != Some(declaring))
-        .map(|s| s.id)
-        .collect();
-    found.sort();
-    found.dedup();
-    found
+/// [`implementations_of`] against an already-scanned hierarchy.
+pub fn implementations_with(
+    hierarchy: &Hierarchy,
+    index: &Index,
+    symbol_id: SymbolId,
+) -> Vec<SymbolId> {
+    hierarchy.implementations_of(index, symbol_id)
 }
 
 /// Every use of a symbol, plus the same-named occurrences that are not uses of it.

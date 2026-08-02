@@ -10,13 +10,21 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Open
 
-- [ ] B5: `find_unused` follows resolved call edges only. Code reached exclusively
-  through a trait object or interface value, a function held in a map or struct
-  field, or a name assembled at runtime is live code with nothing in the workspace to
-  distinguish it from dead code, and is still listed. A symbol used only from a file
-  that failed to parse is the same. Two former halves are fixed: a name spelled in any
-  string literal is now excluded (reflection and handler tables), and a reference
-  cycle nothing outside reaches is now reported as a dead group.
+- [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
+  resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
+  whose method set a type covers by name and arity, a TypeScript `implements`/`extends`
+  clause, and a Python base class each fan an unresolved method call out to every
+  implementation, tagged `field-based`, counted apart from resolved edges by
+  `fr graph`, and named as the reason a symbol was spared. TypeScript additionally
+  falls back to matching the method name alone where no `implements` is written, which
+  is unsound by design and labelled `method-name` rather than `declared-supertype`.
+  What remains is undecidable from the source, not unimplemented: a function held in a
+  map, a struct field or a variable and called through it — nothing declares it a
+  method of any type, so there is no method set to look it up in — and a name assembled
+  at runtime from pieces no string literal spells. A symbol used only from a file that
+  failed to parse is invisible for a third reason, and `delete::plan` reports that file
+  as possibly hiding uses. Zig (comptime duck typing) and Bash declare no
+  implements-relationship at all, so neither has a hierarchy to read.
 - [ ] B13: an answer from supplied values inputs is only as complete as the
   description of them. Given `--set` but no `-f` (or the reverse) the competition is
   decided *given the inputs supplied* and says so, naming the channel it was never

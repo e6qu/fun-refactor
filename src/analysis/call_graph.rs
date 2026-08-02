@@ -742,10 +742,9 @@ pub struct Hierarchy {
     /// Which abstractions declare a given method name — the reverse of `declares`,
     /// so a call site asks about its own name instead of walking every type.
     declarers: HashMap<(Family, String), BTreeSet<String>>,
-    /// Supertypes a type names outright, from `impl T for X`, `implements`,
-    /// `extends`, a Rust supertrait bound or a Python base class list.
-    supertypes: HashMap<TypeKey, BTreeSet<String>>,
-    /// The reverse of `supertypes`: who declares each type as theirs, one level down.
+    /// Subtypes, keyed by the supertype they name: `impl T for X`, `implements`,
+    /// `extends`, a Rust supertrait bound, a Python base class list. Held this way
+    /// round because every question asked of it is "who implements this?".
     direct_subtypes: HashMap<TypeKey, BTreeSet<String>>,
     /// Concrete method sets, name to arity. Go only: it is the sole language here
     /// where implementing an interface is a structural fact rather than a declared
@@ -759,6 +758,49 @@ pub struct Hierarchy {
 }
 
 impl Hierarchy {
+    /// Concrete methods that implement `symbol`, when it declares an abstraction.
+    ///
+    /// The same question the call graph asks at a dispatch site, answered for one
+    /// declaration. Navigation and the graph share it so they cannot disagree about
+    /// what implements what.
+    pub fn implementations_of(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
+        let Some(declaration) = index.symbol(symbol) else {
+            return Vec::new();
+        };
+        if declaration.kind != SymbolKind::Method {
+            return Vec::new();
+        }
+        let Some(family) = Family::of(declaration.language) else {
+            return Vec::new();
+        };
+
+        // Only a method the abstraction itself declares has implementations; a method
+        // on a concrete type already is one.
+        let owner = declaration.qualifier.clone().unwrap_or_default();
+        let declares_it = self
+            .declarers
+            .get(&(family, declaration.name.clone()))
+            .is_some_and(|owners| owners.contains(&owner));
+        if !declares_it {
+            return Vec::new();
+        }
+
+        let mut found: Vec<SymbolId> = Vec::new();
+        for (implementor, _) in self.dispatch_targets(family, &declaration.name) {
+            for candidate in index.find_symbols(&declaration.name, None) {
+                if candidate.id != symbol
+                    && candidate.kind == SymbolKind::Method
+                    && candidate.qualifier.as_deref() == Some(implementor.as_str())
+                {
+                    found.push(candidate.id);
+                }
+            }
+        }
+        found.sort();
+        found.dedup();
+        found
+    }
+
     /// Read every file in the index that belongs to a family with a hierarchy.
     pub fn scan(index: &Index) -> Self {
         let parsers = Parsers::new();
@@ -914,10 +956,9 @@ impl Hierarchy {
 
     fn add_supertype(&mut self, key: TypeKey, supertype: String) {
         self.direct_subtypes
-            .entry((key.0, supertype.clone()))
+            .entry((key.0, supertype))
             .or_default()
-            .insert(key.1.clone());
-        self.supertypes.entry(key).or_default().insert(supertype);
+            .insert(key.1);
     }
 
     // ------------------------------------------------------------------ Rust
@@ -928,9 +969,6 @@ impl Hierarchy {
                     return;
                 };
                 let key = (Family::Rust, name);
-                // A trait with no methods still declares itself, so an empty entry is
-                // created deliberately.
-                self.declares.entry(key.clone()).or_default();
                 if let Some(body) = node.child_by_field_name("body") {
                     for member in named_children(body) {
                         if !matches!(member.kind(), "function_item" | "function_signature_item") {
@@ -987,7 +1025,6 @@ impl Hierarchy {
                     return;
                 }
                 let key = (Family::Go, name);
-                self.declares.entry(key.clone()).or_default();
                 for member in named_children(body) {
                     if member.kind() != "method_elem" {
                         continue;
@@ -1031,7 +1068,6 @@ impl Hierarchy {
                     return;
                 };
                 let key = (Family::Ts, name);
-                self.declares.entry(key.clone()).or_default();
 
                 for child in named_children(node) {
                     match child.kind() {
@@ -1080,7 +1116,6 @@ impl Hierarchy {
                     return;
                 };
                 let key = (Family::Python, name);
-                self.declares.entry(key.clone()).or_default();
 
                 if let Some(bases) = node.child_by_field_name("superclasses") {
                     for base in named_children(bases) {
