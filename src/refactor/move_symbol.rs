@@ -1484,7 +1484,9 @@ fn link_destinations(source: &str) -> Vec<Span> {
         return Vec::new();
     };
     let mut out = Vec::new();
-    let mut stack = vec![parsed.root()];
+    // An inline link's destination lives in an inline sub-tree; only the destination
+    // of a link reference definition is in the block tree.
+    let mut stack: Vec<_> = parsed.roots().collect();
     while let Some(node) = stack.pop() {
         if node.kind() == "link_destination" {
             out.push(Span::from(node));

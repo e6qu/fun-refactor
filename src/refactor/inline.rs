@@ -736,7 +736,7 @@ fn needs_parentheses(expansion: &str) -> bool {
 
 /// The node whose byte range is exactly, or most closely, the given span.
 fn node_covering<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
-    parsed.root().descendant_for_byte_range(span.start, span.end)
+    parsed.descendant_at(span.start, span.end)
 }
 
 /// The innermost ancestor of `node` (or `node` itself) with this kind.
@@ -1368,7 +1368,7 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
     let mut edits = EditSet::new();
     for reference in &references {
         let link = node_covering(&parsed, reference.span)
-            .and_then(|n| ancestor_of_kind(n, "link"))
+            .and_then(markdown_link_ancestor)
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "a use of '[{}]' at byte {} is not a link",
@@ -1406,6 +1406,26 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
         edits,
         use_sites: references.len(),
     })
+}
+
+/// The innermost Markdown link enclosing `node`.
+///
+/// A reference link is a node of the inline grammar, and it has one kind per
+/// spelling: `[t][label]`, `[label][]` and `[label]` are three different nodes.
+fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
+    const KINDS: [&str; 4] = [
+        "inline_link",
+        "full_reference_link",
+        "collapsed_reference_link",
+        "shortcut_link",
+    ];
+    let mut current = node;
+    loop {
+        if KINDS.contains(&current.kind()) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
 }
 
 /// The lines a link reference definition occupies, plus the blank line before it when
