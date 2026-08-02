@@ -1,0 +1,36 @@
+# Rust entry points.
+- id: rust-main
+  kind: cli-main
+  threat_model: local
+  languages: [rust]
+  matches:
+    name: main
+    symbol_kind: function
+
+- id: rust-test-fn
+  kind: test
+  languages: [rust]
+  matches:
+    name_prefix: test_
+    symbol_kind: function
+
+- id: rust-test-module-fn
+  kind: test
+  languages: [rust]
+  matches:
+    file_suffix: _test.rs
+    symbol_kind: function
+
+- id: rust-integration-test
+  kind: test
+  languages: [rust]
+  matches:
+    path_contains: tests/
+    symbol_kind: function
+
+- id: rust-public-api
+  kind: exported-api
+  languages: [rust]
+  matches:
+    path_contains: lib.rs
+    exported: true

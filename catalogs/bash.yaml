@@ -1,0 +1,16 @@
+# Bash entry points. Shell scoping is dynamic, so these are conventions.
+- id: bash-main
+  kind: cli-main
+  threat_model: local
+  languages: [bash]
+  matches:
+    name: main
+    symbol_kind: function
+
+- id: bash-run
+  kind: cli-main
+  threat_model: local
+  languages: [bash]
+  matches:
+    name: run
+    symbol_kind: function

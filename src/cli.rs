@@ -1,5 +1,7 @@
 //! Command-line surface.
 
+use crate::analysis::call_graph::{CallGraph, Direction2};
+use crate::analysis::entrypoints::Catalog;
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::Symbol;
@@ -68,6 +70,40 @@ enum Command {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
     },
+    /// Show what calls a function.
+    Callers {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// How many levels to walk.
+        #[arg(long, default_value = "1")]
+        depth: usize,
+    },
+    /// Show what a function calls.
+    Callees {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+        /// How many levels to walk.
+        #[arg(long, default_value = "1")]
+        depth: usize,
+    },
+    /// Export the call graph.
+    Graph {
+        /// Emit Graphviz DOT.
+        #[arg(long)]
+        dot: bool,
+    },
+    /// List detected entry points.
+    Entrypoints {
+        /// Only this kind, e.g. cli-main, http-route, test, infra-input.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Additional catalog directory to load.
+        #[arg(long)]
+        catalogs: Option<PathBuf>,
+        /// Report functions not reachable from any entry point.
+        #[arg(long)]
+        unreachable: bool,
+    },
     /// Rename a symbol and every reference that provably points at it.
     ///
     /// Prints a diff by default; pass --write to apply it.
@@ -119,7 +155,201 @@ pub fn run() -> Result<()> {
             new_name,
             write,
         } => cmd_rename(&cli, target, new_name, *write),
+        Command::Callers { target, depth } => {
+            cmd_trace(&cli, target, *depth, Direction2::Callers)
+        }
+        Command::Callees { target, depth } => {
+            cmd_trace(&cli, target, *depth, Direction2::Callees)
+        }
+        Command::Graph { dot } => cmd_graph(&cli, *dot),
+        Command::Entrypoints {
+            kind,
+            catalogs,
+            unreachable,
+        } => cmd_entrypoints(&cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
     }
+}
+
+fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(&index, target)?;
+    if !symbol.kind.is_callable() {
+        anyhow::bail!(
+            "'{}' is a {}, not a function or method — it has no call edges",
+            symbol.name,
+            symbol.kind.as_str()
+        );
+    }
+
+    let graph = CallGraph::build(&index);
+    let trace = graph.trace(symbol.id, direction, depth);
+
+    if cli.json {
+        let nodes: Vec<_> = trace
+            .nodes
+            .iter()
+            .map(|n| {
+                let s = index.symbol(n.symbol);
+                serde_json::json!({
+                    "name": s.map(|s| s.qualified_name()),
+                    "file": s.map(|s| s.file.clone()),
+                    "depth": n.depth,
+                    "confidence": n.caller.map(|(_, c)| c.as_str()),
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "start": symbol.qualified_name(),
+                "direction": match direction {
+                    Direction2::Callers => "callers",
+                    Direction2::Callees => "callees",
+                },
+                "nodes": nodes,
+                "cycles": trace.cycles.len(),
+            }))?
+        );
+        return Ok(());
+    }
+
+    print!("{}", trace.format_tree(&index));
+
+    // Calls we could see but not resolve belong in the answer, not hidden.
+    let related: Vec<_> = graph
+        .unresolved
+        .iter()
+        .filter(|u| u.caller == Some(symbol.id))
+        .collect();
+    if direction == Direction2::Callees && !related.is_empty() {
+        println!("\n{} unresolved call(s) from this function:", related.len());
+        for u in related.iter().take(10) {
+            println!("  {} [{}]", u.callee_name, u.confidence.as_str());
+        }
+        if related.len() > 10 {
+            println!("  … and {} more", related.len() - 10);
+        }
+    }
+    Ok(())
+}
+
+fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let graph = CallGraph::build(&index);
+
+    if dot {
+        print!("{}", graph.to_dot(&index));
+        return Ok(());
+    }
+
+    let breakdown = graph.confidence_breakdown();
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "functions": graph.node_count(),
+                "calls": graph.edge_count(),
+                "unresolved_calls": graph.unresolved.len(),
+                "by_confidence": breakdown,
+            }))?
+        );
+    } else {
+        println!("functions         {}", graph.node_count());
+        println!("call edges        {}", graph.edge_count());
+        for (confidence, count) in &breakdown {
+            println!("  {confidence:<16} {count}");
+        }
+        println!("unresolved calls  {}", graph.unresolved.len());
+    }
+    Ok(())
+}
+
+fn cmd_entrypoints(
+    cli: &Cli,
+    kind_filter: Option<&str>,
+    extra_catalogs: Option<&std::path::Path>,
+    unreachable: bool,
+) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let mut catalog = Catalog::builtin()?;
+    if let Some(dir) = extra_catalogs {
+        let added = catalog.load_dir(dir)?;
+        tracing::info!("loaded {added} extra rule(s) from {}", dir.display());
+    }
+
+    let entries = catalog.detect(&index);
+    let selected: Vec<_> = entries
+        .iter()
+        .filter(|e| kind_filter.is_none_or(|k| e.kind.as_str() == k))
+        .collect();
+
+    if unreachable {
+        let graph = CallGraph::build(&index);
+        let seeds: Vec<_> = entries.iter().map(|e| e.symbol).collect();
+        let reachable = graph.reachable_from(&seeds);
+        let orphans: Vec<_> = crate::analysis::call_graph::callables(&index)
+            .into_iter()
+            .filter(|s| !reachable.contains(&s.id))
+            .collect();
+
+        if cli.json {
+            let payload: Vec<_> = orphans
+                .iter()
+                .map(|s| serde_json::json!({ "name": s.qualified_name(), "file": s.file }))
+                .collect();
+            println!("{}", serde_json::to_string_pretty(&payload)?);
+        } else {
+            println!(
+                "{} function(s) not reachable from any of {} entry point(s):",
+                orphans.len(),
+                entries.len()
+            );
+            for s in &orphans {
+                println!("  {:<40} {}", s.qualified_name(), s.file.display());
+            }
+            println!(
+                "\nNote: reachability follows resolved call edges only. Dynamic \
+                 dispatch and calls through unresolved names are not counted, so \
+                 this list can include functions that are used."
+            );
+        }
+        return Ok(());
+    }
+
+    if cli.json {
+        let payload: Vec<_> = selected
+            .iter()
+            .filter_map(|e| {
+                index.symbol(e.symbol).map(|s| {
+                    serde_json::json!({
+                        "name": s.qualified_name(),
+                        "file": s.file,
+                        "language": s.language.name(),
+                        "kind": e.kind.as_str(),
+                        "rule": e.rule,
+                    })
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        for entry in &selected {
+            if let Some(symbol) = index.symbol(entry.symbol) {
+                println!(
+                    "{:<18} {:<32} {}",
+                    entry.kind.as_str(),
+                    symbol.qualified_name(),
+                    symbol.file.display()
+                );
+            }
+        }
+        println!("\n{} entry point(s)", selected.len());
+        let gaps = crate::analysis::entrypoints::languages_without_rules(&catalog);
+        if !gaps.is_empty() {
+            println!("No entry-point rules exist for: {}", gaps.join(", "));
+        }
+    }
+    Ok(())
 }
 
 fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()> {

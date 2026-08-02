@@ -7,6 +7,7 @@
 //! - [`edit`]: lossless byte-splice edit engine
 //! - [`cli`]: command surface
 
+pub mod analysis;
 pub mod cli;
 pub mod edit;
 pub mod extract;

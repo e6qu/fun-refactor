@@ -1,0 +1,30 @@
+# Infrastructure entry points. For config languages an "entry point" is an
+# externally settable input or a declared network exposure, not a callable.
+- id: terraform-root-variable
+  kind: infra-input
+  threat_model: local
+  languages: [hcl]
+  matches:
+    symbol_kind: variable
+    path_contains: .tf
+
+- id: terraform-output
+  kind: exported-api
+  languages: [hcl]
+  matches:
+    file_name: outputs.tf
+
+- id: helm-values-key
+  kind: infra-input
+  threat_model: local
+  languages: [helm]
+  matches:
+    file_name: values.yaml
+    symbol_kind: key
+
+- id: helm-chart-metadata
+  kind: infra-input
+  languages: [helm]
+  matches:
+    file_name: chart.yaml
+    symbol_kind: key
