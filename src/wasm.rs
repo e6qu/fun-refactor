@@ -23,10 +23,73 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Workspace {
     index: Index,
+    /// This workspace's bytes. Held rather than installed once, because a page can
+    /// have two workspaces open and each one's spans only mean anything against the
+    /// text they were measured on.
+    files: crate::vfs::Handle,
     /// Paths in the order they were given, so the file list a user sees is stable.
     order: Vec<PathBuf>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
+}
+
+/// A rendered tree or report — several analyses already know how to print
+/// themselves, and re-deriving those shapes in TypeScript would be a second
+/// implementation of an answer that already exists.
+#[derive(Serialize)]
+struct FlowText {
+    tree: String,
+}
+
+/// The move and signature plans report what they left alone as plain strings rather
+/// than the structured warning the others use. Rather than teach the view two shapes,
+/// they are attached to the applied result under one name.
+fn with_notes(applied: String, notes: &[String]) -> String {
+    if notes.is_empty() {
+        return applied;
+    }
+    let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&applied) else {
+        return applied;
+    };
+    if let Some(object) = value.as_object_mut() {
+        object.insert("notes".into(), serde_json::json!(notes));
+    }
+    serde_json::to_string(&value).unwrap_or(applied)
+}
+
+#[derive(Serialize)]
+struct Located {
+    name: String,
+    kind: String,
+    path: String,
+    line: usize,
+}
+
+/// `remove:1`, `move:0:2`, `add:1:<declaration>:<argument>` — the command line's
+/// spelling, so what is documented for the terminal is true here too.
+fn parse_signature_change(text: &str) -> Result<crate::refactor::signature::Change, String> {
+    use crate::refactor::signature::Change;
+    let parts: Vec<&str> = text.splitn(4, ':').collect();
+    let index = |s: &str| {
+        s.parse::<usize>()
+            .map_err(|_| format!("'{s}' is not a position"))
+    };
+    match parts.as_slice() {
+        ["remove", at] => Ok(Change::Remove(index(at)?)),
+        ["move", from, to] => Ok(Change::Move {
+            from: index(from)?,
+            to: index(to)?,
+        }),
+        ["add", at, declaration, argument] => Ok(Change::Add {
+            at: index(at)?,
+            declaration: declaration.to_string(),
+            argument: argument.to_string(),
+        }),
+        _ => Err(format!(
+            "'{text}' is not a change. Use remove:<i>, move:<from>:<to>, or \
+             add:<i>:<declaration>:<argument>"
+        )),
+    }
 }
 
 #[derive(Serialize)]
@@ -71,7 +134,8 @@ impl Workspace {
         // The whole workspace goes into the virtual filesystem first: language
         // detection asks whether a `Chart.yaml` sits beside a YAML file, and that has
         // to be answerable before anything is parsed.
-        crate::vfs::load(loaded.clone());
+        let files = crate::vfs::new_handle(loaded.clone());
+        crate::vfs::activate(&files);
 
         let mut sources: Vec<(PathBuf, Language, String)> = Vec::new();
         let mut order: Vec<PathBuf> = Vec::new();
@@ -95,6 +159,7 @@ impl Workspace {
             .map_err(|e| JsValue::from_str(&format!("indexing failed: {e}")))?;
         Ok(Workspace {
             index,
+            files,
             order,
             unsupported,
         })
@@ -102,6 +167,7 @@ impl Workspace {
 
     /// Every file loaded, with the language each was recognised as.
     pub fn files(&self) -> String {
+        self.enter();
         #[derive(Serialize)]
         struct Entry {
             path: String,
@@ -122,6 +188,7 @@ impl Workspace {
 
     /// What the index found, as `fr parse --stats` prints it.
     pub fn stats(&self) -> String {
+        self.enter();
         #[derive(Serialize)]
         struct Stats {
             files: usize,
@@ -155,6 +222,7 @@ impl Workspace {
 
     /// Every definition in a file, for an outline.
     pub fn symbols(&self, path: &str) -> String {
+        self.enter();
         let path = PathBuf::from(path);
         let Some(info) = self.index.file(&path) else {
             return ok(&Vec::<u8>::new());
@@ -192,6 +260,7 @@ impl Workspace {
 
     /// Where the symbol at this position is used, with the confidence of each.
     pub fn references(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
         match self.symbol_at(path, line, col) {
             Ok(id) => {
                 #[derive(Serialize)]
@@ -224,6 +293,7 @@ impl Workspace {
 
     /// Where the thing under the cursor is defined.
     pub fn definition(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
         let Ok(offset) = self.offset(path, line, col) else {
             return fail("that position is outside the file");
         };
@@ -235,6 +305,7 @@ impl Workspace {
 
     /// Rename the symbol at a position. Returns the edits, and applies them.
     pub fn rename(&mut self, path: &str, line: usize, col: usize, new_name: &str) -> String {
+        self.enter();
         let id = match self.symbol_at(path, line, col) {
             Ok(id) => id,
             Err(e) => return fail(e),
@@ -250,6 +321,7 @@ impl Workspace {
     /// The cascade re-indexes after each round, so it works over the whole loaded
     /// workspace rather than one file.
     pub fn remove_flag(&mut self, flag: &str, value: bool) -> String {
+        self.enter();
         let mut sources: std::collections::BTreeMap<PathBuf, (Language, String)> =
             Default::default();
         for path in &self.order {
@@ -272,6 +344,7 @@ impl Workspace {
 
     /// Code written more than once, compared structurally.
     pub fn duplicates(&self, min_tokens: usize) -> String {
+        self.enter();
         let options = crate::analysis::duplicates::Options {
             min_tokens,
             ..Default::default()
@@ -284,6 +357,7 @@ impl Workspace {
 
     /// Symbols nothing appears to use.
     pub fn unused(&self) -> String {
+        self.enter();
         #[derive(Serialize)]
         struct Dead {
             name: String,
@@ -291,7 +365,13 @@ impl Workspace {
             path: String,
             exported: bool,
         }
-        let report = crate::refactor::delete::find_unused(&self.index, &[]);
+        // The catalogs are what make a `#[test]` or an HTTP handler a root. Without
+        // them nothing but exports anchors reachability and the report is mostly noise.
+        let entrypoints = match crate::analysis::entrypoints::Entrypoints::detect(&self.index) {
+            Ok(roots) => roots,
+            Err(e) => return fail(e),
+        };
+        let report = crate::refactor::delete::find_unused(&self.index, &entrypoints);
         let out: Vec<Dead> = report
             .iter()
             .filter_map(|id| self.index.symbol(*id))
@@ -307,10 +387,536 @@ impl Workspace {
 
     /// The current text of a file, which reflects every edit applied so far.
     pub fn read(&self, path: &str) -> String {
+        self.enter();
         crate::vfs::read_to_string(PathBuf::from(path)).unwrap_or_default()
     }
 
+    // ------------------------------------------------- navigation and analysis
+
+    /// What satisfies the abstraction at this position.
+    pub fn implementations(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        match self.symbol_at(path, line, col) {
+            Ok(id) => {
+                let found = crate::navigate::implementations_of(&self.index, id);
+                ok(&self.locate_symbols(&found))
+            }
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Every use, including the uncertain ones, which are reported apart.
+    pub fn usages(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        match self.symbol_at(path, line, col) {
+            Ok(id) => ok(&crate::navigate::usages_of(&self.index, id)),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// The call graph, upwards from here.
+    pub fn callers(&self, path: &str, line: usize, col: usize, depth: usize) -> String {
+        self.enter();
+        self.call_tree(path, line, col, depth, true)
+    }
+
+    /// The call graph, downwards from here.
+    pub fn callees(&self, path: &str, line: usize, col: usize, depth: usize) -> String {
+        self.enter();
+        self.call_tree(path, line, col, depth, false)
+    }
+
+    /// The shape of the whole call graph.
+    pub fn graph(&self) -> String {
+        self.enter();
+        #[derive(Serialize)]
+        struct Shape {
+            functions: usize,
+            edges: usize,
+            hierarchy_edges: usize,
+        }
+        let graph = crate::analysis::call_graph::CallGraph::build(&self.index);
+        ok(&Shape {
+            functions: graph.node_count(),
+            edges: graph.edge_count(),
+            hierarchy_edges: graph.hierarchy_edge_count(),
+        })
+    }
+
+    /// Where the value at this position came from.
+    pub fn flow_back(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        let Ok(offset) = self.offset(path, line, col) else {
+            return fail("that position is outside the file");
+        };
+        match crate::analysis::flow::backward(&self.index, Path::new(path), offset, 8) {
+            Ok(flow) => ok(&FlowText {
+                tree: flow.format_tree(),
+            }),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Where the value declared at this position goes.
+    pub fn flow_forward(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        match self.symbol_at(path, line, col) {
+            Ok(id) => match crate::analysis::flow::forward(&self.index, id, 8) {
+                Ok(flow) => ok(&FlowText {
+                    tree: flow.format_tree(),
+                }),
+                Err(e) => fail(e),
+            },
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Everything a change here could affect.
+    pub fn impact(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        match self.symbol_at(path, line, col) {
+            Ok(id) => match crate::analysis::impact::analyse(&self.index, id, 3) {
+                Ok(impact) => ok(&FlowText {
+                    tree: crate::analysis::impact::format_report(&self.index, &impact),
+                }),
+                Err(e) => fail(e),
+            },
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Configuration keys and the code that reads them.
+    pub fn stitch(&self) -> String {
+        self.enter();
+        match crate::analysis::stitch::chains(&self.index) {
+            Ok(chains) => ok(&FlowText {
+                tree: crate::analysis::stitch::format_chains(&chains),
+            }),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Where execution starts.
+    pub fn entrypoints(&self) -> String {
+        self.enter();
+        #[derive(Serialize)]
+        struct Entry {
+            kind: String,
+            name: String,
+            path: String,
+            line: usize,
+        }
+        let catalog = match crate::analysis::entrypoints::Catalog::builtin() {
+            Ok(catalog) => catalog,
+            Err(e) => return fail(e),
+        };
+        let mut out: Vec<Entry> = Vec::new();
+        for found in catalog.detect(&self.index) {
+            let Some(symbol) = self.index.symbol(found.symbol) else {
+                continue;
+            };
+            out.push(Entry {
+                kind: found.kind.as_str().to_string(),
+                name: symbol.qualified_name(),
+                path: symbol.file.display().to_string(),
+                line: self.line_of(&symbol.file, symbol.name_span.start),
+            });
+        }
+        out.sort_by(|a, b| a.kind.cmp(&b.kind).then(a.name.cmp(&b.name)));
+        ok(&out)
+    }
+
+    /// The parse tree of a file, as a structure a view can walk.
+    ///
+    /// Every answer this tool gives is a claim about a tree, and being able to see the
+    /// tree is what turns a surprising answer into an understandable one — a pattern
+    /// that will not match, a rewrite that refuses, a name the resolver reads as a
+    /// field. Named nodes only: the anonymous ones are punctuation, and a tree in
+    /// which every brace is a row cannot be read.
+    pub fn ast(&self, path: &str) -> String {
+        self.enter();
+        #[derive(Serialize)]
+        struct TreeNode {
+            kind: String,
+            /// The grammar's name for this child's role in its parent, when it has one.
+            field: Option<String>,
+            line: usize,
+            col: usize,
+            end_line: usize,
+            end_col: usize,
+            /// The source it covers, for a leaf. Elided above a leaf, where the text
+            /// is the whole subtree and the children say it better.
+            text: Option<String>,
+            children: Vec<TreeNode>,
+        }
+
+        let path_buf = PathBuf::from(path);
+        let Some(language) = crate::lang::detect(&path_buf) else {
+            return fail(format!("no grammar recognises {path}"));
+        };
+        let Ok(source) = crate::vfs::read_to_string(&path_buf) else {
+            return fail("file is not loaded");
+        };
+        let parsers = crate::parse::Parsers::new();
+        let parsed = match parsers.parse(language, &source) {
+            Ok(parsed) => parsed,
+            Err(e) => return fail(e),
+        };
+        let lines = LineIndex::new(&source);
+
+        fn build(
+            node: tree_sitter::Node<'_>,
+            field: Option<String>,
+            source: &str,
+            lines: &LineIndex,
+        ) -> TreeNode {
+            let start = lines.line_col(node.start_byte(), source);
+            let end = lines.line_col(node.end_byte(), source);
+            let mut children = Vec::new();
+            let mut cursor = node.walk();
+            for (i, child) in node.children(&mut cursor).enumerate() {
+                if !child.is_named() {
+                    continue;
+                }
+                let name = node.field_name_for_child(i as u32).map(str::to_string);
+                children.push(build(child, name, source, lines));
+            }
+            // A leaf carries its text; a branch does not, because its text is every
+            // descendant's and repeating it makes the tree unreadable.
+            let text = if children.is_empty() {
+                let slice = &source[node.start_byte()..node.end_byte()];
+                Some(slice.chars().take(80).collect())
+            } else {
+                None
+            };
+            TreeNode {
+                kind: node.kind().to_string(),
+                field,
+                line: start.line,
+                col: start.col,
+                end_line: end.line,
+                end_col: end.col,
+                text,
+                children,
+            }
+        }
+
+        ok(&build(parsed.root(), None, &source, &lines))
+    }
+
+    /// What the cursor is on: the symbol, and the coordinate that names it.
+    ///
+    /// A position is how you point at something in an editor; `path:line:col` is how
+    /// you point at the same thing from a terminal. This returns both, so the two
+    /// halves of the tool agree about what is being talked about.
+    pub fn at(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        #[derive(Serialize)]
+        struct Here {
+            /// `path:line:col`, exactly what `fr` accepts as a target.
+            coordinate: String,
+            /// The symbol's own definition site, when the cursor is on a use of it.
+            definition: Option<String>,
+            name: Option<String>,
+            kind: Option<String>,
+            /// The declaring type or module, where there is one.
+            qualifier: Option<String>,
+            exported: bool,
+            /// The innermost tree node, which is what a pattern would have to match.
+            node: Option<String>,
+        }
+
+        let node = self.node_kind_at(path, line, col);
+        let Ok(id) = self.symbol_at(path, line, col) else {
+            return ok(&Here {
+                coordinate: format!("{path}:{line}:{col}"),
+                definition: None,
+                name: None,
+                kind: None,
+                qualifier: None,
+                exported: false,
+                node,
+            });
+        };
+        let Some(symbol) = self.index.symbol(id) else {
+            return fail("the symbol is not in the index");
+        };
+        let at = self.line_of(&symbol.file, symbol.name_span.start);
+        ok(&Here {
+            coordinate: format!("{path}:{line}:{col}"),
+            definition: Some(format!("{}:{}", symbol.file.display(), at)),
+            name: Some(symbol.name.clone()),
+            kind: Some(symbol.kind.as_str().to_string()),
+            qualifier: symbol.qualifier.clone(),
+            exported: symbol.exported,
+            node,
+        })
+    }
+
+    /// What this build can do, per language.
+    pub fn capabilities(&self) -> String {
+        self.enter();
+        ok(&crate::capabilities::matrix())
+    }
+
+    // ------------------------------------------------------------ refactorings
+
+    /// Extract the selected range into a binding.
+    pub fn extract_variable(&mut self, path: &str, range: &str, name: &str) -> String {
+        self.enter();
+        let (file, span) = match self.span_of(path, range) {
+            Ok(pair) => pair,
+            Err(e) => return fail(e),
+        };
+        match crate::refactor::extract::variable(&self.index, &file, span, name, false) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Extract the selected statements into a function.
+    pub fn extract_function(&mut self, path: &str, range: &str, name: &str) -> String {
+        self.enter();
+        let (file, span) = match self.span_of(path, range) {
+            Ok(pair) => pair,
+            Err(e) => return fail(e),
+        };
+        match crate::refactor::extract::function(&self.index, &file, span, name) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Replace a binding's uses with its value.
+    pub fn inline_variable(&mut self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        match self.symbol_at(path, line, col) {
+            Ok(id) => match crate::refactor::inline::variable(&self.index, id) {
+                Ok(plan) => self.apply(plan.edits, Vec::new()),
+                Err(e) => fail(e),
+            },
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Replace a call with the callee's body.
+    pub fn inline_call(&mut self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        let Ok(offset) = self.offset(path, line, col) else {
+            return fail("that position is outside the file");
+        };
+        match crate::refactor::inline::call(&self.index, Path::new(path), offset) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Change a function's parameters, and every call site.
+    ///
+    /// `change` is spelled as the command line spells it: `remove:1`,
+    /// `move:0:2`, `add:1:<declaration>:<argument>`.
+    pub fn signature(&mut self, path: &str, line: usize, col: usize, change: &str) -> String {
+        self.enter();
+        let id = match self.symbol_at(path, line, col) {
+            Ok(id) => id,
+            Err(e) => return fail(e),
+        };
+        let parsed = match parse_signature_change(change) {
+            Ok(parsed) => parsed,
+            Err(e) => return fail(e),
+        };
+        match crate::refactor::signature::change(&self.index, id, parsed) {
+            Ok(plan) => {
+                let notes = plan.notes.clone();
+                let applied = self.apply(plan.edits, Vec::new());
+                with_notes(applied, &notes)
+            }
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Move a symbol to another file, carrying what it needs.
+    pub fn move_symbol(&mut self, path: &str, line: usize, col: usize, dest: &str) -> String {
+        self.enter();
+        let id = match self.symbol_at(path, line, col) {
+            Ok(id) => id,
+            Err(e) => return fail(e),
+        };
+        match crate::refactor::move_symbol::to_file(&self.index, id, Path::new(dest)) {
+            Ok(plan) => {
+                let notes = plan.warnings.clone();
+                let applied = self.apply(plan.edits, Vec::new());
+                with_notes(applied, &notes)
+            }
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Drop unused imports and sort the rest.
+    pub fn organize_imports(&mut self, path: &str) -> String {
+        self.enter();
+        match crate::refactor::imports::plan(&self.index, Path::new(path)) {
+            Ok(plan) => self.apply(plan.edits, plan.warnings),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Which local transformations apply at this position.
+    pub fn rewrites_at(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        let Ok(offset) = self.offset(path, line, col) else {
+            return fail("that position is outside the file");
+        };
+        #[derive(Serialize)]
+        struct Available {
+            name: String,
+            describes: String,
+        }
+        match crate::refactor::rewrite::available(&self.index, Path::new(path), offset) {
+            Ok(found) => ok(&found
+                .into_iter()
+                .map(|r| Available {
+                    name: r.as_str().to_string(),
+                    describes: r.describe().to_string(),
+                })
+                .collect::<Vec<_>>()),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Apply one of them.
+    pub fn rewrite(&mut self, path: &str, line: usize, col: usize, which: &str) -> String {
+        self.enter();
+        let Ok(offset) = self.offset(path, line, col) else {
+            return fail("that position is outside the file");
+        };
+        let Some(kind) = crate::refactor::rewrite::Rewrite::from_name(which) else {
+            return fail(format!("no rewrite called '{which}'"));
+        };
+        match crate::refactor::rewrite::apply(&self.index, Path::new(path), offset, kind) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Rewrite every occurrence of a pattern.
+    pub fn restructure(&mut self, language: &str, pattern: &str, template: &str) -> String {
+        self.enter();
+        let Some(language) = crate::lang::Language::from_name(language) else {
+            return fail(format!("unknown language '{language}'"));
+        };
+        match crate::refactor::restructure::apply(&self.index, language, pattern, template) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
+    /// Delete a symbol, refusing while anything uses it.
+    pub fn delete(&mut self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        match self.symbol_at(path, line, col) {
+            Ok(id) => match crate::refactor::delete::plan(&self.index, id) {
+                Ok(plan) => self.apply(plan.edits, plan.warnings),
+                Err(e) => fail(e),
+            },
+            Err(e) => fail(e),
+        }
+    }
+
     // ------------------------------------------------------------- internals
+
+    /// A `line:col-line:col` selection, as the command line spells a range.
+    /// Make this workspace's files the ones the analysis reads.
+    ///
+    /// Called first by every method that answers a question about source. Two
+    /// workspaces in one page otherwise share whichever was created last, and the
+    /// older one's answers come out measured against the newer one's bytes — a wrong
+    /// answer that looks exactly like a right one. `tests/wasm_api.rs` checks that
+    /// nothing new escapes this.
+    fn enter(&self) {
+        crate::vfs::activate(&self.files);
+    }
+
+    /// The innermost named node covering a position, by name.
+    ///
+    /// The one thing a person cannot see from the source: whether the resolver is
+    /// looking at an `identifier`, a `field_identifier` or a `type_identifier` decides
+    /// what half the tool will do with it.
+    fn node_kind_at(&self, path: &str, line: usize, col: usize) -> Option<String> {
+        let offset = self.offset(path, line, col).ok()?;
+        let path = PathBuf::from(path);
+        let language = crate::lang::detect(&path)?;
+        let source = crate::vfs::read_to_string(&path).ok()?;
+        let parsed = crate::parse::Parsers::new().parse(language, &source).ok()?;
+        let node = parsed
+            .root()
+            .named_descendant_for_byte_range(offset, offset)?;
+        Some(node.kind().to_string())
+    }
+
+    fn span_of(&self, path: &str, range: &str) -> Result<(PathBuf, Span), String> {
+        let (start, end) = range
+            .split_once('-')
+            .ok_or_else(|| "a range is line:col-line:col".to_string())?;
+        let at = |text: &str| -> Result<usize, String> {
+            let (line, col) = text
+                .split_once(':')
+                .ok_or_else(|| format!("'{text}' is not line:col"))?;
+            let line = line
+                .parse()
+                .map_err(|_| format!("'{text}' is not line:col"))?;
+            let col = col
+                .parse()
+                .map_err(|_| format!("'{text}' is not line:col"))?;
+            self.offset(path, line, col)
+        };
+        Ok((PathBuf::from(path), Span::new(at(start)?, at(end)?)))
+    }
+
+    /// The line a byte offset falls on, for display.
+    fn line_of(&self, path: &Path, offset: usize) -> usize {
+        crate::vfs::read_to_string(path)
+            .map(|source| LineIndex::new(&source).line_col(offset, &source).line)
+            .unwrap_or(0)
+    }
+
+    fn locate_symbols(&self, ids: &[crate::model::SymbolId]) -> Vec<Located> {
+        ids.iter()
+            .filter_map(|id| self.index.symbol(*id))
+            .map(|s| Located {
+                name: s.qualified_name(),
+                kind: s.kind.as_str().to_string(),
+                path: s.file.display().to_string(),
+                line: self.line_of(&s.file, s.name_span.start),
+            })
+            .collect()
+    }
+
+    /// A call tree, rendered the way the terminal renders it.
+    fn call_tree(
+        &self,
+        path: &str,
+        line: usize,
+        col: usize,
+        depth: usize,
+        upwards: bool,
+    ) -> String {
+        let id = match self.symbol_at(path, line, col) {
+            Ok(id) => id,
+            Err(e) => return fail(e),
+        };
+        let graph = crate::analysis::call_graph::CallGraph::build(&self.index);
+        use crate::analysis::call_graph::Direction2;
+        let direction = if upwards {
+            Direction2::Callers
+        } else {
+            Direction2::Callees
+        };
+        let traced = graph.trace(id, direction, depth.clamp(1, 8));
+        ok(&FlowText {
+            tree: traced.format_tree(&self.index),
+        })
+    }
 
     fn offset(&self, path: &str, line: usize, col: usize) -> Result<usize, String> {
         let source = crate::vfs::read_to_string(PathBuf::from(path)).map_err(|e| e.to_string())?;

@@ -978,7 +978,7 @@ fn cmd_unused(
     if let Some(dir) = extra_catalogs {
         catalog.load_dir(dir)?;
     }
-    let entrypoints: Vec<_> = catalog.detect(&index).iter().map(|e| e.symbol).collect();
+    let entrypoints = crate::analysis::entrypoints::Entrypoints::from_catalog(&catalog, &index);
     let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
 
     let wanted = parse_languages(languages)?;

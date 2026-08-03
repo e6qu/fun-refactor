@@ -12,6 +12,7 @@
 
 use super::{Warning, WarningKind};
 use crate::analysis::call_graph::{CallGraph, HierarchyBasis};
+use crate::analysis::entrypoints::Entrypoints;
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
 use crate::model::{Confidence, SymbolId};
@@ -297,7 +298,7 @@ impl UnusedReport {
 /// read, and a symbol used only from a file that failed to parse is invisible for a
 /// different reason. [`find_unused_report`] says which correction spared what. Feed
 /// each candidate to [`plan`] before acting.
-pub fn find_unused(index: &Index, entrypoints: &[SymbolId]) -> Vec<SymbolId> {
+pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
 }
 
@@ -324,7 +325,8 @@ pub fn reports_unused(_language: crate::lang::Language) -> bool {
 }
 
 /// [`find_unused`], with the reason each spared symbol was spared.
-pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedReport {
+pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedReport {
+    let entrypoints = entrypoints.as_slice();
     let call_graph = CallGraph::build(index);
 
     // Two reachability answers, because a library has no `main`.

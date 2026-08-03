@@ -10,5 +10,8 @@
     "types": ["vite/client"],
     "isolatedModules": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // `sample/` is the workspace the playground loads, not part of the playground.
+  // It is source text in fifteen languages that is meant to be parsed, not compiled.
+  "exclude": ["sample"]
 }

@@ -196,10 +196,9 @@ impl Catalog {
     /// Load additional rules from a directory of YAML files.
     pub fn load_dir(&mut self, dir: &Path) -> Result<usize> {
         let mut added = 0;
-        for entry in std::fs::read_dir(dir)
+        for path in crate::vfs::read_dir(dir)
             .with_context(|| format!("reading catalog directory {}", dir.display()))?
         {
-            let path = entry?.path();
             if path.extension().and_then(|e| e.to_str()) != Some("yaml") {
                 continue;
             }
@@ -230,6 +229,57 @@ impl Catalog {
         found.sort_by_key(|e| (e.kind, e.symbol));
         found.dedup_by_key(|e| (e.symbol, e.kind));
         found
+    }
+}
+
+/// The roots a reachability question starts from.
+///
+/// This is a type rather than a `&[SymbolId]` because an empty slice is a legal value
+/// with a catastrophic meaning: nothing is reachable, so everything not exported reads
+/// as dead. The playground shipped exactly that — twenty symbols reported dead in the
+/// browser that the terminal reported live, including every `#[test]` function —
+/// because one caller passed `&[]` where the other passed a detected catalog, and both
+/// type-checked.
+///
+/// Now a caller has to say which it means. There is no way to end up with no roots by
+/// omission; [`Entrypoints::none`] exists, but you have to ask for it by name.
+#[derive(Debug, Clone, Default)]
+pub struct Entrypoints(Vec<SymbolId>);
+
+impl Entrypoints {
+    /// Everything the built-in catalogs recognise as an entry point: a `main`, an
+    /// HTTP handler, a `#[test]`, a Kubernetes probe path.
+    pub fn detect(index: &Index) -> anyhow::Result<Self> {
+        Ok(Self::from_catalog(&Catalog::builtin()?, index))
+    }
+
+    /// The same, from a catalog the caller has already extended.
+    pub fn from_catalog(catalog: &Catalog, index: &Index) -> Self {
+        Entrypoints(catalog.detect(index).iter().map(|e| e.symbol).collect())
+    }
+
+    /// Exactly these symbols and no others. For asking what a particular root
+    /// reaches, which is a different question from what the workspace runs.
+    pub fn exactly(roots: &[SymbolId]) -> Self {
+        Entrypoints(roots.to_vec())
+    }
+
+    /// No roots at all: only exported symbols anchor reachability. Correct for a
+    /// workspace that is a library and nothing else.
+    pub fn none() -> Self {
+        Entrypoints(Vec::new())
+    }
+
+    pub fn as_slice(&self) -> &[SymbolId] {
+        &self.0
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 

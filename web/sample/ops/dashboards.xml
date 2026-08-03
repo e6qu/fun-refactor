@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dashboards xmlns="https://example.com/signals/dashboards/v1">
+  <dashboard id="overview" title="Signals overview">
+    <refresh seconds="30" />
+    <panel id="mean-temperature" type="table">
+      <title>Mean temperature</title>
+      <query source="collector">/averages</query>
+      <column key="sensor" label="Sensor" />
+      <column key="mean" label="Mean" format="celsius" />
+    </panel>
+    <panel id="refused" type="list">
+      <title>Refused readings</title>
+      <query source="collector">/rejects</query>
+      <empty>Nothing was refused in this window.</empty>
+    </panel>
+  </dashboard>
+
+  <dashboard id="capacity" title="Capacity">
+    <refresh seconds="300" />
+    <panel id="retention" type="stat">
+      <title>Retention</title>
+      <query source="collector">/config/retention</query>
+      <unit>days</unit>
+    </panel>
+  </dashboard>
+
+  <!-- Referenced by no dashboard. -->
+  <panel id="orphaned-histogram" type="histogram">
+    <title>Reading spread</title>
+    <query source="collector">/histogram</query>
+  </panel>
+</dashboards>

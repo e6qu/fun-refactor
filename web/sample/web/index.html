@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Signals — sensor dashboard</title>
+    <link rel="stylesheet" href="./dashboard.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <h1 class="masthead-title">Signals</h1>
+      <nav class="masthead-nav">
+        <a href="#averages" class="nav-link">Averages</a>
+        <a href="#rejects" class="nav-link">Rejected</a>
+        <a href="#sensors" class="nav-link">Sensors</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section id="averages" class="panel">
+        <h2 class="panel-title">Mean temperature</h2>
+        <table class="sensor-table">
+          <thead>
+            <tr>
+              <th>Sensor</th>
+              <th>Mean</th>
+            </tr>
+          </thead>
+          <tbody id="averages-body"></tbody>
+        </table>
+      </section>
+
+      <section id="rejects" class="panel">
+        <h2 class="panel-title">Refused readings</h2>
+        <ul id="rejects-list" class="reject-list"></ul>
+      </section>
+
+      <section id="sensors" class="panel">
+        <h2 class="panel-title">Sensors reporting</h2>
+        <ul id="sensors-list" class="sensor-list"></ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p class="footer-note">Readings are kept for thirty days.</p>
+    </footer>
+
+    <script type="module" src="./dashboard.ts"></script>
+  </body>
+</html>

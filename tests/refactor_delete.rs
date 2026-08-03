@@ -1,5 +1,6 @@
 //! Safe delete: what it removes, and — more importantly — what it refuses to remove.
 
+use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
     edit::apply_to_string,
     index::Index,
@@ -289,7 +290,7 @@ fn find_unused_reports_an_orphan_and_not_the_entry_point() {
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
     let main = only_symbol(&index, "main");
-    let unused = delete::find_unused(&index, &[main]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[main]));
 
     assert!(unused.contains(&only_symbol(&index, "orphan")));
     assert!(!unused.contains(&main), "the entry point is reachable");
@@ -305,7 +306,10 @@ fn find_unused_finds_dead_recursive_code() {
     let source = "fn dead() {\n    dead();\n}\nfn main() {}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         unused.contains(&only_symbol(&index, "dead")),
         "got {unused:?}"
@@ -320,7 +324,10 @@ fn find_unused_reports_mutual_recursion_as_a_dead_group() {
     let source = "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         unused.contains(&only_symbol(&index, "ping")),
         "got {unused:?}"
@@ -340,7 +347,10 @@ fn find_unused_leaves_out_a_name_a_string_literal_spells() {
     let source = "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         !unused.contains(&only_symbol(&index, "on_event")),
         "a name spelled in a string may be reached by reflection: {unused:?}"
@@ -357,7 +367,7 @@ fn find_unused_finds_a_css_class_no_markup_uses() {
         ("page.html", "<div class=\"used\">hi</div>\n"),
     ]);
 
-    let unused = delete::find_unused(&index, &[]);
+    let unused = delete::find_unused(&index, &Entrypoints::none());
     assert!(
         unused.contains(&only_symbol(&index, "dead")),
         "got {unused:?}"
@@ -370,7 +380,7 @@ fn without_entry_points_reachability_contributes_nothing() {
     let source = "fn used() {}\nfn main() {\n    used();\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
-    let unused = delete::find_unused(&index, &[]);
+    let unused = delete::find_unused(&index, &Entrypoints::none());
     assert!(
         unused.contains(&only_symbol(&index, "main")),
         "nothing references main and no entry point was given: {unused:?}"
@@ -387,7 +397,10 @@ fn an_unused_symbol_from_find_unused_can_then_be_deleted() {
     let source = "fn orphan() {}\nfn main() {}\n";
     let (tmp, index) = workspace(&[("a.rs", source)]);
 
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     let orphan = only_symbol(&index, "orphan");
     assert!(unused.contains(&orphan));
 
@@ -441,7 +454,10 @@ fn find_unused_leaves_out_a_name_the_author_marked_unused() {
                   fn main() {\n    handler(1, 2);\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     let named: Vec<String> = unused
         .iter()
         .filter_map(|id| index.symbol(*id))
@@ -459,7 +475,10 @@ fn the_underscore_convention_is_reported_as_a_reason_not_hidden() {
                   fn main() {\n    handler(1, 2);\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
-    let report = delete::find_unused_report(&index, &[only_symbol(&index, "main")]);
+    let report = delete::find_unused_report(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     let theme = index
         .symbols
         .iter()
@@ -480,7 +499,7 @@ fn an_exported_symbol_is_reported_but_marked_as_such() {
                   func unexported() int {\n\treturn 2\n}\n";
     let (_tmp, index) = workspace(&[("a.go", source)]);
 
-    let unused = delete::find_unused(&index, &[]);
+    let unused = delete::find_unused(&index, &Entrypoints::none());
     let named: Vec<(&str, bool)> = unused
         .iter()
         .filter_map(|id| index.symbol(*id))

@@ -13,60 +13,120 @@
   <span class="tag">playground</span>
   <form id="load-form" class="loader">
     <input id="target" type="text" spellcheck="false"
-           placeholder="owner/repo, or a github.com URL"
-           value="BurntSushi/ripgrep/tree/master/crates/cli">
+           placeholder="owner/repo, or a github.com URL">
     <button type="submit" id="load">Load</button>
+    <select id="preset" title="A repository to try, one per language">
+      <option value="">Load an example…</option>
+    </select>
+    <button type="button" id="load-sample" class="ghost">Bundled sample</button>
   </form>
   <span id="status" class="status">Runs entirely in this tab.</span>
 </header>
 
 <main id="layout">
-  <aside class="panel files">
-    <div class="panel-head">
-      <span id="file-count">Files</span>
-      <input id="filter" type="text" placeholder="filter" spellcheck="false">
-    </div>
-    <ul id="file-list" class="list"></ul>
+  <!-- Each sidebar section collapses to its header, and the gutters between the
+       columns drag. Both are remembered, so the shape you set is the shape you get
+       back. -->
+  <aside class="panel side" id="side">
+    <section class="pane" id="pane-files" style="flex-grow: 3">
+      <button type="button" class="pane-head" data-collapses="pane-files">
+        <span class="twisty">▾</span>
+        <span>Files</span>
+        <span class="grow"></span>
+        <span id="file-count" class="dim"></span>
+      </button>
+      <div class="pane-body">
+        <input id="filter" type="text" placeholder="filter" spellcheck="false" class="pane-filter">
+        <ul id="file-list" class="list"></ul>
+      </div>
+    </section>
+
+    <div class="gutter horizontal" data-resizes="pane-files"></div>
+
+    <section class="pane" id="pane-outline" style="flex-grow: 2">
+      <button type="button" class="pane-head" data-collapses="pane-outline">
+        <span class="twisty">▾</span>
+        <span>Outline</span>
+        <span class="grow"></span>
+        <span id="outline-count" class="dim"></span>
+      </button>
+      <div class="pane-body"><ul id="outline" class="list outline"></ul></div>
+    </section>
+
+    <div class="gutter horizontal" data-resizes="pane-outline"></div>
+
+    <section class="pane" id="pane-ast" style="flex-grow: 3">
+      <button type="button" class="pane-head" data-collapses="pane-ast">
+        <span class="twisty">▾</span>
+        <span>Structure</span>
+        <span class="grow"></span>
+        <span id="ast-count" class="dim"></span>
+      </button>
+      <div class="pane-body">
+        <p class="pane-note">The parse tree every answer is a claim about. Click a node
+          to select what it covers.</p>
+        <div id="ast" class="list ast"></div>
+      </div>
+    </section>
   </aside>
+
+  <div class="gutter vertical" data-resizes-column="side"></div>
 
   <section class="editor-wrap">
     <div class="panel-head">
       <span id="open-path">No file open</span>
-      <span id="cursor" class="dim"></span>
+      <span class="grow"></span>
+      <span id="language" class="chip"></span>
     </div>
     <div id="editor"></div>
+    <!-- The status bar: what the cursor is on, in the spelling the terminal takes. -->
+    <div class="panel-head sub statusbar">
+      <button type="button" id="coordinate" class="coord" title="Copy this coordinate">—</button>
+      <span id="subject" class="subject"></span>
+      <span class="grow"></span>
+      <span id="node-kind" class="chip" title="The innermost tree node at the cursor"></span>
+      <span id="cursor" class="dim"></span>
+      <button type="button" id="undo" class="ghost" disabled>Undo all edits</button>
+      <button type="button" id="download" class="ghost" disabled>Download patch</button>
+    </div>
   </section>
 
-  <aside class="panel actions">
-    <div class="panel-head">Actions</div>
-    <div class="action-body">
-      <p class="hint" id="hint">Load a repository, open a file, then put the cursor on a name.</p>
+  <div class="gutter vertical" data-resizes-column="right"></div>
 
-      <div class="group">
-        <button data-act="definition">Go to definition</button>
-        <button data-act="references">Find references</button>
-      </div>
-
-      <div class="group rename">
-        <input id="new-name" type="text" placeholder="new name" spellcheck="false">
-        <button data-act="rename">Rename</button>
-      </div>
-
-      <div class="group rename">
-        <input id="flag-name" type="text" placeholder="feature flag" spellcheck="false">
-        <button data-act="removeFlag">Retire</button>
-      </div>
-
-      <div class="group">
-        <button data-act="duplicates">Duplicates</button>
-        <button data-act="unused">Unused</button>
-        <button data-act="stats">Index stats</button>
-      </div>
-
-      <div id="result" class="result"></div>
+  <!-- The answer sits above the actions rather than below them: there are thirty
+       buttons, and a result rendered under all of them is a result nobody sees. -->
+  <aside class="panel actions" id="right">
+    <div class="panel-head">
+      <span id="result-head">Result</span>
     </div>
+    <div id="result" class="result">
+      <p class="hint">Open a file and put the cursor on a name, then pick an action.
+        Every one of them runs the same code the command line does — in this tab,
+        against these bytes.</p>
+    </div>
+    <div class="gutter horizontal" data-resizes="result"></div>
+    <div class="panel-head sub">
+      <span>Actions</span>
+      <span class="grow"></span>
+      <input id="action-filter" type="text" placeholder="filter" spellcheck="false">
+    </div>
+    <div id="action-list" class="action-body"></div>
   </aside>
 </main>
+
+<dialog id="ask">
+  <form method="dialog" id="ask-form">
+    <h2 id="ask-title"></h2>
+    <p id="ask-why" class="hint"></p>
+    <label id="ask-label" for="ask-value"></label>
+    <input id="ask-value" type="text" spellcheck="false" autocomplete="off">
+    <p id="ask-example" class="dim"></p>
+    <menu>
+      <button value="cancel" type="submit" class="ghost">Cancel</button>
+      <button value="ok" type="submit" id="ask-ok">Run</button>
+    </menu>
+  </form>
+</dialog>
 
 <script type="module" src="/src/main.ts"></script>
 </body>

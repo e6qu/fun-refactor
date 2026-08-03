@@ -838,7 +838,7 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
         .into());
     };
 
-    if !src.join("lib.rs").exists() && !src.join("main.rs").exists() {
+    if !crate::vfs::exists(src.join("lib.rs")) && !crate::vfs::exists(src.join("main.rs")) {
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
             language: format!(
@@ -883,7 +883,7 @@ fn module_label(module: &CrateModule) -> String {
 
 /// Is every module on the path to `module` declared with a `mod` statement?
 fn check_module_is_declared(module: &CrateModule, destination: &Path) -> Result<()> {
-    let root = if module.src.join("lib.rs").exists() {
+    let root = if crate::vfs::exists(module.src.join("lib.rs")) {
         module.src.join("lib.rs")
     } else {
         module.src.join("main.rs")
@@ -905,7 +905,7 @@ fn check_module_is_declared(module: &CrateModule, destination: &Path) -> Result<
         walked.push(segment.clone());
         let dir: PathBuf = module.src.join(walked.join("/"));
         let flat = module.src.join(format!("{}.rs", walked.join("/")));
-        parent_file = if flat.exists() {
+        parent_file = if crate::vfs::exists(&flat) {
             flat
         } else {
             dir.join("mod.rs")
