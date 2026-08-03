@@ -212,6 +212,11 @@ pub enum SparedReason {
     /// is how an author writes "this is deliberately not used" — usually a parameter
     /// a signature requires and the body ignores.
     DeclaredUnused,
+    /// Something uses this name, but more than one definition answers to it and
+    /// nothing here says which — two types declaring the same member, or one package
+    /// declaring the same function twice under opposite build tags. Every candidate
+    /// stays live.
+    AmbiguousMemberCall,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -233,6 +238,12 @@ impl UnusedReport {
         Some(match reason {
             SparedReason::NamedInAString => {
                 "name appears in a string literal; reflection or a handler table may reach it"
+                    .to_string()
+            }
+            SparedReason::AmbiguousMemberCall => {
+                "something uses this name and more than one definition answers to it; \
+                 which one runs depends on a receiver type or a build tag this \
+                 analysis does not track"
                     .to_string()
             }
             SparedReason::DeclaredUnused => {
@@ -304,7 +315,28 @@ fn declared_unused(symbol: &crate::model::Symbol) -> bool {
 /// [`find_unused`], with the reason each spared symbol was spared.
 pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedReport {
     let call_graph = CallGraph::build(index);
-    let reachable = call_graph.reachable_from(entrypoints);
+
+    // Two reachability answers, because a library has no `main`.
+    //
+    // Everything an exported symbol reaches is live: something outside this
+    // workspace may call it, and no amount of scanning here can rule that out.
+    // Without this, the entire tree beneath a public API reads as dead — in
+    // helm/helm that was most of `pkg/action`, where `performInstall` is called by
+    // `performInstallCtx`, called by the exported `RunWithContext`.
+    //
+    // The exported symbols themselves are judged on the narrow answer, so an export
+    // nothing in the workspace uses is still reported — tagged as exported, since
+    // whether that is dead code or the public API is not ours to decide.
+    let exported_roots: Vec<SymbolId> = index
+        .symbols
+        .iter()
+        .filter(|s| s.exported)
+        .map(|s| s.id)
+        .collect();
+    let mut api_roots = entrypoints.to_vec();
+    api_roots.extend(exported_roots);
+    let reachable_from_entrypoints = call_graph.reachable_from(entrypoints);
+    let reachable = call_graph.reachable_from(&api_roots);
 
     // A reference from inside the symbol's own definition is not an outside use.
     let mut referenced: HashSet<SymbolId> = HashSet::new();
@@ -322,6 +354,19 @@ pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedRepo
     }
 
     let named_in_a_string = names_in_string_literals(index);
+    // Names the hierarchy analysis has already ruled on. Where it has, its answer
+    // stands: it knows `Ledger.Area(scale)` cannot satisfy `Shape.Area()` because the
+    // arities differ, and a name-only fallback would undo that.
+    let decided_by_hierarchy: HashSet<&str> = index
+        .symbols
+        .iter()
+        .filter(|s| !call_graph.hierarchy_callers(s.id).is_empty())
+        .map(|s| s.name.as_str())
+        .collect();
+    let called_ambiguously: HashSet<String> = ambiguously_used_names(index)
+        .into_iter()
+        .filter(|name| !decided_by_hierarchy.contains(name.as_str()))
+        .collect();
     let dead_cycles = dead_reference_cycles(index, &reachable);
 
     // What the answer would have been on resolved edges alone, so the difference the
@@ -341,12 +386,23 @@ pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedRepo
     };
 
     for symbol in &index.symbols {
-        let orphaned = !reachable.contains(&symbol.id) && !referenced.contains(&symbol.id);
+        let reached = if symbol.exported {
+            reachable_from_entrypoints.contains(&symbol.id)
+        } else {
+            reachable.contains(&symbol.id)
+        };
+        let orphaned = !reached && !referenced.contains(&symbol.id);
         if orphaned || dead_cycles.contains(&symbol.id) {
             if declared_unused(symbol) {
                 report
                     .spared
                     .push((symbol.id, SparedReason::DeclaredUnused));
+                continue;
+            }
+            if called_ambiguously.contains(&symbol.name) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::AmbiguousMemberCall));
                 continue;
             }
             if !named_in_a_string.contains(&symbol.name) {
@@ -393,6 +449,24 @@ pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedRepo
 /// `btn-primary` and for `btn`. Files that cannot be read or parsed contribute nothing
 /// and are skipped: this widens the unused list rather than narrowing it, and the
 /// caller is already told about parse errors by [`plan`].
+/// Names used where more than one definition could answer to them.
+///
+/// `cfg.recordRelease(r)` resolves to neither of the two `recordRelease` methods in
+/// helm, because choosing would need the type of `cfg`. Both are live as far as this
+/// can tell, and a dead-code list that invites deleting one of them is worse than one
+/// that admits what it does not know.
+///
+/// This is the fallback for names no declared hierarchy covers. Where one does, the
+/// caller keeps that answer instead — it is the more precise of the two.
+fn ambiguously_used_names(index: &Index) -> HashSet<String> {
+    index
+        .references
+        .iter()
+        .filter(|r| r.target.is_none() && r.confidence == Confidence::FieldBased)
+        .map(|r| r.name.clone())
+        .collect()
+}
+
 fn names_in_string_literals(index: &Index) -> HashSet<String> {
     let parsers = Parsers::new();
     let mut names = HashSet::new();

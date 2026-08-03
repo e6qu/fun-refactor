@@ -134,6 +134,31 @@ impl Language {
         matches!(self, Language::Hcl)
     }
 
+    /// Is every member of a value reached through a receiver written before it?
+    ///
+    /// Where this holds, a call with no receiver cannot be a method, which is what
+    /// stops a bare `contextWithTimeout(…)` from resolving to the `statusWaiter`
+    /// method of that name sitting four lines above it. Rust is excluded: it reaches
+    /// an associated function through a path, `Foo::new()`, which is not a receiver
+    /// and is not recorded as one.
+    pub fn members_always_have_a_receiver(&self) -> bool {
+        matches!(
+            self,
+            Language::Go | Language::TypeScript | Language::Tsx | Language::Python | Language::Zig
+        )
+    }
+
+    /// Is a package here a directory, so that top-level declarations are visible
+    /// unqualified from every file beside them?
+    ///
+    /// Go's package is the directory. A function in `a.go` is called from `b.go` with
+    /// no import and no qualifier, which is why resolution cannot stop at the file.
+    /// This is narrower than [`Self::resolves_by_directory`]: only *top-level*
+    /// declarations are in package scope, so methods and struct fields are not.
+    pub fn packages_by_directory(&self) -> bool {
+        matches!(self, Language::Go)
+    }
+
     pub fn from_name(name: &str) -> Option<Language> {
         Language::ALL
             .iter()

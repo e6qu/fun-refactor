@@ -189,6 +189,34 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
     spans
 }
 
+/// What a reference was written against, if it was written as a member of something.
+///
+/// `w.contextWithTimeout(…)` yields `w`; `time.Now()` yields `time`; a bare
+/// `helper()` yields nothing. Read from the tree rather than captured by a query,
+/// because every grammar spells the shape differently but all of them put the
+/// receiver first and the member last.
+fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
+    const MEMBER_SHAPES: &[&str] = &[
+        "selector_expression", // Go
+        "member_expression",   // TypeScript, JavaScript
+        "attribute",           // Python
+        "field_expression",    // Rust, Zig
+    ];
+    let node = root.descendant_for_byte_range(span.start, span.end)?;
+    let parent = node.parent()?;
+    if !MEMBER_SHAPES.contains(&parent.kind()) {
+        return None;
+    }
+    let mut cursor = parent.walk();
+    let children: Vec<Node> = parent.named_children(&mut cursor).collect();
+    // The member itself is last; anything before it is what it was read from.
+    let last = children.last()?;
+    if Span::from(*last) != span || children.len() < 2 {
+        return None;
+    }
+    Some(Span::from(children[0]).text(source).to_string())
+}
+
 /// Ranks reference kinds from most to least specific.
 ///
 /// `foo()` matches both a call pattern and the catch-all identifier pattern; the call
@@ -451,6 +479,7 @@ impl Extractor {
                     // Resolution happens in the index, which can see other files.
                     confidence: Confidence::NameOnly,
                     kind: r.kind,
+                    receiver: receiver_of(root, span, source),
                 });
             }
         }

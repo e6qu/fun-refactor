@@ -197,6 +197,23 @@ enum Command {
         /// Additional catalog directory for entry-point rules.
         #[arg(long)]
         catalogs: Option<PathBuf>,
+        /// Only report symbols in this language. Repeatable.
+        ///
+        /// Filters the report, not the index: reachability is still worked out
+        /// across the whole workspace, so narrowing here cannot invent a dead
+        /// symbol the way scanning a subdirectory would.
+        #[arg(long = "language", value_name = "LANG")]
+        languages: Vec<String>,
+        /// Only report symbols under this path prefix. Repeatable.
+        #[arg(long = "path", value_name = "PREFIX")]
+        paths: Vec<PathBuf>,
+        /// Only report symbols nothing outside their own file or package can see.
+        ///
+        /// An exported symbol with no use in the workspace may still be the public
+        /// API of a library, which no amount of scanning this repository can rule
+        /// out. Those are the ones this hides.
+        #[arg(long)]
+        internal: bool,
     },
     /// Remove unused imports and sort import blocks.
     ///
@@ -409,7 +426,12 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_restructure(&cli, pattern, template, language, *write),
         Command::Delete { target, write } => cmd_delete(&cli, target, *write),
-        Command::Unused { catalogs } => cmd_unused(&cli, catalogs.as_deref()),
+        Command::Unused {
+            catalogs,
+            languages,
+            paths,
+            internal,
+        } => cmd_unused(&cli, catalogs.as_deref(), languages, paths, *internal),
         Command::Imports { file, write } => cmd_imports(&cli, file, *write),
         Command::Move {
             target,
@@ -768,7 +790,13 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     present(cli, &plan.edits, &summary, write)
 }
 
-fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()> {
+fn cmd_unused(
+    cli: &Cli,
+    extra_catalogs: Option<&std::path::Path>,
+    languages: &[String],
+    paths: &[PathBuf],
+    internal_only: bool,
+) -> Result<()> {
     let index = build_index(cli, &[])?;
     let mut catalog = Catalog::builtin()?;
     if let Some(dir) = extra_catalogs {
@@ -776,6 +804,44 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
     }
     let entrypoints: Vec<_> = catalog.detect(&index).iter().map(|e| e.symbol).collect();
     let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
+
+    // Every name has to resolve to a language we know, or a typo silently narrows
+    // the report to nothing and reads as "no dead code here".
+    let wanted: Vec<crate::lang::Language> = languages
+        .iter()
+        .map(|name| {
+            crate::lang::Language::from_name(name).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "unknown language '{name}'. Known: {}",
+                    crate::lang::Language::ALL
+                        .iter()
+                        .map(|l| l.name())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            })
+        })
+        .collect::<Result<_>>()?;
+    let roots: Vec<PathBuf> = paths
+        .iter()
+        .map(|p| {
+            if p.is_absolute() {
+                p.clone()
+            } else {
+                cli.root.join(p)
+            }
+        })
+        .collect();
+    let keep = |s: &crate::model::Symbol| {
+        (wanted.is_empty() || wanted.contains(&s.language))
+            && (roots.is_empty() || roots.iter().any(|r| s.file.starts_with(r)))
+            && (!internal_only || !s.exported)
+    };
+    let total = unused.len();
+    let unused: Vec<_> = unused
+        .into_iter()
+        .filter(|id| index.symbol(*id).is_some_and(keep))
+        .collect();
 
     if cli.json {
         let payload: Vec<_> = unused
@@ -787,6 +853,7 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
                     "kind": s.kind.as_str(),
                     "file": s.file,
                     "language": s.language.name(),
+                    "exported": s.exported,
                 })
             })
             .collect();
@@ -794,15 +861,27 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
         return Ok(());
     }
 
+    let mut exported_count = 0usize;
     for symbol in unused.iter().filter_map(|id| index.symbol(*id)) {
+        if symbol.exported {
+            exported_count += 1;
+        }
         println!(
-            "{:<12} {:<34} {}",
+            "{:<12} {:<34} {:<9} {}",
             symbol.kind.as_str(),
             symbol.qualified_name(),
+            if symbol.exported { "exported" } else { "" },
             symbol.file.display()
         );
     }
-    println!("\n{} symbol(s) with no detected use", unused.len());
+    if unused.len() == total {
+        println!("\n{} symbol(s) with no detected use", unused.len());
+    } else {
+        println!(
+            "\n{} symbol(s) with no detected use, of {total} found across the workspace",
+            unused.len()
+        );
+    }
     println!(
         "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
          candidates, so a method reached only through a trait object, an interface \n\
@@ -812,6 +891,13 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
          left off, as are names beginning with an underscore, which say the author \n\
          meant them to go unused."
     );
+    if exported_count > 0 && !internal_only {
+        println!(
+            "\n{exported_count} of these are exported. In a library that is the public \n\
+             API, which nothing in this repository can be expected to call — pass \n\
+             --internal to list only what is definitely dead here."
+        );
+    }
     Ok(())
 }
 

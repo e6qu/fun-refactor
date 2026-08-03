@@ -267,12 +267,55 @@ impl Index {
 
         // 1. Lexical scope: the innermost definition in this file whose scope encloses
         //    the reference. This is what makes shadowing correct.
+        // Was this written as a member of something, and if so, of a value or of a
+        // package? An import binding before the dot means a package-qualified call to
+        // a function; anything else means a value, so the name is one of its members.
+        let called_on_a_value = reference.kind == ReferenceKind::Call
+            && reference
+                .receiver
+                .as_deref()
+                .is_some_and(|r| self.import_binding(info, r).is_none());
+        // A member reached through no receiver at all is not a member here.
+        let bare_call = reference.kind == ReferenceKind::Call
+            && reference.receiver.is_none()
+            && reference.language.members_always_have_a_receiver();
+        let plausible = |s: &Symbol| {
+            // A binding is not in scope inside its own initialiser. Go's
+            // `templatesDirExists := check(templatesDirExists(p))` calls the package
+            // function and then shadows it; Rust's `let x = x + 1` reads the outer
+            // `x`; Python's `x = f(x)` reads the previous one. Resolving to the name
+            // being declared makes the thing it was declared from look dead.
+            if matches!(
+                s.kind,
+                SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
+            ) && s.file == path
+                && s.full_span.contains(reference.span)
+                && s.name_span != reference.span
+            {
+                return false;
+            }
+            let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
+            if called_on_a_value {
+                is_member
+            } else if bare_call {
+                !is_member
+            } else {
+                true
+            }
+        };
+
         let scope_chain = self.scope_chain(info, reference.scope);
         let in_file: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
-            .filter(|s| s.file == path)
+            .filter(|s| s.file == path && plausible(s))
             .collect();
+        let candidates: Vec<SymbolId> = candidates
+            .iter()
+            .copied()
+            .filter(|id| self.symbol(*id).is_some_and(plausible))
+            .collect();
+        let candidates = &candidates;
 
         let scoped = in_file
             .iter()
@@ -284,7 +327,24 @@ impl Index {
                     .iter()
                     .position(|sc| *sc == s.scope)
                     .unwrap_or(usize::MAX);
-                (depth, distance(s.name_span.start, reference.span.start))
+                // "Preceding" has to be part of the key, not just the distance. Go
+                // re-declares a name with `:=` mid-function, and a use above that
+                // line reads the earlier binding however close the later one sits:
+                //     var ret map[string]any
+                //     if m == nil { return ret }      // this one
+                //     ret, err := conv(m)             // not this one, 15 bytes nearer
+                // Only value bindings are ordered this way; a function may be called
+                // above where it is written.
+                let ordered = matches!(
+                    s.kind,
+                    SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
+                );
+                let declared_after = ordered && s.name_span.start > reference.span.start;
+                (
+                    depth,
+                    declared_after,
+                    distance(s.name_span.start, reference.span.start),
+                )
             });
         if let Some(symbol) = scoped {
             return (Some(symbol.id), Confidence::Exact);
@@ -295,7 +355,7 @@ impl Index {
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
-        if in_file.len() > 1 {
+        if in_file.len() > 1 && !called_on_a_value {
             // Ambiguous within the file: report the nearest but do not claim certainty.
             let nearest = in_file
                 .iter()
@@ -303,6 +363,10 @@ impl Index {
                 .unwrap();
             return (Some(nearest.id), Confidence::NameOnly);
         }
+        // For a member access, proximity is not evidence. Two types declaring the
+        // same method in one file are equally plausible targets, and picking the one
+        // written nearer the call is a coin flip that reads as an answer — it made
+        // the other method look dead. Step 5 says "either" instead.
 
         // 3. Bound by an import in this file: resolve into the imported file when the
         //    import path identifies one, else accept the unique exported match.
@@ -358,18 +422,61 @@ impl Index {
             }
         }
 
-        // 5. Field access without a known receiver type: name-matched at best.
-        if reference.kind == ReferenceKind::Field {
-            let members: Vec<&Symbol> = candidates
-                .iter()
-                .filter_map(|id| self.symbol(*id))
-                .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
-                .collect();
+        // 5. Member access without a known receiver type: name-matched at best.
+        //
+        //    A call written through a selector arrives as a plain `Call`, because
+        //    `w.contextWithTimeout(…)` and `time.Now()` are one syntax in Go and the
+        //    grammars capture only the callee. What separates them is the receiver:
+        //    an import binding means a package-qualified call to a function, and
+        //    anything else means a value, so the name is one of its members. Without
+        //    that distinction a method call resolves to a package-level function of
+        //    the same name, and the method itself reads as dead.
+        let members: Vec<&Symbol> = candidates
+            .iter()
+            .filter_map(|id| self.symbol(*id))
+            .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
+            .collect();
+        let is_member_access = reference.kind == ReferenceKind::Field || called_on_a_value;
+        if is_member_access {
             if members.len() == 1 {
                 return (Some(members[0].id), Confidence::FieldBased);
             }
             if !members.is_empty() {
                 return (None, Confidence::FieldBased);
+            }
+        }
+
+        // 6. Package-scoped languages. Go's package is the directory: a top-level
+        //    declaration in one file is visible, unqualified, from every file beside
+        //    it, with no import to record the fact. Only top-level declarations are
+        //    in that scope — a method or a struct field is reached through a value,
+        //    which step 5 handles.
+        //
+        //    "Top-level" is `qualifier`, not `container`: a Go method's receiver type
+        //    is declared elsewhere, so the method links to no containing symbol and
+        //    carries the type's name as its qualifier instead. Testing `container`
+        //    would let every method into package scope, which is how `Circle.Area()`
+        //    briefly resolved to a bare `Area`.
+        if reference.language.packages_by_directory() && !called_on_a_value {
+            let dir = path.parent();
+            let siblings: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| {
+                    s.language == reference.language
+                        && s.qualifier.is_none()
+                        && s.container.is_none()
+                        && s.file.parent() == dir
+                })
+                .collect();
+            match siblings.len() {
+                1 => return (Some(siblings[0].id), Confidence::Exact),
+                0 => {}
+                // A package can declare one name twice, under mutually exclusive
+                // build tags — Go's `//go:build windows` and `//go:build !windows`.
+                // Which definition a call means depends on the build, so choosing
+                // one would rewrite half of a pair and break the other build.
+                _ => return (None, Confidence::FieldBased),
             }
         }
 
