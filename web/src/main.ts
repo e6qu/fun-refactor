@@ -23,6 +23,10 @@ import { ACTIONS, GROUPS, type Action, type Context } from "./actions";
 import { escapeHtml, render } from "./render";
 import { installShell, setResizeHandler } from "./shell";
 import { patchOf } from "./patch";
+import { decorate } from "./icons";
+import { installTheme, onThemeChange, current as currentTheme, toggle as toggleTheme } from "./theme";
+import { installHelp, openHelp, livePages, PAGES } from "./help";
+import * as menu from "./menu";
 import "./style.css";
 
 // Monaco wants a worker per language service. Only the core editor is loaded here —
@@ -40,18 +44,30 @@ const SAMPLE = import.meta.glob("../sample/**/*", {
   eager: true,
 }) as Record<string, string>;
 
+/**
+ * What loads if you do nothing.
+ *
+ * `psf/requests` is real, widely read, and the right size: nineteen files of Python
+ * that fit in a tab and still have interfaces, inheritance, a `__init__.py` re-export
+ * surface and genuine dead code. A synthetic sample can only demonstrate; this can
+ * surprise you, which is the point of a playground.
+ */
+const DEFAULT_REPOSITORY = "psf/requests/tree/main/src/requests";
+
 /** A repository worth trying, chosen so each language has one that is small enough. */
 const PRESETS: { label: string; target: string }[] = [
+  { label: "Python — requests (src)", target: DEFAULT_REPOSITORY },
+  { label: "Python — httpx (src)", target: "encode/httpx/tree/master/httpx" },
   { label: "Rust — ripgrep (crates/cli)", target: "BurntSushi/ripgrep/tree/master/crates/cli" },
   { label: "Go — helm (pkg/action)", target: "helm/helm/tree/main/pkg/action" },
   { label: "TypeScript — zod (src)", target: "colinhacks/zod/tree/main/packages/zod/src" },
-  { label: "Python — requests (src)", target: "psf/requests/tree/main/src/requests" },
   { label: "Zig — zls (src)", target: "zigtools/zls/tree/master/src" },
   { label: "Bash — bats-core (lib)", target: "bats-core/bats-core/tree/master/lib" },
   { label: "HCL — terraform-aws-vpc", target: "terraform-aws-modules/terraform-aws-vpc" },
   { label: "Helm — ingress-nginx chart", target: "kubernetes/ingress-nginx/tree/main/charts/ingress-nginx" },
   { label: "CSS and HTML — normalize.css", target: "necolas/normalize.css" },
   { label: "Markdown — the Rust book (src)", target: "rust-lang/book/tree/main/src" },
+  { label: "All fifteen languages — bundled sample", target: "sample" },
 ];
 
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -227,6 +243,7 @@ editor.onDidChangeCursorSelection(refreshCursor);
 
 function openFile(path: string) {
   if (!workspace || files[path] === undefined) return;
+  menu.close();
   current = path;
   let model = models.get(path);
   if (!model) {
@@ -535,11 +552,22 @@ async function run(action: Action) {
 }
 
 function updateAvailability() {
-  for (const button of actionList.querySelectorAll<HTMLButtonElement>("button[data-act]")) {
-    const action = ACTIONS.find((a) => a.id === button.dataset.act)!;
+  const buttons = [
+    ...actionList.querySelectorAll<HTMLButtonElement>("button[data-act]"),
+    ...document.querySelectorAll<HTMLButtonElement>("#nav-icons button[data-act]"),
+  ];
+  for (const button of buttons) {
+    const action = ACTIONS.find((a) => a.id === button.dataset.act);
+    if (!action) continue;
     const why = unavailable(action);
     button.disabled = why !== null;
-    button.title = why ?? action.describes;
+    // The icons keep their hover label and gain the reason; the panel buttons carry
+    // the reason alone, since their description is already printed under them.
+    if (button.dataset.label) {
+      button.title = why ? `${button.dataset.label} — ${why}` : button.dataset.label;
+    } else {
+      button.title = why ?? action.describes;
+    }
   }
 }
 
@@ -576,21 +604,116 @@ function buildActions(filter = "") {
 
 // ------------------------------------------------------------------ navigation
 
-result.addEventListener("click", (e) => {
-  const target = (e.target as HTMLElement).closest("[data-goto]");
-  if (!target) return;
-  const raw = (target as HTMLElement).dataset.goto!;
+/** Somewhere you have been, so you can get back to it. */
+interface Place {
+  path: string;
+  line: number;
+  col: number;
+}
+
+// A jump you cannot undo is a jump you hesitate to make. Every deliberate move goes
+// on this stack; Alt+← and Alt+→ walk it, as they do in an editor.
+const history: Place[] = [];
+let historyAt = -1;
+
+function where(): Place | null {
+  const position = editor.getPosition();
+  return current && position
+    ? { path: current, line: position.lineNumber, col: position.column }
+    : null;
+}
+
+/** Move the cursor there, without touching the history. */
+function moveTo(place: Place) {
+  if (place.path && place.path !== current) openFile(place.path);
+  const at = { lineNumber: place.line, column: place.col };
+  editor.setPosition(at);
+  editor.revealPositionInCenter(at);
+  editor.focus();
+}
+
+/** Move the cursor there, and remember where we were. */
+function jumpTo(place: Place) {
+  const from = where();
+  if (from && (from.path !== place.path || from.line !== place.line)) {
+    history.splice(historyAt + 1);
+    history.push(from);
+    historyAt = history.length - 1;
+  }
+  moveTo(place);
+  refreshHistoryButtons();
+}
+
+/** `path:line:col`, as every result link spells it. */
+function parsePlace(raw: string): Place {
   // A path can contain a colon on no platform we load from, but the position is
   // always the last two fields, so split from the right.
   const parts = raw.split(":");
   const col = Number(parts.pop());
   const line = Number(parts.pop());
-  const path = parts.join(":");
-  if (path && path !== current) openFile(path);
-  const at = { lineNumber: line, column: col };
-  editor.setPosition(at);
-  editor.revealPositionInCenter(at);
-  editor.focus();
+  return { path: parts.join(":"), line, col };
+}
+
+function goBack() {
+  if (historyAt < 0) return;
+  const here = where();
+  const place = history[historyAt];
+  // Leave the place we are standing in where the forward step will find it.
+  if (here) history[historyAt] = here;
+  historyAt -= 1;
+  moveTo(place);
+  refreshHistoryButtons();
+}
+
+function goForward() {
+  if (historyAt + 1 >= history.length) return;
+  const here = where();
+  historyAt += 1;
+  const place = history[historyAt];
+  if (here) history[historyAt] = here;
+  moveTo(place);
+  refreshHistoryButtons();
+}
+
+function refreshHistoryButtons() {
+  const back = document.getElementById("nav-back") as HTMLButtonElement | null;
+  const forward = document.getElementById("nav-forward") as HTMLButtonElement | null;
+  if (back) back.disabled = historyAt < 0;
+  if (forward) forward.disabled = historyAt + 1 >= history.length;
+}
+
+/** Go to the one place a symbol is defined, or report why that is not a question. */
+function goToDefinition() {
+  if (!workspace || !current) return;
+  const position = editor.getPosition();
+  if (!position) return;
+  const found = JSON.parse(
+    workspace.definition(current, position.lineNumber, position.column),
+  );
+  if (found.error || !found.definitions?.length) {
+    show(
+      `<p class="hint">${escapeHtml(
+        found.error ?? "Nothing is defined at that position.",
+      )}</p>`,
+      "Go to definition",
+    );
+    return;
+  }
+  // Several definitions is a real answer — an abstraction with implementations — so
+  // the list is shown and the first is jumped to.
+  const primary = found.definitions.find((d: any) => d.role === "primary") ?? found.definitions[0];
+  jumpTo({
+    path: primary.location.file,
+    line: primary.location.line,
+    col: primary.location.col,
+  });
+  show(render(found, current), "Go to definition");
+}
+
+result.addEventListener("click", (e) => {
+  const target = (e.target as HTMLElement).closest("[data-goto]");
+  if (!target) return;
+  jumpTo(parsePlace((target as HTMLElement).dataset.goto!));
 });
 
 el<HTMLInputElement>("filter").addEventListener("input", (e) => {
@@ -634,12 +757,9 @@ function loadSample() {
     loaded[key.replace("../sample/", "")] = text;
   }
   say(`Indexing the bundled sample (${Object.keys(loaded).length} files)…`, "busy");
-  adopt(loaded, "sample");
+  adopt(loaded, "bundled sample");
   say("Bundled sample — fifteen languages, no network needed.");
-  show(render(JSON.parse(workspace!.stats()), current), "Index stats");
 }
-
-el<HTMLButtonElement>("load-sample").addEventListener("click", loadSample);
 
 const presetSelect = el<HTMLSelectElement>("preset");
 for (const preset of PRESETS) {
@@ -649,19 +769,28 @@ for (const preset of PRESETS) {
   presetSelect.appendChild(option);
 }
 presetSelect.addEventListener("change", () => {
-  if (!presetSelect.value) return;
-  el<HTMLInputElement>("target").value = presetSelect.value;
+  const chosen = presetSelect.value;
   presetSelect.selectedIndex = 0;
+  if (!chosen) return;
+  if (chosen === "sample") {
+    loadSample();
+    return;
+  }
+  el<HTMLInputElement>("target").value = chosen;
   el<HTMLFormElement>("load-form").requestSubmit();
 });
 
-el<HTMLFormElement>("load-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const target = parseTarget(el<HTMLInputElement>("target").value);
-  if (!target) {
-    say("Give an owner/repo, or a github.com URL.", "error");
-    return;
-  }
+/**
+ * Fetch a repository and index it.
+ *
+ * Throws rather than reporting: the caller decides what a failure means. Pressing
+ * Load and having it fail is worth an error in the status bar; failing to reach
+ * GitHub on the very first page load is worth standing something else up instead.
+ */
+async function loadTarget(spec: string) {
+  const target = parseTarget(spec);
+  if (!target) throw new Error("Give an owner/repo, or a github.com URL.");
+
   const button = el<HTMLButtonElement>("load");
   button.disabled = true;
   try {
@@ -673,7 +802,6 @@ el<HTMLFormElement>("load-form").addEventListener("submit", async (e) => {
 
     say(`Indexing ${Object.keys(loaded.files).length} files…`, "busy");
     adopt(loaded.files, `${target.owner}/${target.repo}`);
-    show(render(JSON.parse(workspace!.stats()), current), "Index stats");
 
     const notes: string[] = [];
     if (loaded.skipped.length) {
@@ -685,10 +813,17 @@ el<HTMLFormElement>("load-form").addEventListener("submit", async (e) => {
       `${target.owner}/${target.repo}@${loaded.ref}` +
         (notes.length ? ` · ${notes.join(" · ")}` : ""),
     );
-  } catch (error) {
-    say(String(error instanceof Error ? error.message : error), "error");
   } finally {
     button.disabled = false;
+  }
+}
+
+el<HTMLFormElement>("load-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await loadTarget(el<HTMLInputElement>("target").value);
+  } catch (error) {
+    say(String(error instanceof Error ? error.message : error), "error");
   }
 });
 
@@ -714,17 +849,173 @@ downloadButton.addEventListener("click", () => {
   URL.revokeObjectURL(link.href);
 });
 
+// ----------------------------------------------------------- the top bar icons
+
+function buildNavIcons() {
+  const bar = el<HTMLElement>("nav-icons");
+  bar.innerHTML = "";
+
+  const add = (id: string, icon: string, label: string, run: () => void) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "icon-button";
+    button.id = id;
+    decorate(button, icon, label);
+    button.addEventListener("click", run);
+    bar.appendChild(button);
+    return button;
+  };
+
+  add("nav-back", "back", "Back (Alt+←)", goBack).disabled = true;
+  add("nav-forward", "forward", "Forward (Alt+→)", goForward).disabled = true;
+
+  for (const action of ACTIONS.filter((a) => a.icon)) {
+    const label =
+      action.id === "definition" ? `${action.label} (F12)` : action.label;
+    const button = add(`nav-${action.id}`, action.icon!, label, () => {
+      if (action.id === "definition") goToDefinition();
+      else void run(action);
+    });
+    button.dataset.act = action.id;
+  }
+}
+
+// --------------------------------------------------------- the context menu
+
+/** Everything that applies to what is under the cursor, with reasons for the rest. */
+function openContextMenu(x: number, y: number) {
+  if (!workspace || !current) return;
+  const position = editor.getPosition();
+  let here: any = {};
+  try {
+    if (position) {
+      here = JSON.parse(workspace.at(current, position.lineNumber, position.column));
+    }
+  } catch {
+    here = {};
+  }
+
+  const subject = here.name
+    ? `<strong>${escapeHtml(here.name)}</strong> <span class="dim">${escapeHtml(here.kind ?? "")}</span>`
+    : selectionRange()
+      ? `<span class="dim">the selection</span>`
+      : `<span class="dim">nothing the index knows here</span>`;
+
+  menu.open(
+    x,
+    y,
+    subject,
+    ACTIONS.map((action) => ({
+      id: action.id,
+      label: action.label,
+      group: action.group,
+      mutates: action.mutates,
+      disabled: unavailable(action),
+    })),
+    (id) => {
+      const action = ACTIONS.find((a) => a.id === id)!;
+      if (action.id === "definition") goToDefinition();
+      else void run(action);
+    },
+  );
+}
+
+el<HTMLElement>("editor").addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  openContextMenu(e.clientX, e.clientY);
+});
+
+// The same menu from the keyboard, and from the outline, so nothing is mouse-only.
+addEventListener("keydown", (e) => {
+  if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+    e.preventDefault();
+    const box = el<HTMLElement>("editor").getBoundingClientRect();
+    openContextMenu(box.left + 60, box.top + 60);
+  }
+});
+
+// --------------------------------------------------------- editor keybindings
+
+// What an editor does: F12 and ⌘/Ctrl-click go to the definition, Alt+arrows walk
+// the jumps you made. Bound through Monaco so they work while it has focus.
+editor.addCommand(monaco.KeyCode.F12, goToDefinition);
+editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.LeftArrow, goBack);
+editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.RightArrow, goForward);
+
+editor.onMouseDown((e) => {
+  const modified = e.event.ctrlKey || e.event.metaKey;
+  if (!modified || !e.target.position) return;
+  e.event.preventDefault();
+  editor.setPosition(e.target.position);
+  goToDefinition();
+});
+
+// --------------------------------------------------------------------- theme
+
+/** Monaco keeps its own themes and does not read CSS variables. */
+function syncEditorTheme() {
+  monaco.editor.setTheme(currentTheme() === "dark" ? "vs-dark" : "vs");
+}
+
+function buildThemeButton() {
+  const button = el<HTMLButtonElement>("theme-button");
+  const paint = () => {
+    const dark = currentTheme() === "dark";
+    // The icon shows what a click gives you, not what you already have.
+    decorate(button, dark ? "sun" : "moon", dark ? "Light theme" : "Dark theme");
+  };
+  button.addEventListener("click", toggleTheme);
+  onThemeChange(() => {
+    paint();
+    syncEditorTheme();
+  });
+  paint();
+}
+
 // ----------------------------------------------------------------------- start
+
+installTheme();
+syncEditorTheme();
+buildThemeButton();
+
+const helpButton = el<HTMLButtonElement>("help-button");
+helpButton.classList.add("round");
+decorate(helpButton, "help", "Help and workspace overview");
+helpButton.addEventListener("click", () => openHelp());
+installHelp(
+  [
+    ...PAGES,
+    // The live pages ask the workspace when opened, so they are never stale.
+    ...livePages((method) => {
+      if (!workspace) return null;
+      const call = (workspace as unknown as Record<string, () => string>)[method];
+      return typeof call === "function" ? call.call(workspace) : null;
+    }),
+  ],
+  (target) => jumpTo(parsePlace(target)),
+);
 
 installShell();
 setResizeHandler(() => editor.layout());
 buildActions();
+buildNavIcons();
 say("Loading the analysis…", "busy");
 init({ module_or_path: wasmUrl })
-  .then(() => {
+  .then(async () => {
     el<HTMLButtonElement>("load").disabled = false;
-    // Start with something loaded. A page whose every button is greyed out until you
-    // have thought of a repository is a page nobody tries.
-    loadSample();
+    // Start with something real loaded. A page whose every button is greyed out until
+    // you have thought of a repository is a page nobody tries. If GitHub will not
+    // answer — rate limits are 60 requests an hour for an anonymous browser — the
+    // bundled sample stands in, and says so rather than pretending it was the plan.
+    el<HTMLInputElement>("target").value = DEFAULT_REPOSITORY;
+    try {
+      await loadTarget(DEFAULT_REPOSITORY);
+    } catch (error) {
+      loadSample();
+      say(
+        `${error instanceof Error ? error.message : error} — showing the bundled sample instead.`,
+        "error",
+      );
+    }
   })
   .catch((e) => say(`The analysis failed to load: ${e}`, "error"));

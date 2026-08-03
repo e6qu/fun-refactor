@@ -93,6 +93,11 @@ jobs:
       - name: Check the patch it downloads applies
         run: node web/test/patch.mjs
 
+      # A literal colour works in the theme it was picked for and is invisible in the
+      # other, and neither a build nor a screenshot of one theme can see it.
+      - name: Check both themes name the same colours
+        run: node web/test/style.mjs
+
       # A number worth watching: this is what a first visit downloads, and it grows
       # by a megabyte every time a grammar is added.
       - name: Report what a first visit costs

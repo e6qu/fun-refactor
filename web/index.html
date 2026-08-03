@@ -6,27 +6,42 @@
 <title>Playground — fun-refactor</title>
 <meta name="description" content="Load a public GitHub repository and refactor it in the browser. No server: the analysis runs as WebAssembly in the tab.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<script>
+  // Before first paint, so a dark page never flashes light. The same key the rest of
+  // the site uses, so a choice made on the landing page is already in force here.
+  try {
+    var t = localStorage.getItem('fr-theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* private mode: follow the system */ }
+</script>
 </head>
 <body>
 <header class="bar">
   <a class="wordmark" href="../index.html">fun<span>-</span>refactor</a>
   <span class="tag">playground</span>
+
   <form id="load-form" class="loader">
     <input id="target" type="text" spellcheck="false"
            placeholder="owner/repo, or a github.com URL">
     <button type="submit" id="load">Load</button>
     <select id="preset" title="A repository to try, one per language">
-      <option value="">Load an example…</option>
+      <option value="">Examples…</option>
     </select>
-    <button type="button" id="load-sample" class="ghost">Bundled sample</button>
   </form>
+
   <span id="status" class="status">Runs entirely in this tab.</span>
+
+  <!-- Navigation is what you do most, so it is one click from anywhere rather than a
+       row in a list of thirty. -->
+  <nav class="icons divided" id="nav-icons" aria-label="Navigate"></nav>
+
+  <div class="icons end">
+    <button type="button" class="icon-button" id="help-button"></button>
+    <button type="button" class="icon-button" id="theme-button"></button>
+  </div>
 </header>
 
 <main id="layout">
-  <!-- Each sidebar section collapses to its header, and the gutters between the
-       columns drag. Both are remembered, so the shape you set is the shape you get
-       back. -->
   <aside class="panel side" id="side">
     <section class="pane" id="pane-files" style="flex-grow: 3">
       <button type="button" class="pane-head" data-collapses="pane-files">
@@ -93,16 +108,16 @@
 
   <div class="gutter vertical" data-resizes-column="right"></div>
 
-  <!-- The answer sits above the actions rather than below them: there are thirty
-       buttons, and a result rendered under all of them is a result nobody sees. -->
+  <!-- The answer sits above the actions rather than below them: a result rendered
+       under thirty buttons is a result nobody sees. -->
   <aside class="panel actions" id="right">
     <div class="panel-head">
       <span id="result-head">Result</span>
     </div>
     <div id="result" class="result">
-      <p class="hint">Open a file and put the cursor on a name, then pick an action.
-        Every one of them runs the same code the command line does — in this tab,
-        against these bytes.</p>
+      <p class="hint">Click a name in the editor, then use the arrows above or
+        right-click for everything that applies to it. Every action runs the same code
+        the command line does — in this tab, against these bytes.</p>
     </div>
     <div class="gutter horizontal" data-resizes="result"></div>
     <div class="panel-head sub">
@@ -126,6 +141,14 @@
       <button value="ok" type="submit" id="ask-ok">Run</button>
     </menu>
   </form>
+</dialog>
+
+<dialog id="help">
+  <div class="help-bar">
+    <div class="help-tabs" role="tablist"></div>
+    <form method="dialog"><button class="ghost" value="close">Close</button></form>
+  </div>
+  <div class="help-body"></div>
 </dialog>
 
 <script type="module" src="/src/main.ts"></script>
