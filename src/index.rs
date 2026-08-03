@@ -42,6 +42,32 @@ pub struct Index {
     pub skipped: Vec<(PathBuf, String)>,
 }
 
+/// Parse one file and extract everything the index keeps about it.
+///
+/// Depends only on this file's bytes, which is what makes the result reusable: an
+/// edit elsewhere cannot change it.
+///
+/// The parsers and the extractor are passed in rather than made here because
+/// [`Extractor::new`] compiles the whole query set. Building one per file turned a
+/// 2.9-second index of `zod` into a 19-second one — the same mistake the parallel
+/// path avoids by noting that "query compilation is the cost here and it is paid once
+/// per thread, not once per file".
+pub fn extract_facts(
+    parsers: &Parsers,
+    extractor: &mut Extractor,
+    path: &Path,
+    language: Language,
+    source: &str,
+) -> Result<FileFacts> {
+    let parsed = parsers.parse(language, source)?;
+    let had_parse_errors = parsed.has_errors();
+    let mut facts = extractor
+        .extract(&parsed, path, source)
+        .with_context(|| format!("extracting facts from {}", path.display()))?;
+    facts.had_parse_errors = had_parse_errors;
+    Ok(facts)
+}
+
 impl Index {
     /// Build an index for a workspace root.
     #[cfg(feature = "cli")]
@@ -166,20 +192,29 @@ impl Index {
     pub fn build_from_sources(sources: &[(PathBuf, Language, String)]) -> Result<Self> {
         let parsers = Parsers::new();
         let mut extractor = Extractor::new();
-        let mut index = Index::default();
-
+        let mut extracted = Vec::with_capacity(sources.len());
         for (path, language, source) in sources {
-            let parsed = parsers.parse(*language, source)?;
-            let had_parse_errors = parsed.has_errors();
-            let mut facts = extractor
-                .extract(&parsed, path, source)
-                .with_context(|| format!("extracting facts from {}", path.display()))?;
-            facts.had_parse_errors = had_parse_errors;
-            index.add_file(facts, *language, had_parse_errors);
+            let facts = extract_facts(&parsers, &mut extractor, path, *language, source)?;
+            extracted.push((path.clone(), *language, facts));
         }
+        Ok(Self::build_from_facts(&extracted))
+    }
 
+    /// Build an index from facts that have already been extracted.
+    ///
+    /// Extraction is per-file and depends only on a file's bytes; resolution is
+    /// global and depends on all of them. Separating the two is what lets a caller
+    /// that changed one file out of four hundred re-extract one file and re-resolve,
+    /// rather than parse the other three hundred and ninety-nine again. The on-disk
+    /// fact cache splits the work the same way for the same reason.
+    pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
+        let mut index = Index::default();
+        for (_, language, facts) in files {
+            let had_parse_errors = facts.had_parse_errors;
+            index.add_file(facts.clone(), *language, had_parse_errors);
+        }
         index.resolve();
-        Ok(index)
+        index
     }
 
     /// Merge one file's facts, remapping file-local ids into the global namespace.

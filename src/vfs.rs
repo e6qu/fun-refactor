@@ -173,3 +173,19 @@ pub fn new_handle(files: impl IntoIterator<Item = (std::path::PathBuf, String)>)
 pub fn activate(handle: &Handle) {
     backing::activate(handle)
 }
+
+/// A directory, as a sentence can name it.
+///
+/// `Path::display` renders the workspace root — the parent of a top-level file — as
+/// the empty string, so a message built from it comes out with a hole in it: *"no .go
+/// file in declares a package"*. That is what `fr move x.go` to a file at the root
+/// actually printed. Fifteen messages across move, signature and provenance
+/// interpolate a directory this way, and any of them can be handed the root.
+pub fn describe_dir(path: impl AsRef<Path>) -> String {
+    let path = path.as_ref();
+    if path.as_os_str().is_empty() || path == Path::new(".") {
+        "the workspace root".to_string()
+    } else {
+        path.display().to_string()
+    }
+}

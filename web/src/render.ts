@@ -64,23 +64,69 @@ function renderApplied(value: any): string {
     )
     .join("");
 
-  const left = warnings.length
-    ? `<p class="warn">Left alone — check these yourself:</p>` +
-      list(
-        warnings.map(
-          (w) =>
-            `<li>${escapeHtml(w.file ?? "")} <span class="dim">${escapeHtml(
-              w.detail ?? w.kind ?? "",
-            )}</span></li>`,
-        ),
-      )
-    : "";
+  const left = renderWarnings(warnings);
 
   const said = notes.length
     ? `<p class="warn">Notes:</p>` + list(notes.map((n) => `<li>${escapeHtml(n)}</li>`))
     : "";
 
   return head + diffs + left + said;
+}
+
+/**
+ * What the refactoring deliberately did not touch.
+ *
+ * Grouped and capped. Renaming a YAML key called `path` in a repository with GitHub
+ * workflows reports every comment and string in every language that contains the word
+ * — twelve thousand of them in `psf/requests`. Rendered one to a list item that is
+ * twelve thousand DOM nodes, and read as "the rename failed" rather than "the rename
+ * worked and here is a very long footnote".
+ *
+ * The count is never rounded down or hidden: a summary that under-reports is worse
+ * than a list that is too long.
+ */
+const WARNINGS_SHOWN = 25;
+
+function renderWarnings(warnings: any[]): string {
+  if (!warnings.length) return "";
+
+  const byKind = new Map<string, any[]>();
+  for (const w of warnings) {
+    const kind = w.kind ?? "other";
+    if (!byKind.has(kind)) byKind.set(kind, []);
+    byKind.get(kind)!.push(w);
+  }
+
+  const explain: Record<string, string> = {
+    "textual-occurrence":
+      "the name appears in a string or comment, where nothing can prove it is a use",
+    "weakly-resolved": "the reference resolved too weakly to rewrite",
+    "parse-errors": "the file has syntax errors, so uses hidden in it were not seen",
+  };
+
+  const sections = [...byKind.entries()].map(([kind, all]) => {
+    const shown = all.slice(0, WARNINGS_SHOWN);
+    const rest = all.length - shown.length;
+    return (
+      `<p class="count">${all.length} × ${escapeHtml(kind)}` +
+      (explain[kind] ? ` <span class="dim">— ${escapeHtml(explain[kind])}</span>` : "") +
+      `</p>` +
+      list(
+        shown.map(
+          (w) =>
+            `<li>${goto(w.file ?? "", w.line ?? 1, w.col ?? 1)}` +
+            `<span class="hit-meta dim">${escapeHtml(w.detail ?? "")}</span></li>`,
+        ),
+      ) +
+      (rest ? `<p class="hint">and ${rest} more, not listed.</p>` : "")
+    );
+  });
+
+  return (
+    `<p class="warn">Left alone — the change is complete, these are what it could not ` +
+    `prove were uses:</p>` +
+    sections.join("")
+  );
 }
 
 function renderStats(s: any): string {

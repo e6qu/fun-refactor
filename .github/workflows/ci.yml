@@ -104,6 +104,12 @@ jobs:
       - name: Check the machine-readable renderings match the page
         run: node web/test/render_modes.mjs
 
+      # Every refactoring against every symbol of the sample: nothing may trap, and a
+      # rename must rewrite everything it said it resolved. Point it at a clone to run
+      # the same sweep over a real repository.
+      - name: Sweep every refactoring over every symbol
+        run: node web/test/scale.mjs
+
       # A number worth watching: this is what a first visit downloads, and it grows
       # by a megabyte every time a grammar is added.
       - name: Report what a first visit costs

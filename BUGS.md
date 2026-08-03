@@ -69,6 +69,33 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B62: **a rename buried its success under twelve thousand warnings.** Renaming a
+  YAML key called `path` reports every string and comment in the workspace containing
+  that word — 12,032 of them across `psf/requests` — one per list item, which is a
+  wall of "left unchanged" that reads as a failed rename rather than a finished one
+  with a long footnote. They are now grouped by kind, explained, capped at
+  twenty-five, and the count is stated exactly: *"118 × textual-occurrence … and 93
+  more, not listed"*.
+
+- [x] B61: **an edit re-parsed every file in the workspace.** `Workspace::apply`
+  rebuilt the index from source after every change, so a rename touching one file
+  re-parsed the other four hundred and thirty-seven: 3.1 seconds in `zod`, which is
+  long enough that a person concludes the button did not work. Extraction is per-file
+  and parsing dominates it; resolution is global and cheap. Splitting the two —
+  `Index::build_from_facts`, and per-file facts kept in the workspace — makes an edit
+  cost the files it wrote. zod 3144ms → 624ms, ripgrep 860ms → 149ms.
+
+- [x] B60: **a file a refactoring created was never indexed.** `fr move` to a new
+  module wrote the file into the virtual filesystem, and the re-index walked only the
+  paths present at load, so the destination had no symbols, did not appear in the file
+  list, and was invisible to every later question. The move reported success.
+
+- [x] B59: **a message rendered the workspace root as nothing.** `Path::display` on
+  the parent of a top-level file is the empty string, so `fr move` to a file at the
+  root printed *"no .go file in declares a package"*. Fifteen messages across move,
+  signature and provenance interpolate a directory this way; `vfs::describe_dir` now
+  names it.
+
 - [x] B58: **the coordinate button claimed a copy that had not happened.** The
   clipboard is unavailable over plain http on any origin but localhost, and
   `writeText` rejects when the page is not focused. Both were swallowed by an

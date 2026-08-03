@@ -36,7 +36,13 @@ pub struct Workspace {
     /// next question misses. One file, because only one is open.
     parsed: std::cell::RefCell<Option<(PathBuf, String, crate::parse::Parsed)>>,
     /// Paths in the order they were given, so the file list a user sees is stable.
+    /// A refactoring that creates a file appends to it.
     order: Vec<PathBuf>,
+    /// What was extracted from each file, kept so an edit re-extracts only the files
+    /// it touched. Extraction is per-file and parsing dominates it; resolution is
+    /// global and cheap by comparison. Re-parsing all four hundred files of a
+    /// workspace because one changed made a rename in `zod` take three seconds.
+    facts: std::collections::BTreeMap<PathBuf, (Language, crate::model::FileFacts)>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
 }
@@ -163,13 +169,27 @@ impl Workspace {
             sources.push((path, language, text));
         }
 
-        let index = Index::build_from_sources(&sources)
-            .map_err(|e| JsValue::from_str(&format!("indexing failed: {e}")))?;
+        // One parser set and one extractor for the whole workspace: the extractor
+        // compiles every query, and that cost is paid once, not once per file.
+        let parsers = crate::parse::Parsers::new();
+        let mut extractor = crate::extract::Extractor::new();
+        let mut facts = std::collections::BTreeMap::new();
+        let mut extracted = Vec::with_capacity(sources.len());
+        for (path, language, source) in &sources {
+            let one =
+                crate::index::extract_facts(&parsers, &mut extractor, path, *language, source)
+                    .map_err(|e| JsValue::from_str(&format!("indexing failed: {e}")))?;
+            facts.insert(path.clone(), (*language, one.clone()));
+            extracted.push((path.clone(), *language, one));
+        }
+        let index = Index::build_from_facts(&extracted);
+
         Ok(Workspace {
             index,
             files,
             parsed: std::cell::RefCell::new(None),
             order,
+            facts,
             unsupported,
         })
     }
@@ -1020,10 +1040,15 @@ impl Workspace {
         if let Err(e) = crate::edit::commit(&outcomes) {
             return fail(e);
         }
-        // The edit changed the bytes every span was measured against, so the index is
-        // rebuilt rather than patched. A browser workspace is small enough that this
-        // is cheaper than being clever, and being clever here is how spans go stale.
-        if let Err(e) = self.reindex() {
+        // The edit changed the bytes every span was measured against, so every span
+        // is remeasured. Only the files that were written are re-parsed; the rest
+        // cannot have changed, because an edit is the only thing that changes them.
+        let written: Vec<PathBuf> = outcomes
+            .iter()
+            .filter(|o| o.changed())
+            .map(|o| o.path.clone())
+            .collect();
+        if let Err(e) = self.reindex(&written) {
             return fail(e);
         }
 
@@ -1033,18 +1058,45 @@ impl Workspace {
         })
     }
 
-    fn reindex(&mut self) -> anyhow::Result<()> {
-        let mut sources = Vec::new();
-        for path in &self.order {
+    /// Re-extract the files that were written, and resolve the whole workspace again.
+    ///
+    /// Resolution has to be global — a rename in one file changes what a reference in
+    /// another points at — but extraction does not, and extraction is the expensive
+    /// half. A file this workspace has never seen is added to the listing here:
+    /// `fr move` can write one, and before this it was written to the virtual
+    /// filesystem and then never indexed, so it had no symbols and did not appear in
+    /// the file list at all.
+    fn reindex(&mut self, written: &[PathBuf]) -> anyhow::Result<()> {
+        let parsers = crate::parse::Parsers::new();
+        let mut extractor = crate::extract::Extractor::new();
+        for path in written {
             let Some(language) = crate::lang::detect(path) else {
                 continue;
             };
+            if !crate::parse::Parsers::supports(language) {
+                continue;
+            }
             let Ok(text) = crate::vfs::read_to_string(path) else {
+                // The edit engine deleted it, so it has no facts any more.
+                self.facts.remove(path);
+                self.order.retain(|p| p != path);
                 continue;
             };
-            sources.push((path.clone(), language, text));
+            if !self.order.iter().any(|p| p == path) {
+                self.order.push(path.clone());
+            }
+            let one = crate::index::extract_facts(&parsers, &mut extractor, path, language, &text)?;
+            self.facts.insert(path.clone(), (language, one));
         }
-        self.index = Index::build_from_sources(&sources)?;
+
+        // In the order the user sees, so symbol ids stay stable where the files did.
+        let mut all = Vec::with_capacity(self.order.len());
+        for path in &self.order {
+            if let Some((language, facts)) = self.facts.get(path) {
+                all.push((path.clone(), *language, facts.clone()));
+            }
+        }
+        self.index = Index::build_from_facts(&all);
         Ok(())
     }
 }
