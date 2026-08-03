@@ -328,6 +328,12 @@ impl Index {
         // Written as a member of something — either `x.field` or a call on a value.
         let member_access = reference.kind == ReferenceKind::Field || called_on_a_value;
         let plausible = |s: &Symbol| {
+            // A candidate in another language is only a candidate where the two
+            // languages have a way of naming each other's declarations. Without this
+            // a Rust `out.push(…)` resolved to a Zig `Ring.push`.
+            if !crate::lang::may_resolve_across(reference.language, s.language, s.kind) {
+                return false;
+            }
             // A binding is not in scope inside its own initialiser. Go's
             // `templatesDirExists := check(templatesDirExists(p))` calls the package
             // function and then shadows it; Rust's `let x = x + 1` reads the outer

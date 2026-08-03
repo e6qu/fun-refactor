@@ -262,6 +262,56 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
     false
 }
 
+/// Which language boundaries a reference may resolve across.
+///
+/// Resolution matches candidates by name across the whole workspace, and until this
+/// existed it did so without asking what language they were written in. A Rust
+/// `out.push(…)` therefore resolved to a Zig `Ring.push` — at `import-qualified`,
+/// a tier the tool *rewrites* — so renaming the Zig method silently turned a
+/// `Vec::push` call in Rust into `out.pushReading(…)`. Two files, two languages, no
+/// relationship whatsoever, and a diff that looked ordinary.
+///
+/// A cross-language edge is only real where the two languages have a mechanism for
+/// naming each other's declarations. Those mechanisms are enumerated here rather than
+/// inferred, because the cost of a wrong one is an edit that compiles somewhere else
+/// and breaks here.
+///
+/// What is deliberately absent: any pair of imperative languages. Rust cannot name a
+/// Zig method, Go cannot name a Python function, and where an FFI does connect them
+/// the binding is declared in a build file this tool does not read. Reporting those
+/// as unresolved is the honest answer.
+pub fn may_resolve_across(from: Language, to: Language, t: crate::model::SymbolKind) -> bool {
+    use crate::model::SymbolKind as K;
+    use Language::*;
+
+    if from == to {
+        return true;
+    }
+
+    match (from, to) {
+        // TSX *is* TypeScript with JSX; a `.tsx` file imports from `.ts` constantly.
+        (TypeScript, Tsx) | (Tsx, TypeScript) => true,
+
+        // SCSS compiles to CSS and the two share a selector namespace: a class
+        // declared in a theme is the same class the stylesheet declares.
+        (Css, Scss) | (Scss, Css) => true,
+
+        // Markup names a style rule by class or id. This is the edge that makes
+        // renaming a CSS class across an HTML template worth having.
+        (Html | Xml | Tsx | TypeScript | Markdown, Css | Scss) => {
+            matches!(t, K::Selector | K::Property)
+        }
+
+        // A Helm template names a key in its values file; a values file is YAML.
+        (Helm, Yaml) | (Yaml, Helm) => matches!(t, K::Key),
+
+        // A template or a manifest names an element by id, and markup declares them.
+        (Html | Xml | Tsx | TypeScript, Html | Xml) => matches!(t, K::ElementId),
+
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
