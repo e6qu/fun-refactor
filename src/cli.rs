@@ -192,6 +192,24 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Find code that is written more than once.
+    ///
+    /// Compares structure rather than text, so a copy whose variables were renamed
+    /// still matches — that is the copy a textual search will never find.
+    Duplicates {
+        /// Smallest duplicate to report, in tokens.
+        #[arg(long, default_value_t = 60)]
+        min_tokens: usize,
+        /// Require identifiers and literals to match too, not only the structure.
+        #[arg(long)]
+        exact: bool,
+        /// Only report duplicates in this language. Repeatable.
+        #[arg(long = "language", value_name = "LANG")]
+        languages: Vec<String>,
+        /// Only report duplicates under this path prefix. Repeatable.
+        #[arg(long = "path", value_name = "PREFIX")]
+        paths: Vec<PathBuf>,
+    },
     /// List symbols nothing appears to use.
     Unused {
         /// Additional catalog directory for entry-point rules.
@@ -426,6 +444,12 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_restructure(&cli, pattern, template, language, *write),
         Command::Delete { target, write } => cmd_delete(&cli, target, *write),
+        Command::Duplicates {
+            min_tokens,
+            exact,
+            languages,
+            paths,
+        } => cmd_duplicates(&cli, *min_tokens, *exact, languages, paths),
         Command::Unused {
             catalogs,
             languages,
@@ -790,6 +814,120 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     present(cli, &plan.edits, &summary, write)
 }
 
+/// Language names from the command line, refused rather than ignored.
+///
+/// A typo that silently narrowed a report to nothing would read as "nothing found",
+/// which is the wrong answer given confidently.
+fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
+    names
+        .iter()
+        .map(|name| {
+            crate::lang::Language::from_name(name).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "unknown language '{name}'. Known: {}",
+                    crate::lang::Language::ALL
+                        .iter()
+                        .map(|l| l.name())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            })
+        })
+        .collect()
+}
+
+/// Path filters, resolved against the workspace root rather than the shell's cwd.
+fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Vec<PathBuf> {
+    paths
+        .iter()
+        .map(|p| {
+            if p.is_absolute() {
+                p.clone()
+            } else {
+                cli.root.join(p)
+            }
+        })
+        .collect()
+}
+
+fn cmd_duplicates(
+    cli: &Cli,
+    min_tokens: usize,
+    exact: bool,
+    languages: &[String],
+    paths: &[PathBuf],
+) -> Result<()> {
+    use crate::analysis::duplicates;
+
+    let index = build_index(cli, &[])?;
+    let options = duplicates::Options {
+        min_tokens,
+        exact,
+        languages: parse_languages(languages)?,
+        paths: absolute_paths(cli, paths),
+    };
+    let classes = duplicates::find(&index, &options)?;
+
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&classes)?);
+        return Ok(());
+    }
+
+    if classes.is_empty() {
+        println!(
+            "No duplication of {min_tokens} tokens or more{}.",
+            if exact { " (exact)" } else { "" }
+        );
+    }
+    for class in &classes {
+        println!(
+            "{} copies, {} tokens each ({} redundant) — {}",
+            class.instances.len(),
+            class.tokens,
+            class.redundant_tokens(),
+            class.language
+        );
+        for instance in &class.instances {
+            println!(
+                "  {}:{}-{}",
+                instance.file.display(),
+                instance.start_line,
+                instance.end_line
+            );
+        }
+    }
+
+    if !classes.is_empty() {
+        let redundant: usize = classes.iter().map(|c| c.redundant_tokens()).sum();
+        println!(
+            "\n{} duplicated block(s), {redundant} redundant token(s)",
+            classes.len()
+        );
+        println!(
+            "Structure is compared, not text, so a copy with renamed variables still \n\
+             matches; pass --exact to require the names too. Only the largest block of \n\
+             each duplication is listed — the statements inside it are duplicated as \n\
+             well, and saying so again would bury the finding."
+        );
+    }
+
+    let skipped = duplicates::unparsed(&index, &options);
+    if !skipped.is_empty() {
+        println!(
+            "\n{} file(s) were skipped because they do not parse, so duplication in \n\
+             them is not reported:",
+            skipped.len()
+        );
+        for path in skipped.iter().take(10) {
+            println!("  {}", path.display());
+        }
+        if skipped.len() > 10 {
+            println!("  … and {} more", skipped.len() - 10);
+        }
+    }
+    Ok(())
+}
+
 fn cmd_unused(
     cli: &Cli,
     extra_catalogs: Option<&std::path::Path>,
@@ -805,33 +943,8 @@ fn cmd_unused(
     let entrypoints: Vec<_> = catalog.detect(&index).iter().map(|e| e.symbol).collect();
     let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
 
-    // Every name has to resolve to a language we know, or a typo silently narrows
-    // the report to nothing and reads as "no dead code here".
-    let wanted: Vec<crate::lang::Language> = languages
-        .iter()
-        .map(|name| {
-            crate::lang::Language::from_name(name).ok_or_else(|| {
-                anyhow::anyhow!(
-                    "unknown language '{name}'. Known: {}",
-                    crate::lang::Language::ALL
-                        .iter()
-                        .map(|l| l.name())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            })
-        })
-        .collect::<Result<_>>()?;
-    let roots: Vec<PathBuf> = paths
-        .iter()
-        .map(|p| {
-            if p.is_absolute() {
-                p.clone()
-            } else {
-                cli.root.join(p)
-            }
-        })
-        .collect();
+    let wanted = parse_languages(languages)?;
+    let roots = absolute_paths(cli, paths);
     let keep = |s: &crate::model::Symbol| {
         (wanted.is_empty() || wanted.contains(&s.language))
             && (roots.is_empty() || roots.iter().any(|r| s.file.starts_with(r)))

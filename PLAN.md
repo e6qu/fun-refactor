@@ -311,7 +311,7 @@ call sites. ‡ SCSS: mixin parameters.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend, and every
-capability a language can meaningfully support is built: **201 of 285 capability ×
+capability a language can meaningfully support is built: **216 of 300 capability ×
 language pairs supported, 84 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
@@ -354,6 +354,6 @@ operations is the highest-value work left, and running against a second large
 codebase in a different language mix is how the next ten will be found.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
-`signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `rewrite`,
-`remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
+`signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
+`rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
 `entrypoints`, `capabilities`, `cache`.

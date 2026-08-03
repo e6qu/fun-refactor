@@ -35,6 +35,7 @@ pub enum Capability {
     RemoveFlag,
     MoveToFile,
     Stitch,
+    Duplicates,
 }
 
 impl Capability {
@@ -58,6 +59,7 @@ impl Capability {
         Capability::RemoveFlag,
         Capability::MoveToFile,
         Capability::Stitch,
+        Capability::Duplicates,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -81,6 +83,7 @@ impl Capability {
             Capability::RemoveFlag => "remove flag",
             Capability::MoveToFile => "move to file",
             Capability::Stitch => "config→code stitch",
+            Capability::Duplicates => "duplicate code",
         }
     }
 
@@ -106,6 +109,7 @@ impl Capability {
             Capability::RemoveFlag => "fr remove-flag",
             Capability::MoveToFile => "fr move",
             Capability::Stitch => "fr stitch",
+            Capability::Duplicates => "fr duplicates",
         }
     }
 }
@@ -303,6 +307,18 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 Support::NotApplicable {
                     because: "a document does not import another's elements, so a moved \
                               element has no reference anywhere to update",
+                }
+            }
+        }
+
+        // Every language here is parsed into a tree of named nodes, and comparing
+        // those is the whole of the analysis. There is nothing to be unable to do.
+        C::Duplicates => {
+            if crate::analysis::duplicates::supported(language) {
+                Support::Yes
+            } else {
+                Support::NotApplicable {
+                    because: "this language is not parsed into comparable structure",
                 }
             }
         }
