@@ -27,6 +27,14 @@ pub struct Workspace {
     /// have two workspaces open and each one's spans only mean anything against the
     /// text they were measured on.
     files: crate::vfs::Handle,
+    /// The last file parsed, and the text it was parsed from.
+    ///
+    /// The status bar asks what the cursor is on after every keystroke, and answering
+    /// meant parsing the whole file: seventeen milliseconds on `requests/models.py`,
+    /// which is a dropped frame every time an arrow key repeats. Keyed by the source
+    /// itself, so there is nothing to invalidate — an edit changes the text and the
+    /// next question misses. One file, because only one is open.
+    parsed: std::cell::RefCell<Option<(PathBuf, String, crate::parse::Parsed)>>,
     /// Paths in the order they were given, so the file list a user sees is stable.
     order: Vec<PathBuf>,
     /// Files whose language this build has no grammar for.
@@ -160,6 +168,7 @@ impl Workspace {
         Ok(Workspace {
             index,
             files,
+            parsed: std::cell::RefCell::new(None),
             order,
             unsupported,
         })
@@ -557,11 +566,11 @@ impl Workspace {
         let Ok(source) = crate::vfs::read_to_string(&path_buf) else {
             return fail("file is not loaded");
         };
-        let parsers = crate::parse::Parsers::new();
-        let parsed = match parsers.parse(language, &source) {
-            Ok(parsed) => parsed,
-            Err(e) => return fail(e),
-        };
+        if let Err(e) = self.reparse(&path_buf, language, &source) {
+            return fail(e);
+        }
+        let borrowed = self.parsed.borrow();
+        let parsed = &borrowed.as_ref().expect("just parsed").2;
         let lines = LineIndex::new(&source);
 
         fn build(
@@ -602,6 +611,21 @@ impl Workspace {
         }
 
         ok(&build(parsed.root(), None, &source, &lines))
+    }
+
+    /// Parse `path` unless the memo already holds this exact text.
+    fn reparse(&self, path: &Path, language: Language, source: &str) -> Result<(), anyhow::Error> {
+        {
+            let held = self.parsed.borrow();
+            if let Some((held_path, held_source, _)) = held.as_ref() {
+                if held_path == path && held_source == source {
+                    return Ok(());
+                }
+            }
+        }
+        let parsed = crate::parse::Parsers::new().parse(language, source)?;
+        *self.parsed.borrow_mut() = Some((path.to_path_buf(), source.to_string(), parsed));
+        Ok(())
     }
 
     /// What the cursor is on: the symbol, and the coordinate that names it.
@@ -847,7 +871,9 @@ impl Workspace {
         let path = PathBuf::from(path);
         let language = crate::lang::detect(&path)?;
         let source = crate::vfs::read_to_string(&path).ok()?;
-        let parsed = crate::parse::Parsers::new().parse(language, &source).ok()?;
+        self.reparse(&path, language, &source).ok()?;
+        let borrowed = self.parsed.borrow();
+        let parsed = &borrowed.as_ref()?.2;
         let node = parsed
             .root()
             .named_descendant_for_byte_range(offset, offset)?;

@@ -143,6 +143,33 @@ check("ast", () => {
   return shapes.length + " trees";
 });
 
+check("the parse tree follows an edit", () => {
+  // The tree is memoised so the status bar does not reparse on every keystroke. The
+  // memo is keyed by the source text, so an edit must miss it — a stale tree would
+  // describe the file as it was, silently and convincingly.
+  const w = new Workspace({ ...files });
+  const before = json(w.ast("src/ingest.rs"));
+  const p = at("src/ingest.rs", "validate");
+  const applied = json(w.rename(p.path, p.line, p.col, "check_reading_thoroughly"));
+  assert(applied.files.length > 0, "the rename changed nothing, so this proves nothing");
+
+  const after = json(w.ast("src/ingest.rs"));
+  const text = (node) =>
+    node.text !== null && node.text !== undefined
+      ? [node.text]
+      : node.children.flatMap(text);
+  const names = text(after);
+  assert(
+    names.includes("check_reading_thoroughly"),
+    "the tree still shows the old name: the memo served a stale parse",
+  );
+  assert(
+    JSON.stringify(before) !== JSON.stringify(after),
+    "the tree is unchanged after an edit that changed the file",
+  );
+  return "invalidated by the edit";
+});
+
 check("at", () => {
   const p = at("src/ingest.rs", "validate");
   const here = json(workspace.at(p.path, p.line, p.col));

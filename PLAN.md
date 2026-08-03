@@ -405,7 +405,23 @@ were never written down are the ones it gets wrong.
 
 The browser API has no `cargo test` — `src/wasm.rs` compiles only for `wasm32` — so
 `web/test/api.mjs` drives all twenty-nine of its methods against a bundled
-fifteen-language workspace, in Node, using the wasm the site ships. CI runs it.
+fifteen-language workspace, in Node, using the wasm the site ships. CI runs it, and
+`web/test/patch.mjs` beside it lays the sample down as a git repository and asks
+`git apply` to take what the download button produces.
+
+A second technique found five more, and it generalises: **run two halves of the tool
+against each other.** `fr unused` reports what can be deleted and `fr delete` removes
+it, so every symbol the first names the second must accept. Over one Rust function
+that invariant held; over a nine-language workspace it failed thirteen times out of
+fifty-nine. Nine of those were not dead at all — a CSS class declared in two
+stylesheets and used by the markup, counted per declaration site — and four were
+deletable in principle but not in practice, because the span the index keeps is the
+one a rename rewrites, not the one a delete can remove.
+
+Neither is a bug either half could find alone: each was internally consistent. The
+pairs worth checking this way are the ones where one command's output is another's
+input — `unused`/`delete`, `rewrites_at`/`rewrite` (which found the workspace
+isolation bug), `symbols`/`def`, `duplicates`/`extract`.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,

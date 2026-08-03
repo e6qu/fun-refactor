@@ -508,3 +508,131 @@ fn an_exported_symbol_is_reported_but_marked_as_such() {
     assert!(named.contains(&("Exported", true)), "got {named:?}");
     assert!(named.contains(&("unexported", false)), "got {named:?}");
 }
+
+// ------------------------------------------- the two halves agree, in every language
+//
+// `an_unused_symbol_from_find_unused_can_then_be_deleted` above states the invariant
+// and checks it for one Rust function. Run over a polyglot workspace it failed
+// thirteen times out of fifty-nine: a TypeScript `export const` whose declarator span
+// left `export const ;` behind, a Zig struct field, and nine CSS selectors that were
+// not dead at all — the markup used them, and the use resolved to one of the two
+// stylesheets that declared them, so the other read as unreferenced.
+//
+// One symbol was never going to find that. This runs the whole loop.
+
+/// A little service in nine languages: enough shapes for the invariant to bite.
+fn polyglot() -> Vec<(&'static str, &'static str)> {
+    vec![
+        (
+            "src/lib.rs",
+            "pub fn kept() -> i32 {\n    7\n}\n\npub fn orphan() -> i32 {\n    1\n}\n\nfn main() {\n    let _ = kept();\n}\n",
+        ),
+        (
+            "src/types.zig",
+            "pub const Reading = struct {\n    sensor: []const u8,\n    at: u64,\n};\n\npub fn use(r: Reading) usize {\n    return r.sensor.len;\n}\n",
+        ),
+        (
+            "cmd/serve.go",
+            "package cmd\n\ntype Config struct {\n\tHost string\n\tPort int\n}\n\nfunc Serve(c Config) string {\n\treturn c.Host\n}\n\nfunc unusedHelper() int {\n\treturn 1\n}\n",
+        ),
+        (
+            "web/app.ts",
+            "export const limits = { min: 0, max: 1 };\nexport const unusedConst = 42;\n\nexport function kept(): number {\n  return limits.max;\n}\n\nfunction orphanTs(): number {\n  return 2;\n}\n",
+        ),
+        (
+            "web/Panel.tsx",
+            "export function Panel() {\n  return <div className=\"panel\">hi</div>;\n}\n\nfunction Unused() {\n  return <span className=\"gone\">x</span>;\n}\n",
+        ),
+        (
+            "scripts/run.py",
+            "CONSTANT = 1\nUNUSED_CONSTANT = 2\n\n\ndef kept():\n    return CONSTANT\n\n\ndef orphan_py():\n    return 3\n",
+        ),
+        (
+            "web/index.html",
+            "<!doctype html>\n<html><body>\n<a class=\"panel\">one</a>\n<p class=\"note\" id=\"here\">two</p>\n</body></html>\n",
+        ),
+        (
+            // `panel` and `note` are declared twice over, and used by the markup. A
+            // per-site count called the second declaration of each dead.
+            "web/base.css",
+            ".panel {\n  color: red;\n}\n\n.note {\n  color: blue;\n}\n\n.never-used {\n  color: green;\n}\n",
+        ),
+        (
+            "web/theme.css",
+            ".panel {\n  background: black;\n}\n\n.note, .also-never {\n  background: grey;\n}\n",
+        ),
+        (
+            "scripts/deploy.sh",
+            "#!/usr/bin/env bash\nkept() {\n  echo hi\n}\n\norphan_sh() {\n  echo bye\n}\n\nkept\n",
+        ),
+    ]
+}
+
+#[test]
+fn what_find_unused_reports_delete_can_always_remove() {
+    let files = polyglot();
+    let (_tmp, index) = workspace(&files);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    assert!(
+        unused.len() > 8,
+        "the fixture should produce plenty of candidates, got {}",
+        unused.len()
+    );
+
+    let mut refused = Vec::new();
+    for id in &unused {
+        let Some(symbol) = index.symbol(*id) else {
+            continue;
+        };
+        match delete::plan(&index, *id) {
+            Ok(plan) => assert!(
+                !plan.edits.is_empty(),
+                "{} {} produced a plan that changes nothing",
+                symbol.kind.as_str(),
+                symbol.name
+            ),
+            Err(e) => refused.push(format!(
+                "{} {} ({}) → {e}",
+                symbol.kind.as_str(),
+                symbol.name,
+                symbol.file.display()
+            )),
+        }
+    }
+
+    assert!(
+        refused.is_empty(),
+        "`fr unused` named these and `fr delete` would not remove them:\n  {}",
+        refused.join("\n  ")
+    );
+}
+
+#[test]
+fn a_class_declared_twice_and_used_once_is_not_dead() {
+    // The use resolves to one of the declarations. Counting per site made the other
+    // one look unreferenced, so the report named a class the markup was using.
+    let files = polyglot();
+    let (_tmp, index) = workspace(&files);
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let dead: Vec<&str> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.as_str())
+        .collect();
+
+    for live in ["panel", "note"] {
+        assert!(
+            !dead.contains(&live),
+            "`.{live}` is used by the markup and declared in two stylesheets; \
+             neither declaration is dead. Reported: {dead:?}"
+        );
+    }
+    // The negative half: a class nothing uses must still be found, in both files.
+    for gone in ["never-used", "also-never"] {
+        assert!(
+            dead.contains(&gone),
+            "`.{gone}` is used by nothing and should be reported. Reported: {dead:?}"
+        );
+    }
+}

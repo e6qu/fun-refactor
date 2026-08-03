@@ -69,6 +69,42 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B58: **the coordinate button claimed a copy that had not happened.** The
+  clipboard is unavailable over plain http on any origin but localhost, and
+  `writeText` rejects when the page is not focused. Both were swallowed by an
+  optional call, and the button said "copied" regardless. It now says what happened
+  and shows the coordinate to select by hand.
+
+- [x] B57: **the status bar reparsed the open file on every keystroke.** Answering
+  "what is the cursor on" parsed the whole file — 17ms on `requests/models.py`, paid
+  on every arrow key, which is a dropped frame each time one repeats. The parse is
+  memoised for the one file that is open, keyed by the source text, so there is
+  nothing to invalidate: an edit changes the text and the next question misses. 3ms.
+
+- [x] B56: **`DefinitionRole` serialised as a Rust variant name.** `--json` and the
+  browser printed `Primary` where every other enum here emits a kebab-case token and
+  the terminal printed the prose "definition". Now `primary`, and the view renders
+  the same words the terminal does.
+
+- [x] B55: **`fr unused` named symbols `fr delete` could not remove.** The span the
+  index keeps is the span a *rename* rewrites. For `export const defaultLimits = {…}`
+  that is the declarator, so deleting exactly it left `export const ;` and the
+  engine's reparse check rejected the whole edit — loudly, but the report had
+  promised something the tool could not do. Zig and TypeScript struct fields had the
+  same shape. It had been fixed once for CSS as a special case; it is one rule, and
+  generalising it (climb while the symbol is the only child of its kind; take the
+  separator when it is not) let the CSS-specific code go.
+
+- [x] B54: **a CSS class used by the markup was reported as dead.** A class declared
+  in both a stylesheet and a theme is one class, but uses were counted per
+  declaration site: the markup's reference resolves to one, so every other
+  declaration read as unreferenced. `.nav-link`, worn by three anchors, was reported
+  dead twice — while `fr delete` refused to remove it and named those same three
+  uses. Kinds that admit several declaration sites are now counted as one entity.
+  Found by running `find_unused` and `delete` against each other over a polyglot
+  workspace: thirteen disagreements out of fifty-nine, now zero, and checked across
+  nine languages rather than one Rust function.
+
 - [x] B53: **the browser reported symbols dead that the terminal reported live.**
   `find_unused` takes the roots reachability starts from, and the browser API passed
   `&[]` where the terminal passed a detected catalog. Both type-checked; the empty

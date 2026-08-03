@@ -126,6 +126,13 @@ function renderCapabilities(matrix: any): string {
     .join("");
 }
 
+/** The same words the terminal prints for a definition's role. */
+const ROLE: Record<string, string> = {
+  primary: "definition",
+  "same-entity": "also declared here",
+  implementation: "implementation",
+};
+
 function renderDefinitions(value: any): string {
   const found: any[] = value.definitions ?? [];
   if (!found.length) return `<p class="hint">Nothing is defined at that position.</p>`;
@@ -135,7 +142,8 @@ function renderDefinitions(value: any): string {
       found.map(
         (d) =>
           `<li>${goto(d.location.file, d.location.line, d.location.col)}` +
-          ` <span class="dim">${escapeHtml(d.role ?? "")}</span></li>`,
+          ` <span class="chip">${escapeHtml(d.kind ?? "")}</span>` +
+          ` <span class="dim">${escapeHtml(ROLE[d.role] ?? d.role ?? "")}</span></li>`,
       ),
     )
   );
@@ -259,13 +267,16 @@ function renderSymbols(symbols: any[], path: string): string {
  * Render whatever came back.
  *
  * `path` is the open file, used where an answer gives a position without repeating
- * which file it is in.
+ * which file it is in. `empty` is what the caller wants said when the answer is an
+ * empty list — the one shape that cannot say anything about itself.
  */
-export function render(value: any, path: string): string {
+export function render(value: any, path: string, empty?: string): string {
   if (value === null || value === undefined) return "";
 
   if (Array.isArray(value)) {
-    if (!value.length) return `<p class="hint">Nothing to report.</p>`;
+    if (!value.length) {
+      return `<p class="hint">${escapeHtml(empty ?? "Nothing to report.")}</p>`;
+    }
     const first = value[0];
     if ("confidence" in first && "path" in first) return renderReferences(value);
     if ("exported" in first && "kind" in first && "path" in first) return renderUnused(value);

@@ -15,7 +15,7 @@ use crate::analysis::call_graph::{CallGraph, HierarchyBasis};
 use crate::analysis::entrypoints::Entrypoints;
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
-use crate::model::{Confidence, SymbolId};
+use crate::model::{Confidence, SymbolId, SymbolKind};
 use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
@@ -351,6 +351,22 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let reachable_from_entrypoints = call_graph.reachable_from(entrypoints);
     let reachable = call_graph.reachable_from(&api_roots);
 
+    // Some kinds are declared in several places and are still one thing: a CSS class
+    // written in a stylesheet and again in a theme, an element id. A reference picks
+    // one of those sites, so counting uses per site reports the others as dead — and
+    // `.nav-link`, used by three anchors in the markup, was reported dead twice while
+    // `fr delete` refused to remove it and named those same three uses. Grouped once
+    // here rather than per symbol, which would be quadratic on a large workspace.
+    let mut siblings: HashMap<(&str, SymbolKind), Vec<SymbolId>> = HashMap::new();
+    for symbol in &index.symbols {
+        if symbol.kind.allows_multiple_definitions() {
+            siblings
+                .entry((symbol.name.as_str(), symbol.kind))
+                .or_default()
+                .push(symbol.id);
+        }
+    }
+
     // A reference from inside the symbol's own definition is not an outside use.
     let mut referenced: HashSet<SymbolId> = HashSet::new();
     for reference in &index.references {
@@ -363,7 +379,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         if symbol.file == reference.file && symbol.full_span.contains(reference.span) {
             continue;
         }
-        referenced.insert(id);
+        match siblings.get(&(symbol.name.as_str(), symbol.kind)) {
+            Some(group) => referenced.extend(group.iter().copied()),
+            None => {
+                referenced.insert(id);
+            }
+        }
     }
 
     let named_in_a_string = names_in_string_literals(index);
@@ -595,84 +616,87 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 /// file — otherwise that blank line is a separator belonging to the code that stays.
 /// Widen a symbol's span to the construct that cannot survive without it.
 ///
-/// A CSS class selector is its own symbol — that is what a rename rewrites — but the
-/// rule it heads is meaningless once it is gone. If the selector is the only one on
-/// the rule, the whole rule goes; if it is one of several, only that selector and its
-/// comma do, leaving the rule to its remaining selectors.
+/// The span the index keeps is the span a *rename* rewrites, which is rarely the span
+/// a delete can remove. `export const defaultLimits = {…}` declares a symbol whose
+/// span is the declarator; removing exactly that leaves `export const ;`, and the
+/// engine's reparse check rejected the whole delete — so `fr unused` named the
+/// constant and `fr delete` could not remove it. A CSS class had the same shape and
+/// had been fixed for CSS alone.
+///
+/// Both are one rule. Climb while the symbol is the *only* child of its kind in its
+/// parent: a parent left with none of them has nothing left to be. Stop as soon as
+/// there is a sibling of the same kind, and take the symbol together with the
+/// separator joining it to that sibling. Never climb into the root, which would
+/// delete the file.
 fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,
     symbol: &crate::model::Symbol,
 ) -> Span {
-    use crate::model::SymbolKind;
-    if !matches!(symbol.kind, SymbolKind::Selector | SymbolKind::ElementId)
-        || !matches!(
-            symbol.language,
-            crate::lang::Language::Css | crate::lang::Language::Scss
-        )
-    {
-        return symbol.full_span;
-    }
-
-    let Some(node) = parsed
+    let Some(start) = parsed
         .root()
         .descendant_for_byte_range(symbol.full_span.start, symbol.full_span.end)
     else {
         return symbol.full_span;
     };
+    let root = parsed.root();
 
-    // Climb to the selector as the rule sees it, then to the rule itself.
-    let mut selector = node;
-    while let Some(parent) = selector.parent() {
-        if parent.kind() == "selectors" || parent.kind() == "rule_set" {
+    /// Siblings of the same kind, which is what decides whether the parent survives.
+    fn same_kind_siblings(node: tree_sitter::Node<'_>) -> usize {
+        let Some(parent) = node.parent() else {
+            return 0;
+        };
+        let mut cursor = parent.walk();
+        parent
+            .named_children(&mut cursor)
+            .filter(|c| c.kind() == node.kind() && c.id() != node.id())
+            .count()
+    }
+
+    let mut node = start;
+    while let Some(parent) = node.parent() {
+        if parent.id() == root.id() && same_kind_siblings(node) == 0 {
+            // Everything above is the file itself; deleting that is not on offer.
             break;
         }
-        selector = parent;
-    }
-    let Some(list) = selector.parent() else {
-        return symbol.full_span;
-    };
-
-    let siblings: Vec<tree_sitter::Node> = {
-        let mut cursor = list.walk();
-        list.named_children(&mut cursor)
-            .filter(|c| !c.kind().contains("comment") && !c.kind().contains("block"))
-            .collect()
-    };
-
-    if siblings.len() <= 1 {
-        // The rule has nothing left to apply to.
-        let rule = if list.kind() == "rule_set" {
-            list
-        } else {
-            list.parent().unwrap_or(list)
-        };
-        return Span::from(rule);
+        if same_kind_siblings(node) > 0 {
+            break;
+        }
+        if parent.id() == root.id() {
+            break;
+        }
+        node = parent;
     }
 
-    // One of several: take this selector and the comma joining it to the next.
-    let this = Span::from(selector);
-    let mut end = this.end;
+    let span = Span::from(node);
+    if same_kind_siblings(node) == 0 {
+        return span;
+    }
+
+    // One of several: take this one and the separator joining it to the next.
     let bytes = source.as_bytes();
-    while end < bytes.len() && (bytes[end] == b',' || bytes[end].is_ascii_whitespace()) {
-        let was_comma = bytes[end] == b',';
+    let is_separator = |b: u8| b == b',' || b == b';';
+    let mut end = span.end;
+    while end < bytes.len() && (is_separator(bytes[end]) || bytes[end].is_ascii_whitespace()) {
+        let separator = is_separator(bytes[end]);
         end += 1;
-        if was_comma {
+        if separator {
             while end < bytes.len() && bytes[end] == b' ' {
                 end += 1;
             }
-            return Span::new(this.start, end);
+            return Span::new(span.start, end);
         }
     }
-    // Last in the list: take the preceding comma instead.
-    let mut start = this.start;
-    while start > 0 && (bytes[start - 1] == b' ' || bytes[start - 1] == b',') {
-        start -= 1;
-        if bytes[start] == b',' {
+    // Last in the list: take the preceding separator instead, so what remains does
+    // not end with one.
+    let mut begin = span.start;
+    while begin > 0 && (bytes[begin - 1] == b' ' || is_separator(bytes[begin - 1])) {
+        begin -= 1;
+        if is_separator(bytes[begin]) {
             break;
         }
     }
-    Span::new(start, this.end)
+    Span::new(begin, span.end)
 }
 
 fn deletion_span(source: &str, span: Span) -> Span {
