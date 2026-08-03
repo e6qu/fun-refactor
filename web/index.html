@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playground — fun-refactor</title>
+<meta name="description" content="Load a public GitHub repository and refactor it in the browser. No server: the analysis runs as WebAssembly in the tab.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+</head>
+<body>
+<header class="bar">
+  <a class="wordmark" href="../index.html">fun<span>-</span>refactor</a>
+  <span class="tag">playground</span>
+  <form id="load-form" class="loader">
+    <input id="target" type="text" spellcheck="false"
+           placeholder="owner/repo, or a github.com URL"
+           value="BurntSushi/ripgrep/tree/master/crates/cli">
+    <button type="submit" id="load">Load</button>
+  </form>
+  <span id="status" class="status">Runs entirely in this tab.</span>
+</header>
+
+<main id="layout">
+  <aside class="panel files">
+    <div class="panel-head">
+      <span id="file-count">Files</span>
+      <input id="filter" type="text" placeholder="filter" spellcheck="false">
+    </div>
+    <ul id="file-list" class="list"></ul>
+  </aside>
+
+  <section class="editor-wrap">
+    <div class="panel-head">
+      <span id="open-path">No file open</span>
+      <span id="cursor" class="dim"></span>
+    </div>
+    <div id="editor"></div>
+  </section>
+
+  <aside class="panel actions">
+    <div class="panel-head">Actions</div>
+    <div class="action-body">
+      <p class="hint" id="hint">Load a repository, open a file, then put the cursor on a name.</p>
+
+      <div class="group">
+        <button data-act="definition">Go to definition</button>
+        <button data-act="references">Find references</button>
+      </div>
+
+      <div class="group rename">
+        <input id="new-name" type="text" placeholder="new name" spellcheck="false">
+        <button data-act="rename">Rename</button>
+      </div>
+
+      <div class="group rename">
+        <input id="flag-name" type="text" placeholder="feature flag" spellcheck="false">
+        <button data-act="removeFlag">Retire</button>
+      </div>
+
+      <div class="group">
+        <button data-act="duplicates">Duplicates</button>
+        <button data-act="unused">Unused</button>
+        <button data-act="stats">Index stats</button>
+      </div>
+
+      <div id="result" class="result"></div>
+    </div>
+  </aside>
+</main>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

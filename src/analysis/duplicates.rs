@@ -107,7 +107,7 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
         if !options.paths.is_empty() && !options.paths.iter().any(|p| path.starts_with(p)) {
             continue;
         }
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         files.push((path.to_path_buf(), info.language, source));

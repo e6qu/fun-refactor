@@ -328,7 +328,7 @@ fn textual_sweep(
     let mut warnings = Vec::new();
 
     for (path, info) in index.files() {
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         if !source.contains(name) {
@@ -415,7 +415,7 @@ fn is_word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
 }
 
 fn locate_warning(kind: WarningKind, file: &PathBuf, offset: usize, detail: String) -> Warning {
-    let (line, col) = match std::fs::read_to_string(file) {
+    let (line, col) = match crate::vfs::read_to_string(file) {
         Ok(source) => {
             let pos = LineIndex::new(&source).line_col(offset, &source);
             (pos.line, pos.col)
@@ -454,7 +454,7 @@ mod tests {
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent).unwrap();
             }
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
             scanned.files.push(SourceFile {
                 language: crate::lang::detect(&path).unwrap(),
                 path,
@@ -623,7 +623,7 @@ mod tests {
 
         let forward = plan(&index, only_symbol(&index, "alpha"), "renamed").unwrap();
         let once = apply_to_string(src, forward.edits.edits_for(&path).unwrap()).unwrap();
-        std::fs::write(&path, &once).unwrap();
+        crate::vfs::write(&path, &once).unwrap();
 
         let mut scanned = ScanResult::default();
         scanned.files.push(SourceFile {

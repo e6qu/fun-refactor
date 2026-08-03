@@ -161,7 +161,7 @@ fn walk_backward(
     let Some(info) = index.file(file) else {
         return Ok(());
     };
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(info.language, &source)?;
 
     // Find the definition this position refers to.
@@ -307,7 +307,7 @@ fn walk_forward(
         return Ok(());
     };
 
-    let source = std::fs::read_to_string(&symbol.file)?;
+    let source = crate::vfs::read_to_string(&symbol.file)?;
     result.steps.push(FlowStep {
         symbol: Some(symbol_id),
         text: line_text(&source, symbol.name_span.start),
@@ -318,7 +318,7 @@ fn walk_forward(
     });
 
     for reference in index.references_to(symbol_id) {
-        let Ok(ref_source) = std::fs::read_to_string(&reference.file) else {
+        let Ok(ref_source) = crate::vfs::read_to_string(&reference.file) else {
             continue;
         };
         result.steps.push(FlowStep {
@@ -456,7 +456,7 @@ mod tests {
         let mut scanned = ScanResult::default();
         for (name, content) in files {
             let path = tmp.path().join(name);
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
             scanned.files.push(SourceFile {
                 language: crate::lang::detect(&path).unwrap(),
                 path,

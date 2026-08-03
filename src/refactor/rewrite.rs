@@ -102,7 +102,7 @@ pub fn apply(index: &Index, file: &Path, offset: usize, rewrite: Rewrite) -> Res
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
     let (span, replacement) = match rewrite {

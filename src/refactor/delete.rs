@@ -56,7 +56,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         let Some(definition) = index.symbol(*id) else {
             continue;
         };
-        let span = match std::fs::read_to_string(&definition.file) {
+        let span = match crate::vfs::read_to_string(&definition.file) {
             Ok(source) => match parsers.parse(definition.language, &source) {
                 Ok(parsed) => widen_for_delete(&parsed, &source, definition),
                 Err(_) => definition.full_span,
@@ -483,7 +483,7 @@ fn names_in_string_literals(index: &Index) -> HashSet<String> {
     let mut names = HashSet::new();
 
     for (path, info) in index.files() {
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         let Ok(parsed) = parsers.parse(info.language, &source) else {
@@ -727,7 +727,7 @@ fn textual_occurrences(
     let mut warnings = Vec::new();
 
     for (path, info) in index.files() {
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         if !source.contains(name) {
@@ -837,7 +837,7 @@ impl Sources {
     fn get(&mut self, path: &Path) -> Option<&str> {
         self.cache
             .entry(path.to_path_buf())
-            .or_insert_with(|| std::fs::read_to_string(path).ok())
+            .or_insert_with(|| crate::vfs::read_to_string(path).ok())
             .as_deref()
     }
 

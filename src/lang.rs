@@ -211,7 +211,8 @@ fn is_helm_path(path: &Path) -> bool {
     // carry values-prod.yaml and friends, and treating them as plain YAML would give
     // them different provenance rules than the values.yaml next to them.
     if let Some(dir) = path.parent() {
-        if dir.join("Chart.yaml").exists() || dir.join("chart.yaml").exists() {
+        if crate::vfs::exists(dir.join("Chart.yaml")) || crate::vfs::exists(dir.join("chart.yaml"))
+        {
             return true;
         }
     }
@@ -235,7 +236,7 @@ fn is_helm_path(path: &Path) -> bool {
 pub fn chart_root(path: &Path) -> Option<&Path> {
     let mut dir = path.parent();
     while let Some(d) = dir {
-        if d.join("Chart.yaml").exists() || d.join("chart.yaml").exists() {
+        if crate::vfs::exists(d.join("Chart.yaml")) || crate::vfs::exists(d.join("chart.yaml")) {
             return Some(d);
         }
         dir = d.parent();
@@ -252,8 +253,8 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
             .is_some_and(|n| n.eq_ignore_ascii_case("templates"))
         {
             if let Some(chart_root) = d.parent() {
-                return chart_root.join("Chart.yaml").exists()
-                    || chart_root.join("chart.yaml").exists();
+                return crate::vfs::exists(chart_root.join("Chart.yaml"))
+                    || crate::vfs::exists(chart_root.join("chart.yaml"));
             }
         }
         dir = d.parent();
@@ -333,7 +334,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let chart = tmp.path().join("mychart");
         std::fs::create_dir_all(&chart).unwrap();
-        std::fs::write(chart.join("Chart.yaml"), "name: mychart\n").unwrap();
+        crate::vfs::write(chart.join("Chart.yaml"), "name: mychart\n").unwrap();
 
         // A chart's alternate values files must get the same treatment as values.yaml.
         assert_eq!(
@@ -352,7 +353,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let chart_root = tmp.path().join("mychart");
         std::fs::create_dir_all(chart_root.join("templates")).unwrap();
-        std::fs::write(chart_root.join("Chart.yaml"), "name: mychart\n").unwrap();
+        crate::vfs::write(chart_root.join("Chart.yaml"), "name: mychart\n").unwrap();
 
         let template = chart_root.join("templates/deployment.yaml");
         assert_eq!(detect(&template), Some(Language::Helm));

@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// A place to go.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Location {
     pub file: PathBuf,
     pub line: usize,
@@ -28,7 +28,7 @@ pub struct Location {
 }
 
 /// One definition of a symbol.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Definition {
     pub symbol: SymbolId,
     pub name: String,
@@ -40,7 +40,7 @@ pub struct Definition {
 }
 
 /// How a definition relates to what was asked about.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 pub enum DefinitionRole {
     /// The definition the reference resolves to.
     Primary,
@@ -71,7 +71,7 @@ pub struct Usage {
 }
 
 /// Everything known about a symbol's definitions.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Definitions {
     pub query: String,
     pub definitions: Vec<Definition>,
@@ -124,7 +124,7 @@ impl Usages {
 
 /// Build a location from a file and byte offset.
 fn locate(file: &Path, span: Span) -> Location {
-    let source = std::fs::read_to_string(file).unwrap_or_default();
+    let source = crate::vfs::read_to_string(file).unwrap_or_default();
     let index = LineIndex::new(&source);
     let pos = index.line_col(span.start, &source);
     let preview = index
@@ -329,7 +329,7 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())

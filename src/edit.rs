@@ -180,7 +180,7 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
         // A refactoring may create a file — moving a symbol to a new module, or
         // writing a Helm `_helpers.tpl` that does not exist yet — so a missing
         // destination is an empty one, not a failure.
-        let original = match std::fs::read_to_string(path) {
+        let original = match crate::vfs::read_to_string(path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
             Err(e) => {
@@ -236,6 +236,29 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
 /// Every file is staged as a temporary file next to its target and only then renamed
 /// into place, so a mid-run failure cannot leave a half-applied refactoring.
 pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
+    // Without a filesystem there is nothing to stage against: a write goes into the
+    // same in-memory workspace every read comes from, and a partial write cannot
+    // survive a failure because there is no second copy to be inconsistent with.
+    #[cfg(not(feature = "cli"))]
+    {
+        let mut written = 0;
+        for outcome in outcomes.iter().filter(|o| o.changed()) {
+            crate::vfs::write(&outcome.path, &outcome.updated)?;
+            written += 1;
+        }
+        return Ok(written);
+    }
+
+    #[cfg(feature = "cli")]
+    {
+        commit_via_staging(outcomes)
+    }
+}
+
+/// Stage each file beside its target and rename it into place, so a mid-run failure
+/// cannot leave a half-applied refactoring.
+#[cfg(feature = "cli")]
+fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
     let mut staged: Vec<(PathBuf, PathBuf)> = Vec::new();
 
     let result = (|| -> Result<()> {
@@ -476,7 +499,7 @@ mod tests {
     fn plan_rejects_edits_that_break_syntax() {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("broken.rs");
-        std::fs::write(&path, "fn main() {}\n").unwrap();
+        crate::vfs::write(&path, "fn main() {}\n").unwrap();
 
         let mut set = EditSet::new();
         // Delete the closing brace: the file would no longer parse.
@@ -487,7 +510,7 @@ mod tests {
             .to_string();
         assert!(err.contains("edit rejected"), "unexpected error: {err}");
         // The file must be untouched.
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "fn main() {}\n");
+        assert_eq!(crate::vfs::read_to_string(&path).unwrap(), "fn main() {}\n");
     }
 
     #[test]
@@ -498,7 +521,7 @@ mod tests {
         // tree-wide flag is checked too.
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("thing.zig");
-        std::fs::write(&path, "const S = struct { x: i32 };\n").unwrap();
+        crate::vfs::write(&path, "const S = struct { x: i32 };\n").unwrap();
 
         let before = Parsers::new()
             .parse(Language::Zig, "const S = struct { x: i32 };\n")
@@ -514,7 +537,7 @@ mod tests {
             .to_string();
         assert!(err.contains("edit rejected"), "unexpected error: {err}");
         assert_eq!(
-            std::fs::read_to_string(&path).unwrap(),
+            crate::vfs::read_to_string(&path).unwrap(),
             "const S = struct { x: i32 };\n"
         );
     }
@@ -539,7 +562,7 @@ mod tests {
         // edits that make things worse.
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("already.rs");
-        std::fs::write(&path, "fn main( {}\n").unwrap();
+        crate::vfs::write(&path, "fn main( {}\n").unwrap();
 
         let mut set = EditSet::new();
         set.add(&path, Edit::new(Span::new(3, 7), " good", "tweak"));
@@ -561,7 +584,10 @@ mod tests {
         let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
         assert_eq!(outcomes.len(), 1);
         assert_eq!(commit(&outcomes).unwrap(), 1);
-        assert_eq!(std::fs::read_to_string(&fresh).unwrap(), "fn moved() {}\n");
+        assert_eq!(
+            crate::vfs::read_to_string(&fresh).unwrap(),
+            "fn moved() {}\n"
+        );
     }
 
     #[test]
@@ -569,8 +595,8 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let a = tmp.path().join("a.rs");
         let b = tmp.path().join("b.rs");
-        std::fs::write(&a, "fn a() {}\n").unwrap();
-        std::fs::write(&b, "fn b() {}\n").unwrap();
+        crate::vfs::write(&a, "fn a() {}\n").unwrap();
+        crate::vfs::write(&b, "fn b() {}\n").unwrap();
 
         let mut set = EditSet::new();
         set.add(&a, Edit::new(Span::new(3, 4), "x", "rename"));
@@ -578,8 +604,8 @@ mod tests {
 
         let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
         assert_eq!(commit(&outcomes).unwrap(), 2);
-        assert_eq!(std::fs::read_to_string(&a).unwrap(), "fn x() {}\n");
-        assert_eq!(std::fs::read_to_string(&b).unwrap(), "fn y() {}\n");
+        assert_eq!(crate::vfs::read_to_string(&a).unwrap(), "fn x() {}\n");
+        assert_eq!(crate::vfs::read_to_string(&b).unwrap(), "fn y() {}\n");
     }
 
     #[test]
