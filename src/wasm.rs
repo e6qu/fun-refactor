@@ -25,6 +25,8 @@ pub struct Workspace {
     index: Index,
     /// Paths in the order they were given, so the file list a user sees is stable.
     order: Vec<PathBuf>,
+    /// Files whose language this build has no grammar for.
+    unsupported: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -73,16 +75,29 @@ impl Workspace {
 
         let mut sources: Vec<(PathBuf, Language, String)> = Vec::new();
         let mut order: Vec<PathBuf> = Vec::new();
+        let mut unsupported: Vec<String> = Vec::new();
         for (path, text) in loaded {
             order.push(path.clone());
-            if let Some(language) = crate::lang::detect(&path) {
-                sources.push((path, language, text));
+            let Some(language) = crate::lang::detect(&path) else {
+                continue;
+            };
+            // A grammar this build omits is a reason to leave one file out, not to
+            // refuse the repository. What is left out is reported, because a file
+            // list that quietly shrinks makes every later answer wrong invisibly.
+            if !crate::parse::Parsers::supports(language) {
+                unsupported.push(format!("{} ({language})", path.display()));
+                continue;
             }
+            sources.push((path, language, text));
         }
 
         let index = Index::build_from_sources(&sources)
             .map_err(|e| JsValue::from_str(&format!("indexing failed: {e}")))?;
-        Ok(Workspace { index, order })
+        Ok(Workspace {
+            index,
+            order,
+            unsupported,
+        })
     }
 
     /// Every file loaded, with the language each was recognised as.
@@ -114,6 +129,8 @@ impl Workspace {
             references: usize,
             languages: Vec<(String, usize)>,
             unparsed: Vec<String>,
+            /// Left out because this build has no grammar for them.
+            unsupported: Vec<String>,
         }
         let mut by_language: std::collections::BTreeMap<&str, usize> = Default::default();
         let mut unparsed = Vec::new();
@@ -132,6 +149,7 @@ impl Workspace {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect(),
             unparsed,
+            unsupported: self.unsupported.clone(),
         })
     }
 

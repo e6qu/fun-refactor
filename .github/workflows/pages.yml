@@ -1,12 +1,21 @@
 name: Pages
 
-# The site is static and lives in docs/. Only a change to it needs a deploy, and
-# only from main — a pull request preview would publish over the live site.
+# The site lives in docs/. The playground under docs/playground is *built* — a
+# WebAssembly module plus a Vite bundle — so it is not committed, and a change to
+# anything it is built from has to trigger a deploy.
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'web/**'
+      - 'src/**'
+      - 'crates/**'
+      - 'queries/**'
+      - 'wasm-shim/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'tools/build-wasm.sh'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -30,21 +39,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install the toolchain
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+
+      # Ubuntu's clang is an LLVM with every target enabled, including WebAssembly.
+      # Apple's is not, which is why a Mac needs wasi-sdk and this does not.
+      - name: Check clang can emit wasm
+        run: clang --print-targets | grep -q wasm32
+
+      - uses: Swatinem/rust-cache@v2
+
+      # The generator and the crate must agree exactly on the bindgen ABI, so the
+      # version comes from the lockfile rather than from whatever is newest.
+      - name: Install wasm-bindgen-cli, matching the lockfile
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/{found=1} found && /^version = /{gsub(/[",]/,"",$3); print $3; exit}' Cargo.lock)
+          echo "wasm-bindgen $version"
+          cargo install wasm-bindgen-cli --version "$version" --locked
+
+      - name: Build the analysis for the browser
+        run: ./tools/build-wasm.sh
+
+      - name: Generate the bindings
+        run: wasm-bindgen --target web --out-dir web/src/wasm target/wasm32-unknown-unknown/release/fun_refactor.wasm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the playground
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
       - name: Check every link and asset the pages reference
         run: |
           cd docs
           status=0
           for page in *.html; do
-            # Local hrefs and srcs only: anything with a scheme is someone else's.
             grep -oE '(href|src)="[^"#:]+"' "$page" \
               | sed -E 's/.*="([^"]+)"/\1/' \
               | while read -r target; do
+                  # `playground/` is a directory the build produces; index.html inside
+                  # it is checked separately below.
+                  [ "$target" = "playground/" ] && continue
                   if [ ! -e "$target" ]; then
                     echo "$page references missing $target"
                     exit 1
                   fi
                 done || status=1
           done
+          test -f playground/index.html || { echo "the playground did not build"; status=1; }
           exit $status
 
       - uses: actions/configure-pages@v5

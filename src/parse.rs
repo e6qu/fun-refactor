@@ -26,24 +26,53 @@ impl Parsers {
     /// SCSS on the CSS grammar reported every `$variable` and `@mixin` as a parse
     /// error, so it has the SCSS grammar. What a grammar still cannot express
     /// surfaces through [`Parsed::has_errors`] rather than being mis-parsed silently.
-    fn grammar(lang: Language) -> tree_sitter::Language {
+    fn grammar(lang: Language) -> Option<tree_sitter::Language> {
+        // Each arm is behind its own feature, because a grammar is a megabyte of C
+        // parse table and a browser build takes only what it will use. Absent means
+        // absent, not broken: [`Self::parse`] says which build you are running.
         match lang {
-            Language::Rust => tree_sitter_rust::LANGUAGE.into(),
-            Language::Go => tree_sitter_go::LANGUAGE.into(),
-            Language::Zig => tree_sitter_zig::LANGUAGE.into(),
-            Language::TypeScript => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
-            Language::Tsx => tree_sitter_typescript::LANGUAGE_TSX.into(),
-            Language::Python => tree_sitter_python::LANGUAGE.into(),
-            Language::Bash => tree_sitter_bash::LANGUAGE.into(),
-            Language::Html => tree_sitter_html::LANGUAGE.into(),
-            Language::Css => tree_sitter_css::LANGUAGE.into(),
+            #[cfg(feature = "lang-rust")]
+            Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
+            #[cfg(feature = "lang-go")]
+            Language::Go => Some(tree_sitter_go::LANGUAGE.into()),
+            #[cfg(feature = "lang-zig")]
+            Language::Zig => Some(tree_sitter_zig::LANGUAGE.into()),
+            #[cfg(feature = "lang-typescript")]
+            Language::TypeScript => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+            #[cfg(feature = "lang-typescript")]
+            Language::Tsx => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
+            #[cfg(feature = "lang-python")]
+            Language::Python => Some(tree_sitter_python::LANGUAGE.into()),
+            #[cfg(feature = "lang-bash")]
+            Language::Bash => Some(tree_sitter_bash::LANGUAGE.into()),
+            #[cfg(feature = "lang-html")]
+            Language::Html => Some(tree_sitter_html::LANGUAGE.into()),
+            #[cfg(feature = "lang-css")]
+            Language::Css => Some(tree_sitter_css::LANGUAGE.into()),
             // SCSS is a superset of CSS, and its own grammar knows the extra half.
-            Language::Scss => tree_sitter_scss::language(),
-            Language::Hcl => tree_sitter_hcl::LANGUAGE.into(),
-            Language::Yaml | Language::Helm => tree_sitter_yaml::LANGUAGE.into(),
-            Language::Xml => tree_sitter_xml::LANGUAGE_XML.into(),
-            Language::Markdown => tree_sitter_md_025::LANGUAGE.into(),
+            #[cfg(feature = "lang-scss")]
+            Language::Scss => Some(tree_sitter_scss::language()),
+            #[cfg(feature = "lang-hcl")]
+            Language::Hcl => Some(tree_sitter_hcl::LANGUAGE.into()),
+            #[cfg(feature = "lang-yaml")]
+            Language::Yaml | Language::Helm => Some(tree_sitter_yaml::LANGUAGE.into()),
+            #[cfg(feature = "lang-xml")]
+            Language::Xml => Some(tree_sitter_xml::LANGUAGE_XML.into()),
+            #[cfg(feature = "lang-markdown")]
+            Language::Markdown => Some(tree_sitter_md_025::LANGUAGE.into()),
+            #[allow(unreachable_patterns)]
+            _ => None,
         }
+    }
+
+    /// Can this build parse `lang` at all?
+    ///
+    /// A browser build may leave grammars out to save a megabyte each, and the
+    /// caller that loads a whole repository needs to know *before* it hands over a
+    /// file — a workspace should not fail to open because one README is in a
+    /// language this binary was not compiled with.
+    pub fn supports(lang: Language) -> bool {
+        Self::grammar(lang).is_some()
     }
 
     /// The second grammar a language needs, for grammars that parse block structure
@@ -54,6 +83,7 @@ impl Parsers {
     /// inline grammar is what turns those bytes into links, labels and destinations.
     fn inline_grammar(lang: Language) -> Option<tree_sitter::Language> {
         match lang {
+            #[cfg(feature = "lang-markdown")]
             Language::Markdown => Some(tree_sitter_md_025::INLINE_LANGUAGE.into()),
             _ => None,
         }
@@ -62,7 +92,12 @@ impl Parsers {
     /// Parse `source` as `lang`.
     pub fn parse(&self, lang: Language, source: &str) -> Result<Parsed> {
         let mut parser = Parser::new();
-        let grammar = Self::grammar(lang);
+        let grammar = Self::grammar(lang).ok_or_else(|| {
+            anyhow::anyhow!(
+                "this build has no {lang} grammar. The terminal build includes every \
+                 language; a browser build takes only the ones it was compiled with."
+            )
+        })?;
         parser
             .set_language(&grammar)
             .with_context(|| format!("loading {lang} grammar"))?;

@@ -1,1 +1,8 @@
 /target
+
+# Built by tools/build-wasm.sh + wasm-bindgen, and by Vite. CI rebuilds all of it
+# for the site, so none of it belongs in the history — a committed 10 MB wasm would
+# be a new copy every time a query file changed.
+/web/src/wasm/
+/web/node_modules/
+/docs/playground/
