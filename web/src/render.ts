@@ -107,21 +107,51 @@ function renderStats(s: any): string {
   );
 }
 
+/**
+ * The capability matrix.
+ *
+ * Each language arrives as a `[name, support]` pair — the shape `Vec<(&str, Support)>`
+ * serialises to — and `support` is `{support: "yes"}` or a tagged variant carrying
+ * `because`. That reason is the interesting half: "not applicable" and "refused" are
+ * different claims, and the sentence explaining which is why the matrix is generated
+ * from the code rather than written by hand. An earlier version of this reader
+ * expected objects with a `language` key and rendered fifteen chips reading
+ * "undefined" per row.
+ */
 function renderCapabilities(matrix: any): string {
   const rows: any[] = Array.isArray(matrix) ? matrix : (matrix.rows ?? []);
   if (!rows.length) return `<pre class="raw">${escapeHtml(JSON.stringify(matrix, null, 2))}</pre>`;
+
+  const chipFor = (entry: any): string => {
+    // `["rust", {support: "yes"}]`, or a bare string in the simplest shape.
+    const [language, support] = Array.isArray(entry) ? entry : [entry, { support: "yes" }];
+    const kind = typeof support === "string" ? support : (support?.support ?? "yes");
+    const because = typeof support === "object" ? support?.because : undefined;
+    const state = kind === "yes" ? "yes" : "no";
+    const title = because
+      ? `${kind.replace(/-/g, " ")}: ${because}`
+      : kind.replace(/-/g, " ");
+    return (
+      `<span class="chip ${state}" title="${escapeHtml(title)}">${escapeHtml(String(language))}` +
+      (kind === "yes" ? "" : ` <span class="dim">${kind === "not-applicable" ? "n/a" : "—"}</span>`) +
+      `</span>`
+    );
+  };
+
   return rows
     .map((row: any) => {
-      const name = row.capability ?? row.name ?? row.title ?? "";
-      const langs: any[] = row.languages ?? row.supported ?? [];
-      const chips = langs
-        .map((l: any) => {
-          const language = typeof l === "string" ? l : (l.language ?? l.name);
-          const yes = typeof l === "string" ? true : (l.supported ?? l.ok ?? true);
-          return `<span class="chip ${yes ? "yes" : "no"}">${escapeHtml(language)}</span>`;
-        })
-        .join("");
-      return `<p class="count">${escapeHtml(name)}</p><p class="chips">${chips}</p>`;
+      const languages: any[] = row.languages ?? row.supported ?? [];
+      const supported = languages.filter((l) => {
+        const support = Array.isArray(l) ? l[1] : null;
+        return (typeof support === "string" ? support : support?.support) === "yes";
+      }).length;
+      return (
+        `<p class="count">${escapeHtml(row.capability ?? row.name ?? "")} ` +
+        `<span class="dim">${supported}/${languages.length}` +
+        (row.command ? ` · ${escapeHtml(row.command)}` : "") +
+        `</span></p>` +
+        `<p class="chips">${languages.map(chipFor).join("")}</p>`
+      );
     })
     .join("");
 }
@@ -152,11 +182,14 @@ function renderDefinitions(value: any): string {
 function renderUsages(value: any): string {
   const here: any[] = value.usages ?? [];
   const elsewhere: any[] = value.same_name_elsewhere ?? [];
+  // Two lines per hit: where, then how sure and inside what. On one line the three
+  // wrap into each other and a location breaks across a line boundary.
   const one = (u: any) =>
-    `<li>${goto(u.location.file, u.location.line, u.location.col)}` +
-    ` <span class="tier ${escapeHtml(u.confidence)}">${escapeHtml(u.confidence)}</span>` +
+    `<li class="hit">${goto(u.location.file, u.location.line, u.location.col)}` +
+    `<span class="hit-meta"><span class="tier ${escapeHtml(u.confidence)}">` +
+    `${escapeHtml(u.confidence)}</span>` +
     (u.within ? ` <span class="dim">in ${escapeHtml(u.within)}</span>` : "") +
-    `</li>`;
+    `</span></li>`;
   return (
     count(here.length, "use") +
     list(here.map(one)) +
@@ -175,8 +208,9 @@ function renderReferences(refs: any[]): string {
     list(
       refs.map(
         (r) =>
-          `<li>${goto(r.path, r.line, r.col)}` +
-          ` <span class="tier ${escapeHtml(r.confidence)}">${escapeHtml(r.confidence)}</span></li>`,
+          `<li class="hit">${goto(r.path, r.line, r.col)}` +
+          `<span class="hit-meta"><span class="tier ${escapeHtml(r.confidence)}">` +
+          `${escapeHtml(r.confidence)}</span></span></li>`,
       ),
     )
   );

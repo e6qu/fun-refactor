@@ -55,13 +55,20 @@ export interface Action {
    */
   empty?: string;
   ask?: Ask;
+  /**
+   * An icon name, for the actions that also live in the top bar.
+   *
+   * Only navigation gets one: it is what you do most, and a trip through a list of
+   * thirty buttons for "where is this defined" is the reason the panel felt like a
+   * form rather than an editor.
+   */
+  icon?: string;
   /** Does this rewrite the workspace? Mutations refresh the editor and the file list. */
   mutates?: boolean;
   run: (w: Workspace, c: Context) => string;
 }
 
 export const GROUPS = [
-  "Understand",
   "Navigate",
   "Analyse",
   "Rename and move",
@@ -70,48 +77,12 @@ export const GROUPS = [
 ] as const;
 
 export const ACTIONS: Action[] = [
-  // ------------------------------------------------------------- Understand
-  {
-    id: "stats",
-    label: "Index stats",
-    group: "Understand",
-    needs: "workspace",
-    describes: "What was parsed, in which languages, and what was not",
-    run: (w) => w.stats(),
-  },
-  {
-    id: "capabilities",
-    label: "Capability matrix",
-    group: "Understand",
-    needs: "workspace",
-    describes: "Which of these actions this build supports, per language",
-    empty: "This build reports no capabilities, which should be impossible.",
-    run: (w) => w.capabilities(),
-  },
-  {
-    id: "entrypoints",
-    label: "Entry points",
-    group: "Understand",
-    needs: "workspace",
-    describes: "Where execution can start: mains, handlers, tests, probes",
-    empty: "No entry points at all. That is worth knowing: everything unexported will read as dead.",
-    run: (w) => w.entrypoints(),
-  },
-  {
-    id: "symbols",
-    label: "Outline this file",
-    group: "Understand",
-    needs: "file",
-    describes: "Every definition in the open file",
-    empty: "Nothing is defined in this file.",
-    run: (w, c) => w.symbols(c.path),
-  },
-
   // --------------------------------------------------------------- Navigate
   {
     id: "definition",
     label: "Go to definition",
     group: "Navigate",
+    icon: "definition",
     needs: "position",
     describes: "Every definition, not just the first — an abstraction has several",
     run: (w, c) => w.definition(c.path, c.line, c.col),
@@ -120,6 +91,7 @@ export const ACTIONS: Action[] = [
     id: "references",
     label: "Find references",
     group: "Navigate",
+    icon: "references",
     needs: "position",
     describes: "Uses of this symbol, each tagged with how certain the resolution is",
     empty: "No references resolve to that symbol.",
@@ -129,6 +101,7 @@ export const ACTIONS: Action[] = [
     id: "usages",
     label: "Usages, with the near misses",
     group: "Navigate",
+    icon: "usages",
     needs: "position",
     describes: "Uses, plus same-named occurrences that are not uses of this one",
     run: (w, c) => w.usages(c.path, c.line, c.col),
@@ -137,6 +110,7 @@ export const ACTIONS: Action[] = [
     id: "implementations",
     label: "Implementations",
     group: "Navigate",
+    icon: "implementations",
     needs: "position",
     describes: "The concrete types or methods behind an interface, trait or base class",
     empty: "Nothing implements that — it is a concrete declaration, or no type in this workspace answers to it.",
