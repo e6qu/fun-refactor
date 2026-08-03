@@ -166,6 +166,10 @@ A full walkthrough on a real codebase — helm/helm, with the outputs it actuall
 produced — is in [TUTORIAL.md](TUTORIAL.md), and the same session steps through on
 the [project site](https://e6qu.github.io/fun-refactor/demo.html).
 
+[EXAMPLES.md](EXAMPLES.md) has one example per capability, each run against a public
+repository at a pinned commit — ripgrep, requests, helm, terraform-aws-vpc, zls and
+grafana — plus what the tool does *not* do and what each of those would take.
+
 Open limitations are tracked in [BUGS.md](BUGS.md). All four are characterised rather
 than silent: reachability under dynamic dispatch, Helm values passed on a command
 line, three SCSS forms the grammar does not cover, and deep Terraform index
