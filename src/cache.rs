@@ -40,7 +40,15 @@ impl Cache {
     /// The query fingerprint still names the subdirectory, so a caller cannot
     /// accidentally read entries produced by a different query set.
     pub fn open_at(base: &Path) -> Option<Cache> {
-        let root = base.join(format!("v{SCHEMA_VERSION}-{}", query_fingerprint()));
+        // Three things decide whether an entry is still meaningful: the schema, the
+        // queries that produced the facts, and the extractor that interpreted them.
+        // The third is a compile-time hash of the sources that define extraction —
+        // see build.rs for why leaving it out is not survivable.
+        let root = base.join(format!(
+            "v{SCHEMA_VERSION}-{}-{}",
+            query_fingerprint(),
+            env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT")
+        ));
         std::fs::create_dir_all(&root).ok()?;
         Some(Cache {
             root,

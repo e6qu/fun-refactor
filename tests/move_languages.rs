@@ -1334,3 +1334,85 @@ fn a_move_that_cannot_write_the_import_fails_instead_of_skipping_it() {
         ws.read("a.py")
     );
 }
+
+#[test]
+fn a_new_import_goes_after_a_multi_line_import_statement() {
+    // The insertion point used to be found by scanning lines for an `import` prefix,
+    // which stops at the first line that is not one. requests writes
+    // `from typing import (` across three lines, so the new import landed *inside*
+    // the parentheses and the file no longer parsed — every move out of utils.py.
+    let ws = Workspace::new(&[
+        ("pkg/__init__.py", ""),
+        (
+            "pkg/utils.py",
+            "from typing import (\n    Any,\n    Callable,\n)\n\n\n\
+             def move_me(x: Any) -> Any:\n    return x\n\n\n\
+             def caller():\n    return move_me(1)\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "move_me", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("pkg/naming.py")).unwrap();
+    commit(&plan);
+
+    let left = ws.read("pkg/utils.py");
+    assert!(
+        left.contains(")\nfrom .naming import move_me"),
+        "the import belongs after the statement, not inside it:\n{left}"
+    );
+}
+
+#[test]
+fn a_moved_python_symbol_takes_the_module_imports_it_uses() {
+    // `import os` binds `os` without naming it in the statement, and the moved code
+    // reaches `os.path` through exactly that binding.
+    let ws = Workspace::new(&[
+        ("pkg/__init__.py", ""),
+        (
+            "pkg/utils.py",
+            "import os\nimport sys\n\n\ndef move_me(name):\n    return os.path.basename(name)\n\n\n\
+             def caller():\n    return move_me(sys.argv[0])\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "move_me", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("pkg/naming.py")).unwrap();
+    commit(&plan);
+
+    let moved = ws.read("pkg/naming.py");
+    assert!(moved.contains("import os"), "got:\n{moved}");
+    assert!(
+        !moved.contains("import sys"),
+        "only what the moved code uses:\n{moved}"
+    );
+}
+
+#[test]
+fn a_future_import_travels_with_the_code_it_governs() {
+    // It binds nothing, so no name-based rule would carry it — and it decides how
+    // every annotation in the file is read. `str | None` stops parsing without it on
+    // Python below 3.10.
+    let ws = Workspace::new(&[
+        ("pkg/__init__.py", ""),
+        (
+            "pkg/utils.py",
+            "from __future__ import annotations\n\nimport os\n\n\n\
+             def move_me(name) -> str | None:\n    return os.path.basename(name)\n\n\n\
+             def caller():\n    return move_me(\"x\")\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "move_me", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("pkg/naming.py")).unwrap();
+    commit(&plan);
+
+    let moved = ws.read("pkg/naming.py");
+    assert!(
+        moved.contains("from __future__ import annotations"),
+        "got:\n{moved}"
+    );
+    assert!(
+        moved.starts_with("from __future__"),
+        "and it has to come first:\n{moved}"
+    );
+}

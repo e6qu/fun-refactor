@@ -201,9 +201,27 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
         "member_expression",   // TypeScript, JavaScript
         "attribute",           // Python
         "field_expression",    // Rust, Zig
+        "scoped_identifier",
+        "scoped_type_identifier",
     ];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
+
+    // Terraform writes its namespace as the first segment of a traversal:
+    // `var.azs`, `local.azs`, `module.azs`, and each names a different declaration.
+    // The segments are flat siblings under one `expression`, so the namespace is the
+    // first `variable_expr` rather than anything above this node. Without it,
+    // `var.azs` and an `output "azs"` in the same directory are indistinguishable.
+    if parent.kind() == "get_attr" {
+        let expression = parent.parent()?;
+        let mut cursor = expression.walk();
+        let first = expression.named_children(&mut cursor).next()?;
+        if first.kind() == "variable_expr" {
+            return Some(Span::from(first).text(source).to_string());
+        }
+        return None;
+    }
+
     if !MEMBER_SHAPES.contains(&parent.kind()) {
         return None;
     }
@@ -257,10 +275,18 @@ fn values_references(
                 confidence: Confidence::NameOnly,
                 kind: ReferenceKind::StringRef,
                 receiver: segments.len().checked_sub(2).map(|i| segments[i].clone()),
+                receiver_is_path: true,
             });
         }
     }
     out
+}
+
+/// Was the receiver written as a path (`A::b`) rather than against a value (`a.b`)?
+fn receiver_is_path(root: Node<'_>, span: Span) -> bool {
+    root.descendant_for_byte_range(span.start, span.end)
+        .and_then(|n| n.parent())
+        .is_some_and(|p| p.kind().starts_with("scoped_") || p.kind() == "get_attr")
 }
 
 /// Ranks reference kinds from most to least specific.
@@ -526,6 +552,7 @@ impl Extractor {
                     confidence: Confidence::NameOnly,
                     kind: r.kind,
                     receiver: receiver_of(root, span, source),
+                    receiver_is_path: receiver_is_path(root, span),
                 });
             }
         }

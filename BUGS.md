@@ -69,6 +69,79 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B47: **a new import was written inside a multi-line import statement.** The
+  insertion point was found by scanning lines for an `import` prefix and stopping at
+  the first line that is not one — so given `from typing import (` / `    Any,` /
+  `)`, it stopped at `Any,` and inserted the new statement between the parentheses.
+  psf/requests writes its typing imports exactly that way, so every `fr move` out of
+  `utils.py` produced a file that would not parse. The index knows where each
+  statement ends, and is now asked.
+
+- [x] B48: a moved Python symbol left its module imports behind. `import os` binds
+  `os` without naming it in the statement, so the name-based check that carries named
+  imports never matched it, and the moved code lost `os.path`. Also carried now:
+  `from __future__ import annotations`, which binds nothing at all and decides how
+  every annotation in the file is read — `str | None` stops parsing without it below
+  Python 3.10 — and which is placed first, where the language requires it.
+
+
+- [x] B46: **a guard clause exited the wrong construct.** The rewrite emitted
+  `return` for any `if` last in its block, including one last in a *loop* body —
+  ripgrep's `find_program` ends a `for` body that way, and the rewrite left the loop
+  entirely instead of continuing it. It also emitted a bare `return` regardless of
+  the enclosing function's return type, which in that same function
+  (`-> Result<PathBuf>`) does not compile. The exit now fits the block: `continue`
+  in a loop, `return` in a function that returns nothing, and a refusal where the
+  function owes a value, since what to return early is the author's decision.
+
+
+- [x] B45: a statement pattern was impossible in Python, shell and YAML. Those
+  languages wrap a `fr restructure` fragment in nothing, so the statement the pattern
+  writes is the outermost node — and the descent that strips wrapper-introduced
+  statement containers stripped that one too, leaving the fragment starting six bytes
+  inside itself and every such pattern rejected as "not a valid fragment". Descending
+  is only correct when the child begins where the container does; `raise` does not.
+  `fr restructure 'raise InvalidURL($X)' 'raise InvalidURL($X) from None'` now works
+  on psf/requests.
+
+
+- [x] B44: **a Terraform traversal ignored its namespace.** `var.azs`, `local.azs`
+  and `module.azs` name three different declarations, and an `output "azs"` beside
+  them names a fourth that no traversal reaches — but all four are just `azs` in one
+  directory, and the directory-scoped rule picked whichever came first. In
+  terraform-aws-vpc, `var.azs` resolved to the module's own `output "azs"`: a rename
+  would have rewritten the output and all 41 uses of the variable. The namespace is
+  written down in the source, so it is now recorded as the reference's receiver and
+  the kind it implies is required of the target.
+
+
+- [x] B41: **the cache reused facts produced by a different extractor.** Entries are
+  keyed by file content and by the query set, which is correct only while "the
+  extractor" is a constant — and it is not. Adding a field to `Reference` changes
+  what a cached fact means, while `#[serde(default)]` lets yesterday's entry
+  deserialize cleanly into today's struct. The result is a cache that looks healthy
+  and answers wrongly: it turned seven unrelated TypeScript import tests red and cost
+  an afternoon of bisecting code that was not at fault. `build.rs` now hashes the
+  sources that define extraction into the cache namespace, so editing any of them
+  makes every stale entry unreachable rather than wrong.
+
+- [x] B42: Rust reached nothing through a path. `super::render_custom_markup(…)` and
+  `Patterns::from_low_args(…)` both resolved to nothing, because the prefix of a
+  `scoped_identifier` was never recorded. References now carry it, flagged as a path
+  rather than a value — a path names a type or a module and can be matched against a
+  symbol's own qualifier with no type inference, since the type was written down.
+  This rule runs before every other: ripgrep declares four `from_low_args` methods in
+  one file, so the nearest-in-file rule would otherwise pick whichever sat closest and
+  leave the other three looking dead.
+
+- [x] B43: a Rust test looked like dead code. Tests declare themselves with `#[test]`,
+  and the entry-point catalog could only match names and paths — ripgrep's are called
+  `backslash`, `tab` and `carriage`. Catalogs gained `annotated_with`, which reads the
+  annotations immediately above a definition, and Rust gained rules for `#[test]` and
+  `#[bench]`. Detected test entry points in ripgrep went from 141 to 516, and its
+  internal dead-code report from 643 findings to 317.
+
+
 - [x] B40: **`fr extract` put a Go binding above the declaration it read.** Extracting
   `len(totalItems)` from an `if` inserted `itemCount := len(totalItems)` at the top of
   the function, before `totalItems` existed. The result parses, so the reparse check

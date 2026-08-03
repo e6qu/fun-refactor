@@ -141,6 +141,15 @@ pub struct Matcher {
     /// The symbol must be at file top level (no enclosing symbol).
     #[serde(default)]
     pub top_level: Option<bool>,
+    /// An annotation written immediately above the symbol, without its punctuation:
+    /// `test` matches Rust's `#[test]` and `#[tokio::test]`, Python's `@pytest.mark`
+    /// and Java's `@Test`.
+    ///
+    /// This is how a test declares itself in most languages, and a name convention is
+    /// not: ripgrep's tests are called `backslash`, `tab` and `carriage`. Matching the
+    /// name alone left 141 of its 296 test functions looking like dead code.
+    #[serde(default)]
+    pub annotated_with: Option<String>,
 }
 
 /// A detected entry point.
@@ -248,7 +257,8 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
         || m.file_name.is_some()
         || m.path_contains.is_some()
         || m.file_suffix.is_some()
-        || m.file_prefix.is_some();
+        || m.file_prefix.is_some()
+        || m.annotated_with.is_some();
     if !has_condition {
         return false;
     }
@@ -293,6 +303,11 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
             return false;
         }
     }
+    if let Some(annotation) = &m.annotated_with {
+        if !annotated_with(symbol, annotation) {
+            return false;
+        }
+    }
     if let Some(exported) = m.exported {
         if symbol.exported != exported {
             return false;
@@ -316,6 +331,44 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 }
 
 /// Does the catalog have any rule that could fire for this language?
+/// Is `symbol` annotated with `name` — `#[name]`, `#[path::name]` or `@name`?
+///
+/// Read from the bytes above the definition rather than from a captured fact,
+/// because an attribute is not part of the symbol in any grammar here and adding it
+/// to every language's queries would be a larger change than this earns. Only the
+/// lines immediately above are considered, so a `#[test]` four declarations up does
+/// not leak onto this one.
+fn annotated_with(symbol: &Symbol, name: &str) -> bool {
+    let Ok(source) = std::fs::read_to_string(&symbol.file) else {
+        return false;
+    };
+    let before = &source[..symbol.full_span.start.min(source.len())];
+    for line in before.lines().rev() {
+        let line = line.trim();
+        if line.is_empty()
+            || line.starts_with("//")
+            || line.starts_with('#')
+            || line.starts_with('@')
+        {
+            // `#[tokio::test]` and `@pytest.mark.asyncio` both end in the bare name.
+            let bare = line
+                .trim_start_matches(['#', '[', '@'])
+                .trim_end_matches([']', ')'])
+                .rsplit(['.', ':'])
+                .next()
+                .unwrap_or_default();
+            let head = bare.split(['(', '<']).next().unwrap_or_default();
+            if head == name {
+                return true;
+            }
+            continue;
+        }
+        // Anything else ends the run of annotations.
+        break;
+    }
+    false
+}
+
 pub fn has_rules_for(catalog: &Catalog, language: Language) -> bool {
     catalog
         .rules

@@ -757,7 +757,7 @@ fn statements<'a>(
 /// TypeScript and Zig have no such form: an import with no named binding there is a
 /// side-effect import and binds nothing, so guessing a name from the path would invent
 /// a binding that does not exist.
-fn implicit_binding(path: &str, language: Language) -> Option<String> {
+pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String> {
     let segment = match language {
         Language::Rust => path.rsplit("::").find(|segment| !segment.is_empty())?,
         Language::Python => path
