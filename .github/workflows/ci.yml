@@ -87,6 +87,12 @@ jobs:
       - name: Exercise every capability, in every language
         run: node web/test/api.mjs
 
+      # The download button's promise: what it hands you, `git apply` takes. Checked
+      # by running git, because a patch that does not apply looks exactly like one
+      # that does until someone tries it somewhere else.
+      - name: Check the patch it downloads applies
+        run: node web/test/patch.mjs
+
       # A number worth watching: this is what a first visit downloads, and it grows
       # by a megabyte every time a grammar is added.
       - name: Report what a first visit costs

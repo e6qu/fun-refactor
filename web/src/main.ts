@@ -22,6 +22,7 @@ import { loadRepository, parseTarget } from "./github";
 import { ACTIONS, GROUPS, type Action, type Context } from "./actions";
 import { escapeHtml, render } from "./render";
 import { installShell, setResizeHandler } from "./shell";
+import { patchOf } from "./patch";
 import "./style.css";
 
 // Monaco wants a worker per language service. Only the core editor is loaded here —
@@ -198,13 +199,25 @@ function refreshCursor() {
   updateAvailability();
 }
 
-coordinate.addEventListener("click", () => {
+coordinate.addEventListener("click", async () => {
   const text = coordinate.textContent ?? "";
   if (!text || text === "—") return;
-  void navigator.clipboard?.writeText(text);
-  const was = coordinate.textContent;
+  // The clipboard is unavailable over plain http on any origin but localhost, and
+  // `writeText` rejects when the page is not focused. Saying "copied" either way
+  // would be a lie about the one thing this button exists to do.
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    show(
+      `<p class="err">This browser would not give the page the clipboard.</p>` +
+        `<p class="hint">The coordinate is <code>${escapeHtml(text)}</code> — ` +
+        `select it from here instead.</p>`,
+      "Coordinate",
+    );
+    return;
+  }
   coordinate.textContent = "copied";
-  setTimeout(() => (coordinate.textContent = was), 900);
+  setTimeout(() => (coordinate.textContent = text), 900);
 });
 
 editor.onDidChangeCursorPosition(refreshCursor);
@@ -692,11 +705,7 @@ undoButton.addEventListener("click", () => {
 downloadButton.addEventListener("click", () => {
   const edited = editedPaths();
   if (!edited.length) return;
-  // A unified diff of everything changed, which is what a person would paste into a
-  // pull request. The tool produces per-refactoring diffs; this is the whole session.
-  const patch = edited
-    .map((path) => diffOf(path, original[path] ?? "", files[path]))
-    .join("");
+  const patch = patchOf(edited, original, files);
   const blob = new Blob([patch], { type: "text/x-patch" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -704,49 +713,6 @@ downloadButton.addEventListener("click", () => {
   link.click();
   URL.revokeObjectURL(link.href);
 });
-
-/**
- * A unified diff for one file.
- *
- * Whole-file rather than hunked: the analysis already prints proper hunks per
- * refactoring, and a session-wide patch only has to be something `git apply` accepts
- * and a person can read. A common prefix and suffix are trimmed so an edit deep in a
- * large file does not print the whole thing.
- */
-function diffOf(path: string, before: string, after: string): string {
-  const a = before.split("\n");
-  const b = after.split("\n");
-  let head = 0;
-  while (head < a.length && head < b.length && a[head] === b[head]) head += 1;
-  let tail = 0;
-  while (
-    tail < a.length - head &&
-    tail < b.length - head &&
-    a[a.length - 1 - tail] === b[b.length - 1 - tail]
-  ) {
-    tail += 1;
-  }
-  const aChanged = a.slice(head, a.length - tail);
-  const bChanged = b.slice(head, b.length - tail);
-  const context = 3;
-  const from = Math.max(0, head - context);
-  const lead = a.slice(from, head);
-  const trail = a.slice(a.length - tail, a.length - tail + context);
-
-  return (
-    `--- a/${path}\n+++ b/${path}\n` +
-    `@@ -${from + 1},${lead.length + aChanged.length + trail.length} ` +
-    `+${from + 1},${lead.length + bChanged.length + trail.length} @@\n` +
-    lead.map((l) => ` ${l}`).join("\n") +
-    (lead.length ? "\n" : "") +
-    aChanged.map((l) => `-${l}`).join("\n") +
-    (aChanged.length ? "\n" : "") +
-    bChanged.map((l) => `+${l}`).join("\n") +
-    (bChanged.length ? "\n" : "") +
-    trail.map((l) => ` ${l}`).join("\n") +
-    (trail.length ? "\n" : "")
-  );
-}
 
 // ----------------------------------------------------------------------- start
 
