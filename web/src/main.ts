@@ -518,7 +518,7 @@ async function run(action: Action) {
   }
 
   if (action.mutates && value?.files) syncFromWorkspace(value.files);
-  show(render(value, current), action.label);
+  show(render(value, current, action.empty), action.label);
 }
 
 function updateAvailability() {

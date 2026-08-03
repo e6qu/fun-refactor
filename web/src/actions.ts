@@ -46,6 +46,14 @@ export interface Action {
   needs: Needs;
   /** One line under the button. */
   describes: string;
+  /**
+   * What to say when the answer is an empty list.
+   *
+   * An empty array has no shape to read, so without this every question that finds
+   * nothing gives the same shrug — and "no references resolve to this" and "this
+   * interface has no implementations" are different facts about the code.
+   */
+  empty?: string;
   ask?: Ask;
   /** Does this rewrite the workspace? Mutations refresh the editor and the file list. */
   mutates?: boolean;
@@ -77,6 +85,7 @@ export const ACTIONS: Action[] = [
     group: "Understand",
     needs: "workspace",
     describes: "Which of these actions this build supports, per language",
+    empty: "This build reports no capabilities, which should be impossible.",
     run: (w) => w.capabilities(),
   },
   {
@@ -85,6 +94,7 @@ export const ACTIONS: Action[] = [
     group: "Understand",
     needs: "workspace",
     describes: "Where execution can start: mains, handlers, tests, probes",
+    empty: "No entry points at all. That is worth knowing: everything unexported will read as dead.",
     run: (w) => w.entrypoints(),
   },
   {
@@ -93,6 +103,7 @@ export const ACTIONS: Action[] = [
     group: "Understand",
     needs: "file",
     describes: "Every definition in the open file",
+    empty: "Nothing is defined in this file.",
     run: (w, c) => w.symbols(c.path),
   },
 
@@ -111,6 +122,7 @@ export const ACTIONS: Action[] = [
     group: "Navigate",
     needs: "position",
     describes: "Uses of this symbol, each tagged with how certain the resolution is",
+    empty: "No references resolve to that symbol.",
     run: (w, c) => w.references(c.path, c.line, c.col),
   },
   {
@@ -127,6 +139,7 @@ export const ACTIONS: Action[] = [
     group: "Navigate",
     needs: "position",
     describes: "The concrete types or methods behind an interface, trait or base class",
+    empty: "Nothing implements that — it is a concrete declaration, or no type in this workspace answers to it.",
     run: (w, c) => w.implementations(c.path, c.line, c.col),
   },
 
@@ -185,6 +198,7 @@ export const ACTIONS: Action[] = [
     group: "Analyse",
     needs: "workspace",
     describes: "Where a chart value, a Terraform variable or an env name meets the code",
+    empty: "Nothing in the configuration meets the code by a name this can follow.",
     run: (w) => w.stitch(),
   },
   {
@@ -193,6 +207,7 @@ export const ACTIONS: Action[] = [
     group: "Analyse",
     needs: "workspace",
     describes: "Nothing reaches these from any entry point or export",
+    empty: "Everything here is reachable from an entry point or an export.",
     run: (w) => w.unused(),
   },
   {
@@ -201,6 +216,7 @@ export const ACTIONS: Action[] = [
     group: "Analyse",
     needs: "workspace",
     describes: "Blocks of 40 tokens or more that appear more than once",
+    empty: "No block of 40 tokens or more appears twice.",
     run: (w) => w.duplicates(40),
   },
 
@@ -329,6 +345,7 @@ export const ACTIONS: Action[] = [
     group: "Rewrite",
     needs: "position",
     describes: "The local transformations available at the cursor",
+    empty: "No local transformation applies at the cursor.",
     run: (w, c) => w.rewrites_at(c.path, c.line, c.col),
   },
   {

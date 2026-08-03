@@ -40,7 +40,12 @@ pub struct Definition {
 }
 
 /// How a definition relates to what was asked about.
+///
+/// Serialised as a token rather than the variant name, so `--json` spells it the way
+/// every other enum here does and the browser does not have to know Rust's naming.
+/// The prose the terminal prints is [`DefinitionRole::as_str`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum DefinitionRole {
     /// The definition the reference resolves to.
     Primary,
