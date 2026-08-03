@@ -139,13 +139,21 @@ body.dragging { user-select: none; cursor: col-resize; }
 }
 .panel-head.sub { border-top: 1px solid var(--rule-soft); border-bottom: none; }
 .statusbar { gap: 0.6rem; }
+/* The coordinate is what the bar is for — it is the string you copy into a terminal,
+   and half of it is worth nothing. It never shrinks; the prose beside it does. */
 .coord {
   font-family: var(--mono); font-size: 0.72rem; text-transform: none;
   letter-spacing: 0; padding: 0.05rem 0.4rem; color: var(--accent);
   border: 1px solid var(--rule); border-radius: 4px; background: var(--paper);
-  max-width: 24rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  white-space: nowrap; flex: 0 0 auto;
 }
 .coord:hover { border-color: var(--accent); }
+.subject { flex: 0 1 auto; min-width: 0; }
+/* Narrower than this the bar cannot hold prose as well as a coordinate, and a
+   sentence cut to two words is worse than no sentence. */
+@media (max-width: 1100px) {
+  .statusbar .subject { display: none; }
+}
 .panel-head .grow { flex: 1; }
 .panel-head button.ghost {
   text-transform: none; letter-spacing: 0; font-family: var(--sans);
