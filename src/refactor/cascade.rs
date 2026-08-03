@@ -15,9 +15,7 @@
 //! which half it is beats refusing the whole operation.
 
 use super::Refusal;
-#[cfg(feature = "cli")]
-use crate::edit::Edit;
-use crate::edit::EditSet;
+use crate::edit::{Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::SymbolKind;
@@ -79,14 +77,13 @@ pub fn supports_cascade(language: Language) -> bool {
 
 /// Remove `flag`, assuming it always had `value`, and clean up what follows.
 ///
-/// Takes a workspace root, so it needs a filesystem to walk. The in-memory form is
-/// [`remove_flag_in`], which the browser build uses.
+/// Walks a workspace root, so it needs a filesystem. [`remove_flag_in`] is the same
+/// refactoring over sources already in memory, which is what the browser calls and
+/// what this delegates to once it has read them.
 #[cfg(feature = "cli")]
 pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> {
     let scanned = scan(root, &ScanOptions::default())?;
 
-    // The cascade rewrites in memory and re-indexes each round, so the originals are
-    // kept to diff against at the end.
     let mut sources: BTreeMap<PathBuf, (Language, String)> = BTreeMap::new();
     for file in &scanned.files {
         let Ok(text) = crate::vfs::read_to_string(&file.path) else {
@@ -94,6 +91,23 @@ pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> 
         };
         sources.insert(file.path.clone(), (file.language, text));
     }
+    remove_flag_in(sources, flag, value)
+}
+
+/// [`remove_flag`] over sources already held in memory.
+///
+/// The cascade never needed a filesystem — it rewrites in memory and re-indexes each
+/// round — so the only thing the root was ever for was finding the files. Splitting
+/// that off is what lets the browser build do this at all, and it is also why the
+/// whole module stopped being dead code there: it had exactly one entry point, and
+/// that entry point took a path.
+pub fn remove_flag_in(
+    sources: BTreeMap<PathBuf, (Language, String)>,
+    flag: &str,
+    value: bool,
+) -> Result<CascadePlan> {
+    let mut sources = sources;
+    // The originals are kept to diff against at the end.
     let originals = sources.clone();
 
     // Only symbols that had a use before any of this started can be *orphaned* by

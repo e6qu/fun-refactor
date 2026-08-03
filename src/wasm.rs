@@ -245,6 +245,31 @@ impl Workspace {
         }
     }
 
+    /// Retire a feature flag and the branch that only served it.
+    ///
+    /// The cascade re-indexes after each round, so it works over the whole loaded
+    /// workspace rather than one file.
+    pub fn remove_flag(&mut self, flag: &str, value: bool) -> String {
+        let mut sources: std::collections::BTreeMap<PathBuf, (Language, String)> =
+            Default::default();
+        for path in &self.order {
+            let Some(language) = crate::lang::detect(path) else {
+                continue;
+            };
+            if !crate::parse::Parsers::supports(language) {
+                continue;
+            }
+            let Ok(text) = crate::vfs::read_to_string(path) else {
+                continue;
+            };
+            sources.insert(path.clone(), (language, text));
+        }
+        match crate::refactor::cascade::remove_flag_in(sources, flag, value) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
     /// Code written more than once, compared structurally.
     pub fn duplicates(&self, min_tokens: usize) -> String {
         let options = crate::analysis::duplicates::Options {

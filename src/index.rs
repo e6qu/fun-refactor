@@ -146,7 +146,10 @@ impl Index {
     /// Placeholder facts marking a file that could not be read.
     ///
     /// Carrying the failure through the parallel stage keeps the reporting in one
-    /// place instead of needing a second channel out of the worker.
+    /// place instead of needing a second channel out of the worker. Only the scanning
+    /// path can meet an unreadable file; sources handed over in memory are already
+    /// read.
+    #[cfg(feature = "cli")]
     fn unreadable_placeholder(path: &Path, error: String) -> FileFacts {
         FileFacts {
             path: path.to_path_buf(),

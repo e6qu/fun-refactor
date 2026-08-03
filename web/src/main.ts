@@ -226,6 +226,27 @@ const actions: Record<string, () => void> = {
     show(`<p class="count">${applied.files.length} file(s) changed</p>${diffs}${warnings}`);
   },
 
+  removeFlag() {
+    if (!workspace) return;
+    const flag = el<HTMLInputElement>("flag-name").value.trim();
+    if (!flag) {
+      show(`<p class="hint">Name the flag to retire.</p>`);
+      return;
+    }
+    // Retiring a flag means deciding what it always was. `true` is the common case —
+    // the feature shipped and the switch is what is left over.
+    const applied = call<any>(workspace.remove_flag(flag, true));
+    if (!applied) return;
+    syncFromWorkspace(applied.files);
+    if (!applied.files.length) {
+      show(`<p class="hint">Nothing references <code>${escapeHtml(flag)}</code>.</p>`);
+      return;
+    }
+    renderFileList(el<HTMLInputElement>("filter").value);
+    show(`<p class="count">${applied.files.length} file(s) changed</p>` +
+      applied.files.map((f: any) => `<pre class="diff">${colourDiff(f.diff)}</pre>`).join(""));
+  },
+
   duplicates() {
     if (!workspace) return;
     const classes = call<any[]>(workspace.duplicates(60));
