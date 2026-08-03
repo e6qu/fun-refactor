@@ -483,7 +483,7 @@ pub fn run() -> Result<()> {
 
 fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     if !symbol.kind.is_callable() {
         anyhow::bail!(
             "'{}' is a {}, not a function or method — it has no call edges",
@@ -618,7 +618,7 @@ fn cmd_extract(
     write: bool,
 ) -> Result<()> {
     let (path, start, end) = parse_range(range)?;
-    let path = path.canonicalize().unwrap_or(path);
+    let path = workspace_path(cli, &path)?;
     let source =
         std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let index_of_lines = LineIndex::new(&source);
@@ -668,7 +668,7 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
         let pos = parse_position(target).ok_or_else(|| {
             anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
         })?;
-        let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+        let path = workspace_path(cli, &pos.path)?;
         let source = std::fs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
         let offset = LineIndex::new(&source)
@@ -689,7 +689,7 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
         return present(cli, &plan.edits, &summary, write);
     }
 
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::inline::variable(&index, symbol.id)?;
     let summary = format!(
         "inlined `{}` into {} use site(s)",
@@ -729,7 +729,7 @@ fn parse_signature_change(spec: &str) -> Result<crate::refactor::signature::Chan
 
 fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let change = parse_signature_change(change_spec)?;
     let plan = crate::refactor::signature::change(&index, symbol.id, change)?;
     let summary = crate::refactor::signature::describe(&index, &plan);
@@ -771,7 +771,7 @@ fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::
 
 fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let dest = resolve_destination(cli, destination)?;
     let plan = crate::refactor::move_symbol::to_file(&index, symbol.id, &dest)?;
 
@@ -796,7 +796,7 @@ fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool)
 
 fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::delete::plan(&index, symbol.id)?;
 
     if !plan.warnings.is_empty() && !cli.json {
@@ -812,6 +812,35 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 
     let summary = format!("deleted {} ({} definition site(s))", plan.name, plan.sites);
     present(cli, &plan.edits, &summary, write)
+}
+
+/// A path the caller typed, spelled the way the index spells its paths.
+///
+/// Relative paths resolve against the workspace root, not the shell's working
+/// directory: `-C` says which workspace to operate on, and `fr -C ../helm refs
+/// pkg/x.go:3:6` means that file in that workspace. Canonical, because the index is,
+/// and a path that does not exist is an error — resolving it to itself and letting
+/// the file read fail two frames later says "reading pkg/x.go: No such file", which
+/// is true and unhelpful.
+fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let joined = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    };
+    joined.canonicalize().map_err(|e| {
+        if path.is_absolute() || root == std::path::Path::new(".") {
+            anyhow::anyhow!("{}: {e}", path.display())
+        } else {
+            anyhow::anyhow!(
+                "{} does not exist in {} — paths are read relative to the workspace \
+                 root, which -C set to that. ({e})",
+                path.display(),
+                root.display()
+            )
+        }
+    })
 }
 
 /// Language names from the command line, refused rather than ignored.
@@ -836,16 +865,25 @@ fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
         .collect()
 }
 
-/// Path filters, resolved against the workspace root rather than the shell's cwd.
-fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Vec<PathBuf> {
+/// Path filters, spelled the way the index spells its paths.
+///
+/// Resolved against the workspace root rather than the shell's cwd, and canonical,
+/// because the index holds canonical paths. The default root is `.`, so a filter
+/// built from it reads `./pkg/action` and matches no absolute path at all — the
+/// report then comes back empty and looks like a clean bill of health.
+fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     paths
         .iter()
         .map(|p| {
-            if p.is_absolute() {
+            let joined = if p.is_absolute() {
                 p.clone()
             } else {
-                cli.root.join(p)
-            }
+                root.join(p)
+            };
+            joined
+                .canonicalize()
+                .map_err(|e| anyhow::anyhow!("cannot resolve --path {}: {e}", joined.display()))
         })
         .collect()
 }
@@ -864,7 +902,7 @@ fn cmd_duplicates(
         min_tokens,
         exact,
         languages: parse_languages(languages)?,
-        paths: absolute_paths(cli, paths),
+        paths: absolute_paths(cli, paths)?,
     };
     let classes = duplicates::find(&index, &options)?;
 
@@ -944,7 +982,7 @@ fn cmd_unused(
     let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
 
     let wanted = parse_languages(languages)?;
-    let roots = absolute_paths(cli, paths);
+    let roots = absolute_paths(cli, paths)?;
     let keep = |s: &crate::model::Symbol| {
         (wanted.is_empty() || wanted.contains(&s.language))
             && (roots.is_empty() || roots.iter().any(|r| s.file.starts_with(r)))
@@ -1016,7 +1054,7 @@ fn cmd_unused(
 
 fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let path = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
+    let path = workspace_path(cli, file)?;
     let plan = crate::refactor::imports::plan(&index, &path)?;
 
     if !plan.removed.is_empty() && !cli.json {
@@ -1092,7 +1130,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
 
     let pos = parse_position(target)
         .ok_or_else(|| anyhow::anyhow!("a rewrite needs a position: path:line:col"))?;
-    let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+    let path = workspace_path(cli, &pos.path)?;
     let source =
         std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let offset = LineIndex::new(&source)
@@ -1173,7 +1211,7 @@ fn cmd_flow(
     use crate::analysis::flow;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
 
     // `-f`/`--set` describe a helm invocation. Accepting them for a target no
     // values file can reach would be accepting an argument and ignoring it.
@@ -1359,7 +1397,7 @@ fn cmd_impact(cli: &Cli, target: &str, caller_depth: usize) -> Result<()> {
     use crate::analysis::impact;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let result = impact::analyse(&index, symbol.id, caller_depth)?;
 
     if cli.json {
@@ -1538,7 +1576,7 @@ fn cmd_entrypoints(
 
 fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::rename::plan(&index, symbol.id, new_name)?;
 
     let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
@@ -1634,9 +1672,9 @@ fn parse_position(target: &str) -> Option<Position> {
 }
 
 /// Resolve a CLI target to a symbol, accepting either a position or a name.
-fn resolve_target<'a>(index: &'a Index, target: &str) -> Result<&'a Symbol> {
+fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a Symbol> {
     if let Some(pos) = parse_position(target) {
-        let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+        let path = workspace_path(cli, &pos.path)?;
         let source = std::fs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
         let offset = LineIndex::new(&source)
@@ -1880,7 +1918,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
     use crate::navigate;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::definitions_of(&index, symbol.id);
 
     if cli.json {
@@ -1935,7 +1973,7 @@ fn cmd_implementations(cli: &Cli, target: &str) -> Result<()> {
     use crate::navigate;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::implementations_of(&index, symbol.id);
 
     if found.is_empty() {
@@ -1976,7 +2014,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     use crate::navigate;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::usages_of(&index, symbol.id);
 
     if cli.json {
@@ -2048,7 +2086,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
 
 fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let refs = index.references_to(symbol.id);
     let weak = if include_unresolved {
         index.unresolved_matching(symbol.id)

@@ -69,6 +69,29 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B35: **`--path` filters matched nothing, and reported that as nothing found.**
+  They were built by joining the default root `.`, giving `./pkg/action`, which
+  starts-with-matches no absolute path in the index. Every filtered report came back
+  empty and read as a clean bill of health. Filters are now resolved against the
+  workspace root and canonicalised, and a path that does not exist is an error.
+
+- [x] B36: a relative path in a target was read from the shell's working directory
+  rather than the workspace `-C` names, so `fr -C ../helm refs pkg/x.go:3:6` failed
+  with "reading pkg/x.go: No such file". Four sites had their own
+  `canonicalize().unwrap_or(…)`, which kept the unusable path and let the failure
+  surface two frames later; they now share one resolver that says where it looked.
+
+- [x] B37: a field access resolved to a local variable. `i.provData` bound to a
+  `provData, err := …` two lines up, because the nearest-definition rule ran before
+  anything checked that a member access can only name a member. The field then had no
+  references at all and was reported as dead.
+
+- [x] B38: nothing tested the command line. Every test called the library directly,
+  which is why B35 and B36 — both entirely in the layer between an argument and that
+  library — were invisible. `tests/cli.rs` runs the binary: argument parsing, path
+  resolution, exit codes, and the text a person reads.
+
+
 - [x] B26: **Go resolved nothing across files in a package.** A package in Go is a
   directory — a function in `a.go` is called from `b.go` with no import and no
   qualifier — and only Terraform was treated that way. `fr refs` returned *zero*

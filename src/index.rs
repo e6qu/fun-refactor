@@ -279,6 +279,8 @@ impl Index {
         let bare_call = reference.kind == ReferenceKind::Call
             && reference.receiver.is_none()
             && reference.language.members_always_have_a_receiver();
+        // Written as a member of something — either `x.field` or a call on a value.
+        let member_access = reference.kind == ReferenceKind::Field || called_on_a_value;
         let plausible = |s: &Symbol| {
             // A binding is not in scope inside its own initialiser. Go's
             // `templatesDirExists := check(templatesDirExists(p))` calls the package
@@ -295,7 +297,10 @@ impl Index {
                 return false;
             }
             let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
-            if called_on_a_value {
+            if member_access {
+                // `i.provData` names a field of `i`, never the local `provData` two
+                // lines up. Without this the nearest-definition rule below binds the
+                // access to the local and the field reads as never used.
                 is_member
             } else if bare_call {
                 !is_member
@@ -355,7 +360,7 @@ impl Index {
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
-        if in_file.len() > 1 && !called_on_a_value {
+        if in_file.len() > 1 && !member_access {
             // Ambiguous within the file: report the nearest but do not claim certainty.
             let nearest = in_file
                 .iter()
@@ -436,8 +441,7 @@ impl Index {
             .filter_map(|id| self.symbol(*id))
             .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
             .collect();
-        let is_member_access = reference.kind == ReferenceKind::Field || called_on_a_value;
-        if is_member_access {
+        if member_access {
             if members.len() == 1 {
                 return (Some(members[0].id), Confidence::FieldBased);
             }
