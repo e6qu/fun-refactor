@@ -74,7 +74,7 @@ pub fn variable(
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
     let expr = expression_at(&parsed, span).ok_or_else(|| {
@@ -290,14 +290,14 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())
     }
 
     fn apply(plan: &ExtractPlan, path: &Path) -> String {
-        let original = std::fs::read_to_string(path).unwrap();
+        let original = crate::vfs::read_to_string(path).unwrap();
         apply_to_string(&original, plan.edits.edits_for(path).unwrap()).unwrap()
     }
 
@@ -579,7 +579,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
     let region = statement_region(&parsed, span, &source)
@@ -1144,7 +1144,7 @@ fn hcl_local(
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Hcl, &source)?;
 
     let node = descendant_at(&parsed, span)
@@ -1317,7 +1317,7 @@ fn yaml_anchor(
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
     if let Some(action) = parsed.template_actions.iter().find(|a| a.overlaps(span)) {
@@ -1466,7 +1466,7 @@ fn css_custom_property(
         );
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
@@ -1690,7 +1690,7 @@ fn markdown_link_definition(
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Markdown, &source)?;
 
     let node = descendant_at(&parsed, span)
@@ -1860,7 +1860,7 @@ fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFun
         format!("{chart_name}.{name}")
     };
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let region = whole_lines(&source, span);
     if region.text(&source).trim().is_empty() {
         anyhow::bail!("the selection at bytes {span} is blank; select the lines to extract");
@@ -1868,7 +1868,7 @@ fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFun
     let body = region.text(&source).to_string();
 
     let destination = helm_helpers_path(file, &chart_root);
-    let existing = std::fs::read_to_string(&destination).unwrap_or_default();
+    let existing = crate::vfs::read_to_string(&destination).unwrap_or_default();
     if existing.contains(&format!("define \"{template_name}\"")) {
         return Err(Refusal::NameCollision {
             existing: template_name,
@@ -1957,7 +1957,7 @@ fn helm_chart_name(chart_root: &Path) -> Option<String> {
     } else {
         chart_root.join("chart.yaml")
     };
-    let text = std::fs::read_to_string(path).ok()?;
+    let text = crate::vfs::read_to_string(path).ok()?;
     for line in text.lines() {
         if let Some(value) = line.strip_prefix("name:") {
             let value = value.trim().trim_matches(['"', '\'']);
@@ -2058,7 +2058,7 @@ fn bash_variable(
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
@@ -2301,7 +2301,7 @@ fn bash_function(
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
@@ -2551,7 +2551,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
         .into());
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Scss, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
@@ -2712,7 +2712,7 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
         ));
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Xml, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(

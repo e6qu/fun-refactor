@@ -805,7 +805,7 @@ impl Hierarchy {
             let Some(family) = Family::of(info.language) else {
                 continue;
             };
-            let source = match std::fs::read_to_string(path) {
+            let source = match crate::vfs::read_to_string(path) {
                 Ok(source) => source,
                 Err(error) => {
                     hierarchy.gaps.push((path.clone(), error.to_string()));
@@ -1315,7 +1315,7 @@ mod tests {
         let mut scanned = ScanResult::default();
         for (name, content) in files {
             let path = tmp.path().join(name);
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
             scanned.files.push(SourceFile {
                 language: crate::lang::detect(&path).unwrap(),
                 path,

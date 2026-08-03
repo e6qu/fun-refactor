@@ -10,6 +10,7 @@ use crate::extract::Extractor;
 use crate::lang::{Language, LanguageClass};
 use crate::model::*;
 use crate::parse::Parsers;
+#[cfg(feature = "cli")]
 use crate::scan::{scan, ScanOptions, ScanResult};
 use anyhow::{Context, Result};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -43,11 +44,13 @@ pub struct Index {
 
 impl Index {
     /// Build an index for a workspace root.
+    #[cfg(feature = "cli")]
     pub fn build(root: &Path, options: &ScanOptions) -> Result<Self> {
         let scan_result = scan(root, options)?;
         Self::build_from_scan(&scan_result)
     }
 
+    #[cfg(feature = "cli")]
     pub fn build_from_scan(scan_result: &ScanResult) -> Result<Self> {
         Self::build_with_cache(scan_result, crate::cache::Cache::open().as_ref())
     }
@@ -56,6 +59,7 @@ impl Index {
     ///
     /// Parsing and extraction dominate indexing cost and depend only on a file's bytes
     /// and the query set, so an unchanged file need never be looked at twice.
+    #[cfg(feature = "cli")]
     pub fn build_with_cache(
         scan_result: &ScanResult,
         cache: Option<&crate::cache::Cache>,
@@ -77,7 +81,7 @@ impl Index {
             .par_iter()
             .enumerate()
             .map(|(position, file)| {
-                let source = match std::fs::read_to_string(&file.path) {
+                let source = match crate::vfs::read_to_string(&file.path) {
                     Ok(s) => s,
                     // Reported by the caller once results are merged.
                     Err(e) => {
@@ -881,7 +885,7 @@ mod tests {
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent).unwrap();
             }
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
             scanned.files.push(SourceFile {
                 language: crate::lang::detect(&path).unwrap(),
                 path,

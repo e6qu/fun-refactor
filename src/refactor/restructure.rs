@@ -130,7 +130,7 @@ pub fn apply(
         if info.language != language {
             continue;
         }
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         let parsed = parsers.parse(language, &source)?;
@@ -546,14 +546,14 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())
     }
 
     fn rendered(plan: &RestructurePlan, path: &Path) -> String {
-        let original = std::fs::read_to_string(path).unwrap();
+        let original = crate::vfs::read_to_string(path).unwrap();
         match plan.edits.edits_for(path) {
             Some(edits) => apply_to_string(&original, edits).unwrap(),
             None => original,

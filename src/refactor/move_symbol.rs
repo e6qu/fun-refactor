@@ -167,7 +167,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let removal = whole_lines(&source, sym.full_span);
     let moved_text = removal.text(&source).to_string();
 
@@ -204,7 +204,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
 
     for file in &needs_import {
         let statement = import_statement(sym.language, file, destination, &sym.name)?;
-        let target_source = std::fs::read_to_string(file).unwrap_or_default();
+        let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
         let insert = import_insertion_point_for(index, file, &target_source);
         plan.edits.add(
             file.clone(),
@@ -502,7 +502,7 @@ fn export_edit(language: Language, file: &Path, symbol: &Symbol) -> Option<Edit>
     if !matches!(language, Language::TypeScript | Language::Tsx) {
         return None;
     }
-    let source = std::fs::read_to_string(file).ok()?;
+    let source = crate::vfs::read_to_string(file).ok()?;
     let line_start = whole_lines(&source, symbol.full_span).start;
     let rest = &source[line_start..];
     let lead = rest.len() - rest.trim_start().len();
@@ -731,7 +731,7 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
     check_module_is_declared(&to_module, destination)?;
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let removal = with_rust_attributes(&source, whole_lines(&source, sym.full_span));
     let moved_text = removal.text(&source).to_string();
 
@@ -795,7 +795,7 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
                 repoint_rust_binding(&mut plan.edits, &binding, &sym.name, &statement)?
             }
             None => {
-                let target_source = std::fs::read_to_string(file).unwrap_or_default();
+                let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
                 let at = rust_use_insertion_point(&target_source);
                 plan.edits.add(
                     file.clone(),
@@ -892,7 +892,7 @@ fn check_module_is_declared(module: &CrateModule, destination: &Path) -> Result<
     let mut parent_file = root;
     let mut walked: Vec<String> = Vec::new();
     for segment in &module.path {
-        let source = std::fs::read_to_string(&parent_file).unwrap_or_default();
+        let source = crate::vfs::read_to_string(&parent_file).unwrap_or_default();
         if !declares_module(&source, segment) {
             bail!(
                 "{} does not declare `mod {};`, so {} is not part of the module tree and \
@@ -945,7 +945,7 @@ fn path_attribute_user(index: &Index, src: &Path) -> Option<PathBuf> {
         if info.language != Language::Rust || !path.starts_with(src) {
             continue;
         }
-        let Ok(text) = std::fs::read_to_string(path) else {
+        let Ok(text) = crate::vfs::read_to_string(path) else {
             continue;
         };
         if text.contains("#[path") && found.as_ref().is_none_or(|best| path < best) {
@@ -1040,7 +1040,7 @@ fn repoint_rust_binding(
         ),
         // One of several: take the name out of the list and add a statement beside it.
         Some(span) => {
-            let source = std::fs::read_to_string(&binding.file)?;
+            let source = crate::vfs::read_to_string(&binding.file)?;
             edits.add(
                 binding.file.clone(),
                 Edit::new(
@@ -1070,7 +1070,7 @@ fn drop_rust_binding(
     name: &str,
     destination: &Path,
 ) -> Result<()> {
-    let source = std::fs::read_to_string(destination).unwrap_or_default();
+    let source = crate::vfs::read_to_string(destination).unwrap_or_default();
     match binding.in_list {
         Some(span) if binding.list_len > 1 => edits.add(
             binding.file.clone(),
@@ -1176,7 +1176,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         .parent()
         .ok_or_else(|| anyhow::anyhow!("{} has no directory", destination.display()))?;
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let removal = with_go_doc_comment(&source, whole_lines(&source, sym.full_span));
     let moved_text = removal.text(&source).to_string();
 
@@ -1315,7 +1315,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     }
 
     for file in &needs_import {
-        let target_source = std::fs::read_to_string(file).unwrap_or_default();
+        let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
         if target_source.contains(&format!("\"{import_path}\"")) {
             continue;
         }
@@ -1362,7 +1362,7 @@ fn go_package_of_dir(index: &Index, dir: &Path) -> Option<String> {
 fn go_import_path(dir: &Path) -> Option<String> {
     for ancestor in dir.ancestors() {
         let manifest = ancestor.join("go.mod");
-        let Ok(text) = std::fs::read_to_string(&manifest) else {
+        let Ok(text) = crate::vfs::read_to_string(&manifest) else {
             continue;
         };
         let module = text.lines().find_map(|line| {
@@ -1388,7 +1388,7 @@ fn go_import_insertion_point(index: &Index, file: &Path) -> Option<usize> {
         .iter()
         .filter_map(|id| index.symbol(*id))
         .find(|s| s.kind == SymbolKind::Module && s.language == Language::Go)?;
-    let source = std::fs::read_to_string(file).ok()?;
+    let source = crate::vfs::read_to_string(file).ok()?;
     Some(full_line_span(&source, clause.full_span.start).end)
 }
 
@@ -1449,7 +1449,7 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let enclosing_locals = enclosing_locals_block(index, sym);
 
     if sym.container.is_some() && enclosing_locals.is_none() {
@@ -1473,7 +1473,7 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         // A `locals` entry only means anything inside a `locals` block, so it goes into
         // the destination's block, or into one made for it.
         Some(_) => {
-            let dest_source = std::fs::read_to_string(destination).unwrap_or_default();
+            let dest_source = crate::vfs::read_to_string(destination).unwrap_or_default();
             match locals_block_in(index, destination) {
                 Some(block) => {
                     let close = dest_source[..block.end].rfind('}').ok_or_else(|| {
@@ -1538,7 +1538,7 @@ fn move_css(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let rule = widen_to_rule(&source, sym)?;
     let removal = whole_lines(&source, rule);
     let moved_text = removal.text(&source).to_string();
@@ -1684,7 +1684,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let headings = file_headings(index, &sym.file);
     let removal = section_span(&source, sym, &headings);
     let moved_text = removal.text(&source).to_string();
@@ -1763,7 +1763,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
         if info.language != Language::Markdown || path == &sym.file {
             continue;
         }
-        let Ok(text) = std::fs::read_to_string(path) else {
+        let Ok(text) = crate::vfs::read_to_string(path) else {
             continue;
         };
         let Some(dir) = path.parent() else { continue };
@@ -1938,7 +1938,7 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         .into());
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     // A `///` doc comment is `//`-prefixed, so the Go widening reads it too.
     let removal = with_go_doc_comment(&source, whole_lines(&source, sym.full_span));
     let moved_text = removal.text(&source).to_string();
@@ -1990,7 +1990,7 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     }
 
     for (file, references) in &by_file {
-        let text = std::fs::read_to_string(file)?;
+        let text = crate::vfs::read_to_string(file)?;
         let parsed = crate::parse::Parsers::new().parse(Language::Zig, &text)?;
 
         // Whatever this file already calls the destination, or what it would have to
@@ -2271,7 +2271,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         .into());
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let removal = with_shell_comment(&source, whole_lines(&source, sym.full_span));
     let moved_text = removal.text(&source).to_string();
 
@@ -2347,7 +2347,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
                 dir.display()
             );
         };
-        let text = std::fs::read_to_string(file).unwrap_or_default();
+        let text = crate::vfs::read_to_string(file).unwrap_or_default();
         let at = shell_prelude_end(&text);
         plan.edits.add(
             file.clone(),
@@ -2456,7 +2456,7 @@ fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<Mo
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let indent = line_indent(&source, sym.full_span.start);
     if !indent.is_empty() {
         bail!(
@@ -2473,7 +2473,7 @@ fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<Mo
     // Appending to a file that holds several documents would land the key in the last
     // one, which is a choice this tool has no way to make.
     for file in [&sym.file, &destination.to_path_buf()] {
-        let text = std::fs::read_to_string(file).unwrap_or_default();
+        let text = crate::vfs::read_to_string(file).unwrap_or_default();
         let language = crate::lang::detect(file).unwrap_or(sym.language);
         if yaml_document_count(language, &text)? > 1 {
             bail!(
@@ -2500,7 +2500,7 @@ fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<Mo
 
     // The destination's own top level must really be at column zero, or a key appended
     // there joins nothing.
-    let destination_source = std::fs::read_to_string(destination).unwrap_or_default();
+    let destination_source = crate::vfs::read_to_string(destination).unwrap_or_default();
     for key in index
         .file(destination)
         .into_iter()
@@ -2611,7 +2611,7 @@ fn append_to_destination(
     text: &str,
     reason: impl Into<String>,
 ) {
-    let existing = std::fs::read_to_string(destination).unwrap_or_default();
+    let existing = crate::vfs::read_to_string(destination).unwrap_or_default();
     let separator = if existing.is_empty() || existing.ends_with("\n\n") {
         ""
     } else if existing.ends_with('\n') {
@@ -2715,7 +2715,7 @@ fn mentions_word(text: &str, word: &str) -> bool {
 
 /// `path:line:col`, for warnings that point a human at a file.
 fn location(file: &Path, offset: usize) -> String {
-    let Ok(source) = std::fs::read_to_string(file) else {
+    let Ok(source) = crate::vfs::read_to_string(file) else {
         return file.display().to_string();
     };
     let position = LineIndex::new(&source).line_col(offset, &source);
@@ -2798,14 +2798,14 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())
     }
 
     fn apply(plan: &MovePlan, path: &Path) -> String {
-        let original = std::fs::read_to_string(path).unwrap_or_default();
+        let original = crate::vfs::read_to_string(path).unwrap_or_default();
         match plan.edits.edits_for(path) {
             Some(edits) => apply_to_string(&original, edits).unwrap(),
             None => original,

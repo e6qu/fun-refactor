@@ -63,7 +63,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
 
     // The value bound to the definition.
@@ -260,14 +260,14 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())
     }
 
     fn apply(plan: &InlinePlan, path: &Path) -> String {
-        let original = std::fs::read_to_string(path).unwrap();
+        let original = crate::vfs::read_to_string(path).unwrap();
         apply_to_string(&original, plan.edits.edits_for(path).unwrap()).unwrap()
     }
 
@@ -382,7 +382,7 @@ mod tests {
         .unwrap();
         let after_extract =
             apply_to_string(src, extracted.edits.edits_for(&path).unwrap()).unwrap();
-        std::fs::write(&path, &after_extract).unwrap();
+        crate::vfs::write(&path, &after_extract).unwrap();
 
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         let index2 = Index::build_from_scan(&scanned).unwrap();
@@ -459,7 +459,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         );
     }
 
-    let callee_source = std::fs::read_to_string(&callee.file)?;
+    let callee_source = crate::vfs::read_to_string(&callee.file)?;
     let callee_parsed = Parsers::new().parse(callee.language, &callee_source)?;
     let declaration = callee_parsed
         .root()
@@ -475,7 +475,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     })?;
 
     // Pair parameters with the arguments written at this call site.
-    let caller_source = std::fs::read_to_string(file)?;
+    let caller_source = crate::vfs::read_to_string(file)?;
     let caller_parsed = Parsers::new().parse(reference.language, &caller_source)?;
     let call_node = enclosing_call(&caller_parsed, reference.span)
         .ok_or_else(|| anyhow::anyhow!("could not locate the call expression"))?;
@@ -860,7 +860,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
 
     let node = node_covering(&parsed, sym.full_span)
@@ -951,7 +951,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         let site = match per_file.entry(reference.file.clone()) {
             std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
             std::collections::hash_map::Entry::Vacant(e) => {
-                let text = std::fs::read_to_string(&reference.file)?;
+                let text = crate::vfs::read_to_string(&reference.file)?;
                 let tree = Parsers::new().parse(reference.language, &text)?;
                 e.insert((text, tree))
             }
@@ -1043,7 +1043,7 @@ fn hcl_foreign_local_uses(index: &Index, file: &std::path::Path, name: &str) -> 
         }
         let text = sources
             .entry(reference.file.clone())
-            .or_insert_with(|| std::fs::read_to_string(&reference.file).unwrap_or_default());
+            .or_insert_with(|| crate::vfs::read_to_string(&reference.file).unwrap_or_default());
         if reference.span.start >= "local.".len()
             && text.get(reference.span.start - "local.".len()..reference.span.start)
                 == Some("local.")
@@ -1063,7 +1063,7 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
 
     let node = node_covering(&parsed, sym.full_span)
@@ -1189,7 +1189,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
@@ -1269,7 +1269,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         let entry = match parsed_cache.entry(reference.file.clone()) {
             std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
             std::collections::hash_map::Entry::Vacant(e) => {
-                let text = std::fs::read_to_string(&reference.file)?;
+                let text = crate::vfs::read_to_string(&reference.file)?;
                 let tree = Parsers::new().parse(reference.language, &text)?;
                 e.insert((text, tree))
             }
@@ -1346,7 +1346,7 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
 
     let definition = node_covering(&parsed, sym.full_span)
@@ -1514,7 +1514,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
@@ -1870,7 +1870,7 @@ fn bash_is_one_plain_word(text: &str) -> bool {
 /// fire until that query captures `(GEDecl (Name) @name) @definition.constant` and
 /// `(EntityRef (Name) @reference.identifier)`.
 pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Xml, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(

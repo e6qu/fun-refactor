@@ -121,7 +121,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     let mut locate = |file: &PathBuf, offset: usize| -> (usize, usize) {
         let source = sources
             .entry(file.clone())
-            .or_insert_with(|| std::fs::read_to_string(file).unwrap_or_default());
+            .or_insert_with(|| crate::vfs::read_to_string(file).unwrap_or_default());
         let pos = LineIndex::new(source).line_col(offset, source);
         (pos.line, pos.col)
     };
@@ -267,7 +267,7 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())

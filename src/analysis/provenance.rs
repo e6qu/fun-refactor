@@ -698,7 +698,7 @@ impl<'a> Ctx<'a> {
         if let Some(text) = self.sources.get(file) {
             return Ok(text.clone());
         }
-        let text = std::fs::read_to_string(file)?;
+        let text = crate::vfs::read_to_string(file)?;
         self.sources.insert(file.to_path_buf(), text.clone());
         Ok(text)
     }

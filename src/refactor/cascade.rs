@@ -15,11 +15,14 @@
 //! which half it is beats refusing the whole operation.
 
 use super::Refusal;
-use crate::edit::{Edit, EditSet};
+#[cfg(feature = "cli")]
+use crate::edit::Edit;
+use crate::edit::EditSet;
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
+#[cfg(feature = "cli")]
 use crate::scan::{scan, ScanOptions};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
@@ -75,6 +78,10 @@ pub fn supports_cascade(language: Language) -> bool {
 }
 
 /// Remove `flag`, assuming it always had `value`, and clean up what follows.
+///
+/// Takes a workspace root, so it needs a filesystem to walk. The in-memory form is
+/// [`remove_flag_in`], which the browser build uses.
+#[cfg(feature = "cli")]
 pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> {
     let scanned = scan(root, &ScanOptions::default())?;
 
@@ -82,7 +89,7 @@ pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> 
     // kept to diff against at the end.
     let mut sources: BTreeMap<PathBuf, (Language, String)> = BTreeMap::new();
     for file in &scanned.files {
-        let Ok(text) = std::fs::read_to_string(&file.path) else {
+        let Ok(text) = crate::vfs::read_to_string(&file.path) else {
             continue;
         };
         sources.insert(file.path.clone(), (file.language, text));

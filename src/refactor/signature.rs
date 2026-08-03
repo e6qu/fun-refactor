@@ -119,7 +119,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     }
     reject_hidden_call_sites(index, sym)?;
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
     let declaration = parsed
         .root()
@@ -159,7 +159,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         if reference.kind != crate::model::ReferenceKind::Call {
             continue;
         }
-        let call_source = std::fs::read_to_string(&reference.file)?;
+        let call_source = crate::vfs::read_to_string(&reference.file)?;
         let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
         let Some(call) = call_expression(&call_parsed, reference.span) else {
             return Err(Refusal::TooWeak {
@@ -366,7 +366,7 @@ fn reject_hidden_call_sites(index: &Index, sym: &Symbol) -> Result<()> {
         .files()
         .filter(|(_, info)| info.had_parse_errors && info.language == sym.language)
         .filter(|(path, _)| {
-            std::fs::read_to_string(path).is_ok_and(|source| source.contains(&sym.name))
+            crate::vfs::read_to_string(path).is_ok_and(|source| source.contains(&sym.name))
         })
         .map(|(path, _)| path)
         .collect();
@@ -541,7 +541,7 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
 
     let mut notes: Vec<String> = Vec::new();
 
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     let definition = shell_function_node(&parsed, sym)?;
     let positionals = shell_positionals(definition, &source, sym, &mut notes)?;
@@ -626,7 +626,7 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
 
     let mut call_sites = 0usize;
     for (file, references) in &calls {
-        let call_source = std::fs::read_to_string(file)?;
+        let call_source = crate::vfs::read_to_string(file)?;
         let call_parsed = Parsers::new().parse(Language::Bash, &call_source)?;
         for reference in references {
             let call = shell_call_at(&call_parsed, sym, file, reference.span)?;
@@ -1307,7 +1307,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                 );
             }
 
-            let source = std::fs::read_to_string(&target.file)?;
+            let source = crate::vfs::read_to_string(&target.file)?;
             edits.add(
                 target.file.clone(),
                 Edit::new(
@@ -1322,7 +1322,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                     // The caller relied on the default; there is nothing to remove.
                     continue;
                 };
-                let call_source = std::fs::read_to_string(&call.file)?;
+                let call_source = crate::vfs::read_to_string(&call.file)?;
                 edits.add(
                     call.file.clone(),
                     Edit::new(
@@ -1340,7 +1340,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             // A values file assigns the same call surface from the other side; an
             // assignment left behind names a variable that no longer exists.
             for (file, span) in tfvars_assignments(index, &dir, &target.name)? {
-                let source = std::fs::read_to_string(&file)?;
+                let source = crate::vfs::read_to_string(&file)?;
                 edits.add(
                     file,
                     Edit::new(
@@ -1399,7 +1399,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
 
             if !argument.is_empty() {
                 for call in &calls {
-                    let call_source = std::fs::read_to_string(&call.file)?;
+                    let call_source = crate::vfs::read_to_string(&call.file)?;
                     let Some((_, last)) = call.arguments.last() else {
                         anyhow::bail!(
                             "module \"{}\" at {} has no arguments to append to",
@@ -1437,7 +1437,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
 /// Two handles work: a `variable` block, whose module is the directory it sits in,
 /// and a `module` block, whose module is wherever its `source` points.
 fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
-    let source = std::fs::read_to_string(&sym.file)?;
+    let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
     let block = top_level_blocks(&parsed)
         .into_iter()
@@ -1510,7 +1510,7 @@ fn module_variables(index: &Index, dir: &Path) -> Result<Vec<ModuleVariable>> {
         if path.parent().map(normalize).as_deref() != Some(dir) {
             continue;
         }
-        let source = std::fs::read_to_string(path)?;
+        let source = crate::vfs::read_to_string(path)?;
         let parsed = Parsers::new().parse(Language::Hcl, &source)?;
         for block in top_level_blocks(&parsed) {
             if block_keyword(block, &source) != Some("variable") {
@@ -1567,7 +1567,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
         if info.language != Language::Hcl || !is_terraform_config(path) {
             continue;
         }
-        let source = std::fs::read_to_string(path)?;
+        let source = crate::vfs::read_to_string(path)?;
         let parsed = Parsers::new().parse(Language::Hcl, &source)?;
         let here = path
             .parent()
@@ -1688,14 +1688,14 @@ fn variable_insertion(
     let block = declaration.trim_end_matches('\n');
 
     if let Some(before) = variables.get(at) {
-        let source = std::fs::read_to_string(&before.file)?;
+        let source = crate::vfs::read_to_string(&before.file)?;
         let offset = full_line_span(&source, before.span.start).start;
         return Ok((before.file.clone(), offset, format!("{block}\n\n")));
     }
 
     // Past the end, or no position given: after the last variable there is.
     if let Some(last) = variables.last() {
-        let source = std::fs::read_to_string(&last.file)?;
+        let source = crate::vfs::read_to_string(&last.file)?;
         let offset = full_line_span(&source, last.span.end - 1).end;
         return Ok((last.file.clone(), offset, format!("\n{block}\n")));
     }
@@ -1710,7 +1710,7 @@ fn variable_insertion(
             dir.display()
         );
     }
-    let source = std::fs::read_to_string(&path)?;
+    let source = crate::vfs::read_to_string(&path)?;
     // A block needs a blank line before it, but only as much of one as the file
     // does not already end with.
     let separator = if source.is_empty() || source.ends_with("\n\n") {
@@ -1878,7 +1878,7 @@ fn describe_variables(variables: &[ModuleVariable]) -> String {
 
 /// `path:line` for an error message.
 fn location(path: &Path, offset: usize) -> String {
-    let line = std::fs::read_to_string(path)
+    let line = crate::vfs::read_to_string(path)
         .map(|src| LineIndex::new(&src).line_col(offset, &src).line)
         .unwrap_or(0);
     format!("{}:{line}", path.display())
@@ -2015,7 +2015,7 @@ pub fn line_of(index: &Index, symbol: SymbolId) -> usize {
     index
         .symbol(symbol)
         .and_then(|s| {
-            std::fs::read_to_string(&s.file)
+            crate::vfs::read_to_string(&s.file)
                 .ok()
                 .map(|src| LineIndex::new(&src).line_col(s.name_span.start, &src).line)
         })
@@ -2034,14 +2034,14 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())
     }
 
     fn apply(plan: &SignaturePlan, path: &Path) -> String {
-        let original = std::fs::read_to_string(path).unwrap();
+        let original = crate::vfs::read_to_string(path).unwrap();
         match plan.edits.edits_for(path) {
             Some(edits) => apply_to_string(&original, edits).unwrap(),
             None => original,

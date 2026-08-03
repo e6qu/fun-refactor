@@ -139,7 +139,7 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
         if !matches!(info.language, Language::Helm | Language::Yaml) {
             continue;
         }
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         let parsed = parsers.parse(info.language, &source)?;
@@ -338,7 +338,7 @@ fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
         if accessors.is_empty() {
             continue;
         }
-        let Ok(source) = std::fs::read_to_string(path) else {
+        let Ok(source) = crate::vfs::read_to_string(path) else {
             continue;
         };
         let line_index = LineIndex::new(&source);
@@ -457,7 +457,7 @@ mod tests {
         for (name, content) in files {
             let path = tmp.path().join(name);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
         }
         let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
         (tmp, Index::build_from_scan(&scanned).unwrap())

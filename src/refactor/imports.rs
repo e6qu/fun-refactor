@@ -456,7 +456,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         );
     }
 
-    let source = std::fs::read_to_string(file)?;
+    let source = crate::vfs::read_to_string(file)?;
     let line_index = LineIndex::new(&source);
     let mut warnings = Vec::new();
 

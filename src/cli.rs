@@ -620,7 +620,7 @@ fn cmd_extract(
     let (path, start, end) = parse_range(range)?;
     let path = workspace_path(cli, &path)?;
     let source =
-        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+        crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let index_of_lines = LineIndex::new(&source);
     let span = crate::span::Span::new(
         index_of_lines
@@ -669,7 +669,7 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
             anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
         })?;
         let path = workspace_path(cli, &pos.path)?;
-        let source = std::fs::read_to_string(&path)
+        let source = crate::vfs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
         let offset = LineIndex::new(&source)
             .offset(
@@ -1132,7 +1132,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
         .ok_or_else(|| anyhow::anyhow!("a rewrite needs a position: path:line:col"))?;
     let path = workspace_path(cli, &pos.path)?;
     let source =
-        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+        crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let offset = LineIndex::new(&source)
         .offset(
             LineCol {
@@ -1675,7 +1675,7 @@ fn parse_position(target: &str) -> Option<Position> {
 fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a Symbol> {
     if let Some(pos) = parse_position(target) {
         let path = workspace_path(cli, &pos.path)?;
-        let source = std::fs::read_to_string(&path)
+        let source = crate::vfs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
         let offset = LineIndex::new(&source)
             .offset(
@@ -2099,7 +2099,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     let mut locate = |file: &PathBuf, offset: usize| -> (usize, usize) {
         let source = sources
             .entry(file.clone())
-            .or_insert_with(|| std::fs::read_to_string(file).unwrap_or_default());
+            .or_insert_with(|| crate::vfs::read_to_string(file).unwrap_or_default());
         let pos = LineIndex::new(source).line_col(offset, source);
         (pos.line, pos.col)
     };
@@ -2246,7 +2246,7 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
         let tally = per_language.entry(file.language.name()).or_default();
         tally.files += 1;
 
-        let Ok(source) = std::fs::read_to_string(&file.path) else {
+        let Ok(source) = crate::vfs::read_to_string(&file.path) else {
             // Not valid UTF-8, or unreadable: counted and reported, never ignored.
             tally.unreadable += 1;
             continue;

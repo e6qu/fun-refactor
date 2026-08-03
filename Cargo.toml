@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "crates/wasm-libc"]
+
 [package]
 name = "fun-refactor"
 version = "0.1.0"
@@ -10,9 +13,32 @@ repository = "https://github.com/e6qu/fun-refactor"
 # change the licence obligations — see vendor/README.md.
 exclude = ["vendor/", "docs/"]
 
+[lib]
+name = "fun_refactor"
+# `cdylib` for the browser build, `rlib` for the binary and the tests.
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "fr"
 path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = ["cli"]
+# Everything a terminal needs: argument parsing, walking a directory, a fact cache
+# on disk, and threads. None of it exists in a browser, and none of it is needed to
+# answer a question about source text that is already in memory.
+cli = [
+    "dep:clap",
+    "dep:walkdir",
+    "dep:ignore",
+    "dep:rayon",
+    "dep:sha2",
+    "dep:tempfile",
+    "dep:tracing-subscriber",
+]
+# The analysis core, compiled for the browser. See src/wasm.rs.
+wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:serde-wasm-bindgen", "dep:fun-refactor-wasm-libc"]
 
 [dependencies]
 # Tree-sitter parsing. Grammar pins inherited from funveil (github.com/e6qu/funveil
@@ -42,22 +68,34 @@ streaming-iterator = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-clap = { version = "4.6", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"], optional = true }
 thiserror = "2.0"
 anyhow = "1.0"
-walkdir = "2.5"
-ignore = "0.4"
+walkdir = { version = "2.5", optional = true }
+ignore = { version = "0.4", optional = true }
 regex = "1.12"
-sha2 = "0.10"
+sha2 = { version = "0.10", optional = true }
 petgraph = "0.8"
 postcard = { version = "1.1", features = ["alloc"] }
-rayon = "1.11"
+rayon = { version = "1.11", optional = true }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
 similar = "2.6"
-tempfile = "3.27"
+
+# Browser bindings, only compiled for the wasm target.
+wasm-bindgen = { version = "0.2", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+tempfile = { version = "3.27", optional = true }
+
+# Linked only into the browser build, where the grammars' C has no libc to call.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+fun-refactor-wasm-libc = { path = "crates/wasm-libc", optional = true }
 
 [dev-dependencies]
+# Also an optional runtime dependency (the edit engine stages through it); tests need
+# it unconditionally, including when the crate is built without the `cli` feature.
+tempfile = "3.27"
 rstest = "0.26"
 assert_cmd = "2.2"
 predicates = "3.1"

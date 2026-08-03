@@ -203,7 +203,7 @@ impl Catalog {
             if path.extension().and_then(|e| e.to_str()) != Some("yaml") {
                 continue;
             }
-            let text = std::fs::read_to_string(&path)?;
+            let text = crate::vfs::read_to_string(&path)?;
             let parsed: Vec<Rule> = serde_yaml::from_str(&text)
                 .with_context(|| format!("parsing catalog {}", path.display()))?;
             added += parsed.len();
@@ -339,7 +339,7 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// lines immediately above are considered, so a `#[test]` four declarations up does
 /// not leak onto this one.
 fn annotated_with(symbol: &Symbol, name: &str) -> bool {
-    let Ok(source) = std::fs::read_to_string(&symbol.file) else {
+    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
         return false;
     };
     let before = &source[..symbol.full_span.start.min(source.len())];
@@ -403,7 +403,7 @@ mod tests {
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent).unwrap();
             }
-            std::fs::write(&path, content).unwrap();
+            crate::vfs::write(&path, content).unwrap();
             scanned.files.push(SourceFile {
                 language: crate::lang::detect(&path).unwrap(),
                 path,
@@ -527,7 +527,7 @@ mod tests {
     #[test]
     fn external_catalogs_can_be_loaded() {
         let tmp = tempfile::tempdir().unwrap();
-        std::fs::write(
+        crate::vfs::write(
             tmp.path().join("custom.yaml"),
             "- id: custom-handler\n  kind: http-route\n  languages: [rust]\n  matches:\n    name_suffix: _handler\n",
         )
