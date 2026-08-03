@@ -312,6 +312,17 @@ fn declared_unused(symbol: &crate::model::Symbol) -> bool {
     symbol.name.starts_with('_')
 }
 
+/// Can "nothing uses this" be asked of a symbol in this language?
+///
+/// Every language in the set declares names that something else can reference — a
+/// function, a values key, a CSS class, a Markdown heading — and the reference index
+/// is what answers the question, so the answer is the same everywhere. What differs
+/// is how much *evidence* there is, which the report says per finding rather than
+/// per language.
+pub fn reports_unused(_language: crate::lang::Language) -> bool {
+    true
+}
+
 /// [`find_unused`], with the reason each spared symbol was spared.
 pub fn find_unused_report(index: &Index, entrypoints: &[SymbolId]) -> UnusedReport {
     let call_graph = CallGraph::build(index);
