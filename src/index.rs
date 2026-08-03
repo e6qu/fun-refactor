@@ -313,6 +313,37 @@ impl Index {
             }
         };
 
+        // 0a. A Terraform namespace. `var.azs`, `local.azs` and `module.azs` name
+        //     three different declarations, and an `output "azs"` beside them names a
+        //     fourth that no traversal ever reaches. The namespace is written down,
+        //     so the kind it implies is not a guess — without it, `var.azs` in
+        //     terraform-aws-vpc resolved to the module's `output "azs"`.
+        if reference.language == Language::Hcl {
+            if let Some(namespace) = reference.receiver.as_deref() {
+                let wanted = match namespace {
+                    "var" | "local" => Some(SymbolKind::Variable),
+                    "module" => Some(SymbolKind::Module),
+                    _ => None,
+                };
+                if let Some(kind) = wanted {
+                    let dir = path.parent();
+                    let declared: Vec<&Symbol> = candidates
+                        .iter()
+                        .filter_map(|id| self.symbol(*id))
+                        .filter(|s| s.kind == kind && s.file.parent() == dir)
+                        .collect();
+                    match declared.len() {
+                        1 => return (Some(declared[0].id), Confidence::Exact),
+                        0 => {}
+                        // A `variable "x"` and a `locals { x }` in one module: both
+                        // are variables here, and telling them apart needs the block
+                        // each was declared in, which this layer does not carry.
+                        _ => return (Some(declared[0].id), Confidence::FieldBased),
+                    }
+                }
+            }
+        }
+
         // 0. A path prefix that names a type: `Patterns::from_low_args(…)` in Rust
         //     reaches an associated function through the type it belongs to. The
         //     prefix is recorded as the receiver, and a symbol carries the same name

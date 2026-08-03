@@ -637,3 +637,43 @@ fn every_step_past_an_index_is_captured_to_a_stated_depth() {
         .collect();
     assert!(addresses.contains(&"y"), "got {addresses:?}");
 }
+
+#[test]
+fn a_namespace_decides_which_declaration_a_traversal_names() {
+    // `var.azs`, `local.azs` and `module.azs` name three different declarations, and
+    // an `output "azs"` beside them names a fourth that no traversal ever reaches.
+    // Terraform writes the namespace down, so this is not a guess — without it,
+    // `var.azs` in terraform-aws-vpc resolved to the module's own `output "azs"`,
+    // and a rename would have rewritten the output and every use of the variable.
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        tmp.path().join("main.tf"),
+        "variable \"azs\" {\n  type = list(string)\n}\n\n\
+         output \"azs\" {\n  value = 1\n}\n\n\
+         locals {\n  n = length(var.azs)\n}\n",
+    )
+    .unwrap();
+    let scanned = fun_refactor::scan::scan(tmp.path(), &Default::default()).unwrap();
+    let index = fun_refactor::index::Index::build_from_scan(&scanned).unwrap();
+
+    let variable = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "azs" && s.kind == SymbolKind::Variable)
+        .expect("the variable is indexed");
+    let output = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "azs" && s.kind == SymbolKind::Block)
+        .expect("the output is indexed");
+
+    assert_eq!(
+        index.references_to(variable.id).len(),
+        1,
+        "`var.azs` names the variable"
+    );
+    assert!(
+        index.references_to(output.id).is_empty(),
+        "nothing reaches an output by traversal"
+    );
+}

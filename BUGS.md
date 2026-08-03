@@ -69,6 +69,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B44: **a Terraform traversal ignored its namespace.** `var.azs`, `local.azs`
+  and `module.azs` name three different declarations, and an `output "azs"` beside
+  them names a fourth that no traversal reaches — but all four are just `azs` in one
+  directory, and the directory-scoped rule picked whichever came first. In
+  terraform-aws-vpc, `var.azs` resolved to the module's own `output "azs"`: a rename
+  would have rewritten the output and all 41 uses of the variable. The namespace is
+  written down in the source, so it is now recorded as the reference's receiver and
+  the kind it implies is required of the target.
+
+
 - [x] B41: **the cache reused facts produced by a different extractor.** Entries are
   keyed by file content and by the query set, which is correct only while "the
   extractor" is a constant — and it is not. Adding a field to `Reference` changes
