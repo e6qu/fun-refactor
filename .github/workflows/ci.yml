@@ -36,3 +36,55 @@ jobs:
 
       - name: Tests
         run: cargo test --all-targets
+
+  # The site's playground is a WebAssembly build plus a Vite bundle, and it is
+  # published by a workflow that only runs on main. Without this, a pull request goes
+  # green and the deploy is where you find out the wasm no longer builds. Runs beside
+  # the test job rather than after it, so it costs wall-clock and not much else.
+  playground:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+
+      - name: Check clang can emit wasm
+        run: clang --print-targets | grep -q wasm32
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: wasm
+
+      - name: Install wasm-bindgen-cli, matching the lockfile
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/{found=1} found && /^version = /{gsub(/[",]/,"",$3); print $3; exit}' Cargo.lock)
+          cargo install wasm-bindgen-cli --version "$version" --locked
+
+      - name: Build the analysis for the browser
+        run: ./tools/build-wasm.sh
+
+      - name: Generate the bindings
+        run: wasm-bindgen --target web --out-dir web/src/wasm target/wasm32-unknown-unknown/release/fun_refactor.wasm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the playground
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          test -f ../docs/playground/index.html
+
+      # A number worth watching: this is what a first visit downloads, and it grows
+      # by a megabyte every time a grammar is added.
+      - name: Report what a first visit costs
+        run: |
+          cd docs/playground/assets
+          for f in *.wasm index-*.js; do
+            printf '%-44s %6.2f MB gzipped\n' "$f" "$(gzip -c "$f" | wc -c | awk '{print $1/1048576}')"
+          done
