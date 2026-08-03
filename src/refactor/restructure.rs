@@ -264,12 +264,19 @@ fn fragment_root<'a>(parsed: &'a Parsed, offset: usize, len: usize) -> Option<No
     }
     // Descend through single-child wrappers: a node of identical extent adds nothing
     // to the shape, and a statement container is punctuation the wrapper asked for.
+    //
+    // Only when the child starts where the container does. A container whose child
+    // begins later has leading syntax of its own — `raise` in `raise Invalid(x)` —
+    // and that syntax is the pattern, not the wrapper. Descending past it left the
+    // fragment starting six bytes into itself, so every statement pattern in a
+    // language with an empty wrapper (Python, shell, YAML) was rejected as unparseable.
     loop {
         let named: Vec<Node> = {
             let mut cursor = node.walk();
             node.named_children(&mut cursor).collect()
         };
         let only_child = named.len() == 1
+            && named[0].start_byte() == node.start_byte()
             && (Span::from(named[0]) == Span::from(node) || node.kind().contains("statement"));
         if !only_child {
             return Some(node);

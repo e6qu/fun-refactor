@@ -69,6 +69,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B45: a statement pattern was impossible in Python, shell and YAML. Those
+  languages wrap a `fr restructure` fragment in nothing, so the statement the pattern
+  writes is the outermost node — and the descent that strips wrapper-introduced
+  statement containers stripped that one too, leaving the fragment starting six bytes
+  inside itself and every such pattern rejected as "not a valid fragment". Descending
+  is only correct when the child begins where the container does; `raise` does not.
+  `fr restructure 'raise InvalidURL($X)' 'raise InvalidURL($X) from None'` now works
+  on psf/requests.
+
+
 - [x] B44: **a Terraform traversal ignored its namespace.** `var.azs`, `local.azs`
   and `module.azs` name three different declarations, and an `output "azs"` beside
   them names a fourth that no traversal reaches — but all four are just `azs` in one

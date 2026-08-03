@@ -1095,3 +1095,38 @@ fn only_the_requested_language_is_rewritten() {
     assert_eq!(result.matches.len(), 1);
     assert!(result.matches[0].0.ends_with("a.py"));
 }
+
+#[test]
+fn a_statement_pattern_works_where_the_wrapper_is_empty() {
+    // Python, shell and YAML wrap a fragment in nothing at all, so the statement the
+    // pattern writes is the outermost node. The descent that strips wrapper-introduced
+    // statement containers used to strip that one too, leaving the fragment starting
+    // six bytes inside itself — every statement pattern in those languages was
+    // rejected as unparseable. Descending is only right when the child begins where
+    // the container does; `raise` does not.
+    let src = "\
+def f(e):
+    try:
+        g()
+    except ValueError as e:
+        raise Invalid(e)
+";
+    let (n, out) = one(
+        Language::Python,
+        "a.py",
+        src,
+        "raise Invalid($X)",
+        "raise Invalid($X) from None",
+    );
+    assert_eq!(n, 1);
+    assert!(out.contains("raise Invalid(e) from None"), "got:\n{out}");
+}
+
+#[test]
+fn an_expression_pattern_still_matches_only_the_expression() {
+    // The other half of the same rule: `g()` must not start matching whole statements.
+    let src = "def f():\n    a = g()\n    return a\n";
+    let (n, out) = one(Language::Python, "a.py", src, "g()", "h()");
+    assert_eq!(n, 1);
+    assert!(out.contains("a = h()"), "got:\n{out}");
+}
