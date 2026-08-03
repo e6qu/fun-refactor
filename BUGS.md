@@ -69,6 +69,43 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B53: **the browser reported symbols dead that the terminal reported live.**
+  `find_unused` takes the roots reachability starts from, and the browser API passed
+  `&[]` where the terminal passed a detected catalog. Both type-checked; the empty
+  slice means "nothing runs", so every `#[test]`, every HTTP handler and everything
+  they reach read as dead — twenty extra findings in a twenty-four-file workspace.
+  The roots are now a type, `Entrypoints`, with no way to end up empty by omission:
+  `detect` runs the catalogs, `exactly` takes a list on purpose, `none` says so.
+
+- [x] B52: **two workspaces in one page shared one set of bytes.** The browser's
+  virtual filesystem was a single thread-local map that each new `Workspace`
+  overwrote. An older handle then answered from the newer one's text: spans measured
+  against one file applied to another. It surfaced as a rewrite that `rewrites_at`
+  said was unavailable at a position where `rewrite` applied it. Each `Workspace` now
+  owns its files and installs them before every call, which `tests/wasm_api.rs`
+  checks, because the compiler cannot.
+
+- [x] B51: **`Path::exists` bypassed the virtual filesystem.** Every *read* went
+  through `crate::vfs`; the six `exists()` calls did not, and on wasm there is no
+  filesystem, so each quietly answered false. `fr move` refused every Rust file in the
+  playground with "src has neither lib.rs nor main.rs" while `src/main.rs` sat in the
+  loaded workspace. Helm chart detection had the same hole. `tests/vfs_choke_point.rs`
+  now fails the build on a new one.
+
+- [x] B50: **a call that resolved to an interface method reached no implementation.**
+  The hierarchy layer fans out call sites that resolved to *nothing*. A Go
+  `sink.Store(r)` where `sink` is typed as the interface resolves exactly — to a
+  declaration with no body — so the fan-out never ran and every implementation of
+  every interface was unreached, and reported as dead code. A resolved call to an
+  abstraction now also yields one `field-based` edge per implementation.
+
+- [x] B49: **`fr implementations` answered nothing for an interface.** It required a
+  method, so pointing at the type that declares them returned an empty list and the
+  message "nothing declares it as an abstraction" — about a Go interface with three
+  implementors. Asking of the type now returns the implementing types: declared
+  subtypes for Rust, TypeScript and Python, method-set coverage for Go. An empty Go
+  interface still names nothing, because every type satisfies it.
+
 - [x] B47: **a new import was written inside a multi-line import statement.** The
   insertion point was found by scanning lines for an `import` prefix and stopping at
   the first line that is not one — so given `from typing import (` / `    Any,` /

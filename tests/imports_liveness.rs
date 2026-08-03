@@ -8,6 +8,7 @@
 //! point: removing a live import breaks a build silently, whereas keeping a dead one
 //! leaves a line of noise, so every guard errs towards keeping and says why.
 
+use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
     index::Index,
     refactor::{delete, imports},
@@ -445,7 +446,10 @@ fn a_symbol_named_in_a_string_literal_is_not_reported_unused() {
         "a.rs",
         "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         !unused.contains(&only_symbol(&index, "on_event")),
         "a name spelled in a string may be reached by reflection: {unused:?}"
@@ -459,7 +463,10 @@ fn a_string_in_another_file_still_counts() {
         ("a.rs", "fn on_event() {}\nfn main() {}\n"),
         ("b.py", "HANDLERS = {\"on_event\": None}\n"),
     ]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         !unused.contains(&only_symbol(&index, "on_event")),
         "got {unused:?}"
@@ -473,7 +480,10 @@ fn a_symbol_no_string_mentions_is_still_reported() {
         "a.rs",
         "fn orphan() {}\nfn main() {\n    dispatch(\"something_else\");\n}\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         unused.contains(&only_symbol(&index, "orphan")),
         "got {unused:?}"
@@ -489,7 +499,10 @@ fn a_mutually_recursive_dead_group_is_reported() {
         "a.rs",
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         unused.contains(&only_symbol(&index, "ping")),
         "got {unused:?}"
@@ -506,7 +519,10 @@ fn a_mutually_recursive_group_one_entry_point_reaches_is_not_reported() {
         "a.rs",
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() { ping(); }\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     assert!(
         !unused.contains(&only_symbol(&index, "ping")),
         "got {unused:?}"
@@ -523,7 +539,10 @@ fn a_longer_dead_cycle_is_reported_as_a_group() {
         "a.rs",
         "fn a() { b(); }\nfn b() { c(); }\nfn c() { a(); }\nfn main() {}\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     for name in ["a", "b", "c"] {
         assert!(
             unused.contains(&only_symbol(&index, name)),
@@ -542,7 +561,10 @@ fn dynamic_dispatch_no_longer_looks_dead() {
         "a.rs",
         "trait Greet { fn hello(&self); }\nstruct Greeter;\nimpl Greet for Greeter {\n    fn hello(&self) {}\n}\nfn main() {\n    let g: &dyn Greet = &Greeter;\n    g.hello();\n}\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     let names: Vec<&str> = unused
         .iter()
         .filter_map(|id| index.symbol(*id))
@@ -565,7 +587,10 @@ fn a_name_assembled_at_runtime_remains_a_false_positive() {
         "a.rs",
         "fn on_event() {}\nfn dispatch(name: &str) {}\nfn main() {\n    let name = format!(\"on_{}\", \"event\");\n    dispatch(&name);\n}\n",
     )]);
-    let unused = delete::find_unused(&index, &[only_symbol(&index, "main")]);
+    let unused = delete::find_unused(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
     let names: Vec<&str> = unused
         .iter()
         .filter_map(|id| index.symbol(*id))

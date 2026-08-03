@@ -1942,7 +1942,9 @@ fn whole_lines(source: &str, span: Span) -> Span {
 fn helm_chart_root(file: &Path) -> Option<std::path::PathBuf> {
     let mut dir = file.parent();
     while let Some(current) = dir {
-        if current.join("Chart.yaml").exists() || current.join("chart.yaml").exists() {
+        if crate::vfs::exists(current.join("Chart.yaml"))
+            || crate::vfs::exists(current.join("chart.yaml"))
+        {
             return Some(current.to_path_buf());
         }
         dir = current.parent();
@@ -1952,7 +1954,7 @@ fn helm_chart_root(file: &Path) -> Option<std::path::PathBuf> {
 
 /// The chart's `name:` from its Chart.yaml.
 fn helm_chart_name(chart_root: &Path) -> Option<String> {
-    let path = if chart_root.join("Chart.yaml").exists() {
+    let path = if crate::vfs::exists(chart_root.join("Chart.yaml")) {
         chart_root.join("Chart.yaml")
     } else {
         chart_root.join("chart.yaml")

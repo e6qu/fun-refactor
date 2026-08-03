@@ -2581,7 +2581,7 @@ fn is_values_file(path: &Path) -> bool {
 }
 
 fn has_chart_yaml(dir: &Path) -> bool {
-    dir.join("Chart.yaml").exists() || dir.join("chart.yaml").exists()
+    crate::vfs::exists(dir.join("Chart.yaml")) || crate::vfs::exists(dir.join("chart.yaml"))
 }
 
 /// The nearest ancestor directory holding a `Chart.yaml`.

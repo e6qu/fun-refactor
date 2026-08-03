@@ -11,6 +11,7 @@
 //! syntax cannot separate an implementation from a same-named method on an unrelated
 //! type, the test asserts the over-approximation rather than pretending to precision.
 
+use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
     analysis::call_graph::{CallGraph, EdgeOrigin, HierarchyBasis},
     index::Index,
@@ -228,7 +229,7 @@ fn main() { report(&Ball); }
 #[test]
 fn rust_an_impl_reached_only_by_dispatch_is_not_reported_unused() {
     let (_tmp, index) = workspace(&rust_shapes());
-    let report = delete::find_unused_report(&index, &[only(&index, "main")]);
+    let report = delete::find_unused_report(&index, &Entrypoints::exactly(&[only(&index, "main")]));
 
     for owner in ["Circle", "Square"] {
         let id = method(&index, owner, "area");
@@ -252,7 +253,7 @@ fn rust_an_impl_reached_only_by_dispatch_is_not_reported_unused() {
 fn rust_an_unrelated_method_nothing_calls_is_still_reported_unused() {
     // The negative half: sparing implementations must not spare everything.
     let (_tmp, index) = workspace(&rust_shapes());
-    let unused = delete::find_unused(&index, &[only(&index, "main")]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[only(&index, "main")]));
     assert!(
         unused.contains(&method(&index, "Ledger", "area")),
         "nothing reaches Ledger::area: {unused:?}"
@@ -371,7 +372,7 @@ fn go_structural_typing_over_approximates_and_the_test_says_so() {
 #[test]
 fn go_an_implementation_reached_only_by_dispatch_is_not_reported_unused() {
     let (_tmp, index) = workspace(&go_shapes());
-    let unused = delete::find_unused(&index, &[only(&index, "Main")]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[only(&index, "Main")]));
     for owner in ["Circle", "Square"] {
         assert!(
             !unused.contains(&method(&index, owner, "Area")),
@@ -486,7 +487,7 @@ fn typescript_an_abstract_base_reaches_its_subclasses() {
 #[test]
 fn typescript_an_implementation_reached_only_by_dispatch_is_not_reported_unused() {
     let (_tmp, index) = workspace(&ts_shapes());
-    let unused = delete::find_unused(&index, &[only(&index, "main")]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[only(&index, "main")]));
     for owner in ["Circle", "Square"] {
         assert!(
             !unused.contains(&method(&index, owner, "area")),
@@ -555,7 +556,7 @@ fn python_a_class_outside_every_hierarchy_gets_no_edge() {
 #[test]
 fn python_a_subclass_reached_only_by_dispatch_is_not_reported_unused() {
     let (_tmp, index) = workspace(&python_shapes());
-    let unused = delete::find_unused(&index, &[only(&index, "main")]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[only(&index, "main")]));
     for owner in ["Circle", "Square"] {
         assert!(
             !unused.contains(&method(&index, owner, "area")),
@@ -632,5 +633,321 @@ fn main() {
         graph.hierarchy_edge_count(),
         0,
         "a function value in a field is not a method of any type"
+    );
+}
+
+// -------------------------------------- implementations of the abstraction itself
+//
+// "What are the Sinks?" is the question people ask of an interface, and it used to
+// answer nothing: `implementations_of` required a method, so pointing at the type it
+// belongs to returned an empty list rather than the three types that implement it.
+// The relationships were already known — only the direction of the question was new.
+
+/// Names of the implementations reported for the symbol called `name`.
+fn implementations(index: &Index, name: &str) -> Vec<String> {
+    let mut found: Vec<String> =
+        fun_refactor::navigate::implementations_of(index, only(index, name))
+            .into_iter()
+            .filter_map(|id| index.symbol(id))
+            .map(|s| s.qualified_name())
+            .collect();
+    found.sort();
+    found
+}
+
+#[test]
+fn a_go_interface_names_the_types_whose_method_set_covers_it() {
+    let source = "\
+package p
+
+type Sink interface {
+	Store(r int) error
+	Flush() error
+}
+
+type Memory struct{}
+
+func (m *Memory) Store(r int) error { return nil }
+func (m *Memory) Flush() error      { return nil }
+
+type Stdout struct{}
+
+func (s *Stdout) Store(r int) error { return nil }
+func (s *Stdout) Flush() error      { return nil }
+
+// Covers half the method set, so it is not a Sink.
+type Partial struct{}
+
+func (p *Partial) Store(r int) error { return nil }
+";
+    let (_tmp, index) = workspace(&[("sink.go", source)]);
+    assert_eq!(
+        implementations(&index, "Sink"),
+        vec!["Memory".to_string(), "Stdout".to_string()],
+        "Go implements an interface by covering its method set, and only by that"
+    );
+}
+
+#[test]
+fn a_rust_trait_names_the_types_that_impl_it() {
+    let source = "\
+trait Sink {
+    fn store(&self, r: i32);
+}
+
+struct Memory;
+impl Sink for Memory {
+    fn store(&self, r: i32) {}
+}
+
+struct Stdout;
+impl Sink for Stdout {
+    fn store(&self, r: i32) {}
+}
+
+struct Unrelated;
+impl Unrelated {
+    fn store(&self, r: i32) {}
+}
+";
+    let (_tmp, index) = workspace(&[("a.rs", source)]);
+    assert_eq!(
+        implementations(&index, "Sink"),
+        vec!["Memory".to_string(), "Stdout".to_string()],
+        "an inherent method of the same name is not an implementation of the trait"
+    );
+}
+
+#[test]
+fn a_typescript_interface_names_its_implementors() {
+    let source = "\
+export interface Sink {
+  store(r: number): void;
+}
+
+export class Memory implements Sink {
+  store(r: number): void {}
+}
+
+export class Stdout implements Sink {
+  store(r: number): void {}
+}
+";
+    let (_tmp, index) = workspace(&[("a.ts", source)]);
+    assert_eq!(
+        implementations(&index, "Sink"),
+        vec!["Memory".to_string(), "Stdout".to_string()]
+    );
+}
+
+#[test]
+fn a_python_base_class_names_its_subclasses_transitively() {
+    let source = "\
+class Sink:
+    def store(self, r):
+        pass
+
+class Memory(Sink):
+    def store(self, r):
+        pass
+
+class Buffered(Memory):
+    def store(self, r):
+        pass
+
+class Unrelated:
+    def store(self, r):
+        pass
+";
+    let (_tmp, index) = workspace(&[("a.py", source)]);
+    assert_eq!(
+        implementations(&index, "Sink"),
+        vec!["Buffered".to_string(), "Memory".to_string()],
+        "a subclass of a subclass is still an implementation"
+    );
+}
+
+#[test]
+fn an_empty_go_interface_names_nothing() {
+    // Every type satisfies `interface{}`. Answering "all of them" is true and useless,
+    // and would bury the cases where the answer means something.
+    let source = "\
+package p
+
+type Any interface{}
+
+type Memory struct{}
+
+func (m *Memory) Store(r int) error { return nil }
+";
+    let (_tmp, index) = workspace(&[("a.go", source)]);
+    assert!(
+        implementations(&index, "Any").is_empty(),
+        "an interface with no methods constrains nothing"
+    );
+}
+
+#[test]
+fn a_concrete_type_has_no_implementations() {
+    let source = "\
+struct Memory;
+impl Memory {
+    fn store(&self) {}
+}
+";
+    let (_tmp, index) = workspace(&[("a.rs", source)]);
+    assert!(implementations(&index, "Memory").is_empty());
+}
+
+// ------------------------------------ a call that resolved *to the abstraction*
+//
+// The dispatch layer looks at call sites that resolved to nothing. There is a second
+// shape it never saw: `sink.Store(r)` where `sink` is declared as the interface type
+// resolves perfectly well — to the interface's own declaration, which has no body.
+// The graph stopped there, so every implementation was unreached and every one of
+// them was reported as dead code.
+
+#[test]
+fn go_a_call_typed_as_the_interface_reaches_the_implementations() {
+    let source = "\
+package p
+
+type Sink interface {
+	Store(r int) error
+}
+
+type Memory struct{}
+
+func (m *Memory) Store(r int) error { return nil }
+
+type Stdout struct{}
+
+func (s *Stdout) Store(r int) error { return nil }
+
+func Ingest(sink Sink) error {
+	return sink.Store(1)
+}
+
+func main() {
+	_ = Ingest(&Memory{})
+}
+";
+    let (_tmp, index) = workspace(&[("a.go", source)]);
+    let graph = CallGraph::build(&index);
+    let ingest = only(&index, "Ingest");
+
+    for owner in ["Memory", "Stdout"] {
+        let target = method(&index, owner, "Store");
+        let found = edge(&graph, ingest, target);
+        assert!(
+            found.is_some(),
+            "Ingest should reach {owner}::Store: the call resolved to the interface's \
+             declaration, and every implementation of it is a candidate"
+        );
+        let (confidence, origin) = found.unwrap();
+        assert_ne!(
+            confidence,
+            Confidence::Exact,
+            "which implementation runs is a runtime fact"
+        );
+        assert_eq!(
+            origin,
+            EdgeOrigin::Hierarchy(HierarchyBasis::InterfaceMethodSet)
+        );
+    }
+}
+
+#[test]
+fn go_an_implementation_of_a_typed_interface_call_is_not_reported_unused() {
+    let source = "\
+package p
+
+type Sink interface {
+	Store(r int) error
+}
+
+type Memory struct{}
+
+func (m *Memory) Store(r int) error { return nil }
+
+func Ingest(sink Sink) error {
+	return sink.Store(1)
+}
+
+func main() {
+	_ = Ingest(&Memory{})
+}
+";
+    let (_tmp, index) = workspace(&[("a.go", source)]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[only(&index, "main")]));
+    let names: Vec<String> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.qualified_name())
+        .collect();
+    assert!(
+        !names.contains(&"Memory::Store".to_string()),
+        "the only implementation of the interface `Ingest` calls through is not dead; \
+         got {names:?}"
+    );
+}
+
+#[test]
+fn rust_a_call_through_a_trait_bound_reaches_the_impls() {
+    let source = "\
+trait Sink {
+    fn store(&self, r: i32);
+}
+
+struct Memory;
+impl Sink for Memory {
+    fn store(&self, r: i32) {}
+}
+
+struct Stdout;
+impl Sink for Stdout {
+    fn store(&self, r: i32) {}
+}
+
+fn ingest(sink: &dyn Sink) {
+    sink.store(1);
+}
+
+fn main() {
+    ingest(&Memory);
+}
+";
+    let (_tmp, index) = workspace(&[("a.rs", source)]);
+    let graph = CallGraph::build(&index);
+    let ingest = only(&index, "ingest");
+    for owner in ["Memory", "Stdout"] {
+        assert!(
+            edge(&graph, ingest, method(&index, owner, "store")).is_some(),
+            "ingest should reach {owner}::store"
+        );
+    }
+}
+
+#[test]
+fn a_resolved_call_to_a_concrete_method_gains_no_extra_edges() {
+    // The fan-out must not fire where the callee is already the implementation: a
+    // graph that doubles every ordinary method call is worse than no graph.
+    let source = "\
+struct Memory;
+impl Memory {
+    fn store(&self, r: i32) {}
+}
+
+fn main() {
+    let m = Memory;
+    m.store(1);
+}
+";
+    let (_tmp, index) = workspace(&[("a.rs", source)]);
+    let graph = CallGraph::build(&index);
+    assert_eq!(
+        graph.hierarchy_edge_count(),
+        0,
+        "an inherent method call is not dispatch"
     );
 }

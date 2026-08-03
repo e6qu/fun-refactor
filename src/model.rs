@@ -121,7 +121,7 @@ impl SymbolKind {
 /// How confident we are that a reference or call resolved to the right symbol.
 ///
 /// Every resolved edge carries one of these. Refactorings refuse to act on
-/// low-confidence resolutions rather than guessing (see PLAN.md D4/D8).
+/// low-confidence resolutions rather than guessing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Confidence {

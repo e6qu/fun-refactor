@@ -1,0 +1,30 @@
+image:
+  repository: ghcr.io/example/collector
+  tag: "1.7.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8080
+
+retention:
+  days: 30
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  host: signals.example.com
+  className: nginx
+
+# Set but read by no template — the dead-value report should say so.
+legacy:
+  bufferSize: 4096

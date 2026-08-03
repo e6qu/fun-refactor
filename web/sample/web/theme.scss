@@ -1,0 +1,56 @@
+// The dashboard's dark theme, layered over dashboard.css.
+
+$ink: #e6e8ea;
+$paper: #14171a;
+$rule: #262c33;
+$accent: #6fc79a;
+$warn: #e0885f;
+$radius: 8px;
+
+@mixin panel-surface {
+  border: 1px solid $rule;
+  border-radius: $radius;
+  background: lighten($paper, 3%);
+}
+
+.theme-dark {
+  color: $ink;
+  background: $paper;
+
+  .masthead {
+    border-bottom-color: $rule;
+  }
+
+  .nav-link {
+    color: $accent;
+  }
+
+  .panel {
+    @include panel-surface;
+  }
+
+  .panel-title {
+    color: darken($ink, 30%);
+  }
+
+  .sensor-table {
+    th,
+    td {
+      border-bottom-color: $rule;
+    }
+  }
+
+  .reject-list {
+    color: $warn;
+  }
+
+  .footer {
+    border-top-color: $rule;
+  }
+}
+
+// Never referenced from any markup here.
+.theme-contrast {
+  @include panel-surface;
+  outline: 2px solid $accent;
+}

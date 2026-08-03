@@ -61,7 +61,7 @@ impl DefinitionRole {
 }
 
 /// One use of a symbol.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Usage {
     pub location: Location,
     pub kind: ReferenceKind,
@@ -95,7 +95,7 @@ impl Definitions {
 }
 
 /// Everything known about a symbol's uses.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Usages {
     pub query: String,
     pub usages: Vec<Usage>,

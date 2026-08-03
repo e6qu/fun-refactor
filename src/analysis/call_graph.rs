@@ -197,6 +197,31 @@ impl CallGraph {
                             origin: EdgeOrigin::Resolved,
                         },
                     );
+                    // Resolving is not the same as arriving. `sink.Store(r)` where
+                    // `sink` is a `Sink` resolves exactly — to the interface's own
+                    // declaration, which has no body. Stopping there left every
+                    // implementation of every interface unreached, and so reported as
+                    // dead code: seven methods in a twenty-four-file workspace.
+                    //
+                    // The dispatch layer below only looks at sites that resolved to
+                    // *nothing*, which is the other half of the same problem. This is
+                    // the half where the answer was right and incomplete.
+                    for implementation in hierarchy.implementations_of(index, callee.id) {
+                        if !edges.insert((caller_id, implementation, reference.span.start)) {
+                            continue;
+                        }
+                        let target = cg.node_for(implementation);
+                        cg.graph.add_edge(
+                            from,
+                            target,
+                            CallEdge {
+                                offset: reference.span.start,
+                                file: reference.file.clone(),
+                                confidence: Confidence::FieldBased,
+                                origin: EdgeOrigin::Hierarchy(basis_for(callee.language)),
+                            },
+                        );
+                    }
                 }
                 _ => {
                     cg.unresolved.push(UnresolvedCall {
@@ -752,6 +777,33 @@ pub struct Hierarchy {
     pub gaps: Vec<(PathBuf, String)>,
 }
 
+/// What licenses a hierarchy edge in this language.
+///
+/// The declaration was resolved, so the relationship is whatever the language uses to
+/// express implementing: an `impl Trait for T`, a covered method set, an `implements`
+/// clause. Never [`HierarchyBasis::MethodName`] — that tier is for a receiver whose
+/// type is unknown, and here the callee's own declaration named the abstraction.
+fn basis_for(language: Language) -> HierarchyBasis {
+    match Family::of(language) {
+        Some(Family::Rust) => HierarchyBasis::ImplementedTrait,
+        Some(Family::Go) => HierarchyBasis::InterfaceMethodSet,
+        _ => HierarchyBasis::DeclaredSupertype,
+    }
+}
+
+/// Does this kind of symbol name a type that another type can implement or extend?
+fn is_type_declaration(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Interface
+            | SymbolKind::Trait
+            | SymbolKind::Class
+            | SymbolKind::Struct
+            | SymbolKind::Enum
+            | SymbolKind::TypeAlias
+    )
+}
+
 impl Hierarchy {
     /// Concrete methods that implement `symbol`, when it declares an abstraction.
     ///
@@ -762,6 +814,9 @@ impl Hierarchy {
         let Some(declaration) = index.symbol(symbol) else {
             return Vec::new();
         };
+        if is_type_declaration(declaration.kind) {
+            return self.implementors_of_type(index, symbol);
+        }
         if declaration.kind != SymbolKind::Method {
             return Vec::new();
         }
@@ -786,6 +841,53 @@ impl Hierarchy {
                 if candidate.id != symbol
                     && candidate.kind == SymbolKind::Method
                     && candidate.qualifier.as_deref() == Some(implementor.as_str())
+                {
+                    found.push(candidate.id);
+                }
+            }
+        }
+        found.sort();
+        found.dedup();
+        found
+    }
+
+    /// The concrete types that implement an abstraction.
+    ///
+    /// Pointing at the interface rather than at one of its methods is the question
+    /// people actually ask — "what are the Sinks?" — and it used to answer nothing at
+    /// all, on the grounds that only a method has implementations. The relationships
+    /// were already known; nothing was reading them from this direction.
+    fn implementors_of_type(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
+        let Some(declaration) = index.symbol(symbol) else {
+            return Vec::new();
+        };
+        let Some(family) = Family::of(declaration.language) else {
+            return Vec::new();
+        };
+        let name = &declaration.name;
+
+        // Go says nothing about who implements what: a type implements an interface
+        // by covering its method set, so the method set is the question. Everywhere
+        // else the relationship is declared and recorded as a subtype edge.
+        let mut names = self.subtypes(family, name);
+        if family == Family::Go {
+            if let Some(required) = self.declares.get(&(family, name.clone())) {
+                // An interface with no methods is satisfied by every type in the
+                // workspace, which is true and useless. Say nothing rather than
+                // everything.
+                if !required.is_empty() {
+                    names.extend(self.go_implementors(required));
+                }
+            }
+        }
+        names.remove(name);
+
+        let mut found: Vec<SymbolId> = Vec::new();
+        for implementor in names {
+            for candidate in index.find_symbols(&implementor, None) {
+                if candidate.id != symbol
+                    && is_type_declaration(candidate.kind)
+                    && Family::of(candidate.language) == Some(family)
                 {
                     found.push(candidate.id);
                 }

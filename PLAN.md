@@ -381,6 +381,32 @@ caught these once the shape was known. Extending that pattern to the remaining
 operations is the highest-value work left, and running against a second large
 codebase in a different language mix is how the next ten will be found.
 
+### What the playground found
+
+Compiling the same analysis to WebAssembly and driving every capability from a
+browser found five more, and the shape of them is worth recording: **none was a bug
+in an analysis.** Each was a place where the browser and the terminal disagreed
+because a second caller had been written and had made a different choice.
+
+- `find_unused` takes its roots as a slice, and the browser passed `&[]` where the
+  terminal passed a detected catalog. Nothing runs, so everything unexported is dead:
+  twenty extra findings, including every `#[test]`. The roots are a type now, and an
+  empty one has to be asked for by name.
+- Every *read* went through the virtual filesystem; the six `Path::exists` calls did
+  not, and there is no filesystem in a browser, so each quietly answered false.
+- The virtual filesystem itself was one global map, so a second workspace silently
+  became the first one's bytes.
+
+Two of the three are now checked by a test that reads the source, because neither is
+expressible in the type system and both had already happened once. The third is a
+newtype. The general lesson: a second frontend is a good bug-finder precisely because
+it re-makes every decision the first one made implicitly — and the decisions that
+were never written down are the ones it gets wrong.
+
+The browser API has no `cargo test` — `src/wasm.rs` compiles only for `wasm32` — so
+`web/test/api.mjs` drives all twenty-nine of its methods against a bundled
+fifteen-language workspace, in Node, using the wasm the site ships. CI runs it.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

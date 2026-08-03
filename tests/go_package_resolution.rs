@@ -6,6 +6,7 @@
 //! definition while reporting the call sites it could not see. The rules below are
 //! Go's, and each test names the real symbol that exposed its absence.
 
+use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
 use fun_refactor::refactor::delete;
@@ -175,7 +176,7 @@ fn one_package_may_declare_a_name_twice_under_opposite_build_tags() {
             "package p\n\nfunc caller() int {\n\treturn fallback()\n}\n",
         ),
     ]);
-    let unused = delete::find_unused(&index, &[only(&index, "caller")]);
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[only(&index, "caller")]));
     let dead: Vec<&str> = unused
         .iter()
         .filter_map(|id| index.symbol(*id))
@@ -196,7 +197,7 @@ fn everything_an_exported_symbol_reaches_is_live() {
         "package p\n\nfunc helper() int {\n\treturn 1\n}\n\n\
          func Exported() int {\n\treturn helper()\n}\n",
     )]);
-    let unused = delete::find_unused(&index, &[]);
+    let unused = delete::find_unused(&index, &Entrypoints::none());
     let dead: Vec<&str> = unused
         .iter()
         .filter_map(|id| index.symbol(*id))
@@ -226,7 +227,7 @@ fn two_types_sharing_a_private_method_name_both_stay_live() {
          func (b *B) record(x int) {}\n\n\
          func Run(m map[string]any) {\n\tm[\"k\"].record(1)\n}\n",
     )]);
-    let report = delete::find_unused_report(&index, &[]);
+    let report = delete::find_unused_report(&index, &Entrypoints::none());
     let dead: Vec<&str> = report
         .unused
         .iter()
