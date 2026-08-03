@@ -69,6 +69,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B40: **`fr extract` put a Go binding above the declaration it read.** Extracting
+  `len(totalItems)` from an `if` inserted `itemCount := len(totalItems)` at the top of
+  the function, before `totalItems` existed. The result parses, so the reparse check
+  saw nothing wrong; it simply does not compile. The cause was a *third* private copy
+  of the "is this a statement container" predicate, this one still not knowing about
+  Go's `statement_list`, so the enclosing statement of an expression resolved to the
+  whole function body. All three copies are now one.
+
+
 - [x] B39: **a Helm values key could not be renamed.** A template action is masked
   before parsing — which is what keeps the surrounding YAML parseable and the byte
   offsets honest — so everything inside `{{ … }}` was invisible to the index.

@@ -161,6 +161,9 @@ Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
 backend, and every capability that a language can meaningfully support is built:
 **216 of 300 capability × language pairs supported, 84 not applicable, none refused.**
 
+A full walkthrough on a real codebase — helm/helm, with the outputs it actually
+produced — is in [TUTORIAL.md](TUTORIAL.md).
+
 Open limitations are tracked in [BUGS.md](BUGS.md). All four are characterised rather
 than silent: reachability under dynamic dispatch, Helm values passed on a command
 line, three SCSS forms the grammar does not cover, and deep Terraform index
