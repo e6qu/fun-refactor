@@ -1,0 +1,55 @@
+name: Pages
+
+# The site is static and lives in docs/. Only a change to it needs a deploy, and
+# only from main — a pull request preview would publish over the live site.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one in flight: a half-published site is
+# worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check every link and asset the pages reference
+        run: |
+          cd docs
+          status=0
+          for page in *.html; do
+            # Local hrefs and srcs only: anything with a scheme is someone else's.
+            grep -oE '(href|src)="[^"#:]+"' "$page" \
+              | sed -E 's/.*="([^"]+)"/\1/' \
+              | while read -r target; do
+                  if [ ! -e "$target" ]; then
+                    echo "$page references missing $target"
+                    exit 1
+                  fi
+                done || status=1
+          done
+          exit $status
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fun-refactor — refactoring that says what it cannot prove</title>
+<meta name="description" content="A multi-language refactoring tool for 15 languages. Every reference carries a confidence tier, and only what it can prove gets rewritten.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html" aria-current="page">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="shell">
+    <p class="eyebrow">15 languages · one index · byte-exact edits</p>
+    <h1>Refactoring that tells you<br>what it could not prove.</h1>
+    <p class="lede prose">
+      Rename a symbol across Go, TypeScript, Rust, Python and a Helm chart at once.
+      Every reference it finds carries the evidence that found it — and only the
+      references it can justify are rewritten. The rest are handed back as a list.
+    </p>
+
+    <div class="btn-row">
+      <a class="btn" href="demo.html">See it work</a>
+      <a class="btn ghost" href="docs.html">Read the docs</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor">Source</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="grid two" style="align-items:center">
+      <div class="prose">
+        <h2>The tag on the right is the point</h2>
+        <p>
+          A textual rename is fast and wrong. A compiler-backed one is right and
+          exists for one language. This sits in between on purpose: it resolves what
+          the syntax proves, labels every answer with the rule that produced it, and
+          refuses to rewrite anything weaker than proof.
+        </p>
+        <p>
+          <span class="tier-exact">exact</span> and
+          <span class="tier-weak">import-qualified</span> are rewritten.
+          <span class="tier-weak">field-based</span> and
+          <span class="tier-weak">name-only</span> are reported for you to check.
+          Nothing is guessed.
+        </p>
+      </div>
+      <div class="term">
+        <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="term-title">helm/helm @ a8ab76e</span></div>
+        <div class="term-body"><pre><span class="cmd">fr refs pkg/action/action.go:725:6</span>
+5 reference(s) to determineReleaseSSApplyMethod
+  pkg/action/action_test.go:2280:54  <span class="exact">[exact]</span>
+  pkg/action/action_test.go:2281:54  <span class="exact">[exact]</span>
+  pkg/action/install.go:676:23       <span class="exact">[exact]</span>
+  pkg/action/rollback.go:192:23      <span class="exact">[exact]</span>
+  pkg/action/upgrade.go:334:23       <span class="exact">[exact]</span></pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">It reads the configuration too</h2>
+    <p class="prose">
+      A Helm chart is a values file and templates that read it — a dataflow no
+      compiler sees. Rename a values key and the templates that use it move with it,
+      while <code>{{ .Release.Name }}</code> is left alone, because it is the same
+      word and a different thing.
+    </p>
+
+    <div class="term" style="margin-top:1.5rem">
+      <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="term-title">alpine chart</span></div>
+      <div class="term-body"><pre><span class="cmd">fr rename testcharts/alpine/values.yaml:1:1 appName</span>
+<span class="del">-  name: "{{.Release.Name}}-{{.Values.Name}}"</span>
+<span class="add">+  name: "{{.Release.Name}}-{{.Values.appName}}"</span>
+<span class="del">-    values: {{.Values.Name}}</span>
+<span class="add">+    values: {{.Values.appName}}</span>
+
+Name → appName: 3 site(s) across 2 file(s)
+
+<span class="weak">Not changed — review these yourself:</span>
+  textual-occurrence (1):
+    alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged</pre></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">Measured on real code</h2>
+    <p class="prose">
+      Numbers from running it over
+      <a href="https://github.com/helm/helm">helm/helm</a> and
+      <a href="https://github.com/grafana/grafana">grafana/grafana</a>, not from a
+      benchmark written to flatter it.
+    </p>
+
+    <div class="grid three" style="margin-top:2rem">
+      <div class="stat">
+        <span class="num">16,525</span>
+        <span class="what">files of Grafana parsed in 10.9 seconds, across 13 languages</span>
+      </div>
+      <div class="stat">
+        <span class="num">337</span>
+        <span class="what">duplicated blocks in helm — 64,530 redundant tokens, found in 3.6s</span>
+      </div>
+      <div class="stat">
+        <span class="num">47</span>
+        <span class="what">genuinely dead internal Go symbols in helm, down from 238 false positives</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">Languages</h2>
+    <ul class="pills" style="margin:1.25rem 0 1.5rem">
+      <li>Rust</li><li>Go</li><li>TypeScript</li><li>TSX</li><li>Python</li>
+      <li>Zig</li><li>Bash</li><li>HTML</li><li>CSS</li><li>SCSS</li>
+      <li>Terraform</li><li>YAML</li><li>Helm</li><li>XML</li><li>Markdown</li>
+    </ul>
+    <p class="note prose">
+      216 of 300 capability × language pairs are supported; the other 84 are marked
+      not applicable with the reason attached — a YAML file has no call graph. The
+      matrix is computed from the code, not maintained by hand, and a test fails if
+      the README disagrees with it.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">Get it</h2>
+    <div class="term" style="max-width:44rem">
+      <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+      <div class="term-body"><pre><span class="cmd">git clone https://github.com/e6qu/fun-refactor</span>
+<span class="cmd">cargo install --path fun-refactor</span>
+
+<span class="cmd">cd ~/code/your-project</span>
+<span class="cmd">fr parse --stats</span>          <span class="dim"># what can it read?</span>
+<span class="cmd">fr unused --internal</span>       <span class="dim"># what is dead?</span>
+<span class="cmd">fr duplicates</span>              <span class="dim"># what is written twice?</span></pre></div>
+    </div>
+    <div class="btn-row">
+      <a class="btn" href="demo.html">Walk through a real refactor</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">Full tutorial</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/PLAN.md">Design notes</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+</body>
+</html>
