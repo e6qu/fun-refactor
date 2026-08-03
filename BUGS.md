@@ -69,6 +69,24 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B39: **a Helm values key could not be renamed.** A template action is masked
+  before parsing — which is what keeps the surrounding YAML parseable and the byte
+  offsets honest — so everything inside `{{ … }}` was invisible to the index.
+  Provenance parsed the actions separately and could say which templates read a key,
+  but `fr refs` on that key answered zero and a rename rewrote `values.yaml` and
+  nothing else, listing every template use as a textual occurrence to check by hand.
+  The `.Values` paths are now extracted as references spanning the final segment
+  only, so renaming `image.tag` rewrites `tag` and leaves `image` alone.
+
+  Resolution is scoped to the chart, because two charts in one workspace routinely
+  declare `image` or `name` and a global match would point a template at a
+  neighbour's values file. The segment before the key is carried as the reference's
+  receiver, which is what distinguishes `image.tag` from an unrelated top-level
+  `tag`, and only files named `values*.yaml` are candidates — every template in the
+  chart is YAML with keys of its own. `{{ .Release.Name }}` is still reported as a
+  textual occurrence rather than rewritten, because it is not a values key.
+
+
 - [x] B35: **`--path` filters matched nothing, and reported that as nothing found.**
   They were built by joining the default root `.`, giving `./pkg/action`, which
   starts-with-matches no absolute path in the index. Every filtered report came back

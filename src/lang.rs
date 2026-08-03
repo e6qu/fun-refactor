@@ -226,6 +226,23 @@ fn is_helm_path(path: &Path) -> bool {
         || has_sibling_chart_yaml(path)
 }
 
+/// The chart directory a Helm file belongs to: the nearest ancestor with a Chart.yaml.
+///
+/// A chart's values are its own. Two charts in one workspace routinely declare the
+/// same key — `image`, `name`, `replicaCount` — and a `.Values.image` in one of them
+/// says nothing about the other. Resolution needs the boundary to avoid pointing a
+/// template at a neighbour's values file.
+pub fn chart_root(path: &Path) -> Option<&Path> {
+    let mut dir = path.parent();
+    while let Some(d) = dir {
+        if d.join("Chart.yaml").exists() || d.join("chart.yaml").exists() {
+            return Some(d);
+        }
+        dir = d.parent();
+    }
+    None
+}
+
 /// A file under `<chart>/templates/` where `<chart>/Chart.yaml` exists is a Helm template.
 fn has_sibling_chart_yaml(path: &Path) -> bool {
     let mut dir = path.parent();

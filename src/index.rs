@@ -403,6 +403,34 @@ impl Index {
             }
         }
 
+        // 4a. A Helm `.Values` path names a key in *this chart's* values file. Two
+        //     charts in one workspace routinely declare `image` or `name`, and the
+        //     global string-keyed rule below would pick whichever came first. The
+        //     receiver is the segment before the key, so `image.tag` does not match a
+        //     `tag` declared under something else.
+        if reference.language == Language::Helm && reference.kind == ReferenceKind::StringRef {
+            if let Some(chart) = crate::lang::chart_root(path) {
+                let in_chart: Vec<&Symbol> = candidates
+                    .iter()
+                    .filter_map(|id| self.symbol(*id))
+                    .filter(|s| {
+                        s.kind == SymbolKind::Key
+                            && s.file.starts_with(chart)
+                            && is_values_file(&s.file)
+                            && s.qualifier.as_deref() == reference.receiver.as_deref()
+                    })
+                    .collect();
+                match in_chart.len() {
+                    1 => return (Some(in_chart[0].id), Confidence::Exact),
+                    0 => {}
+                    // A chart declaring one key twice — in values.yaml and a
+                    // values-prod.yaml beside it — is normal, and which one wins is
+                    // the question `fr flow back` answers with the invocation.
+                    _ => return (Some(in_chart[0].id), Confidence::FieldBased),
+                }
+            }
+        }
+
         // 4. String-keyed references. In CSS, HTML, XML and Markdown a reference
         //    names its target globally: `class="btn"` refers to whatever declares
         //    `.btn`, in any file. That is the language's actual rule, not a
@@ -740,6 +768,18 @@ pub struct IndexStats {
 
 fn distance(a: usize, b: usize) -> usize {
     a.abs_diff(b)
+}
+
+/// Is this a chart's values file, rather than a manifest that merely has keys?
+///
+/// `.Values.name` names a key a values file supplies. Every template in the chart is
+/// YAML with keys of its own, and matching those would point a reference at whatever
+/// manifest happened to use the same word.
+fn is_values_file(path: &std::path::Path) -> bool {
+    path.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
+        let lower = n.to_ascii_lowercase();
+        lower.starts_with("values") && (lower.ends_with(".yaml") || lower.ends_with(".yml"))
+    })
 }
 
 #[cfg(test)]

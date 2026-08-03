@@ -217,6 +217,52 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     Some(Span::from(children[0]).text(source).to_string())
 }
 
+/// The `.Values` paths a Helm template names, as references to the values file.
+///
+/// One reference per path, spanning the *last* segment only: renaming the key `tag`
+/// under `image` must rewrite `tag` in `{{ .Values.image.tag }}` and leave `image`
+/// alone. The segment before it is recorded as the receiver, which is what lets
+/// resolution tell `image.tag` from a `tag` under something else.
+fn values_references(
+    source: &str,
+    parsed: &Parsed,
+    path: &Path,
+    scope_at: &impl Fn(usize) -> crate::model::ScopeId,
+) -> Vec<Reference> {
+    let template = crate::helm::Template::of(source, parsed);
+    let mut out = Vec::new();
+    for action in &template.actions {
+        for reference in &action.refs {
+            let Some(segments) = reference.values_path() else {
+                continue;
+            };
+            let Some(last) = segments.last() else {
+                continue;
+            };
+            // Locate the final segment inside the chain's own bytes, so the span is
+            // the key and not the whole `.Values.image.tag`.
+            let text = reference.span.text(source);
+            let Some(offset) = text.rfind(last.as_str()) else {
+                continue;
+            };
+            let start = reference.span.start + offset;
+            let span = Span::new(start, start + last.len());
+            out.push(Reference {
+                name: last.clone(),
+                span,
+                file: path.to_path_buf(),
+                language: Language::Helm,
+                scope: scope_at(span.start),
+                target: None,
+                confidence: Confidence::NameOnly,
+                kind: ReferenceKind::StringRef,
+                receiver: segments.len().checked_sub(2).map(|i| segments[i].clone()),
+            });
+        }
+    }
+    out
+}
+
 /// Ranks reference kinds from most to least specific.
 ///
 /// `foo()` matches both a call pattern and the catch-all identifier pattern; the call
@@ -483,6 +529,16 @@ impl Extractor {
                 });
             }
         }
+        // Helm hides its references from the grammar. A template action is masked
+        // before parsing so the surrounding YAML still has valid structure, which
+        // means `{{ .Values.image.tag }}` reaches the query as filler. The actions are
+        // parsed separately, and the values paths they name become references here so
+        // that `fr refs`, `fr rename` and go-to-definition see what provenance always
+        // could.
+        if lang == Language::Helm {
+            references.extend(values_references(source, parsed, path, &scope_at));
+        }
+
         // One identifier can match several patterns (a call is also an identifier).
         // Keep the most specific kind per span so each use site appears exactly once.
         references.sort_by_key(|r| (r.span, reference_specificity(r.kind)));

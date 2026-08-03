@@ -373,16 +373,16 @@ fn keys_guarded_by_a_template_conditional_are_still_extracted() {
 }
 
 #[test]
-fn nothing_inside_a_template_action_becomes_a_symbol_or_reference() {
-    // Template contents are masked before parsing, so `.Values.image.tag`,
-    // `include` and `chart.fullname` are invisible here by construction.
-    // Resolving them needs a separate pass over `Parsed::template_actions`.
+fn a_template_action_yields_no_yaml_facts_of_its_own() {
+    // Template contents are masked before parsing, so `include`, `if` and
+    // `chart.fullname` are invisible to the YAML query by construction. Masking must
+    // never invent a key: a symbol overlapping an action would mean the structure of
+    // the document was read out of filler.
     let f = helm(HELM_DEPLOYMENT);
     let leaked: Vec<_> = f
         .symbols
         .iter()
         .map(|s| (s.name.clone(), s.name_span))
-        .chain(f.references.iter().map(|r| (r.name.clone(), r.span)))
         .filter(|(name, _)| {
             [
                 "include",
@@ -398,7 +398,6 @@ fn nothing_inside_a_template_action_becomes_a_symbol_or_reference() {
         .collect();
     assert!(leaked.is_empty(), "template contents leaked: {leaked:?}");
 
-    // Stronger: no fact may overlap any masked region.
     let parsed = Parsers::new()
         .parse(Language::Helm, HELM_DEPLOYMENT)
         .unwrap();
@@ -411,15 +410,46 @@ fn nothing_inside_a_template_action_becomes_a_symbol_or_reference() {
                 action.text(HELM_DEPLOYMENT)
             );
         }
-        for r in &f.references {
-            assert!(
-                r.span.end <= action.start || r.span.start >= action.end,
-                "reference {:?} overlaps masked action",
-                r.name
-            );
-        }
     }
-    assert!(f.references.is_empty(), "got {:?}", f.references);
+}
+
+#[test]
+fn the_values_a_template_reads_are_the_only_facts_inside_an_action() {
+    // The one exception, and it is deliberate: `{{ .Values.image.tag }}` is a use of
+    // a key the values file declares, and a rename of that key has to rewrite it. The
+    // paths come from parsing the actions themselves, not from the masked text, so
+    // each reference spans the final segment — `tag`, not `.Values.image.tag`.
+    let f = helm(HELM_DEPLOYMENT);
+    let parsed = Parsers::new()
+        .parse(Language::Helm, HELM_DEPLOYMENT)
+        .unwrap();
+
+    assert!(
+        !f.references.is_empty(),
+        "a template that reads .Values has references"
+    );
+    for r in &f.references {
+        assert_eq!(
+            r.kind,
+            ReferenceKind::StringRef,
+            "a values path is string-keyed, like a CSS class: {r:?}"
+        );
+        let inside = parsed
+            .template_actions
+            .iter()
+            .any(|a| r.span.start >= a.start && r.span.end <= a.end);
+        assert!(inside, "reference {:?} is not inside any action", r.name);
+        assert_eq!(
+            r.span.text(HELM_DEPLOYMENT),
+            r.name,
+            "the span is the key alone, so a rename rewrites only it"
+        );
+        assert!(
+            !r.name.contains('.') && !r.name.contains(' '),
+            "the whole chain leaked into the name: {:?}",
+            r.name
+        );
+    }
 }
 
 #[test]
