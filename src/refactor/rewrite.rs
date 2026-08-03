@@ -406,6 +406,12 @@ fn guard_clause(
         );
     }
 
+    // What "early exit" means depends on what the block is. Last in a loop body means
+    // `continue`; last in a function body means `return`. ripgrep has an `if` ending
+    // a `for` body inside a function returning `Result<PathBuf>`, where `return` was
+    // both the wrong control flow and the wrong type.
+    let exit = early_exit(block, source, language)?;
+
     let negated = negate(parts.condition.text(source), language);
     let body = strip_block(parts.consequence, source);
     let indent = crate::edit::line_indent(source, Span::from(node).start);
@@ -427,11 +433,11 @@ fn guard_clause(
     // spaces would reindent every guard this touches.
     let unit = crate::edit::indent_unit(source);
     let guard = match language {
-        Language::Python => format!("{header}\n{indent}{unit}return\n"),
-        Language::Bash => format!("{header}\n{indent}{unit}return\n{indent}fi\n"),
+        Language::Python => format!("{header}\n{indent}{unit}{exit}\n"),
+        Language::Bash => format!("{header}\n{indent}{unit}{exit}\n{indent}fi\n"),
         // Go's grammar accepts the semicolon, but no Go is written with it.
-        Language::Go => format!("{header} {{\n{indent}{unit}return\n{indent}}}\n"),
-        _ => format!("{header} {{\n{indent}{unit}return;\n{indent}}}\n"),
+        Language::Go => format!("{header} {{\n{indent}{unit}{exit}\n{indent}}}\n"),
+        _ => format!("{header} {{\n{indent}{unit}{exit};\n{indent}}}\n"),
     };
 
     // The body loses one level of indentation as it leaves the block. Blank lines
@@ -465,6 +471,64 @@ fn guard_clause(
     // The guard ends in a newline, so every body line — including the first — needs
     // the indentation it was given above.
     Ok((Span::from(node), format!("{guard}{body_text}")))
+}
+
+/// The statement that exits the block early: `continue` in a loop, `return` in a
+/// function.
+///
+/// A guard clause replaces nesting with an early exit, and which exit is correct is
+/// decided by the block, not by the refactoring. ripgrep's `find_program` ends a
+/// `for` body with an `if`; rewriting that to `return` leaves the loop entirely, and
+/// leaves it with no value in a function returning `Result<PathBuf>`.
+///
+/// A function that declares a return type is refused rather than guessed at: what to
+/// return early is a decision only the author can make.
+fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'static str> {
+    let mut current = block;
+    for _ in 0..4 {
+        let Some(parent) = current.parent() else {
+            break;
+        };
+        let kind = parent.kind();
+        if kind.contains("for") || kind.contains("while") || kind == "loop_expression" {
+            return Ok("continue");
+        }
+        if kind.contains("function") || kind.contains("method") || kind.contains("closure") {
+            if declares_a_return_value(parent, source, language) {
+                anyhow::bail!(
+                    "this function returns a value, so an early exit needs one too, and \
+                     what to return is not something this can decide"
+                );
+            }
+            return Ok("return");
+        }
+        current = parent;
+    }
+    // Neither a loop nor a function: a bare block, a module body, a shell script.
+    Ok("return")
+}
+
+/// Does this function declare that it returns something?
+fn declares_a_return_value(function: Node<'_>, source: &str, language: Language) -> bool {
+    // Every grammar in the set names the return type field, except Go, which calls it
+    // `result`, and shell, which has none.
+    for field in ["return_type", "result", "type"] {
+        if let Some(node) = function.child_by_field_name(field) {
+            let text = Span::from(node).text(source).trim();
+            let nothing = match language {
+                Language::Rust => text.is_empty() || text == "()",
+                Language::Zig => text == "void",
+                Language::TypeScript | Language::Tsx => {
+                    text.trim_start_matches(':').trim() == "void"
+                }
+                _ => text.is_empty(),
+            };
+            if !nothing {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// The statement a node forms, and the block that statement sits in.

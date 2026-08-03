@@ -69,6 +69,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B46: **a guard clause exited the wrong construct.** The rewrite emitted
+  `return` for any `if` last in its block, including one last in a *loop* body —
+  ripgrep's `find_program` ends a `for` body that way, and the rewrite left the loop
+  entirely instead of continuing it. It also emitted a bare `return` regardless of
+  the enclosing function's return type, which in that same function
+  (`-> Result<PathBuf>`) does not compile. The exit now fits the block: `continue`
+  in a loop, `return` in a function that returns nothing, and a refusal where the
+  function owes a value, since what to return early is the author's decision.
+
+
 - [x] B45: a statement pattern was impossible in Python, shell and YAML. Those
   languages wrap a `fr restructure` fragment in nothing, so the statement the pattern
   writes is the outermost node — and the descent that strips wrapper-introduced

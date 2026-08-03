@@ -524,3 +524,58 @@ fn guard_clause_still_applies_to_a_trailing_go_if() {
         "the earlier statement was lost:\n{out}"
     );
 }
+
+#[test]
+fn a_guard_at_the_end_of_a_loop_body_continues_rather_than_returns() {
+    // ripgrep's `find_program` ends a `for` body with an `if`. Rewriting that to
+    // `return` leaves the loop entirely — a different program — and leaves it with no
+    // value in a function returning `Result<PathBuf>`.
+    let src = "fn f(paths: Vec<i32>) {\n    for p in paths {\n        if p > 0 {\n            use_it(p);\n        }\n    }\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if p > 0").unwrap(),
+        Rewrite::GuardClause,
+    );
+    assert!(
+        out.contains("continue;"),
+        "a loop exits with continue:\n{out}"
+    );
+    assert!(!out.contains("return"), "not with return:\n{out}");
+}
+
+#[test]
+fn a_guard_is_refused_where_the_function_owes_a_value() {
+    // What to return early is a decision only the author can make, and `return;` in a
+    // function returning `Result<PathBuf>` does not compile.
+    let src = "fn f(x: i32) -> i32 {\n    if x > 0 {\n        use_it(x);\n    }\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let err = rewrite::apply(
+        &index,
+        &path,
+        src.find("if x > 0").unwrap(),
+        Rewrite::GuardClause,
+    )
+    .expect_err("a value-returning function cannot take a bare early return");
+    assert!(err.to_string().contains("returns a value"), "got: {err}");
+}
+
+#[test]
+fn a_guard_still_applies_where_the_function_returns_nothing() {
+    let src = "fn f(x: i32) {\n    if x > 0 {\n        use_it(x);\n    }\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let out = rewritten(
+        &index,
+        &path,
+        src.find("if x > 0").unwrap(),
+        Rewrite::GuardClause,
+    );
+    assert!(out.contains("return;"), "got:\n{out}");
+}
