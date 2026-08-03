@@ -69,6 +69,22 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B47: **a new import was written inside a multi-line import statement.** The
+  insertion point was found by scanning lines for an `import` prefix and stopping at
+  the first line that is not one — so given `from typing import (` / `    Any,` /
+  `)`, it stopped at `Any,` and inserted the new statement between the parentheses.
+  psf/requests writes its typing imports exactly that way, so every `fr move` out of
+  `utils.py` produced a file that would not parse. The index knows where each
+  statement ends, and is now asked.
+
+- [x] B48: a moved Python symbol left its module imports behind. `import os` binds
+  `os` without naming it in the statement, so the name-based check that carries named
+  imports never matched it, and the moved code lost `os.path`. Also carried now:
+  `from __future__ import annotations`, which binds nothing at all and decides how
+  every annotation in the file is read — `str | None` stops parsing without it below
+  Python 3.10 — and which is placed first, where the language requires it.
+
+
 - [x] B46: **a guard clause exited the wrong construct.** The rewrite emitted
   `return` for any `if` last in its block, including one last in a *loop* body —
   ripgrep's `find_program` ends a `for` body that way, and the rewrite left the loop

@@ -205,7 +205,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     for file in &needs_import {
         let statement = import_statement(sym.language, file, destination, &sym.name)?;
         let target_source = std::fs::read_to_string(file).unwrap_or_default();
-        let insert = import_insertion_point(&target_source);
+        let insert = import_insertion_point_for(index, file, &target_source);
         plan.edits.add(
             file.clone(),
             Edit::new(
@@ -274,8 +274,19 @@ fn carried_imports(
     let mut statements: Vec<String> = Vec::new();
 
     for statement in import_statements(&info.imports) {
-        let binds_something_used = statement.names.iter().any(|n| used.contains(&n.local))
-            || statement.alias.as_ref().is_some_and(|a| used.contains(a));
+        // `import os` binds `os` without naming it anywhere in the statement, and the
+        // moved code reaches `os.path.basename` through exactly that binding. Reading
+        // it from the path is the same rule import liveness already uses.
+        let implicit = crate::refactor::imports::implicit_binding(&statement.path, sym.language);
+        // `from __future__ import annotations` binds nothing and changes how every
+        // annotation in the file is evaluated. Code written under it — requests uses
+        // `str | None`, which needs it below Python 3.10 — stops working the moment
+        // it lands in a file without it.
+        let governs_the_file = statement.path == "__future__";
+        let binds_something_used = governs_the_file
+            || statement.names.iter().any(|n| used.contains(&n.local))
+            || statement.alias.as_ref().is_some_and(|a| used.contains(a))
+            || implicit.as_deref().is_some_and(|b| used.contains(b));
         if !binds_something_used {
             continue;
         }
@@ -343,6 +354,9 @@ fn carried_imports(
     if statements.is_empty() {
         return String::new();
     }
+    // `__future__` must be the first statement in the file, so it leads whatever
+    // else came along.
+    statements.sort_by_key(|s| !s.contains("__future__"));
     format!("{}\n", statements.join(""))
 }
 
@@ -620,6 +634,28 @@ fn relative_module(from: &Path, to: &Path) -> Option<String> {
 }
 
 /// Where a new import should go: after any existing leading imports.
+/// Where a new import goes, using the import statements the index already parsed.
+///
+/// The line-based fallback below cannot see a statement that spans lines: given
+/// `from typing import (` on one line, `    Any,` on the next and `)` on a third,
+/// it stops at `Any,` — the first line that is not itself an import — and inserts
+/// the new statement *inside the parentheses*. requests writes its typing imports
+/// exactly that way, so every move out of `utils.py` produced a file that would not
+/// parse. The index knows where each statement ends; ask it.
+fn import_insertion_point_for(index: &Index, file: &Path, source: &str) -> usize {
+    let Some(info) = index.file(file) else {
+        return import_insertion_point(source);
+    };
+    let Some(end) = info.imports.iter().map(|i| i.span.end).max() else {
+        return import_insertion_point(source);
+    };
+    // Just past the line the last import ends on.
+    match source[end..].find('\n') {
+        Some(offset) => end + offset + 1,
+        None => source.len(),
+    }
+}
+
 fn import_insertion_point(source: &str) -> usize {
     let mut offset = 0;
     let mut last_import_end = 0;
