@@ -270,7 +270,11 @@ impl Index {
         // Was this written as a member of something, and if so, of a value or of a
         // package? An import binding before the dot means a package-qualified call to
         // a function; anything else means a value, so the name is one of its members.
+        // A value receiver leaves the type unknown, so only a member can follow it.
+        // A path receiver names a type or a module and is handled below, where it can
+        // be matched against a symbol's qualifier directly.
         let called_on_a_value = reference.kind == ReferenceKind::Call
+            && !reference.receiver_is_path
             && reference
                 .receiver
                 .as_deref()
@@ -308,6 +312,56 @@ impl Index {
                 true
             }
         };
+
+        // 0. A path prefix that names a type: `Patterns::from_low_args(…)` in Rust
+        //     reaches an associated function through the type it belongs to. The
+        //     prefix is recorded as the receiver, and a symbol carries the same name
+        //     as its qualifier, so the two match directly — no type inference needed,
+        //     because the type was written down.
+        //
+        //     This runs before every other rule: ripgrep declares four
+        //     `from_low_args` methods in one file, so the nearest-in-file rule below
+        //     would pick whichever sat closest and leave the other three looking
+        //     dead. `Patterns::` already says which.
+        if let Some(prefix) = reference
+            .receiver
+            .as_deref()
+            .filter(|_| reference.receiver_is_path)
+        {
+            let by_qualifier: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| s.qualifier.as_deref() == Some(prefix))
+                .collect();
+            match by_qualifier.len() {
+                1 => return (Some(by_qualifier[0].id), Confidence::Exact),
+                0 => {}
+                // Two types of that name in the workspace; the path says which only
+                // if the imports are followed, which this layer does not do.
+                _ => return (None, Confidence::FieldBased),
+            }
+
+            // `super::` is the module a file's directory forms, `self::` its own.
+            // Both put the target beside this file, which is the same shape as a Go
+            // package and is resolved the same way.
+            if matches!(prefix, "super" | "self") {
+                let dir = path.parent();
+                let siblings: Vec<&Symbol> = candidates
+                    .iter()
+                    .filter_map(|id| self.symbol(*id))
+                    .filter(|s| {
+                        s.language == reference.language
+                            && s.qualifier.is_none()
+                            && s.file.parent() == dir
+                    })
+                    .collect();
+                match siblings.len() {
+                    1 => return (Some(siblings[0].id), Confidence::Exact),
+                    0 => {}
+                    _ => return (None, Confidence::FieldBased),
+                }
+            }
+        }
 
         let scope_chain = self.scope_chain(info, reference.scope);
         let in_file: Vec<&Symbol> = candidates

@@ -69,6 +69,33 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B41: **the cache reused facts produced by a different extractor.** Entries are
+  keyed by file content and by the query set, which is correct only while "the
+  extractor" is a constant — and it is not. Adding a field to `Reference` changes
+  what a cached fact means, while `#[serde(default)]` lets yesterday's entry
+  deserialize cleanly into today's struct. The result is a cache that looks healthy
+  and answers wrongly: it turned seven unrelated TypeScript import tests red and cost
+  an afternoon of bisecting code that was not at fault. `build.rs` now hashes the
+  sources that define extraction into the cache namespace, so editing any of them
+  makes every stale entry unreachable rather than wrong.
+
+- [x] B42: Rust reached nothing through a path. `super::render_custom_markup(…)` and
+  `Patterns::from_low_args(…)` both resolved to nothing, because the prefix of a
+  `scoped_identifier` was never recorded. References now carry it, flagged as a path
+  rather than a value — a path names a type or a module and can be matched against a
+  symbol's own qualifier with no type inference, since the type was written down.
+  This rule runs before every other: ripgrep declares four `from_low_args` methods in
+  one file, so the nearest-in-file rule would otherwise pick whichever sat closest and
+  leave the other three looking dead.
+
+- [x] B43: a Rust test looked like dead code. Tests declare themselves with `#[test]`,
+  and the entry-point catalog could only match names and paths — ripgrep's are called
+  `backslash`, `tab` and `carriage`. Catalogs gained `annotated_with`, which reads the
+  annotations immediately above a definition, and Rust gained rules for `#[test]` and
+  `#[bench]`. Detected test entry points in ripgrep went from 141 to 516, and its
+  internal dead-code report from 643 findings to 317.
+
+
 - [x] B40: **`fr extract` put a Go binding above the declaration it read.** Extracting
   `len(totalItems)` from an `if` inserted `itemCount := len(totalItems)` at the top of
   the function, before `totalItems` existed. The result parses, so the reparse check

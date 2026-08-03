@@ -224,6 +224,15 @@ pub struct Reference {
     /// receiver recorded here.
     #[serde(default)]
     pub receiver: Option<String>,
+    /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f` —
+    /// rather than as a value.
+    ///
+    /// A path names a type or a module, so it can be matched against a symbol's own
+    /// qualifier without knowing any types. A value receiver names something whose
+    /// type is unknown, and only a member can follow it. Conflating the two makes
+    /// `super::render(…)` look like a method call on a value called `super`.
+    #[serde(default)]
+    pub receiver_is_path: bool,
 }
 
 /// What syntactic role a reference plays.

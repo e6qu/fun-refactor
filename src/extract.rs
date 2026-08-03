@@ -201,6 +201,8 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
         "member_expression",   // TypeScript, JavaScript
         "attribute",           // Python
         "field_expression",    // Rust, Zig
+        "scoped_identifier",
+        "scoped_type_identifier",
     ];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
@@ -257,10 +259,18 @@ fn values_references(
                 confidence: Confidence::NameOnly,
                 kind: ReferenceKind::StringRef,
                 receiver: segments.len().checked_sub(2).map(|i| segments[i].clone()),
+                receiver_is_path: true,
             });
         }
     }
     out
+}
+
+/// Was the receiver written as a path (`A::b`) rather than against a value (`a.b`)?
+fn receiver_is_path(root: Node<'_>, span: Span) -> bool {
+    root.descendant_for_byte_range(span.start, span.end)
+        .and_then(|n| n.parent())
+        .is_some_and(|p| p.kind().starts_with("scoped_"))
 }
 
 /// Ranks reference kinds from most to least specific.
@@ -526,6 +536,7 @@ impl Extractor {
                     confidence: Confidence::NameOnly,
                     kind: r.kind,
                     receiver: receiver_of(root, span, source),
+                    receiver_is_path: receiver_is_path(root, span),
                 });
             }
         }

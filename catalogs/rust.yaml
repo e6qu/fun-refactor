@@ -14,6 +14,22 @@
     name_prefix: test_
     symbol_kind: function
 
+# How a Rust test actually declares itself. ripgrep's are named `backslash`, `tab`
+# and `carriage`; no naming rule would find them.
+- id: rust-test-attribute
+  kind: test
+  languages: [rust]
+  matches:
+    annotated_with: test
+    symbol_kind: function
+
+- id: rust-bench-attribute
+  kind: test
+  languages: [rust]
+  matches:
+    annotated_with: bench
+    symbol_kind: function
+
 - id: rust-test-module-fn
   kind: test
   languages: [rust]
