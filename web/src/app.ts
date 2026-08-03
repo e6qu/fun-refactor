@@ -701,6 +701,14 @@ function adopt(loaded: Record<string, string>, name: string) {
   models.forEach((m) => m.dispose());
   models.clear();
   current = "";
+
+  // A `Workspace` owns Rust memory that JavaScript's collector knows nothing about:
+  // the whole index, every symbol and every reference. Dropping the last handle to it
+  // frees nothing. Loading a second repository — or pressing Undo, which re-indexes —
+  // therefore leaked an entire index each time, and on a repository of any size the
+  // next allocation aborted the module with `unreachable`. In a tab that is not an
+  // exception you can catch; it is the end of the workspace.
+  workspace?.free();
   workspace = new Workspace(files);
 
   renderFileList(el<HTMLInputElement>("filter").value);

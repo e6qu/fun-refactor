@@ -1284,7 +1284,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             let Some(target) = variables.get(*at) else {
                 anyhow::bail!(
                     "there is no module variable at position {at}; {} declares {}",
-                    dir.display(),
+                    crate::vfs::describe_dir(dir),
                     describe_variables(&variables)
                 );
             };
@@ -1631,7 +1631,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
                         "a `module` block at {} sources {} but is not a top-level block, so \
                          its arguments cannot be rewritten",
                         location(path, import.span.start),
-                        dir.display()
+                        crate::vfs::describe_dir(dir)
                     ),
                 }
                 .into());
@@ -1646,7 +1646,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
                 "{} `module` block(s) do not name a literal source, so they cannot be shown \
                  not to call {}: {}",
                 opaque.len(),
-                dir.display(),
+                crate::vfs::describe_dir(dir),
                 opaque.join("; ")
             ),
         }
@@ -1707,7 +1707,7 @@ fn variable_insertion(
         anyhow::bail!(
             "module {} declares no variables and has no variables.tf to add one to; create \
              the file first",
-            dir.display()
+            crate::vfs::describe_dir(dir)
         );
     }
     let source = crate::vfs::read_to_string(&path)?;

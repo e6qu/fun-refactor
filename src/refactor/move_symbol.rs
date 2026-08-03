@@ -1228,8 +1228,8 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
             "'{}' is unexported, so nothing outside {} can name it; moving it to {} \
              would make it unreachable. Capitalise it first.",
             sym.name,
-            source_dir.display(),
-            dest_dir.display()
+            crate::vfs::describe_dir(source_dir),
+            crate::vfs::describe_dir(dest_dir)
         );
     }
 
@@ -1239,13 +1239,13 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         bail!(
             "no .go file in {} declares a package, so the qualifier every use site \
              would need is unknown",
-            dest_dir.display()
+            crate::vfs::describe_dir(dest_dir)
         );
     };
     let import_path = go_import_path(dest_dir).ok_or_else(|| {
         anyhow::anyhow!(
             "no go.mod above {}, so the import path of package {} cannot be derived",
-            dest_dir.display(),
+            crate::vfs::describe_dir(dest_dir),
             package
         )
     })?;
@@ -1265,7 +1265,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
             "'{}' is used from {} file(s) outside package {}",
             sym.name,
             stray.len(),
-            source_dir.display()
+            crate::vfs::describe_dir(source_dir)
         );
         for reference in &stray {
             message.push_str(&format!(
@@ -1721,7 +1721,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
         bail!(
             "cannot express {} relative to {}",
             destination.display(),
-            from_dir.display()
+            crate::vfs::describe_dir(from_dir)
         );
     };
 
@@ -2344,7 +2344,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
             bail!(
                 "cannot express {} relative to {}",
                 destination.display(),
-                dir.display()
+                crate::vfs::describe_dir(dir)
             );
         };
         let text = crate::vfs::read_to_string(file).unwrap_or_default();

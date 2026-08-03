@@ -1362,7 +1362,7 @@ impl Ctx<'_> {
                     depth + 1,
                     StopReason::Unresolved(format!(
                         "{address}: no output \"{output}\" in {}",
-                        dir.display()
+                        crate::vfs::describe_dir(dir)
                     )),
                 );
                 Ok(())
