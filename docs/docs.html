@@ -92,6 +92,12 @@
       directory unless <code>-C</code> says otherwise — not against your shell's working
       directory. A path that does not exist is an error that says where it looked.
     </p>
+    <p>
+      If you are not sure what to write, the <a href="playground/">playground</a> shows
+      the <code>path:line:col</code> of whatever the cursor is on, in its status bar,
+      and copies it when clicked. It is the same string this table describes, so you
+      can point at something in the browser and act on it in a terminal.
+    </p>
   </div>
 </section>
 
@@ -180,6 +186,66 @@
       <code>--json</code> works on every command. <code>fr capabilities</code> prints
       the full matrix of what each language supports, with the reason attached to every
       cell that is not supported.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>The playground</h2>
+    <p>
+      The <a href="playground/">playground</a> is this analysis compiled to
+      WebAssembly. There is no server: the tab fetches a public repository from
+      GitHub, holds it in memory, indexes it, and every answer and every edit happens
+      in the browser. Nothing is uploaded and nothing on GitHub changes — the diff is
+      the artifact, and you can download the session as a patch.
+    </p>
+    <p>
+      It ships all twenty-nine capabilities and a bundled fifteen-language workspace,
+      so every one of them can be tried against every grammar without waiting for a
+      download or being rate-limited. Ten preset repositories cover the same ground on
+      real code.
+    </p>
+    <div class="scroll-x">
+      <table>
+        <tr><th>Pane</th><th>What it is for</th></tr>
+        <tr>
+          <td>Files</td>
+          <td>Every file loaded. A file in a language this build has no grammar for is
+              listed and reported, not silently dropped.</td>
+        </tr>
+        <tr>
+          <td>Outline</td>
+          <td>Every definition in the open file, from the index — the same answer
+              <code>fr symbols</code> gives.</td>
+        </tr>
+        <tr>
+          <td>Structure</td>
+          <td>The parse tree. Every answer the tool gives is a claim about this tree,
+              so a surprising answer usually becomes obvious here — whether a name is
+              an <code>identifier</code> or a <code>field_identifier</code> decides
+              what half the tool will do with it. Clicking a node selects exactly the
+              bytes it covers, which is how you pick a range for
+              <code>extract</code>.</td>
+        </tr>
+        <tr>
+          <td>Status bar</td>
+          <td>The coordinate, the symbol under the cursor, whether it is exported,
+              where it is defined, and the innermost tree node.</td>
+        </tr>
+        <tr>
+          <td>Result</td>
+          <td>What the action returned — a diff, a list with confidence tiers, a call
+              tree, or the refusal and its reason. A refusal is an answer: it names
+              the rule that stopped the change.</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin-top:1.25rem">
+      The columns drag and the sidebar sections fold; the layout is remembered. What
+      the browser cannot do is what needs a filesystem: there is no fact cache, and a
+      repository has to be small enough to hold in a tab, so the loader caps the file
+      count and says what it left out.
     </p>
   </div>
 </section>
