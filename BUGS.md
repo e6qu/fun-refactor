@@ -69,6 +69,17 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B64: **a Rust method call resolved to a Zig method, and a rename rewrote it.**
+  Resolution matched candidates by name across the whole workspace without asking what
+  language they were written in, so `out.push(…)` in Rust — a `Vec::push` — resolved to
+  `Ring.push` in a `.zig` file at `import-qualified`, a tier the tool rewrites.
+  Renaming the Zig method turned the Rust call into `out.pushReading(…)`: two
+  languages, no relationship, an ordinary-looking diff. `lang::may_resolve_across` now
+  enumerates the boundaries a reference may cross — markup to stylesheet, TSX to
+  TypeScript, template to values — and no pair of imperative languages is among them.
+  Found by measuring every crossing in the bundled sample rather than by a test that
+  thought to look.
+
 - [x] B63: **`fr refs` under-reported for anything declared more than once.** A CSS
   class written in a stylesheet and again in a theme is one class; references resolve
   to one of those sites, and `references_to` counted per site. So `fr refs` on the

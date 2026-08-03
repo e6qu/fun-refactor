@@ -227,3 +227,111 @@ fn cross_language_edits_survive_reparse_validation() {
     }
     let _ = Path::new(tmp.path());
 }
+
+// ----------------------------------------------- which boundaries may be crossed
+//
+// Resolution matches candidates by name across the whole workspace. Until the
+// language table existed it did so without asking what language a candidate was
+// written in, so a Rust `out.push(…)` resolved to a Zig `Ring.push` — at
+// `import-qualified`, a tier the tool rewrites. Renaming the Zig method turned a
+// `Vec::push` call in Rust into `out.pushReading(…)`: two languages, no relationship,
+// and an ordinary-looking diff.
+
+#[test]
+fn a_rust_method_call_does_not_resolve_to_a_zig_method() {
+    let (_tmp, index) = workspace(&[
+        (
+            "buffer.zig",
+            "pub const Ring = struct {\n    pub fn push(self: *Ring) void {}\n};\n",
+        ),
+        (
+            "ingest.rs",
+            "fn collect() {\n    let mut out = Vec::new();\n    out.push(1);\n}\n",
+        ),
+    ]);
+
+    let zig_push = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "push" && s.language == fun_refactor::lang::Language::Zig)
+        .expect("the Zig method is in the index");
+
+    let reached: Vec<String> = index
+        .references_to(zig_push.id)
+        .iter()
+        .map(|r| format!("{}:{}", r.file.display(), r.span.start))
+        .collect();
+    assert!(
+        reached
+            .iter()
+            .all(|r| r.ends_with(".zig") || r.contains(".zig:")),
+        "a Rust `Vec::push` is not a use of a Zig method; reached {reached:?}"
+    );
+}
+
+#[test]
+fn a_go_function_does_not_resolve_to_a_python_function_of_the_same_name() {
+    let (_tmp, index) = workspace(&[
+        ("lib.py", "def validate(x):\n    return x\n"),
+        (
+            "main.go",
+            "package main\n\nfunc validate(x int) int { return x }\n\nfunc run() int { return validate(1) }\n",
+        ),
+    ]);
+
+    let python = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "validate" && s.language == fun_refactor::lang::Language::Python)
+        .expect("the Python function is in the index");
+    assert!(
+        index.references_to(python.id).is_empty(),
+        "Go cannot name a Python function; nothing in main.go is a use of it"
+    );
+}
+
+#[test]
+fn the_boundaries_that_are_real_still_resolve() {
+    // The negative tests above must not have been bought by breaking the edges the
+    // tool exists for. Markup names a style rule; TSX imports from TypeScript.
+    let (_tmp, index) = workspace(&[
+        ("style.css", ".panel {\n  color: red;\n}\n"),
+        ("theme.scss", ".panel {\n  background: black;\n}\n"),
+        ("page.html", "<div class=\"panel\">hi</div>\n"),
+        ("app.ts", "export function greet() {}\n"),
+        (
+            "View.tsx",
+            "import { greet } from \"./app\";\nexport function View() {\n  greet();\n  return <div className=\"panel\" />;\n}\n",
+        ),
+    ]);
+
+    let css_panel = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "panel" && s.language == fun_refactor::lang::Language::Css)
+        .expect("the CSS class is in the index");
+    let from: Vec<String> = index
+        .references_to(css_panel.id)
+        .iter()
+        .filter_map(|r| r.file.extension().map(|e| e.to_string_lossy().to_string()))
+        .collect();
+    assert!(
+        from.contains(&"html".to_string()),
+        "markup must still reach the stylesheet; reached {from:?}"
+    );
+
+    let greet = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "greet" && s.kind == fun_refactor::model::SymbolKind::Function)
+        .expect("the TypeScript function is in the index");
+    let tsx_uses = index
+        .references_to(greet.id)
+        .iter()
+        .filter(|r| r.file.extension().is_some_and(|e| e == "tsx"))
+        .count();
+    assert!(
+        tsx_uses > 0,
+        "a .tsx file imports from a .ts file constantly"
+    );
+}
