@@ -182,11 +182,14 @@ function renderDefinitions(value: any): string {
 function renderUsages(value: any): string {
   const here: any[] = value.usages ?? [];
   const elsewhere: any[] = value.same_name_elsewhere ?? [];
+  // Two lines per hit: where, then how sure and inside what. On one line the three
+  // wrap into each other and a location breaks across a line boundary.
   const one = (u: any) =>
-    `<li>${goto(u.location.file, u.location.line, u.location.col)}` +
-    ` <span class="tier ${escapeHtml(u.confidence)}">${escapeHtml(u.confidence)}</span>` +
+    `<li class="hit">${goto(u.location.file, u.location.line, u.location.col)}` +
+    `<span class="hit-meta"><span class="tier ${escapeHtml(u.confidence)}">` +
+    `${escapeHtml(u.confidence)}</span>` +
     (u.within ? ` <span class="dim">in ${escapeHtml(u.within)}</span>` : "") +
-    `</li>`;
+    `</span></li>`;
   return (
     count(here.length, "use") +
     list(here.map(one)) +
@@ -205,8 +208,9 @@ function renderReferences(refs: any[]): string {
     list(
       refs.map(
         (r) =>
-          `<li>${goto(r.path, r.line, r.col)}` +
-          ` <span class="tier ${escapeHtml(r.confidence)}">${escapeHtml(r.confidence)}</span></li>`,
+          `<li class="hit">${goto(r.path, r.line, r.col)}` +
+          `<span class="hit-meta"><span class="tier ${escapeHtml(r.confidence)}">` +
+          `${escapeHtml(r.confidence)}</span></span></li>`,
       ),
     )
   );

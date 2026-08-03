@@ -448,6 +448,13 @@ body.dragging { user-select: none; cursor: col-resize; }
 .plain li { padding: 0.1rem 0; font-family: var(--mono); font-size: 0.73rem; overflow-wrap: anywhere; }
 .plain a { color: var(--accent); cursor: pointer; text-decoration: none; }
 .plain a:hover { text-decoration: underline; }
+
+/* One hit: the location on its own line, what is known about it under it. Together
+   they wrap into each other and a path breaks mid-way. */
+.plain li.hit { padding: 0.2rem 0 0.2rem 0.5rem; border-left: 2px solid var(--rule-soft); margin-bottom: 0.1rem; }
+.plain li.hit:hover { border-left-color: var(--accent); background: var(--hover); }
+.plain li.hit > a { display: block; overflow-wrap: anywhere; }
+.hit-meta { display: block; font-size: 0.68rem; }
 .dim { color: var(--ink-faint); }
 .hint { color: var(--ink-faint); line-height: 1.5; }
 .warn { color: var(--weak); }
