@@ -210,13 +210,7 @@ fn enclosing_statement(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
         let parent = current.parent()?;
-        let kind = parent.kind();
-        if kind.contains("block")
-            || kind.contains("body")
-            || kind == "source_file"
-            || kind == "program"
-            || kind == "module"
-        {
+        if crate::refactor::is_statement_container(parent.kind()) {
             return Some(current);
         }
         current = parent;

@@ -192,11 +192,46 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Find code that is written more than once.
+    ///
+    /// Compares structure rather than text, so a copy whose variables were renamed
+    /// still matches — that is the copy a textual search will never find.
+    Duplicates {
+        /// Smallest duplicate to report, in tokens.
+        #[arg(long, default_value_t = 60)]
+        min_tokens: usize,
+        /// Require identifiers and literals to match too, not only the structure.
+        #[arg(long)]
+        exact: bool,
+        /// Only report duplicates in this language. Repeatable.
+        #[arg(long = "language", value_name = "LANG")]
+        languages: Vec<String>,
+        /// Only report duplicates under this path prefix. Repeatable.
+        #[arg(long = "path", value_name = "PREFIX")]
+        paths: Vec<PathBuf>,
+    },
     /// List symbols nothing appears to use.
     Unused {
         /// Additional catalog directory for entry-point rules.
         #[arg(long)]
         catalogs: Option<PathBuf>,
+        /// Only report symbols in this language. Repeatable.
+        ///
+        /// Filters the report, not the index: reachability is still worked out
+        /// across the whole workspace, so narrowing here cannot invent a dead
+        /// symbol the way scanning a subdirectory would.
+        #[arg(long = "language", value_name = "LANG")]
+        languages: Vec<String>,
+        /// Only report symbols under this path prefix. Repeatable.
+        #[arg(long = "path", value_name = "PREFIX")]
+        paths: Vec<PathBuf>,
+        /// Only report symbols nothing outside their own file or package can see.
+        ///
+        /// An exported symbol with no use in the workspace may still be the public
+        /// API of a library, which no amount of scanning this repository can rule
+        /// out. Those are the ones this hides.
+        #[arg(long)]
+        internal: bool,
     },
     /// Remove unused imports and sort import blocks.
     ///
@@ -409,7 +444,18 @@ pub fn run() -> Result<()> {
             write,
         } => cmd_restructure(&cli, pattern, template, language, *write),
         Command::Delete { target, write } => cmd_delete(&cli, target, *write),
-        Command::Unused { catalogs } => cmd_unused(&cli, catalogs.as_deref()),
+        Command::Duplicates {
+            min_tokens,
+            exact,
+            languages,
+            paths,
+        } => cmd_duplicates(&cli, *min_tokens, *exact, languages, paths),
+        Command::Unused {
+            catalogs,
+            languages,
+            paths,
+            internal,
+        } => cmd_unused(&cli, catalogs.as_deref(), languages, paths, *internal),
         Command::Imports { file, write } => cmd_imports(&cli, file, *write),
         Command::Move {
             target,
@@ -437,7 +483,7 @@ pub fn run() -> Result<()> {
 
 fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     if !symbol.kind.is_callable() {
         anyhow::bail!(
             "'{}' is a {}, not a function or method — it has no call edges",
@@ -572,7 +618,7 @@ fn cmd_extract(
     write: bool,
 ) -> Result<()> {
     let (path, start, end) = parse_range(range)?;
-    let path = path.canonicalize().unwrap_or(path);
+    let path = workspace_path(cli, &path)?;
     let source =
         std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let index_of_lines = LineIndex::new(&source);
@@ -622,7 +668,7 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
         let pos = parse_position(target).ok_or_else(|| {
             anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
         })?;
-        let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+        let path = workspace_path(cli, &pos.path)?;
         let source = std::fs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
         let offset = LineIndex::new(&source)
@@ -643,7 +689,7 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
         return present(cli, &plan.edits, &summary, write);
     }
 
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::inline::variable(&index, symbol.id)?;
     let summary = format!(
         "inlined `{}` into {} use site(s)",
@@ -683,7 +729,7 @@ fn parse_signature_change(spec: &str) -> Result<crate::refactor::signature::Chan
 
 fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let change = parse_signature_change(change_spec)?;
     let plan = crate::refactor::signature::change(&index, symbol.id, change)?;
     let summary = crate::refactor::signature::describe(&index, &plan);
@@ -725,7 +771,7 @@ fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::
 
 fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let dest = resolve_destination(cli, destination)?;
     let plan = crate::refactor::move_symbol::to_file(&index, symbol.id, &dest)?;
 
@@ -750,7 +796,7 @@ fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool)
 
 fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::delete::plan(&index, symbol.id)?;
 
     if !plan.warnings.is_empty() && !cli.json {
@@ -768,7 +814,165 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     present(cli, &plan.edits, &summary, write)
 }
 
-fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()> {
+/// A path the caller typed, spelled the way the index spells its paths.
+///
+/// Relative paths resolve against the workspace root, not the shell's working
+/// directory: `-C` says which workspace to operate on, and `fr -C ../helm refs
+/// pkg/x.go:3:6` means that file in that workspace. Canonical, because the index is,
+/// and a path that does not exist is an error — resolving it to itself and letting
+/// the file read fail two frames later says "reading pkg/x.go: No such file", which
+/// is true and unhelpful.
+fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let joined = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    };
+    joined.canonicalize().map_err(|e| {
+        if path.is_absolute() || root == std::path::Path::new(".") {
+            anyhow::anyhow!("{}: {e}", path.display())
+        } else {
+            anyhow::anyhow!(
+                "{} does not exist in {} — paths are read relative to the workspace \
+                 root, which -C set to that. ({e})",
+                path.display(),
+                root.display()
+            )
+        }
+    })
+}
+
+/// Language names from the command line, refused rather than ignored.
+///
+/// A typo that silently narrowed a report to nothing would read as "nothing found",
+/// which is the wrong answer given confidently.
+fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
+    names
+        .iter()
+        .map(|name| {
+            crate::lang::Language::from_name(name).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "unknown language '{name}'. Known: {}",
+                    crate::lang::Language::ALL
+                        .iter()
+                        .map(|l| l.name())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            })
+        })
+        .collect()
+}
+
+/// Path filters, spelled the way the index spells its paths.
+///
+/// Resolved against the workspace root rather than the shell's cwd, and canonical,
+/// because the index holds canonical paths. The default root is `.`, so a filter
+/// built from it reads `./pkg/action` and matches no absolute path at all — the
+/// report then comes back empty and looks like a clean bill of health.
+fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    paths
+        .iter()
+        .map(|p| {
+            let joined = if p.is_absolute() {
+                p.clone()
+            } else {
+                root.join(p)
+            };
+            joined
+                .canonicalize()
+                .map_err(|e| anyhow::anyhow!("cannot resolve --path {}: {e}", joined.display()))
+        })
+        .collect()
+}
+
+fn cmd_duplicates(
+    cli: &Cli,
+    min_tokens: usize,
+    exact: bool,
+    languages: &[String],
+    paths: &[PathBuf],
+) -> Result<()> {
+    use crate::analysis::duplicates;
+
+    let index = build_index(cli, &[])?;
+    let options = duplicates::Options {
+        min_tokens,
+        exact,
+        languages: parse_languages(languages)?,
+        paths: absolute_paths(cli, paths)?,
+    };
+    let classes = duplicates::find(&index, &options)?;
+
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&classes)?);
+        return Ok(());
+    }
+
+    if classes.is_empty() {
+        println!(
+            "No duplication of {min_tokens} tokens or more{}.",
+            if exact { " (exact)" } else { "" }
+        );
+    }
+    for class in &classes {
+        println!(
+            "{} copies, {} tokens each ({} redundant) — {}",
+            class.instances.len(),
+            class.tokens,
+            class.redundant_tokens(),
+            class.language
+        );
+        for instance in &class.instances {
+            println!(
+                "  {}:{}-{}",
+                instance.file.display(),
+                instance.start_line,
+                instance.end_line
+            );
+        }
+    }
+
+    if !classes.is_empty() {
+        let redundant: usize = classes.iter().map(|c| c.redundant_tokens()).sum();
+        println!(
+            "\n{} duplicated block(s), {redundant} redundant token(s)",
+            classes.len()
+        );
+        println!(
+            "Structure is compared, not text, so a copy with renamed variables still \n\
+             matches; pass --exact to require the names too. Only the largest block of \n\
+             each duplication is listed — the statements inside it are duplicated as \n\
+             well, and saying so again would bury the finding."
+        );
+    }
+
+    let skipped = duplicates::unparsed(&index, &options);
+    if !skipped.is_empty() {
+        println!(
+            "\n{} file(s) were skipped because they do not parse, so duplication in \n\
+             them is not reported:",
+            skipped.len()
+        );
+        for path in skipped.iter().take(10) {
+            println!("  {}", path.display());
+        }
+        if skipped.len() > 10 {
+            println!("  … and {} more", skipped.len() - 10);
+        }
+    }
+    Ok(())
+}
+
+fn cmd_unused(
+    cli: &Cli,
+    extra_catalogs: Option<&std::path::Path>,
+    languages: &[String],
+    paths: &[PathBuf],
+    internal_only: bool,
+) -> Result<()> {
     let index = build_index(cli, &[])?;
     let mut catalog = Catalog::builtin()?;
     if let Some(dir) = extra_catalogs {
@@ -776,6 +980,19 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
     }
     let entrypoints: Vec<_> = catalog.detect(&index).iter().map(|e| e.symbol).collect();
     let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
+
+    let wanted = parse_languages(languages)?;
+    let roots = absolute_paths(cli, paths)?;
+    let keep = |s: &crate::model::Symbol| {
+        (wanted.is_empty() || wanted.contains(&s.language))
+            && (roots.is_empty() || roots.iter().any(|r| s.file.starts_with(r)))
+            && (!internal_only || !s.exported)
+    };
+    let total = unused.len();
+    let unused: Vec<_> = unused
+        .into_iter()
+        .filter(|id| index.symbol(*id).is_some_and(keep))
+        .collect();
 
     if cli.json {
         let payload: Vec<_> = unused
@@ -787,6 +1004,7 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
                     "kind": s.kind.as_str(),
                     "file": s.file,
                     "language": s.language.name(),
+                    "exported": s.exported,
                 })
             })
             .collect();
@@ -794,15 +1012,27 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
         return Ok(());
     }
 
+    let mut exported_count = 0usize;
     for symbol in unused.iter().filter_map(|id| index.symbol(*id)) {
+        if symbol.exported {
+            exported_count += 1;
+        }
         println!(
-            "{:<12} {:<34} {}",
+            "{:<12} {:<34} {:<9} {}",
             symbol.kind.as_str(),
             symbol.qualified_name(),
+            if symbol.exported { "exported" } else { "" },
             symbol.file.display()
         );
     }
-    println!("\n{} symbol(s) with no detected use", unused.len());
+    if unused.len() == total {
+        println!("\n{} symbol(s) with no detected use", unused.len());
+    } else {
+        println!(
+            "\n{} symbol(s) with no detected use, of {total} found across the workspace",
+            unused.len()
+        );
+    }
     println!(
         "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
          candidates, so a method reached only through a trait object, an interface \n\
@@ -812,12 +1042,19 @@ fn cmd_unused(cli: &Cli, extra_catalogs: Option<&std::path::Path>) -> Result<()>
          left off, as are names beginning with an underscore, which say the author \n\
          meant them to go unused."
     );
+    if exported_count > 0 && !internal_only {
+        println!(
+            "\n{exported_count} of these are exported. In a library that is the public \n\
+             API, which nothing in this repository can be expected to call — pass \n\
+             --internal to list only what is definitely dead here."
+        );
+    }
     Ok(())
 }
 
 fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let path = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
+    let path = workspace_path(cli, file)?;
     let plan = crate::refactor::imports::plan(&index, &path)?;
 
     if !plan.removed.is_empty() && !cli.json {
@@ -893,7 +1130,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
 
     let pos = parse_position(target)
         .ok_or_else(|| anyhow::anyhow!("a rewrite needs a position: path:line:col"))?;
-    let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+    let path = workspace_path(cli, &pos.path)?;
     let source =
         std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let offset = LineIndex::new(&source)
@@ -974,7 +1211,7 @@ fn cmd_flow(
     use crate::analysis::flow;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
 
     // `-f`/`--set` describe a helm invocation. Accepting them for a target no
     // values file can reach would be accepting an argument and ignoring it.
@@ -1160,7 +1397,7 @@ fn cmd_impact(cli: &Cli, target: &str, caller_depth: usize) -> Result<()> {
     use crate::analysis::impact;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let result = impact::analyse(&index, symbol.id, caller_depth)?;
 
     if cli.json {
@@ -1339,7 +1576,7 @@ fn cmd_entrypoints(
 
 fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::rename::plan(&index, symbol.id, new_name)?;
 
     let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
@@ -1435,9 +1672,9 @@ fn parse_position(target: &str) -> Option<Position> {
 }
 
 /// Resolve a CLI target to a symbol, accepting either a position or a name.
-fn resolve_target<'a>(index: &'a Index, target: &str) -> Result<&'a Symbol> {
+fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a Symbol> {
     if let Some(pos) = parse_position(target) {
-        let path = pos.path.canonicalize().unwrap_or(pos.path.clone());
+        let path = workspace_path(cli, &pos.path)?;
         let source = std::fs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
         let offset = LineIndex::new(&source)
@@ -1681,7 +1918,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
     use crate::navigate;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::definitions_of(&index, symbol.id);
 
     if cli.json {
@@ -1736,7 +1973,7 @@ fn cmd_implementations(cli: &Cli, target: &str) -> Result<()> {
     use crate::navigate;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::implementations_of(&index, symbol.id);
 
     if found.is_empty() {
@@ -1777,7 +2014,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     use crate::navigate;
 
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::usages_of(&index, symbol.id);
 
     if cli.json {
@@ -1849,7 +2086,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
 
 fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
-    let symbol = resolve_target(&index, target)?;
+    let symbol = resolve_target(cli, &index, target)?;
     let refs = index.references_to(symbol.id);
     let weak = if include_unresolved {
         index.unresolved_matching(symbol.id)

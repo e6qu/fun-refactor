@@ -264,17 +264,42 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     });
     usages.dedup_by(|a, b| a.location == b.location);
 
-    let same_name_elsewhere = index
-        .unresolved_matching(symbol_id)
-        .into_iter()
-        .filter(|r| r.target.is_none())
-        .map(|reference| Usage {
+    // A call on a value whose type is not tracked resolves to none of the members
+    // that answer to the name — `c.area()` against a trait declaration and every
+    // implementation of it. Where the ambiguity is *among the things asked about*,
+    // that is a use of them, carrying the confidence that says so; it is only a
+    // coincidence of naming when the symbol has no implementations to be confused
+    // with.
+    let polymorphic = targets.len() > 1;
+    let mut same_name_elsewhere = Vec::new();
+    for reference in index.unresolved_matching(symbol_id) {
+        if reference.target.is_some() {
+            continue;
+        }
+        let usage = Usage {
             location: locate(&reference.file, reference.span),
             kind: reference.kind,
             confidence: reference.confidence,
             within: enclosing_name(index, &reference.file, reference.span.start),
-        })
-        .collect();
+        };
+        let member_shaped = matches!(
+            reference.kind,
+            crate::model::ReferenceKind::Field | crate::model::ReferenceKind::Call
+        ) && reference.confidence == Confidence::FieldBased;
+        if polymorphic && member_shaped {
+            usages.push(usage);
+        } else {
+            same_name_elsewhere.push(usage);
+        }
+    }
+    usages.sort_by(|a, b| {
+        (&a.location.file, a.location.line, a.location.col).cmp(&(
+            &b.location.file,
+            b.location.line,
+            b.location.col,
+        ))
+    });
+    usages.dedup_by(|a, b| a.location == b.location);
 
     Usages {
         query,

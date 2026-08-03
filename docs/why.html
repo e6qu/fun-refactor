@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why — fun-refactor</title>
+<meta name="description" content="Why a refactoring tool should refuse. The case for confidence tiers, measured on real codebases.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html" aria-current="page">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="shell">
+    <p class="eyebrow">The case</p>
+    <h1 class="prose">A tool that refuses is worth more<br>than one that guesses.</h1>
+    <p class="lede prose">
+      Everyone has done the rename that looked clean and broke something on a branch
+      nobody was watching. The problem is not that tools make mistakes — it is that
+      they do not tell you where they were unsure.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="grid two">
+      <div class="card">
+        <h3>What you have now</h3>
+        <p>
+          <strong>Find-and-replace</strong> works on every language and understands
+          none of them. It renames the string in the comment, the substring inside
+          another identifier, and the unrelated field on a different type.
+        </p>
+        <p>
+          <strong>A language server</strong> understands one language exactly, and
+          stops at its edge. Your Helm chart, your Terraform module and your stylesheet
+          are outside it, and so is the file that failed to compile this morning.
+        </p>
+      </div>
+      <div class="card">
+        <h3>What this does instead</h3>
+        <p>
+          One index across fifteen languages, built from syntax rather than from types.
+          Each reference is resolved by a specific rule — the scope chain, an import,
+          the enclosing package — and <em>which rule answered</em> is attached to the
+          answer.
+        </p>
+        <p>
+          What it can prove, it rewrites. What it cannot, it lists: the weakly
+          resolved sites, the name in a string, the file that would not parse. You get
+          a diff and a to-do list, and you know which is which.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>The bugs that argue for this</h2>
+    <p>
+      Every one of these was in this tool, found by running it over real repositories,
+      and each is the kind that a test suite written from imagination does not catch.
+      They are on this page because they are the argument: a refactoring tool has one
+      job, and the failure mode that matters is the silent one.
+    </p>
+
+    <h3>A guard clause that moved code out from under its guard</h3>
+    <p>
+      Go's grammar puts a <code>statement_list</code> between a block and its
+      statements. Counted as a statement, it made every block look like a block of one
+      — so the check "is this <code>if</code> the last thing here?" passed for an
+      <code>if</code> with code after it, and the rewrite hoisted that code out from
+      under the condition guarding it.
+    </p>
+    <p>
+      The result parses. No syntax check catches it. Over 250 files of helm's
+      <code>pkg/services</code>: <strong>1,258 of 1,498 applications were wrong</strong>
+      — 84%. After the fix those are refused and the remaining 240 apply.
+    </p>
+
+    <h3>A de Morgan rewrite that dropped its own brackets</h3>
+    <p>
+      <code>!(a &amp;&amp; b)</code> is one operand; <code>!a || !b</code> is two, and
+      the brackets that held it together left with the negation. Inside another
+      operator, <code>x &amp;&amp; !(a &amp;&amp; b)</code> became
+      <code>x &amp;&amp; !a || !b</code>: valid, and a different program.
+    </p>
+
+    <h3>References that were never found at all</h3>
+    <p>
+      A Go package is a directory — a function in one file is called from the next with
+      no import and no qualifier. Only Terraform was treated that way, so
+      <code>fr refs</code> returned <em>zero</em> for symbols helm calls from the file
+      next door. Dead-code analysis reported <strong>238 internal Go symbols as
+      dead</strong> where 47 are. A rename rewrote the definition and listed the call
+      sites it could not see as merely "unresolved".
+    </p>
+    <p class="note">
+      That last one is the honest failure mode working as designed: incomplete, and
+      saying so, rather than confidently broken. It was still a bug, and it is fixed.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">What it is measured on</h2>
+    <div class="grid three" style="margin-top:2rem">
+      <div class="stat">
+        <span class="num">1,267</span>
+        <span class="what">tests, with clippy at <code>-D warnings</code> on every pull request</span>
+      </div>
+      <div class="stat">
+        <span class="num">16,525</span>
+        <span class="what">Grafana files parsed in 10.9s — 13 languages, one index</span>
+      </div>
+      <div class="stat">
+        <span class="num">0</span>
+        <span class="what">capability × language pairs marked "refused"; the other 84 are not applicable, with a reason</span>
+      </div>
+    </div>
+    <p class="note prose" style="margin-top:2rem">
+      The capability matrix is computed by asking each refactoring's own predicate, not
+      maintained by hand — because the hand-written version drifted twice, once hiding
+      27 cells that had never been built and once publishing six working ones as
+      refused.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Where it fits</h2>
+    <p>
+      Not a replacement for rust-analyzer or gopls. They have types; this has syntax,
+      and syntax stops at the point where a receiver's type would tell you which method
+      you meant. When it reaches that point it says <span class="tier-weak">field-based</span>
+      and leaves the line alone.
+    </p>
+    <p>What it has that they do not:</p>
+    <ul>
+      <li>One index over the whole repository, whatever the file is written in.</li>
+      <li>Configuration as a first-class language — a Helm values key knows which templates read it, and a rename moves them.</li>
+      <li>Answers that survive a file that does not compile, because it never needed the compiler.</li>
+      <li>An explicit account of what it did not do, every time.</li>
+    </ul>
+
+    <div class="btn-row">
+      <a class="btn" href="demo.html">See a real refactor</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor">Read the source</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+</body>
+</html>

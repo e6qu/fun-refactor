@@ -1434,3 +1434,36 @@ fn html_remains_refused_for_extract_variable() {
         .to_string();
     assert!(err.contains("not supported for"), "got: {err}");
 }
+
+#[test]
+fn a_go_binding_is_placed_before_the_statement_it_serves() {
+    // Go puts a `statement_list` between a block and its statements. A third private
+    // copy of the "is this a statement container" predicate did not know that, so the
+    // enclosing *statement* of an expression resolved to the whole function body and
+    // the new binding was inserted at the top of the function — above the declaration
+    // of the variable it reads. That parses, so no reparse check would catch it; it
+    // simply does not compile.
+    let src = "package p\n\nfunc f(xs []int) {\n\titems := []int{}\n\
+               \tfor _, x := range xs {\n\t\titems = append(items, x)\n\t}\n\
+               \tif len(items) > 0 {\n\t\tuse(items)\n\t}\n}\n\nfunc use(x []int) {}\n";
+    let ws = workspace(&[("a.go", src)]);
+    let path = ws.path("a.go");
+
+    let start = src.find("len(items)").unwrap();
+    let span = Span::new(start, start + "len(items)".len());
+    let plan = extract::variable(&ws.index, &path, span, "count", false).unwrap();
+    let out = apply_to_string(src, plan.edits.edits_for(&path).unwrap()).unwrap();
+
+    let binding = out.find("count := len(items)").expect("the binding exists");
+    let declaration = out
+        .find("items := []int{}")
+        .expect("the declaration exists");
+    assert!(
+        binding > declaration,
+        "the binding reads `items`, so it cannot precede it:\n{out}"
+    );
+    assert!(
+        out.contains("\tcount := len(items)\n\tif count > 0 {"),
+        "it belongs immediately before the statement that uses it:\n{out}"
+    );
+}

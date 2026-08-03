@@ -470,3 +470,22 @@ fn the_underscore_convention_is_reported_as_a_reason_not_hidden() {
         .expect("a spared symbol must say why it was spared");
     assert!(reason.contains("underscore"), "got: {reason}");
 }
+
+#[test]
+fn an_exported_symbol_is_reported_but_marked_as_such() {
+    // The distinction the `--internal` flag and the `exported` column rest on: a
+    // library's public API has no caller in its own repository, and that is not
+    // evidence of anything.
+    let source = "package p\n\nfunc Exported() int {\n\treturn 1\n}\n\
+                  func unexported() int {\n\treturn 2\n}\n";
+    let (_tmp, index) = workspace(&[("a.go", source)]);
+
+    let unused = delete::find_unused(&index, &[]);
+    let named: Vec<(&str, bool)> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| (s.name.as_str(), s.exported))
+        .collect();
+    assert!(named.contains(&("Exported", true)), "got {named:?}");
+    assert!(named.contains(&("unexported", false)), "got {named:?}");
+}

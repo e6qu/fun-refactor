@@ -215,6 +215,15 @@ pub struct Reference {
     pub target: Option<SymbolId>,
     pub confidence: Confidence,
     pub kind: ReferenceKind,
+    /// What this reference was written against, when it was written as a member of
+    /// something: the `w` in `w.contextWithTimeout(…)`, the `time` in `time.Now()`.
+    ///
+    /// The two are the same syntax in Go, and telling them apart decides whether the
+    /// name is a method or a package-level function. Resolution can only make that
+    /// call by asking whether the receiver is an import binding, which needs the
+    /// receiver recorded here.
+    #[serde(default)]
+    pub receiver: Option<String>,
 }
 
 /// What syntactic role a reference plays.

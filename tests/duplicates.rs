@@ -1,0 +1,227 @@
+//! Copy-paste detection.
+//!
+//! The properties that make the output worth reading: it finds copies whose names
+//! were changed, it does not report the small shapes every language repeats, and it
+//! reports the largest duplicated block rather than that block and everything inside
+//! it.
+
+use fun_refactor::analysis::duplicates::{self, Options};
+use fun_refactor::index::Index;
+use fun_refactor::lang::Language;
+use fun_refactor::scan::{scan, ScanOptions};
+
+fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
+    let tmp = tempfile::tempdir().unwrap();
+    for (name, content) in files {
+        let path = tmp.path().join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, content).unwrap();
+    }
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    (tmp, Index::build_from_scan(&scanned).unwrap())
+}
+
+/// A function long enough to clear the threshold, parameterised so copies can differ.
+fn go_function(name: &str, var: &str) -> String {
+    format!(
+        "package p\n\nfunc {name}(items []int, factor int) int {{\n\
+         \t{var} := 0\n\
+         \tfor _, item := range items {{\n\
+         \t\tif item > 0 {{\n\
+         \t\t\t{var} += item * factor\n\
+         \t\t}} else {{\n\
+         \t\t\t{var} -= item / factor\n\
+         \t\t}}\n\
+         \t}}\n\
+         \tif {var} > 100 {{\n\
+         \t\t{var} = 100\n\
+         \t}}\n\
+         \treturn {var}\n\
+         }}\n"
+    )
+}
+
+fn options(min_tokens: usize) -> Options {
+    Options {
+        min_tokens,
+        ..Options::default()
+    }
+}
+
+#[test]
+fn the_same_code_in_two_files_is_one_finding_with_two_instances() {
+    let a = go_function("alpha", "total");
+    let b = go_function("beta", "total");
+    let (_tmp, index) = workspace(&[("a/x.go", &a), ("b/y.go", &b)]);
+
+    let classes = duplicates::find(&index, &options(40)).unwrap();
+    assert_eq!(classes.len(), 1, "one duplication, got {classes:?}");
+    assert_eq!(classes[0].instances.len(), 2);
+    assert_eq!(classes[0].language, Language::Go);
+    assert_ne!(
+        classes[0].instances[0].file, classes[0].instances[1].file,
+        "the two instances are the two files"
+    );
+}
+
+#[test]
+fn a_copy_with_renamed_variables_is_still_a_copy() {
+    // The whole reason to compare structure: `grep` cannot find this one.
+    let a = go_function("alpha", "total");
+    let b = go_function("beta", "accumulator");
+    let (_tmp, index) = workspace(&[("a/x.go", &a), ("b/y.go", &b)]);
+
+    let structural = duplicates::find(&index, &options(40)).unwrap();
+    assert_eq!(structural.len(), 1, "renaming is not a difference in shape");
+
+    let exact = duplicates::find(
+        &index,
+        &Options {
+            min_tokens: 40,
+            exact: true,
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert!(
+        exact.is_empty(),
+        "--exact asks the stricter question and gets the stricter answer: {exact:?}"
+    );
+}
+
+#[test]
+fn an_identical_copy_is_found_in_exact_mode_too() {
+    let a = go_function("alpha", "total");
+    let (_tmp, index) = workspace(&[("a/x.go", &a), ("b/y.go", &a)]);
+
+    let exact = duplicates::find(
+        &index,
+        &Options {
+            min_tokens: 40,
+            exact: true,
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(exact.len(), 1, "got {exact:?}");
+}
+
+#[test]
+fn small_shapes_every_language_repeats_are_not_reported() {
+    // Two files with the same trivial function. Reporting this would mean reporting
+    // every getter in the workspace.
+    let src = "package p\n\nfunc get(x int) int {\n\treturn x\n}\n";
+    let (_tmp, index) = workspace(&[("a/x.go", src), ("b/y.go", src)]);
+
+    let classes = duplicates::find(&index, &Options::default()).unwrap();
+    assert!(classes.is_empty(), "below the threshold: {classes:?}");
+}
+
+#[test]
+fn only_the_largest_duplicated_block_is_reported() {
+    // A duplicated function duplicates its body, its loop and its every statement.
+    // All of those hash-match as well; listing them is the same finding said five
+    // times, with the useful one buried.
+    let a = go_function("alpha", "total");
+    let b = go_function("beta", "total");
+    let (_tmp, index) = workspace(&[("a/x.go", &a), ("b/y.go", &b)]);
+
+    let classes = duplicates::find(&index, &options(10)).unwrap();
+    assert_eq!(
+        classes.len(),
+        1,
+        "a low threshold must not multiply one duplication into many: {:?}",
+        classes
+            .iter()
+            .map(|c| (c.tokens, c.instances.len()))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn one_occurrence_is_not_a_duplicate() {
+    let a = go_function("alpha", "total");
+    let (_tmp, index) = workspace(&[("a/x.go", &a)]);
+    let classes = duplicates::find(&index, &options(10)).unwrap();
+    assert!(classes.is_empty(), "got {classes:?}");
+}
+
+#[test]
+fn instances_of_one_class_never_overlap_each_other() {
+    // Repeating a block inside a single file: the two instances are real, and each
+    // must be its own bytes.
+    let body = "\tif x > 0 {\n\t\ty := x * 2\n\t\tz := y + 1\n\t\tuse(y, z)\n\t}\n";
+    let src = format!("package p\n\nfunc f(x int) {{\n{body}{body}}}\n\nfunc use(a, b int) {{}}\n");
+    let (_tmp, index) = workspace(&[("a.go", &src)]);
+
+    for class in duplicates::find(&index, &options(15)).unwrap() {
+        for (i, one) in class.instances.iter().enumerate() {
+            for other in &class.instances[i + 1..] {
+                if one.file == other.file {
+                    assert!(
+                        one.span.end <= other.span.start || other.span.end <= one.span.start,
+                        "instances overlap: {one:?} and {other:?}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn a_language_filter_narrows_the_report() {
+    let go = go_function("alpha", "total");
+    let (_tmp, index) = workspace(&[("a/x.go", &go), ("b/y.go", &go)]);
+
+    let none = duplicates::find(
+        &index,
+        &Options {
+            min_tokens: 40,
+            languages: vec![Language::Python],
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert!(none.is_empty(), "no Python here: {none:?}");
+
+    let some = duplicates::find(
+        &index,
+        &Options {
+            min_tokens: 40,
+            languages: vec![Language::Go],
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(some.len(), 1);
+}
+
+#[test]
+fn a_file_that_does_not_parse_is_named_rather_than_silently_skipped() {
+    // Its structure cannot be trusted, so it is not compared — but a report that
+    // quietly leaves files out reads as "no duplication here".
+    let good = go_function("alpha", "total");
+    let (_tmp, index) = workspace(&[
+        ("a/x.go", good.as_str()),
+        ("b/y.go", good.as_str()),
+        ("c/broken.go", "package p\n\nfunc oops( {\n"),
+    ]);
+
+    let skipped = duplicates::unparsed(&index, &Options::default());
+    assert_eq!(skipped.len(), 1, "got {skipped:?}");
+    assert!(skipped[0].ends_with("broken.go"));
+}
+
+#[test]
+fn the_redundant_count_is_what_factoring_out_would_save() {
+    let a = go_function("alpha", "total");
+    let (_tmp, index) = workspace(&[("a/x.go", &a), ("b/y.go", &a), ("c/z.go", &a)]);
+
+    let classes = duplicates::find(&index, &options(40)).unwrap();
+    assert_eq!(classes[0].instances.len(), 3);
+    assert_eq!(
+        classes[0].redundant_tokens(),
+        classes[0].tokens * 2,
+        "one copy has to stay"
+    );
+}

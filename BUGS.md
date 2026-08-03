@@ -69,6 +69,114 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B40: **`fr extract` put a Go binding above the declaration it read.** Extracting
+  `len(totalItems)` from an `if` inserted `itemCount := len(totalItems)` at the top of
+  the function, before `totalItems` existed. The result parses, so the reparse check
+  saw nothing wrong; it simply does not compile. The cause was a *third* private copy
+  of the "is this a statement container" predicate, this one still not knowing about
+  Go's `statement_list`, so the enclosing statement of an expression resolved to the
+  whole function body. All three copies are now one.
+
+
+- [x] B39: **a Helm values key could not be renamed.** A template action is masked
+  before parsing — which is what keeps the surrounding YAML parseable and the byte
+  offsets honest — so everything inside `{{ … }}` was invisible to the index.
+  Provenance parsed the actions separately and could say which templates read a key,
+  but `fr refs` on that key answered zero and a rename rewrote `values.yaml` and
+  nothing else, listing every template use as a textual occurrence to check by hand.
+  The `.Values` paths are now extracted as references spanning the final segment
+  only, so renaming `image.tag` rewrites `tag` and leaves `image` alone.
+
+  Resolution is scoped to the chart, because two charts in one workspace routinely
+  declare `image` or `name` and a global match would point a template at a
+  neighbour's values file. The segment before the key is carried as the reference's
+  receiver, which is what distinguishes `image.tag` from an unrelated top-level
+  `tag`, and only files named `values*.yaml` are candidates — every template in the
+  chart is YAML with keys of its own. `{{ .Release.Name }}` is still reported as a
+  textual occurrence rather than rewritten, because it is not a values key.
+
+
+- [x] B35: **`--path` filters matched nothing, and reported that as nothing found.**
+  They were built by joining the default root `.`, giving `./pkg/action`, which
+  starts-with-matches no absolute path in the index. Every filtered report came back
+  empty and read as a clean bill of health. Filters are now resolved against the
+  workspace root and canonicalised, and a path that does not exist is an error.
+
+- [x] B36: a relative path in a target was read from the shell's working directory
+  rather than the workspace `-C` names, so `fr -C ../helm refs pkg/x.go:3:6` failed
+  with "reading pkg/x.go: No such file". Four sites had their own
+  `canonicalize().unwrap_or(…)`, which kept the unusable path and let the failure
+  surface two frames later; they now share one resolver that says where it looked.
+
+- [x] B37: a field access resolved to a local variable. `i.provData` bound to a
+  `provData, err := …` two lines up, because the nearest-definition rule ran before
+  anything checked that a member access can only name a member. The field then had no
+  references at all and was reported as dead.
+
+- [x] B38: nothing tested the command line. Every test called the library directly,
+  which is why B35 and B36 — both entirely in the layer between an argument and that
+  library — were invisible. `tests/cli.rs` runs the binary: argument parsing, path
+  resolution, exit codes, and the text a person reads.
+
+
+- [x] B26: **Go resolved nothing across files in a package.** A package in Go is a
+  directory — a function in `a.go` is called from `b.go` with no import and no
+  qualifier — and only Terraform was treated that way. `fr refs` returned *zero*
+  references for symbols helm/helm calls from the file next door, `fr unused`
+  reported 238 internal Go symbols as dead where 50 are, and a rename rewrote the
+  definition while listing the call sites it could not see as "unresolved". Package
+  scope is now the directory, restricted to top-level declarations — `qualifier`,
+  not `container`, since a Go method's receiver type is declared elsewhere and so the
+  method links to no containing symbol.
+
+- [x] B27: a method call resolved to a package-level function of the same name.
+  `w.contextWithTimeout(…)` and `time.Now()` are one syntax in Go, and the grammars
+  capture only the callee, so nothing separated a member from a package-qualified
+  call. References now record the receiver they were written against, and an import
+  binding before the dot is what tells the two apart. Without it the method read as
+  dead while the function absorbed its call sites.
+
+- [x] B28: **file proximity decided which method a call meant.** Two types declaring
+  the same method in one file are equally plausible targets; resolution picked the one
+  written nearer the call and reported it as a resolved edge, which made the other
+  look dead. Proximity is no longer evidence for a member access — the answer is
+  "either", and both stay live.
+
+- [x] B29: a binding resolved inside its own initialiser. helm's
+  `templatesDirExists := run(…, templatesDirExists(path))` calls the package function
+  and *then* shadows it; resolving the call to the variable being declared made the
+  function look dead. The rule holds in Rust (`let x = x + 1`) and Python (`x = f(x)`)
+  as well, and is now applied in all of them.
+
+- [x] B30: a use bound to the nearest declaration in either direction. Go re-declares
+  with `:=` mid-function, and helm's `var ret …` / `return ret` / `ret, err := …`
+  bound the early return to the *later* binding because it sat 15 bytes closer. Value
+  bindings now prefer a declaration above the use; a function may still be called
+  above where it is written.
+
+- [x] B31: a package may declare one name twice under opposite build tags —
+  `//go:build windows` and `//go:build !windows`. Resolution picked the first and
+  reported the other as dead; picking one would rewrite half a pair and break the
+  other build. Both are now reported as ambiguous and spared.
+
+- [x] B32: **the public API of a library rooted nothing.** With no `main`, everything
+  beneath an exported symbol read as dead — in helm that was most of `pkg/action`,
+  where `performInstall` is reached only through the exported `RunWithContext`.
+  Exported symbols now seed reachability, while being judged on their own uses, so an
+  export nothing calls is still listed and tagged rather than hidden.
+
+- [x] B33: two types sharing a private method name made both look dead, because the
+  call resolved to neither. They are now spared with that stated — except where the
+  hierarchy analysis has already ruled on the name, whose answer is the more precise
+  one and stands.
+
+- [x] B34: `fr unused` had no way to narrow its report. On a polyglot repository every
+  Markdown heading drowned the code findings, and `-C` could not be used to narrow
+  because a smaller index invents dead symbols rather than hiding them. Added
+  `--language`, `--path` and `--internal`, which filter the report and not the index,
+  with an unknown language name refused against the known list.
+
+
 - [x] B16: micro-rewrites were published for seven languages and tested on three.
   `invert-if` and `guard-clause` negated the whole condition node, which in the C
   family and Zig *includes the brackets*, so both emitted `if !(a)` — valid Rust,

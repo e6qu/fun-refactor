@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo — fun-refactor on helm/helm</title>
+<meta name="description" content="A real refactoring of helm/helm, step by step: find the work, make the change, verify it with the Go compiler, open the pull request.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html" aria-current="page">Demo</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">Walkthrough</p>
+    <h1 class="prose">One refactor, start to pull request</h1>
+    <p class="lede prose">
+      Ten steps against <a href="https://github.com/helm/helm">helm/helm</a> at
+      <a href="https://github.com/helm/helm/commit/a8ab76e"><code>a8ab76e</code></a>:
+      survey the repository, find something worth changing, change it, prove it still
+      compiles, and open the PR.
+    </p>
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Recorded</span> &nbsp;These are transcripts of real runs,
+      replayed here — the page is static and is not executing the tool. Every command
+      is copy-pasteable against the same commit and will produce the same output.
+    </p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="shell">
+    <div class="demo-layout">
+      <ol class="steps" id="steps"></ol>
+
+      <div>
+        <div class="term">
+          <div class="term-bar">
+            <i class="dot"></i><i class="dot"></i><i class="dot"></i>
+            <span class="term-title" id="term-title">helm/helm</span>
+          </div>
+          <div class="term-body"><pre id="screen"></pre></div>
+        </div>
+
+        <div class="demo-controls">
+          <button id="prev">← Previous</button>
+          <button id="next">Next →</button>
+          <button id="play">Play all</button>
+          <span id="progress" class="note" style="border:0;padding:0"></span>
+        </div>
+
+        <p class="demo-caption" id="caption"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>What the tool refused to do</h2>
+    <p>
+      The interesting output is not the diff, it is the list underneath it. In this
+      run the rename reported thirteen chart fixtures that do not parse — helm keeps
+      deliberately broken templates to test its own error messages — because a
+      reference inside a file it could not read is a reference it cannot promise it
+      found.
+    </p>
+    <p>
+      It also left <code>TestDetermineReleaseSSAApplyMethod</code> alone. That
+      identifier contains the old name and is not it, which is exactly the case a
+      find-and-replace gets wrong.
+    </p>
+
+    <h3>Try it on your own code</h3>
+    <div class="term">
+      <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+      <div class="term-body"><pre><span class="cmd">git clone https://github.com/e6qu/fun-refactor && cargo install --path fun-refactor</span>
+<span class="cmd">cd your-project && fr parse --stats</span></pre></div>
+    </div>
+    <div class="btn-row">
+      <a class="btn" href="docs.html">How it works</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">The written tutorial</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script src="demo.js"></script>
+</body>
+</html>

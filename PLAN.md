@@ -281,6 +281,34 @@ call sites. ‡ SCSS: mixin parameters.
 
 ## Testing & quality strategy
 
+Four layers, each answering a question the one below it cannot:
+
+| Layer | Where | What it can catch |
+|---|---|---|
+| Unit | `#[cfg(test)]` beside the code | Local correctness: span arithmetic, negation, subtree hashing |
+| Integration | `tests/*.rs` against the library | A refactoring's resulting bytes, per language |
+| End-to-end | `tests/cli.rs`, `tests/test_pyramid.rs` | Argument parsing, path resolution, exit codes, the text a person reads |
+| Real repositories | helm/helm, grafana/grafana, by hand | What people actually write, which is not what fixtures imagine |
+
+The end-to-end layer exists because two bugs were found living in it, both of the
+kind that answers wrongly while looking like it worked: `--path` filters built by
+joining the default root `.` matched nothing and reported that as nothing found, and
+target paths were read from the shell's directory rather than the workspace `-C`
+names. Neither was visible from the library API.
+
+`tests/test_pyramid.rs` enforces the layer rather than merely occupying it: it reads
+the subcommand list out of `fr --help` and fails if any command has no end-to-end
+test. That guard is verified to bite — removing a command's entry fails the build
+with its name. It also asserts that no command writes to the workspace without
+`--write`, which is the promise the whole CLI rests on.
+
+The fourth layer is deliberately not automated. Pinning a 500 MB clone into CI buys
+less than the measurements already recorded in BUGS.md, and the bugs it found were
+found by *reading* output — a silent guard-clause that moved code out from under its
+condition, a dead-code report that was 84% false positives — which no assertion
+written in advance would have looked for.
+
+
 - **Fixture corpora**: per language × per feature, including adversarial cases (shadowing,
   aliased imports, same-name symbols across files, dynamic dispatch).
 - **Property tests**: every applied edit set reparses with no new ERROR nodes; bytes outside
@@ -311,7 +339,7 @@ call sites. ‡ SCSS: mixin parameters.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend, and every
-capability a language can meaningfully support is built: **201 of 285 capability ×
+capability a language can meaningfully support is built: **231 of 315 capability ×
 language pairs supported, 84 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
@@ -354,6 +382,6 @@ operations is the highest-value work left, and running against a second large
 codebase in a different language mix is how the next ten will be found.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
-`signature`, `move`, `delete`, `unused`, `imports`, `restructure`, `rewrite`,
-`remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
+`signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
+`rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
 `entrypoints`, `capabilities`, `cache`.

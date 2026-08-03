@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentation — fun-refactor</title>
+<meta name="description" content="Commands, target syntax, confidence tiers, the cache, and how the edit engine keeps a refactoring honest.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="docs.html" aria-current="page">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">Reference</p>
+    <h1 class="prose">Documentation</h1>
+    <p class="lede prose">
+      Enough to use it and to know when not to trust it. The
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">tutorial</a>
+      walks a whole refactor on a real codebase; this is the reference underneath it.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">Install</h2>
+    <div class="term" style="max-width:44rem">
+      <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+      <div class="term-body"><pre><span class="cmd">git clone https://github.com/e6qu/fun-refactor</span>
+<span class="cmd">cargo install --path fun-refactor</span>   <span class="dim"># installs `fr`</span></pre></div>
+    </div>
+    <p class="note prose" style="margin-top:1rem">
+      Rust 2021 edition and a C compiler — every tree-sitter grammar is C, so a cold
+      build takes a few minutes.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Naming a target</h2>
+    <p>
+      Commands that act on a symbol take a <strong>target</strong>, written one of two
+      ways.
+    </p>
+
+    <div class="scroll-x">
+      <table>
+        <tr><th>Form</th><th>When</th><th>Example</th></tr>
+        <tr>
+          <td><code>path:line:col</code></td>
+          <td>Always works. 1-based; must land on the identifier itself, at the definition or any use of it.</td>
+          <td><code>fr refs pkg/action/action.go:725:6</code></td>
+        </tr>
+        <tr>
+          <td>a bare name</td>
+          <td>When the name is unique in the workspace. Otherwise the tool lists the candidates and stops.</td>
+          <td><code>fr callers RunAll</code></td>
+        </tr>
+        <tr>
+          <td><code>path:l:c-l:c</code></td>
+          <td><code>fr extract</code>, which acts on a range rather than a symbol.</td>
+          <td><code>fr extract a.go:8:5-8:19 count</code></td>
+        </tr>
+        <tr>
+          <td><code>path</code></td>
+          <td><code>fr imports</code>, and the destination argument of <code>fr move</code>.</td>
+          <td><code>fr imports pkg/action/install.go</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin-top:1.25rem">
+      Relative paths are read against the <strong>workspace root</strong> — the current
+      directory unless <code>-C</code> says otherwise — not against your shell's working
+      directory. A path that does not exist is an error that says where it looked.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Confidence</h2>
+    <p>
+      Every resolved reference carries the rule that resolved it. This is the tool's
+      central idea: it would rather hand you a list to check than change a line it
+      cannot justify.
+    </p>
+
+    <div class="scroll-x">
+      <table>
+        <tr><th>Tier</th><th>What proved it</th><th>Rewritten</th></tr>
+        <tr>
+          <td><span class="tier-exact">exact</span></td>
+          <td>The lexical scope chain, the same file, or the enclosing package.</td>
+          <td>yes</td>
+        </tr>
+        <tr>
+          <td><span class="tier-exact">import-qualified</span></td>
+          <td>An import binding in this file names the file it came from.</td>
+          <td>yes</td>
+        </tr>
+        <tr>
+          <td><span class="tier-weak">field-based</span></td>
+          <td>The name is a member of something, but the receiver's type is not tracked.</td>
+          <td>no — reported</td>
+        </tr>
+        <tr>
+          <td><span class="tier-weak">name-only</span></td>
+          <td>Nothing but the name matched.</td>
+          <td>no — reported</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin-top:1.25rem">
+      Refactorings also report <em>textual occurrences</em> — the name in a string or a
+      comment — and <em>parse errors</em>, because a file that could not be read may
+      hold references nobody can see.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Commands</h2>
+
+    <h3>Understanding</h3>
+    <div class="scroll-x"><table>
+      <tr><td><code>fr parse --stats</code></td><td>What is here, and what failed to parse</td></tr>
+      <tr><td><code>fr symbols</code></td><td>Every definition</td></tr>
+      <tr><td><code>fr def</code> · <code>fr refs</code></td><td>Go to definition; every use, with confidence</td></tr>
+      <tr><td><code>fr implementations</code> · <code>fr usages</code></td><td>What satisfies an abstraction; uses grouped by file</td></tr>
+      <tr><td><code>fr callers</code> · <code>fr callees</code> · <code>fr graph</code></td><td>The call graph, either direction or whole</td></tr>
+      <tr><td><code>fr flow back</code> · <code>fr flow fwd</code></td><td>Where a value came from; where it goes</td></tr>
+      <tr><td><code>fr impact</code></td><td>Everything a change could affect</td></tr>
+      <tr><td><code>fr entrypoints</code></td><td>Where execution starts</td></tr>
+      <tr><td><code>fr stitch</code></td><td>Config → code: which program reads this setting</td></tr>
+    </table></div>
+
+    <h3>Finding work</h3>
+    <div class="scroll-x"><table>
+      <tr><td><code>fr unused</code></td><td>Symbols nothing appears to use. <code>--internal</code> drops the public API; <code>--language</code> and <code>--path</code> narrow the report, never the index</td></tr>
+      <tr><td><code>fr duplicates</code></td><td>Code written more than once, compared structurally. <code>--exact</code> requires the names to match too</td></tr>
+    </table></div>
+
+    <h3>Changing</h3>
+    <p class="note">All of these print a diff and write nothing until <code>--write</code>.</p>
+    <div class="scroll-x"><table>
+      <tr><td><code>fr rename</code></td><td>Rename a symbol and everything that points at it</td></tr>
+      <tr><td><code>fr extract</code></td><td>An expression into a binding, or statements into a function</td></tr>
+      <tr><td><code>fr inline</code></td><td>The reverse of either</td></tr>
+      <tr><td><code>fr signature</code></td><td>Add, remove or reorder parameters, updating every call</td></tr>
+      <tr><td><code>fr move</code></td><td>Move a symbol to another file, carrying its imports</td></tr>
+      <tr><td><code>fr delete</code></td><td>Delete it, refusing while anything uses it</td></tr>
+      <tr><td><code>fr imports</code></td><td>Drop unused imports and sort the rest</td></tr>
+      <tr><td><code>fr rewrite</code></td><td>Local transformations: invert-if, guard-clause, de-morgan</td></tr>
+      <tr><td><code>fr restructure</code></td><td>Pattern rewriting: <code>old($X)</code> → <code>new($X)</code></td></tr>
+      <tr><td><code>fr remove-flag</code></td><td>Retire a feature flag and the branch that served it</td></tr>
+    </table></div>
+
+    <p style="margin-top:1.25rem">
+      <code>--json</code> works on every command. <code>fr capabilities</code> prints
+      the full matrix of what each language supports, with the reason attached to every
+      cell that is not supported.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>How it works</h2>
+
+    <h3>Parsing, and where the trees live</h3>
+    <p>
+      Each file is parsed by <a href="https://tree-sitter.github.io/">tree-sitter</a>,
+      one grammar per language, into a tree that keeps every byte — comments and
+      whitespace included. That is what makes losslessness possible: an edit is a
+      byte-range splice, so everything outside the range is untouched by construction.
+    </p>
+    <p>
+      <strong>The trees are not stored.</strong> They live for the duration of one
+      file's extraction and are dropped; what survives is a much smaller set of facts —
+      symbols, references, scopes, imports — each carrying a byte span. Keeping 16,000
+      syntax trees in memory would cost more than re-parsing the few files any one
+      command needs.
+    </p>
+    <p>
+      Positions are byte offsets everywhere except the command line. Line and column
+      are a display format, and a tool that miscounts a column corrupts a file.
+    </p>
+    <p>
+      Helm gets one extra step. A template action is <em>masked</em> before parsing —
+      replaced by filler of exactly the same byte length — so the surrounding YAML
+      still has valid structure and every offset stays correct. The actions are then
+      parsed separately, which is how <code>.Values.image.tag</code> becomes a
+      reference to a values key that a rename can rewrite.
+    </p>
+
+    <h3>The cache</h3>
+    <p>
+      Content-addressed. A file's facts are keyed by the SHA-256 of its contents
+      combined with a fingerprint of the query set that produced them. Change the file
+      and the key changes; change a query and every key changes. There is no
+      invalidation logic to get wrong, because there is nothing to invalidate — a stale
+      entry is simply never looked up.
+    </p>
+    <div class="term" style="max-width:44rem">
+      <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+      <div class="term-body"><pre><span class="cmd">fr cache</span>
+location  ~/Library/Caches/fun-refactor/v2-dbe4d237fed430ca
+size      3791 KiB
+
+<span class="cmd">fr cache --clear</span>
+<span class="cmd">fr &lt;command&gt; --no-cache</span></pre></div>
+    </div>
+    <p style="margin-top:1rem">
+      Set <code>FUN_REFACTOR_CACHE</code> to override the location. The directory name
+      carries a schema version, so a release that changes what a fact <em>is</em> starts
+      a new namespace rather than reading old data with a new meaning.
+    </p>
+
+    <h3>The edit engine</h3>
+    <p>Every refactoring returns a plan and touches nothing. The engine then:</p>
+    <ol>
+      <li><strong>Rejects overlaps.</strong> Two edits to the same bytes are a bug in the caller, not something to resolve by picking one.</li>
+      <li><strong>Applies in descending offset order</strong>, so earlier offsets stay valid as it goes.</li>
+      <li><strong>Reparses every changed file</strong> and refuses the whole edit if the file parses cleanly now and would not afterwards.</li>
+      <li><strong>Commits atomically.</strong> Either every file is written or none is.</li>
+    </ol>
+    <p>
+      That reparse check is the net, not the safety. It cannot catch a change that
+      parses and means something else — hoisting a statement out from under the
+      condition that guarded it, or dropping the brackets a de Morgan result needs.
+      Those are caught by the analysis being right, which is why the confidence tiers
+      exist and why the tool refuses as much as it does.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Known limitations</h2>
+    <p>
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">BUGS.md</a> lists
+      every one, each with the measurement that established it. In summary: reachability
+      under dynamic dispatch is undecidable from source and is reported rather than
+      guessed; Helm values passed on a command line are invisible to a workspace scan
+      unless you supply them with <code>-f</code> and <code>--set</code>; CSS classes
+      named inside TSX helper calls are not resolved, which measurably costs about
+      two-thirds of the reach of a stylesheet rename in a modern React codebase; and two
+      upstream grammar gaps, in SCSS and in Go's handling of a user-defined
+      <code>new</code>.
+    </p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">Tutorial</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+</body>
+</html>

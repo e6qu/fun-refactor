@@ -35,6 +35,8 @@ pub enum Capability {
     RemoveFlag,
     MoveToFile,
     Stitch,
+    Duplicates,
+    DeadCode,
 }
 
 impl Capability {
@@ -58,6 +60,8 @@ impl Capability {
         Capability::RemoveFlag,
         Capability::MoveToFile,
         Capability::Stitch,
+        Capability::Duplicates,
+        Capability::DeadCode,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -81,6 +85,8 @@ impl Capability {
             Capability::RemoveFlag => "remove flag",
             Capability::MoveToFile => "move to file",
             Capability::Stitch => "config→code stitch",
+            Capability::Duplicates => "duplicate code",
+            Capability::DeadCode => "dead code",
         }
     }
 
@@ -106,6 +112,8 @@ impl Capability {
             Capability::RemoveFlag => "fr remove-flag",
             Capability::MoveToFile => "fr move",
             Capability::Stitch => "fr stitch",
+            Capability::Duplicates => "fr duplicates",
+            Capability::DeadCode => "fr unused",
         }
     }
 }
@@ -303,6 +311,33 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 Support::NotApplicable {
                     because: "a document does not import another's elements, so a moved \
                               element has no reference anywhere to update",
+                }
+            }
+        }
+
+        // Reachability needs somewhere to start and edges to follow, which the
+        // imperative languages have. A configuration language has neither, but the
+        // question still means something there — a values key or a CSS class nothing
+        // references — and is answered by the same reference index.
+        C::DeadCode => {
+            if crate::refactor::delete::reports_unused(language) {
+                Support::Yes
+            } else {
+                Support::NotApplicable {
+                    because: "nothing in this language declares a name that something \
+                              else could fail to use",
+                }
+            }
+        }
+
+        // Every language here is parsed into a tree of named nodes, and comparing
+        // those is the whole of the analysis. There is nothing to be unable to do.
+        C::Duplicates => {
+            if crate::analysis::duplicates::supported(language) {
+                Support::Yes
+            } else {
+                Support::NotApplicable {
+                    because: "this language is not parsed into comparable structure",
                 }
             }
         }
