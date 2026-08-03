@@ -254,6 +254,47 @@
       and a repository has to be small enough to hold in a tab, so the loader caps the
       file count and says what it left out.
     </p>
+
+    <h3>Asking the page instead of reading it</h3>
+    <p>
+      The playground answers to something other than a person too. A query parameter
+      picks the rendering, and the two machine-readable ones never load the editor —
+      about seven kilobytes of JavaScript rather than four megabytes.
+    </p>
+    <div class="scroll-x">
+      <table>
+        <tr><th>URL</th><th>What comes back</th></tr>
+        <tr>
+          <td><code>playground/</code></td>
+          <td>The page. Same as <code>?render_as=html</code>.</td>
+        </tr>
+        <tr>
+          <td><code>playground/?render_as=json</code></td>
+          <td>The same interface described rather than drawn: the panes and what is in
+              them, the toolbar, and every action with whether it can run and why not.</td>
+        </tr>
+        <tr>
+          <td><code>playground/?render_as=json_data</code></td>
+          <td>The analysis with no interface around it — what was indexed, the entry
+              points, the call graph, the dead code, the duplicates, and the open
+              file's symbols and parse tree.</td>
+        </tr>
+        <tr>
+          <td><code>&amp;repo=psf/requests</code></td>
+          <td>Which workspace to answer about. <code>repo=sample</code> uses the
+              bundled fifteen-language one.</td>
+        </tr>
+        <tr>
+          <td><code>&amp;file=src/requests/api.py</code></td>
+          <td>Which file the answer is about.</td>
+        </tr>
+      </table>
+    </div>
+    <p>
+      The whole document body is the JSON, so <code>JSON.parse(document.body.textContent)</code>
+      is the contract. An unknown <code>render_as</code> is refused with the list of
+      valid ones rather than quietly treated as HTML.
+    </p>
   </div>
 </section>
 

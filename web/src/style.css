@@ -241,6 +241,20 @@ button.ghost { color: var(--ink-soft); background: transparent; }
 .icons.end .icon-button:hover[data-label]::after,
 .icons.end .icon-button:focus-visible[data-label]::after { transform: none; }
 
+/* Toolbar menus: everything that is not navigation. */
+.menus { display: flex; gap: 0.2rem; }
+.menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 0.32rem 0.55rem;
+}
+.menu-button:hover:not(:disabled) { color: var(--accent); background: var(--hover); border-color: transparent; }
+.caret { font-size: 0.6rem; opacity: 0.7; }
+
 /* ------------------------------------------------------------------- layout */
 
 #layout { flex: 1; display: flex; min-height: 0; }
@@ -402,30 +416,6 @@ body.dragging { user-select: none; cursor: col-resize; }
   .statusbar .subject { display: none; }
 }
 
-/* -------------------------------------------------------------- the actions */
-
-.action-body { padding: 0.6rem; overflow: auto; flex: 4.5 1 0; min-height: 0; }
-.group { margin-bottom: 0.85rem; }
-.group h3 {
-  margin: 0 0 0.3rem;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-faint);
-  font-family: var(--mono);
-}
-.group button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  margin-bottom: 0.22rem;
-  padding: 0.32rem 0.55rem;
-  line-height: 1.35;
-  border-color: var(--rule-soft);
-}
-.act-label { display: block; font-size: 0.8rem; }
-.act-note { display: block; font-size: 0.69rem; color: var(--ink-faint); }
-
 .chip {
   font-family: var(--mono);
   font-size: 0.64rem;
@@ -441,7 +431,7 @@ body.dragging { user-select: none; cursor: col-resize; }
 
 /* -------------------------------------------------------------- the results */
 
-.result { font-size: 0.79rem; padding: 0.65rem; overflow: auto; flex: 5.5 1 0; min-height: 0; }
+.result { font-size: 0.79rem; padding: 0.65rem; overflow: auto; flex: 1; min-height: 0; }
 .result .count { font-weight: 600; margin: 0.55rem 0 0.28rem; }
 .result .count:first-child { margin-top: 0; }
 .plain { list-style: none; margin: 0 0 0.55rem; padding: 0; }

@@ -98,6 +98,12 @@ jobs:
       - name: Check both themes name the same colours
         run: node web/test/style.mjs
 
+      # `?render_as=json` promises the JSON describes the interface that exists. It
+      # is written by hand, so it rots silently: the caller gets an answer, just the
+      # wrong one.
+      - name: Check the machine-readable renderings match the page
+        run: node web/test/render_modes.mjs
+
       # A number worth watching: this is what a first visit downloads, and it grows
       # by a megabyte every time a grammar is added.
       - name: Report what a first visit costs

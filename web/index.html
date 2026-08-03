@@ -32,8 +32,17 @@
   <span id="status" class="status">Runs entirely in this tab.</span>
 
   <!-- Navigation is what you do most, so it is one click from anywhere rather than a
-       row in a list of thirty. -->
+       row in a list of thirty. Everything else lives behind two menus beside it. -->
   <nav class="icons divided" id="nav-icons" aria-label="Navigate"></nav>
+
+  <div class="menus">
+    <button type="button" class="menu-button" id="analyse-menu" aria-haspopup="menu">
+      Analyse<span class="caret">▾</span>
+    </button>
+    <button type="button" class="menu-button" id="refactor-menu" aria-haspopup="menu">
+      Refactor<span class="caret">▾</span>
+    </button>
+  </div>
 
   <div class="icons end">
     <button type="button" class="icon-button" id="help-button"></button>
@@ -108,24 +117,19 @@
 
   <div class="gutter vertical" data-resizes-column="right"></div>
 
-  <!-- The answer sits above the actions rather than below them: a result rendered
-       under thirty buttons is a result nobody sees. -->
+  <!-- Nothing but the answer. The actions moved to the toolbar and the right-click
+       menu, where they are chosen rather than scrolled past. -->
   <aside class="panel actions" id="right">
     <div class="panel-head">
       <span id="result-head">Result</span>
     </div>
     <div id="result" class="result">
-      <p class="hint">Click a name in the editor, then use the arrows above or
-        right-click for everything that applies to it. Every action runs the same code
-        the command line does — in this tab, against these bytes.</p>
+      <p class="hint">Click a name in the editor. The arrows above navigate;
+        <strong>Analyse</strong> and <strong>Refactor</strong> hold the rest, and
+        right-clicking offers everything that applies to whatever is under the cursor.
+        Every one of them runs the same code the command line does — in this tab,
+        against these bytes.</p>
     </div>
-    <div class="gutter horizontal" data-resizes="result"></div>
-    <div class="panel-head sub">
-      <span>Actions</span>
-      <span class="grow"></span>
-      <input id="action-filter" type="text" placeholder="filter" spellcheck="false">
-    </div>
-    <div id="action-list" class="action-body"></div>
   </aside>
 </main>
 

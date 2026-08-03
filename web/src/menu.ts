@@ -21,6 +21,8 @@ export interface MenuItem {
 
 let element: HTMLElement | null = null;
 let onPick: ((id: string) => void) | null = null;
+/** The toolbar button this menu is hanging from, when it is hanging from one. */
+let anchor: HTMLElement | null = null;
 
 function ensure(): HTMLElement {
   if (element) return element;
@@ -52,10 +54,16 @@ function ensure(): HTMLElement {
 
 export function close() {
   if (element) element.hidden = true;
+  anchor = null;
 }
 
 export function isOpen(): boolean {
   return !!element && !element.hidden;
+}
+
+/** Which button opened it, so a toolbar menu knows whether it owns what is showing. */
+export function openedBy(): HTMLElement | null {
+  return anchor;
 }
 
 /**
@@ -70,9 +78,11 @@ export function open(
   subject: string,
   items: MenuItem[],
   pick: (id: string) => void,
+  from: HTMLElement | null = null,
 ) {
   const menu = ensure();
   onPick = pick;
+  anchor = from;
 
   const groups: string[] = [];
   for (const item of items) if (!groups.includes(item.group)) groups.push(item.group);
