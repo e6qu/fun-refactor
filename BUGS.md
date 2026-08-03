@@ -69,6 +69,14 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B63: **`fr refs` under-reported for anything declared more than once.** A CSS
+  class written in a stylesheet and again in a theme is one class; references resolve
+  to one of those sites, and `references_to` counted per site. So `fr refs` on the
+  second declaration of `.sensor-table` found nothing while `fr rename` at the same
+  position changed five sites — you look before you leap, see nothing, and five things
+  move. `usages` already followed the definition group; `refs`, the browser and the
+  call graph did not. Fixed in the index, so all of them agree.
+
 - [x] B62: **a rename buried its success under twelve thousand warnings.** Renaming a
   YAML key called `path` reports every string and comment in the workspace containing
   that word — 12,032 of them across `psf/requests` — one per list item, which is a

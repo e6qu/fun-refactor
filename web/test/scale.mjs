@@ -41,10 +41,11 @@ await init({
 
 const repo = process.argv[2] ?? join(root, "sample");
 // Each probe indexes the workspace from scratch so one refactoring cannot affect the
-// next. That isolation costs an index build per probe, so the count is the caller's
-// to choose: 120 against the bundled sample is seconds, 120 against a 400-file
-// repository is a quarter of an hour.
-const LIMIT = Number(process.argv[3] ?? 120);
+// next. That isolation costs an index build per probe, which is why the count is the
+// caller's to choose. Forty covers all fifteen languages of the bundled sample and
+// keeps CI to about a minute; a real sweep is `scale.mjs /path/to/repo 200`, and
+// takes as long as it takes.
+const LIMIT = Number(process.argv[3] ?? 40);
 const started = Date.now();
 
 /** Extensions with a grammar. Anything else is weight without answers. */
@@ -108,8 +109,23 @@ for (const path of Object.keys(files)) {
   }
   if (Array.isArray(symbols)) for (const s of symbols) targets.push({ path, ...s });
 }
-const sample = targets.slice(0, LIMIT);
-console.log(`  probing ${sample.length} of ${targets.length} definitions\n`);
+/**
+ * Spread the probes across the workspace rather than taking the first N.
+ *
+ * `targets` is in path order, so the first forty of the bundled sample are all in
+ * `chart/` — a run that claims to cover fifteen languages and covers YAML. Striding
+ * takes the same number and touches every file.
+ */
+const stride = Math.max(1, Math.floor(targets.length / LIMIT));
+const sample = targets.filter((_, i) => i % stride === 0).slice(0, LIMIT);
+const languagesProbed = new Set(
+  sample.map((t) => JSON.parse(index.files()).find((f) => f.path === t.path)?.language),
+);
+console.log(
+  `  probing ${sample.length} of ${targets.length} definitions across ` +
+    `${new Set(sample.map((t) => t.path)).size} files, ` +
+    `${[...languagesProbed].filter(Boolean).sort().join(" ")}\n`,
+);
 
 /** A refusal names a rule; anything else that fails is a defect. */
 const REFUSAL = [
@@ -120,7 +136,12 @@ const REFUSAL = [
   /would change behaviour|is assigned again/i,
   /declares a package|no go\.mod|would make it unreachable/i,
   /nested inside another definition/i,
-  /is a \w[\w-]*, not a/i,              // "is a link-def, not a heading"
+  /is a \w[\w-]*, not a|is a `\w+` block, not a/i,   // "is a link-def, not a heading"
+  /is still read \d+ time|would leave those/i,        // removing an input still used
+  /is a block in \w+|names a module signature/i,
+  /has \d+ selectors|which is a rewrite rather than a move/i,
+  /part of the module's call surface/i,
+  /invert it instead|guard it instead|has an `?else`?/i,
   /nothing to act on|nothing is|no reference|not part of|already defined|is already/i,
   /is a \w+;|outside|no crate/i,
 ];
@@ -160,23 +181,32 @@ const OPERATIONS = {
 for (const [operation, run] of Object.entries(OPERATIONS)) {
   const counts = {};
   const worst = [];
+  // One probe must not see another's edits. A refusal changes nothing — that is the
+  // tool's contract and the thing most of these probes exercise — so the workspace is
+  // only rebuilt after something actually mutated it. Rebuilding unconditionally cost
+  // four hundred index builds to observe about thirty edits.
+  let workspace = new Workspace({ ...files });
   for (const target of sample) {
-    const workspace = new Workspace({ ...files });
     let outcome;
     try {
       outcome = outcomeOf(run(workspace, target));
     } catch (e) {
       // A trap is not an exception the page could have handled: the module is gone.
       outcome = { kind: "TRAPPED", detail: String(e).split("\n")[0] };
+      workspace = new Workspace({ ...files });
     }
     counts[outcome.kind] = (counts[outcome.kind] ?? 0) + 1;
     if (["BROKE", "TRAPPED", "UNPARSEABLE"].includes(outcome.kind) && worst.length < 5) {
       worst.push([target, outcome.detail]);
     }
-    // Without this the module runs out of memory: a Workspace owns an entire index
-    // and the JavaScript collector cannot see any of it.
-    workspace.free();
+    if (outcome.kind === "ok") {
+      // Without the free the module runs out of memory: a Workspace owns an entire
+      // index and the JavaScript collector cannot see any of it.
+      workspace.free();
+      workspace = new Workspace({ ...files });
+    }
   }
+  workspace.free();
 
   const summary = Object.entries(counts)
     .sort()
@@ -223,8 +253,20 @@ for (const target of sample) {
     const after = workspace.read(changed.path);
     written += (after.match(new RegExp(`\\b${NEW_NAME}\\b`, "g")) ?? []).length;
   }
-  // The definition site, plus every reference the tool said it could rewrite.
-  const expected = strong.length + 1;
+  // Every declaration site of the entity, plus every reference the tool said it
+  // could rewrite. Not "one definition": a CSS class written in a stylesheet and
+  // again in a theme is one class with three declaration sites, and a rename that
+  // changed only one of them would leave the others pointing at nothing.
+  let sites = 1;
+  try {
+    const defs = JSON.parse(index.definition(target.path, target.line, target.col));
+    if (Array.isArray(defs.definitions) && defs.definitions.length) {
+      sites = defs.definitions.filter((d) => d.role !== "implementation").length;
+    }
+  } catch {
+    /* keep 1 */
+  }
+  const expected = strong.length + sites;
   if (written !== expected) {
     mismatched += 1;
     if (examples.length < 6) {

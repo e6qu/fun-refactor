@@ -753,10 +753,20 @@ impl Index {
     }
 
     /// All references that resolve to `symbol`.
+    /// Every reference to the entity `symbol` names.
+    ///
+    /// Some kinds are declared in several places and are still one thing: a CSS class
+    /// written in a stylesheet and again in a theme. A reference resolves to one of
+    /// those sites, so counting per site under-reports — `fr refs` on the second
+    /// declaration of `.sensor-table` found nothing while `fr rename` on the same
+    /// position changed five sites. You look before you leap, see nothing, and five
+    /// things move. `definition_group` is the identity here, and it returns just this
+    /// symbol for every kind that has one declaration site.
     pub fn references_to(&self, symbol: SymbolId) -> Vec<&Reference> {
+        let group = self.definition_group(symbol);
         self.references
             .iter()
-            .filter(|r| r.target == Some(symbol))
+            .filter(|r| r.target.is_some_and(|t| group.contains(&t)))
             .collect()
     }
 

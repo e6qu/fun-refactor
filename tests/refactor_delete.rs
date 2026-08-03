@@ -636,3 +636,33 @@ fn a_class_declared_twice_and_used_once_is_not_dead() {
         );
     }
 }
+
+#[test]
+fn refs_on_one_declaration_finds_every_use_of_the_class() {
+    // `fr refs` on the second declaration of a CSS class used to report nothing,
+    // while `fr rename` at the same position changed five sites. Looking before you
+    // leap has to see what the leap will do.
+    let files = polyglot();
+    let (_tmp, index) = workspace(&files);
+
+    let declarations: Vec<_> = index
+        .symbols
+        .iter()
+        .filter(|s| s.name == "panel" && s.kind == fun_refactor::model::SymbolKind::Selector)
+        .map(|s| (s.id, s.file.clone()))
+        .collect();
+    assert_eq!(
+        declarations.len(),
+        2,
+        "the fixture declares `.panel` in two stylesheets; got {declarations:?}"
+    );
+
+    let counts: Vec<usize> = declarations
+        .iter()
+        .map(|(id, _)| index.references_to(*id).len())
+        .collect();
+    assert!(
+        counts[0] > 0 && counts[0] == counts[1],
+        "both declarations of one class must report the same uses, got {counts:?}"
+    );
+}
