@@ -243,6 +243,24 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Rewrite a file as another language, beside the original.
+    ///
+    /// Only where one grammar contains the other — CSS as SCSS, a manifest as a Helm
+    /// template, TypeScript as TSX — and only when the file parses cleanly as the
+    /// target. Omit the language to list what this file could be. Rewriting one
+    /// programming language as another is a translation, not a refactoring, and is
+    /// refused with the reason.
+    ///
+    /// Prints a diff by default; pass --write to apply it.
+    Translate {
+        /// File to rewrite.
+        file: PathBuf,
+        /// Target language. Omit to list what is on offer.
+        language: Option<String>,
+        /// Apply the change instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+    },
     /// Remove a feature flag and everything that only existed to serve it.
     ///
     /// Prints a diff by default; pass --write to apply it.
@@ -457,6 +475,11 @@ pub fn run() -> Result<()> {
             internal,
         } => cmd_unused(&cli, catalogs.as_deref(), languages, paths, *internal),
         Command::Imports { file, write } => cmd_imports(&cli, file, *write),
+        Command::Translate {
+            file,
+            language,
+            write,
+        } => cmd_translate(&cli, file, language.as_deref(), *write),
         Command::Move {
             target,
             destination,
@@ -1078,6 +1101,50 @@ fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
         plan.file.display(),
         plan.removed.len(),
         plan.sorted_blocks
+    );
+    present(cli, &plan.edits, &summary, write)
+}
+
+fn cmd_translate(
+    cli: &Cli,
+    file: &std::path::Path,
+    language: Option<&str>,
+    write: bool,
+) -> Result<()> {
+    let path = workspace_path(cli, file)?;
+    let from = crate::lang::detect(&path)
+        .ok_or_else(|| anyhow::anyhow!("{} is not a language this build reads", path.display()))?;
+
+    let Some(language) = language else {
+        // No target named: say what this file could be, and stop.
+        let targets = crate::translate::targets(from);
+        if targets.is_empty() {
+            println!(
+                "{} is {from}, and there is no language it can be rewritten as.\n\n{}",
+                path.display(),
+                crate::translate::why_nothing(from)
+            );
+            return Ok(());
+        }
+        println!("{} is {from}. It could be written as:", path.display());
+        for target in targets {
+            match crate::translate::plan(&path, *target) {
+                Ok(plan) => println!("  {target:<10} -> {}", plan.destination.display()),
+                Err(e) => println!("  {target:<10} not this file: {e}"),
+            }
+        }
+        return Ok(());
+    };
+
+    let to = crate::lang::Language::from_name(language)
+        .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
+    let plan = crate::translate::plan(&path, to)?;
+    let summary = format!(
+        "{} written as {} ({} -> {})",
+        plan.source.display(),
+        plan.destination.display(),
+        plan.from,
+        plan.to
     );
     present(cli, &plan.edits, &summary, write)
 }

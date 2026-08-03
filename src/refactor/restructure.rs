@@ -123,6 +123,38 @@ pub fn apply(
         .into());
     }
 
+    // A metavariable the pattern never binds has nothing to substitute, so the
+    // template would emit the literal text `$Y`. The engine's reparse check catches
+    // the result — but it reports "would not parse", which is true and says nothing
+    // about the mistake. Named here, where the mistake is.
+    let bound = metavariable_names(pattern);
+    let unbound: Vec<String> = metavariable_names(template)
+        .into_iter()
+        .filter(|name| !bound.contains(name))
+        .collect();
+    if !unbound.is_empty() {
+        let listed = unbound
+            .iter()
+            .map(|n| format!("${n}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let known = if bound.is_empty() {
+            "the pattern binds none".to_string()
+        } else {
+            let names: Vec<String> = bound.iter().map(|n| format!("${n}")).collect();
+            format!("the pattern binds {}", names.join(", "))
+        };
+        return Err(Refusal::InvalidName {
+            name: template.to_string(),
+            reason: format!(
+                "{listed} is not bound by the pattern, so there is nothing to put there \
+                 — {known}. Write `$${}` for a literal dollar sign.",
+                unbound[0]
+            ),
+        }
+        .into());
+    }
+
     let mut edits = EditSet::new();
     let mut matches = Vec::new();
 
@@ -496,6 +528,35 @@ fn decode_metavariables(encoded: &str) -> String {
 }
 
 /// Replace `$NAME` in the template with its binding.
+/// Every metavariable a pattern or template names, in order of first appearance.
+///
+/// `$$NAME` is an escaped literal and binds nothing, so it is skipped here exactly as
+/// it is when substituting.
+fn metavariable_names(text: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut chars = text.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        if c != '$' {
+            continue;
+        }
+        let rest = &text[i + 1..];
+        if let Some(after) = rest.strip_prefix('$') {
+            if after.starts_with(|ch: char| ch.is_alphabetic() || ch == '_') {
+                chars.next();
+                continue;
+            }
+        }
+        let name: String = rest
+            .chars()
+            .take_while(|ch| ch.is_alphanumeric() || *ch == '_')
+            .collect();
+        if !name.is_empty() && !names.contains(&name) {
+            names.push(name);
+        }
+    }
+    names
+}
+
 fn substitute(template: &str, bindings: &HashMap<String, String>) -> String {
     let mut out = String::with_capacity(template.len());
     let mut chars = template.char_indices().peekable();

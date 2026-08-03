@@ -932,6 +932,69 @@ function buildToolbarMenus() {
   ]);
 }
 
+// ------------------------------------------------- rewrite as another language
+
+/**
+ * Offer the languages this file could be written as, and say why the rest are not.
+ *
+ * The refusals are the useful half. "You cannot turn Rust into Python, because that
+ * is a translation and this tool parses syntax" is a more valuable thing for a menu
+ * to say than an empty list, and an empty list is what a shorter menu would be.
+ */
+function openTranslateMenu(anchor: HTMLElement) {
+  if (!workspace || !current) {
+    show(`<p class="hint">Open a file first.</p>`, "Rewrite as");
+    return;
+  }
+  let options: any[] = [];
+  try {
+    options = JSON.parse(workspace.translations(current));
+  } catch (e) {
+    show(`<p class="err">${escapeHtml(String(e))}</p>`, "Rewrite as");
+    return;
+  }
+  if (!Array.isArray(options)) {
+    show(`<p class="err">${escapeHtml(String((options as any).error))}</p>`, "Rewrite as");
+    return;
+  }
+
+  const possible = options.filter((o) => !o.unavailable);
+  const box = anchor.getBoundingClientRect();
+  menu.open(
+    box.left,
+    box.bottom + 5,
+    `<strong>${escapeHtml(current.split("/").pop() ?? current)}</strong> ` +
+      `<span class="dim">as ${possible.length ? "…" : "— nothing, see below"}</span>`,
+    options.map((o) => ({
+      id: o.language,
+      label: o.destination
+        ? `${o.language} → ${o.destination.split("/").pop()}`
+        : o.language,
+      group: o.unavailable ? "Not possible" : "Write it as",
+      disabled: o.unavailable ?? null,
+    })),
+    (language) => {
+      const chosen = options.find((o) => o.language === language);
+      if (chosen?.unavailable) return;
+      const applied = JSON.parse(workspace!.translate(current, language));
+      if (applied.error) {
+        show(
+          `<p class="err">${escapeHtml(applied.error)}</p>` +
+            `<p class="hint">Nothing was written.</p>`,
+          "Rewrite as",
+        );
+        return;
+      }
+      syncFromWorkspace(applied.files);
+      show(render(applied, current), `Rewrite as ${language}`);
+      // The new file is the point; open it.
+      const written = applied.files[0]?.path;
+      if (written) openFile(written);
+    },
+    anchor,
+  );
+}
+
 // --------------------------------------------------------- the context menu
 
 /** Everything that applies to what is under the cursor, with reasons for the rest. */
@@ -999,6 +1062,24 @@ installTheme();
 syncEditorTheme();
 buildThemeButton();
 
+const translateButton = el<HTMLButtonElement>("translate-button");
+decorate(translateButton, "translate", "Rewrite this file as another language");
+{
+  // Same toggle discipline as the toolbar menus: the open state is sampled at
+  // pointerdown, because the menu closes on any press outside itself.
+  let wasOpen = false;
+  translateButton.addEventListener("pointerdown", () => {
+    wasOpen = menu.isOpen() && menu.openedBy() === translateButton;
+  });
+  translateButton.addEventListener("click", () => {
+    if (wasOpen) {
+      menu.close();
+      return;
+    }
+    openTranslateMenu(translateButton);
+  });
+}
+
 const helpButton = el<HTMLButtonElement>("help-button");
 helpButton.classList.add("round");
 decorate(helpButton, "help", "Help and workspace overview");
@@ -1028,9 +1109,18 @@ init({ module_or_path: wasmUrl })
     // you have thought of a repository is a page nobody tries. If GitHub will not
     // answer — rate limits are 60 requests an hour for an anonymous browser — the
     // bundled sample stands in, and says so rather than pretending it was the plan.
-    el<HTMLInputElement>("target").value = DEFAULT_REPOSITORY;
+    // `?repo=` picks the workspace here exactly as it does for the JSON renderings —
+    // one parameter meaning two different things depending on the mode would be a
+    // trap for anyone sharing a link.
+    const asked = new URLSearchParams(location.search).get("repo");
+    if (asked === "sample") {
+      loadSample();
+      return;
+    }
+    const wanted = asked ?? DEFAULT_REPOSITORY;
+    el<HTMLInputElement>("target").value = wanted;
     try {
-      await loadTarget(DEFAULT_REPOSITORY);
+      await loadTarget(wanted);
     } catch (error) {
       loadSample();
       say(

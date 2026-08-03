@@ -697,6 +697,73 @@ impl Workspace {
         })
     }
 
+    /// What this file could be rewritten as, and why the rest are not on offer.
+    ///
+    /// Answers for every language rather than only the possible ones, because "you
+    /// cannot turn Rust into Python and here is why" is the useful half of this
+    /// feature and a shorter list would not say it.
+    pub fn translations(&self, path: &str) -> String {
+        self.enter();
+        #[derive(Serialize)]
+        struct Option_ {
+            language: String,
+            /// Where the rewritten file would be written.
+            destination: Option<String>,
+            /// Absent when it can be done.
+            unavailable: Option<String>,
+        }
+        let path_buf = PathBuf::from(path);
+        let Some(from) = crate::lang::detect(&path_buf) else {
+            return fail(format!("no grammar recognises {path}"));
+        };
+
+        let possible = crate::translate::targets(from);
+        let mut out: Vec<Option_> = Vec::new();
+        for language in crate::lang::Language::ALL {
+            if *language == from {
+                continue;
+            }
+            if possible.contains(language) {
+                // Offered, but the file still has to parse as it — a `.scss` using
+                // nesting is not CSS, and the button must say that before it is
+                // pressed rather than after.
+                match crate::translate::plan(&path_buf, *language) {
+                    Ok(plan) => out.push(Option_ {
+                        language: language.name().to_string(),
+                        destination: Some(plan.destination.display().to_string()),
+                        unavailable: None,
+                    }),
+                    Err(e) => out.push(Option_ {
+                        language: language.name().to_string(),
+                        destination: crate::translate::destination_for(&path_buf, *language)
+                            .ok()
+                            .map(|p| p.display().to_string()),
+                        unavailable: Some(e.to_string()),
+                    }),
+                }
+            } else {
+                out.push(Option_ {
+                    language: language.name().to_string(),
+                    destination: None,
+                    unavailable: Some(crate::translate::why_not(from, *language)),
+                });
+            }
+        }
+        ok(&out)
+    }
+
+    /// Write this file as another language, beside the original.
+    pub fn translate(&mut self, path: &str, language: &str) -> String {
+        self.enter();
+        let Some(to) = crate::lang::Language::from_name(language) else {
+            return fail(format!("unknown language '{language}'"));
+        };
+        match crate::translate::plan(Path::new(path), to) {
+            Ok(plan) => self.apply(plan.edits, Vec::new()),
+            Err(e) => fail(e),
+        }
+    }
+
     /// What this build can do, per language.
     pub fn capabilities(&self) -> String {
         self.enter();

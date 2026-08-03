@@ -31,5 +31,6 @@ pub mod refactor;
 #[cfg(feature = "cli")]
 pub mod scan;
 pub mod span;
+pub mod translate;
 #[cfg(feature = "wasm")]
 pub mod wasm;
