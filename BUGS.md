@@ -69,6 +69,96 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B78: **a foreign name that is a keyword in the target made the whole file
+  unwritable.** `select` is a name sqlmodel exports and a keyword in Go, so
+  `select(User)` was output Go's grammar rejects and the translator refused the file
+  outright — correct, and useless: the reader gets nothing instead of a draft with one
+  line to fix. Reserved words are now escaped (`r#select` in Rust, a suffix elsewhere)
+  and every escape is reported.
+
+- [x] B77: **Python's `*`, `/`, `*args` and `**kwargs` were read as ordinary
+  parameters.** `def create_user(*, session, user_create)` produced
+  `export function createUser(*: unknown, …)`, which TypeScript will not parse — caught
+  by the translator's own parse check, on real code, in a file 1,300 fixture tests had
+  never seen. A `*` is a rule about the parameters around it, and dropping it silently
+  would be worse: the signature would look carried when the way callers must invoke it
+  had changed. `ParamKind` now models all four and `signatures_with_changed_calls`
+  counts the difference.
+
+- [x] B76: **an optional chain was written away.** `session?.user.id` came out as
+  `session.user.id` and then, inside an object literal, as **`None.id`** — code that
+  compiles, runs, and throws where the original returned undefined. Two causes: the
+  reader ignored `optional_chain`, and `has_unsupported_expr` did not look inside
+  `MapLit`, `Template` or `Comprehension`, so a statement containing an untranslatable
+  sub-expression was written anyway. That check is now exhaustive with no `_` arm, so
+  a new variant cannot join them quietly.
+
+- [x] B75: **a TypeScript type assertion became `None`.** `params.postId as string` was
+  an unhandled node and fell to the catch-all. `as`, `satisfies` and `!` are assertions
+  to the type checker with no runtime effect whatever, so the translation is exact
+  rather than a gap.
+
+- [x] B74: **comments were reported as untranslatable constructs.** Every one of these
+  languages has comments and only the marker differs. Reading one as a failure put
+  ordinary prose in the output under a "not translated" marker and counted it among the
+  real gaps — which is how a fidelity count stops being read.
+
+- [x] B73: **`try`/`catch` had no counterpart in the IR, so whole handler bodies came
+  out as one comment.** Python and TypeScript both have it. A typed `except` becomes an
+  `instanceof` test inside TypeScript's single `catch`, with a trailing `throw` so an
+  unmatched error still propagates; Rust and Go carry it, since neither has anything a
+  catch block translates into. `instanceof`/`isinstance` and `throw`/`raise` came with
+  it. On the hardest route in the corpus this took the count of carried constructs from
+  15 to 3.
+
+- [x] B72: **the Python writer decided "did I write anything" in each match arm.** A new
+  arm that forgot `wrote = true` left a stray `raise NotImplementedError` after a
+  perfectly good body — which is exactly how the `try` arm arrived broken. It is a
+  property of the statement and is now asked once.
+
+- [x] B71: **the naming convention was applied at declarations and not at uses.**
+  `interface User { userName }` became `class User: user_name` whose bodies still said
+  `.userName`, because each site re-cased with whichever helper was to hand. One map,
+  built from the declarations and consulted everywhere. Three things fell out of it:
+  a name the module does not declare is foreign and is never re-cased; record fields
+  are a separate namespace, since a Go `Reading` with an exported `sensor` field is
+  `Sensor` while a parameter of the same name stays lowercase; and `snake_always` split
+  before every capital, turning `HTTPServer` into `h_t_t_p_server` and `MAX_RETRY_COUNT`
+  into `M_A_X__R_E_T_R_Y_C_O_U_N_T`.
+
+- [x] B70: **the Next.js route matcher required a leading slash, so no relative path
+  was ever a route.** `is_api_route` and `route_for` both tested
+  `path.contains("/pages/api/")`, and the leading slash was there to stop `capi/`
+  matching. The cost was that `pages/api/users.ts` — exactly what a caller who has a
+  workspace-relative path hands over — was refused as "not a Next.js API route", while
+  `route_for` happened to answer correctly for the App Router by accident. Both now
+  match on path *components*, which is the thing the rule was always about: a `pages`
+  directory immediately followed by `api`, or the last `api` above a `route.ts`.
+
+- [x] B69: **`await` was not in the IR, so every line containing one was carried
+  verbatim.** Three of the four languages have it and mean the same thing by it; only
+  the spelling differs, prefix in Python and TypeScript and postfix in Rust. `const
+  body = await request.json()` — a line with an exact Python counterpart — came out as
+  a comment. `Expr::Await` now carries it, and the Go writer, which has no
+  counterpart, carries it rather than dropping the keyword and turning a suspension
+  point into a plain call.
+
+- [x] B68: **the Next.js translation counted handler signatures as failures and
+  overwrote the helper count.** `fidelity.functions = handlers.len()` discarded
+  whatever the ordinary writer had counted for the file's non-handler functions, and
+  `signatures_complete` was never incremented for a handler at all — so a translation
+  that got every signature right reported `0/2 complete`.
+
+- [x] B67: **the Next.js translation printed a Rust `Debug` dump where the source
+  should have been.** A statement that read the request or context object was replaced
+  with `Unsupported { source: format!("{stmt:?}") }`, so the output carried
+  `# Let { name: "id", ty: None, value: Some(Field { .. }) }` instead of
+  `# const id = context.params.id;`. The IR's `Stmt` has no source text and inventing
+  one from its `Debug` form shows the reader less than the translation does. Root
+  cause was the premise: those statements are not untranslatable. `context.params.id`
+  is *redundant* — FastAPI supplies the path parameter — so it is dropped with a note,
+  and the request object is *kept*, because `NextRequest` is Starlette's `Request`.
+
 - [x] B65: **a template metavariable the pattern never bound was caught by the wrong
   check.** `restructure 'len($X) == 0' 'not $Y'` produced the literal text `$Y` in the
   source, and the engine's reparse check rejected the result with "parses cleanly now

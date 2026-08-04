@@ -714,6 +714,13 @@ impl Workspace {
             /// Present when this is a translation rather than the same bytes, saying
             /// how much of it is real. A caller must be able to tell the difference.
             draft: Option<String>,
+            /// A port to another framework rather than to another language.
+            ///
+            /// Its own kind, because it answers a different question. "Write this
+            /// TypeScript as Python" and "serve these routes from FastAPI instead" are
+            /// not variants of each other, and a menu that listed them together would
+            /// make the reader work out which one they had asked for.
+            framework: bool,
         }
         let path_buf = PathBuf::from(path);
         let Some(from) = crate::lang::detect(&path_buf) else {
@@ -722,6 +729,41 @@ impl Workspace {
 
         let possible = crate::translate::targets(from);
         let mut out: Vec<Option_> = Vec::new();
+
+        // FastAPI is a framework rather than a language, and it goes first because
+        // when it applies at all it is the best answer for the file: a Next.js route
+        // translated as plain Python loses the routing, which is the half that lives
+        // in the path rather than the text.
+        if crate::transpile::nextjs::is_api_route(&path_buf) {
+            match crate::transpile::nextjs::plan(&path_buf) {
+                Ok(plan) => out.push(Option_ {
+                    language: "fastapi".to_string(),
+                    destination: Some(plan.destination.display().to_string()),
+                    unavailable: None,
+                    draft: Some(format!(
+                        "route {} — {}{}",
+                        plan.route,
+                        plan.methods.join(", "),
+                        if plan.fidelity.carried_verbatim == 0 {
+                            String::new()
+                        } else {
+                            format!(
+                                "; {} construct(s) carried over as comments",
+                                plan.fidelity.carried_verbatim
+                            )
+                        }
+                    )),
+                    framework: true,
+                }),
+                Err(e) => out.push(Option_ {
+                    language: "fastapi".to_string(),
+                    destination: None,
+                    unavailable: Some(e.to_string()),
+                    draft: None,
+                    framework: true,
+                }),
+            }
+        }
         for language in crate::lang::Language::ALL {
             if *language == from {
                 continue;
@@ -750,6 +792,7 @@ impl Workspace {
                         destination: None,
                         unavailable: Some(e.to_string()),
                         draft: None,
+                        framework: false,
                     }),
                 }
                 continue;
@@ -764,6 +807,7 @@ impl Workspace {
                         destination: Some(plan.destination.display().to_string()),
                         unavailable: None,
                         draft: None,
+                        framework: false,
                     }),
                     Err(e) => out.push(Option_ {
                         language: language.name().to_string(),
@@ -772,6 +816,7 @@ impl Workspace {
                             .map(|p| p.display().to_string()),
                         unavailable: Some(e.to_string()),
                         draft: None,
+                        framework: false,
                     }),
                 }
             } else {
@@ -780,6 +825,7 @@ impl Workspace {
                     destination: None,
                     unavailable: Some(crate::translate::why_not(from, *language)),
                     draft: None,
+                    framework: false,
                 });
             }
         }
@@ -789,10 +835,35 @@ impl Workspace {
     /// Write this file as another language, beside the original.
     pub fn translate(&mut self, path: &str, language: &str) -> String {
         self.enter();
+        let path_buf = PathBuf::from(path);
+
+        // `fastapi` is not a language, and the translation into it reads the file's
+        // path as well as its text — a Next.js route's URL is where it sits on disk.
+        if language.eq_ignore_ascii_case("fastapi") {
+            return match crate::transpile::nextjs::plan(&path_buf) {
+                Ok(plan) => {
+                    let f = plan.fidelity.clone();
+                    let route = plan.route.clone();
+                    let methods = plan.methods.join(", ");
+                    let applied = self.apply(plan.edits, Vec::new());
+                    with_notes(
+                        applied,
+                        &std::iter::once(format!(
+                            "serving {route} ({methods}); {} construct(s) had no counterpart \
+                             and are in the file as comments",
+                            f.carried_verbatim
+                        ))
+                        .chain(f.notes.into_iter().take(20))
+                        .collect::<Vec<_>>(),
+                    )
+                }
+                Err(e) => fail(e),
+            };
+        }
+
         let Some(to) = crate::lang::Language::from_name(language) else {
             return fail(format!("unknown language '{language}'"));
         };
-        let path_buf = PathBuf::from(path);
         let Some(from) = crate::lang::detect(&path_buf) else {
             return fail(format!("no grammar recognises {path}"));
         };

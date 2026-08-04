@@ -255,7 +255,7 @@ enum Command {
     Translate {
         /// File to rewrite.
         file: PathBuf,
-        /// Target language. Omit to list what is on offer.
+        /// Target language, or `fastapi` for a Next.js API route.
         language: Option<String>,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -1136,6 +1136,19 @@ fn cmd_translate(
             return Ok(());
         }
         println!("{} is {from}. It could be written as:", path.display());
+        if crate::transpile::nextjs::is_api_route(&path) {
+            match crate::transpile::nextjs::plan(&path) {
+                Ok(plan) => println!(
+                    "  {:<10} -> {} (route {}, {})",
+                    "fastapi",
+                    plan.destination.display(),
+                    plan.route,
+                    plan.methods.join(", ")
+                ),
+                Err(e) => println!("  {:<10} not this file: {e}", "fastapi"),
+            }
+        }
+
         for target in &targets {
             let containment = crate::translate::targets(from).contains(target);
             let outcome = if containment {
@@ -1160,6 +1173,13 @@ fn cmd_translate(
         }
         return Ok(());
     };
+
+    // `fastapi` is a framework rather than a language, and the translation into it
+    // reads the file's *path* as well as its text — a Next.js route's URL is where it
+    // sits on disk. It is therefore its own target rather than a flavour of Python.
+    if language.eq_ignore_ascii_case("fastapi") {
+        return cmd_translate_fastapi(cli, &path, write);
+    }
 
     let to = crate::lang::Language::from_name(language)
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
@@ -1213,6 +1233,49 @@ fn cmd_translate(
         plan.destination.display(),
         plan.from,
         plan.to
+    );
+    present(cli, &plan.edits, &summary, write)
+}
+
+/// `fr translate <route.ts> fastapi` — a Next.js API route as a FastAPI module.
+fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Result<()> {
+    let plan = crate::transpile::nextjs::plan(path)?;
+    if !cli.json {
+        println!(
+            "{} -> {} serving {} ({})",
+            plan.source.display(),
+            plan.destination.display(),
+            plan.route,
+            plan.methods.join(", ")
+        );
+        let f = &plan.fidelity;
+        println!(
+            "  {} handler(s), {} model(s); signatures: {} complete, {} mentioning a type \
+             this tool does not know",
+            f.functions, f.records, f.signatures_complete, f.signatures_with_foreign_types
+        );
+        if f.carried_verbatim > 0 {
+            println!(
+                "  {} construct(s) had no counterpart and are in the output as comments:",
+                f.carried_verbatim
+            );
+            for note in f.notes.iter().take(10) {
+                println!("    {note}");
+            }
+            if f.notes.len() > 10 {
+                println!("    and {} more", f.notes.len() - 10);
+            }
+            println!(
+                "\n  The routing is done: paths, methods, path parameters and models. The \n  \
+                 handler bodies are TypeScript and are beside the Python to port by hand."
+            );
+        }
+        println!();
+    }
+    let summary = format!(
+        "{} translated to FastAPI at {}",
+        plan.source.display(),
+        plan.destination.display()
     );
     present(cli, &plan.edits, &summary, write)
 }

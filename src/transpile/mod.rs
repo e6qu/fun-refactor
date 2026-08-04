@@ -30,10 +30,35 @@
 //! Read it before trusting the file.
 
 pub mod ir;
+pub mod nextjs;
 mod read;
 mod write;
 
+/// Read a parsed file into the IR. Used by the framework-aware translations too.
+pub(crate) fn read_module(
+    language: Language,
+    source: &str,
+    root: tree_sitter::Node<'_>,
+) -> Result<ir::Module> {
+    read::read(language, source, root)
+}
+
+/// Write a module out as a language. Used by the framework-aware translations too.
+pub(crate) fn write_module(language: Language, module: &ir::Module) -> Result<(String, Fidelity)> {
+    write::write(language, module)
+}
+
+/// Write a piece of a file, spelling names the way the whole file does.
+pub(crate) fn write_module_in(
+    language: Language,
+    module: &ir::Module,
+    context: &ir::Module,
+) -> Result<(String, Fidelity)> {
+    write::write_in_context(language, module, context)
+}
+
 pub use ir::{Fidelity, Module};
+use write::snake_always;
 pub use write::MARKER;
 
 use crate::edit::{Edit, EditSet};
@@ -204,7 +229,12 @@ fn banner(to: Language, from: &str, source: &Path, fidelity: &Fidelity) -> Strin
         "{} function(s), {} record(s), {} constant(s).",
         fidelity.functions, fidelity.records, fidelity.constants
     )));
-    if fidelity.is_complete() {
+    if fidelity.translated() == 0 {
+        out.push_str(&comment(
+            "Nothing was found to translate: no function, record or constant. If the \
+             source has any, this tool did not recognise them.",
+        ));
+    } else if fidelity.is_complete() {
         out.push_str(&comment(
             "Every signature carried across with its types intact.",
         ));
@@ -214,6 +244,13 @@ fn banner(to: Language, from: &str, source: &Path, fidelity: &Fidelity) -> Strin
                 "{} signature(s) mention a type this tool does not know; they were \
                  written through by name and are not checked.",
                 fidelity.signatures_with_foreign_types
+            )));
+        }
+        if fidelity.imports_listed > 0 {
+            out.push_str(&comment(&format!(
+                "{} import(s) are listed as comments: dependencies do not carry between \
+                 these languages.",
+                fidelity.imports_listed
             )));
         }
         if fidelity.carried_verbatim > 0 {

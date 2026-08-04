@@ -143,28 +143,94 @@ pub fn shout(names: Vec<String>) -> Vec<String> {
 }
 
 #[test]
-fn an_interpolated_string_is_never_silently_flattened() {
-    // `f"{c} below"` written as the literal text `{c} below` is not a gap, it is a
-    // wrong answer, and it is the one this found in its own output.
+fn an_interpolated_string_keeps_interpolating() {
+    // `f"{c} below"` flattened to the literal text `{c} below` is not a gap, it is a
+    // wrong answer — and it was one this found in its own output. Each target spells
+    // interpolation its own way and every one of them must still substitute.
     let source = "\
 def describe(celsius: float) -> str:
     return f\"{celsius} below the floor\"
 ";
-    let (go, _) = translate(&[("a.py", source)], "a.py", Language::Go);
-    // It must appear in the carried comment — that is the point — and never as code.
-    let as_code: Vec<&str> = go
-        .lines()
-        .filter(|l| !l.trim_start().starts_with("//"))
-        .filter(|l| l.contains("{celsius}"))
-        .collect();
-    assert!(
-        as_code.is_empty(),
-        "the interpolation became literal text in the output: {as_code:?}\n{go}"
+    for (target, expected) in [
+        (Language::Go, "fmt.Sprintf(\"%v below the floor\", celsius)"),
+        (Language::TypeScript, "`${celsius} below the floor`"),
+        (Language::Rust, "format!(\"{} below the floor\", celsius)"),
+    ] {
+        let (output, _) = translate(&[("a.py", source)], "a.py", target);
+        assert!(
+            output.contains(expected),
+            "{target} should interpolate.\nwanted: {expected}\ngot:\n{output}"
+        );
+        // And never as literal text with the braces still in it.
+        let literal: Vec<&str> = output
+            .lines()
+            .filter(|l| !l.trim_start().starts_with("//"))
+            .filter(|l| l.contains("{celsius}") && !l.contains("${celsius}"))
+            .collect();
+        assert!(
+            literal.is_empty(),
+            "{target} left the interpolation as text: {literal:?}"
+        );
+    }
+}
+
+#[test]
+fn typed_python_and_typed_typescript_round_trip() {
+    // The pair this is best at, and the one worth stating a standard for: a typed
+    // Python module through TypeScript and back should lose nothing.
+    let source = "\
+from dataclasses import dataclass
+
+
+@dataclass
+class User:
+    name: str
+    email: str | None
+    tags: list[str]
+
+
+def active_names(users: list[User]) -> list[str]:
+    names = [u.name for u in users if u.email is not None]
+    return names
+
+
+async def fetch(url: str, timeout: float = 5.0) -> dict[str, str]:
+    result = {\"url\": url}
+    return result
+";
+    let (typescript, forward) = translate(&[("a.py", source)], "a.py", Language::TypeScript);
+    assert_eq!(
+        forward.carried_verbatim, 0,
+        "nothing here should need carrying:\n{typescript}"
     );
-    assert!(
-        go.contains("// return f\"{celsius} below the floor\""),
-        "and the original must be visible in the file:\n{go}"
+    for wanted in [
+        "export interface User {",
+        "email: string | null;",
+        "tags: string[];",
+        "export function activeNames(users: User[]): string[] {",
+        "users.filter((u) => u.email !== null).map((u) => u.name)",
+        "export async function fetch(url: string, timeout: number = 5.0): Promise<Record<string, string>> {",
+    ] {
+        assert!(typescript.contains(wanted), "missing `{wanted}`:\n{typescript}");
+    }
+
+    // And back, which is where a lossy step shows.
+    let (python, back) = translate(&[("b.ts", typescript.as_str())], "b.ts", Language::Python);
+    assert_eq!(
+        back.carried_verbatim, 0,
+        "the return trip should lose nothing either:\n{python}"
     );
+    for wanted in [
+        "@dataclass",
+        "class User:",
+        "email: str | None",
+        "tags: list[str]",
+        "def active_names(users: list[User]) -> list[str]:",
+        "[u.name for u in users if u.email is not None]",
+        "async def fetch(url: str, timeout: float = 5.0) -> dict[str, str]:",
+    ] {
+        assert!(python.contains(wanted), "missing `{wanted}`:\n{python}");
+    }
 }
 
 #[test]

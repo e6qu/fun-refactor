@@ -38,6 +38,17 @@ pub enum Item {
     Function(Function),
     Record(Record),
     Constant(Constant),
+    /// An import.
+    ///
+    /// Not [`Item::Unsupported`], because an import is not a construct that failed to
+    /// translate — it is a dependency declaration, and every one of these languages
+    /// resolves dependencies differently. Counting them as failures made a perfect
+    /// translation report one, which is the sort of noise that stops anyone reading
+    /// the number at all.
+    Import {
+        text: String,
+        line: usize,
+    },
     /// A top-level construct with no counterpart: a Rust `impl Trait for T`, a Go
     /// `init()`, a Python decorator that is not a known one.
     Unsupported(Unsupported),
@@ -63,6 +74,27 @@ pub struct Param {
     pub name: String,
     pub ty: Option<Type>,
     pub default: Option<Expr>,
+    pub kind: ParamKind,
+}
+
+/// How a parameter is passed, which is part of the signature and not decoration.
+///
+/// Python writes `def f(*, session, user)` to make everything after the `*`
+/// keyword-only, and `*args` / `**kwargs` to take the rest. Reading those as ordinary
+/// parameters produced `export function createUser(*: unknown, ...)` — a file
+/// TypeScript will not parse, found by the translator's own parse check. Reading them
+/// as *nothing* would be worse: the signature would look carried when the way callers
+/// must invoke it had changed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ParamKind {
+    #[default]
+    Normal,
+    /// `*args` — the rest, positionally.
+    VarArgs,
+    /// `**kwargs` — the rest, by name.
+    KeywordArgs,
+    /// A bare `*` or `/`: not a parameter, a rule about the ones around it.
+    Marker,
 }
 
 /// A struct, class, dataclass or interface — a named product of fields.
@@ -210,9 +242,45 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     Expr(Expr),
+    /// A comment on its own line.
+    ///
+    /// Every language here has one and they differ only in the marker. Treating a
+    /// comment as an untranslatable construct — which is what happened before this
+    /// existed — put `// Validate the route params.` in the output under a "not
+    /// translated" marker, and inflated the count of real gaps with things that were
+    /// never gaps.
+    Comment(String),
+    /// `raise e` / `throw e`.
+    Throw(Expr),
+    /// `try { } catch { } finally { }`, and Python's `try/except/finally`.
+    ///
+    /// Two of these four languages have it. Rust models failure in the return type and
+    /// Go returns an error value, and neither has any general translation of a catch
+    /// block — so those writers carry it, which is why the original text travels with
+    /// it. Python and TypeScript agree closely enough to translate: a typed `except`
+    /// becomes an `instanceof` test inside one `catch`, which is exactly how the same
+    /// intent is written in TypeScript.
+    Try {
+        body: Vec<Stmt>,
+        catches: Vec<Catch>,
+        finally: Vec<Stmt>,
+        /// The original, for the two writers that have no counterpart for this.
+        source: String,
+        line: usize,
+    },
     Break,
     Continue,
     Unsupported(Unsupported),
+}
+
+/// One `except` or `catch` clause.
+#[derive(Debug, Clone)]
+pub struct Catch {
+    /// The name the error is bound to, where one is written.
+    pub binding: Option<String>,
+    /// The exception type it selects on, where the language has typed clauses.
+    pub ty: Option<Type>,
+    pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone)]
@@ -244,9 +312,66 @@ pub enum Expr {
         op: UnaryOp,
         operand: Box<Expr>,
     },
+    /// `await x`, `x.await`.
+    ///
+    /// Three of these four languages have it and mean the same thing by it: suspend
+    /// until this resolves. Only the spelling differs — prefix in Python and
+    /// TypeScript, postfix in Rust. Go has no counterpart and says so rather than
+    /// dropping the keyword, which would turn a suspension point into a plain call.
+    Await(Box<Expr>),
+    /// `name=value` in an argument list.
+    ///
+    /// Python has these and the other three do not, so a writer without them carries
+    /// the call rather than dropping the name and hoping the position is right.
+    Keyword {
+        name: String,
+        value: Box<Expr>,
+    },
+    /// `x instanceof T`, `isinstance(x, T)`.
+    ///
+    /// The same question in both, spelled as an operator in one and a builtin in the
+    /// other, which is why it is a node rather than a call: a reader that emitted
+    /// `isinstance(...)` would be writing Python inside the TypeScript reader.
+    InstanceOf {
+        value: Box<Expr>,
+        ty: Box<Expr>,
+    },
+    /// `new Thing(a, b)`.
+    ///
+    /// Kept apart from [`Expr::Call`] because the languages disagree about whether
+    /// construction is a call: Python and Go say yes, TypeScript needs the keyword,
+    /// and Rust has no universal spelling at all.
+    New {
+        callee: Box<Expr>,
+        args: Vec<Expr>,
+    },
     /// `[a, b, c]`
     ListLit(Vec<Expr>),
+    /// `{"a": 1}` in Python, `{ a: 1 }` in TypeScript, a map literal in Go.
+    MapLit(Vec<(Expr, Expr)>),
+    /// An interpolated string: `f"Hi {name}"`, `` `Hi ${name}` ``.
+    ///
+    /// Kept as parts rather than text because flattening it loses the expressions —
+    /// which is exactly the silent wrong answer this had before it existed.
+    Template(Vec<TemplatePart>),
+    /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
+    ///
+    /// The same idea spelled two ways: Python builds it with a comprehension,
+    /// TypeScript with a chain. Modelling it lets each write its own.
+    Comprehension {
+        element: Box<Expr>,
+        binding: String,
+        iterable: Box<Expr>,
+        condition: Option<Box<Expr>>,
+    },
     Unsupported(Unsupported),
+}
+
+/// One piece of an interpolated string.
+#[derive(Debug, Clone)]
+pub enum TemplatePart {
+    Text(String),
+    Expr(Expr),
 }
 
 /// The operators that mean the same thing in all four languages.
@@ -321,12 +446,32 @@ pub struct Fidelity {
     pub signatures_with_foreign_types: usize,
     /// Statements and expressions carried verbatim because nothing corresponds.
     pub carried_verbatim: usize,
+    /// Imports listed rather than translated. Counted apart because they are not a
+    /// failure to translate anything.
+    pub imports_listed: usize,
+    /// Signatures whose *types* carried but whose calling convention did not: a
+    /// keyword-only marker, `*args` or `**kwargs` with no counterpart in the target.
+    /// A caller of the translated function writes the call differently.
+    pub signatures_with_changed_calls: usize,
     /// One line per thing that did not translate, with where it was.
     pub notes: Vec<String>,
 }
 
 impl Fidelity {
+    /// Did everything cross intact?
+    ///
+    /// A translation that read *nothing* is not a complete one. Without the first
+    /// clause an empty file reported "every signature carried across with its types
+    /// intact", which is true and utterly misleading.
     pub fn is_complete(&self) -> bool {
-        self.carried_verbatim == 0 && self.signatures_with_foreign_types == 0
+        self.translated() > 0
+            && self.carried_verbatim == 0
+            && self.signatures_with_foreign_types == 0
+            && self.signatures_with_changed_calls == 0
+    }
+
+    /// How many declarations came across at all.
+    pub fn translated(&self) -> usize {
+        self.functions + self.records + self.constants
     }
 }

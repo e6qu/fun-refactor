@@ -89,6 +89,11 @@ fn call_or_carry(cx: &Cx, node: Node<'_>, callee: Expr, args: Vec<Expr>) -> Expr
 /// statements nested inside it. One bad line in a loop body should cost that line, not
 /// the loop.
 fn has_unsupported_expr(stmt: &Stmt) -> bool {
+    // Exhaustive on purpose — no `_` arm. The three cases this originally missed
+    // were `MapLit`, `Template` and `Comprehension`, and each produced a silent wrong
+    // answer rather than a gap: `session?.user.id` inside an object literal came out
+    // as `None.id`, with the original nowhere in the file. A new variant must not be
+    // able to join them quietly, so the compiler is made to ask.
     fn bad(e: &Expr) -> bool {
         match e {
             Expr::Unsupported(_) => true,
@@ -97,12 +102,32 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::Call { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::Binary { left, right, .. } => bad(left) || bad(right),
             Expr::Unary { operand, .. } => bad(operand),
+            Expr::Await(inner) => bad(inner),
+            Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
+            Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
+            Expr::Keyword { value, .. } => bad(value),
             Expr::ListLit(items) => items.iter().any(bad),
-            _ => false,
+            Expr::MapLit(entries) => entries.iter().any(|(k, v)| bad(k) || bad(v)),
+            Expr::Template(parts) => parts.iter().any(|part| match part {
+                TemplatePart::Expr(e) => bad(e),
+                TemplatePart::Text(_) => false,
+            }),
+            Expr::Comprehension {
+                element,
+                iterable,
+                condition,
+                ..
+            } => bad(element) || bad(iterable) || condition.as_deref().is_some_and(bad),
+            Expr::Int(_)
+            | Expr::Float(_)
+            | Expr::Str(_)
+            | Expr::Bool(_)
+            | Expr::Null
+            | Expr::Name(_) => false,
         }
     }
     match stmt {
-        Stmt::Return(Some(e)) | Stmt::Expr(e) => bad(e),
+        Stmt::Return(Some(e)) | Stmt::Expr(e) | Stmt::Throw(e) => bad(e),
         Stmt::Let { value: Some(e), .. } => bad(e),
         Stmt::Assign { target, value } => bad(target) || bad(value),
         Stmt::If { condition, .. } | Stmt::While { condition, .. } => bad(condition),
@@ -161,6 +186,11 @@ fn doc_above(cx: &Cx, node: Node<'_>, markers: &[&str]) -> Vec<String> {
         for marker in markers {
             cleaned = cleaned.strip_prefix(marker).unwrap_or(cleaned);
         }
+        // A block comment ends as well as begins: `/** Build a greeting. */` left the
+        // `*/` in the docstring of every function that came back the other way.
+        for terminator in ["*/", "-->"] {
+            cleaned = cleaned.strip_suffix(terminator).unwrap_or(cleaned);
+        }
         lines.push(cleaned.trim().to_string());
         previous = sibling.prev_named_sibling();
     }
@@ -178,6 +208,10 @@ mod rust {
         for child in cx.children(root) {
             match child.kind() {
                 "inner_doc_comment_marker" | "line_comment" | "block_comment" => {}
+                "use_declaration" => module.items.push(Item::Import {
+                    text: cx.text(child),
+                    line: cx.line(child),
+                }),
                 "function_item" => module.items.push(Item::Function(function(cx, child, None))),
                 "struct_item" => module.items.push(Item::Record(record(cx, child))),
                 "const_item" | "static_item" => {
@@ -228,11 +262,13 @@ mod rust {
                         name: cx.field_text(p, "pattern").unwrap_or_default(),
                         ty: cx.field(p, "type").map(|t| ty(cx, t)),
                         default: None,
+                        kind: ParamKind::Normal,
                     }),
                     _ => params.push(Param {
                         name: cx.text(p),
                         ty: None,
                         default: None,
+                        kind: ParamKind::Normal,
                     }),
                 }
             }
@@ -361,6 +397,13 @@ mod rust {
 
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
+            // A comment is not an untranslatable construct: every one of these
+            // languages has one and only the marker differs. Reading it as a failure
+            // put ordinary prose in the output under a "not translated" marker and
+            // counted it among the real gaps.
+            "comment" | "line_comment" | "block_comment" => {
+                Stmt::Comment(super::uncomment(&cx.text(node)))
+            }
             "return_expression" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
             "let_declaration" => Stmt::Let {
                 name: cx.field_text(node, "pattern").unwrap_or_default(),
@@ -469,6 +512,10 @@ mod rust {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            "await_expression" => match node.named_child(0) {
+                Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             "integer_literal" => Expr::Int(cx.text(node)),
             "float_literal" => Expr::Float(cx.text(node)),
             "boolean_literal" => Expr::Bool(cx.text(node) == "true"),
@@ -554,10 +601,45 @@ mod python {
         for child in cx.children(root) {
             match child.kind() {
                 "comment" => {}
+                "import_statement" | "import_from_statement" | "future_import_statement" => {
+                    module.items.push(Item::Import {
+                        text: cx.text(child),
+                        line: cx.line(child),
+                    })
+                }
                 "function_definition" => {
                     module.items.push(Item::Function(function(cx, child, None)))
                 }
                 "class_definition" => module.items.push(Item::Record(record(cx, child))),
+                // `@dataclass class User:` is the typed-Python idiom for a record, and
+                // the decorator used to make the whole class untranslatable.
+                "decorated_definition" => {
+                    let decorators: Vec<String> = cx
+                        .children(child)
+                        .iter()
+                        .filter(|n| n.kind() == "decorator")
+                        .map(|n| cx.text(*n).trim_start_matches('@').trim().to_string())
+                        .collect();
+                    let inner = cx
+                        .children(child)
+                        .into_iter()
+                        .find(|n| matches!(n.kind(), "class_definition" | "function_definition"));
+                    // Only the decorators that describe a *shape*. One that changes
+                    // behaviour — a route, a cache, a retry — is not a record and its
+                    // meaning would be lost silently.
+                    let structural = decorators
+                        .iter()
+                        .all(|d| matches!(d.as_str(), "dataclass" | "dataclasses.dataclass"));
+                    match (inner, structural) {
+                        (Some(node), true) if node.kind() == "class_definition" => {
+                            module.items.push(Item::Record(record(cx, node)))
+                        }
+                        (Some(node), true) => {
+                            module.items.push(Item::Function(function(cx, node, None)))
+                        }
+                        _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                    }
+                }
                 "expression_statement" => {
                     // A module docstring, or a module-level constant.
                     let inner = cx.children(child);
@@ -586,6 +668,26 @@ mod python {
         if let Some(list) = cx.field(node, "parameters") {
             for p in cx.children(list) {
                 match p.kind() {
+                    // `*` and `/` are rules about the parameters around them; `*args`
+                    // and `**kwargs` take the rest. None of the four is an ordinary
+                    // parameter, and reading them as one produced signatures no other
+                    // language will parse.
+                    "positional_separator" | "keyword_separator" => params.push(Param {
+                        name: cx.text(p),
+                        ty: None,
+                        default: None,
+                        kind: ParamKind::Marker,
+                    }),
+                    "list_splat_pattern" | "dictionary_splat_pattern" => params.push(Param {
+                        name: cx.text(p).trim_start_matches('*').to_string(),
+                        ty: None,
+                        default: None,
+                        kind: if p.kind() == "list_splat_pattern" {
+                            ParamKind::VarArgs
+                        } else {
+                            ParamKind::KeywordArgs
+                        },
+                    }),
                     "identifier" => {
                         let name = cx.text(p);
                         if name == "self" || name == "cls" {
@@ -595,6 +697,7 @@ mod python {
                             name,
                             ty: None,
                             default: None,
+                            kind: ParamKind::Normal,
                         });
                     }
                     "typed_parameter" => {
@@ -610,17 +713,20 @@ mod python {
                             name,
                             ty: cx.field(p, "type").map(|t| ty(cx, t)),
                             default: None,
+                            kind: ParamKind::Normal,
                         });
                     }
                     "default_parameter" | "typed_default_parameter" => params.push(Param {
                         name: cx.field_text(p, "name").unwrap_or_default(),
                         ty: cx.field(p, "type").map(|t| ty(cx, t)),
                         default: cx.field(p, "value").map(|v| expr(cx, v)),
+                        kind: ParamKind::Normal,
                     }),
                     _ => params.push(Param {
                         name: cx.text(p),
                         ty: None,
                         default: None,
+                        kind: ParamKind::Normal,
                     }),
                 }
             }
@@ -728,7 +834,11 @@ mod python {
     }
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
-        let text = cx.text(node);
+        ty_text(&cx.text(node))
+    }
+
+    /// Resolve a type from its text, recursing through generic arguments.
+    fn ty_text(text: &str) -> Type {
         let trimmed = text.trim();
         if let Some(t) = super::scalar(trimmed) {
             return t;
@@ -763,7 +873,7 @@ mod python {
     }
 
     fn named_or_scalar(text: &str) -> Type {
-        super::scalar(text).unwrap_or_else(|| super::named_with_args(text.trim(), &named_or_scalar))
+        ty_text(text)
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
@@ -783,9 +893,84 @@ mod python {
         out
     }
 
+    /// `except ValueError as e:` — the type and the binding, either of which may be
+    /// absent, and the body.
+    fn except_clause(cx: &Cx, node: Node<'_>) -> Catch {
+        let mut selector = None;
+        let mut binding = None;
+        let mut body = Vec::new();
+        let mut seen_as = false;
+        for child in cx.children(node) {
+            match child.kind() {
+                "block" => body = block(cx, child),
+                "as_pattern" => {
+                    // `except E as name` — the type first, the name after `as`.
+                    let parts = cx.children(child);
+                    if let Some(first) = parts.first() {
+                        selector = Some(ty(cx, *first));
+                    }
+                    if let Some(last) = parts.last().filter(|l| l.kind() == "as_pattern_target") {
+                        binding = Some(cx.text(*last));
+                    }
+                    seen_as = true;
+                }
+                _ if !seen_as && selector.is_none() => selector = Some(ty(cx, child)),
+                _ => {}
+            }
+        }
+        Catch {
+            binding,
+            ty: selector,
+            body,
+        }
+    }
+
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
+            // A comment is not an untranslatable construct: every one of these
+            // languages has one and only the marker differs. Reading it as a failure
+            // put ordinary prose in the output under a "not translated" marker and
+            // counted it among the real gaps.
+            "comment" | "line_comment" | "block_comment" => {
+                Stmt::Comment(super::uncomment(&cx.text(node)))
+            }
             "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
+            "raise_statement" => match cx.children(node).first() {
+                Some(value) => Stmt::Throw(expr(cx, *value)),
+                // A bare `raise` re-raises the exception being handled. There is no
+                // expression to carry and no counterpart anywhere else.
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "try_statement" => {
+                let mut catches = Vec::new();
+                let mut finally = Vec::new();
+                for clause in cx.children(node) {
+                    match clause.kind() {
+                        "except_clause" => catches.push(except_clause(cx, clause)),
+                        "finally_clause" => {
+                            finally = cx
+                                .children(clause)
+                                .into_iter()
+                                .find(|c| c.kind() == "block")
+                                .map(|b| block(cx, b))
+                                .unwrap_or_default();
+                        }
+                        _ => {}
+                    }
+                }
+                Stmt::Try {
+                    body: cx
+                        .children(node)
+                        .into_iter()
+                        .find(|c| c.kind() == "block")
+                        .map(|b| block(cx, b))
+                        .unwrap_or_default(),
+                    catches,
+                    finally,
+                    source: cx.text(node),
+                    line: cx.line(node),
+                }
+            }
             "pass_statement" => Stmt::Expr(Expr::Null),
             "break_statement" => Stmt::Break,
             "continue_statement" => Stmt::Continue,
@@ -881,8 +1066,22 @@ mod python {
             .unwrap_or(false)
     }
 
+    /// Is this `isinstance(value, Type)` with exactly two arguments?
+    fn is_isinstance(cx: &Cx, node: Node<'_>) -> bool {
+        cx.field_text(node, "function").as_deref() == Some("isinstance")
+            && cx
+                .field(node, "arguments")
+                .map(|a| cx.children(a).len())
+                .unwrap_or(0)
+                == 2
+    }
+
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            "await" => match node.named_child(0) {
+                Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             "integer" => Expr::Int(cx.text(node)),
             "float" => Expr::Float(cx.text(node)),
             "true" => Expr::Bool(true),
@@ -897,7 +1096,23 @@ mod python {
                     .iter()
                     .any(|c| c.kind() == "interpolation")
                 {
-                    return Expr::Unsupported(cx.unsupported(node));
+                    let mut parts = Vec::new();
+                    for child in cx.children(node) {
+                        match child.kind() {
+                            "string_content" => parts.push(TemplatePart::Text(cx.text(child))),
+                            "interpolation" => {
+                                // `{x!r}` and `{x:>3}` convert or format, which is
+                                // more than an interpolation and is not translated.
+                                let inner = cx.children(child);
+                                if inner.len() != 1 {
+                                    return Expr::Unsupported(cx.unsupported(node));
+                                }
+                                parts.push(TemplatePart::Expr(expr(cx, inner[0])));
+                            }
+                            _ => {}
+                        }
+                    }
+                    return Expr::Template(parts);
                 }
                 Expr::Str(super::unquote(&cx.text(node)))
             }
@@ -922,6 +1137,18 @@ mod python {
                         .unwrap_or(Expr::Null),
                 ),
             },
+            // `isinstance(x, T)` is the same question TypeScript asks with
+            // `instanceof`, so it reads as the same node and round-trips.
+            "call" if is_isinstance(cx, node) => {
+                let args = cx
+                    .field(node, "arguments")
+                    .map(|a| cx.children(a))
+                    .unwrap_or_default();
+                Expr::InstanceOf {
+                    value: Box::new(expr(cx, args[0])),
+                    ty: Box::new(expr(cx, args[1])),
+                }
+            }
             "call" => call_or_carry(
                 cx,
                 node,
@@ -933,11 +1160,65 @@ mod python {
                     .unwrap_or_default(),
             ),
             "list" => Expr::ListLit(cx.children(node).iter().map(|n| expr(cx, *n)).collect()),
+            "dictionary" => {
+                let mut entries = Vec::new();
+                for pair in cx.children(node) {
+                    if pair.kind() != "pair" {
+                        return Expr::Unsupported(cx.unsupported(node));
+                    }
+                    let (Some(k), Some(v)) = (cx.field(pair, "key"), cx.field(pair, "value"))
+                    else {
+                        return Expr::Unsupported(cx.unsupported(node));
+                    };
+                    entries.push((expr(cx, k), expr(cx, v)));
+                }
+                Expr::MapLit(entries)
+            }
+            "list_comprehension" => {
+                let clauses = cx.children(node);
+                let Some(element) = clauses.first() else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                let mut binding = None;
+                let mut iterable = None;
+                let mut condition = None;
+                let mut extra = false;
+                for clause in &clauses[1..] {
+                    match clause.kind() {
+                        "for_in_clause" if binding.is_none() => {
+                            binding = cx.field_text(*clause, "left");
+                            iterable = cx.field(*clause, "right").map(|r| expr(cx, r));
+                        }
+                        "if_clause" if condition.is_none() => {
+                            condition = cx.children(*clause).first().map(|c| expr(cx, *c));
+                        }
+                        // A second `for` or `if` is a nested comprehension, which does
+                        // not map onto one filter and one map.
+                        _ => extra = true,
+                    }
+                }
+                match (binding, iterable, extra) {
+                    (Some(binding), Some(iterable), false) => Expr::Comprehension {
+                        element: Box::new(expr(cx, *element)),
+                        binding,
+                        iterable: Box::new(iterable),
+                        condition: condition.map(Box::new),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
             "comparison_operator" | "boolean_operator" | "binary_operator" => {
-                let op = node
-                    .child(1)
-                    .map(|o| cx.text(o))
-                    .and_then(|o| super::binary_op(&o));
+                // `is not` and `not in` are two tokens. Reading only the first turned
+                // `x is not None` into `x == None`, which is the opposite of what it
+                // says — a wrong answer rather than a missing one.
+                let mut cursor = node.walk();
+                let operator: String = node
+                    .children(&mut cursor)
+                    .filter(|c| !c.is_named())
+                    .map(|c| cx.text(c))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let op = super::binary_op(&operator);
                 match op {
                     Some(op) => Expr::Binary {
                         op,
@@ -995,7 +1276,11 @@ mod go {
         let mut pending: Vec<(String, Function)> = Vec::new();
         for child in cx.children(root) {
             match child.kind() {
-                "comment" | "package_clause" | "import_declaration" => {}
+                "comment" | "package_clause" => {}
+                "import_declaration" => module.items.push(Item::Import {
+                    text: cx.text(child),
+                    line: cx.line(child),
+                }),
                 "function_declaration" => {
                     module.items.push(Item::Function(function(cx, child, None)))
                 }
@@ -1061,6 +1346,7 @@ mod go {
                         name: String::new(),
                         ty: ty_node.map(|t| ty(cx, t)),
                         default: None,
+                        kind: ParamKind::Normal,
                     });
                 }
                 for name in names {
@@ -1068,6 +1354,7 @@ mod go {
                         name: cx.text(name),
                         ty: ty_node.map(|t| ty(cx, t)),
                         default: None,
+                        kind: ParamKind::Normal,
                     });
                 }
             }
@@ -1175,6 +1462,13 @@ mod go {
 
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
+            // A comment is not an untranslatable construct: every one of these
+            // languages has one and only the marker differs. Reading it as a failure
+            // put ordinary prose in the output under a "not translated" marker and
+            // counted it among the real gaps.
+            "comment" | "line_comment" | "block_comment" => {
+                Stmt::Comment(super::uncomment(&cx.text(node)))
+            }
             "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
             "break_statement" => Stmt::Break,
             "continue_statement" => Stmt::Continue,
@@ -1345,6 +1639,19 @@ mod go {
 // ------------------------------------------------------------------- TypeScript
 
 mod typescript {
+    /// Does this access use `?.`?
+    ///
+    /// The grammar makes `optional_chain` a child rather than a field, so the only way
+    /// to ask is to look. Worth asking: `a?.b` and `a.b` differ exactly where it
+    /// matters, and the difference is invisible in the text this reader keeps.
+    fn has_optional_chain(node: Node<'_>) -> bool {
+        let mut cursor = node.walk();
+        let found = node
+            .children(&mut cursor)
+            .any(|child| child.kind() == "optional_chain");
+        found
+    }
+
     use super::*;
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
@@ -1358,7 +1665,11 @@ mod typescript {
                 _ => (child, false),
             };
             match node.kind() {
-                "comment" | "import_statement" => {}
+                "comment" => {}
+                "import_statement" => module.items.push(Item::Import {
+                    text: cx.text(child),
+                    line: cx.line(child),
+                }),
                 "function_declaration" => {
                     let mut f = function(cx, node, None);
                     f.exported = exported;
@@ -1411,28 +1722,42 @@ mod typescript {
                             name,
                             ty: t,
                             default: cx.field(p, "value").map(|v| expr(cx, v)),
+                            kind: ParamKind::Normal,
                         });
                     }
                     _ => params.push(Param {
                         name: cx.text(p),
                         ty: None,
                         default: None,
+                        kind: ParamKind::Normal,
                     }),
                 }
             }
         }
+        let is_async = cx.text(node).starts_with("async ");
+        let returns = cx.field(node, "return_type").map(|t| ty(cx, t)).map(|t| {
+            // `async f(): Promise<T>` and `async def f() -> T` say the same thing.
+            // Carrying the wrapper through would make the Python signature claim a
+            // type that does not exist there.
+            match (&t, is_async) {
+                (Type::Named { name, args }, true) if name == "Promise" && args.len() == 1 => {
+                    args[0].clone()
+                }
+                _ => t,
+            }
+        });
         Function {
             doc: Vec::new(),
             name: cx.field_text(node, "name").unwrap_or_default(),
             receiver,
             params,
-            returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
+            returns,
             body: cx
                 .field(node, "body")
                 .map(|b| block(cx, b))
                 .unwrap_or_default(),
             exported: false,
-            is_async: cx.text(node).starts_with("async "),
+            is_async,
         }
     }
 
@@ -1468,7 +1793,15 @@ mod typescript {
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
         // A `type_annotation` wraps the type after the colon.
         let inner = cx.children(node).first().copied().unwrap_or(node);
-        let text = cx.text(inner);
+        ty_text(&cx.text(inner))
+    }
+
+    /// Resolve a type from its text, recursing through generic arguments.
+    ///
+    /// The entry point and the recursion are the same function: when they were not,
+    /// `Promise<Record<string, string>>` resolved its outer layer and left the inner
+    /// one as an opaque name, so a round trip produced `Record[str, str]` in Python.
+    fn ty_text(text: &str) -> Type {
         let trimmed = text.trim().trim_start_matches(':').trim();
         if let Some(t) = super::scalar(trimmed) {
             return t;
@@ -1501,7 +1834,7 @@ mod typescript {
     }
 
     fn named_or_scalar(text: &str) -> Type {
-        super::scalar(text).unwrap_or_else(|| super::named_with_args(text.trim(), &named_or_scalar))
+        ty_text(text)
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
@@ -1513,7 +1846,51 @@ mod typescript {
 
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
+            // A comment is not an untranslatable construct: every one of these
+            // languages has one and only the marker differs. Reading it as a failure
+            // put ordinary prose in the output under a "not translated" marker and
+            // counted it among the real gaps.
+            "comment" | "line_comment" | "block_comment" => {
+                Stmt::Comment(super::uncomment(&cx.text(node)))
+            }
             "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
+            "throw_statement" => match cx.children(node).first() {
+                Some(value) => Stmt::Throw(expr(cx, *value)),
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "try_statement" => {
+                let mut catches = Vec::new();
+                let mut finally = Vec::new();
+                if let Some(clause) = cx.field(node, "handler") {
+                    catches.push(Catch {
+                        binding: cx.field(clause, "parameter").map(|p| cx.text(p)),
+                        // TypeScript catches everything; there is no type to select on.
+                        ty: None,
+                        body: cx
+                            .field(clause, "body")
+                            .map(|b| block(cx, b))
+                            .unwrap_or_default(),
+                    });
+                }
+                if let Some(clause) = cx.field(node, "finalizer") {
+                    finally = cx
+                        .children(clause)
+                        .into_iter()
+                        .find(|c| c.kind() == "statement_block")
+                        .map(|b| block(cx, b))
+                        .unwrap_or_else(|| block(cx, clause));
+                }
+                Stmt::Try {
+                    body: cx
+                        .field(node, "body")
+                        .map(|b| block(cx, b))
+                        .unwrap_or_default(),
+                    catches,
+                    finally,
+                    source: cx.text(node),
+                    line: cx.line(node),
+                }
+            }
             "break_statement" => Stmt::Break,
             "continue_statement" => Stmt::Continue,
             "lexical_declaration" | "variable_declaration" => {
@@ -1598,8 +1975,93 @@ mod typescript {
         }
     }
 
+    /// One arrow function of one parameter: `(x) => body`, or `x => body`.
+    ///
+    /// Anything else — a destructured parameter, a block body, a named callback — is
+    /// not the shape a comprehension has, and pretending otherwise would invent one.
+    fn one_arg_arrow<'t>(cx: &Cx, node: Node<'t>) -> Option<(String, Node<'t>)> {
+        if node.kind() != "arrow_function" {
+            return None;
+        }
+        let body = cx.field(node, "body")?;
+        if body.kind() == "statement_block" {
+            return None;
+        }
+        let parameter = match cx.field(node, "parameter") {
+            Some(p) => cx.text(p),
+            None => {
+                let list = cx.field(node, "parameters")?;
+                let params = cx.children(list);
+                if params.len() != 1 {
+                    return None;
+                }
+                let only = params[0];
+                match only.kind() {
+                    "required_parameter" => cx.field(only, "pattern").map(|p| cx.text(p))?,
+                    "identifier" => cx.text(only),
+                    _ => return None,
+                }
+            }
+        };
+        Some((parameter, body))
+    }
+
+    /// `xs.map(f)` and `xs.filter(p).map(f)`, which is a comprehension written the
+    /// way TypeScript writes one.
+    fn chain(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        let callee = cx.field(node, "function")?;
+        if callee.kind() != "member_expression" {
+            return None;
+        }
+        if cx.field_text(callee, "property")? != "map" {
+            return None;
+        }
+        let args = cx.children(cx.field(node, "arguments")?);
+        if args.len() != 1 {
+            return None;
+        }
+        let (binding, element) = one_arg_arrow(cx, args[0])?;
+
+        // The receiver is either the collection, or a `.filter(...)` on it.
+        let receiver = cx.field(callee, "object")?;
+        let (iterable, condition) = if receiver.kind() == "call_expression" {
+            match cx
+                .field(receiver, "function")
+                .filter(|f| f.kind() == "member_expression")
+                .filter(|f| cx.field_text(*f, "property").as_deref() == Some("filter"))
+            {
+                Some(filter_callee) => {
+                    let filter_args = cx.children(cx.field(receiver, "arguments")?);
+                    if filter_args.len() != 1 {
+                        return None;
+                    }
+                    let (filter_binding, predicate) = one_arg_arrow(cx, filter_args[0])?;
+                    // Two different names is two different scopes, not one loop.
+                    if filter_binding != binding {
+                        return None;
+                    }
+                    (cx.field(filter_callee, "object")?, Some(predicate))
+                }
+                None => (receiver, None),
+            }
+        } else {
+            (receiver, None)
+        };
+
+        Some(Expr::Comprehension {
+            element: Box::new(expr(cx, element)),
+            binding,
+            iterable: Box::new(expr(cx, iterable)),
+            condition: condition.map(|c| Box::new(expr(cx, c))),
+        })
+    }
+
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            "await_expression" => match node.named_child(0) {
+                Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             "number" => {
                 let text = cx.text(node);
                 if text.contains('.') {
@@ -1613,6 +2075,13 @@ mod typescript {
             "null" | "undefined" => Expr::Null,
             "string" => Expr::Str(super::unquote(&cx.text(node))),
             "identifier" | "property_identifier" | "this" => Expr::Name(cx.text(node)),
+            // `a?.b` is not `a.b`. Neither Python, Rust nor Go has optional
+            // chaining, and writing the plain access drops the null check silently —
+            // the translation would compile, run, and throw where the original
+            // returned undefined. Carried instead.
+            "member_expression" if has_optional_chain(node) => {
+                Expr::Unsupported(cx.unsupported(node))
+            }
             "member_expression" => Expr::Field {
                 of: Box::new(
                     cx.field(node, "object")
@@ -1621,6 +2090,9 @@ mod typescript {
                 ),
                 name: cx.field_text(node, "property").unwrap_or_default(),
             },
+            "subscript_expression" if has_optional_chain(node) => {
+                Expr::Unsupported(cx.unsupported(node))
+            }
             "subscript_expression" => Expr::Index {
                 of: Box::new(
                     cx.field(node, "object")
@@ -1633,17 +2105,77 @@ mod typescript {
                         .unwrap_or(Expr::Null),
                 ),
             },
-            "call_expression" => call_or_carry(
-                cx,
-                node,
-                cx.field(node, "function")
-                    .map(|f| expr(cx, f))
-                    .unwrap_or(Expr::Null),
-                cx.field(node, "arguments")
-                    .map(|a| cx.children(a).iter().map(|n| expr(cx, *n)).collect())
-                    .unwrap_or_default(),
-            ),
+            "call_expression" => {
+                if let Some(comprehension) = chain(cx, node) {
+                    return comprehension;
+                }
+                call_or_carry(
+                    cx,
+                    node,
+                    cx.field(node, "function")
+                        .map(|f| expr(cx, f))
+                        .unwrap_or(Expr::Null),
+                    cx.field(node, "arguments")
+                        .map(|a| cx.children(a).iter().map(|n| expr(cx, *n)).collect())
+                        .unwrap_or_default(),
+                )
+            }
             "array" => Expr::ListLit(cx.children(node).iter().map(|n| expr(cx, *n)).collect()),
+            "template_string" => {
+                let mut parts = Vec::new();
+                let mut cursor = node.walk();
+                for child in node.children(&mut cursor) {
+                    match child.kind() {
+                        "string_fragment" => parts.push(TemplatePart::Text(cx.text(child))),
+                        "template_substitution" => {
+                            let inner = cx.children(child);
+                            if inner.len() != 1 {
+                                return Expr::Unsupported(cx.unsupported(node));
+                            }
+                            parts.push(TemplatePart::Expr(expr(cx, inner[0])));
+                        }
+                        _ => {}
+                    }
+                }
+                Expr::Template(parts)
+            }
+            "object" => {
+                let mut entries = Vec::new();
+                for pair in cx.children(node) {
+                    if pair.kind() != "pair" {
+                        return Expr::Unsupported(cx.unsupported(node));
+                    }
+                    let (Some(k), Some(v)) = (cx.field(pair, "key"), cx.field(pair, "value"))
+                    else {
+                        return Expr::Unsupported(cx.unsupported(node));
+                    };
+                    // A bare key is a name in the tree and a string in the IR.
+                    let key = match k.kind() {
+                        "property_identifier" => Expr::Str(cx.text(k)),
+                        _ => expr(cx, k),
+                    };
+                    entries.push((key, expr(cx, v)));
+                }
+                Expr::MapLit(entries)
+            }
+            // `instanceof` is spelled as an operator here and as a builtin in
+            // Python; it is the same question either way, so it is its own node.
+            "binary_expression"
+                if cx.field_text(node, "operator").as_deref() == Some("instanceof") =>
+            {
+                Expr::InstanceOf {
+                    value: Box::new(
+                        cx.field(node, "left")
+                            .map(|l| expr(cx, l))
+                            .unwrap_or(Expr::Null),
+                    ),
+                    ty: Box::new(
+                        cx.field(node, "right")
+                            .map(|r| expr(cx, r))
+                            .unwrap_or(Expr::Null),
+                    ),
+                }
+            }
             "binary_expression" => {
                 match super::binary_op(&cx.field_text(node, "operator").unwrap_or_default()) {
                     Some(op) => Expr::Binary {
@@ -1680,6 +2212,26 @@ mod typescript {
                 }
             }
             "parenthesized_expression" => cx
+                .children(node)
+                .first()
+                .map(|n| expr(cx, *n))
+                .unwrap_or(Expr::Null),
+            // `x as T`, `x satisfies T` and `x!` are assertions to the type checker
+            // and have no runtime effect whatever. The value is the expression, so
+            // the translation is exact rather than a gap — and leaving them
+            // unhandled carried a whole statement over something that meant nothing.
+            "new_expression" => Expr::New {
+                callee: Box::new(
+                    cx.field(node, "constructor")
+                        .map(|c| expr(cx, c))
+                        .unwrap_or(Expr::Null),
+                ),
+                args: cx
+                    .field(node, "arguments")
+                    .map(|a| cx.children(a).into_iter().map(|n| expr(cx, n)).collect())
+                    .unwrap_or_default(),
+            },
+            "as_expression" | "satisfies_expression" | "non_null_expression" => cx
                 .children(node)
                 .first()
                 .map(|n| expr(cx, *n))
@@ -1775,7 +2327,7 @@ fn binary_op(text: &str) -> Option<BinaryOp> {
         "/" => BinaryOp::Div,
         "%" => BinaryOp::Rem,
         "==" | "===" | "is" => BinaryOp::Eq,
-        "!=" | "!==" => BinaryOp::Ne,
+        "!=" | "!==" | "is not" => BinaryOp::Ne,
         "<" => BinaryOp::Lt,
         "<=" => BinaryOp::Le,
         ">" => BinaryOp::Gt,
@@ -1787,6 +2339,25 @@ fn binary_op(text: &str) -> Option<BinaryOp> {
 }
 
 /// The text of a string literal, without its quotes or prefix.
+/// The text of a comment, without whichever marker the source language used.
+///
+/// The marker is the only thing that differs between these four, so stripping it here
+/// and letting each writer add its own is the whole of comment translation.
+fn uncomment(text: &str) -> String {
+    let text = text.trim();
+    let body = text
+        .strip_prefix("///")
+        .or_else(|| text.strip_prefix("//!"))
+        .or_else(|| text.strip_prefix("//"))
+        .or_else(|| text.strip_prefix("#"))
+        .or_else(|| {
+            text.strip_prefix("/*")
+                .map(|rest| rest.strip_suffix("*/").unwrap_or(rest))
+        })
+        .unwrap_or(text);
+    body.trim().to_string()
+}
+
 fn unquote(text: &str) -> String {
     let t = text
         .trim_start_matches(|c: char| c.is_alphabetic())

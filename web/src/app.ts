@@ -968,11 +968,19 @@ function openTranslateMenu(anchor: HTMLElement) {
     options.map((o) => ({
       id: o.language,
       label: o.destination
-        ? `${o.language} → ${o.destination.split("/").pop()}`
+        ? `${o.language} → ${o.destination.split("/").pop()}` +
+          (o.framework && o.draft ? ` (${o.draft.split(";")[0]})` : "")
         : o.language,
-      // Three groups, because "the same bytes under another grammar" and "a draft a
-      // person has to finish" are different promises and must not sit together.
-      group: o.unavailable ? "Not possible" : o.draft ? "Translate (a draft)" : "Write it as",
+      // Four groups, because these are four different promises and must not sit
+      // together: the same bytes under another grammar, a draft a person has to
+      // finish, a port to another framework, and a refusal with its reason.
+      group: o.unavailable
+        ? "Not possible"
+        : o.framework
+          ? "Port to a framework"
+          : o.draft
+            ? "Translate (a draft)"
+            : "Write it as",
       mutates: Boolean(o.draft),
       disabled: o.unavailable ?? null,
     })),

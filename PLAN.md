@@ -423,6 +423,59 @@ pairs worth checking this way are the ones where one command's output is another
 input — `unused`/`delete`, `rewrites_at`/`rewrite` (which found the workspace
 isolation bug), `symbols`/`def`, `duplicates`/`extract`.
 
+### Translating into a framework, not only a language
+
+A Next.js API route is the case that proves the point of reading the *path*: the URL a
+route serves is where its file sits on disk, and nothing inside the file says so. A
+content-only translation cannot produce `@router.get("/users/{id}")` from
+`app/api/users/[id]/route.ts` no matter how well it reads TypeScript.
+
+Building it found the same class of defect twice, from opposite directions, and both
+were failures of nerve rather than of technique:
+
+- Things treated as untranslatable that **correspond exactly**. `NextRequest` is
+  Starlette's `Request`; `await` is `await`; `return NextResponse.json(x)` is
+  `return x`. Each had been carried into the output as a comment, which reads as
+  modesty and is actually a worse answer than the obvious one.
+- Things treated as untranslatable that are **redundant**. `const id =
+  context.params.id` is precisely the work FastAPI already did. Carrying it opened
+  every handler with a line naming an object Python does not have.
+
+The discipline that surfaced both: **write the target file, then parse it with the
+target's own grammar and read it as a person would.** `transpile::plan` already
+refused output that would not parse; the FastAPI writer now does the same. What
+parsing cannot catch — a comment where working code belonged — showed up the moment
+the output was read against the promise the module documents, which is that the result
+is a file you finish rather than one you have to diff against the original.
+
+### A fixture is written by whoever writes the assertion
+
+Thirteen hundred tests passed while `def create_user(*, session, user_create)` produced
+`export function createUser(*: unknown, …)` — a file TypeScript will not parse. They
+passed because every input was written by the same person as the expectation, and that
+person did not think of keyword-only parameters.
+
+`tests/corpus.rs` runs the translations over two MIT-licensed projects vendored
+unmodified and pinned. What it asserts is deliberately *not* "the output equals this
+string", which would freeze today's translation and break on every improvement, but the
+three properties any translation must have: it parses as what it claims to be, it
+adopts the target's conventions, and nothing goes missing quietly.
+
+Eight defects in one sitting, two of them silent wrong answers — `session?.user.id` as
+`None.id`, and `params.postId as string` as `None`. Both were code that compiles, runs,
+and does the wrong thing, with the original nowhere in the file. Neither is reachable
+from a fixture nobody thought to write.
+
+Two habits generalise from it:
+
+1. **Vendor the corpus, pin it, and check the properties rather than the bytes.** A
+   golden-output test over real code would fail on every improvement and be deleted
+   within a week.
+2. **Make the exhaustive check exhaustive.** `has_unsupported_expr` had a `_ => false`
+   arm, so the three expression kinds added after it were quietly exempt — and each one
+   produced a silent wrong answer rather than a gap. It has no `_` arm now, and neither
+   does the writers' statement match: a new variant has to be decided about.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
