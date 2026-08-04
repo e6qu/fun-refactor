@@ -2,7 +2,7 @@
  * Every refactoring, against every symbol, at the scale people actually work at.
  *
  * The other harnesses ask whether a capability *works*. This one asks whether it
- * survives a real repository: hundreds of symbols, fifteen languages, and one bounded
+ * survives a real repository: hundreds of symbols, sixteen languages, and one bounded
  * wasm heap. It checks three things the CLI's own tests cannot:
  *
  *   1. Nothing traps. A Rust panic or an allocation failure in wasm is
@@ -42,7 +42,7 @@ await init({
 const repo = process.argv[2] ?? join(root, "sample");
 // Each probe indexes the workspace from scratch so one refactoring cannot affect the
 // next. That isolation costs an index build per probe, which is why the count is the
-// caller's to choose. Forty covers all fifteen languages of the bundled sample and
+// caller's to choose. Forty covers all sixteen languages of the bundled sample and
 // keeps CI to about a minute; a real sweep is `scale.mjs /path/to/repo 200`, and
 // takes as long as it takes.
 const LIMIT = Number(process.argv[3] ?? 40);
@@ -50,7 +50,7 @@ const started = Date.now();
 
 /** Extensions with a grammar. Anything else is weight without answers. */
 const PARSEABLE = new Set([
-  ".rs", ".go", ".ts", ".tsx", ".js", ".jsx", ".py", ".zig", ".sh", ".bash",
+  ".rs", ".go", ".java", ".ts", ".tsx", ".js", ".jsx", ".py", ".zig", ".sh", ".bash",
   ".html", ".htm", ".css", ".scss", ".tf", ".tfvars", ".yaml", ".yml", ".xml", ".md",
 ]);
 
@@ -113,7 +113,7 @@ for (const path of Object.keys(files)) {
  * Spread the probes across the workspace rather than taking the first N.
  *
  * `targets` is in path order, so the first forty of the bundled sample are all in
- * `chart/` — a run that claims to cover fifteen languages and covers YAML. Striding
+ * `chart/` — a run that claims to cover sixteen languages and covers YAML. Striding
  * takes the same number and touches every file.
  */
 const stride = Math.max(1, Math.floor(targets.length / LIMIT));
@@ -126,6 +126,25 @@ console.log(
     `${new Set(sample.map((t) => t.path)).size} files, ` +
     `${[...languagesProbed].filter(Boolean).sort().join(" ")}\n`,
 );
+
+// The coverage claim, asserted rather than written in a comment above it. `.java` was
+// missing from PARSEABLE for a whole release: the sweep went on saying it covered every
+// language of the bundled sample while skipping one of them entirely, and nothing
+// noticed because the only statement of the claim was prose.
+const inWorkspace = new Set(
+  JSON.parse(index.files())
+    .map((f) => f.language)
+    .filter(Boolean),
+);
+const missed = [...inWorkspace].filter((l) => !languagesProbed.has(l)).sort();
+if (missed.length) {
+  console.error(
+    `  the sweep claims to cover every language in the workspace and did not probe: ` +
+      `${missed.join(", ")}. Either raise the probe count or add the extension to ` +
+      `PARSEABLE.`,
+  );
+  process.exit(1);
+}
 
 /** A refusal names a rule; anything else that fails is a defect. */
 const REFUSAL = [
