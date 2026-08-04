@@ -26,6 +26,7 @@ pub mod index;
 pub mod lang;
 pub mod model;
 pub mod navigate;
+pub mod openapi;
 pub mod parse;
 pub mod recipe;
 pub mod refactor;

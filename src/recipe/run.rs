@@ -734,7 +734,29 @@ pub const PREDICATES: &[&str] = &[
     "unused",
     "duplicated",
     "changed",
+    "calls",
+    "called-by",
+    "implements",
+    "matches",
 ];
+
+/// The workspace-wide answers a selector needed, computed once per step.
+///
+/// Each is an existing analysis rather than new machinery, and each is only run when a
+/// predicate asks for it: the call graph over helm is not something to build for a
+/// selector that says `name="x"`.
+#[derive(Default)]
+struct Facts {
+    unused: BTreeSet<SymbolId>,
+    duplicated: BTreeSet<PathBuf>,
+    /// Symbols that call the named one, and symbols the named one calls.
+    calls: BTreeSet<SymbolId>,
+    called_by: BTreeSet<SymbolId>,
+    /// Concrete answers to the named abstraction.
+    implements: BTreeSet<SymbolId>,
+    /// Spans where a structural pattern matched, by file.
+    matched: Vec<(PathBuf, crate::span::Span)>,
+}
 
 fn select(
     step: &Step,
@@ -767,31 +789,7 @@ fn select(
         Operation::Imports | Operation::Rewrite { .. }
     );
 
-    let unused: BTreeSet<SymbolId> = if wants(&step.selector, "unused") {
-        let mut catalog = crate::analysis::entrypoints::Catalog::builtin()?;
-        for dir in options.catalogs {
-            catalog.load_dir(dir)?;
-        }
-        let entrypoints = Entrypoints::from_catalog(&catalog, index);
-        crate::refactor::delete::find_unused(index, &entrypoints)
-            .into_iter()
-            .collect()
-    } else {
-        BTreeSet::new()
-    };
-
-    let duplicated: BTreeSet<PathBuf> = if wants(&step.selector, "duplicated") {
-        crate::analysis::duplicates::find(index, &Default::default())
-            .map(|classes| {
-                classes
-                    .iter()
-                    .flat_map(|class| class.instances.iter().map(|c| c.file.clone()))
-                    .collect()
-            })
-            .unwrap_or_default()
-    } else {
-        BTreeSet::new()
-    };
+    let facts = gather(step, index, options)?;
 
     if by_file {
         let mut files: Vec<PathBuf> = index
@@ -800,7 +798,7 @@ fn select(
             .filter(|path| {
                 step.selector
                     .iter()
-                    .all(|p| file_matches(p, path, index, changed, &duplicated))
+                    .all(|p| file_matches(p, path, index, changed, &facts))
             })
             .cloned()
             .collect();
@@ -814,7 +812,7 @@ fn select(
         .filter(|symbol| {
             step.selector
                 .iter()
-                .all(|p| symbol_matches(p, symbol, changed, &unused, &duplicated))
+                .all(|p| symbol_matches(p, symbol, changed, &facts))
         })
         .map(|s| {
             (
@@ -837,12 +835,104 @@ fn wants(selector: &[Predicate], field: &str) -> bool {
     selector.iter().any(|p| p.field() == field)
 }
 
+/// The value a predicate was given, when it takes one.
+fn argument<'a>(selector: &'a [Predicate], field: &str) -> Option<&'a str> {
+    selector.iter().find_map(|p| match p {
+        Predicate::Equals { field: f, value } if f == field => Some(value.as_str()),
+        _ => None,
+    })
+}
+
+/// Run the analyses this selector asks for, and only those.
+fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
+    let mut facts = Facts::default();
+
+    if wants(&step.selector, "unused") {
+        let mut catalog = crate::analysis::entrypoints::Catalog::builtin()?;
+        for dir in options.catalogs {
+            catalog.load_dir(dir)?;
+        }
+        let entrypoints = Entrypoints::from_catalog(&catalog, index);
+        facts.unused = crate::refactor::delete::find_unused(index, &entrypoints)
+            .into_iter()
+            .collect();
+    }
+
+    if wants(&step.selector, "duplicated") {
+        facts.duplicated = crate::analysis::duplicates::find(index, &Default::default())
+            .map(|classes| {
+                classes
+                    .iter()
+                    .flat_map(|class| class.instances.iter().map(|c| c.file.clone()))
+                    .collect()
+            })
+            .unwrap_or_default();
+    }
+
+    // One call graph answers both directions, and it is only built if one is asked for.
+    if wants(&step.selector, "calls") || wants(&step.selector, "called-by") {
+        let graph = crate::analysis::call_graph::CallGraph::build(index);
+        if let Some(name) = argument(&step.selector, "calls") {
+            // `calls="x"` selects the callers of x — the symbols with an edge into it.
+            for target in named(index, name) {
+                for (caller, _) in graph.callers(target) {
+                    facts.calls.insert(caller);
+                }
+            }
+        }
+        if let Some(name) = argument(&step.selector, "called-by") {
+            for caller in named(index, name) {
+                for (callee, _) in graph.callees(caller) {
+                    facts.called_by.insert(callee);
+                }
+            }
+        }
+    }
+
+    if let Some(name) = argument(&step.selector, "implements") {
+        let hierarchy = crate::analysis::call_graph::Hierarchy::scan(index);
+        for abstraction in named(index, name) {
+            for concrete in hierarchy.implementations_of(index, abstraction) {
+                facts.implements.insert(concrete);
+            }
+        }
+    }
+
+    if let Some(pattern) = argument(&step.selector, "matches") {
+        // A structural pattern is per-language, and the selector has to say which:
+        // the same text is a different tree in every one of them.
+        let Some(name) = argument(&step.selector, "lang") else {
+            bail!(
+                "line {}: `matches=` needs `lang=` beside it — the same text parses into a \
+                 different tree in every language, so there is no language-free answer to \
+                 where a shape occurs.",
+                step.line
+            );
+        };
+        let Some(language) = Language::from_name(name) else {
+            bail!("line {}: no language called '{name}'", step.line);
+        };
+        facts.matched = crate::refactor::restructure::locate(index, language, pattern)?;
+    }
+
+    Ok(facts)
+}
+
+/// Every symbol with this name, since a selector names one rather than pointing at it.
+fn named(index: &Index, name: &str) -> Vec<SymbolId> {
+    index
+        .symbols
+        .iter()
+        .filter(|s| s.name == name)
+        .map(|s| s.id)
+        .collect()
+}
+
 fn symbol_matches(
     predicate: &Predicate,
     symbol: &crate::model::Symbol,
     changed: &BTreeSet<PathBuf>,
-    unused: &BTreeSet<SymbolId>,
-    duplicated: &BTreeSet<PathBuf>,
+    facts: &Facts,
 ) -> bool {
     let path = symbol.file.to_string_lossy().to_string();
     match predicate {
@@ -853,6 +943,16 @@ fn symbol_matches(
             "in" => path.contains(value.trim_end_matches('/')),
             "file" => path.ends_with(value.as_str()),
             "annotated-with" => annotated(symbol, value),
+            // These four are answered by an analysis rather than by the symbol, so the
+            // value has already been used to compute the set and only membership is
+            // left to check.
+            "calls" => facts.calls.contains(&symbol.id),
+            "called-by" => facts.called_by.contains(&symbol.id),
+            "implements" => facts.implements.contains(&symbol.id),
+            "matches" => facts
+                .matched
+                .iter()
+                .any(|(file, span)| *file == symbol.file && symbol.full_span.contains(*span)),
             _ => false,
         },
         Predicate::Glob { field, pattern } => match field.as_str() {
@@ -863,9 +963,9 @@ fn symbol_matches(
         Predicate::Flag { field, expected } => {
             let holds = match field.as_str() {
                 "exported" => symbol.exported,
-                "unused" => unused.contains(&symbol.id),
+                "unused" => facts.unused.contains(&symbol.id),
                 "changed" => changed.contains(&symbol.file),
-                "duplicated" => duplicated.contains(&symbol.file),
+                "duplicated" => facts.duplicated.contains(&symbol.file),
                 _ => false,
             };
             holds == *expected
@@ -878,7 +978,7 @@ fn file_matches(
     path: &Path,
     index: &Index,
     changed: &BTreeSet<PathBuf>,
-    duplicated: &BTreeSet<PathBuf>,
+    facts: &Facts,
 ) -> bool {
     let text = path.to_string_lossy().to_string();
     let language = index.file(path).map(|info| info.language);
@@ -887,6 +987,7 @@ fn file_matches(
             "lang" => language.map(|l| l.name()) == Some(value.as_str()),
             "in" => text.contains(value.trim_end_matches('/')),
             "file" => text.ends_with(value.as_str()),
+            "matches" => facts.matched.iter().any(|(file, _)| file == path),
             _ => false,
         },
         Predicate::Glob { field, pattern } => match field.as_str() {
@@ -896,7 +997,7 @@ fn file_matches(
         Predicate::Flag { field, expected } => {
             let holds = match field.as_str() {
                 "changed" => changed.contains(path),
-                "duplicated" => duplicated.contains(path),
+                "duplicated" => facts.duplicated.contains(path),
                 _ => false,
             };
             holds == *expected

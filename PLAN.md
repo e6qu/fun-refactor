@@ -618,6 +618,33 @@ it saw and says what will happen if they stay where they are. It does not hoist 
 because which status is the *success* one is a judgement about the endpoint rather than
 a fact about the syntax.
 
+### Closing the three things that were written down as not done
+
+**The four missing recipe predicates.** `calls=` and `called-by=` come from one call
+graph, `implements=` from the hierarchy, `matches=` from the pattern matcher. Each was
+an existing analysis rather than new machinery, which is what the design promised, and
+each is run only when a predicate asks for it — building a call graph over helm for a
+selector that says `name="x"` is the mistake the last round was about.
+
+`matches=` needs `lang=` beside it and says so. The same text parses into a different
+tree in every language, so there is no language-free answer to where a shape occurs.
+Exposing it also needed `restructure::locate` — the find half of `apply`, which could
+not be reused as it stood because `apply` skips a rewrite that changes nothing, and a
+pattern used as its own template changes nothing every time.
+
+**Reading zod.** The IR already held the whole builder chain, so this was a walk rather
+than a parse: a chain is left-nested, and walking to the base call with the modifiers
+collected on the way past gives the type. The constraints are deliberately dropped —
+`.min(3)` is validation, Pydantic spells it `Field(min_length=3)`, and the two are not
+the same rule in every case.
+
+**`fr openapi`.** The baseline half of a contract check. Paths, methods and path
+parameters are exact because they come from the tree; schemas are as good as what was
+declared; responses are `default` only, because which status an endpoint returns is a
+fact about its code rather than its declaration. Writing `200` for everything would put
+fiction into the file you are about to diff against — the diff comes out clean and the
+contract still shrank, which is the exact failure the document exists to prevent.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
