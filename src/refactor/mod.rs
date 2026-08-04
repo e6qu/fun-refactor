@@ -80,6 +80,13 @@ impl WarningKind {
 pub enum Refusal {
     /// The new name would collide with an existing one.
     NameCollision { existing: String, file: PathBuf },
+    /// A name inside the value means something else where the value would be moved to.
+    ///
+    /// Distinct from a collision, which is about the name being introduced. This is
+    /// about a name being *carried*: substituting `price_of(order)` into a scope where
+    /// `order` is a different binding changes what the code does, and saying "renaming
+    /// would shadow or collide with it" describes neither the operation nor the fault.
+    NameCaptured { name: String, file: PathBuf },
     /// The requested name is not a valid identifier for the language.
     InvalidName { name: String, reason: String },
     /// The operation is not implemented for this language.
@@ -97,6 +104,12 @@ impl std::fmt::Display for Refusal {
             Refusal::NameCollision { existing, file } => write!(
                 f,
                 "'{existing}' is already defined in {}; renaming would shadow or collide with it",
+                file.display()
+            ),
+            Refusal::NameCaptured { name, file } => write!(
+                f,
+                "the value uses `{name}`, which means something else where it would be \
+                 moved to in {}; substituting it would change what the code does",
                 file.display()
             ),
             Refusal::InvalidName { name, reason } => {

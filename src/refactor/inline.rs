@@ -122,8 +122,8 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // A name inside the value must mean the same thing at every use site, or the
     // substituted expression would silently bind to something else.
     if let Some(captured) = shadowed_name(index, &value_span, &references, &sym.file) {
-        return Err(Refusal::NameCollision {
-            existing: captured,
+        return Err(Refusal::NameCaptured {
+            name: captured,
             file: sym.file.clone(),
         }
         .into());
@@ -197,7 +197,44 @@ fn other_assignment(
     None
 }
 
-/// A name used inside the value that is redefined between the binding and a use.
+/// Which symbol does this name mean, read from inside this scope?
+///
+/// The innermost enclosing scope that declares it wins, which is what "lexical scope"
+/// means. `None` says no scope on the chain declares it — a module-level name, an
+/// import, a builtin — and two `None`s agree with each other: the name means whatever
+/// it means everywhere in the file.
+fn meaning_of(
+    index: &Index,
+    info: &crate::index::FileInfo,
+    scope: Option<crate::model::ScopeId>,
+    name: &str,
+) -> Option<SymbolId> {
+    let scope = scope?;
+    for enclosing in info.scope_chain(scope) {
+        if let Some(symbol) = info
+            .symbols
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .find(|s| s.name == name && s.scope == enclosing)
+        {
+            return Some(symbol.id);
+        }
+    }
+    None
+}
+
+/// A name inside the value that would mean something else at a use site.
+///
+/// Substituting an expression moves every name in it to wherever the variable was
+/// used, and a name that resolves to a different binding there is a silent change of
+/// behaviour — the one thing this must not do.
+///
+/// Asked of the lexical scopes the index already records. It used to be asked of
+/// whichever reference with the same name happened to come first within two hundred
+/// bytes of the use site, which is not a question about scope at all: in a seven-line
+/// file every reference is within two hundred bytes, so inlining `total = price_of(order)`
+/// was refused because the *other* function's parameter is also called `order`. The
+/// scope-aware answer was computed on the line above and thrown away.
 fn shadowed_name(
     index: &Index,
     value_span: &Span,
@@ -213,26 +250,26 @@ fn shadowed_name(
         .collect();
 
     for name_ref in inner {
-        let target = name_ref.target?;
+        let here = meaning_of(
+            index,
+            info,
+            info.scope_at(name_ref.span.start),
+            &name_ref.name,
+        );
         for use_site in references {
             if use_site.file != *file {
                 // The value would move to another file, where its names may mean
                 // anything at all.
                 return Some(name_ref.name.clone());
             }
-            // What does this name resolve to at the use site?
-            let at_use = index.definition_at(&use_site.file, use_site.span.start);
-            let _ = at_use;
-            let resolved_here = index
-                .references
-                .iter()
-                .filter(|r| r.file == use_site.file && r.name == name_ref.name)
-                .filter(|r| r.span.start > use_site.span.start.saturating_sub(200))
-                .find_map(|r| r.target);
-            if let Some(other) = resolved_here {
-                if other != target {
-                    return Some(name_ref.name.clone());
-                }
+            let there = meaning_of(
+                index,
+                info,
+                info.scope_at(use_site.span.start),
+                &name_ref.name,
+            );
+            if here != there {
+                return Some(name_ref.name.clone());
             }
         }
     }

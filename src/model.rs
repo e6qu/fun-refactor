@@ -312,34 +312,47 @@ pub struct FileFacts {
     pub imports: Vec<Import>,
 }
 
+/// The innermost scope containing `offset`.
+///
+/// A free function over the scopes themselves, because two different types hold the
+/// same `Vec<Scope>` — the per-file facts before resolution and the index's view of a
+/// file after it — and the answer must not depend on which one you happen to have.
+pub fn scope_at(scopes: &[Scope], offset: usize) -> Option<ScopeId> {
+    scopes
+        .iter()
+        .filter(|s| s.span.contains_offset(offset))
+        .min_by_key(|s| s.span.len())
+        .map(|s| s.id)
+}
+
+/// Walk from `scope` outwards to the file root.
+pub fn scope_chain(scopes: &[Scope], scope: ScopeId) -> Vec<ScopeId> {
+    let mut chain = vec![scope];
+    let mut current = scope;
+    // Scope parents form a tree; the bound guards against a malformed cycle.
+    for _ in 0..scopes.len() {
+        let Some(parent) = scopes
+            .iter()
+            .find(|s| s.id == current)
+            .and_then(|s| s.parent)
+        else {
+            break;
+        };
+        chain.push(parent);
+        current = parent;
+    }
+    chain
+}
+
 impl FileFacts {
     /// The innermost scope containing `offset`.
     pub fn scope_at(&self, offset: usize) -> Option<ScopeId> {
-        self.scopes
-            .iter()
-            .filter(|s| s.span.contains_offset(offset))
-            .min_by_key(|s| s.span.len())
-            .map(|s| s.id)
+        scope_at(&self.scopes, offset)
     }
 
     /// Walk from `scope` outwards to the file root.
     pub fn scope_chain(&self, scope: ScopeId) -> Vec<ScopeId> {
-        let mut chain = vec![scope];
-        let mut current = scope;
-        // Scope parents form a tree; the bound guards against a malformed cycle.
-        for _ in 0..self.scopes.len() {
-            let Some(parent) = self
-                .scopes
-                .iter()
-                .find(|s| s.id == current)
-                .and_then(|s| s.parent)
-            else {
-                break;
-            };
-            chain.push(parent);
-            current = parent;
-        }
-        chain
+        scope_chain(&self.scopes, scope)
     }
 
     pub fn symbol(&self, id: SymbolId) -> Option<&Symbol> {

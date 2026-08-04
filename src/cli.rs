@@ -725,14 +725,20 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
 fn parse_signature_change(spec: &str) -> Result<crate::refactor::signature::Change> {
     use crate::refactor::signature::Change;
 
-    let parts: Vec<&str> = spec.splitn(4, ':').collect();
+    // Three fields, not four. The declaration may itself contain colons — `flag: bool`
+    // is the documented example — so everything after the position is one field and the
+    // argument is taken off its end. Splitting into four handed the arm below only the
+    // first word of the declaration and dropped the rest, which made
+    // `add:1:flag\: bool:false` — the example in this function's own error message —
+    // fail with that same message.
+    let parts: Vec<&str> = spec.splitn(3, ':').collect();
     match parts.as_slice() {
         ["remove", index] => Ok(Change::Remove(index.parse()?)),
         ["move", from, to] => Ok(Change::Move {
             from: from.parse()?,
             to: to.parse()?,
         }),
-        ["add", at, rest] | ["add", at, rest, ..] => {
+        ["add", at, rest] => {
             // The declaration may itself contain a colon (`flag: bool`), so the
             // argument is taken from the last colon-separated field.
             let (declaration, argument) = rest.rsplit_once(':').ok_or_else(|| {

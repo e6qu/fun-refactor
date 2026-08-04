@@ -69,6 +69,37 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B84: **a bare `xs.filter(p)` did not translate, and a comprehension that kept
+  every element it selected wrote out an identity `map`.** The TypeScript reader
+  recognised `xs.filter(p).map(f)` and nothing else, so the commoner of the two came
+  out as a comment; the writer emitted `xs.filter(p).map((x) => x)` for
+  `[x for x in xs if p(x)]`, which is the same thing with three extra words. Both sides
+  of the pair the translation page showcases.
+
+- [x] B83: **inlining a variable was refused whenever any name in its value appeared
+  anywhere else in the file.** The capture check asked "does this name mean the same
+  thing at the use site?" by taking the first reference with that name starting within
+  *two hundred bytes* of the use site — not a question about scope at all. In a
+  seven-line file every reference is within two hundred bytes, so
+  `total = price_of(order)` could not be inlined because the *other* function's
+  parameter is also called `order`. The index records lexical scopes and
+  `definition_at` was being computed on the line above and discarded (`let _ = at_use;`).
+  Now both sites resolve the name through their own scope chain. A genuine capture is
+  still refused, and it has its own refusal — `NameCaptured` — because "renaming would
+  shadow or collide with it" described neither the operation nor the fault.
+
+- [x] B82: **`fr signature X 'add:1:flag: bool:false'` — the example in the tool's own
+  error message — did not work.** `splitn(4, ':')` handed the parser only the first
+  word of the declaration and dropped the rest, so any declaration containing a colon,
+  which is to say any typed one, failed with the message that recommends it. Three
+  fields, not four: everything after the position is one field and the argument comes
+  off its end.
+
+- [x] B81: **the catalogue page's report pane dropped three quarters of what the tool
+  said.** `docs/panes.js` separated the diff from the report by matching diff lines
+  with a pattern, and a diff context line starts with a space — as does every indented
+  line of a report, which is most of one. Split by position instead.
+
 - [x] B80: **`commit` chose how to write by feature flag rather than by where the
   writes go.** `#[cfg(feature = "cli")]` selected filesystem staging, so a build with
   both `cli` and `wasm` compiled in staged a temporary file beside a path that exists

@@ -2295,7 +2295,15 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 .as_ref()
                 .map(|c| format!(".filter(({name}) => {})", ts_expr(out, c)))
                 .unwrap_or_default();
-            format!("{it}{filter}.map(({name}) => {})", ts_expr(out, element))
+            // `[x for x in xs if p(x)]` keeps every element it selects, so the map is
+            // the identity and writing it out says nothing: `xs.filter(p).map((x) => x)`
+            // is `xs.filter(p)` with three extra words.
+            let identity = matches!(element.as_ref(), Expr::Name(n) if *n == *binding);
+            if identity && !filter.is_empty() {
+                format!("{it}{filter}")
+            } else {
+                format!("{it}{filter}.map(({name}) => {})", ts_expr(out, element))
+            }
         }
         Expr::Unsupported(u) => {
             out.carried(u);
