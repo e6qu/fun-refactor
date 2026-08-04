@@ -10,20 +10,6 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Open
 
-- [ ] B79: **`src/wasm.rs` cannot be compiled without a wasm toolchain, so every edit to
-  the browser API is checked only by CI.** `cargo check --features wasm` on a host
-  fails: `vfs::Handle`, `new_handle` and `activate` are gated on
-  `target_arch = "wasm32"` rather than on the feature, and the tree-sitter grammars are
-  C that needs a clang with the WebAssembly backend — which Apple's clang is built
-  without. The cost is real and was paid: a struct field added to `Option_` was missed
-  at one of six literals, `cargo test` and `cargo clippy` both passed, and the
-  playground job found it. Mitigated rather than fixed — the six literals are now three
-  constructors, so a new field is added in one place. The fix is to compile the
-  in-memory backing on the host too under the `wasm` feature, with the memory map
-  shadowing the filesystem while a handle is active, which would also let the
-  twenty-nine browser methods be tested by `cargo test` instead of only by
-  `web/test/api.mjs`.
-
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
   resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
   whose method set a type covers by name and arity, a TypeScript `implements`/`extends`
@@ -82,6 +68,29 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   facts inside that expression.
 
 ## Fixed
+
+- [x] B80: **`commit` chose how to write by feature flag rather than by where the
+  writes go.** `#[cfg(feature = "cli")]` selected filesystem staging, so a build with
+  both `cli` and `wasm` compiled in staged a temporary file beside a path that exists
+  only in a browser's memory and has no directory on disk — every refactoring in that
+  build would fail to apply. Neither shipped build has both, so it was latent; it
+  surfaced the moment the two feature sets were compiled together, which is now what
+  CI does. Where a write lands is a fact about the active backing, and the question
+  moved to `vfs::is_in_memory()`.
+
+- [x] B79: **`src/wasm.rs` could not be compiled without a wasm toolchain, so every
+  edit to the browser API was checked only by CI.** `vfs::Handle`, `new_handle` and
+  `activate` were gated on `target_arch = "wasm32"` although nothing in the in-memory
+  backing is wasm-specific, and the constructor called the libc shim unconditionally.
+  The cost was paid: a field added to a struct at six call sites was missed at one,
+  `cargo test` and `cargo clippy -D warnings` both passed, and the playground job found
+  it three minutes later. The backing now follows the *feature*, with the memory map
+  shadowing the filesystem while a workspace is handed over — so `activate` is not a
+  silent no-op on a host — and `Workspace::load` takes plain Rust values so only the
+  `JsValue` conversion is left in the constructor. `tests/wasm_native.rs` drives nine
+  cases through the API under `cargo test`, and CI runs clippy and the suite with
+  `--features wasm`. It also turned up B80 and a clippy lint in `src/wasm.rs` that
+  nothing had ever compiled.
 
 - [x] B78: **a foreign name that is a keyword in the target made the whole file
   unwritable.** `select` is a name sqlmodel exports and a keyword in Go, so

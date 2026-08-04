@@ -17,8 +17,15 @@
 use std::io;
 use std::path::Path;
 
-#[cfg(target_arch = "wasm32")]
-mod backing {
+/// A workspace held in memory rather than on disk.
+///
+/// Gated on the *feature* rather than the target, because nothing in it is
+/// wasm-specific and gating it on `wasm32` meant `src/wasm.rs` could not be compiled
+/// on a host at all: `cargo check --features wasm` failed here, so every edit to the
+/// browser API was checked only by the playground job in CI. A struct field added at
+/// six call sites and missed at one passed `cargo test` and `cargo clippy` both.
+#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
+mod memory {
     use std::cell::RefCell;
     use std::collections::BTreeMap;
     use std::io;
@@ -45,9 +52,25 @@ mod backing {
         Rc::new(RefCell::new(files.into_iter().collect()))
     }
 
+    thread_local! {
+        /// Whether anyone has handed over a workspace.
+        ///
+        /// On a host build this is what decides between the two backings. Without it
+        /// `activate` would be a no-op there — the call would succeed and the reads
+        /// would go to the filesystem, which is the sort of quietly-wrong answer this
+        /// module exists to prevent.
+        static HANDED_OVER: RefCell<bool> = const { RefCell::new(false) };
+    }
+
     /// Read and write through these files until told otherwise.
     pub fn activate(handle: &Handle) {
         ACTIVE.with(|a| *a.borrow_mut() = Rc::clone(handle));
+        HANDED_OVER.with(|h| *h.borrow_mut() = true);
+    }
+
+    /// Has a workspace been handed over on this thread?
+    pub fn is_active() -> bool {
+        HANDED_OVER.with(|h| *h.borrow())
     }
 
     fn with_active<T>(f: impl FnOnce(&BTreeMap<PathBuf, String>) -> T) -> T {
@@ -97,6 +120,9 @@ mod backing {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+use memory as backing;
+
 #[cfg(not(target_arch = "wasm32"))]
 mod backing {
     use std::io;
@@ -123,14 +149,58 @@ mod backing {
     }
 }
 
+/// Run this against the handed-over workspace instead of the disk, where there is one.
+///
+/// Only a host build compiled with the browser API has both backings; on wasm there is
+/// no disk and on an ordinary build there is no handing over, so in both of those this
+/// expands to nothing at all.
+///
+/// A macro rather than a function because the two backings share their names and only
+/// one of them exists in most configurations.
+macro_rules! through_memory {
+    ($call:ident($($arg:expr),*)) => {{
+        #[cfg(all(not(target_arch = "wasm32"), feature = "wasm"))]
+        if memory::is_active() {
+            return memory::$call($($arg),*);
+        }
+    }};
+}
+
+/// Are reads and writes going to a workspace held in memory rather than to the disk?
+///
+/// The question every caller that cares about *how* a write lands has to ask, and it
+/// is a fact about the active backing rather than about which features were compiled.
+/// Asking `cfg!(feature = "cli")` instead is what made `commit` stage temporary files
+/// beside a path that exists only in a browser's memory, on any build with both
+/// features — a failure that could not happen in either build shipped today and was
+/// waiting for the first one that had both.
+pub fn is_in_memory() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    {
+        true
+    }
+    #[cfg(all(not(target_arch = "wasm32"), feature = "wasm"))]
+    {
+        memory::is_active()
+    }
+    #[cfg(all(not(target_arch = "wasm32"), not(feature = "wasm")))]
+    {
+        false
+    }
+}
+
 /// Read a file's text.
 pub fn read_to_string(path: impl AsRef<Path>) -> io::Result<String> {
-    backing::read_to_string(path.as_ref())
+    let path = path.as_ref();
+    through_memory!(read_to_string(path));
+    backing::read_to_string(path)
 }
 
 /// Replace a file's text.
 pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()> {
-    backing::write(path.as_ref(), contents.as_ref())
+    let (path, contents) = (path.as_ref(), contents.as_ref());
+    through_memory!(write(path, contents));
+    backing::write(path, contents)
 }
 
 /// Is there a file here?
@@ -139,7 +209,9 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()
 /// sits beside a YAML file, which is what makes it a Helm template rather than plain
 /// YAML.
 pub fn exists(path: impl AsRef<Path>) -> bool {
-    backing::exists(path.as_ref())
+    let path = path.as_ref();
+    through_memory!(exists(path));
+    backing::exists(path)
 }
 
 /// The files directly inside a directory, in no particular order.
@@ -147,13 +219,15 @@ pub fn exists(path: impl AsRef<Path>) -> bool {
 /// Directories themselves are not returned: a browser workspace is a flat map of
 /// paths, so a directory only exists as the prefix of a file that is in it.
 pub fn read_dir(dir: impl AsRef<Path>) -> io::Result<Vec<std::path::PathBuf>> {
-    backing::read_dir(dir.as_ref())
+    let dir = dir.as_ref();
+    through_memory!(read_dir(dir));
+    backing::read_dir(dir)
 }
 
 /// Every file the workspace holds, where that is a knowable thing.
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub fn paths() -> Vec<std::path::PathBuf> {
-    backing::paths()
+    memory::paths()
 }
 
 /// A set of in-memory files, owned by whoever asked for it.
@@ -161,17 +235,17 @@ pub fn paths() -> Vec<std::path::PathBuf> {
 /// Only meaningful where there is no filesystem. The owner passes it to
 /// [`activate`] before every operation, so two workspaces can exist at once without
 /// either one reading the other's bytes.
-#[cfg(target_arch = "wasm32")]
-pub type Handle = backing::Handle;
+#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
+pub type Handle = memory::Handle;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub fn new_handle(files: impl IntoIterator<Item = (std::path::PathBuf, String)>) -> Handle {
-    backing::new_handle(files)
+    memory::new_handle(files)
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub fn activate(handle: &Handle) {
-    backing::activate(handle)
+    memory::activate(handle)
 }
 
 /// A directory, as a sentence can name it.

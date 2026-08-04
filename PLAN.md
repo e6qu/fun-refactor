@@ -476,6 +476,28 @@ Two habits generalise from it:
    produced a silent wrong answer rather than a gap. It has no `_` arm now, and neither
    does the writers' statement match: a new variant has to be decided about.
 
+### Code no build compiles is code no check checks
+
+`src/wasm.rs` is the playground's entire public surface and, until now, nothing
+compiled it on a development machine: the in-memory backing it needs was gated on
+`target_arch = "wasm32"`, and the grammars are C that wants a clang with the
+WebAssembly backend, which Apple's is built without. `cargo test` and
+`cargo clippy -D warnings` both passed over a file with a missing struct field, and CI
+found it after a push.
+
+Two gates were wrong rather than two things being hard. The in-memory backing has
+nothing wasm-specific in it and now follows the `wasm` *feature*; the libc shim is the
+only genuinely wasm32 part and is the only thing still gated on the target. With that,
+`cargo check --features wasm` works, `Workspace::load` takes plain Rust values so the
+API is reachable from `cargo test`, and CI runs both feature sets.
+
+Compiling the two feature sets *together* immediately found a third defect nobody had
+seen: `commit` chose filesystem staging with `#[cfg(feature = "cli")]` rather than
+asking where the writes were going, so a build with both would stage a temporary file
+beside a path that only exists in a browser's memory. A feature flag says which
+backings exist. It does not say which one is active, and code that confuses the two is
+correct only for as long as nobody builds the combination.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

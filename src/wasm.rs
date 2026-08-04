@@ -119,7 +119,7 @@ fn fail(e: impl std::fmt::Display) -> String {
 }
 
 fn ok<T: Serialize>(value: &T) -> String {
-    serde_json::to_string(value).unwrap_or_else(|e| fail(e))
+    serde_json::to_string(value).unwrap_or_else(fail)
 }
 
 #[wasm_bindgen]
@@ -132,13 +132,30 @@ impl Workspace {
     #[wasm_bindgen(constructor)]
     pub fn new(files: JsValue) -> Result<Workspace, JsValue> {
         console_error_panic_hook::set_once();
-        // The grammars' scanners allocate through a bump allocator that starts at
-        // NULL until it is given a region. See the wasm-libc crate.
-        fun_refactor_wasm_libc::init_scanner_heap();
-        fun_refactor_wasm_libc::use_rust_allocator_in_tree_sitter();
-
         let map: std::collections::BTreeMap<String, String> = serde_wasm_bindgen::from_value(files)
             .map_err(|e| JsValue::from_str(&format!("expected {{path: text}}: {e}")))?;
+        Workspace::load(map).map_err(|e| JsValue::from_str(&e))
+    }
+}
+
+impl Workspace {
+    /// Load a repository from plain Rust values.
+    ///
+    /// Split out of the constructor so that everything but the `JsValue` conversion
+    /// can be reached by `cargo test`. The browser API used to be exercised only by
+    /// `web/test/api.mjs`, which needs a wasm toolchain and a Node run, so a mistake
+    /// in it survived `cargo test` and `cargo clippy` and reached CI.
+    pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
+        // The grammars' scanners allocate through a bump allocator that starts at
+        // NULL until it is given a region. See the wasm-libc crate. Only there: a
+        // host build links a real libc, and the shim is not compiled for it — which
+        // is what lets `cargo check --features wasm` work on a host and catch the
+        // mistakes that otherwise reach CI.
+        #[cfg(target_arch = "wasm32")]
+        {
+            fun_refactor_wasm_libc::init_scanner_heap();
+            fun_refactor_wasm_libc::use_rust_allocator_in_tree_sitter();
+        }
 
         let loaded: Vec<(PathBuf, String)> = map
             .into_iter()
@@ -178,7 +195,7 @@ impl Workspace {
         for (path, language, source) in &sources {
             let one =
                 crate::index::extract_facts(&parsers, &mut extractor, path, *language, source)
-                    .map_err(|e| JsValue::from_str(&format!("indexing failed: {e}")))?;
+                    .map_err(|e| format!("indexing failed: {e}"))?;
             facts.insert(path.clone(), (*language, one.clone()));
             extracted.push((path.clone(), *language, one));
         }
@@ -193,7 +210,10 @@ impl Workspace {
             unsupported,
         })
     }
+}
 
+#[wasm_bindgen]
+impl Workspace {
     /// Every file loaded, with the language each was recognised as.
     pub fn files(&self) -> String {
         self.enter();
