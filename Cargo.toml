@@ -47,6 +47,7 @@ lang-go = ["dep:tree-sitter-go"]
 lang-typescript = ["dep:tree-sitter-typescript"]
 lang-python = ["dep:tree-sitter-python"]
 lang-zig = ["dep:tree-sitter-zig"]
+lang-java = ["dep:tree-sitter-java"]
 lang-bash = ["dep:tree-sitter-bash"]
 lang-html = ["dep:tree-sitter-html"]
 lang-css = ["dep:tree-sitter-css"]
@@ -55,7 +56,7 @@ lang-hcl = ["dep:tree-sitter-hcl"]
 lang-yaml = ["dep:tree-sitter-yaml"]
 lang-xml = ["dep:tree-sitter-xml"]
 lang-markdown = ["dep:tree-sitter-md-025"]
-lang-all = ["lang-rust", "lang-go", "lang-typescript", "lang-python", "lang-zig", "lang-bash", "lang-html", "lang-css", "lang-scss", "lang-hcl", "lang-yaml", "lang-xml", "lang-markdown"]
+lang-all = ["lang-rust", "lang-go", "lang-typescript", "lang-python", "lang-zig", "lang-java", "lang-bash", "lang-html", "lang-css", "lang-scss", "lang-hcl", "lang-yaml", "lang-xml", "lang-markdown"]
 
 # The analysis core, compiled for the browser. See src/wasm.rs.
 wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:serde-wasm-bindgen", "dep:fun-refactor-wasm-libc"]
@@ -72,6 +73,7 @@ tree-sitter-hcl = { version = "1.1", optional = true }
 tree-sitter-yaml = { version = "0.7", optional = true }
 tree-sitter-go = { version = "0.25", optional = true }
 tree-sitter-zig = { version = "1.1", optional = true }
+tree-sitter-java = { version = "0.23", optional = true }
 tree-sitter-html = { version = "0.23", optional = true }
 tree-sitter-css = { version = "0.25", optional = true }
 # SCSS has its own grammar: the CSS one has no rule for $variables, @mixin or

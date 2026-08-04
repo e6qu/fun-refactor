@@ -181,6 +181,30 @@ impl LineIndex {
     }
 }
 
+/// Parse `path:line:col-line:col` into a path and two positions.
+///
+/// Here rather than in the CLI because a recipe's `extract … at "…"` writes the same
+/// spec, and two parsers for one syntax is two chances to disagree about it.
+pub fn parse_range(spec: &str) -> anyhow::Result<(std::path::PathBuf, LineCol, LineCol)> {
+    let shape = || anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'");
+    let (head, end_col) = spec.rsplit_once(':').ok_or_else(shape)?;
+    let (head, end_line) = head.rsplit_once('-').ok_or_else(shape)?;
+    let (path, start_col) = head.rsplit_once(':').ok_or_else(shape)?;
+    let (path, start_line) = path.rsplit_once(':').ok_or_else(shape)?;
+
+    Ok((
+        std::path::PathBuf::from(path),
+        LineCol {
+            line: start_line.parse()?,
+            col: start_col.parse()?,
+        },
+        LineCol {
+            line: end_line.parse()?,
+            col: end_col.parse()?,
+        },
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

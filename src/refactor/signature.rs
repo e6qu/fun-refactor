@@ -50,6 +50,45 @@ pub enum Change {
     },
 }
 
+impl Change {
+    /// Parse `remove:1`, `move:1:2` or `add:2:flag: bool:false`.
+    ///
+    /// Here rather than in the CLI because a recipe's `signature "…"` step writes the
+    /// same syntax, and two parsers for one syntax is two chances to disagree.
+    ///
+    /// Three fields, not four. The declaration may itself contain colons — `flag: bool`
+    /// is the documented example — so everything after the position is one field and
+    /// the argument comes off its end. Splitting into four handed the arm below only
+    /// the first word of the declaration and dropped the rest, which made
+    /// `add:1:flag\: bool:false` fail with the message that recommends it.
+    pub fn parse(spec: &str) -> anyhow::Result<Change> {
+        let parts: Vec<&str> = spec.splitn(3, ':').collect();
+        match parts.as_slice() {
+            ["remove", index] => Ok(Change::Remove(index.parse()?)),
+            ["move", from, to] => Ok(Change::Move {
+                from: from.parse()?,
+                to: to.parse()?,
+            }),
+            ["add", at, rest] => {
+                let (declaration, argument) = rest.rsplit_once(':').ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "add needs a declaration and an argument, e.g. add:1:flag\\: bool:false"
+                    )
+                })?;
+                Ok(Change::Add {
+                    at: at.parse()?,
+                    declaration: declaration.to_string(),
+                    argument: argument.to_string(),
+                })
+            }
+            _ => anyhow::bail!(
+                "unrecognised change '{spec}'. Use remove:<i>, move:<from>:<to>, or \
+                 add:<i>:<declaration>:<argument>"
+            ),
+        }
+    }
+}
+
 /// What sort of thing the changed signature belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Subject {

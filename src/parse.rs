@@ -35,6 +35,8 @@ impl Parsers {
             Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
             #[cfg(feature = "lang-go")]
             Language::Go => Some(tree_sitter_go::LANGUAGE.into()),
+            #[cfg(feature = "lang-java")]
+            Language::Java => Some(tree_sitter_java::LANGUAGE.into()),
             #[cfg(feature = "lang-zig")]
             Language::Zig => Some(tree_sitter_zig::LANGUAGE.into()),
             #[cfg(feature = "lang-typescript")]

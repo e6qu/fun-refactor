@@ -69,6 +69,47 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B90: **every Go function body was carried into a translation as a single
+  comment.** tree-sitter-go puts a `statement_list` between a block and its statements,
+  so the reader saw one unknown node where a body should be. Invisible to the
+  round-trip tests, because a body that is entirely a comment still parses — found by
+  translating a Go file to Rust for a demo page. `return x` was the same shape a second
+  time: the value is wrapped in an `expression_list`. Rust → Go now carries nothing at
+  all for an ordinary function.
+
+- [x] B89: **the recipe runner planned each step against the file on disk.** The
+  refactorings read source through `crate::vfs`, not from the runner's in-memory
+  workspace, so a plan made after one step was measured against the text before *any*
+  step ran: `edit at 1..301 extends past end of file (226 bytes)`. The in-memory
+  backing was gated to the browser build although nothing in it is wasm-specific; it is
+  compiled everywhere now, and the runner installs the workspace on it before each
+  step. `vfs::use_filesystem()` hands it back before anything is written.
+
+- [x] B88: **the recipe runner planned every selected symbol against one snapshot.**
+  Two deletions in one file produced `conflicting edits: 0..396 overlaps 26..170`,
+  because one deletion moves every span after it. Subjects are named rather than
+  identified by `SymbolId` — an id does not survive a rebuild — and each is planned
+  against an index built from what the previous one left.
+
+- [x] B87: **the recipe report dropped the warnings its steps produced.** `fr rename`
+  prints what it left alone — a reference that resolved too weakly to rewrite — and the
+  recipe swallowed it, so a step that left work behind reported a clean run. That is
+  the accept-and-ignore this codebase bans elsewhere. Warnings are now a field of the
+  step report and print under `left`.
+
+- [x] B86: **a Java method call resolved to nothing.** `receiver_of` decided the
+  receiver positionally — "the member is the last child" — which holds for Go's
+  `selector_expression` and not for Java's `method_invocation`, where the argument list
+  follows the name. Every method call in the language had no receiver and so never
+  reached even `field-based`. It now prefers the field the grammar names (`object`,
+  `operand`, `receiver`) and falls back to the positional rule.
+
+- [x] B85: **`fr signature` and the CLI each had their own copy of the change parser,**
+  and the same for `path:line:col-line:col`. Both moved beside what they produce —
+  `Change::parse` and `span::parse_range` — because a recipe's `signature "…"` and
+  `extract … at "…"` write the same syntax and two parsers for one syntax is two
+  chances to disagree.
+
 - [x] B84: **a bare `xs.filter(p)` did not translate, and a comprehension that kept
   every element it selected wrote out an identity `map`.** The TypeScript reader
   recognised `xs.filter(p).map(f)` and nothing else, so the commoner of the two came

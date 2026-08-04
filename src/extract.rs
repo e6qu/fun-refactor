@@ -39,6 +39,7 @@ fn query_source(lang: Language) -> Option<&'static str> {
         Language::Python => include_str!("../queries/python/facts.scm"),
         Language::TypeScript | Language::Tsx => include_str!("../queries/typescript/facts.scm"),
         Language::Zig => include_str!("../queries/zig/facts.scm"),
+        Language::Java => include_str!("../queries/java/facts.scm"),
         Language::Bash => include_str!("../queries/bash/facts.scm"),
         Language::Hcl => include_str!("../queries/hcl/facts.scm"),
         Language::Css => include_str!("../queries/css/facts.scm"),
@@ -201,9 +202,17 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
         "member_expression",   // TypeScript, JavaScript
         "attribute",           // Python
         "field_expression",    // Rust, Zig
+        "method_invocation",   // Java
+        "field_access",        // Java
         "scoped_identifier",
         "scoped_type_identifier",
     ];
+    // What the member was read from, where the grammar names it. Preferred over the
+    // positional rule below, which assumes the member is the last child: Java's
+    // `a.m(x)` is one `method_invocation` whose children are the object, the name and
+    // the *argument list*, so the member is not last and the positional rule saw no
+    // receiver at all — leaving every method call in the language unresolved.
+    const RECEIVER_FIELDS: &[&str] = &["object", "operand", "receiver"];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
 
@@ -225,6 +234,18 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     if !MEMBER_SHAPES.contains(&parent.kind()) {
         return None;
     }
+
+    for field in RECEIVER_FIELDS {
+        if let Some(receiver) = parent.child_by_field_name(field) {
+            // Only when this node really is the member of that receiver, not the
+            // receiver itself: `a.b` names `a` once as an object and once as a member.
+            if Span::from(receiver) != span {
+                return Some(Span::from(receiver).text(source).to_string());
+            }
+            return None;
+        }
+    }
+
     let mut cursor = parent.walk();
     let children: Vec<Node> = parent.named_children(&mut cursor).collect();
     // The member itself is last; anything before it is what it was read from.

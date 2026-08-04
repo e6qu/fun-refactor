@@ -19,12 +19,15 @@ use std::path::Path;
 
 /// A workspace held in memory rather than on disk.
 ///
-/// Gated on the *feature* rather than the target, because nothing in it is
-/// wasm-specific and gating it on `wasm32` meant `src/wasm.rs` could not be compiled
-/// on a host at all: `cargo check --features wasm` failed here, so every edit to the
-/// browser API was checked only by the playground job in CI. A struct field added at
-/// six call sites and missed at one passed `cargo test` and `cargo clippy` both.
-#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
+/// Compiled everywhere, because "read through this map instead of the disk" has three
+/// callers and only one of them is the browser. The recipe runner is the other: it
+/// holds the workspace as each step left it and the refactorings read through *this*,
+/// so a plan made after one step is measured against the text that step produced. It
+/// was gated on the browser build, and the recipe runner's first two-step run failed
+/// with `edit at 1..301 extends past end of file (226 bytes)` — spans computed against
+/// the file on disk, applied to the file in memory.
+///
+/// Nothing in here is wasm-specific; it was only ever gated to pick a backend.
 mod memory {
     use std::cell::RefCell;
     use std::collections::BTreeMap;
@@ -76,6 +79,16 @@ mod memory {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn is_active() -> bool {
         HANDED_OVER.with(|h| *h.borrow())
+    }
+
+    /// Go back to reading the disk.
+    ///
+    /// The recipe runner plans against an in-memory workspace and then writes the
+    /// result to the real one; without this the write would land back in the map it
+    /// had just finished reading.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn deactivate() {
+        HANDED_OVER.with(|h| *h.borrow_mut() = false);
     }
 
     fn with_active<T>(f: impl FnOnce(&BTreeMap<PathBuf, String>) -> T) -> T {
@@ -164,7 +177,7 @@ mod backing {
 /// one of them exists in most configurations.
 macro_rules! through_memory {
     ($call:ident($($arg:expr),*)) => {{
-        #[cfg(all(not(target_arch = "wasm32"), feature = "wasm"))]
+        #[cfg(not(target_arch = "wasm32"))]
         if memory::is_active() {
             return memory::$call($($arg),*);
         }
@@ -184,14 +197,19 @@ pub fn is_in_memory() -> bool {
     {
         true
     }
-    #[cfg(all(not(target_arch = "wasm32"), feature = "wasm"))]
+    #[cfg(not(target_arch = "wasm32"))]
     {
         memory::is_active()
     }
-    #[cfg(all(not(target_arch = "wasm32"), not(feature = "wasm")))]
-    {
-        false
-    }
+}
+
+/// Read and write the real filesystem again.
+///
+/// Paired with [`activate`]: a caller that hands over a workspace to plan against has
+/// to hand it back before anything is written, or the write lands in the map.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn use_filesystem() {
+    memory::deactivate()
 }
 
 /// Read a file's text.
@@ -230,7 +248,6 @@ pub fn read_dir(dir: impl AsRef<Path>) -> io::Result<Vec<std::path::PathBuf>> {
 }
 
 /// Every file the workspace holds, where that is a knowable thing.
-#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub fn paths() -> Vec<std::path::PathBuf> {
     memory::paths()
 }
@@ -240,15 +257,12 @@ pub fn paths() -> Vec<std::path::PathBuf> {
 /// Only meaningful where there is no filesystem. The owner passes it to
 /// [`activate`] before every operation, so two workspaces can exist at once without
 /// either one reading the other's bytes.
-#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub type Handle = memory::Handle;
 
-#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub fn new_handle(files: impl IntoIterator<Item = (std::path::PathBuf, String)>) -> Handle {
     memory::new_handle(files)
 }
 
-#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub fn activate(handle: &Handle) {
     memory::activate(handle)
 }

@@ -388,7 +388,11 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// to every language's queries would be a larger change than this earns. Only the
 /// lines immediately above are considered, so a `#[test]` four declarations up does
 /// not leak onto this one.
-fn annotated_with(symbol: &Symbol, name: &str) -> bool {
+/// Is an annotation with this name written above the symbol?
+///
+/// Public because a recipe's `annotated-with=` predicate is the same question, and the
+/// point of reusing the matcher is that the two cannot drift apart.
+pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
     let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
         return false;
     };

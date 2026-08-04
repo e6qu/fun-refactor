@@ -128,6 +128,19 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         Language::Zig => move_zig(index, sym, destination),
         Language::Bash => move_bash(index, sym, destination),
         Language::Yaml | Language::Helm => move_values_key(index, sym, destination),
+        // Java ties a file's name to the public type inside it and imports by
+        // fully-qualified name rather than by path, so moving a type is a rename of
+        // the file *and* of its package, and moving a method is a change of receiver.
+        // Neither is the operation this performs, and doing half of it would leave a
+        // tree that does not compile.
+        Language::Java => Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: "java — a public type must live in a file named after it and \
+                       imports name packages rather than paths, so moving one is a \
+                       rename of the file and its package, not a move of a definition"
+                .into(),
+        }
+        .into()),
         // An element is addressed by its position in one document, or by an id that
         // every other document reaches through a URL rather than an import. There is
         // no reference a move could repoint and no reachability it could preserve.
@@ -2731,6 +2744,9 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
         .iter()
         .filter_map(|id| index.symbol(*id))
         .filter(|s| match s.language {
+            // Nothing, because `move` refuses for Java: offering a symbol the
+            // operation will then decline is worse than an empty list.
+            Language::Java => false,
             Language::TypeScript | Language::Tsx | Language::Python => {
                 s.container.is_none()
                     && matches!(

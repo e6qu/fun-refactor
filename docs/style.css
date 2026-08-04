@@ -465,3 +465,25 @@ footer a { color: var(--ink-soft); }
   cursor: pointer;
 }
 .specimen-cmd .copy:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+.recipe-pair { display: grid; gap: 1.25rem; }
+@media (min-width: 68rem) { .recipe-pair { grid-template-columns: 22rem 1fr; align-items: start; } }
+.recipe-source {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  margin: 0;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.grammar {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+}
