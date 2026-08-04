@@ -730,6 +730,37 @@ condition as the parenthesised expression and the literal arrived as `(true)`. B
 the same shape of mistake: a rule that is true of the languages it was written against,
 applied to one that arrived later.
 
+### Java translation, and the language with no top level
+
+The fifth language in the transpiler, and the first that made the *writer* do something
+structural. Every other target takes a module's items and writes them out. Java has no
+top level below the type: a function must be inside a class, and a public class must be
+named after its file — a rule the compiler enforces rather than a convention. So a
+module becomes a class, `sensors.py` becomes `Sensors.java`, and when a module has both
+loose functions and a record, the record becomes a package-private sibling with a
+comment saying why. That is the first time a target's *file naming* has been part of a
+translation, and it is why `Module` now carries a name at all.
+
+Five defects on the way, and the shape of them is the usual one — a rule that held for
+the four languages already there:
+
+- `generic()`'s fifth parameter is the *path* separator (`::` in Rust, `.` elsewhere)
+  and reads as the argument separator when you meet it beside a list of arguments. The
+  Java writer was written on that reading and turned `sync.Mutex` into `sync, Mutex`.
+  Renamed to `path_separator`.
+- `d[k] = v` rendered as `d.get(k) = v`, which is not a statement in Java. It is
+  `d.put(k, v)`.
+- Java was missing from the reserved-word table, so a Python `defaultdict(float)` wrote
+  the keyword `float` into an expression position.
+- A catch clause names its parts positionally rather than by field, so both the
+  exception type and the binding were lost.
+- `new ArrayList<>()` carried the diamond into the name.
+
+The pair test asserted twelve ordered pairs and had four sources for five languages, so
+it was quietly testing sixteen of twenty. It computes the count from `SUPPORTED` now,
+which means adding a language without adding a source for it fails there rather than
+silently testing four fifths of the matrix.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

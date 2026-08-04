@@ -467,6 +467,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
     let mut handlers = Vec::new();
     let mut rest = Module {
         doc: module.doc.clone(),
+        name: module.name.clone(),
         items: Vec::new(),
     };
     for item in &module.items {
@@ -610,6 +611,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         // The body, through the ordinary writer, indented into the handler.
         let one = Module {
             doc: Vec::new(),
+            name: None,
             items: vec![Item::Function(Function {
                 doc: handler.doc.clone(),
                 name: "body".into(),

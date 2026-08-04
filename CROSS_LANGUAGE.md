@@ -202,7 +202,7 @@ the right answer.
 
 Since this document was written, `fr translate` gained a second mode. The first —
 containment — writes the same bytes under a different grammar: CSS as SCSS, a manifest
-as a Helm template. The second **translates**, between Rust, Go, Python and TypeScript,
+as a Helm template. The second **translates**, between Rust, Go, Java, Python and TypeScript,
 and is a different promise entirely.
 
 The signature is the contract: every parameter in order, with its type and the return
@@ -246,6 +246,19 @@ Three details that only real code surfaces:
 - **Keywords.** `select` is a name sqlmodel exports and a keyword in Go. `select(User)`
   is not something Go's grammar accepts, so the whole file was refused — which gives
   the reader nothing. It is escaped and *reported* instead.
+
+### Java, and the language that has no top level
+
+Java is the fifth, and it is the one that made the writer do something no other does.
+Every other target takes a module's items and writes them out. Java has **no top level
+below the type**: a function has to be inside a class, and a public class must be named
+after its file — which is a rule the compiler enforces rather than a convention. So a
+module becomes a class, `sensors.py` becomes `Sensors.java`, and a record that would
+have been public becomes a package-private sibling with a comment saying why.
+
+Reading Java is the same job in reverse: a file *is* a class, so reading one means
+unwrapping it to find the module inside. A `static final` field is Java's only spelling
+for a module constant and reads as one; an instance field reads as a field.
 
 ### Typed Python and typed TypeScript
 

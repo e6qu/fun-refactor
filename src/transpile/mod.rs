@@ -71,6 +71,7 @@ use std::path::{Path, PathBuf};
 pub const SUPPORTED: &[Language] = &[
     Language::Rust,
     Language::Go,
+    Language::Java,
     Language::Python,
     Language::TypeScript,
 ];
@@ -135,7 +136,12 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
         );
     }
 
-    let module = read::read(from, &source, parsed.root())?;
+    let mut module = read::read(from, &source, parsed.root())?;
+    // Java has no top level below the type, so its writer needs a class to put the
+    // module in — and a public class must be named after its file.
+    module.name = destination
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().to_string());
     let (mut output, fidelity) = write::write(to, &module)?;
 
     // A header, because a translated file that does not announce itself will be read

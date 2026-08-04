@@ -22,6 +22,7 @@ pub fn read(language: Language, source: &str, root: Node<'_>) -> Result<Module> 
         Language::Rust => Ok(rust::module(&cx, root)),
         Language::Python => Ok(python::module(&cx, root)),
         Language::Go => Ok(go::module(&cx, root)),
+        Language::Java => Ok(java::module(&cx, root)),
         Language::TypeScript | Language::Tsx => Ok(typescript::module(&cx, root)),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
@@ -1657,6 +1658,546 @@ mod go {
 }
 
 // ------------------------------------------------------------------- TypeScript
+
+/// Java.
+///
+/// The shape that makes Java different from every other language here: it has **no top
+/// level below the type**. A file is a class, and every function is a method of it, so
+/// reading a Java file means unwrapping one class to get at the module inside — and
+/// writing one means wrapping the module back up.
+///
+/// A `static final` field is Java's only way to write a module constant, so it reads as
+/// one; an instance field reads as a field of the record.
+mod java {
+    use super::*;
+
+    pub fn module(cx: &Cx, root: Node<'_>) -> Module {
+        let mut module = Module::default();
+        for child in cx.children(root) {
+            match child.kind() {
+                // The package clause names the compilation unit; it is not an import
+                // and there is nothing in another language for it to become.
+                "comment" | "line_comment" | "block_comment" | "package_declaration" => {}
+                "import_declaration" => module.items.push(Item::Import {
+                    text: cx.text(child),
+                    line: cx.line(child),
+                }),
+                "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    let (record, constants) = type_declaration(cx, child);
+                    module
+                        .items
+                        .extend(constants.into_iter().map(Item::Constant));
+                    if let Some(record) = record {
+                        module.items.push(Item::Record(record));
+                    }
+                }
+                _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
+            }
+        }
+        module
+    }
+
+    /// A class, interface or record, plus the module constants hidden inside it.
+    fn type_declaration(cx: &Cx, node: Node<'_>) -> (Option<Record>, Vec<Constant>) {
+        let Some(name) = cx.field_text(node, "name") else {
+            return (None, Vec::new());
+        };
+        let mut record = Record {
+            doc: doc_above(cx, node, &["///", "//", "/**", "*"]),
+            name,
+            fields: Vec::new(),
+            exported: cx.text(node).starts_with("public") || is_public(cx, node),
+            methods: Vec::new(),
+        };
+        let mut constants = Vec::new();
+
+        let Some(body) = cx.field(node, "body") else {
+            return (Some(record), constants);
+        };
+
+        // A record's parameters are its fields: `record Reading(String sensor, double value)`.
+        if let Some(parameters) = cx.field(node, "parameters") {
+            for parameter in cx.children(parameters) {
+                if let (Some(name), Some(ty)) = (
+                    cx.field_text(parameter, "name"),
+                    cx.field(parameter, "type"),
+                ) {
+                    record.fields.push(Field {
+                        doc: Vec::new(),
+                        name,
+                        ty: Some(ty_of(cx, ty)),
+                        exported: true,
+                    });
+                }
+            }
+        }
+
+        for member in cx.children(body) {
+            match member.kind() {
+                "field_declaration" => {
+                    let modifiers = modifier_text(cx, member);
+                    let public = modifiers.contains("public");
+                    for declarator in cx.children(member) {
+                        if declarator.kind() != "variable_declarator" {
+                            continue;
+                        }
+                        let Some(name) = cx.field_text(declarator, "name") else {
+                            continue;
+                        };
+                        let ty = cx.field(member, "type").map(|t| ty_of(cx, t));
+                        // `static final` is Java's only spelling for a module constant,
+                        // and every other language here has a real one.
+                        if modifiers.contains("static") && modifiers.contains("final") {
+                            if let Some(value) = cx.field(declarator, "value") {
+                                constants.push(Constant {
+                                    doc: doc_above(cx, member, &["///", "//", "/**", "*"]),
+                                    name,
+                                    ty,
+                                    value: expr(cx, value),
+                                    exported: public,
+                                });
+                                continue;
+                            }
+                        }
+                        record.fields.push(Field {
+                            doc: doc_above(cx, member, &["///", "//", "/**", "*"]),
+                            name,
+                            ty,
+                            exported: public,
+                        });
+                    }
+                }
+                "method_declaration" => record.methods.push(function(cx, member)),
+                // A constructor's body assigns the fields the parameters carry, which
+                // every target spells its own way and none spells like this.
+                "constructor_declaration" | "comment" | "{" | "}" => {}
+                _ => {}
+            }
+        }
+        (Some(record), constants)
+    }
+
+    fn is_public(cx: &Cx, node: Node<'_>) -> bool {
+        modifier_text(cx, node).contains("public")
+    }
+
+    /// The `modifiers` node's text, which is where Java keeps `public`, `static` and
+    /// `final` — and its annotations.
+    fn modifier_text(cx: &Cx, node: Node<'_>) -> String {
+        cx.children(node)
+            .into_iter()
+            .find(|c| c.kind() == "modifiers")
+            .map(|m| cx.text(m))
+            .unwrap_or_default()
+    }
+
+    fn function(cx: &Cx, node: Node<'_>) -> Function {
+        let mut params = Vec::new();
+        if let Some(list) = cx.field(node, "parameters") {
+            for parameter in cx.children(list) {
+                match parameter.kind() {
+                    "formal_parameter" => {
+                        if let Some(name) = cx.field_text(parameter, "name") {
+                            params.push(Param {
+                                name,
+                                ty: cx.field(parameter, "type").map(|t| ty_of(cx, t)),
+                                default: None,
+                                kind: ParamKind::Normal,
+                            });
+                        }
+                    }
+                    // `String... args` is a variadic, which three of the four targets
+                    // have a spelling for.
+                    "spread_parameter" => {
+                        if let Some(declarator) = cx
+                            .children(parameter)
+                            .into_iter()
+                            .find(|c| c.kind() == "variable_declarator")
+                        {
+                            if let Some(name) = cx.field_text(declarator, "name") {
+                                params.push(Param {
+                                    name,
+                                    ty: cx.field(parameter, "type").map(|t| ty_of(cx, t)),
+                                    default: None,
+                                    kind: ParamKind::VarArgs,
+                                });
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let returns = cx.field(node, "type").map(|t| ty_of(cx, t));
+        Function {
+            doc: doc_above(cx, node, &["///", "//", "/**", "*"]),
+            name: cx.field_text(node, "name").unwrap_or_default(),
+            receiver: None,
+            params,
+            returns,
+            body: cx
+                .field(node, "body")
+                .map(|b| block(cx, b))
+                .unwrap_or_default(),
+            exported: is_public(cx, node),
+            is_async: false,
+        }
+    }
+
+    fn ty_of(cx: &Cx, node: Node<'_>) -> Type {
+        match node.kind() {
+            "void_type" => Type::Unit,
+            "boolean_type" => Type::Bool,
+            "integral_type" => Type::Int,
+            "floating_point_type" => Type::Float,
+            "array_type" => cx
+                .field(node, "element")
+                .map(|e| Type::List(Box::new(ty_of(cx, e))))
+                .unwrap_or_else(|| Type::named("Object")),
+            "generic_type" => generic(cx, node),
+            _ => match cx.text(node).as_str() {
+                "String" | "CharSequence" => Type::String,
+                "Integer" | "Long" | "Short" | "Byte" => Type::Int,
+                "Double" | "Float" => Type::Float,
+                "Boolean" => Type::Bool,
+                "Object" => Type::named("Object"),
+                other => Type::named(other),
+            },
+        }
+    }
+
+    /// `List<String>`, `Map<String, Integer>` — the two containers that correspond.
+    fn generic(cx: &Cx, node: Node<'_>) -> Type {
+        let base = cx
+            .children(node)
+            .into_iter()
+            .find(|c| c.kind() == "type_identifier")
+            .map(|c| cx.text(c))
+            .unwrap_or_default();
+        let arguments: Vec<Type> = cx
+            .children(node)
+            .into_iter()
+            .find(|c| c.kind() == "type_arguments")
+            .map(|a| cx.children(a).into_iter().map(|t| ty_of(cx, t)).collect())
+            .unwrap_or_default();
+        match (base.as_str(), arguments.as_slice()) {
+            ("List" | "ArrayList" | "Collection" | "Iterable" | "Set", [inner]) => {
+                Type::List(Box::new(inner.clone()))
+            }
+            ("Map" | "HashMap", [key, value]) => {
+                Type::Map(Box::new(key.clone()), Box::new(value.clone()))
+            }
+            ("Optional", [inner]) => Type::Optional(Box::new(inner.clone())),
+            _ => Type::Named {
+                name: base,
+                args: arguments,
+            },
+        }
+    }
+
+    fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        cx.children(node)
+            .iter()
+            .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
+            .collect()
+    }
+
+    fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
+        match node.kind() {
+            "comment" | "line_comment" | "block_comment" => {
+                Stmt::Comment(super::uncomment(&cx.text(node)))
+            }
+            "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
+            "throw_statement" => match cx.children(node).first() {
+                Some(value) => Stmt::Throw(expr(cx, *value)),
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "break_statement" => Stmt::Break,
+            "continue_statement" => Stmt::Continue,
+            "local_variable_declaration" => {
+                let declarators: Vec<Node> = cx
+                    .children(node)
+                    .into_iter()
+                    .filter(|c| c.kind() == "variable_declarator")
+                    .collect();
+                // `int a = 1, b = 2;` is two bindings in one statement and the IR has a
+                // place for one; carrying it whole keeps the source in front of the
+                // reader rather than silently dropping the second.
+                match declarators.as_slice() {
+                    [only] => Stmt::Let {
+                        name: cx.field_text(*only, "name").unwrap_or_default(),
+                        ty: cx.field(node, "type").map(|t| ty_of(cx, t)),
+                        value: cx.field(*only, "value").map(|v| expr(cx, v)),
+                        mutable: !cx.text(node).trim_start().starts_with("final"),
+                    },
+                    _ => Stmt::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "expression_statement" => match cx.children(node).first().copied() {
+                Some(inner) if inner.kind() == "assignment_expression" => Stmt::Assign {
+                    target: cx
+                        .field(inner, "left")
+                        .map(|l| expr(cx, l))
+                        .unwrap_or(Expr::Null),
+                    value: cx
+                        .field(inner, "right")
+                        .map(|r| expr(cx, r))
+                        .unwrap_or(Expr::Null),
+                },
+                Some(inner) => Stmt::Expr(expr(cx, inner)),
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "if_statement" => Stmt::If {
+                condition: cx
+                    .field(node, "condition")
+                    .map(|c| condition(cx, c))
+                    .unwrap_or(Expr::Null),
+                then: cx
+                    .field(node, "consequence")
+                    .map(|b| branch(cx, b))
+                    .unwrap_or_default(),
+                otherwise: cx
+                    .field(node, "alternative")
+                    .map(|b| branch(cx, b))
+                    .unwrap_or_default(),
+            },
+            "while_statement" => Stmt::While {
+                condition: cx
+                    .field(node, "condition")
+                    .map(|c| condition(cx, c))
+                    .unwrap_or(Expr::Null),
+                body: cx
+                    .field(node, "body")
+                    .map(|b| branch(cx, b))
+                    .unwrap_or_default(),
+            },
+            // `for (X x : xs)` is the loop every language here has. A C-style `for` is
+            // not, and is carried.
+            "enhanced_for_statement" => Stmt::ForEach {
+                binding: cx.field_text(node, "name").unwrap_or_default(),
+                iterable: cx
+                    .field(node, "value")
+                    .map(|v| expr(cx, v))
+                    .unwrap_or(Expr::Null),
+                body: cx
+                    .field(node, "body")
+                    .map(|b| branch(cx, b))
+                    .unwrap_or_default(),
+            },
+            "try_statement" | "try_with_resources_statement" => {
+                let mut catches = Vec::new();
+                let mut finally = Vec::new();
+                for child in cx.children(node) {
+                    match child.kind() {
+                        "catch_clause" => {
+                            // `catch (IllegalStateException error)` holds a `catch_type`
+                            // and an identifier as plain children rather than as named
+                            // fields, so asking for fields lost both the exception type
+                            // and the name the body uses.
+                            let parameter = cx
+                                .children(child)
+                                .into_iter()
+                                .find(|c| c.kind() == "catch_formal_parameter");
+                            let parts: Vec<Node> =
+                                parameter.map(|p| cx.children(p)).unwrap_or_default();
+                            catches.push(Catch {
+                                binding: parts
+                                    .iter()
+                                    .find(|c| c.kind() == "identifier")
+                                    .map(|c| cx.text(*c)),
+                                ty: parts
+                                    .iter()
+                                    .find(|c| c.kind() == "catch_type")
+                                    .map(|t| ty_of(cx, *t)),
+                                body: cx
+                                    .field(child, "body")
+                                    .map(|b| block(cx, b))
+                                    .unwrap_or_default(),
+                            });
+                        }
+                        "finally_clause" => {
+                            finally = cx
+                                .children(child)
+                                .into_iter()
+                                .find(|c| c.kind() == "block")
+                                .map(|b| block(cx, b))
+                                .unwrap_or_default();
+                        }
+                        _ => {}
+                    }
+                }
+                Stmt::Try {
+                    body: cx
+                        .field(node, "body")
+                        .map(|b| block(cx, b))
+                        .unwrap_or_default(),
+                    catches,
+                    finally,
+                    source: cx.text(node),
+                    line: cx.line(node),
+                }
+            }
+            "block" => match block(cx, node).as_slice() {
+                [] => Stmt::Expr(Expr::Null),
+                _ => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// A branch is a block or a single statement — `if (x) return;` has no braces.
+    fn branch(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        if node.kind() == "block" {
+            return block(cx, node);
+        }
+        vec![keep_whole(cx, node, stmt(cx, node))]
+    }
+
+    /// Java names an `if`'s condition as the parenthesised expression, brackets included.
+    fn condition(cx: &Cx, node: Node<'_>) -> Expr {
+        if node.kind() == "parenthesized_expression" {
+            return cx
+                .children(node)
+                .first()
+                .map(|inner| expr(cx, *inner))
+                .unwrap_or(Expr::Null);
+        }
+        expr(cx, node)
+    }
+
+    fn expr(cx: &Cx, node: Node<'_>) -> Expr {
+        match node.kind() {
+            "decimal_integer_literal" | "hex_integer_literal" | "octal_integer_literal" => {
+                Expr::Int(cx.text(node).trim_end_matches(['L', 'l']).to_string())
+            }
+            "decimal_floating_point_literal" => Expr::Float(
+                cx.text(node)
+                    .trim_end_matches(['f', 'F', 'd', 'D'])
+                    .to_string(),
+            ),
+            "true" => Expr::Bool(true),
+            "false" => Expr::Bool(false),
+            "null_literal" => Expr::Null,
+            "string_literal" => Expr::Str(super::unquote(&cx.text(node))),
+            "character_literal" => Expr::Str(super::unquote(&cx.text(node))),
+            "identifier" | "this" => Expr::Name(cx.text(node)),
+            "parenthesized_expression" => cx
+                .children(node)
+                .first()
+                .map(|inner| expr(cx, *inner))
+                .unwrap_or(Expr::Null),
+            "field_access" => Expr::Field {
+                of: Box::new(
+                    cx.field(node, "object")
+                        .map(|o| expr(cx, o))
+                        .unwrap_or(Expr::Null),
+                ),
+                name: cx.field_text(node, "field").unwrap_or_default(),
+            },
+            "array_access" => Expr::Index {
+                of: Box::new(
+                    cx.field(node, "array")
+                        .map(|a| expr(cx, a))
+                        .unwrap_or(Expr::Null),
+                ),
+                index: Box::new(
+                    cx.field(node, "index")
+                        .map(|i| expr(cx, i))
+                        .unwrap_or(Expr::Null),
+                ),
+            },
+            "method_invocation" => {
+                let name = cx.field_text(node, "name").unwrap_or_default();
+                let callee = match cx.field(node, "object") {
+                    Some(object) => Expr::Field {
+                        of: Box::new(expr(cx, object)),
+                        name,
+                    },
+                    None => Expr::Name(name),
+                };
+                let args = cx
+                    .field(node, "arguments")
+                    .map(|a| cx.children(a).into_iter().map(|n| expr(cx, n)).collect())
+                    .unwrap_or_default();
+                call_or_carry(cx, node, callee, args)
+            }
+            "object_creation_expression" => Expr::New {
+                callee: Box::new(
+                    cx.field(node, "type")
+                        .map(|t| {
+                            // `new ArrayList<>()` — the diamond is Java's syntax, not
+                            // part of the name, and `ArrayList<>()` is not a call in
+                            // any of the targets.
+                            let text = cx.text(t);
+                            Expr::Name(
+                                text.split(['<', '['])
+                                    .next()
+                                    .unwrap_or(&text)
+                                    .trim()
+                                    .to_string(),
+                            )
+                        })
+                        .unwrap_or(Expr::Null),
+                ),
+                args: cx
+                    .field(node, "arguments")
+                    .map(|a| cx.children(a).into_iter().map(|n| expr(cx, n)).collect())
+                    .unwrap_or_default(),
+            },
+            "instanceof_expression" => Expr::InstanceOf {
+                value: Box::new(
+                    cx.field(node, "left")
+                        .map(|l| expr(cx, l))
+                        .unwrap_or(Expr::Null),
+                ),
+                ty: Box::new(
+                    cx.field(node, "right")
+                        .map(|r| Expr::Name(cx.text(r)))
+                        .unwrap_or(Expr::Null),
+                ),
+            },
+            "binary_expression" => {
+                match super::binary_op(&cx.field_text(node, "operator").unwrap_or_default()) {
+                    Some(op) => Expr::Binary {
+                        op,
+                        left: Box::new(
+                            cx.field(node, "left")
+                                .map(|l| expr(cx, l))
+                                .unwrap_or(Expr::Null),
+                        ),
+                        right: Box::new(
+                            cx.field(node, "right")
+                                .map(|r| expr(cx, r))
+                                .unwrap_or(Expr::Null),
+                        ),
+                    },
+                    None => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "unary_expression" => {
+                let operand = cx
+                    .field(node, "operand")
+                    .map(|o| expr(cx, o))
+                    .unwrap_or(Expr::Null);
+                match cx.field_text(node, "operator").as_deref() {
+                    Some("!") => Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: Box::new(operand),
+                    },
+                    Some("-") => Expr::Unary {
+                        op: UnaryOp::Neg,
+                        operand: Box::new(operand),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // A cast is not free in Java the way `as` is in TypeScript: it checks at
+            // run time and throws. Dropping it would drop the check.
+            _ => Expr::Unsupported(cx.unsupported(node)),
+        }
+    }
+}
 
 mod typescript {
     /// Does this access use `?.`?

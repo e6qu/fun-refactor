@@ -69,6 +69,29 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B114: **the ordered-pair translation test covered sixteen of twenty pairs and
+  asserted twelve.** Four source files for five languages, with the expected count
+  written as a literal, so adding a language quietly shrank the fraction of the matrix
+  under test. The count comes from `SUPPORTED` now and a missing source fails there.
+
+- [x] B113: **`generic()`'s path separator reads as an argument separator.** It is the
+  `::` in Rust's `std::fmt` and the `.` in everyone else's, and it sits in the signature
+  directly after `args`. The Java writer was written on the natural misreading and
+  turned `sync.Mutex` into `sync, Mutex`. Renamed to `path_separator`.
+
+- [x] B112: **Java was missing from the transpiler's reserved-word table**, so a Python
+  `defaultdict(float)` wrote the keyword `float` into an expression position and the
+  output would not parse.
+
+- [x] B111: **a Java catch clause lost both its exception type and its binding.**
+  `catch (IllegalStateException error)` holds a `catch_type` and an identifier as plain
+  children rather than as named fields, so asking for fields returned nothing and the
+  body referred to a name the `except` never bound.
+
+- [x] B110: **`d[k] = v` translated into Java as `d.get(k) = v`,** which is not a
+  statement in the language. Java has no assignable subscript on a collection; it is
+  `d.put(k, v)`.
+
 - [x] B109: **the entry-points reason called YAML a stylesheet.** Found by the test
   written for the last round of this — a reason naming a language other than its own is
   the tell, and it is now asserted for every capability × language pair rather than

@@ -790,6 +790,19 @@ const TRANSLATIONS: &[Translation] = &[
         corpus: None,
     },
     Translation {
+        id: "python-to-java",
+        title: "Typed Python → Java",
+        blurb: "The language with no top level below the type. A module has to become a \
+                class, `sensors.py` has to become `Sensors.java` — the compiler enforces \
+                that, it is not a convention — and a record that would have been public \
+                becomes a package-private sibling, with a comment saying why.",
+        files: &[("sensors.py", TYPED_PYTHON)],
+        subject: "sensors.py",
+        target: "java",
+        provenance: None,
+        corpus: None,
+    },
+    Translation {
         id: "nextjs-to-fastapi",
         title: "A Next.js API route → FastAPI",
         blurb: "Not a language translation — a *contract* one. The URL, the method and \
