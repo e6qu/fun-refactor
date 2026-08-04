@@ -557,6 +557,17 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         out = out.replace(&format!("\n\n{keyword}"), &format!("\n\n\n{keyword}"));
     }
 
+    // The status codes are the half of the contract FastAPI will not read back.
+    if !responses.statuses.is_empty() {
+        fidelity.notes.push(format!(
+            "returns status {} — FastAPI documents the status on the decorator, not the \
+             one on a returned Response, so the generated OpenAPI will say 200 for these \
+             endpoints unless you add `status_code=` to `@router.…` and `responses={{…}}` \
+             for the rest",
+            responses.statuses.join(", ")
+        ));
+    }
+
     fidelity.functions += handlers.len();
     fidelity.signatures_complete += handlers.len();
 
@@ -577,6 +588,27 @@ struct Responses {
     json_with_status: bool,
     redirect: bool,
     plain_response: bool,
+    /// Every status code a handler returns, in the order they were met.
+    ///
+    /// Collected because FastAPI does not read them. Its OpenAPI document takes the
+    /// status from the *decorator* — `@router.delete("…", status_code=204)` — and a
+    /// status on a returned `Response` changes what the endpoint does without changing
+    /// what it says it does. A rewrite that preserves the behaviour and quietly
+    /// shrinks the published contract is the one failure this whole exercise is for.
+    statuses: Vec<String>,
+}
+
+impl Responses {
+    fn note_status(&mut self, status: &Expr) {
+        let text = match status {
+            Expr::Int(value) => value.clone(),
+            Expr::Name(name) => name.clone(),
+            _ => return,
+        };
+        if !self.statuses.contains(&text) {
+            self.statuses.push(text);
+        }
+    }
 }
 
 /// Is this handler argument the request, rather than the route context?
@@ -604,6 +636,9 @@ fn as_fastapi(stmt: Stmt, needs: &mut Responses) -> Stmt {
         if let Expr::New { callee, args } = &e {
             if matches!(callee.as_ref(), Expr::Name(name) if name == "Response") {
                 let status = args.get(1).and_then(status_in);
+                if let Some(code) = &status {
+                    needs.note_status(code);
+                }
                 needs.plain_response = true;
                 let mut mapped = Vec::new();
                 // The body is the first argument and `null` means there is none.
@@ -645,6 +680,9 @@ fn as_fastapi(stmt: Stmt, needs: &mut Responses) -> Stmt {
             // how FastAPI spells it.
             ("json", 2) => {
                 let status = status_in(&args[1]);
+                if let Some(code) = &status {
+                    needs.note_status(code);
+                }
                 needs.json_with_status = true;
                 Expr::Call {
                     callee: Box::new(Expr::Name("JSONResponse".into())),

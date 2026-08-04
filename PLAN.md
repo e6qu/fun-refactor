@@ -581,6 +581,43 @@ reparses every edit, and tree-sitter accepts that line — so a grammar-level ch
 never going to catch it and the refactoring had to learn the rule. A demo that only
 shows successes would not have gone looking.
 
+### The recipe language met a real repository
+
+Four defects in the first run against helm, and none of them was reachable from a
+two-file fixture:
+
+- `rewrite` reported a file it had nothing to do in as a *refusal*, and `on-refusal
+  stop` is the default — so the run abandoned itself on the first ordinary file. The
+  selector chooses files; a file with no wrapping `if` needed no work.
+- Applying a micro-rewrite asked at every byte offset, and each ask reparses.
+- A step rebuilt the whole index after every subject. Correct, and two minutes forty
+  over five files.
+- Both workspace analyses ran, twice, for a recipe that asked for neither.
+
+Together: 2m40 to 48 seconds, with the same output. Three of the four are the same
+mistake in different clothes — **doing per-item what only needs doing per-change**. A
+fixture with two files cannot tell the difference between O(1) and O(n) re-indexes, and
+the design document that predicted "each step sees the workspace as the previous step
+left it, which means re-indexing between steps" said *between steps* and got
+implemented as between subjects.
+
+### API contracts
+
+`API_CONTRACTS.md`, and a section on the docs page. The idea is a third invariant
+alongside the two this tool already had: a refactoring preserves behaviour, a
+translation preserves a signature, and a rewrite of a service preserves the **contract**
+— the URLs, methods, path parameters, schemas and status codes, while the language, the
+framework and every function signature are free to change.
+
+Writing it produced one finding worth the document on its own. FastAPI builds its
+OpenAPI from the *decorator*, so a status on a returned `Response` changes what an
+endpoint does without changing what it says it does. A translated handler returns `204`
+and behaves correctly while its published contract says `200` — behaviour-preserving
+and contract-shrinking at once, with every test passing. The tool now lists every status
+it saw and says what will happen if they stay where they are. It does not hoist them,
+because which status is the *success* one is a judgement about the endpoint rather than
+a fact about the syntax.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

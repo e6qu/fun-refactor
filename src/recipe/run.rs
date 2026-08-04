@@ -86,7 +86,19 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
     let mut total_refusals = 0usize;
     let mut stopped = None;
 
-    let before = analyses(&index, options)?;
+    // Only what an expectation actually asks for. Both analyses run over the whole
+    // workspace and both ran twice, before and after, even for a recipe with no
+    // `expect no-new` in it at all — which over helm is most of a minute spent
+    // answering a question nobody asked.
+    let wanted: BTreeSet<&str> = recipe
+        .expects
+        .iter()
+        .filter_map(|e| match e {
+            Expect::NoNew(what) => Some(what.as_str()),
+            _ => None,
+        })
+        .collect();
+    let before = analyses(&index, options, &wanted)?;
 
     for step in &recipe.steps {
         let report = run_step(step, &index, &sources, &changed, options)?;
@@ -121,7 +133,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
 
     let mut expectations = Vec::new();
     if stopped.is_none() {
-        let after = analyses(&index, options)?;
+        let after = analyses(&index, options, &wanted)?;
         for expect in &recipe.expects {
             expectations.push(check_expect(
                 expect,
@@ -254,20 +266,28 @@ struct Analyses {
     duplicates: usize,
 }
 
-fn analyses(index: &Index, options: &Options) -> Result<Analyses> {
-    let mut catalog = crate::analysis::entrypoints::Catalog::builtin()?;
-    for dir in options.catalogs {
-        catalog.load_dir(dir)?;
-    }
-    let entrypoints = Entrypoints::from_catalog(&catalog, index);
-    let unused = crate::refactor::delete::find_unused(index, &entrypoints)
-        .into_iter()
-        .filter_map(|id| index.symbol(id))
-        .map(|s| format!("{}:{}", s.file.display(), s.name))
-        .collect();
-    let duplicates = crate::analysis::duplicates::find(index, &Default::default())
-        .map(|classes| classes.len())
-        .unwrap_or(0);
+fn analyses(index: &Index, options: &Options, wanted: &BTreeSet<&str>) -> Result<Analyses> {
+    let unused = if wanted.contains("unused") {
+        let mut catalog = crate::analysis::entrypoints::Catalog::builtin()?;
+        for dir in options.catalogs {
+            catalog.load_dir(dir)?;
+        }
+        let entrypoints = Entrypoints::from_catalog(&catalog, index);
+        crate::refactor::delete::find_unused(index, &entrypoints)
+            .into_iter()
+            .filter_map(|id| index.symbol(id))
+            .map(|s| format!("{}:{}", s.file.display(), s.name))
+            .collect()
+    } else {
+        BTreeSet::new()
+    };
+    let duplicates = if wanted.contains("duplicates") {
+        crate::analysis::duplicates::find(index, &Default::default())
+            .map(|classes| classes.len())
+            .unwrap_or(0)
+    } else {
+        0
+    };
     Ok(Analyses { unused, duplicates })
 }
 
@@ -396,9 +416,20 @@ fn run_step(
                 None => chosen,
             };
 
-            // Each subject is planned against the workspace the previous one left.
+            // Each subject is planned against the workspace the previous one left —
+            // but rebuilding the index after every one of them is what makes a step
+            // unusable at scale: five files of helm took two minutes because each
+            // subject re-indexed all five hundred and thirty-nine.
+            //
+            // It is needed exactly when a previous edit could have moved the text this
+            // subject is about. That is true when its own file has already been edited,
+            // and true for everything once an operation has edited a file other than
+            // its subject's — a rename rewrites call sites elsewhere. Otherwise the
+            // subjects are independent and one index does for all of them.
             let mut running = sources.clone();
             let mut current = reindex(&running)?;
+            let mut touched: BTreeSet<PathBuf> = BTreeSet::new();
+            let mut reaches_other_files = false;
             for subject in taken {
                 if matches!(subject, Subject::Symbol { .. }) && subject.resolve(&current).is_none()
                 {
@@ -406,12 +437,23 @@ fn run_step(
                     // step succeeding, not failing.
                     continue;
                 }
+                let home = match &subject {
+                    Subject::Symbol { file, .. } | Subject::File(file) => file.clone(),
+                };
+                if reaches_other_files || touched.contains(&home) {
+                    current = reindex(&running)?;
+                }
                 match act(&step.operation, &current, &subject, options.root) {
-                    Ok((set, said)) => {
-                        applied += 1;
+                    Ok((set, said, sites)) => {
+                        applied += sites;
                         warnings.extend(said);
+                        for path in set.paths() {
+                            if *path != home {
+                                reaches_other_files = true;
+                            }
+                            touched.insert(path.clone());
+                        }
                         apply(&mut running, &set)?;
-                        current = reindex(&running)?;
                     }
                     Err(e) => refusals.push(Refusal {
                         subject: subject.describe(),
@@ -513,8 +555,12 @@ impl Subject {
     }
 }
 
-/// What an operation did, and what it left alone.
-type Outcome = (EditSet, Vec<String>);
+/// What an operation did, what it left alone, and how many sites it touched.
+///
+/// The count is 1 for anything acting on a symbol and however many sites a `rewrite`
+/// found in one file — the unit that matters there is the site, not the file, which is
+/// what `limit` is for.
+type Outcome = (EditSet, Vec<String>, usize);
 
 /// The warnings a plan carried, flattened into lines a report can print.
 fn said(warnings: &[crate::refactor::Warning]) -> Vec<String> {
@@ -530,9 +576,12 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
             Operation::Imports => {
                 let plan = crate::refactor::imports::plan(index, path)?;
                 let warnings = said(&plan.warnings);
-                Ok((plan.edits, warnings))
+                Ok((plan.edits, warnings, 1))
             }
-            Operation::Rewrite { name } => Ok((rewrite_file(index, path, name)?, Vec::new())),
+            Operation::Rewrite { name } => {
+                let (edits, sites) = rewrite_file(index, path, name)?;
+                Ok((edits, Vec::new(), sites))
+            }
             other => bail!("`{}` acts on a symbol, not a file", other.describe()),
         };
     }
@@ -543,27 +592,29 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
         Operation::Rename { to } => {
             let plan = crate::refactor::rename::plan(index, id, to)?;
             let warnings = said(&plan.warnings);
-            Ok((plan.edits, warnings))
+            Ok((plan.edits, warnings, 1))
         }
         Operation::Delete => {
             let plan = crate::refactor::delete::plan(index, id)?;
             let warnings = said(&plan.warnings);
-            Ok((plan.edits, warnings))
+            Ok((plan.edits, warnings, 1))
         }
         Operation::Move { to } => {
             let plan = crate::refactor::move_symbol::to_file(index, id, &root.join(to))?;
             let warnings = plan.warnings.clone();
-            Ok((plan.edits, warnings))
+            Ok((plan.edits, warnings, 1))
         }
         Operation::Inline { call: false } => Ok((
             crate::refactor::inline::variable(index, id)?.edits,
             Vec::new(),
+            1,
         )),
         Operation::Inline { call: true } => {
             let symbol = index.symbol(id).context("the symbol went away")?;
             Ok((
                 crate::refactor::inline::call(index, &symbol.file, symbol.name_span.start)?.edits,
                 Vec::new(),
+                1,
             ))
         }
         Operation::Signature { change } => {
@@ -571,6 +622,7 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
             Ok((
                 crate::refactor::signature::change(index, id, change)?.edits,
                 Vec::new(),
+                1,
             ))
         }
         other => bail!("`{}` acts on a file, not a symbol", other.describe()),
@@ -582,22 +634,44 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
 /// The most dangerous statement in the language: `guard-clause` was once wrong at
 /// 1,258 of 1,498 sites in helm/helm. It is the one that most needs `limit`, the dry
 /// run and an `expect`.
-fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<EditSet> {
+fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<(EditSet, usize)> {
     use crate::refactor::rewrite::{self, Rewrite};
     let Some(rewrite) = Rewrite::from_name(name) else {
         let known: Vec<&str> = Rewrite::ALL.iter().map(|r| r.as_str()).collect();
         bail!("unknown rewrite '{name}'. Known: {}", known.join(", "));
     };
     let source = crate::vfs::read_to_string(path)?;
+    let Some(language) = index.file(path).map(|info| info.language) else {
+        bail!("{} is not in the index", path.display());
+    };
 
-    // Offsets shift as edits land, so this collects the sites once against the file as
-    // it is and applies them together; the engine rejects overlaps.
+    // Candidate positions come from one parse of the file. Asking at *every byte
+    // offset* worked and took two minutes forty over five files of helm, because each
+    // ask reparses: it is O(bytes × parse) where it wants to be O(anchors × parse).
+    // All three transformations anchor on a conditional or on a negation, so those are
+    // the only offsets worth asking about.
+    let parsers = crate::parse::Parsers::new();
+    let parsed = parsers.parse(language, &source)?;
+    let mut anchors: Vec<usize> = Vec::new();
+    let mut stack = vec![parsed.root()];
+    let mut cursor = parsed.root().walk();
+    while let Some(node) = stack.pop() {
+        let kind = node.kind();
+        if kind.contains("if") || kind.contains("unary") || kind.contains("not") {
+            anchors.push(node.start_byte());
+        }
+        for child in node.children(&mut cursor) {
+            stack.push(child);
+        }
+    }
+    anchors.sort_unstable();
+    anchors.dedup();
+
+    // Offsets shift as edits land, so this collects the sites against the file as it
+    // is and applies them together; the engine rejects overlaps.
     let mut edits = EditSet::new();
     let mut applied = 0;
-    for offset in 0..source.len() {
-        if !source.is_char_boundary(offset) {
-            continue;
-        }
+    for offset in anchors {
         let Ok(available) = rewrite::available(index, path, offset) else {
             continue;
         };
@@ -619,10 +693,11 @@ fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<EditSet> {
             }
         }
     }
-    if applied == 0 {
-        bail!("`{name}` applies nowhere in {}", path.display());
-    }
-    Ok(edits)
+    // A file where the transformation applies nowhere is not a refusal. The selector
+    // chose *files*; a file with no wrapping `if` in it simply had nothing to do, and
+    // treating that as a failure made `on-refusal stop` — the default — abandon the run
+    // on the first ordinary file. Over one package of helm that was three of five.
+    Ok((edits, applied))
 }
 
 fn extract_at(index: &Index, root: &Path, at: &str, name: &str, function: bool) -> Result<EditSet> {
