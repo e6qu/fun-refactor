@@ -133,9 +133,35 @@ pub fn destination_for(path: &Path, to: Language) -> Result<PathBuf> {
     let Some(stem) = path.file_stem() else {
         bail!("{} has no file name", path.display());
     };
+    // Java ties the file's name to the public class inside it, so `sensors.py` has to
+    // become `Sensors.java` — not `sensors.java`, which will not compile whatever is
+    // written in it.
+    let stem = match to {
+        Language::Java => pascal_case(&stem.to_string_lossy()),
+        _ => stem.to_string_lossy().to_string(),
+    };
     let mut destination = path.to_path_buf();
-    destination.set_file_name(format!("{}.{}", stem.to_string_lossy(), extension));
+    destination.set_file_name(format!("{stem}.{extension}"));
     Ok(destination)
+}
+
+/// `sensor_readings` -> `SensorReadings`, for a language that names files after types.
+fn pascal_case(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    let mut upper = true;
+    for c in name.chars() {
+        if c == '_' || c == '-' || c == '.' {
+            upper = true;
+            continue;
+        }
+        if upper {
+            out.extend(c.to_uppercase());
+            upper = false;
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 /// Work out how to rewrite `path` as `to`, refusing when it is not the same file.

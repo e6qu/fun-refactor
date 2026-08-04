@@ -250,9 +250,65 @@ fn reserved(language: Language, name: &str) -> bool {
         "while",
         "with",
     ];
+    const JAVA: &[&str] = &[
+        "abstract",
+        "assert",
+        "boolean",
+        "break",
+        "byte",
+        "case",
+        "catch",
+        "char",
+        "class",
+        "const",
+        "continue",
+        "default",
+        "do",
+        "double",
+        "else",
+        "enum",
+        "extends",
+        "final",
+        "finally",
+        "float",
+        "for",
+        "goto",
+        "if",
+        "implements",
+        "import",
+        "instanceof",
+        "int",
+        "interface",
+        "long",
+        "native",
+        "new",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "return",
+        "short",
+        "static",
+        "strictfp",
+        "super",
+        "switch",
+        "synchronized",
+        "this",
+        "throw",
+        "throws",
+        "transient",
+        "try",
+        "void",
+        "volatile",
+        "while",
+        "true",
+        "false",
+        "null",
+    ];
     let list = match language {
         Language::Rust => RUST,
         Language::Go => GO,
+        Language::Java => JAVA,
         Language::Python => PYTHON,
         Language::TypeScript | Language::Tsx => TYPESCRIPT,
         _ => return false,
@@ -296,6 +352,7 @@ pub fn write_in_context(
         Language::Rust => rust(&mut out, module),
         Language::Python => python(&mut out, module),
         Language::Go => go(&mut out, module),
+        Language::Java => java(&mut out, module),
         Language::TypeScript | Language::Tsx => typescript(&mut out, module),
         other => bail!(
             "there is no writer for {other}: it has no functions or records to write \
@@ -2312,6 +2369,535 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
+// ------------------------------------------------------------------------- Java
+
+/// Java has no top level below the type, so a module is written *inside* a class.
+///
+/// That is the one structural thing this writer does that no other does. Every other
+/// target takes the module's items and writes them out; Java has to invent a container
+/// for them, and a public class must be named after its file — which is why [`Module`]
+/// carries a name at all.
+///
+/// A record with methods becomes its own class beside it; the loose functions and
+/// constants become `static` members of the file's class, because that is what a Java
+/// file full of free functions has to be.
+fn java(out: &mut Out, module: &Module) {
+    for line in &module.doc {
+        out.line(&format!("// {line}"));
+    }
+    if !module.doc.is_empty() {
+        out.blank();
+    }
+
+    for item in &module.items {
+        if let Item::Import { text, line } = item {
+            out.fidelity.imports_listed += 1;
+            let header = out.comment(&format!(
+                "the source imported this at line {line}; the equivalent here is yours to add"
+            ));
+            out.line(&header);
+            for l in text.lines() {
+                let commented = out.comment(l);
+                out.line(&commented);
+            }
+            out.blank();
+        }
+    }
+
+    // Everything that is not a record has nowhere else to live.
+    let loose: Vec<&Item> = module
+        .items
+        .iter()
+        .filter(|i| {
+            matches!(
+                i,
+                Item::Constant(_) | Item::Function(_) | Item::Unsupported(_)
+            )
+        })
+        .collect();
+    let records: Vec<&Record> = module
+        .items
+        .iter()
+        .filter_map(|i| match i {
+            Item::Record(r) => Some(r),
+            _ => None,
+        })
+        .collect();
+
+    // **One public class per file**, named after the file. That is not a convention in
+    // Java, it is a rule the compiler enforces, and it is the whole reason this writer
+    // has to make a choice no other one does. A module that is only a record gives its
+    // name to the file; a module with loose functions keeps the file's own class public
+    // and writes its records as package-private siblings beside it.
+    if loose.is_empty() {
+        for (index, record) in records.iter().enumerate() {
+            if index > 0 {
+                out.blank();
+            }
+            java_record(out, record, index == 0);
+        }
+        return;
+    }
+
+    for record in &records {
+        java_record(out, record, false);
+        out.blank();
+    }
+
+    let name = module
+        .name
+        .as_deref()
+        .map(pascal)
+        .unwrap_or_else(|| "Module".to_string());
+    out.line(&format!("public final class {name} {{"));
+    out.open();
+    let last = loose.len().saturating_sub(1);
+    for (index, item) in loose.iter().enumerate() {
+        match item {
+            Item::Constant(c) => {
+                for line in &c.doc {
+                    out.line(&format!("/** {line} */"));
+                }
+                let ty =
+                    c.ty.as_ref()
+                        .map(java_type)
+                        .unwrap_or_else(|| java_inferred(&c.value));
+                let value = java_expr(out, &c.value);
+                let const_name = out.name(&c.name);
+                out.line(&format!("public static final {ty} {const_name} = {value};"));
+                out.fidelity.constants += 1;
+                out.blank();
+            }
+            Item::Function(f) => java_function(out, f, true),
+            Item::Unsupported(u) => carry(out, u),
+            _ => {}
+        }
+        if index != last {
+            out.blank();
+        }
+    }
+    out.close();
+    out.line("}");
+}
+
+fn java_record(out: &mut Out, record: &Record, public: bool) {
+    for line in &record.doc {
+        out.line(&format!("/** {line} */"));
+    }
+    if !public && record.exported {
+        let note = out.comment(
+            "package-private: Java allows one public class per file and this file's own \
+             class has that name. Move this to its own file to export it.",
+        );
+        out.line(&note);
+    }
+    let visibility = if public { "public " } else { "" };
+    let name = out.name(&record.name);
+    out.line(&format!("{visibility}class {name} {{"));
+    out.open();
+    for field in &record.fields {
+        let ty = field
+            .ty
+            .as_ref()
+            .map(java_type)
+            .unwrap_or_else(|| unknown(out, &field.name));
+        let field_visibility = if field.exported { "public" } else { "private" };
+        let field_name = out.field(&field.name);
+        out.line(&format!("{field_visibility} {ty} {field_name};"));
+    }
+    if !record.fields.is_empty() && !record.methods.is_empty() {
+        out.blank();
+    }
+    for (index, method) in record.methods.iter().enumerate() {
+        if index > 0 {
+            out.blank();
+        }
+        java_function(out, method, false);
+    }
+    out.close();
+    out.line("}");
+    out.fidelity.records += 1;
+}
+
+fn java_function(out: &mut Out, f: &Function, is_static: bool) {
+    for line in &f.doc {
+        out.line(&format!("/** {line} */"));
+    }
+    if f.is_async {
+        let note = out.comment(
+            "declared async in the source; Java has no async — return a CompletableFuture \
+             or call this from an executor",
+        );
+        out.line(&note);
+    }
+
+    let mut foreign = false;
+    let mut changed = false;
+    let params: Vec<String> = f
+        .params
+        .iter()
+        .filter_map(|p| {
+            let spelled = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)?;
+            if p.kind != ParamKind::Normal {
+                return Some(spelled);
+            }
+            let ty = match &p.ty {
+                Some(t) => {
+                    if out.is_foreign(t) {
+                        foreign = true;
+                    }
+                    java_type(t)
+                }
+                None => {
+                    foreign = true;
+                    unknown(out, &p.name)
+                }
+            };
+            Some(format!("{ty} {spelled}"))
+        })
+        .collect();
+
+    let returns = match &f.returns {
+        Some(Type::Unit) | None => "void".to_string(),
+        Some(t) => {
+            if out.is_foreign(t) {
+                foreign = true;
+            }
+            java_type(t)
+        }
+    };
+
+    let visibility = if f.exported { "public" } else { "private" };
+    let modifier = if is_static { " static" } else { "" };
+    out.line(&format!(
+        "{visibility}{modifier} {returns} {}({}) {{",
+        out.name(&f.name),
+        params.join(", ")
+    ));
+    out.open();
+    java_block(out, &f.body, f.returns.as_ref());
+    out.close();
+    out.line("}");
+
+    out.fidelity.functions += 1;
+    if changed {
+        out.fidelity.signatures_with_changed_calls += 1;
+    }
+    if foreign {
+        out.fidelity.signatures_with_foreign_types += 1;
+    } else if !changed {
+        out.fidelity.signatures_complete += 1;
+    }
+}
+
+fn java_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
+    if body.is_empty() {
+        // A method that returns something must return something; one that does not can
+        // be empty, and an invented value would be a guess at what the body did.
+        if matches!(returns, Some(t) if *t != Type::Unit) {
+            out.line("throw new UnsupportedOperationException(\"not translated\");");
+        }
+        return;
+    }
+    for stmt in body {
+        java_stmt(out, stmt);
+    }
+}
+
+fn java_stmt(out: &mut Out, stmt: &Stmt) {
+    match stmt {
+        Stmt::Comment(text) => {
+            let line = out.comment(text);
+            out.line(&line);
+        }
+        Stmt::Return(value) => {
+            let text = value
+                .as_ref()
+                .map(|e| format!(" {}", java_expr(out, e)))
+                .unwrap_or_default();
+            out.line(&format!("return{text};"));
+        }
+        Stmt::Throw(value) => {
+            let rendered = java_expr(out, value);
+            out.line(&format!("throw {rendered};"));
+        }
+        Stmt::Let {
+            name, ty, value, ..
+        } => {
+            let rendered = value
+                .as_ref()
+                .map(|v| java_expr(out, v))
+                .unwrap_or_else(|| "null".to_string());
+            // `var` is Java 10 and inference is the compiler's job, not this tool's:
+            // writing a type it has not got would be a guess.
+            let declared = ty
+                .as_ref()
+                .map(java_type)
+                .unwrap_or_else(|| "var".to_string());
+            let bound = out.name(name);
+            out.line(&format!("{declared} {bound} = {rendered};"));
+        }
+        Stmt::Assign { target, value } => {
+            // `d[k] = v` is `d.put(k, v)` here. Java has no assignable subscript on a
+            // collection, and `d.get(k) = v` — which is what rendering the target as an
+            // expression produces — is not a statement in the language at all.
+            if let Expr::Index { of, index } = target {
+                let object = java_expr(out, of);
+                let at = java_expr(out, index);
+                let right = java_expr(out, value);
+                out.line(&format!("{object}.put({at}, {right});"));
+                return;
+            }
+            let left = java_expr(out, target);
+            let right = java_expr(out, value);
+            out.line(&format!("{left} = {right};"));
+        }
+        Stmt::If {
+            condition,
+            then,
+            otherwise,
+        } => {
+            let c = java_expr(out, condition);
+            out.line(&format!("if ({c}) {{"));
+            out.open();
+            java_block(out, then, None);
+            out.close();
+            if otherwise.is_empty() {
+                out.line("}");
+            } else {
+                out.line("} else {");
+                out.open();
+                java_block(out, otherwise, None);
+                out.close();
+                out.line("}");
+            }
+        }
+        Stmt::While { condition, body } => {
+            let c = java_expr(out, condition);
+            out.line(&format!("while ({c}) {{"));
+            out.open();
+            java_block(out, body, None);
+            out.close();
+            out.line("}");
+        }
+        Stmt::ForEach {
+            binding,
+            iterable,
+            body,
+        } => {
+            let it = java_expr(out, iterable);
+            let bound = out.name(binding);
+            // The element type is the collection's, which this does not track.
+            out.line(&format!("for (var {bound} : {it}) {{"));
+            out.open();
+            java_block(out, body, None);
+            out.close();
+            out.line("}");
+        }
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        } => {
+            out.line("try {");
+            out.open();
+            java_block(out, body, None);
+            out.close();
+            for clause in catches {
+                // Java's catch must name a type; the languages that do not have one
+                // catch everything, which is `Exception`.
+                let selector = clause
+                    .ty
+                    .as_ref()
+                    .map(java_type)
+                    .unwrap_or_else(|| "Exception".to_string());
+                let bound = clause
+                    .binding
+                    .as_ref()
+                    .map(|b| out.name(b))
+                    .unwrap_or_else(|| "error".to_string());
+                out.line(&format!("}} catch ({selector} {bound}) {{"));
+                out.open();
+                java_block(out, &clause.body, None);
+                out.close();
+            }
+            if !finally.is_empty() {
+                out.line("} finally {");
+                out.open();
+                java_block(out, finally, None);
+                out.close();
+            }
+            out.line("}");
+        }
+        Stmt::Expr(Expr::Null) => {}
+        Stmt::Expr(e) => {
+            let text = java_expr(out, e);
+            out.line(&format!("{text};"));
+        }
+        Stmt::Break => out.line("break;"),
+        Stmt::Continue => out.line("continue;"),
+        Stmt::Unsupported(u) => carry(out, u),
+    }
+}
+
+fn java_type(ty: &Type) -> String {
+    match ty {
+        Type::Unit => "void".to_string(),
+        Type::Bool => "boolean".to_string(),
+        Type::Int => "int".to_string(),
+        Type::Float => "double".to_string(),
+        Type::String => "String".to_string(),
+        Type::List(inner) => format!("List<{}>", java_boxed(inner)),
+        Type::Map(k, v) => format!("Map<{}, {}>", java_boxed(k), java_boxed(v)),
+        // Java's `Optional<T>` is the closest thing it has, and it is a real type
+        // rather than a nullable annotation.
+        Type::Optional(inner) => format!("Optional<{}>", java_boxed(inner)),
+        Type::Named { name, args } => generic(name, args, "<", ">", ".", java_boxed),
+    }
+}
+
+/// A generic argument in Java cannot be a primitive: `List<int>` does not compile.
+fn java_boxed(ty: &Type) -> String {
+    match ty {
+        Type::Bool => "Boolean".to_string(),
+        Type::Int => "Integer".to_string(),
+        Type::Float => "Double".to_string(),
+        Type::Unit => "Void".to_string(),
+        other => java_type(other),
+    }
+}
+
+/// The type of a constant, when the source did not write one down.
+fn java_inferred(value: &Expr) -> String {
+    match value {
+        Expr::Int(_) => "int".to_string(),
+        Expr::Float(_) => "double".to_string(),
+        Expr::Bool(_) => "boolean".to_string(),
+        Expr::Str(_) => "String".to_string(),
+        _ => "Object".to_string(),
+    }
+}
+
+fn java_expr(out: &mut Out, e: &Expr) -> String {
+    match e {
+        Expr::Int(v) => v.clone(),
+        Expr::Float(v) => v.clone(),
+        Expr::Str(v) => format!("{v:?}"),
+        Expr::Bool(v) => v.to_string(),
+        Expr::Null => "null".to_string(),
+        Expr::Name(n) => out.name(n),
+        Expr::Field { of, name } => {
+            let object = java_expr(out, of);
+            format!("{object}.{}", out.field(name))
+        }
+        Expr::Index { of, index } => {
+            let object = java_expr(out, of);
+            let at = java_expr(out, index);
+            // A subscript is `get` on a collection and `[…]` on an array, and which
+            // this is depends on a type nothing here tracks.
+            format!("{object}.get({at})")
+        }
+        Expr::Call { callee, args } => {
+            let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
+            format!("{}({})", java_expr(out, callee), rendered.join(", "))
+        }
+        Expr::New { callee, args } => {
+            let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
+            format!("new {}({})", java_expr(out, callee), rendered.join(", "))
+        }
+        Expr::InstanceOf { value, ty } => {
+            let rendered = java_expr(out, value);
+            format!("{rendered} instanceof {}", java_expr(out, ty))
+        }
+        Expr::Binary { op, left, right } => format!(
+            "{} {} {}",
+            java_expr(out, left),
+            op.c_like(),
+            java_expr(out, right)
+        ),
+        Expr::Unary { op, operand } => {
+            let sign = match op {
+                UnaryOp::Not => "!",
+                UnaryOp::Neg => "-",
+            };
+            format!("{sign}{}", java_expr(out, operand))
+        }
+        Expr::ListLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
+            format!("List.of({})", rendered.join(", "))
+        }
+        Expr::MapLit(entries) => {
+            let rendered: Vec<String> = entries
+                .iter()
+                .map(|(k, v)| format!("{}, {}", java_expr(out, k), java_expr(out, v)))
+                .collect();
+            format!("Map.of({})", rendered.join(", "))
+        }
+        // Java's text blocks and `formatted` are neither of these, and `+` is what a
+        // reader will recognise.
+        Expr::Template(parts) => {
+            let rendered: Vec<String> = parts
+                .iter()
+                .map(|part| match part {
+                    TemplatePart::Text(text) => format!("{text:?}"),
+                    TemplatePart::Expr(e) => java_expr(out, e),
+                })
+                .collect();
+            match rendered.is_empty() {
+                true => "\"\"".to_string(),
+                false => rendered.join(" + "),
+            }
+        }
+        Expr::Comprehension {
+            element,
+            binding,
+            iterable,
+            condition,
+        } => {
+            let name = out.name(binding);
+            let it = java_expr(out, iterable);
+            let filter = condition
+                .as_ref()
+                .map(|c| format!(".filter({name} -> {})", java_expr(out, c)))
+                .unwrap_or_default();
+            let identity = matches!(element.as_ref(), Expr::Name(n) if *n == *binding);
+            let map = if identity {
+                String::new()
+            } else {
+                format!(".map({name} -> {})", java_expr(out, element))
+            };
+            format!("{it}.stream(){filter}{map}.toList()")
+        }
+        // Java has no `await`: a suspension point is a `CompletableFuture.join()` or a
+        // virtual thread, and which one is a fact about the program.
+        Expr::Await(inner) => {
+            let rendered = java_expr(out, inner);
+            let source = format!("await {rendered}");
+            out.carried(&Unsupported {
+                construct: "await".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
+        Expr::Keyword { name, value } => {
+            let rendered = java_expr(out, value);
+            let source = format!("{name}={rendered}");
+            out.carried(&Unsupported {
+                construct: "keyword argument".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
+        Expr::Unsupported(u) => {
+            out.carried(u);
+            format!("null /* {MARKER}: {} */", u.source.replace("*/", "* /"))
+        }
+    }
+}
+
 // ------------------------------------------------------------------------ shared
 
 /// A named type, spelled the way this target spells generics.
@@ -2332,7 +2918,11 @@ fn generic(
     args: &[Type],
     open: &str,
     close: &str,
-    separator: &str,
+    // How this language separates the parts of a qualified name: `::` in Rust, `.` in
+    // the rest. Named for what it is, because "separator" beside a list of arguments
+    // reads as the argument separator — and the Java writer was written passing `", "`
+    // on that reading, turning `sync.Mutex` into `sync, Mutex`.
+    path_separator: &str,
     render: fn(&Type) -> String,
 ) -> String {
     if !Type::is_writable_name(name) {
@@ -2346,7 +2936,7 @@ fn generic(
         .flat_map(|part| part.split('.'))
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>()
-        .join(separator);
+        .join(path_separator);
     if args.is_empty() {
         return clean;
     }

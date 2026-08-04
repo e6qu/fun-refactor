@@ -58,7 +58,7 @@ so its answer for a language is whatever the steps it runs answer.
 | config→code stitch | ✓ | ✓ | n/a | n/a | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a |
 | duplicate code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | dead code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| write as another language | ✓ | ✓ | n/a | n/a | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a |
+| write as another language | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a |
 | declared HTTP contract | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 **Nothing is merely unimplemented.** Every cell is either supported or carries an
@@ -168,7 +168,7 @@ framework or a language means adding data.
 
 Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
 backend, and every capability a language can meaningfully support is built:
-**259 of 368 capability × language pairs supported, 109 not applicable, none refused.**
+**260 of 368 capability × language pairs supported, 108 not applicable, none refused.**
 The matrix above is generated, and `fr capabilities` prints the reason behind every
 cell that is not a ✓.
 

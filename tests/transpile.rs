@@ -279,6 +279,10 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             "d.ts",
             "export function add(a: number, b: number): number {\n  return a + b;\n}\n",
         ),
+        (
+            "E.java",
+            "public class E {\n    /** Add two things. */\n    public int add(int a, int b) {\n             \treturn a + b;\n    }\n}\n",
+        ),
     ];
     let (_tmp, root) = workspace(&sources);
     let parsers = fun_refactor::parse::Parsers::new();
@@ -303,7 +307,15 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             checked += 1;
         }
     }
-    assert_eq!(checked, 12, "every ordered pair should have been exercised");
+    // Five languages is twenty ordered pairs, and the count is written down so that
+    // adding a language without adding a source for it fails here rather than quietly
+    // testing four fifths of the matrix.
+    let languages = transpile::SUPPORTED.len();
+    assert_eq!(
+        checked,
+        languages * (languages - 1),
+        "every ordered pair should have been exercised"
+    );
 }
 
 #[test]

@@ -30,6 +30,12 @@ use std::fmt;
 pub struct Module {
     /// The file-level doc comment, where the language has one.
     pub doc: Vec<String>,
+    /// What the file is called, where a language needs to know.
+    ///
+    /// Only Java does: it has no top level below the type, so every function has to be
+    /// written inside a class, and a public class must be named after its file. The
+    /// other three writers ignore this.
+    pub name: Option<String>,
     pub items: Vec<Item>,
 }
 
