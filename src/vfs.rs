@@ -52,10 +52,13 @@ mod memory {
         Rc::new(RefCell::new(files.into_iter().collect()))
     }
 
+    // Only a host build has two backings to choose between. On wasm there is no disk,
+    // so nothing ever asks and the flag would be written and never read.
+    #[cfg(not(target_arch = "wasm32"))]
     thread_local! {
         /// Whether anyone has handed over a workspace.
         ///
-        /// On a host build this is what decides between the two backings. Without it
+        /// What decides between the two backings on a host build. Without it
         /// `activate` would be a no-op there — the call would succeed and the reads
         /// would go to the filesystem, which is the sort of quietly-wrong answer this
         /// module exists to prevent.
@@ -65,10 +68,12 @@ mod memory {
     /// Read and write through these files until told otherwise.
     pub fn activate(handle: &Handle) {
         ACTIVE.with(|a| *a.borrow_mut() = Rc::clone(handle));
+        #[cfg(not(target_arch = "wasm32"))]
         HANDED_OVER.with(|h| *h.borrow_mut() = true);
     }
 
     /// Has a workspace been handed over on this thread?
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn is_active() -> bool {
         HANDED_OVER.with(|h| *h.borrow())
     }
