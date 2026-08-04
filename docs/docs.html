@@ -180,12 +180,132 @@
       <tr><td><code>fr rewrite</code></td><td>Local transformations: invert-if, guard-clause, de-morgan</td></tr>
       <tr><td><code>fr restructure</code></td><td>Pattern rewriting: <code>old($X)</code> → <code>new($X)</code></td></tr>
       <tr><td><code>fr remove-flag</code></td><td>Retire a feature flag and the branch that served it</td></tr>
+      <tr><td><code>fr translate</code></td><td>Write the file as another language, or port a route to FastAPI</td></tr>
     </table></div>
 
     <p style="margin-top:1.25rem">
       <code>--json</code> works on every command. <code>fr capabilities</code> prints
       the full matrix of what each language supports, with the reason attached to every
       cell that is not supported.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Writing a file as another language</h2>
+    <p>
+      <code>fr translate</code> has three modes, and they make three quite different
+      promises. Run it without a target to see which apply to a file, each with the
+      reason the others do not.
+    </p>
+
+    <div class="scroll-x">
+      <table>
+        <tr><th>Mode</th><th>What you get</th><th>Example</th></tr>
+        <tr>
+          <td><strong>Containment</strong></td>
+          <td>The same bytes under a different grammar. Nothing is rewritten, so
+              nothing can be lost.</td>
+          <td><code>fr translate app.css scss</code></td>
+        </tr>
+        <tr>
+          <td><strong>Translation</strong></td>
+          <td>A draft between Rust, Go, Python and TypeScript. Signatures carry
+              exactly; anything with no counterpart is in the output verbatim as a
+              comment, and counted.</td>
+          <td><code>fr translate sensors.py typescript</code></td>
+        </tr>
+        <tr>
+          <td><strong>Framework port</strong></td>
+          <td>A Next.js API route as a FastAPI module — routes, methods, path
+              parameters, models and bodies.</td>
+          <td><code>fr translate 'app/api/users/[id]/route.ts' fastapi</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin-top:1.25rem">
+      <strong>The signature is the contract.</strong> Every parameter, in order, with
+      its type and the return type, carried exactly — only the spelling changes.
+      Where a type has no counterpart it is written through by name and
+      <em>counted</em>, because quietly substituting a type is how a signature stops
+      meaning what it said.
+    </p>
+
+    <h3>Names take the target's convention</h3>
+    <p>
+      TypeScript writes <code>userName</code>, Python writes <code>user_name</code>, Go
+      says "exported" with a capital letter. A translated file adopts the target's
+      convention, under the same rule the refactorings follow: <strong>rename what the
+      file declares and nothing else</strong>. Functions, records, fields, constants,
+      parameters and locals are re-spelled at their declaration and at every use. A
+      name the module does not declare — <code>db.users.find</code>, a library function
+      — is left exactly as written, because re-casing it would rename somebody else's
+      API.
+    </p>
+
+    <h3>Typed Python and typed TypeScript</h3>
+    <p>
+      The closest pair gets the closest translation: <code>list[str]</code> is
+      <code>string[]</code>, <code>dict[str, int]</code> is
+      <code>Record&lt;string, number&gt;</code>, <code>Optional[T]</code> is
+      <code>T | null</code>, a <code>@dataclass</code> is an <code>interface</code>, an
+      f-string is a template literal, and <code>[f(x) for x in xs if p(x)]</code> is
+      <code>xs.filter(p).map(f)</code>. Both directions carry <em>zero</em> constructs
+      verbatim — the strongest claim any pair in this tool makes.
+    </p>
+
+    <h3>Next.js to FastAPI</h3>
+    <p>
+      A Next.js API route cannot be translated by reading the file alone, because
+      <strong>the URL is the path</strong>.
+      <code>app/api/users/[id]/route.ts</code> serves <code>/users/{id}</code> and
+      nothing inside the file says so; <code>[...path]</code> is a catch-all, which
+      FastAPI spells <code>{path:path}</code> and which a translation emitting
+      <code>{path}</code> would silently point at the wrong URLs.
+    </p>
+
+    <div class="scroll-x">
+      <table>
+        <tr><th>Next.js</th><th>FastAPI</th></tr>
+        <tr><td><code>export async function GET</code></td><td><code>@router.get(…)</code> on an <code>async def</code></td></tr>
+        <tr><td>an exported <code>interface</code></td><td>a Pydantic <code>BaseModel</code></td></tr>
+        <tr><td><code>NextRequest</code></td><td><code>Request</code> — same headers, same <code>await .json()</code></td></tr>
+        <tr><td><code>const id = context.params.id</code></td><td><em>dropped</em> — FastAPI already supplies it</td></tr>
+        <tr><td><code>return NextResponse.json(x)</code></td><td><code>return x</code></td></tr>
+        <tr><td><code>NextResponse.json(x, { status: 404 })</code></td><td><code>JSONResponse(x, 404)</code></td></tr>
+      </table>
+    </div>
+
+    <p style="margin-top:1.25rem">
+      It refuses a <code>.tsx</code> file containing JSX, and says why: a React
+      component renders a user interface and a FastAPI endpoint answers HTTP. There is
+      no translation between them, and a file that pretended there was would be worse
+      than no file. What stays foreign is your own dependencies — the database calls
+      and helpers the route imported — which no translation could supply.
+    </p>
+
+    <p>
+      In the playground this is the <strong>Rewrite</strong> button, which lists every
+      target with what it would cost, grouped by which of the three promises it makes.
+    </p>
+
+    <h3>Measured against real projects</h3>
+    <p>
+      A fixture is written by whoever writes the assertion. So the same translations
+      run over two MIT-licensed projects vendored unmodified and pinned —
+      <code>fastapi/full-stack-fastapi-template</code> and
+      <code>shadcn-ui/taxonomy</code> — asserting three properties rather than exact
+      output: it parses as what it claims to be, it adopts the target's conventions,
+      and nothing goes missing quietly.
+    </p>
+    <p>
+      That found what the fixture tests did not, including two <em>silent wrong
+      answers</em>: <code>session?.user.id</code> became <code>None.id</code>, and
+      <code>params.postId as string</code> became <code>None</code>. Both are now
+      carried with the original. On the hardest route in the corpus the count of
+      constructs carried over as comments went from 15 to 3.
     </p>
   </div>
 </section>

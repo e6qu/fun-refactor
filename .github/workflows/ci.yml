@@ -37,6 +37,16 @@ jobs:
       - name: Tests
         run: cargo test --all-targets
 
+      # The browser API is a different feature set and used to be checked only by the
+      # playground job, which needs a wasm toolchain and takes four times as long. A
+      # struct field missed at one of six call sites in `src/wasm.rs` passed clippy and
+      # the whole test suite, because neither compiles that file. It does now.
+      - name: Clippy, with the browser API compiled in
+        run: cargo clippy --all-targets --features wasm -- -D warnings
+
+      - name: Tests, with the browser API compiled in
+        run: cargo test --all-targets --features wasm
+
   # The site's playground is a WebAssembly build plus a Vite bundle, and it is
   # published by a workflow that only runs on main. Without this, a pull request goes
   # green and the deploy is where you find out the wasm no longer builds. Runs beside

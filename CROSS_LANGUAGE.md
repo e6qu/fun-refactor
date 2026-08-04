@@ -198,6 +198,137 @@ repository.
 already covered — as a *textual occurrence*, reported and never rewritten, which is
 the right answer.
 
+## Rewriting a file as another language
+
+Since this document was written, `fr translate` gained a second mode. The first —
+containment — writes the same bytes under a different grammar: CSS as SCSS, a manifest
+as a Helm template. The second **translates**, between Rust, Go, Python and TypeScript,
+and is a different promise entirely.
+
+The signature is the contract: every parameter in order, with its type and the return
+type, carried exactly and spelled the target's way. `fn averages(readings: &[Reading])
+-> HashMap<String, f64>` becomes `def averages(readings: list[Reading]) ->
+dict[str, float]`. Declarations are idiomatic — a record is a Rust `struct` with an
+`impl`, a Python `@dataclass`, a Go `struct`, a TypeScript `interface` or `class`.
+
+Everything with no counterpart — ownership, closures, macros, comprehensions, error
+propagation — is carried into the output **verbatim, inside a comment**, and counted.
+The result is a draft that says exactly how much of it is real.
+
+See `src/transpile/` and RECIPES-style notes in that module's documentation.
+
+### Names take the target's convention
+
+Every one of these languages has a naming convention and they disagree: TypeScript
+writes `userName`, Python writes `user_name`, Go says "exported" with a capital letter.
+Adopting the target's is most of what makes a translated file read as written rather
+than converted.
+
+The rule is the same one the refactorings follow: **rename what the file declares and
+nothing else.** Functions, records, fields, constants, parameters and locals are the
+module's own and are re-spelled at their declaration *and* at every use. A name the
+module does not declare — `db.users.find`, `NextResponse`, a library function — is
+foreign and is left exactly as written, because re-casing it would rename somebody
+else's API.
+
+One map, built once, consulted everywhere. The alternative — re-casing at each site
+with whichever helper was to hand — is how `interface User { userName }` became
+`class User: user_name` whose bodies still said `.userName`.
+
+Three details that only real code surfaces:
+
+- **Acronyms.** Splitting before every capital turns `HTTPServer` into
+  `h_t_t_p_server` and `MAX_RETRY` into `M_A_X__R_E_T_R_Y`. A separator goes where a
+  word actually starts.
+- **Fields are their own namespace.** A Go `Reading` with an exported `sensor` field is
+  `Sensor`, while a *parameter* also called `sensor` stays lowercase. One map keyed by
+  name alone gave the parameter the field's spelling.
+- **Keywords.** `select` is a name sqlmodel exports and a keyword in Go. `select(User)`
+  is not something Go's grammar accepts, so the whole file was refused — which gives
+  the reader nothing. It is escaped and *reported* instead.
+
+### Typed Python and typed TypeScript
+
+The two languages with the closest correspondence get the closest translation.
+`list[str]` is `string[]`, `dict[str, int]` is `Record<string, number>`,
+`Optional[T]` is `T | null`, `@dataclass` is an `interface`, an f-string is a template
+literal, and a comprehension is a `.filter().map()` chain. `await` means the same
+thing in both.
+
+Both directions of the round-trip carry **zero** constructs verbatim
+(`tests/transpile.rs::typed_python_and_typed_typescript_round_trip`), which is the
+strongest claim any pair in this tool makes. It is a claim about *typed* Python:
+translating a signature with no annotations means writing `object` for every parameter,
+and the report says so.
+
+## Porting a framework, not just a language
+
+`fr translate <route.ts> fastapi` is a third mode, and it exists because a Next.js API
+route cannot be translated by reading the file alone.
+
+**The URL is the path.** `app/api/users/[id]/route.ts` serves `/users/{id}` and nothing
+inside the file says so. `app/api/files/[...path]/route.ts` serves
+`/files/{path:path}` — a catch-all, which FastAPI spells with a converter and which a
+translation that emitted `{path}` would silently point at the wrong URLs. This is the
+one thing no content-only translation could ever do, and it is most of the value.
+
+| Next.js | FastAPI |
+| --- | --- |
+| `app/api/users/route.ts` exporting `GET` | `@router.get("/users")` |
+| `app/api/users/[id]/route.ts` | `@router.get("/users/{id}")` |
+| `app/api/files/[...path]/route.ts` | `@router.get("/files/{path:path}")` |
+| `export async function POST` | `@router.post(...)` on an `async def` |
+| an exported `interface` | a Pydantic `BaseModel` |
+| `NextRequest` | `Request` — same headers, same `await .json()` |
+| `const id = context.params.id` | *dropped* — FastAPI already supplies `id` |
+| `return NextResponse.json(x)` | `return x` |
+| `NextResponse.json(x, { status: 404 })` | `JSONResponse(x, 404)` |
+| `NextResponse.redirect(u)` | `RedirectResponse(u)` |
+
+Three of those rows are worth dwelling on, because each was wrong first:
+
+- **`NextRequest` is kept, not dropped.** It is Starlette's `Request` under another
+  name. Dropping it and commenting out every line that read it produced a file where
+  `await request.json()` — perfectly good Python — was a comment.
+- **`context.params.id` is dropped, not carried.** It is the commonest line in a
+  Next.js route and it is exactly the work FastAPI already did. Carrying it opened
+  every translated handler with a line naming an object Python does not have.
+- **Nested returns are rewritten too.** An error return inside an `if` is the
+  commonest branch in a route; rewriting only the top level missed precisely those.
+
+### Measured against real projects
+
+The fixtures in `tests/nextjs.rs` and `tests/transpile.rs` are written by whoever
+writes the assertion, so `tests/corpus.rs` runs the same translations over two
+MIT-licensed projects vendored unmodified and pinned — `fastapi/full-stack-fastapi-template`
+and `shadcn-ui/taxonomy`; see `tests/corpus/PROVENANCE.md`. Running against them found
+what 1,300 fixture tests did not:
+
+| What real code had | What it produced | Now |
+| --- | --- | --- |
+| `def create_user(*, session, …)` | `createUser(*: unknown, …)` — will not parse | the marker is dropped and the change of calling convention counted |
+| `try { … } catch (e) { … }` | the whole handler body as one comment | `try:` / `except Exception as e:` |
+| `error instanceof z.ZodError` | carried | `isinstance(error, z.ZodError)` |
+| `new Response(null, {status: 403})` | carried | `Response(status_code=403)` |
+| `session?.user.id` | **`None.id`** — a silent wrong answer | carried, with the original |
+| `params.postId as string` | **`None`** — a silent wrong answer | `params.postId`; an assertion has no runtime effect |
+| `// Validate the route params.` | "not translated: comment" | `# Validate the route params.` |
+| `select(User)` in Go | the file refused outright | escaped and reported |
+
+On the hardest route in the corpus — two handlers, each a single `try`, with typed
+error branches and four response shapes — the count of constructs carried over went
+from 15 to 3. The three that remain are object destructuring, which Python has no
+counterpart for.
+
+What it refuses, with the reason: a `.tsx` file containing JSX. A React component
+renders a user interface and a FastAPI endpoint answers HTTP. There is no translation
+between them, and a file that pretended there was would be worse than no file.
+
+What is left foreign is your own dependencies — `db.posts.find(id)` and the helpers
+the route imported — which no translation could supply. When nothing at all is carried
+the banner says so instead of saying DRAFT, because a banner that cries draft over a
+complete file is a banner nobody reads.
+
 ## What this changes about the design
 
 Three things the measurements argue for:

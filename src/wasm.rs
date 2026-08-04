@@ -119,7 +119,7 @@ fn fail(e: impl std::fmt::Display) -> String {
 }
 
 fn ok<T: Serialize>(value: &T) -> String {
-    serde_json::to_string(value).unwrap_or_else(|e| fail(e))
+    serde_json::to_string(value).unwrap_or_else(fail)
 }
 
 #[wasm_bindgen]
@@ -132,13 +132,30 @@ impl Workspace {
     #[wasm_bindgen(constructor)]
     pub fn new(files: JsValue) -> Result<Workspace, JsValue> {
         console_error_panic_hook::set_once();
-        // The grammars' scanners allocate through a bump allocator that starts at
-        // NULL until it is given a region. See the wasm-libc crate.
-        fun_refactor_wasm_libc::init_scanner_heap();
-        fun_refactor_wasm_libc::use_rust_allocator_in_tree_sitter();
-
         let map: std::collections::BTreeMap<String, String> = serde_wasm_bindgen::from_value(files)
             .map_err(|e| JsValue::from_str(&format!("expected {{path: text}}: {e}")))?;
+        Workspace::load(map).map_err(|e| JsValue::from_str(&e))
+    }
+}
+
+impl Workspace {
+    /// Load a repository from plain Rust values.
+    ///
+    /// Split out of the constructor so that everything but the `JsValue` conversion
+    /// can be reached by `cargo test`. The browser API used to be exercised only by
+    /// `web/test/api.mjs`, which needs a wasm toolchain and a Node run, so a mistake
+    /// in it survived `cargo test` and `cargo clippy` and reached CI.
+    pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
+        // The grammars' scanners allocate through a bump allocator that starts at
+        // NULL until it is given a region. See the wasm-libc crate. Only there: a
+        // host build links a real libc, and the shim is not compiled for it — which
+        // is what lets `cargo check --features wasm` work on a host and catch the
+        // mistakes that otherwise reach CI.
+        #[cfg(target_arch = "wasm32")]
+        {
+            fun_refactor_wasm_libc::init_scanner_heap();
+            fun_refactor_wasm_libc::use_rust_allocator_in_tree_sitter();
+        }
 
         let loaded: Vec<(PathBuf, String)> = map
             .into_iter()
@@ -178,7 +195,7 @@ impl Workspace {
         for (path, language, source) in &sources {
             let one =
                 crate::index::extract_facts(&parsers, &mut extractor, path, *language, source)
-                    .map_err(|e| JsValue::from_str(&format!("indexing failed: {e}")))?;
+                    .map_err(|e| format!("indexing failed: {e}"))?;
             facts.insert(path.clone(), (*language, one.clone()));
             extracted.push((path.clone(), *language, one));
         }
@@ -193,7 +210,10 @@ impl Workspace {
             unsupported,
         })
     }
+}
 
+#[wasm_bindgen]
+impl Workspace {
     /// Every file loaded, with the language each was recognised as.
     pub fn files(&self) -> String {
         self.enter();
@@ -711,6 +731,49 @@ impl Workspace {
             destination: Option<String>,
             /// Absent when it can be done.
             unavailable: Option<String>,
+            /// Present when this is a translation rather than the same bytes, saying
+            /// how much of it is real. A caller must be able to tell the difference.
+            draft: Option<String>,
+            /// A port to another framework rather than to another language.
+            ///
+            /// Its own kind, because it answers a different question. "Write this
+            /// TypeScript as Python" and "serve these routes from FastAPI instead" are
+            /// not variants of each other, and a menu that listed them together would
+            /// make the reader work out which one they had asked for.
+            framework: bool,
+        }
+
+        // Three constructors rather than six literals. A field added to the struct is
+        // otherwise a field six call sites have to remember, and one of them will not:
+        // `framework` was missed at exactly one, in code no host build compiles, and
+        // the browser build in CI was what found it.
+        impl Option_ {
+            fn offered(language: &str, destination: String, draft: Option<String>) -> Option_ {
+                Option_ {
+                    language: language.to_string(),
+                    destination: Some(destination),
+                    unavailable: None,
+                    draft,
+                    framework: false,
+                }
+            }
+
+            fn refused(language: &str, why: String, destination: Option<String>) -> Option_ {
+                Option_ {
+                    language: language.to_string(),
+                    destination,
+                    unavailable: Some(why),
+                    draft: None,
+                    framework: false,
+                }
+            }
+
+            fn port(self) -> Option_ {
+                Option_ {
+                    framework: true,
+                    ..self
+                }
+            }
         }
         let path_buf = PathBuf::from(path);
         let Some(from) = crate::lang::detect(&path_buf) else {
@@ -719,8 +782,60 @@ impl Workspace {
 
         let possible = crate::translate::targets(from);
         let mut out: Vec<Option_> = Vec::new();
+
+        // FastAPI is a framework rather than a language, and it goes first because
+        // when it applies at all it is the best answer for the file: a Next.js route
+        // translated as plain Python loses the routing, which is the half that lives
+        // in the path rather than the text.
+        if crate::transpile::nextjs::is_api_route(&path_buf) {
+            match crate::transpile::nextjs::plan(&path_buf) {
+                Ok(plan) => out.push(
+                    Option_::offered(
+                        "fastapi",
+                        plan.destination.display().to_string(),
+                        Some(format!(
+                            "route {} — {}{}",
+                            plan.route,
+                            plan.methods.join(", "),
+                            if plan.fidelity.carried_verbatim == 0 {
+                                String::new()
+                            } else {
+                                format!(
+                                    "; {} construct(s) carried over as comments",
+                                    plan.fidelity.carried_verbatim
+                                )
+                            }
+                        )),
+                    )
+                    .port(),
+                ),
+                Err(e) => out.push(Option_::refused("fastapi", e.to_string(), None).port()),
+            }
+        }
         for language in crate::lang::Language::ALL {
             if *language == from {
+                continue;
+            }
+            // A containment is the same bytes; a translation is a draft. Both are
+            // offered, and which one it is has to be visible before it is chosen.
+            if !possible.contains(language)
+                && crate::transpile::supports(from)
+                && crate::transpile::supports(*language)
+            {
+                match crate::transpile::plan(&path_buf, *language) {
+                    Ok(plan) => {
+                        let f = &plan.fidelity;
+                        out.push(Option_::offered(
+                            language.name(),
+                            plan.destination.display().to_string(),
+                            Some(format!(
+                                "a draft — {}/{} signatures complete, {} construct(s) carried over as comments",
+                                f.signatures_complete, f.functions, f.carried_verbatim
+                            )),
+                        ));
+                    }
+                    Err(e) => out.push(Option_::refused(language.name(), e.to_string(), None)),
+                }
                 continue;
             }
             if possible.contains(language) {
@@ -728,25 +843,25 @@ impl Workspace {
                 // nesting is not CSS, and the button must say that before it is
                 // pressed rather than after.
                 match crate::translate::plan(&path_buf, *language) {
-                    Ok(plan) => out.push(Option_ {
-                        language: language.name().to_string(),
-                        destination: Some(plan.destination.display().to_string()),
-                        unavailable: None,
-                    }),
-                    Err(e) => out.push(Option_ {
-                        language: language.name().to_string(),
-                        destination: crate::translate::destination_for(&path_buf, *language)
+                    Ok(plan) => out.push(Option_::offered(
+                        language.name(),
+                        plan.destination.display().to_string(),
+                        None,
+                    )),
+                    Err(e) => out.push(Option_::refused(
+                        language.name(),
+                        e.to_string(),
+                        crate::translate::destination_for(&path_buf, *language)
                             .ok()
                             .map(|p| p.display().to_string()),
-                        unavailable: Some(e.to_string()),
-                    }),
+                    )),
                 }
             } else {
-                out.push(Option_ {
-                    language: language.name().to_string(),
-                    destination: None,
-                    unavailable: Some(crate::translate::why_not(from, *language)),
-                });
+                out.push(Option_::refused(
+                    language.name(),
+                    crate::translate::why_not(from, *language),
+                    None,
+                ));
             }
         }
         ok(&out)
@@ -755,11 +870,61 @@ impl Workspace {
     /// Write this file as another language, beside the original.
     pub fn translate(&mut self, path: &str, language: &str) -> String {
         self.enter();
+        let path_buf = PathBuf::from(path);
+
+        // `fastapi` is not a language, and the translation into it reads the file's
+        // path as well as its text — a Next.js route's URL is where it sits on disk.
+        if language.eq_ignore_ascii_case("fastapi") {
+            return match crate::transpile::nextjs::plan(&path_buf) {
+                Ok(plan) => {
+                    let f = plan.fidelity.clone();
+                    let route = plan.route.clone();
+                    let methods = plan.methods.join(", ");
+                    let applied = self.apply(plan.edits, Vec::new());
+                    with_notes(
+                        applied,
+                        &std::iter::once(format!(
+                            "serving {route} ({methods}); {} construct(s) had no counterpart \
+                             and are in the file as comments",
+                            f.carried_verbatim
+                        ))
+                        .chain(f.notes.into_iter().take(20))
+                        .collect::<Vec<_>>(),
+                    )
+                }
+                Err(e) => fail(e),
+            };
+        }
+
         let Some(to) = crate::lang::Language::from_name(language) else {
             return fail(format!("unknown language '{language}'"));
         };
-        match crate::translate::plan(Path::new(path), to) {
-            Ok(plan) => self.apply(plan.edits, Vec::new()),
+        let Some(from) = crate::lang::detect(&path_buf) else {
+            return fail(format!("no grammar recognises {path}"));
+        };
+        if crate::translate::targets(from).contains(&to) {
+            return match crate::translate::plan(&path_buf, to) {
+                Ok(plan) => self.apply(plan.edits, Vec::new()),
+                Err(e) => fail(e),
+            };
+        }
+        match crate::transpile::plan(&path_buf, to) {
+            Ok(plan) => {
+                let f = plan.fidelity.clone();
+                let applied = self.apply(plan.edits, Vec::new());
+                // The fidelity travels with the result: a draft that does not announce
+                // itself will be read as though a person wrote it.
+                with_notes(
+                    applied,
+                    &std::iter::once(format!(
+                        "{}/{} signature(s) carried across complete; {} construct(s) had no \
+                         counterpart and are in the file as comments",
+                        f.signatures_complete, f.functions, f.carried_verbatim
+                    ))
+                    .chain(f.notes.into_iter().take(20))
+                    .collect::<Vec<_>>(),
+                )
+            }
             Err(e) => fail(e),
         }
     }

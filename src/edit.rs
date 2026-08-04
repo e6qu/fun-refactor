@@ -239,8 +239,12 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     // Without a filesystem there is nothing to stage against: a write goes into the
     // same in-memory workspace every read comes from, and a partial write cannot
     // survive a failure because there is no second copy to be inconsistent with.
-    #[cfg(not(feature = "cli"))]
-    {
+    //
+    // Asked of the vfs and not of `cfg!(feature = "cli")`. Where the writes go is a
+    // fact about the active backing; the feature only says which backings exist, and
+    // a build with both would stage a temporary file beside a path that is in a
+    // browser's memory and has no directory on disk.
+    if crate::vfs::is_in_memory() {
         let mut written = 0;
         for outcome in outcomes.iter().filter(|o| o.changed()) {
             crate::vfs::write(&outcome.path, &outcome.updated)?;
@@ -252,6 +256,18 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     #[cfg(feature = "cli")]
     {
         commit_via_staging(outcomes)
+    }
+
+    // A build with no filesystem support at all writes through the vfs, which is
+    // exactly what the branch above did.
+    #[cfg(not(feature = "cli"))]
+    {
+        let mut written = 0;
+        for outcome in outcomes.iter().filter(|o| o.changed()) {
+            crate::vfs::write(&outcome.path, &outcome.updated)?;
+            written += 1;
+        }
+        Ok(written)
     }
 }
 

@@ -32,5 +32,6 @@ pub mod refactor;
 pub mod scan;
 pub mod span;
 pub mod translate;
+pub mod transpile;
 #[cfg(feature = "wasm")]
 pub mod wasm;
