@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>fun-refactor — refactoring that says what it cannot prove</title>
-<meta name="description" content="A multi-language refactoring tool for 15 languages. Every reference carries a confidence tier, and only what it can prove gets rewritten.">
+<meta name="description" content="A multi-language refactoring tool for 16 languages. Every reference carries a confidence tier, and only what it can prove gets rewritten.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -32,7 +32,7 @@
 
 <section>
   <div class="shell">
-    <p class="eyebrow">15 languages · one index · byte-exact edits</p>
+    <p class="eyebrow">16 languages · one index · byte-exact edits</p>
     <h1>Refactoring that tells you<br>what it could not prove.</h1>
     <p class="lede prose">
       Rename a symbol across Go, TypeScript, Rust, Python and a Helm chart at once.
@@ -139,12 +139,13 @@ Name → appName: 3 site(s) across 2 file(s)
   <div class="shell">
     <h2 class="prose">Languages</h2>
     <ul class="pills" style="margin:1.25rem 0 1.5rem">
-      <li>Rust</li><li>Go</li><li>TypeScript</li><li>TSX</li><li>Python</li>
-      <li>Zig</li><li>Bash</li><li>HTML</li><li>CSS</li><li>SCSS</li>
-      <li>Terraform</li><li>YAML</li><li>Helm</li><li>XML</li><li>Markdown</li>
+      <li>Rust</li><li>Go</li><li>Java</li><li>TypeScript</li><li>TSX</li>
+      <li>Python</li><li>Zig</li><li>Bash</li><li>HTML</li><li>CSS</li>
+      <li>SCSS</li><li>Terraform</li><li>YAML</li><li>Helm</li><li>XML</li>
+      <li>Markdown</li>
     </ul>
     <p class="note prose">
-      216 of 300 capability × language pairs are supported; the other 84 are marked
+      245 of 336 capability × language pairs are supported; the other 91 are marked
       not applicable with the reason attached — a YAML file has no call graph. The
       matrix is computed from the code, not maintained by hand, and a test fails if
       the README disagrees with it.

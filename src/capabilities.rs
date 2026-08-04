@@ -159,6 +159,29 @@ const NO_CALLABLES: &str = "this language has no functions, so there is nothing 
 const NO_SUBSTITUTION: &str =
     "this language executes rather than substitutes, so dataflow answers this instead";
 
+/// Why a capability is absent, said about *this* language.
+///
+/// The fallback reasons here were written when every unsupported language was markup
+/// or configuration, and they say so. Adding an imperative language made six of them
+/// false at once: `extract variable` told a reader that **Java** "has no binding form:
+/// a reusable value here is a CSS custom property", and `entry points` told them that
+/// Java "is a stylesheet". A reason that is untrue about the language it is given for
+/// is worse than no reason at all, because the whole point of this table is that the
+/// empty cells explain themselves.
+///
+/// `structural` is why the operation is *meaningless* — the right answer for a
+/// language that genuinely has no such construct. `missing` is what it would take for
+/// one that has the construct and is simply not wired up yet.
+fn absent(language: Language, structural: &'static str, missing: &'static str) -> Support {
+    if language.class() == LanguageClass::Imperative {
+        Support::NotApplicable { because: missing }
+    } else {
+        Support::NotApplicable {
+            because: structural,
+        }
+    }
+}
+
 /// Does `capability` apply to `language`?
 ///
 /// Every arm either calls the predicate the refactoring itself uses, or states why the
@@ -177,9 +200,12 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if imperative {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: NO_CALLABLES,
-                }
+                absent(
+                    language,
+                    NO_CALLABLES,
+                    "inlining a call here means substituting a body written with types \
+                     this tool does not track",
+                )
             }
         }
 
@@ -199,9 +225,13 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::analysis::entrypoints::has_rules_for(&catalog, language) {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: "a stylesheet is never something a runtime is pointed at",
-                }
+                absent(
+                    language,
+                    "a stylesheet is never something a runtime is pointed at",
+                    "no entry-point rules are written for this language yet; they are \
+                     catalogue data rather than code, so adding them is a file under \
+                     `catalogs/` naming what a runtime here is pointed at",
+                )
             }
         }
 
@@ -209,9 +239,12 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::refactor::extract::supports_extract(language) {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: NO_BINDING_FORM,
-                }
+                absent(
+                    language,
+                    NO_BINDING_FORM,
+                    "a declaration here needs a written type and there is no inference \
+                     in this tool, so nearly every selection would have to refuse",
+                )
             }
         }
 
@@ -224,9 +257,13 @@ pub fn support(capability: Capability, language: Language) -> Support {
                               no inference here, so nearly every selection would refuse",
                 }
             } else {
-                Support::NotApplicable {
-                    because: "this language has nothing callable to extract into",
-                }
+                absent(
+                    language,
+                    "this language has nothing callable to extract into",
+                    "a method here needs a written return type and modifiers, and \
+                     choosing them is a judgement about the code rather than a fact \
+                     about the selection",
+                )
             }
         }
 
@@ -234,14 +271,17 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::refactor::extract::supports_extract(language) {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: NO_BINDING_FORM,
-                }
+                absent(
+                    language,
+                    NO_BINDING_FORM,
+                    "a declaration here needs a written type and there is no inference \
+                     in this tool, so nearly every selection would have to refuse",
+                )
             }
         }
 
         C::InlineCall => {
-            if imperative && language != Language::Bash {
+            if crate::refactor::inline::supports_call(language) {
                 Support::Yes
             } else if language == Language::Bash {
                 Support::NotApplicable {
@@ -249,9 +289,12 @@ pub fn support(capability: Capability, language: Language) -> Support {
                               is a statement rather than an expression to substitute",
                 }
             } else {
-                Support::NotApplicable {
-                    because: NO_CALLABLES,
-                }
+                absent(
+                    language,
+                    NO_CALLABLES,
+                    "inlining a call here means substituting a body written with types \
+                     this tool does not track",
+                )
             }
         }
 
@@ -261,9 +304,12 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if imperative || matches!(language, Language::Hcl | Language::Scss) {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: NO_CALLABLES,
-                }
+                absent(
+                    language,
+                    NO_CALLABLES,
+                    "inlining a call here means substituting a body written with types \
+                     this tool does not track",
+                )
             }
         }
 
@@ -271,9 +317,11 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::refactor::rewrite::supported(language) {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: "there is no conditional to invert or guard",
-                }
+                absent(
+                    language,
+                    "there is no conditional to invert or guard",
+                    "the conditional shapes here are not wired into the rewrite engine yet",
+                )
             }
         }
 
@@ -287,9 +335,11 @@ pub fn support(capability: Capability, language: Language) -> Support {
                               styles apply",
                 }
             } else {
-                Support::NotApplicable {
-                    because: "this language has no import statements to organize",
-                }
+                absent(
+                    language,
+                    "this language has no import statements to organize",
+                    "imports here are extracted but the ordering rules are not written yet",
+                )
             }
         }
 
@@ -297,23 +347,23 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::refactor::cascade::supports_cascade(language) {
                 Support::Yes
             } else {
-                Support::NotApplicable {
-                    because: "there is no conditional here for a flag to guard, so removing \
-                              one is a rename or a delete rather than a cascade",
-                }
+                absent(
+                    language,
+                    "there is no conditional here for a flag to guard, so removing one is \
+                     a rename or a delete rather than a cascade",
+                    "the cascade knows how to fold a constant into the conditionals of \
+                     some languages and this is not one of them yet",
+                )
             }
         }
 
-        C::MoveToFile => {
-            if crate::refactor::move_symbol::supports_move(language) {
-                Support::Yes
-            } else {
-                Support::NotApplicable {
-                    because: "a document does not import another's elements, so a moved \
-                              element has no reference anywhere to update",
-                }
-            }
-        }
+        C::MoveToFile => match crate::refactor::move_symbol::why_not_move(language) {
+            // Asked of the operation rather than restated here. The table said Java
+            // could be moved and the operation refused it, which is the table lying
+            // about the tool in the tool's own words.
+            None => Support::Yes,
+            Some(because) => Support::NotApplicable { because },
+        },
 
         // Reachability needs somewhere to start and edges to follow, which the
         // imperative languages have. A configuration language has neither, but the

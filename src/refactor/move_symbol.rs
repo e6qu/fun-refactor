@@ -84,9 +84,35 @@ impl MovePlan {
 /// is expressible: an import statement derivable from two paths, or a scope where a
 /// move changes no name at all.
 pub fn supports_move(language: Language) -> bool {
-    // Only markup is excluded: a document does not import another's elements, so a
-    // moved element has no reference anywhere to update.
-    !matches!(language, Language::Html | Language::Xml)
+    why_not_move(language).is_none()
+}
+
+/// Why a move is not a thing in this language, if it is not.
+///
+/// The single authority, because the capability table and the operation itself were
+/// deciding this separately: the table said Java could be moved and the operation
+/// refused it, which is the table lying about the tool in the tool's own words.
+pub fn why_not_move(language: Language) -> Option<&'static str> {
+    match language {
+        // A document does not import another's elements, so a moved element has no
+        // reference anywhere to update.
+        Language::Html | Language::Xml => Some(
+            "an element has no name that another document imports, so moving one \
+             between files changes what each document *is* rather than where a \
+             definition lives",
+        ),
+        // Java ties a file's name to the public type inside it and imports by
+        // fully-qualified name rather than by path, so moving a type is a rename of the
+        // file *and* of its package, and moving a method is a change of receiver.
+        // Neither is the operation this performs, and doing half of it would leave a
+        // tree that does not compile.
+        Language::Java => Some(
+            "a public type must live in a file named after it and imports name packages \
+             rather than paths, so moving one is a rename of the file and its package, \
+             not a move of a definition",
+        ),
+        _ => None,
+    }
 }
 
 /// Move `symbol` into `destination`.
@@ -114,6 +140,14 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
             destination.display(),
             dest_language
         );
+    }
+
+    if let Some(why) = why_not_move(sym.language) {
+        return Err(Refusal::Unsupported {
+            operation: "move to file".into(),
+            language: format!("{} — {why}", sym.language),
+        }
+        .into());
     }
 
     match sym.language {

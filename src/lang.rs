@@ -145,16 +145,14 @@ impl Language {
     /// stops a bare `contextWithTimeout(…)` from resolving to the `statusWaiter`
     /// method of that name sitting four lines above it. Rust is excluded: it reaches
     /// an associated function through a path, `Foo::new()`, which is not a receiver
-    /// and is not recorded as one.
+    /// and is not recorded as one. Java is excluded for the same reason from the other
+    /// direction: inside a class, `helper()` calls the enclosing class's method with no
+    /// receiver at all, so requiring one made every unqualified call in the language
+    /// unresolvable and every method it named look dead.
     pub fn members_always_have_a_receiver(&self) -> bool {
         matches!(
             self,
-            Language::Go
-                | Language::TypeScript
-                | Language::Tsx
-                | Language::Python
-                | Language::Zig
-                | Language::Java
+            Language::Go | Language::TypeScript | Language::Tsx | Language::Python | Language::Zig
         )
     }
 

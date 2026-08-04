@@ -162,6 +162,8 @@
       <tr><td><code>fr impact</code></td><td>Everything a change could affect</td></tr>
       <tr><td><code>fr entrypoints</code></td><td>Where execution starts</td></tr>
       <tr><td><code>fr stitch</code></td><td>Config → code: which program reads this setting</td></tr>
+      <tr><td><code>fr flow</code></td><td>Where a value came from, and where it goes</td></tr>
+      <tr><td><code>fr openapi</code></td><td>The contract a Next.js route tree declares, to diff a rewrite against</td></tr>
     </table></div>
 
     <h3>Finding work</h3>
@@ -184,6 +186,7 @@
       <tr><td><code>fr restructure</code></td><td>Pattern rewriting: <code>old($X)</code> → <code>new($X)</code></td></tr>
       <tr><td><code>fr remove-flag</code></td><td>Retire a feature flag and the branch that served it</td></tr>
       <tr><td><code>fr translate</code></td><td>Write the file as another language, or port a route to FastAPI</td></tr>
+      <tr><td><code>fr recipe</code></td><td>Run a refactoring written down — find, do, and say what must hold after</td></tr>
     </table></div>
 
     <p style="margin-top:1.25rem">
@@ -413,7 +416,7 @@ async def delete(post_id: str, req: Request):
       the artifact, and you can download the session as a patch.
     </p>
     <p>
-      It ships all twenty-nine capabilities and a bundled fifteen-language workspace,
+      It ships all thirty-eight of its methods and a bundled sixteen-language workspace,
       so every one of them can be tried against every grammar without waiting for a
       download or being rate-limited. Ten preset repositories cover the same ground on
       real code.
@@ -494,7 +497,7 @@ async def delete(post_id: str, req: Request):
         <tr>
           <td><code>&amp;repo=psf/requests</code></td>
           <td>Which workspace to answer about. <code>repo=sample</code> uses the
-              bundled fifteen-language one.</td>
+              bundled sixteen-language one.</td>
         </tr>
         <tr>
           <td><code>&amp;file=src/requests/api.py</code></td>

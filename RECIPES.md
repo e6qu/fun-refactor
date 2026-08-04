@@ -223,7 +223,7 @@ in `src/analysis/entrypoints.rs` and is already tested across nine languages:
 | `exported` / `!exported` | is or is not |
 | `annotated-with="test"` | `#[test]`, `@property`, a build tag |
 | `file~"*_test.go"` | by path glob |
-| `lang=python` | one of the fifteen |
+| `lang=python` | one of the sixteen |
 
 Reusing it means a recipe's selector and an entry-point rule mean the same thing by
 construction, and the matcher gains from being used twice.

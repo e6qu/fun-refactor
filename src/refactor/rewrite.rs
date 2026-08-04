@@ -134,6 +134,7 @@ pub fn supported(language: Language) -> bool {
             | Language::Tsx
             | Language::Python
             | Language::Bash
+            | Language::Java
     )
 }
 
@@ -517,7 +518,11 @@ fn declares_a_return_value(function: Node<'_>, source: &str, language: Language)
             let text = Span::from(node).text(source).trim();
             let nothing = match language {
                 Language::Rust => text.is_empty() || text == "()",
-                Language::Zig => text == "void",
+                // Java and Zig both spell "returns nothing" as a written `void`
+                // rather than as an absent type, so an empty test would read every
+                // method as returning something and refuse every guard clause in the
+                // language.
+                Language::Zig | Language::Java => text == "void",
                 Language::TypeScript | Language::Tsx => {
                     text.trim_start_matches(':').trim() == "void"
                 }

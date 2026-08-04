@@ -645,6 +645,33 @@ fact about its code rather than its declaration. Writing `200` for everything wo
 fiction into the file you are about to diff against — the diff comes out clean and the
 contract still shrank, which is the exact failure the document exists to prevent.
 
+### Reading the documentation with fresh eyes
+
+Adding a language broke six statements the *tool itself* makes. The capability table's
+fallback reasons were written when every unsupported language was markup or
+configuration, so they explain the absence in those terms — and `extract variable` went
+on to tell a reader that Java "has no binding form: a reusable value here is a CSS
+custom property". The table's whole value is that its empty cells explain themselves,
+which makes a false explanation worse than a blank.
+
+Two cells were worse than wrong: they disagreed with the tool. `move to file` said Java
+was supported while the operation refused it, because `supports_move` was a blocklist
+and the refusal was a match arm elsewhere. `inline --call` was derived from the
+language's *class* rather than from the operation's predicate — the one cell in the
+table that was, so adding a language to the enum claimed a capability nobody had
+written. Both now ask a single authority, which is what the module already claimed of
+itself: "every arm either calls the predicate the refactoring itself uses, or states why
+the operation is meaningless".
+
+Four of the six turned out to be capabilities Java simply *had* once asked properly, and
+two more followed from fixing them: an annotation inside a declaration rather than above
+it, and an unqualified call to a method of the enclosing class.
+
+The prose had the ordinary rot — counts that had moved, a command list three commands
+behind — and one entry worth naming: the README carried two "known limitations"
+paragraphs that contradicted each other, and the second described a bug that had been
+fixed. A document that disagrees with itself has stopped being read by its author.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
