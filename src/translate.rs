@@ -92,11 +92,21 @@ pub fn why_not(from: Language, to: Language) -> String {
 pub fn why_nothing(from: Language) -> String {
     use crate::lang::LanguageClass;
     if from.class() == LanguageClass::Imperative {
+        // This used to say "nothing here can do it, so nothing here pretends to",
+        // which was true when it was written and became false the day the transpiler
+        // landed: Rust, Go, Python and TypeScript translate into one another. A message
+        // that denies a capability the tool has is worse than no message, because the
+        // reader believes it and stops looking.
+        let supported: Vec<String> = crate::transpile::SUPPORTED
+            .iter()
+            .map(|language| language.to_string())
+            .collect();
         format!(
-            "{from} is a programming language. Rewriting one as another is a translation, \
-             not a refactoring: it needs a semantic model of both, and this tool has \
-             neither — it parses syntax and splices byte ranges. Nothing here can do it, \
-             so nothing here pretends to."
+            "{from} is a programming language, and there is no reader or writer for it \
+             here. Translating between programming languages needs one of each, and this \
+             build has both for {}. Adding {from} means writing that pair — see \
+             `src/transpile/`.",
+            supported.join(", ")
         )
     } else {
         format!("no other grammar this build has contains {from}")

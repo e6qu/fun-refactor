@@ -72,6 +72,7 @@ pub fn supports_cascade(language: Language) -> bool {
             | Language::Python
             | Language::Bash
             | Language::Hcl
+            | Language::Java
     )
 }
 
@@ -248,10 +249,16 @@ fn substitute_flag(
         );
     }
     let definition = definitions[0];
+    // A `Field` is a struct member in Go and Rust and never a flag — but Java has no
+    // top level below the type, so its constants are *all* fields: `public static final
+    // boolean NEW_CHECKOUT` is the idiomatic feature flag and there is nowhere else to
+    // put it. The kind alone cannot tell the two apart; the language can.
+    let field_is_a_constant = definition.language == Language::Java;
     if !matches!(
         definition.kind,
         SymbolKind::Constant | SymbolKind::Variable | SymbolKind::Function
-    ) {
+    ) && !(field_is_a_constant && definition.kind == SymbolKind::Field)
+    {
         return Err(Refusal::Unsupported {
             operation: "remove flag".into(),
             language: format!("a {} is not a flag", definition.kind.as_str()),
@@ -546,7 +553,14 @@ fn named_nodes<'a>(parsed: &'a Parsed) -> Vec<Node<'a>> {
 
 /// The truth value a boolean literal spells, in any of the supported languages.
 fn boolean_literal(text: &str) -> Option<bool> {
-    match text.trim() {
+    // Java's `if` names its condition as the *parenthesised* expression, brackets and
+    // all, so the literal arrives as `(true)`. Peeling a matched pair costs nothing in
+    // the languages that do not, where a redundant `if ((true))` is still a constant.
+    let mut text = text.trim();
+    while let Some(inner) = text.strip_prefix('(').and_then(|t| t.strip_suffix(')')) {
+        text = inner.trim();
+    }
+    match text {
         "true" | "True" => Some(true),
         "false" | "False" => Some(false),
         _ => None,

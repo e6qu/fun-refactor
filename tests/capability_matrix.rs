@@ -24,6 +24,66 @@ fn the_readme_matrix_matches_the_code() {
 }
 
 #[test]
+fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
+    // The matrix is the tool's own claim about what it does, per language, and three
+    // commands were missing from it — `fr translate` most conspicuously, since its
+    // answer differs by language in two different ways. `fr recipe` is the one genuine
+    // exception: it composes the rows rather than adding one.
+    let commands: Vec<&str> = Capability::ALL.iter().map(|c| c.command()).collect();
+    for expected in [
+        "fr rename",
+        "fr delete",
+        "fr extract",
+        "fr inline",
+        "fr signature",
+        "fr move",
+        "fr imports",
+        "fr rewrite",
+        "fr restructure",
+        "fr remove-flag",
+        "fr translate",
+        "fr openapi",
+        "fr unused",
+        "fr duplicates",
+        "fr entrypoints",
+        "fr stitch",
+        "fr impact",
+    ] {
+        assert!(
+            commands.iter().any(|c| c.starts_with(expected)),
+            "`{expected}` has a different answer per language and is not in the \
+             capability matrix. Every such command belongs there, or the table is \
+             claiming to be complete while omitting one."
+        );
+    }
+}
+
+#[test]
+fn no_reason_describes_a_different_language() {
+    // Six reasons once explained Java's absences in terms of stylesheets and markup,
+    // because the fallback strings were written when every unsupported language was
+    // one of those. A reason that names a language other than its own is the tell.
+    for capability in Capability::ALL {
+        for language in Language::ALL {
+            let Some(reason) = capabilities::support(*capability, *language).reason() else {
+                continue;
+            };
+            for other in ["stylesheet", "CSS custom property", "markup"] {
+                if !matches!(
+                    language,
+                    Language::Css | Language::Scss | Language::Html | Language::Xml
+                ) {
+                    assert!(
+                        !reason.contains(other),
+                        "{capability:?} for {language} says {other:?}: {reason}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn every_supported_cell_names_a_real_command() {
     for capability in Capability::ALL {
         assert!(

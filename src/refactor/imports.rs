@@ -430,17 +430,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
 
-    if !organizable(info.language) {
-        // Say why, not just no. For CSS the answer is not "unimplemented" but
-        // "changing this order changes what the stylesheet means".
-        let reason = match info.language {
-            Language::Css | Language::Scss => {
-                "CSS @import order is semantic — a later import's rules beat an \
-                 earlier one's in the cascade, and @import must precede all other \
-                 rules — so sorting or removing them would change which styles apply"
-            }
-            _ => "this language has no import statements to organize",
-        };
+    if let Some(reason) = why_not_organizable(info.language) {
         return Err(Refusal::Unsupported {
             operation: "organize imports".into(),
             language: format!("{}: {reason}", info.language.name()),
@@ -639,6 +629,33 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 /// rules — so sorting would change what the stylesheet means. The markup and config
 /// languages have no import construct at all, and Bash `source` is an executed
 /// statement rather than a declaration.
+/// Why imports cannot be organized in this language, if they cannot.
+///
+/// The single authority. The capability table and this operation each kept their own
+/// reason, and they drifted: the table told a reader that Bash "has no import
+/// statements to organize" while `queries/bash/facts.scm` extracts every `source`.
+pub fn why_not_organizable(language: Language) -> Option<&'static str> {
+    if organizable(language) {
+        return None;
+    }
+    Some(match language {
+        Language::Css | Language::Scss => {
+            "CSS @import order is semantic — a later import's rules beat an earlier \
+             one's in the cascade, and @import must precede all other rules — so \
+             sorting or removing them would change which styles apply"
+        }
+        // Not a declaration but a command that *runs* the other file: a later `source`
+        // may depend on a variable an earlier one set, and a file may be sourced purely
+        // for a side effect no name here refers to.
+        Language::Bash => {
+            "`source` runs the other file rather than declaring a dependency on it, so \
+             order carries meaning and a file sourced only for its side effects looks \
+             unused"
+        }
+        _ => "this language has no import statements to organize",
+    })
+}
+
 pub fn organizable(language: Language) -> bool {
     matches!(
         language,

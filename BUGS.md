@@ -69,6 +69,38 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B109: **the entry-points reason called YAML a stylesheet.** Found by the test
+  written for the last round of this — a reason naming a language other than its own is
+  the tell, and it is now asserted for every capability × language pair rather than
+  spotted by eye.
+
+- [x] B108: **`fr remove-flag` refused every Java flag, and then refused to fold it.**
+  Two causes, one after the other. `SymbolKind::Field` is a struct member in Go and Rust
+  and never a flag — but Java has no top level below the type, so `public static final
+  boolean NEW_CHECKOUT` *is* the idiomatic flag and there is nowhere else to put it. And
+  once the constant was substituted, `if (true)` did not collapse: Java names an `if`'s
+  condition as the *parenthesised* expression, so the literal arrived as `(true)`.
+
+- [x] B107: **`fr imports` told a reader that Bash "has no import statements to
+  organize"** while `queries/bash/facts.scm` extracts every `source`. The true answer is
+  structural and stronger: `source` *runs* the other file rather than declaring a
+  dependency on it, so order carries meaning and a file sourced only for a side effect
+  looks unused. The operation and the capability table each kept their own copy of the
+  reason and had drifted; `why_not_organizable` is now the single authority.
+
+- [x] B106: **`fr translate` and `fr openapi` were missing from the capability matrix.**
+  The matrix is the tool's own claim about what it does per language, and translation's
+  answer differs by language in two ways — a containment rewrite is the same bytes under
+  another grammar, a translation between programming languages is a draft. A test now
+  fails if a command with a per-language answer is left out.
+
+- [x] B105: **`fr translate` denied a capability the tool has.** Refusing a Java file it
+  said *"it needs a semantic model of both, and this tool has neither… Nothing here can
+  do it, so nothing here pretends to"* — true when written and false since the
+  transpiler landed, which translates between Rust, Go, Python and TypeScript. A message
+  that denies a capability the tool has is worse than none, because the reader believes
+  it and stops looking. It now names the four and says what adding a fifth costs.
+
 - [x] B104: **the browser scale sweep covered fourteen of sixteen languages while
   claiming all of them.** `.java` was missing from its `PARSEABLE` set, so the two Java
   files in the bundled sample were invisible to it. Adding the extension and asserting

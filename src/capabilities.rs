@@ -37,6 +37,8 @@ pub enum Capability {
     Stitch,
     Duplicates,
     DeadCode,
+    Translate,
+    Openapi,
 }
 
 impl Capability {
@@ -62,6 +64,8 @@ impl Capability {
         Capability::Stitch,
         Capability::Duplicates,
         Capability::DeadCode,
+        Capability::Translate,
+        Capability::Openapi,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -87,6 +91,8 @@ impl Capability {
             Capability::Stitch => "config→code stitch",
             Capability::Duplicates => "duplicate code",
             Capability::DeadCode => "dead code",
+            Capability::Translate => "write as another language",
+            Capability::Openapi => "declared HTTP contract",
         }
     }
 
@@ -114,6 +120,8 @@ impl Capability {
             Capability::Stitch => "fr stitch",
             Capability::Duplicates => "fr duplicates",
             Capability::DeadCode => "fr unused",
+            Capability::Translate => "fr translate",
+            Capability::Openapi => "fr openapi",
         }
     }
 }
@@ -227,7 +235,10 @@ pub fn support(capability: Capability, language: Language) -> Support {
             } else {
                 absent(
                     language,
-                    "a stylesheet is never something a runtime is pointed at",
+                    // Neutral, because this arm catches YAML as well as stylesheets and
+                    // the old wording told a reader that a values file was a stylesheet.
+                    "nothing here is executed, so there is no point at which a runtime \
+                     starts",
                     "no entry-point rules are written for this language yet; they are \
                      catalogue data rather than code, so adding them is a file under \
                      `catalogs/` naming what a runtime here is pointed at",
@@ -325,23 +336,11 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        C::OrganizeImports => {
-            if crate::refactor::imports::organizable(language) {
-                Support::Yes
-            } else if matches!(language, Language::Css | Language::Scss) {
-                Support::NotApplicable {
-                    because: "@import order is semantic — a later import's rules beat an \
-                              earlier one's in the cascade — so sorting would change which \
-                              styles apply",
-                }
-            } else {
-                absent(
-                    language,
-                    "this language has no import statements to organize",
-                    "imports here are extracted but the ordering rules are not written yet",
-                )
-            }
-        }
+        // Asked of the operation rather than restated here; the two had drifted.
+        C::OrganizeImports => match crate::refactor::imports::why_not_organizable(language) {
+            None => Support::Yes,
+            Some(because) => Support::NotApplicable { because },
+        },
 
         C::RemoveFlag => {
             if crate::refactor::cascade::supports_cascade(language) {
@@ -356,6 +355,38 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 )
             }
         }
+
+        // Two routes, and they promise different things. A *containment* rewrite is
+        // the same bytes under another grammar — CSS as SCSS — and loses nothing. A
+        // *translation* between programming languages is a draft: signatures carry and
+        // anything with no counterpart is carried into the output as a comment.
+        C::Translate => {
+            let containment = !crate::translate::targets(language).is_empty();
+            if crate::transpile::supports(language) || containment {
+                Support::Yes
+            } else if language.class() == LanguageClass::Imperative {
+                Support::NotApplicable {
+                    because: "there is no reader or writer for this language yet — a \
+                              translation needs one of each, and until both exist the \
+                              honest answer is that it cannot be written as anything",
+                }
+            } else {
+                Support::NotApplicable {
+                    because: "no other grammar in this build contains this one, so there \
+                              is nothing it can be rewritten as without changing it",
+                }
+            }
+        }
+
+        // The contract lives in the *tree* — a Next.js route's URL is where its file
+        // sits — so this is a question about one framework rather than one language.
+        C::Openapi => match language {
+            Language::TypeScript | Language::Tsx => Support::Yes,
+            _ => Support::NotApplicable {
+                because: "this derives an OpenAPI document from a Next.js route tree, \
+                          and a route file is TypeScript",
+            },
+        },
 
         C::MoveToFile => match crate::refactor::move_symbol::why_not_move(language) {
             // Asked of the operation rather than restated here. The table said Java

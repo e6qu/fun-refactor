@@ -703,6 +703,33 @@ broken on the next language, so the sampling takes one probe per language first 
 strides for the rest. The coverage is a property of the algorithm now, and the
 assertion is what would say so if it ever stopped being one.
 
+### The tool's claims about itself are documentation too
+
+Five defects, and every one was the tool saying something untrue about the tool.
+`fr translate` refused a Java file with "nothing here can do it, so nothing here
+pretends to" — written before the transpiler existed and false from the day it landed.
+`fr imports` said Bash has no import statements while `queries/bash/facts.scm` extracts
+every `source`. The capability matrix omitted `fr translate` and `fr openapi` entirely,
+which is a claim of completeness that was not true.
+
+The pattern under three of the five is the same one that produced the last round:
+**two places deciding one thing.** The operation kept its reason and the table kept its
+own, and they drifted apart in the dark. `why_not_move`, `why_not_organizable` and
+`Change::parse` are all the same correction — the operation is the authority and the
+table asks it.
+
+Two tests now hold the line, and the second one earned its place immediately by
+finding a sixth: a reason must not name a language other than the one it is given for,
+and `entry points` was telling YAML it was a stylesheet.
+
+Fixing the last "not yet" cell was worth more than the cell. `fr remove-flag` refused
+every Java flag because `SymbolKind::Field` is a struct member in Go and Rust and never
+a flag — but Java has no top level below the type, so a `static final` field *is* the
+idiomatic flag. Then `if (true)` would not collapse, because Java names an `if`'s
+condition as the parenthesised expression and the literal arrived as `(true)`. Both are
+the same shape of mistake: a rule that is true of the languages it was written against,
+applied to one that arrived later.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
