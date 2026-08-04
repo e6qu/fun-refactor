@@ -672,6 +672,37 @@ behind — and one entry worth naming: the README carried two "known limitations
 paragraphs that contradicted each other, and the second described a bug that had been
 fixed. A document that disagrees with itself has stopped being read by its author.
 
+### A sweep is not a review
+
+The documentation pass before this one was a sweep: find the stale number, replace it.
+It introduced an error and missed three of the same kind, and re-reading the *live*
+pages is what turned them up.
+
+`16,525 Grafana files across 13 languages` counts what Grafana contains, not what this
+tool supports. Replacing "13 languages" changed it on two pages; the mistake was caught
+on one and not the other, and the two pages then disagreed — which is how it announced
+itself. The lesson is not "be careful with sed". It is that a claim about a measurement
+and a claim about a capability look identical to a text search, and only the second is
+safe to update.
+
+The sweep also had a blind spot with an edge: it covered `docs/*.html` and not
+`web/src/`, which is the half of the site that is *compiled* rather than served. The
+playground told every visitor it had fifteen languages while sitting on sixteen.
+
+The one worth keeping is `web/test/scale.mjs`. It claimed to probe every language in
+the bundled sample and did not include `.java` in the extensions it walks, so the
+newest language was invisible to the sweep that exists to catch exactly that. The claim
+lived in a comment, and a comment cannot fail.
+
+Turning it into an assertion immediately found that the gap was older and larger than
+the one it was written for: `html` and `scss` had never been probed either. They hold
+one definition each, and a stride across five hundred targets steps straight over them
+— so the sweep had been covering fourteen of sixteen languages for as long as there had
+been sixteen. Raising the probe count until they appeared would have fixed today and
+broken on the next language, so the sampling takes one probe per language first and
+strides for the rest. The coverage is a property of the algorithm now, and the
+assertion is what would say so if it ever stopped being one.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

@@ -213,7 +213,7 @@ before it has parsed a single step. See *Sharing*, below.
 The heart of it. Everything else is the existing CLI.
 
 The predicate vocabulary is the **entry-point catalog matcher**, which already exists
-in `src/analysis/entrypoints.rs` and is already tested across nine languages:
+in `src/analysis/entrypoints.rs` and already carries rules for thirteen languages:
 
 | Predicate | Matches |
 | --- | --- |

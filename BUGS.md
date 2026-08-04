@@ -69,6 +69,28 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B104: **the browser scale sweep covered fourteen of sixteen languages while
+  claiming all of them.** `.java` was missing from its `PARSEABLE` set, so the two Java
+  files in the bundled sample were invisible to it. Adding the extension and asserting
+  the claim then showed the gap was older and larger: `html` and `scss` were never
+  probed either, because they hold few definitions and the stride falls past them.
+  Raising the probe count would have fixed today and broken the next time a language
+  was added, so one probe per language goes in first and the stride fills the rest —
+  coverage as a property of the sampling rather than of a tuned constant. The claim
+  itself is now an assertion that names what it missed.
+
+- [x] B103: **the playground's own UI said "fifteen languages"** in three places,
+  including the line printed under the file tree every time the bundled sample loads.
+  The documentation sweep had covered `docs/*.html` and not `web/src/`, which is the
+  half of the site that is compiled rather than served.
+
+- [x] B102: **two pages disagreed about the same measurement.** `16,525 Grafana files
+  across 13 languages` counts what *Grafana* contains, not what this tool supports, and
+  a find-and-replace over "13 languages" changed it on both pages. It was caught on
+  `index.html` and missed on `why.html`, so the two then disagreed — which is how the
+  error announced itself. Also stale there: the test count (1,267, now 1,376) and the
+  not-applicable count.
+
 - [x] B101: **the README's status section stated a fixed bug as current, twice over.**
   It carried two "known limitations" paragraphs that contradicted each other, and the
   second said Helm `.Values` references "are not yet resolved" — which B7 fixed. The
