@@ -60,6 +60,11 @@ fn workspace() -> tempfile::TempDir {
             "metadata:\n  name: \"{{ .Values.appName }}\"\n  tag: \"{{ .Values.image.tag }}\"\n",
         ),
         ("README.md", "# Demo\n\nSee [the service](svc/a.go).\n"),
+        // A recipe, so `fr recipe` has something to run in the shared fixture.
+        (
+            "tidy.recipe",
+            "schema 1\n\nrecipe tidy {\n  rename to \"Increment\" where name=\"Helper\" kind=function\n}\n",
+        ),
         ("run.sh", "#!/bin/bash\nmain() {\n  echo hello\n}\nmain\n"),
     ];
     for (name, content) in files {
@@ -135,6 +140,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("impact", vec!["impact", "svc/a.go:6:6"]),
         ("graph", vec!["graph"]),
         ("entrypoints", vec!["entrypoints"]),
+        ("recipe", vec!["recipe", "tidy.recipe"]),
     ]
 }
 

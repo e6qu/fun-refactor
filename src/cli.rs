@@ -243,6 +243,21 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Run a refactoring recipe: a file that says what to find, what to do to it,
+    /// and what must be true afterwards.
+    ///
+    /// Prints a report and a diff by default; pass --write to apply it. A recipe is
+    /// one transaction — either every step's edits are written or none are.
+    Recipe {
+        /// The recipe file.
+        file: PathBuf,
+        /// Apply the changes instead of printing a diff.
+        #[arg(long)]
+        write: bool,
+        /// Additional catalog directory for entry-point rules, as `fr unused` takes.
+        #[arg(long)]
+        catalogs: Vec<PathBuf>,
+    },
     /// Rewrite a file as another language, beside the original.
     ///
     /// Only where one grammar contains the other — CSS as SCSS, a manifest as a Helm
@@ -449,6 +464,11 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
+        Command::Recipe {
+            file,
+            write,
+            catalogs,
+        } => cmd_recipe(&cli, file, *write, catalogs),
         Command::RemoveFlag { flag, value, write } => cmd_remove_flag(&cli, flag, *value, *write),
         Command::Rewrite {
             target,
@@ -604,34 +624,6 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
     Ok(())
 }
 
-/// Parse `path:line:col-line:col` into a byte span.
-fn parse_range(spec: &str) -> Result<(PathBuf, LineCol, LineCol)> {
-    let (head, end_col) = spec
-        .rsplit_once(':')
-        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
-    let (head, end_line) = head
-        .rsplit_once('-')
-        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
-    let (path, start_col) = head
-        .rsplit_once(':')
-        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
-    let (path, start_line) = path
-        .rsplit_once(':')
-        .ok_or_else(|| anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'"))?;
-
-    Ok((
-        PathBuf::from(path),
-        LineCol {
-            line: start_line.parse()?,
-            col: start_col.parse()?,
-        },
-        LineCol {
-            line: end_line.parse()?,
-            col: end_col.parse()?,
-        },
-    ))
-}
-
 fn cmd_extract(
     cli: &Cli,
     range: &str,
@@ -640,7 +632,7 @@ fn cmd_extract(
     all: bool,
     write: bool,
 ) -> Result<()> {
-    let (path, start, end) = parse_range(range)?;
+    let (path, start, end) = crate::span::parse_range(range)?;
     let path = workspace_path(cli, &path)?;
     let source =
         crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
@@ -721,45 +713,10 @@ fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()>
     present(cli, &plan.edits, &summary, write)
 }
 
-/// Parse a signature-change spec such as `remove:1` or `add:2:flag: bool:false`.
-fn parse_signature_change(spec: &str) -> Result<crate::refactor::signature::Change> {
-    use crate::refactor::signature::Change;
-
-    // Three fields, not four. The declaration may itself contain colons — `flag: bool`
-    // is the documented example — so everything after the position is one field and the
-    // argument is taken off its end. Splitting into four handed the arm below only the
-    // first word of the declaration and dropped the rest, which made
-    // `add:1:flag\: bool:false` — the example in this function's own error message —
-    // fail with that same message.
-    let parts: Vec<&str> = spec.splitn(3, ':').collect();
-    match parts.as_slice() {
-        ["remove", index] => Ok(Change::Remove(index.parse()?)),
-        ["move", from, to] => Ok(Change::Move {
-            from: from.parse()?,
-            to: to.parse()?,
-        }),
-        ["add", at, rest] => {
-            // The declaration may itself contain a colon (`flag: bool`), so the
-            // argument is taken from the last colon-separated field.
-            let (declaration, argument) = rest.rsplit_once(':').ok_or_else(|| {
-                anyhow::anyhow!("add needs a declaration and an argument, e.g. add:1:flag\\: bool:false")
-            })?;
-            Ok(Change::Add {
-                at: at.parse()?,
-                declaration: declaration.to_string(),
-                argument: argument.to_string(),
-            })
-        }
-        _ => anyhow::bail!(
-            "unrecognised change '{spec}'. Use remove:<i>, move:<from>:<to>, or add:<i>:<declaration>:<argument>"
-        ),
-    }
-}
-
 fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(cli, &index, target)?;
-    let change = parse_signature_change(change_spec)?;
+    let change = crate::refactor::signature::Change::parse(change_spec)?;
     let plan = crate::refactor::signature::change(&index, symbol.id, change)?;
     let summary = crate::refactor::signature::describe(&index, &plan);
     present(cli, &plan.edits, &summary, write)
@@ -1284,6 +1241,118 @@ fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Resu
         plan.destination.display()
     );
     present(cli, &plan.edits, &summary, write)
+}
+
+/// `fr recipe <file>` — run a refactoring written down.
+fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBuf]) -> Result<()> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    // A relative path is relative to the workspace, as every other file argument is.
+    let recipe_path = if file.is_absolute() || crate::vfs::exists(file) {
+        file.to_path_buf()
+    } else {
+        root.join(file)
+    };
+    let text = crate::vfs::read_to_string(&recipe_path)
+        .with_context(|| format!("reading {}", recipe_path.display()))?;
+    let parsed = crate::recipe::parse(&text)?;
+
+    let scanned = scan(&root, &ScanOptions::default())?;
+    let mut sources = std::collections::BTreeMap::new();
+    for source_file in &scanned.files {
+        let text = crate::vfs::read_to_string(&source_file.path)?;
+        sources.insert(source_file.path.clone(), (source_file.language, text));
+    }
+
+    let mut all_ok = true;
+    for recipe in &parsed.recipes {
+        let options = crate::recipe::Options {
+            root: &root,
+            catalogs,
+        };
+        let (report, after) = crate::recipe::run(recipe, sources.clone(), &options)?;
+        // The run planned against an in-memory copy; the diff and any write are about
+        // the real workspace.
+        crate::vfs::use_filesystem();
+        all_ok &= report.ok;
+
+        if cli.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            print_recipe_report(&report);
+        }
+
+        // The recipe is one transaction: the diff is the whole run, not a step.
+        let mut edits = crate::edit::EditSet::new();
+        for (path, (_, text)) in &after {
+            let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
+            if before != text {
+                edits.add(
+                    path.clone(),
+                    crate::edit::Edit::new(
+                        crate::span::Span::new(0, before.len()),
+                        text,
+                        format!("recipe {}", report.recipe),
+                    ),
+                );
+            }
+        }
+        if !cli.json {
+            present(cli, &edits, &format!("recipe {}", report.recipe), write)?;
+        } else if write {
+            crate::edit::commit(&crate::edit::plan(
+                &edits,
+                crate::edit::Validation::ReparseStrict,
+            )?)?;
+        }
+        sources = after;
+    }
+
+    if !all_ok {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn print_recipe_report(report: &crate::recipe::Report) {
+    println!("recipe {} — {} step(s)", report.recipe, report.steps.len());
+    if let Some(description) = &report.description {
+        println!("  {description}");
+    }
+    println!();
+    for (i, step) in report.steps.iter().enumerate() {
+        println!(
+            "  {}  {}{}",
+            i + 1,
+            step.step,
+            if step.selector.is_empty() {
+                String::new()
+            } else {
+                format!(" where {}", step.selector)
+            }
+        );
+        println!(
+            "     matched {}, applied {}, {} file(s) changed",
+            step.matched, step.applied, step.files_changed
+        );
+        for refusal in &step.refusals {
+            println!("       refused  {} — {}", refusal.subject, refusal.reason);
+        }
+        for warning in &step.warnings {
+            println!("       left     {warning}");
+        }
+    }
+    if !report.expectations.is_empty() {
+        println!("\nexpect");
+        for expectation in &report.expectations {
+            println!(
+                "  {} {:<24} {}",
+                if expectation.held { "✓" } else { "✗" },
+                expectation.expectation,
+                expectation.actual
+            );
+        }
+    }
+    println!();
 }
 
 fn cmd_remove_flag(cli: &Cli, flag: &str, value: bool, write: bool) -> Result<()> {

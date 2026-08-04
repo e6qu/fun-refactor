@@ -259,6 +259,14 @@ fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static st
             ("package p\n\n", "\n"),
         ],
         Language::Zig => &[("pub fn __fr_pattern() void {\n", ";\n}\n"), ("", "\n")],
+        // A statement inside a method inside a class, a member inside a class, or a
+        // whole type. Java has no top level below the type, so even a bare expression
+        // needs two wrappers before the grammar will look at it.
+        Language::Java => &[
+            ("class FrPattern { void frPattern() {\n", ";\n} }\n"),
+            ("class FrPattern {\n", "\n}\n"),
+            ("", "\n"),
+        ],
         // Python and the JS family accept a bare expression statement.
         Language::TypeScript | Language::Tsx | Language::Python => &[("", "\n")],
         // A bash command, pipeline or compound statement is already a whole script.

@@ -19,6 +19,7 @@ pub enum Language {
     Rust,
     Go,
     Zig,
+    Java,
     TypeScript,
     Tsx,
     Python,
@@ -48,6 +49,7 @@ impl Language {
         Language::Rust,
         Language::Go,
         Language::Zig,
+        Language::Java,
         Language::TypeScript,
         Language::Tsx,
         Language::Python,
@@ -67,6 +69,7 @@ impl Language {
             Language::Rust => "rust",
             Language::Go => "go",
             Language::Zig => "zig",
+            Language::Java => "java",
             Language::TypeScript => "typescript",
             Language::Tsx => "tsx",
             Language::Python => "python",
@@ -87,6 +90,7 @@ impl Language {
             Language::Rust
             | Language::Go
             | Language::Zig
+            | Language::Java
             | Language::TypeScript
             | Language::Tsx
             | Language::Python
@@ -107,6 +111,7 @@ impl Language {
             Language::Rust => &["rs"],
             Language::Go => &["go"],
             Language::Zig => &["zig"],
+            Language::Java => &["java"],
             Language::TypeScript => &["ts", "mts", "cts"],
             Language::Tsx => &["tsx"],
             Language::Python => &["py", "pyi"],
@@ -144,7 +149,12 @@ impl Language {
     pub fn members_always_have_a_receiver(&self) -> bool {
         matches!(
             self,
-            Language::Go | Language::TypeScript | Language::Tsx | Language::Python | Language::Zig
+            Language::Go
+                | Language::TypeScript
+                | Language::Tsx
+                | Language::Python
+                | Language::Zig
+                | Language::Java
         )
     }
 

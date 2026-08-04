@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipes — a refactoring written down</title>
+<meta name="description" content="A tutorial for the recipe language: what to find, what to do to it, and what must be true afterwards. Worked in Python, TypeScript, Java, Go and Rust.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="catalog.html">Catalogue</a>
+      <a href="recipes.html" aria-current="page">Recipes</a>
+      <a href="translate.html">Translate</a>
+      <a href="playground/">Playground</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">The recipe language</p>
+    <h1 class="prose">A refactoring, written down</h1>
+    <p class="lede prose">
+      A recipe says what to find, what to do to it, and what must be true afterwards.
+      It is reviewable, re-runnable, and it fails loudly.
+    </p>
+    <p class="prose">
+      Every command in this tool acts on <em>one</em> target. That is right for a person
+      at a terminal and wrong for the work people actually have: <em>"retire this flag,
+      delete what it was guarding, and tidy the imports that leaves behind"</em> is three
+      commands in order, each depending on the last. Written as a shell loop the refusals
+      scroll past, the ordering is implicit, and the thing you actually did is written
+      down nowhere a reviewer can read. A recipe makes the <strong>plan</strong> the
+      artifact; the diff is what it produces.
+    </p>
+
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Generated</span> &nbsp;Every report and every diff below is
+      what <code>fr recipe</code> actually did, captured by
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. That test fails when the
+      page and the tool disagree.
+    </p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="shell prose wide">
+    <h2>The shape of one</h2>
+    <pre class="grammar"><code>schema 1
+
+recipe <em>name</em> {
+  description "why this exists"
+
+  requires symbol "USE_LEGACY_AUTH"     # refuse early if this is the wrong tree
+
+  <em>operation</em> where <em>predicate…</em>  <em>modifier…</em>
+
+  expect changed &gt; 0 files
+}</code></pre>
+    <p>
+      <strong>Layout is insignificant</strong> and statements are not terminated. A
+      statement ends when the parser meets a token that can only begin a new one, which
+      works because step keywords are reserved and no predicate shares a name with one —
+      an invariant a test enforces rather than hopes for. That is what lets a
+      <code>where</code> clause run across as many lines as it needs with no punctuation.
+    </p>
+    <p>
+      <strong>It is not a programming language.</strong> No loops, no arithmetic, no
+      conditionals. The moment a recipe needs those it should be a program calling the
+      CLI. And it does not extend what the tool can do: if a step could not be typed as
+      an <code>fr</code> command, it is not a step.
+    </p>
+
+    <h3>The operations</h3>
+    <div class="scroll-x"><table>
+      <tr><th>Step</th><th>Takes</th><th>Selector</th></tr>
+      <tr><td><code>rename to "x"</code></td><td>a name</td><td>required</td></tr>
+      <tr><td><code>delete</code></td><td>—</td><td>required</td></tr>
+      <tr><td><code>move to "path"</code></td><td>a destination</td><td>required</td></tr>
+      <tr><td><code>imports</code></td><td>—</td><td>required</td></tr>
+      <tr><td><code>inline variable</code> / <code>inline call</code></td><td>which</td><td>required</td></tr>
+      <tr><td><code>signature "add:1:x: int:0"</code></td><td>the change</td><td>required</td></tr>
+      <tr><td><code>rewrite guard-clause</code></td><td>the transformation</td><td>required — it chooses <em>files</em></td></tr>
+      <tr><td><code>extract function at "…" as "…"</code></td><td>a range and a name</td><td><strong>rejected</strong> — a range is not selectable</td></tr>
+      <tr><td><code>remove-flag "F" = false</code></td><td>the flag and its value</td><td><strong>rejected</strong> — it acts on the whole workspace</td></tr>
+      <tr><td><code>restructure go 'a($X)' =&gt; 'b($X)'</code></td><td>a shape and a template</td><td><strong>rejected</strong> — the pattern <em>is</em> the selector</td></tr>
+    </table></div>
+    <p>
+      “Rejected” means an error naming the operation and why, never a silent ignore. A
+      grammar that reads <code>operation , [selector] , {modifier}</code> cannot say that
+      <code>rewrite</code> needs a name or that <code>remove-flag</code> has no use for a
+      <code>where</code> clause, so a signature table checks it immediately after the
+      parse.
+    </p>
+
+    <h3>The predicates</h3>
+    <div class="scroll-x"><table>
+      <tr><th>Predicate</th><th>Matches</th></tr>
+      <tr><td><code>name="x"</code> / <code>name~"pre_*"</code></td><td>exactly, or by glob</td></tr>
+      <tr><td><code>kind=function</code></td><td>function, method, class, key, selector, …</td></tr>
+      <tr><td><code>lang=python</code></td><td>one of the sixteen</td></tr>
+      <tr><td><code>file~"*_test.go"</code> / <code>in="src/adapters/"</code></td><td>by path</td></tr>
+      <tr><td><code>annotated-with="test"</code></td><td><code>#[test]</code>, <code>@Test</code>, <code>@pytest.mark</code></td></tr>
+      <tr><td><code>exported</code> / <code>!exported</code></td><td>is or is not</td></tr>
+      <tr><td><code>unused</code></td><td>nothing reaches it — <code>fr unused</code></td></tr>
+      <tr><td><code>duplicated</code></td><td>part of a copy-paste class — <code>fr duplicates</code></td></tr>
+      <tr><td><code>changed</code></td><td>this recipe already touched it</td></tr>
+    </table></div>
+    <p>
+      <strong>A selector that matches nothing stops the recipe.</strong> Silently doing
+      nothing is the failure this most wants to avoid, because it looks exactly like
+      success. Write <code>allow-empty</code> when a step is genuinely conditional.
+    </p>
+
+    <h3>Refusals, transactions, expectations</h3>
+    <p>
+      <code>on-refusal</code> is <code>stop</code> by default — abandon the run, write
+      nothing. <code>report</code> applies the rest and exits non-zero;
+      <code>allow</code> applies the rest and exits zero, because a person decided these
+      refusals were acceptable. There is deliberately no <code>ignore</code>: a refusal
+      is always in the report, and the only question is what it costs.
+    </p>
+    <p>
+      A recipe is <strong>one transaction</strong>. Either every step's edits are written
+      or none are, and each step sees the workspace as the previous step left it — which
+      means re-indexing between them. Dry run is the default, as everywhere else here.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">Five languages, five things it teaches</h2>
+    <div id="lessons"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <h2 class="prose">Writing one language as another</h2>
+    <p class="lede prose">
+      Not a refactoring — a translation, and a different promise. The signature is the
+      contract; anything with no counterpart is carried into the output verbatim and
+      counted.
+    </p>
+    <div id="pairs"></div>
+    <div class="btn-row">
+      <a class="btn" href="translate.html">The whole translation story</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/RECIPES.md">The design, and what it argues about</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script type="module" src="recipes.js"></script>
+</body>
+</html>

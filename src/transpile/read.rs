@@ -1454,7 +1454,17 @@ mod go {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children(node)
+        // tree-sitter-go puts a `statement_list` between a block and its statements,
+        // so a block's only child is that wrapper. Reading the children directly gave
+        // one unknown node and carried *every Go function body ever translated* into
+        // the output as a single comment — invisible to the round-trip tests, because
+        // a body that is entirely a comment still parses.
+        let children = cx.children(node);
+        let statements = match children.as_slice() {
+            [only] if only.kind() == "statement_list" => cx.children(*only),
+            _ => children,
+        };
+        statements
             .iter()
             .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
             .collect()
@@ -1469,7 +1479,17 @@ mod go {
             "comment" | "line_comment" | "block_comment" => {
                 Stmt::Comment(super::uncomment(&cx.text(node)))
             }
-            "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
+            // `return x` wraps its value in an `expression_list`, the same shape that
+            // hid every function body. A single value is the only one that has a
+            // counterpart: `return a, b` is Go's multiple return and nothing else here
+            // has one, so it stays unsupported and is carried with the original.
+            "return_statement" => Stmt::Return(cx.children(node).first().and_then(|e| {
+                match (e.kind(), cx.children(*e).as_slice()) {
+                    ("expression_list", [only]) => Some(expr(cx, *only)),
+                    ("expression_list", _) => None,
+                    _ => Some(expr(cx, *e)),
+                }
+            })),
             "break_statement" => Stmt::Break,
             "continue_statement" => Stmt::Continue,
             "short_var_declaration" => Stmt::Let {

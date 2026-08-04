@@ -526,6 +526,43 @@ return means deciding what the function returns on the path that used to fall th
 The generator asserts that entry still fails, so the page cannot go on claiming a
 refusal that no longer happens.
 
+### Java, and what a language costs
+
+Sixteen languages now. Adding Java was one query file, five lines of enum, and three
+`match` arms the compiler demanded — which is the architecture working: "adding a
+language means writing queries, not Rust" is a claim `queries/README.md` makes and this
+was the test of it.
+
+The three arms are the interesting part, because each was a decision rather than a
+default. `move` **refuses** for Java and says why: a public type must live in a file
+named after it and imports name packages rather than paths, so moving one is a rename
+of the file and its package, not a move of a definition. Doing half of that would leave
+a tree that does not compile.
+
+Writing the queries surfaced a defect in the *shared* extractor. Java says
+"externally visible" with a keyword rather than with capitalisation, and `modifiers` is
+a positional child rather than a field — so `!modifiers` is unavailable and the three
+cases have to be made mutually exclusive by hand, because nothing downstream
+de-duplicates definitions. And `receiver_of` decided the receiver positionally, which
+holds for Go and not for Java: every method call in the language had no receiver at all
+until it started preferring the field the grammar names.
+
+### The recipe language, and the choke point that was not one
+
+`fr recipe` runs a refactoring written down. The design in RECIPES.md survived contact
+almost intact; what it could not have predicted is that the runner immediately failed
+with `edit at 1..301 extends past end of file (226 bytes)`.
+
+The cause is worth keeping. The runner holds the workspace in memory and rebuilds the
+index between steps — but the *refactorings* read source through `crate::vfs`, which
+means the disk. A plan made after one step was measured against the text before any
+step ran. `vfs` is documented as the single choke point for reading source and it is;
+what it was not was *switchable* on an ordinary build. The in-memory backing was gated
+to the browser although nothing in it is wasm-specific. It is compiled everywhere now.
+
+A choke point that only one caller can redirect is a choke point with one user. The
+second user found that out in an afternoon.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

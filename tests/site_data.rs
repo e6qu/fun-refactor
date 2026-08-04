@@ -502,6 +502,44 @@ export async function loadReading(source: string): Promise<SensorReading | null>
 }
 "#;
 
+const TYPED_GO: &str = r#"package store
+
+// Reading is one sample from a sensor.
+type Reading struct {
+	SensorID string
+	Celsius  float64
+}
+
+// Warmer counts the readings above a limit.
+func Warmer(readings []Reading, limit float64) int {
+	count := 0
+	for _, reading := range readings {
+		if reading.Celsius > limit {
+			count = count + 1
+		}
+	}
+	return count
+}
+"#;
+
+const TYPED_RUST: &str = r#"/// One sample from a sensor.
+pub struct Reading {
+    pub sensor_id: String,
+    pub celsius: f64,
+}
+
+/// Count the readings above a limit.
+pub fn warmer(readings: Vec<Reading>, limit: f64) -> i64 {
+    let mut count = 0;
+    for reading in readings {
+        if reading.celsius > limit {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+"#;
+
 const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "python-to-typescript",
@@ -525,6 +563,26 @@ const TRANSLATIONS: &[Translation] = &[
         provenance: None,
     },
     Translation {
+        id: "go-to-rust",
+        title: "Go → Rust",
+        blurb: "The other pair. A Go `struct` is a Rust `struct`, a `range` loop is a \
+                `for … in`, and the exported/unexported convention becomes `pub`.",
+        files: &[("store.go", TYPED_GO)],
+        subject: "store.go",
+        target: "rust",
+        provenance: None,
+    },
+    Translation {
+        id: "rust-to-go",
+        title: "Rust → Go",
+        blurb: "And back, where Go's capital letter is what `pub` means and the \
+                signature carries unchanged.",
+        files: &[("store.rs", TYPED_RUST)],
+        subject: "store.rs",
+        target: "go",
+        provenance: None,
+    },
+    Translation {
         id: "real-python-to-typescript",
         title: "Real code: a FastAPI backend → TypeScript",
         blurb: "Not a sample written to succeed. This is `backend/app/crud.py` from the \
@@ -539,6 +597,254 @@ const TRANSLATIONS: &[Translation] = &[
         ),
     },
 ];
+
+// --------------------------------------------------------------- the recipes
+
+/// One recipe, the workspace it runs over, and what it is teaching.
+struct Lesson {
+    id: &'static str,
+    title: &'static str,
+    language: &'static str,
+    teaches: &'static str,
+    note: &'static str,
+    files: &'static [(&'static str, &'static str)],
+    recipe: &'static str,
+    /// The file the page shows before and after.
+    subject: &'static str,
+}
+
+const LESSONS: &[Lesson] = &[
+    Lesson {
+        id: "python-retire-a-flag",
+        title: "Retire a feature flag, and what it was guarding",
+        language: "python",
+        teaches: "Steps run in order and each sees what the last one left.",
+        note: "This is the whole reason a recipe is more than a shell loop. Nothing is \
+               `unused` until the flag has gone, so the second step can only match \
+               because the first one already ran and the index was rebuilt from its \
+               result. Written as two commands, the second would find nothing.",
+        files: &[("src/auth.py", AUTH_PY)],
+        recipe: r#"schema 1
+
+recipe retire-legacy-auth {
+  description "The legacy auth path has been dark for a year."
+
+  requires symbol "USE_LEGACY_AUTH"
+
+  remove-flag "USE_LEGACY_AUTH" = false
+
+  delete where kind=function
+               name~"legacy_auth_*"
+               unused
+
+  expect changed > 0 files
+  expect refusals = 0
+}
+"#,
+        subject: "src/auth.py",
+    },
+    Lesson {
+        id: "typescript-rename-and-tidy",
+        title: "Rename across files, then tidy what that left",
+        language: "typescript",
+        teaches: "`where changed` selects the files this run has already touched.",
+        note: "The second step does not name a file. It asks for the ones the first \
+               step moved, which is a question only the run itself can answer — and the \
+               reason `changed` is a predicate rather than a path you have to keep in \
+               your head.",
+        files: &[("src/parse.ts", PARSE_TS), ("src/main.ts", MAIN_TS)],
+        recipe: r#"schema 1
+
+recipe intention-revealing-name {
+  description "`p` says nothing; `parseUri` says what it is."
+
+  requires language typescript
+
+  rename to "parseUri" where name="p" kind=function
+
+  imports where changed
+
+  expect refusals = 0
+}
+"#,
+        subject: "src/main.ts",
+    },
+    Lesson {
+        id: "java-rename-a-method",
+        title: "Rename a method the whole package calls",
+        language: "java",
+        teaches: "A refusal is reported, and `on-refusal` decides what it costs.",
+        note: "Java reaches a method through a receiver, and this tool does not track \
+               the receiver's type — so the call in `Report.java` resolves only as \
+               `field-based`, and the rename rewrites the declaration and *says* it \
+               left that one alone. Read the `left` line: this is the tool telling the \
+               truth about what it knows, and a recipe that swallowed it would report a \
+               clean run over work still to do.",
+        files: &[
+            ("com/example/Account.java", ACCOUNT_JAVA),
+            ("com/example/Report.java", REPORT_JAVA),
+        ],
+        recipe: r#"schema 1
+
+recipe clearer-method-name {
+  description "`overdueDays` reads as a noun; `daysOverdue` reads as what it returns."
+
+  requires language java
+
+  rename to "daysOverdue" where name="overdueDays" kind=method
+                           on-refusal report
+}
+"#,
+        subject: "com/example/Account.java",
+    },
+    Lesson {
+        id: "go-guard-clauses",
+        title: "Guard clauses, everywhere, but only ten of them",
+        language: "go",
+        teaches: "`limit` and the dry run, on the most dangerous step in the language.",
+        note: "`rewrite` has no target in the usual sense: the selector chooses *files* \
+               and the transformation applies everywhere in them that it applies. This \
+               is the step that most needs a limit — `guard-clause` was once wrong at \
+               1,258 of 1,498 sites in helm/helm — and `limit` takes the same sites \
+               every run, so what you reviewed is what you get.",
+        files: &[("pkg/services/notify.go", NOTIFY_GO)],
+        recipe: r#"schema 1
+
+recipe unnest-the-services {
+  description "Turn wrapping ifs into early returns, a few at a time."
+
+  rewrite guard-clause where lang=go in="pkg/services/"
+                        limit 10
+
+  expect refusals = 0
+}
+"#,
+        subject: "pkg/services/notify.go",
+    },
+    Lesson {
+        id: "rust-api-migration",
+        title: "An API changed under you",
+        language: "rust",
+        teaches:
+            "`restructure` rewrites a shape, and `expect no-new unused` checks what that orphaned.",
+        note: "The pattern *is* the selector, which is why `restructure` takes no \
+               `where` clause — a second way of choosing would contradict the first. \
+               The expectation is the interesting half: replacing every call to a \
+               helper leaves the helper with no callers, and a refactoring that orphans \
+               a function has not finished.",
+        files: &[("src/metrics.rs", METRICS_RS)],
+        recipe: r#"schema 1
+
+recipe emit-instead-of-record {
+  description "record() became emit() with a named unit."
+
+  requires language rust
+
+  restructure rust 'record($NAME, $VALUE)' => 'emit($NAME, $VALUE, Unit::Count)'
+
+  expect no-new unused
+}
+"#,
+        subject: "src/metrics.rs",
+    },
+];
+
+const AUTH_PY: &str = r#"USE_LEGACY_AUTH = False
+
+
+def authenticate(user, token):
+    if USE_LEGACY_AUTH:
+        return legacy_auth_check(user, token)
+    return modern_auth_check(user, token)
+
+
+def legacy_auth_check(user, token):
+    return token == user.legacy_token
+
+
+def legacy_auth_header(request):
+    return request.headers.get("X-Legacy-Auth")
+
+
+def modern_auth_check(user, token):
+    return user.verify(token)
+"#;
+
+const PARSE_TS: &str = r#"export function p(raw: string): string {
+  return raw.trim().toLowerCase();
+}
+"#;
+
+const MAIN_TS: &str = r#"import { p } from "./parse";
+import { unused } from "./nowhere";
+
+export function main(argument: string): string {
+  return p(argument);
+}
+"#;
+
+const ACCOUNT_JAVA: &str = r#"package com.example;
+
+import java.util.List;
+
+public class Account {
+    private final String owner;
+
+    public Account(String owner) {
+        this.owner = owner;
+    }
+
+    public int overdueDays(List<Charge> charges) {
+        int total = 0;
+        for (Charge charge : charges) {
+            total += charge.days();
+        }
+        return total;
+    }
+}
+"#;
+
+const REPORT_JAVA: &str = r#"package com.example;
+
+import java.util.List;
+
+public class Report {
+    public String summarise(Account account, List<Charge> charges) {
+        int days = account.overdueDays(charges);
+        return "overdue " + days;
+    }
+}
+"#;
+
+const NOTIFY_GO: &str = r#"package services
+
+func Notify(subscriber Subscriber, digest Digest) {
+	if subscriber.Active {
+		if subscriber.WantsEmail {
+			send(subscriber.Address, digest)
+		}
+	}
+}
+
+func Archive(subscriber Subscriber, digest Digest) {
+	if subscriber.Archiving {
+		store(subscriber.Address, digest)
+	}
+}
+"#;
+
+const METRICS_RS: &str = r#"pub fn record(name: &str, value: i64) {
+    println!("{name}={value}");
+}
+
+pub fn on_request(path: &str) {
+    record("requests", 1);
+}
+
+pub fn on_error(kind: &str) {
+    record("errors", 1);
+}
+"#;
 
 // ------------------------------------------------------------------- the runner
 
@@ -800,6 +1106,48 @@ fn translate_data() -> String {
     out
 }
 
+fn recipes_data() -> String {
+    let mut out = String::from(
+        "// Generated by `cargo test --test site_data`. Do not edit.\n\
+         //\n\
+         // Every `report`, `after` and `diff` below is what `fr recipe` actually did.\n\
+         // Regenerate with:\n\
+         //   UPDATE_SITE_DATA=1 cargo test --test site_data\n\
+         export const LESSONS = [\n",
+    );
+    for lesson in LESSONS {
+        let tmp = workspace(lesson.files);
+        let root = tmp.path();
+        std::fs::write(root.join("tidy.recipe"), lesson.recipe).unwrap();
+
+        let before = std::fs::read_to_string(root.join(lesson.subject)).unwrap();
+        let argv = ["recipe".to_string(), "tidy.recipe".to_string()];
+        let output = run(root, &argv);
+        let mut applied = argv.to_vec();
+        applied.push("--write".to_string());
+        run(root, &applied);
+        let after = std::fs::read_to_string(root.join(lesson.subject)).unwrap();
+
+        out.push_str(&format!(
+            "  {{\n    id: {},\n    title: {},\n    language: {},\n    teaches: {},\n    \
+             note: {},\n    recipe: {},\n    file: {},\n    before: {},\n    after: {},\n    \
+             output: {},\n  }},\n",
+            json_string(lesson.id),
+            json_string(lesson.title),
+            json_string(lesson.language),
+            json_string(lesson.teaches),
+            json_string(lesson.note),
+            json_string(lesson.recipe),
+            json_string(lesson.subject),
+            json_string(&before),
+            json_string(&after),
+            json_string(&output),
+        ));
+    }
+    out.push_str("];\n");
+    out
+}
+
 fn check(relative: &str, generated: String) {
     let path: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
     if std::env::var("UPDATE_SITE_DATA").is_ok() {
@@ -818,6 +1166,11 @@ fn check(relative: &str, generated: String) {
 #[test]
 fn the_catalogue_page_shows_what_the_tool_does() {
     check("docs/catalog-data.js", catalog_data());
+}
+
+#[test]
+fn the_recipe_tutorial_shows_what_the_tool_does() {
+    check("docs/recipes-data.js", recipes_data());
 }
 
 #[test]
