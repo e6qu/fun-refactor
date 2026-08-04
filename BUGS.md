@@ -69,12 +69,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
-- [x] B104: **the browser scale sweep skipped Java while claiming to cover every
-  language in the workspace.** `.java` was missing from its `PARSEABLE` set, so the two
-  Java files in the bundled sample were invisible to it — and the only statement of the
-  coverage claim was a comment, which cannot fail. The claim is now asserted: the sweep
-  compares the languages it probed against the languages in the workspace and exits
-  non-zero naming any it missed.
+- [x] B104: **the browser scale sweep covered fourteen of sixteen languages while
+  claiming all of them.** `.java` was missing from its `PARSEABLE` set, so the two Java
+  files in the bundled sample were invisible to it. Adding the extension and asserting
+  the claim then showed the gap was older and larger: `html` and `scss` were never
+  probed either, because they hold few definitions and the stride falls past them.
+  Raising the probe count would have fixed today and broken the next time a language
+  was added, so one probe per language goes in first and the stride fills the rest —
+  coverage as a property of the sampling rather than of a tuned constant. The claim
+  itself is now an assertion that names what it missed.
 
 - [x] B103: **the playground's own UI said "fifteen languages"** in three places,
   including the line printed under the file tree every time the bundled sample loads.

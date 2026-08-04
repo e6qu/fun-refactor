@@ -42,9 +42,9 @@ await init({
 const repo = process.argv[2] ?? join(root, "sample");
 // Each probe indexes the workspace from scratch so one refactoring cannot affect the
 // next. That isolation costs an index build per probe, which is why the count is the
-// caller's to choose. Forty covers all sixteen languages of the bundled sample and
-// keeps CI to about a minute; a real sweep is `scale.mjs /path/to/repo 200`, and
-// takes as long as it takes.
+// caller's to choose. Every language is probed regardless of the count — see the
+// sampling below — and forty keeps CI to about a minute; a real sweep is
+// `scale.mjs /path/to/repo 200`, and takes as long as it takes.
 const LIMIT = Number(process.argv[3] ?? 40);
 const started = Date.now();
 
@@ -114,13 +114,33 @@ for (const path of Object.keys(files)) {
  *
  * `targets` is in path order, so the first forty of the bundled sample are all in
  * `chart/` — a run that claims to cover sixteen languages and covers YAML. Striding
- * takes the same number and touches every file.
+ * takes the same number and touches every file, and one probe per language goes in
+ * first so a language with few definitions cannot fall through the gaps.
  */
-const stride = Math.max(1, Math.floor(targets.length / LIMIT));
-const sample = targets.filter((_, i) => i % stride === 0).slice(0, LIMIT);
-const languagesProbed = new Set(
-  sample.map((t) => JSON.parse(index.files()).find((f) => f.path === t.path)?.language),
+// One probe per language first, then stride-fill the rest. Striding alone left `html`
+// and `scss` unprobed — they have few definitions and the gaps fall past them — so the
+// sweep covered fourteen of sixteen languages while its comment claimed all of them.
+// Tuning LIMIT until they appear would fix today and break the next time a language is
+// added; taking one of each first makes the coverage a property of the algorithm.
+const languageOf = new Map(
+  JSON.parse(index.files()).map((f) => [f.path, f.language]),
 );
+const firstOfEach = [];
+const seen = new Set();
+for (const target of targets) {
+  const language = languageOf.get(target.path);
+  if (language && !seen.has(language)) {
+    seen.add(language);
+    firstOfEach.push(target);
+  }
+}
+const stride = Math.max(1, Math.floor(targets.length / LIMIT));
+const strided = targets.filter((_, i) => i % stride === 0);
+const sample = [...firstOfEach, ...strided.filter((t) => !firstOfEach.includes(t))].slice(
+  0,
+  Math.max(LIMIT, firstOfEach.length),
+);
+const languagesProbed = new Set(sample.map((t) => languageOf.get(t.path)));
 console.log(
   `  probing ${sample.length} of ${targets.length} definitions across ` +
     `${new Set(sample.map((t) => t.path)).size} files, ` +
@@ -131,11 +151,7 @@ console.log(
 // missing from PARSEABLE for a whole release: the sweep went on saying it covered every
 // language of the bundled sample while skipping one of them entirely, and nothing
 // noticed because the only statement of the claim was prose.
-const inWorkspace = new Set(
-  JSON.parse(index.files())
-    .map((f) => f.language)
-    .filter(Boolean),
-);
+const inWorkspace = new Set([...languageOf.values()].filter(Boolean));
 const missed = [...inWorkspace].filter((l) => !languagesProbed.has(l)).sort();
 if (missed.length) {
   console.error(

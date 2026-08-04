@@ -692,8 +692,16 @@ playground told every visitor it had fifteen languages while sitting on sixteen.
 The one worth keeping is `web/test/scale.mjs`. It claimed to probe every language in
 the bundled sample and did not include `.java` in the extensions it walks, so the
 newest language was invisible to the sweep that exists to catch exactly that. The claim
-lived in a comment, and a comment cannot fail. It is an assertion now: the sweep
-compares what it probed against what is in the workspace and names anything it missed.
+lived in a comment, and a comment cannot fail.
+
+Turning it into an assertion immediately found that the gap was older and larger than
+the one it was written for: `html` and `scss` had never been probed either. They hold
+one definition each, and a stride across five hundred targets steps straight over them
+— so the sweep had been covering fourteen of sixteen languages for as long as there had
+been sixteen. Raising the probe count until they appeared would have fixed today and
+broken on the next language, so the sampling takes one probe per language first and
+strides for the rest. The coverage is a property of the algorithm now, and the
+assertion is what would say so if it ever stopped being one.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
