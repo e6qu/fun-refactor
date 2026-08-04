@@ -69,6 +69,47 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B101: **the README's status section stated a fixed bug as current, twice over.**
+  It carried two "known limitations" paragraphs that contradicted each other, and the
+  second said Helm `.Values` references "are not yet resolved" — which B7 fixed. The
+  capability counts were stale too (`216 of 300`, when the matrix is `245 of 336`), and
+  `fr recipe`, `fr openapi` and `fr translate` were missing from the command list.
+
+- [x] B100: **the bundled playground sample had no Java file,** so the one language
+  added most recently was the one language the playground could not demonstrate. Two
+  files under `web/sample/agent/`, chosen to exercise what only an annotated language
+  reaches: a `main` the JVM is pointed at, a `@RestController` Spring calls, and a
+  private method that is genuinely dead.
+
+- [x] B99: **`annotated_with` only looked *above* a definition.** Rust and Python put an
+  annotation on its own line above; Java puts it *inside* the declaration, in the
+  `modifiers` node, which is within the symbol's own span. Reading only above it made
+  every `@Test` method in the language look like dead code — and the same rule answers a
+  recipe's `annotated-with=`, so it was wrong in two places at once.
+
+- [x] B98: **the capability table claimed `inline --call` for every imperative
+  language.** It was the one cell derived from the language's *class* rather than from
+  the operation's own predicate, so adding a language to the enum claimed the capability
+  before a line was written. `enclosing_call` also matched only node kinds containing
+  "call", and Java's is `method_invocation` — so the table promised something the
+  operation could not find a single instance of. Both fixed; `inline::supports_call` is
+  now the authority.
+
+- [x] B97: **the capability table and `move` disagreed about Java.** The table said it
+  could be moved and the operation refused it — the table lying about the tool in the
+  tool's own words, because `supports_move` was a blocklist and the refusal was a match
+  arm somewhere else. `why_not_move` is now the single authority and both ask it.
+
+- [x] B96: **six capability reasons were false about Java.** The fallback strings were
+  written when every unsupported language was markup or configuration, and they say so:
+  `extract variable` told a reader that **Java** "has no binding form: a reusable value
+  here is a CSS custom property", and `entry points` told them Java "is a stylesheet". A
+  reason untrue about the language it is given for is worse than no reason, because the
+  whole point of the table is that the empty cells explain themselves. Reasons are now
+  chosen by language class, and four of the six turned out to be capabilities Java
+  simply had: micro-rewrites, organize imports, inline call and entry points all work
+  and are now claimed.
+
 - [x] B95: **a recipe computed both workspace analyses whether or not an expectation
   asked for either.** `find_unused` and `duplicates` ran over the whole workspace,
   twice — before and after — for every recipe, including ones with no `expect no-new`

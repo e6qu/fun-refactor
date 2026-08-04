@@ -141,6 +141,8 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("graph", vec!["graph"]),
         ("entrypoints", vec!["entrypoints"]),
         ("recipe", vec!["recipe", "tidy.recipe"]),
+        // The fixture has no Next.js route, so this exercises the refusal.
+        ("openapi", vec!["openapi"]),
     ]
 }
 

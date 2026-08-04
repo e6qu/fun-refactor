@@ -175,6 +175,7 @@ const BUILTIN: &[(&str, &str)] = &[
     ("python", include_str!("../../catalogs/python.yaml")),
     ("typescript", include_str!("../../catalogs/typescript.yaml")),
     ("zig", include_str!("../../catalogs/zig.yaml")),
+    ("java", include_str!("../../catalogs/java.yaml")),
     ("bash", include_str!("../../catalogs/bash.yaml")),
     ("infra", include_str!("../../catalogs/infra.yaml")),
     ("docs", include_str!("../../catalogs/docs.yaml")),
@@ -388,7 +389,14 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// to every language's queries would be a larger change than this earns. Only the
 /// lines immediately above are considered, so a `#[test]` four declarations up does
 /// not leak onto this one.
-/// Is an annotation with this name written above the symbol?
+/// Is an annotation with this name written on the symbol?
+///
+/// Two shapes, because the languages disagree about where an annotation lives. Rust
+/// and Python put it on its own line *above* the definition, so the search walks
+/// backwards through the run of `#[…]` and `@…` lines. Java puts it **inside** the
+/// declaration, in the `modifiers` node — `@Test public void f()` — so it is within the
+/// symbol's own span and a backwards search from the start of that span never sees it.
+/// Reading only above it made every `@Test` method in the language look like dead code.
 ///
 /// Public because a recipe's `annotated-with=` predicate is the same question, and the
 /// point of reusing the matcher is that the two cannot drift apart.
@@ -396,23 +404,27 @@ pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
     let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
         return false;
     };
-    let before = &source[..symbol.full_span.start.min(source.len())];
-    for line in before.lines().rev() {
+
+    // Inside the declaration: everything from its start up to the name it declares.
+    let start = symbol.full_span.start.min(source.len());
+    let up_to_name = symbol.name_span.start.clamp(start, source.len());
+    if source[start..up_to_name]
+        .split('@')
+        .skip(1)
+        .any(|piece| names_the_annotation(piece, name))
+    {
+        return true;
+    }
+
+    // Above it: the unbroken run of annotation and comment lines before it.
+    for line in source[..start].lines().rev() {
         let line = line.trim();
         if line.is_empty()
             || line.starts_with("//")
             || line.starts_with('#')
             || line.starts_with('@')
         {
-            // `#[tokio::test]` and `@pytest.mark.asyncio` both end in the bare name.
-            let bare = line
-                .trim_start_matches(['#', '[', '@'])
-                .trim_end_matches([']', ')'])
-                .rsplit(['.', ':'])
-                .next()
-                .unwrap_or_default();
-            let head = bare.split(['(', '<']).next().unwrap_or_default();
-            if head == name {
+            if names_the_annotation(line.trim_start_matches(['#', '[', '@']), name) {
                 return true;
             }
             continue;
@@ -421,6 +433,26 @@ pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
         break;
     }
     false
+}
+
+/// Does this fragment name the annotation, whatever punctuation surrounds it?
+///
+/// `#[tokio::test]`, `@pytest.mark.asyncio` and `@org.junit.jupiter.api.Test` all end
+/// in the bare name, so the qualification is dropped and the arguments with it.
+fn names_the_annotation(fragment: &str, name: &str) -> bool {
+    let bare = fragment
+        .trim()
+        .trim_start_matches(['#', '[', '@'])
+        .trim_end_matches([']', ')'])
+        .rsplit(['.', ':'])
+        .next()
+        .unwrap_or_default();
+    // Whitespace ends it as surely as a bracket does: inside a Java declaration the
+    // annotation is followed by a newline and the modifiers, not by a delimiter.
+    bare.split(|c: char| c.is_whitespace() || c == '(' || c == '<')
+        .next()
+        .unwrap_or_default()
+        == name
 }
 
 pub fn has_rules_for(catalog: &Catalog, language: Language) -> bool {

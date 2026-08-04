@@ -56,6 +56,16 @@ pub struct RoutePlan {
     pub fidelity: Fidelity,
     /// The write, unapplied, so a caller can show it before committing to it.
     pub edits: crate::edit::EditSet,
+    /// The shapes this route declares, as an OpenAPI document would name them.
+    pub models: Vec<Model>,
+}
+
+/// A named shape a route declares — from an exported `interface` or a zod schema.
+#[derive(Debug, Clone)]
+pub struct Model {
+    pub name: String,
+    /// Field name and its type, spelled as the IR sees it.
+    pub fields: Vec<(String, Option<Type>)>,
 }
 
 /// The path segments that make up a route's URL, if this file is one.
@@ -212,6 +222,31 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
     let route = route_for(path);
     let (output, fidelity, methods) = write(&module, &route, path)?;
 
+    // The declared shapes, from either place a Next.js route keeps them.
+    let models: Vec<Model> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(record) => Some(Model {
+                name: record.name.clone(),
+                fields: record
+                    .fields
+                    .iter()
+                    .map(|f| (f.name.clone(), f.ty.clone()))
+                    .collect(),
+            }),
+            Item::Constant(c) => record_from_zod(&c.name, &c.value).map(|record| Model {
+                name: record.name.clone(),
+                fields: record
+                    .fields
+                    .iter()
+                    .map(|f| (f.name.clone(), f.ty.clone()))
+                    .collect(),
+            }),
+            _ => None,
+        })
+        .collect();
+
     if methods.is_empty() {
         bail!(
             "{} exports no HTTP method. An App Router route exports `GET`, `POST` and \
@@ -270,6 +305,7 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
         methods,
         output,
         fidelity,
+        models,
     })
 }
 
@@ -286,6 +322,139 @@ impl ThenOr for String {
             self
         }
     }
+}
+
+/// Turn a zod schema into a record, so a request body reaches FastAPI as a model.
+///
+/// Most Next.js applications declare their shapes with zod rather than with an
+/// `interface`, and a zod schema is a *runtime value* — nothing that reads type
+/// declarations will find it. Left alone it arrives as an ordinary constant and the
+/// translated service publishes an OpenAPI document with no request body in it at all:
+/// the endpoint works and the contract it advertises is smaller than the one it
+/// replaced. That is the failure `API_CONTRACTS.md` is about, and this is the half of
+/// it that can be fixed by reading harder.
+///
+/// The IR already holds the whole builder chain, so this is a walk rather than a parse.
+fn record_from_zod(name: &str, value: &Expr) -> Option<Record> {
+    let fields = object_fields(value)?;
+    Some(Record {
+        doc: vec![format!("Derived from the zod schema `{name}`.")],
+        // `postPatchSchema` describes a `PostPatch`.
+        name: model_name(name),
+        fields,
+        exported: true,
+        methods: Vec::new(),
+    })
+}
+
+/// `postPatchSchema` -> `PostPatch`; `userSchema` -> `User`.
+fn model_name(name: &str) -> String {
+    let base = name
+        .strip_suffix("Schema")
+        .or_else(|| name.strip_suffix("_schema"))
+        .unwrap_or(name);
+    let mut out = String::new();
+    let mut upper = true;
+    for c in base.chars() {
+        if c == '_' {
+            upper = true;
+            continue;
+        }
+        if upper {
+            out.extend(c.to_uppercase());
+            upper = false;
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// The `{ a: …, b: … }` of a `z.object({ … })`, as fields.
+fn object_fields(value: &Expr) -> Option<Vec<Field>> {
+    let Expr::Call { callee, args } = value else {
+        return None;
+    };
+    if !is_zod(callee, "object") {
+        return None;
+    }
+    let Some(Expr::MapLit(entries)) = args.first() else {
+        return None;
+    };
+    Some(
+        entries
+            .iter()
+            .filter_map(|(key, spec)| {
+                let name = match key {
+                    Expr::Str(text) => text.clone(),
+                    Expr::Name(text) => text.clone(),
+                    _ => return None,
+                };
+                Some(Field {
+                    doc: Vec::new(),
+                    ty: Some(zod_type(spec)),
+                    name,
+                    exported: true,
+                })
+            })
+            .collect(),
+    )
+}
+
+/// Is this `z.<method>`, however many builders are wrapped around it?
+fn is_zod(callee: &Expr, method: &str) -> bool {
+    matches!(callee, Expr::Field { of, name }
+        if name == method && matches!(of.as_ref(), Expr::Name(z) if z == "z"))
+}
+
+/// The type a zod builder chain describes.
+///
+/// A chain is left-nested — `z.string().min(3).optional()` is `optional(max(min(string)))`
+/// — so this walks to the base call and collects the modifiers on the way past. The
+/// constraints (`.min`, `.max`, `.email`) are *not* carried: Pydantic spells them with
+/// `Field(...)` and inventing one from a zod call is a guess about validation, which is
+/// the part of a contract it is least safe to guess at.
+fn zod_type(spec: &Expr) -> Type {
+    let mut modifiers: Vec<String> = Vec::new();
+    let mut current = spec;
+    while let Expr::Call { callee, args } = current {
+        let Expr::Field { of, name } = callee.as_ref() else {
+            break;
+        };
+        // The base of the chain: `z.something(...)`.
+        if matches!(of.as_ref(), Expr::Name(z) if z == "z") {
+            let mut ty = match name.as_str() {
+                "string" => Type::String,
+                "boolean" => Type::Bool,
+                "number" => {
+                    if modifiers.iter().any(|m| m == "int") {
+                        Type::Int
+                    } else {
+                        Type::Float
+                    }
+                }
+                "bigint" => Type::Int,
+                "date" => Type::named("datetime"),
+                "array" => Type::List(Box::new(
+                    args.first().map(zod_type).unwrap_or(Type::named("Any")),
+                )),
+                "record" => Type::Map(Box::new(Type::String), Box::new(Type::named("Any"))),
+                // `z.object` nested inside another is an anonymous shape; Python wants
+                // it to be its own model and naming one would be inventing a name.
+                "object" => Type::named("dict"),
+                // `z.enum([...])`, `z.union([...])`, `z.any()`, and anything else this
+                // does not know: written through by name rather than guessed at.
+                other => Type::named(other),
+            };
+            if modifiers.iter().any(|m| m == "optional" || m == "nullable") {
+                ty = Type::Optional(Box::new(ty));
+            }
+            return ty;
+        }
+        modifiers.push(name.clone());
+        current = of;
+    }
+    Type::named("Any")
 }
 
 /// A placeholder for the header line that depends on how the translation went.
@@ -310,6 +479,12 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
             // translated away. Listing it under "the equivalent here is yours to add"
             // would point at a job already done.
             Item::Import { text, .. } if text.contains("\"next/") || text.contains("'next/") => {}
+            // A zod schema is a shape, not a value, and it is where most Next.js
+            // applications keep the one thing FastAPI most wants: the request body.
+            Item::Constant(c) => match record_from_zod(&c.name, &c.value) {
+                Some(record) => rest.items.push(Item::Record(record)),
+                None => rest.items.push(item.clone()),
+            },
             other => rest.items.push(other.clone()),
         }
     }
@@ -527,6 +702,15 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
     }
     if responses.redirect {
         extra.push("RedirectResponse");
+    }
+    // A model derived from `z.date()` is annotated `datetime`, and a name the output
+    // uses is a name the output has to import — generated code that references
+    // something undefined is worse than generated code that admits a gap.
+    if out.contains("datetime") && !out.contains("from datetime import") {
+        out = out.replace(
+            "\nrouter = APIRouter()",
+            "from datetime import datetime\n\nrouter = APIRouter()",
+        );
     }
     if !extra.is_empty() {
         out = out.replace(
@@ -875,7 +1059,7 @@ fn reads(stmt: &Stmt, names: &[String]) -> bool {
 }
 
 /// The `{name}` parameters a route declares, in order.
-fn path_parameters(route: &str) -> Vec<String> {
+pub fn path_parameters(route: &str) -> Vec<String> {
     route
         .split('/')
         .filter_map(|segment| {

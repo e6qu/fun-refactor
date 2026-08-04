@@ -696,12 +696,30 @@ fn enclosing_call<'a>(
         .root()
         .descendant_for_byte_range(span.start, span.end)?;
     for _ in 0..8 {
-        if node.kind().contains("call") {
+        // Every grammar in the set spells it with "call" except Java, which says
+        // `method_invocation`. Matching on "call" alone meant the capability table
+        // claimed `inline --call` for Java while the operation could not find a single
+        // call in the language.
+        let kind = node.kind();
+        if kind.contains("call") || kind.contains("invocation") {
             return Some(node);
         }
         node = node.parent()?;
     }
     None
+}
+
+/// Can a call be inlined in this language?
+///
+/// A predicate the capability table asks, rather than a guess from the language's
+/// class. `InlineCall` was the one cell derived from "is it imperative", so adding a
+/// language to the enum claimed the capability for it before a line was written.
+pub fn supports_call(language: crate::lang::Language) -> bool {
+    use crate::lang::Language as L;
+    matches!(
+        language,
+        L::Rust | L::Go | L::Zig | L::TypeScript | L::Tsx | L::Python | L::Java
+    )
 }
 
 /// May this argument be substituted more than once without changing behaviour?

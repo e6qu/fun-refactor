@@ -618,6 +618,60 @@ it saw and says what will happen if they stay where they are. It does not hoist 
 because which status is the *success* one is a judgement about the endpoint rather than
 a fact about the syntax.
 
+### Closing the three things that were written down as not done
+
+**The four missing recipe predicates.** `calls=` and `called-by=` come from one call
+graph, `implements=` from the hierarchy, `matches=` from the pattern matcher. Each was
+an existing analysis rather than new machinery, which is what the design promised, and
+each is run only when a predicate asks for it — building a call graph over helm for a
+selector that says `name="x"` is the mistake the last round was about.
+
+`matches=` needs `lang=` beside it and says so. The same text parses into a different
+tree in every language, so there is no language-free answer to where a shape occurs.
+Exposing it also needed `restructure::locate` — the find half of `apply`, which could
+not be reused as it stood because `apply` skips a rewrite that changes nothing, and a
+pattern used as its own template changes nothing every time.
+
+**Reading zod.** The IR already held the whole builder chain, so this was a walk rather
+than a parse: a chain is left-nested, and walking to the base call with the modifiers
+collected on the way past gives the type. The constraints are deliberately dropped —
+`.min(3)` is validation, Pydantic spells it `Field(min_length=3)`, and the two are not
+the same rule in every case.
+
+**`fr openapi`.** The baseline half of a contract check. Paths, methods and path
+parameters are exact because they come from the tree; schemas are as good as what was
+declared; responses are `default` only, because which status an endpoint returns is a
+fact about its code rather than its declaration. Writing `200` for everything would put
+fiction into the file you are about to diff against — the diff comes out clean and the
+contract still shrank, which is the exact failure the document exists to prevent.
+
+### Reading the documentation with fresh eyes
+
+Adding a language broke six statements the *tool itself* makes. The capability table's
+fallback reasons were written when every unsupported language was markup or
+configuration, so they explain the absence in those terms — and `extract variable` went
+on to tell a reader that Java "has no binding form: a reusable value here is a CSS
+custom property". The table's whole value is that its empty cells explain themselves,
+which makes a false explanation worse than a blank.
+
+Two cells were worse than wrong: they disagreed with the tool. `move to file` said Java
+was supported while the operation refused it, because `supports_move` was a blocklist
+and the refusal was a match arm elsewhere. `inline --call` was derived from the
+language's *class* rather than from the operation's predicate — the one cell in the
+table that was, so adding a language to the enum claimed a capability nobody had
+written. Both now ask a single authority, which is what the module already claimed of
+itself: "every arm either calls the predicate the refactoring itself uses, or states why
+the operation is meaningless".
+
+Four of the six turned out to be capabilities Java simply *had* once asked properly, and
+two more followed from fixing them: an annotation inside a declaration rather than above
+it, and an unqualified call to a method of the enclosing class.
+
+The prose had the ordinary rot — counts that had moved, a command list three commands
+behind — and one entry worth naming: the README carried two "known limitations"
+paragraphs that contradicted each other, and the second described a bug that had been
+fixed. A document that disagrees with itself has stopped being read by its author.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

@@ -9,11 +9,13 @@ loudly.
 [docs/recipes.html](https://e6qu.github.io/fun-refactor/recipes.html) works five of
 them, in five languages, with the output the tool actually produced.
 
-What the design argued for and what got built agree, with two things worth naming.
-`calls=`, `called-by=`, `implements=` and `matches=` are **not** predicates yet — a
-selector naming one is refused by name rather than accepted and ignored, and
-`fr recipe` lists the ones it does answer. And the runner found a defect the design
-could not have: the refactorings read source through `crate::vfs`, so a step planned
+What the design argued for and what got built agree. Every predicate in the table below
+is implemented, including the four that were not at first: `calls=` and `called-by=`
+come from one call graph, built only when one of them is asked for; `implements=` from
+the hierarchy; and `matches=` from the pattern matcher, which needs `lang=` beside it
+because the same text parses into a different tree in every language.
+
+The runner found a defect the design could not have: the refactorings read source through `crate::vfs`, so a step planned
 after another step was measured against the file on *disk* — the text before any step
 ran. The in-memory backing that the browser build uses is now compiled everywhere and
 the runner installs the workspace on it, which is what makes "each step sees what the
@@ -221,7 +223,7 @@ in `src/analysis/entrypoints.rs` and is already tested across nine languages:
 | `exported` / `!exported` | is or is not |
 | `annotated-with="test"` | `#[test]`, `@property`, a build tag |
 | `file~"*_test.go"` | by path glob |
-| `lang=python` | one of the fifteen |
+| `lang=python` | one of the sixteen |
 
 Reusing it means a recipe's selector and an entry-point rule mean the same thing by
 construction, and the matcher gains from being used twice.

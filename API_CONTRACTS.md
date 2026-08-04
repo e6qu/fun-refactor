@@ -69,7 +69,7 @@ Run against `app/api/posts/[postId]/route.ts` from
 | Catch-all segment | **yes** | `[...path]` → `{path:path}`, which matches slashes |
 | Method | **yes** | `export async function PATCH` → `@router.patch` |
 | Path parameters | **yes** | typed `str`, and the name takes Python's convention |
-| Request body schema | **only from an `interface`** | an exported `interface` becomes a Pydantic `BaseModel`; a **zod schema does not** |
+| Request body schema | **yes** | an exported `interface` **or a zod schema** becomes a Pydantic `BaseModel` |
 | Response body schema | **no** | Next.js does not declare one and neither does the output |
 | Status codes | **carried into the code, not into the contract** | see below |
 
@@ -111,19 +111,44 @@ The tool does not write that, because which status is the *success* one is a jud
 about the endpoint rather than a fact about the syntax. It reports every status it saw
 and says what will happen if you leave them where they are.
 
-### The zod gap
+### Reading zod
 
-Most Next.js applications declare their shapes with zod, not with `interface`:
+Most Next.js applications declare their shapes with zod, not with `interface`. A zod
+schema is a *runtime value*, not a type declaration, so nothing that reads declarations
+finds it — and left alone it arrives as an ordinary constant, producing a service whose
+published contract has no request body in it at all.
+
+The builder chain is read instead:
 
 ```ts
-const routeContextSchema = z.object({ params: z.object({ postId: z.string() }) })
+const postCreateSchema = z.object({
+  title: z.string().min(3).max(128),
+  content: z.string().optional(),
+  views: z.number().int(),
+  tags: z.array(z.string()),
+  publishedAt: z.date().nullable(),
+})
 ```
 
-A zod schema is a *runtime value*, not a type declaration, so nothing that reads
-declarations will find it. It is carried into the output as an ordinary constant and
-produces no Pydantic model. That is the largest hole in the shape half of the contract,
-and closing it means reading zod's builder chain — `z.string().min(1).optional()` — as a
-schema. It is tractable and it is not done.
+```python
+class PostCreate(BaseModel):
+    title: str
+    content: str | None
+    views: int
+    tags: list[str]
+    published_at: datetime | None
+```
+
+A chain is left-nested — `z.string().min(3).optional()` is
+`optional(max(min(string)))` — so it is walked to the base call with the modifiers
+collected on the way past. `.optional()` and `.nullable()` become `Optional`; `.int()`
+picks `int` over `float`.
+
+**The constraints are deliberately dropped.** `.min(3)` is validation, Pydantic spells
+it `Field(min_length=3)`, and the two are not the same rule in every case. Guessing one
+from the other would be guessing at the part of a contract it is least safe to guess at.
+A nested `z.object` is `dict` for the same reason: Python wants it to be its own model,
+and naming one would be inventing a name.
 
 ## How you would actually check a rewrite
 
@@ -138,10 +163,25 @@ contract, and no amount of reading one side can. The check is a comparison:
 3. Export the contract from the result: `curl localhost:8000/openapi.json`.
 4. **Diff them**, and treat every difference as a defect until argued otherwise.
 
-Step 4 is a real gap in this tool. `fr translate … fastapi` could emit an OpenAPI
-document derived from the route tree — the URLs, methods and path parameters it already
-knows — and that document would be a baseline to diff the generated one against. It
-would catch exactly the failure this page is about: a contract that quietly got smaller.
+Step 1 is `fr openapi`. It walks the tree, finds every API route, and emits an
+OpenAPI 3.1 document from what the source *declares*:
+
+```sh
+fr openapi > before.json          # from the Next.js tree
+# … rewrite, finish the handlers, run it …
+curl -s localhost:8000/openapi.json > after.json
+diff <(jq -S . before.json) <(jq -S . after.json)
+```
+
+Paths, methods and path parameters are exact, because they come from the tree. Schemas
+are as good as what was declared. **Responses are `default` only** — which status an
+endpoint returns is a fact about its code rather than its declaration, and writing
+`200` for everything would be putting fiction into the file you are about to diff
+against, which is worse than an empty entry.
+
+Everything it could not settle is printed beside the document rather than guessed at,
+because a baseline that quietly invents an entry is the worst possible outcome: the
+diff comes out clean and the contract still shrank.
 
 ## What this is not
 

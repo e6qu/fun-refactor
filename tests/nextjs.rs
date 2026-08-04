@@ -299,3 +299,147 @@ fn the_destination_is_named_for_the_route() {
     assert_eq!(plan.destination.file_name().unwrap(), "users_id.py");
     assert_eq!(plan.edits.file_count(), 1);
 }
+
+// ------------------------------------------------------------ zod and OpenAPI
+
+const ZOD_ROUTE: &str = r#"import { NextResponse } from "next/server";
+import * as z from "zod";
+
+const postCreateSchema = z.object({
+  title: z.string().min(3).max(128),
+  content: z.string().optional(),
+  views: z.number().int(),
+  tags: z.array(z.string()),
+  draft: z.boolean(),
+  publishedAt: z.date().nullable(),
+});
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  return NextResponse.json(body, { status: 201 });
+}
+"#;
+
+#[test]
+fn a_zod_schema_becomes_a_pydantic_model() {
+    // Most Next.js applications declare their shapes with zod, and a zod schema is a
+    // runtime value rather than a type declaration — so nothing that reads declarations
+    // finds it. Left alone the translated service publishes a contract with no request
+    // body in it: the endpoint works and the contract is smaller than the one it
+    // replaced.
+    let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
+    let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
+
+    assert!(
+        plan.output.contains("class PostCreate(BaseModel):"),
+        "{}",
+        plan.output
+    );
+    for (field, ty) in [
+        ("title", "str"),
+        ("content", "str | None"),
+        ("views", "int"),
+        ("tags", "list[str]"),
+        ("draft", "bool"),
+        // The name takes Python's convention, like every other name the file declares.
+        ("published_at", "datetime | None"),
+    ] {
+        assert!(
+            plan.output.contains(&format!("{field}: {ty}")),
+            "expected `{field}: {ty}`:\n{}",
+            plan.output
+        );
+    }
+    // A name the output uses is a name the output has to import.
+    assert!(
+        plan.output.contains("from datetime import datetime"),
+        "{}",
+        plan.output
+    );
+}
+
+#[test]
+fn a_zod_constraint_is_not_invented_into_a_type() {
+    // `.min(3).max(128)` is validation, and Pydantic spells it with `Field(...)`.
+    // Guessing one from a zod call is a guess about the part of a contract it is least
+    // safe to guess at, so the constraint is dropped rather than mistranslated.
+    let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
+    let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
+    assert!(!plan.output.contains("min_length"), "{}", plan.output);
+    assert!(!plan.output.contains("128"), "{}", plan.output);
+}
+
+#[test]
+fn the_openapi_baseline_states_what_the_tree_declares() {
+    let (_tmp, root) = workspace(&[
+        ("app/api/posts/route.ts", ZOD_ROUTE),
+        (
+            "app/api/posts/[postId]/route.ts",
+            "export async function DELETE(request: Request) {\n  return null;\n}\n",
+        ),
+        (
+            "lib/helper.ts",
+            "export function helper(): number {\n  return 1;\n}\n",
+        ),
+    ]);
+    let files: Vec<std::path::PathBuf> = vec![
+        root.join("app/api/posts/route.ts"),
+        root.join("app/api/posts/[postId]/route.ts"),
+        root.join("lib/helper.ts"),
+    ];
+    let baseline = fun_refactor::openapi::from_routes("demo", &root, &files).unwrap();
+    let document = &baseline.document;
+
+    // Only the routes. A library file is not an endpoint.
+    assert_eq!(baseline.routes.len(), 2, "{:?}", baseline.routes);
+
+    let paths = document["paths"].as_object().unwrap();
+    assert!(paths.contains_key("/posts"));
+    assert!(paths["/posts"]["post"].is_object());
+
+    // The path parameter comes from the tree, which is the whole trick.
+    let parameters = paths["/posts/{post_id}"]["delete"]["parameters"]
+        .as_array()
+        .unwrap();
+    assert_eq!(parameters[0]["name"], "post_id");
+    assert_eq!(parameters[0]["in"], "path");
+    assert_eq!(parameters[0]["required"], true);
+
+    // The zod schema is a component.
+    let schema = &document["components"]["schemas"]["PostCreate"];
+    assert_eq!(schema["properties"]["views"]["type"], "integer");
+    assert_eq!(schema["properties"]["tags"]["type"], "array");
+    assert_eq!(schema["properties"]["tags"]["items"]["type"], "string");
+    // Optional says "may be absent", which OpenAPI spells by leaving it out of
+    // `required` rather than by changing the type.
+    let required: Vec<&str> = schema["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert!(required.contains(&"title"));
+    assert!(!required.contains(&"content"));
+}
+
+#[test]
+fn the_baseline_never_invents_a_response() {
+    // Which status an endpoint returns is a fact about its code, not its declaration.
+    // Writing `200` for everything would be putting fiction into the file you are about
+    // to diff against, which is worse than an empty one.
+    let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
+    let files = vec![root.join("app/api/posts/route.ts")];
+    let baseline = fun_refactor::openapi::from_routes("demo", &root, &files).unwrap();
+
+    let responses = &baseline.document["paths"]["/posts"]["post"]["responses"];
+    assert!(responses["default"].is_object());
+    assert!(responses["200"].is_null(), "{responses}");
+    assert!(responses["201"].is_null(), "{responses}");
+
+    // And what it could not settle is said, not hidden.
+    assert!(
+        baseline.notes.iter().any(|n| n.contains("returns status")),
+        "{:?}",
+        baseline.notes
+    );
+}

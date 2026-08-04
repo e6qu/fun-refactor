@@ -648,6 +648,7 @@ pub fn organizable(language: Language) -> bool {
             | Language::TypeScript
             | Language::Tsx
             | Language::Zig
+            | Language::Java
     )
 }
 

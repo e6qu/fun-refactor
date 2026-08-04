@@ -118,7 +118,18 @@ recipe <em>name</em> {
       <tr><td><code>unused</code></td><td>nothing reaches it — <code>fr unused</code></td></tr>
       <tr><td><code>duplicated</code></td><td>part of a copy-paste class — <code>fr duplicates</code></td></tr>
       <tr><td><code>changed</code></td><td>this recipe already touched it</td></tr>
+      <tr><td><code>calls="x"</code> / <code>called-by="x"</code></td><td>an edge in the call graph — <code>fr callers</code> / <code>fr callees</code></td></tr>
+      <tr><td><code>implements="Sink"</code></td><td>a concrete answer to an abstraction — <code>fr implementations</code></td></tr>
+      <tr><td><code>matches='log($X)'</code></td><td>a structural shape — <code>fr restructure</code>. Needs <code>lang=</code> beside it</td></tr>
     </table></div>
+    <p>
+      Each of the last five is an existing analysis rather than new machinery, and each
+      runs <em>only when a predicate asks for it</em>: building a call graph over a large
+      repository for a selector that says <code>name="x"</code> is work nobody asked for.
+      <code>matches=</code> needs a <code>lang=</code> beside it because the same text
+      parses into a different tree in every language, so there is no language-free answer
+      to where a shape occurs.
+    </p>
     <p>
       <strong>A selector that matches nothing stops the recipe.</strong> Silently doing
       nothing is the failure this most wants to avoid, because it looks exactly like

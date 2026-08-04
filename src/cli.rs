@@ -243,6 +243,17 @@ enum Command {
         #[arg(long)]
         write: bool,
     },
+    /// Derive an OpenAPI document from a Next.js route tree.
+    ///
+    /// The baseline a contract-preserving rewrite is checked against: build it before
+    /// the rewrite, run the finished service, fetch its `/openapi.json`, and diff.
+    /// Paths, methods and path parameters are exact; anything the source did not
+    /// declare is listed rather than invented.
+    Openapi {
+        /// Write the document here instead of to standard output.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
     /// Run a refactoring recipe: a file that says what to find, what to do to it,
     /// and what must be true afterwards.
     ///
@@ -464,6 +475,7 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
+        Command::Openapi { out } => cmd_openapi(&cli, out.as_deref()),
         Command::Recipe {
             file,
             write,
@@ -1241,6 +1253,59 @@ fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Resu
         plan.destination.display()
     );
     present(cli, &plan.edits, &summary, write)
+}
+
+/// `fr openapi` — the contract a Next.js tree declares, before it is rewritten.
+fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>) -> Result<()> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let scanned = scan(&root, &ScanOptions::default())?;
+    let files: Vec<PathBuf> = scanned.files.iter().map(|f| f.path.clone()).collect();
+
+    let title = root
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "workspace".to_string());
+    let baseline = crate::openapi::from_routes(&title, &root, &files)?;
+
+    if baseline.routes.is_empty() {
+        anyhow::bail!(
+            "no Next.js API route under {}. Those are `app/**/api/**/route.ts` or \
+             anything under `pages/api/`, and the URL comes from where the file sits.",
+            root.display()
+        );
+    }
+
+    let text = serde_json::to_string_pretty(&baseline.document)?;
+    match out {
+        Some(path) => {
+            crate::vfs::write(path, format!("{text}\n"))?;
+            if !cli.json {
+                println!(
+                    "{} route file(s) -> {}",
+                    baseline.routes.len(),
+                    path.display()
+                );
+            }
+        }
+        None => println!("{text}"),
+    }
+
+    // The notes go to stderr so the document on stdout stays a document.
+    if !baseline.notes.is_empty() && !cli.json {
+        eprintln!(
+            "\n{} thing(s) this document does not settle:",
+            baseline.notes.len()
+        );
+        for note in &baseline.notes {
+            eprintln!("  {note}");
+        }
+        eprintln!(
+            "\nDiff this against the finished service's /openapi.json. A difference is a \n\
+             defect until argued otherwise — and the one this catches is a contract that \n\
+             quietly got smaller."
+        );
+    }
+    Ok(())
 }
 
 /// `fr recipe <file>` — run a refactoring written down.

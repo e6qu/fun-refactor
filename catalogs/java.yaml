@@ -1,0 +1,90 @@
+# Java entry points.
+#
+# Java says "this is where execution starts" three ways: a `main` method the JVM is
+# pointed at, an annotation a framework scans for, and a lifecycle method a container
+# calls. The first is a name; the other two are annotations, which is how a test or a
+# handler declares itself in most languages — a name convention is not, and matching on
+# one is how 141 of ripgrep's 296 test functions came to look like dead code.
+- id: java-main
+  kind: cli-main
+  threat_model: local
+  languages: [java]
+  matches:
+    name: main
+    symbol_kind: method
+
+# JUnit 4 and 5 both spell it `@Test`; `annotated_with` matches the bare name, so
+# `@org.junit.jupiter.api.Test` and `@Test` are the same rule.
+- id: java-junit-test
+  kind: test
+  languages: [java]
+  matches:
+    annotated_with: Test
+
+- id: java-junit-parameterized
+  kind: test
+  languages: [java]
+  matches:
+    annotated_with: ParameterizedTest
+
+# JUnit 5's per-class and per-method fixtures. Nothing calls them by name.
+- id: java-junit-fixture
+  kind: test
+  languages: [java]
+  matches:
+    annotated_with: BeforeEach
+
+- id: java-junit-fixture-all
+  kind: test
+  languages: [java]
+  matches:
+    annotated_with: BeforeAll
+
+# Spring's stereotypes: the container instantiates these, so nothing in the source
+# refers to them and every one of them would otherwise look unused.
+- id: java-spring-controller
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: RestController
+
+- id: java-spring-controller-mvc
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: Controller
+
+- id: java-spring-mapping
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: RequestMapping
+
+- id: java-spring-bean
+  kind: exported-api
+  languages: [java]
+  matches:
+    annotated_with: Bean
+
+- id: java-spring-component
+  kind: exported-api
+  languages: [java]
+  matches:
+    annotated_with: Component
+
+- id: java-spring-service
+  kind: exported-api
+  languages: [java]
+  matches:
+    annotated_with: Service
+
+# `@Override` says a supertype declares it, so the caller is whoever holds the
+# supertype — which is not visible here and is exactly what makes it look dead.
+- id: java-override
+  kind: exported-api
+  languages: [java]
+  matches:
+    annotated_with: Override

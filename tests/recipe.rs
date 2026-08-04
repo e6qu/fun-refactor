@@ -287,6 +287,92 @@ fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
     assert!(report.ok);
 }
 
+const CALLS_PY: &str = r#"def log(message):
+    print(message)
+
+
+def save(record):
+    log("saving")
+    return record
+
+
+def load(key):
+    log("loading")
+    return key
+
+
+def unrelated():
+    return 1
+"#;
+
+#[test]
+fn the_call_graph_answers_calls_and_called_by() {
+    // Both directions come from one graph, and the graph is only built when a
+    // predicate asks for it.
+    let (_tmp, report, _after) = run(
+        &[("src/app.py", CALLS_PY)],
+        "schema 1\nrecipe r { rename to \"note\" where kind=function calls=\"log\" limit 1 }",
+    );
+    assert_eq!(
+        report.steps[0].matched, 2,
+        "`calls=\"log\"` selects the two functions that call it"
+    );
+
+    let (_tmp, report, _after) = run(
+        &[("src/app.py", CALLS_PY)],
+        "schema 1\nrecipe r { rename to \"note\" where kind=function called-by=\"save\" }",
+    );
+    assert_eq!(report.steps[0].matched, 1, "`save` calls only `log`");
+}
+
+#[test]
+fn a_structural_shape_selects_the_symbols_containing_it() {
+    let (_tmp, report, _after) = run(
+        &[("src/app.py", CALLS_PY)],
+        "schema 1\nrecipe r { delete where kind=function matches='log($X)' lang=python }",
+    );
+    assert_eq!(report.steps[0].matched, 2);
+    assert_eq!(report.steps[0].applied, 2);
+}
+
+#[test]
+fn a_shape_without_a_language_is_refused() {
+    // The same text parses into a different tree in every language, so there is no
+    // language-free answer to where a shape occurs.
+    let (tmp, sources) = workspace(&[("src/app.py", CALLS_PY)]);
+    let file = recipe::parse("schema 1\nrecipe r { delete where matches='log($X)' }").unwrap();
+    let error = recipe::run(
+        &file.recipes[0],
+        sources,
+        &Options {
+            root: tmp.path(),
+            catalogs: &[],
+        },
+    )
+    .unwrap_err()
+    .to_string();
+    fun_refactor::vfs::use_filesystem();
+    assert!(error.contains("needs `lang=` beside it"), "{error}");
+}
+
+#[test]
+fn implements_selects_the_concrete_answers_to_an_abstraction() {
+    let (_tmp, report, _after) = run(
+        &[(
+            "sink.ts",
+            "export interface Sink {\n  write(line: string): void;\n}\n\n\
+             export class FileSink implements Sink {\n  write(line: string): void {}\n}\n\n\
+             export class NullSink implements Sink {\n  write(line: string): void {}\n}\n\n\
+             export class Unrelated {\n  other(): void {}\n}\n",
+        )],
+        "schema 1\nrecipe r { rename to \"Renamed\" where implements=\"Sink\" kind=class limit 1 }",
+    );
+    assert_eq!(
+        report.steps[0].matched, 2,
+        "both classes implement it and `Unrelated` does not"
+    );
+}
+
 #[test]
 fn a_selector_that_matches_nothing_stops_the_recipe() {
     // Silently doing nothing is the failure this most wants to avoid, because it looks

@@ -73,6 +73,48 @@ pub struct RestructurePlan {
     pub matches: Vec<(PathBuf, String)>,
 }
 
+/// Where does this pattern match, without rewriting anything?
+///
+/// The find half of [`apply`], exposed because a recipe's `matches=` predicate asks
+/// exactly this question about a symbol and has no template to offer. Running `apply`
+/// with the pattern as its own template would not answer it: a rewrite that changes
+/// nothing is skipped, so every match would be discarded.
+pub fn locate(index: &Index, language: Language, pattern: &str) -> Result<Vec<(PathBuf, Span)>> {
+    let parsers = Parsers::new();
+    let encoded = encode_metavariables(pattern);
+    let (pattern_parsed, pattern_source, offset, trim_trailing) =
+        parse_fragment(&parsers, language, &encoded, pattern)?;
+    let pattern_root = fragment_root(&pattern_parsed, offset, encoded.len())
+        .ok_or_else(|| anyhow::anyhow!("could not parse the pattern as {language}: '{pattern}'"))?;
+    if metavariable(pattern_root, &pattern_source).is_some() {
+        return Err(Refusal::InvalidName {
+            name: pattern.to_string(),
+            reason: "a pattern that is only a metavariable would match everything".into(),
+        }
+        .into());
+    }
+    let compiled = Pattern {
+        root: pattern_root,
+        source: &pattern_source,
+        trim_trailing,
+    };
+
+    let mut found = Vec::new();
+    for (path, info) in index.files() {
+        if info.language != language {
+            continue;
+        }
+        let Ok(source) = crate::vfs::read_to_string(path) else {
+            continue;
+        };
+        let parsed = parsers.parse(language, &source)?;
+        for (span, _) in find_matches(&parsed, &source, &compiled) {
+            found.push((path.clone(), span));
+        }
+    }
+    Ok(found)
+}
+
 /// Rewrite every occurrence of `pattern` as `template` across the workspace.
 pub fn apply(
     index: &Index,
