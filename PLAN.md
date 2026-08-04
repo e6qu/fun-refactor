@@ -563,6 +563,24 @@ to the browser although nothing in it is wasm-specific. It is compiled everywher
 A choke point that only one caller can redirect is a choke point with one user. The
 second user found that out in an afternoon.
 
+### Writing the catalogue page down found the citations wrong
+
+Twenty-three entries now, and two of the original fifteen were citing the wrong thing.
+The De Morgan entry was titled *Consolidate Conditional Expression* and cited Fowler
+§10.2 — which is about combining several conditionals that produce the same result, not
+about pushing a negation through a conjunction. Substitute Algorithm was cited to a
+first-edition section number rather than §7.9 of the second. Both now say what they
+are, and two entries admit to citing **neither** catalogue: renaming a CSS class across
+a stylesheet and its markup is a problem the books predate, and dropping unused imports
+is housekeeping nobody wrote an entry for. Attaching a plausible section number to
+either would have been worse than the admission.
+
+The page also gained a third refusal, and finding it was the point: `fr signature circ
+move:0:1` produced `def circ(units="m", r):`, which Python rejects outright. The engine
+reparses every edit, and tree-sitter accepts that line — so a grammar-level check was
+never going to catch it and the refactoring had to learn the rule. A demo that only
+shows successes would not have gone looking.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

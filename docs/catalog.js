@@ -8,6 +8,9 @@ function books(entry) {
     if (source.includes("Fowler")) found.add("fowler");
     if (source.includes("Beck")) found.add("beck");
   }
+  // The boundary is worth filtering for on its own: a refusal is where the tool stops
+  // and says why, which is the least discoverable thing about it.
+  if (entry.kind !== "edit") found.add("boundary");
   return [...found];
 }
 

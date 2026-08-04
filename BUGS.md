@@ -69,6 +69,14 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B91: **`fr signature move` could produce Python the interpreter rejects.**
+  Reordering `def circ(r, units="m")` to `def circ(units="m", r)` puts a defaulted
+  parameter before a required one, which Python refuses with *"parameter without a
+  default follows parameter with a default"* — and tree-sitter parses it without
+  complaint, so the engine's reparse check could not see it. The refactoring has to
+  know the rule itself; it now refuses for Python and TypeScript, naming what would
+  break, and leaves the languages with no defaults alone.
+
 - [x] B90: **every Go function body was carried into a translation as a single
   comment.** tree-sitter-go puts a `statement_list` between a block and its statements,
   so the reader saw one unknown node where a body should be. Invisible to the

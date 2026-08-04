@@ -171,8 +171,11 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             let param_spans = list_items(params);
             apply_change(
                 &mut edits,
-                &sym.file,
-                &source,
+                &Site {
+                    file: &sym.file,
+                    source: &source,
+                    language: sym.language,
+                },
                 params,
                 &param_spans,
                 &change,
@@ -232,8 +235,11 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 let arg_spans = list_items(args);
                 apply_change(
                     &mut edits,
-                    &reference.file,
-                    &call_source,
+                    &Site {
+                        file: &reference.file,
+                        source: &call_source,
+                        language: reference.language,
+                    },
                     args,
                     &arg_spans,
                     &change,
@@ -265,15 +271,69 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 }
 
 /// Rewrite one parameter or argument list.
+/// Would this reorder put a parameter with a default before one without?
+///
+/// Python and TypeScript both require every defaulted parameter to come last, and
+/// tree-sitter parses `def circ(units="m", r):` without complaint — so the engine's
+/// reparse check cannot see this and `fr signature circ move:0:1` produced a file
+/// Python rejects with *"parameter without a default follows parameter with a
+/// default"*. The languages with no defaults at all cannot hit it.
+fn defaults_would_be_out_of_order(
+    language: Language,
+    source: &str,
+    items: &[Span],
+    from: usize,
+    to: usize,
+) -> bool {
+    if !matches!(
+        language,
+        Language::Python | Language::TypeScript | Language::Tsx
+    ) {
+        return false;
+    }
+    // `?` is TypeScript's other way of saying the same thing.
+    let defaulted = |span: &Span| {
+        let text = span.text(source);
+        text.contains('=')
+            || text
+                .split(':')
+                .next()
+                .is_some_and(|name| name.ends_with('?'))
+    };
+    let mut order: Vec<&Span> = items.iter().collect();
+    if from >= order.len() || to >= order.len() {
+        return false;
+    }
+    order.swap(from, to);
+    let first_defaulted = order.iter().position(|span| defaulted(span));
+    match first_defaulted {
+        Some(at) => order[at..].iter().any(|span| !defaulted(span)),
+        None => false,
+    }
+}
+
+/// The file a change is being written into.
+///
+/// The three travel together everywhere and separately were three of eight parameters.
+struct Site<'a> {
+    file: &'a std::path::Path,
+    source: &'a str,
+    language: Language,
+}
+
 fn apply_change(
     edits: &mut EditSet,
-    file: &std::path::Path,
-    source: &str,
+    site: &Site<'_>,
     list: Node<'_>,
     items: &[Span],
     change: &Change,
     is_declaration: bool,
 ) -> Result<()> {
+    let Site {
+        file,
+        source,
+        language,
+    } = *site;
     match change {
         Change::Remove(index) => {
             let Some(target) = items.get(*index) else {
@@ -298,6 +358,14 @@ fn apply_change(
                 }
                 return Ok(());
             };
+            if is_declaration && defaults_would_be_out_of_order(language, source, items, *from, *to)
+            {
+                anyhow::bail!(
+                    "moving parameter {from} to position {to} would put a parameter with a \
+                     default before one without, which {language} does not allow. Give the \
+                     other parameter a default first, or remove this one's."
+                );
+            }
             // Swapping the text of two items keeps every byte in between untouched.
             edits.add(
                 file.to_path_buf(),
@@ -2128,6 +2196,28 @@ mod tests {
             apply(&plan, &path),
             "fn f(b: i32, a: i32) {}\nfn caller() { f(2, 1); }\n"
         );
+    }
+
+    #[test]
+    fn refuses_a_reorder_that_would_put_a_default_before_a_required_parameter() {
+        // Python rejects `def circ(units="m", r):` with "parameter without a default
+        // follows parameter with a default", and tree-sitter parses it without
+        // complaint — so the engine's reparse check cannot see this one and the
+        // refactoring has to know the rule itself.
+        let src = "def circ(r, units=\"m\"):\n    return r\n";
+        let (_tmp, index) = workspace(&[("a.py", src)]);
+        let id = index.find_symbols("circ", None)[0].id;
+
+        let error = change(&index, id, Change::Move { from: 0, to: 1 })
+            .expect_err("this would not run")
+            .to_string();
+        assert!(error.contains("before one without"), "{error}");
+
+        // The same move where neither has a default is fine.
+        let src = "def send(host, port):\n    return port\n";
+        let (_tmp, index) = workspace(&[("b.py", src)]);
+        let id = index.find_symbols("send", None)[0].id;
+        assert!(change(&index, id, Change::Move { from: 0, to: 1 }).is_ok());
     }
 
     #[test]
