@@ -970,7 +970,10 @@ function openTranslateMenu(anchor: HTMLElement) {
       label: o.destination
         ? `${o.language} → ${o.destination.split("/").pop()}`
         : o.language,
-      group: o.unavailable ? "Not possible" : "Write it as",
+      // Three groups, because "the same bytes under another grammar" and "a draft a
+      // person has to finish" are different promises and must not sit together.
+      group: o.unavailable ? "Not possible" : o.draft ? "Translate (a draft)" : "Write it as",
+      mutates: Boolean(o.draft),
       disabled: o.unavailable ?? null,
     })),
     (language) => {

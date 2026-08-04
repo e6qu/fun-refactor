@@ -198,6 +198,25 @@ repository.
 already covered — as a *textual occurrence*, reported and never rewritten, which is
 the right answer.
 
+## Rewriting a file as another language
+
+Since this document was written, `fr translate` gained a second mode. The first —
+containment — writes the same bytes under a different grammar: CSS as SCSS, a manifest
+as a Helm template. The second **translates**, between Rust, Go, Python and TypeScript,
+and is a different promise entirely.
+
+The signature is the contract: every parameter in order, with its type and the return
+type, carried exactly and spelled the target's way. `fn averages(readings: &[Reading])
+-> HashMap<String, f64>` becomes `def averages(readings: list[Reading]) ->
+dict[str, float]`. Declarations are idiomatic — a record is a Rust `struct` with an
+`impl`, a Python `@dataclass`, a Go `struct`, a TypeScript `interface` or `class`.
+
+Everything with no counterpart — ownership, closures, macros, comprehensions, error
+propagation — is carried into the output **verbatim, inside a comment**, and counted.
+The result is a draft that says exactly how much of it is real.
+
+See `src/transpile/` and RECIPES-style notes in that module's documentation.
+
 ## What this changes about the design
 
 Three things the measurements argue for:

@@ -711,6 +711,9 @@ impl Workspace {
             destination: Option<String>,
             /// Absent when it can be done.
             unavailable: Option<String>,
+            /// Present when this is a translation rather than the same bytes, saying
+            /// how much of it is real. A caller must be able to tell the difference.
+            draft: Option<String>,
         }
         let path_buf = PathBuf::from(path);
         let Some(from) = crate::lang::detect(&path_buf) else {
@@ -723,6 +726,34 @@ impl Workspace {
             if *language == from {
                 continue;
             }
+            // A containment is the same bytes; a translation is a draft. Both are
+            // offered, and which one it is has to be visible before it is chosen.
+            if !possible.contains(language)
+                && crate::transpile::supports(from)
+                && crate::transpile::supports(*language)
+            {
+                match crate::transpile::plan(&path_buf, *language) {
+                    Ok(plan) => {
+                        let f = &plan.fidelity;
+                        out.push(Option_ {
+                            language: language.name().to_string(),
+                            destination: Some(plan.destination.display().to_string()),
+                            unavailable: None,
+                            draft: Some(format!(
+                                "a draft — {}/{} signatures complete, {} construct(s) carried over as comments",
+                                f.signatures_complete, f.functions, f.carried_verbatim
+                            )),
+                        });
+                    }
+                    Err(e) => out.push(Option_ {
+                        language: language.name().to_string(),
+                        destination: None,
+                        unavailable: Some(e.to_string()),
+                        draft: None,
+                    }),
+                }
+                continue;
+            }
             if possible.contains(language) {
                 // Offered, but the file still has to parse as it — a `.scss` using
                 // nesting is not CSS, and the button must say that before it is
@@ -732,6 +763,7 @@ impl Workspace {
                         language: language.name().to_string(),
                         destination: Some(plan.destination.display().to_string()),
                         unavailable: None,
+                        draft: None,
                     }),
                     Err(e) => out.push(Option_ {
                         language: language.name().to_string(),
@@ -739,6 +771,7 @@ impl Workspace {
                             .ok()
                             .map(|p| p.display().to_string()),
                         unavailable: Some(e.to_string()),
+                        draft: None,
                     }),
                 }
             } else {
@@ -746,6 +779,7 @@ impl Workspace {
                     language: language.name().to_string(),
                     destination: None,
                     unavailable: Some(crate::translate::why_not(from, *language)),
+                    draft: None,
                 });
             }
         }
@@ -758,8 +792,33 @@ impl Workspace {
         let Some(to) = crate::lang::Language::from_name(language) else {
             return fail(format!("unknown language '{language}'"));
         };
-        match crate::translate::plan(Path::new(path), to) {
-            Ok(plan) => self.apply(plan.edits, Vec::new()),
+        let path_buf = PathBuf::from(path);
+        let Some(from) = crate::lang::detect(&path_buf) else {
+            return fail(format!("no grammar recognises {path}"));
+        };
+        if crate::translate::targets(from).contains(&to) {
+            return match crate::translate::plan(&path_buf, to) {
+                Ok(plan) => self.apply(plan.edits, Vec::new()),
+                Err(e) => fail(e),
+            };
+        }
+        match crate::transpile::plan(&path_buf, to) {
+            Ok(plan) => {
+                let f = plan.fidelity.clone();
+                let applied = self.apply(plan.edits, Vec::new());
+                // The fidelity travels with the result: a draft that does not announce
+                // itself will be read as though a person wrote it.
+                with_notes(
+                    applied,
+                    &std::iter::once(format!(
+                        "{}/{} signature(s) carried across complete; {} construct(s) had no \
+                         counterpart and are in the file as comments",
+                        f.signatures_complete, f.functions, f.carried_verbatim
+                    ))
+                    .chain(f.notes.into_iter().take(20))
+                    .collect::<Vec<_>>(),
+                )
+            }
             Err(e) => fail(e),
         }
     }

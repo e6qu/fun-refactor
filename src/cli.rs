@@ -1117,7 +1117,16 @@ fn cmd_translate(
 
     let Some(language) = language else {
         // No target named: say what this file could be, and stop.
-        let targets = crate::translate::targets(from);
+        let mut targets: Vec<crate::lang::Language> = crate::translate::targets(from).to_vec();
+        // Plus every language this can be translated into, which is a different and
+        // much weaker promise — a draft rather than the same bytes.
+        if crate::transpile::supports(from) {
+            for language in crate::transpile::SUPPORTED {
+                if *language != from && !targets.contains(language) {
+                    targets.push(*language);
+                }
+            }
+        }
         if targets.is_empty() {
             println!(
                 "{} is {from}, and there is no language it can be rewritten as.\n\n{}",
@@ -1127,9 +1136,25 @@ fn cmd_translate(
             return Ok(());
         }
         println!("{} is {from}. It could be written as:", path.display());
-        for target in targets {
-            match crate::translate::plan(&path, *target) {
-                Ok(plan) => println!("  {target:<10} -> {}", plan.destination.display()),
+        for target in &targets {
+            let containment = crate::translate::targets(from).contains(target);
+            let outcome = if containment {
+                crate::translate::plan(&path, *target).map(|p| (p.destination, None))
+            } else {
+                crate::transpile::plan(&path, *target).map(|p| (p.destination, Some(p.fidelity)))
+            };
+            match outcome {
+                Ok((destination, None)) => {
+                    println!("  {target:<10} -> {} (same bytes)", destination.display())
+                }
+                Ok((destination, Some(f))) => println!(
+                    "  {target:<10} -> {} (a draft: {}/{} signatures complete, {} \
+                     construct(s) carried over)",
+                    destination.display(),
+                    f.signatures_complete,
+                    f.functions,
+                    f.carried_verbatim
+                ),
                 Err(e) => println!("  {target:<10} not this file: {e}"),
             }
         }
@@ -1138,9 +1163,52 @@ fn cmd_translate(
 
     let to = crate::lang::Language::from_name(language)
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
-    let plan = crate::translate::plan(&path, to)?;
+
+    // Containment first — CSS as SCSS is the same bytes and needs no translation. A
+    // pair that is not a containment is a translation, which is a different promise.
+    if crate::translate::targets(from).contains(&to) {
+        let plan = crate::translate::plan(&path, to)?;
+        let summary = format!(
+            "{} written as {} ({} -> {})",
+            plan.source.display(),
+            plan.destination.display(),
+            plan.from,
+            plan.to
+        );
+        return present(cli, &plan.edits, &summary, write);
+    }
+
+    let plan = crate::transpile::plan(&path, to)?;
+    if !cli.json {
+        let f = &plan.fidelity;
+        println!(
+            "{} -> {} ({} function(s), {} record(s), {} constant(s))",
+            plan.from, plan.to, f.functions, f.records, f.constants
+        );
+        println!(
+            "  signatures: {} complete, {} mentioning a type this tool does not know",
+            f.signatures_complete, f.signatures_with_foreign_types
+        );
+        if f.carried_verbatim > 0 {
+            println!(
+                "  {} construct(s) had no counterpart and are in the output as comments:",
+                f.carried_verbatim
+            );
+            for note in f.notes.iter().take(10) {
+                println!("    {note}");
+            }
+            if f.notes.len() > 10 {
+                println!("    and {} more", f.notes.len() - 10);
+            }
+            println!(
+                "\n  This is a draft. It carries the signatures; the bodies it could not \n  \
+                 translate are beside the code that replaces them."
+            );
+        }
+        println!();
+    }
     let summary = format!(
-        "{} written as {} ({} -> {})",
+        "{} translated to {} ({} -> {})",
         plan.source.display(),
         plan.destination.display(),
         plan.from,
