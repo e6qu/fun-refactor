@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python ↔ TypeScript — fun-refactor</title>
+<meta name="description" content="Typed Python written as TypeScript and back again, with nothing carried over as a comment in either direction. Every result is real tool output.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="catalog.html">Catalogue</a>
+      <a href="translate.html" aria-current="page">Translate</a>
+      <a href="playground/">Playground</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">Translation</p>
+    <h1 class="prose">Typed Python, written as TypeScript. And back.</h1>
+    <p class="lede prose">
+      The two languages closest to each other get the closest translation:
+      <code>list[str]</code> is <code>string[]</code>, <code>dict[str, int]</code> is
+      <code>Record&lt;string, number&gt;</code>, <code>Optional[T]</code> is
+      <code>T | null</code>, a <code>@dataclass</code> is an <code>interface</code>, an
+      f-string is a template literal, a comprehension is a <code>.filter()</code> chain,
+      and <code>await</code> means the same thing in both.
+    </p>
+
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Generated</span> &nbsp;Every result below is what
+      <code>fr translate</code> actually produced, captured by
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. The first two carry
+      <strong>nothing</strong> over as a comment in either direction — the strongest
+      claim any pair in this tool makes. The third is real code from a real project, and
+      says exactly where the translation stops being one.
+    </p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="shell">
+    <div id="cases"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>What is being promised</h2>
+    <p>
+      <strong>The signature is the contract.</strong> Every parameter, in order, with
+      its type and the return type, carried exactly — only the spelling changes, to the
+      target's convention. Where a type has no counterpart it is written through by name
+      and <em>counted</em>, because quietly substituting a type is how a signature stops
+      meaning what it said.
+    </p>
+    <p>
+      <strong>Names take the target's convention, and only the file's own.</strong>
+      <code>user_create</code> is <code>userCreate</code> in TypeScript, at its
+      declaration and at every use. A name the module does not declare —
+      <code>db.users.find</code>, a library function — is left exactly as written,
+      because re-casing it would rename somebody else's API.
+    </p>
+    <p>
+      <strong>Nothing goes missing quietly.</strong> Ownership, decorators, generators,
+      destructuring and error propagation have no general translation, and a guess would
+      be worse than a gap. Each one is carried into the output verbatim, inside a
+      comment, under a marker, and counted in the report. The result is a file you
+      finish, not one you have to diff against the original to find out what was lost.
+    </p>
+
+    <h3>Where it stops</h3>
+    <p>
+      It is not a compiler, and the result is a draft. The third case above is the
+      honest picture: five signatures mention types from libraries this tool has never
+      heard of, and Python's keyword-only parameters have no TypeScript spelling at all
+      — so the types cross, and the report says that callers will write the call
+      differently. That sentence is worth more than a silently plausible file.
+    </p>
+
+    <div class="btn-row">
+      <a class="btn" href="playground/">Translate your own file</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/CROSS_LANGUAGE.md">What crosses, and what does not</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script type="module" src="translate.js"></script>
+</body>
+</html>

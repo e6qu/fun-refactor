@@ -30,6 +30,18 @@ pub struct FileInfo {
     pub had_parse_errors: bool,
 }
 
+impl FileInfo {
+    /// The innermost scope containing `offset`.
+    pub fn scope_at(&self, offset: usize) -> Option<crate::model::ScopeId> {
+        crate::model::scope_at(&self.scopes, offset)
+    }
+
+    /// Walk from `scope` outwards to the file root.
+    pub fn scope_chain(&self, scope: crate::model::ScopeId) -> Vec<crate::model::ScopeId> {
+        crate::model::scope_chain(&self.scopes, scope)
+    }
+}
+
 /// A resolved workspace.
 #[derive(Debug, Default)]
 pub struct Index {

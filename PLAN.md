@@ -498,6 +498,34 @@ beside a path that only exists in a browser's memory. A feature flag says which
 backings exist. It does not say which one is active, and code that confuses the two is
 correct only for as long as nobody builds the combination.
 
+### Writing the demo is a test of the tool
+
+`docs/catalog.html` works the named moves from Fowler's and Beck's catalogues in
+Python, and `docs/translate.html` writes typed Python as TypeScript and back. Neither
+page contains a hand-written result: `tests/site_data.rs` runs the real binary over the
+samples, captures before, after, the diff and what it printed, and fails when the
+committed pages stop matching. A hand-typed "after" is a claim about the tool rather
+than a demonstration of it, and it is stale the first day the tool improves.
+
+Building the two pages found four defects, and the shape of them is worth noticing:
+none was reachable by asking the tool to do something unusual. They were all found by
+asking it to do the *most ordinary thing in the catalogue*.
+
+- `fr signature X 'add:1:flag: bool:false'` — the example printed in the tool's own
+  error message — failed with that same message.
+- Inlining a variable was refused whenever any name in its value appeared anywhere
+  else in the file, because the capture check was a two-hundred-byte proximity window
+  rather than a question about scope. The scope-aware answer was being computed and
+  thrown away on the line above.
+- A bare `xs.filter(p)` did not translate at all, and a comprehension that kept what it
+  selected wrote out an identity `map`.
+
+The page also has to say where the tool stops, and one entry is a *refusal*: Fowler's
+own Guard Clauses example is an `if`/`else` nest, and turning the `else` into an early
+return means deciding what the function returns on the path that used to fall through.
+The generator asserts that entry still fails, so the page cannot go on claiming a
+refusal that no longer happens.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

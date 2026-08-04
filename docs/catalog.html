@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The catalogue, in Python — fun-refactor</title>
+<meta name="description" content="Fowler's and Beck's refactoring catalogues, worked in Python by the tool itself: before, after, diff, and what it said. Every result is real output.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="catalog.html" aria-current="page">Catalogue</a>
+      <a href="translate.html">Translate</a>
+      <a href="playground/">Playground</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">The catalogue</p>
+    <h1 class="prose">Fowler and Beck, worked in Python</h1>
+    <p class="lede prose">
+      The named moves — Extract Function, Guard Clauses, Inline Variable — applied to
+      Python by the tool, one command each. Before, after, the diff, and the sentences
+      it printed about what it had done.
+    </p>
+
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Generated</span> &nbsp;Every <em>after</em> and every diff
+      below is what the <code>fr</code> binary actually produced, captured by
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. A hand-typed “after” is a
+      claim about the tool rather than a demonstration of it, and it goes stale the
+      first time the tool improves. That test fails when the page and the tool disagree.
+    </p>
+
+    <p class="note prose" style="margin-top:0.75rem">
+      <span class="recorded">Whose code</span> &nbsp;The <em>names</em> are Fowler's and
+      Beck's, and each entry says which book and which edition. The <strong>code is
+      not theirs</strong>: every sample here is written for this page, in Python, to
+      exercise the move the catalogue describes. Their examples are copyrighted, and a
+      translation of one into Python would be a derivative of it. Go and read them —
+      the books are where the <em>judgement</em> lives, and no tool has any of that.
+    </p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="shell">
+    <div class="filters" role="tablist" aria-label="Filter by catalogue">
+      <button data-filter="all" role="tab" aria-selected="true">Everything</button>
+      <button data-filter="fowler" role="tab" aria-selected="false">Fowler</button>
+      <button data-filter="beck" role="tab" aria-selected="false">Beck</button>
+    </div>
+
+    <div class="catalog-layout">
+      <nav class="catalog-index" aria-label="Entries">
+        <ol id="index"></ol>
+      </nav>
+      <div id="entries"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>What is not here</h2>
+    <p>
+      Most of the catalogue. Both books are largely about moves that need to know what
+      a type <em>is</em> — Replace Conditional with Polymorphism, Replace Primitive with
+      Object, Encapsulate Record — and this tool resolves names, not types. It would
+      have to guess, and a refactoring that guesses is a find-and-replace with better
+      manners.
+    </p>
+    <p>
+      The entry above that declines is the honest shape of that boundary. Fowler's own
+      Guard Clauses example is an <code>if</code>/<code>else</code> nest assigning to a
+      result, and turning the <code>else</code> into an early return means deciding what
+      the function returns on the path that used to fall through. That is a judgement
+      about the code. The tool says so and stops.
+    </p>
+    <h3>The books</h3>
+    <ul>
+      <li><em>Refactoring: Improving the Design of Existing Code</em>, 2nd ed. — Martin Fowler, 2018.</li>
+      <li><em>Refactoring</em>, 1st ed. — Martin Fowler with Kent Beck, 1999, and the
+          <a href="https://refactoring.com/catalog/">online catalogue</a> that carries it forward.</li>
+      <li><em>Tidy First?</em> — Kent Beck, 2023. Small, reversible, one at a time.</li>
+      <li><em>Test-Driven Development by Example</em> — Kent Beck, 2002. Where the refactor step comes from.</li>
+      <li><em>Implementation Patterns</em> — Kent Beck, 2007.</li>
+    </ul>
+    <div class="btn-row">
+      <a class="btn" href="playground/">Try it in the browser</a>
+      <a class="btn ghost" href="translate.html">Python ↔ TypeScript</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script type="module" src="catalog.js"></script>
+</body>
+</html>

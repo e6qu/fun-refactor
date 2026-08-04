@@ -2013,13 +2013,28 @@ mod typescript {
         if callee.kind() != "member_expression" {
             return None;
         }
-        if cx.field_text(callee, "property")? != "map" {
+        let method = cx.field_text(callee, "property")?;
+        if method != "map" && method != "filter" {
             return None;
         }
         let args = cx.children(cx.field(node, "arguments")?);
         if args.len() != 1 {
             return None;
         }
+
+        // A bare `xs.filter(p)` is `[x for x in xs if p(x)]` — the same comprehension
+        // with the identity element. Reading only `.map(...)` meant a plain filter,
+        // which is the commoner of the two, came out as a comment.
+        if method == "filter" {
+            let (binding, predicate) = one_arg_arrow(cx, args[0])?;
+            return Some(Expr::Comprehension {
+                element: Box::new(Expr::Name(binding.clone())),
+                binding,
+                iterable: Box::new(expr(cx, cx.field(callee, "object")?)),
+                condition: Some(Box::new(expr(cx, predicate))),
+            });
+        }
+
         let (binding, element) = one_arg_arrow(cx, args[0])?;
 
         // The receiver is either the collection, or a `.filter(...)` on it.
