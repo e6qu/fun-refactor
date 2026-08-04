@@ -35,6 +35,17 @@ export const ICONS: Record<string, string> = {
       `<rect x="2.5" y="16.5" width="6" height="5" rx="1.2"/>` +
       `<rect x="15.5" y="16.5" width="6" height="5" rx="1.2"/>`,
   ),
+  /**
+   * Rewrite as another language: one document becoming another.
+   *
+   * Two overlapping pages with an arrow between them — the file is the same bytes,
+   * read by a different grammar.
+   */
+  translate: svg(
+    `<path d="M4 3.5h8l3.5 3.5v6"/><path d="M12 3.5V7h3.5"/>` +
+      `<rect x="8.5" y="10.5" width="11" height="10" rx="1.5"/>` +
+      `<path d="M11.5 15.5h5"/><path d="M14.5 13.5l2 2-2 2"/>`,
+  ),
   /** Back through the jump history. */
   back: svg(`<path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/>`),
   /** Forward again. */

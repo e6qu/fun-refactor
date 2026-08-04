@@ -52,6 +52,7 @@ fn workspace() -> tempfile::TempDir {
             "web/app.ts",
             "export function render(name: string): string {\n  const greeting = \"hi \" + name;\n  return greeting;\n}\n",
         ),
+        ("web/app.css", ".panel {\n  color: red;\n}\n"),
         ("chart/Chart.yaml", "apiVersion: v2\nname: demo\nversion: 0.1.0\n"),
         ("chart/values.yaml", "appName: demo\nimage:\n  tag: v1\n"),
         (
@@ -117,6 +118,9 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("duplicates", vec!["duplicates", "--min-tokens", "40"]),
         ("unused", vec!["unused", "--language", "go"]),
         ("imports", vec!["imports", "svc/a.go"]),
+        // A stylesheet is the one thing in this fixture that can be rewritten as
+        // another language; every programming language in it refuses, by design.
+        ("translate", vec!["translate", "web/app.css", "scss"]),
         (
             "remove-flag",
             vec!["remove-flag", "USE_NEW", "--value", "true"],

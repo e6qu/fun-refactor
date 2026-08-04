@@ -69,6 +69,17 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B65: **a template metavariable the pattern never bound was caught by the wrong
+  check.** `restructure 'len($X) == 0' 'not $Y'` produced the literal text `$Y` in the
+  source, and the engine's reparse check rejected the result with "parses cleanly now
+  but would not after the change" — true, and silent about the actual mistake. The
+  pattern and template are now compared before anything is rewritten: *"$Y is not bound
+  by the pattern, so there is nothing to put there — the pattern binds $X."*
+
+- [x] B66: **`?repo=` picked the workspace for the JSON renderings and was ignored by
+  the page.** One parameter meaning two different things depending on `render_as` is a
+  trap for anyone sharing a link.
+
 - [x] B64: **a Rust method call resolved to a Zig method, and a rename rewrote it.**
   Resolution matched candidates by name across the whole workspace without asking what
   language they were written in, so `out.push(…)` in Rust — a `Vec::push` — resolved to

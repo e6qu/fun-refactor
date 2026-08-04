@@ -222,6 +222,85 @@ for (const [operation, run] of Object.entries(OPERATIONS)) {
   }
 }
 
+// ------------------------------------------------------------- the pattern DSL
+//
+// `restructure` has its own little language: `$NAME` matches any node and binds its
+// text. Its failure mode is silence — a pattern that matches nothing looks exactly
+// like a pattern that had nothing to match, and both report success. So each probe
+// below states whether it expects to match, and a `mustMatch` that finds nothing is
+// a defect rather than a shrug.
+
+console.log("\npattern DSL");
+
+const PATTERNS = [
+  // language, pattern, template, must it match the sample?
+  ["python", "len($X) == 0", "not $X", false],
+  ["python", "$A is not None", "$A != None", false],
+  ["python", 'open($P, encoding="utf-8")', "open($P)", false],
+  ["rust", "$A.clone()", "$A.to_owned()", false],
+  ["rust", "format!($F, $A)", "format!($F, $A)", false],
+  ["go", "fmt.Sprintf($F, $A)", "fmt.Sprintf($F, $A)", false],
+  ["go", "errors.New($M)", "fmt.Errorf($M)", false],
+  ["typescript", "$A === undefined", "$A == null", false],
+  ["typescript", "console.log($X)", "logger.debug($X)", false],
+  ["css", "color: $C", "color: $C", false],
+  ["scss", "color: $$brand", "color: $$primary", false],
+  ["yaml", "runs-on: $R", "runs-on: $R", false],
+  ["bash", "echo $M", "printf '%s\\n' $M", false],
+  ["hcl", "count = $N", "count = $N", false],
+  // A metavariable in the template that the pattern never bound: the DSL must
+  // refuse rather than write the literal text `$Y` into the source.
+  ["python", "len($X) == 0", "not $Y", false],
+  // Malformed: an unparseable fragment is a refusal, not a panic.
+  ["python", "def (", "pass", false],
+  ["rust", "fn $", "fn x", false],
+];
+
+{
+  const counts = {};
+  const problems = [];
+  const matched = [];
+  for (const [language, pattern, template, mustMatch] of PATTERNS) {
+    const workspace = new Workspace({ ...files });
+    let outcome;
+    try {
+      outcome = outcomeOf(workspace.restructure(language, pattern, template));
+    } catch (e) {
+      outcome = { kind: "TRAPPED", detail: String(e).split("\n")[0] };
+    }
+    counts[outcome.kind] = (counts[outcome.kind] ?? 0) + 1;
+    if (["BROKE", "TRAPPED", "UNPARSEABLE"].includes(outcome.kind)) {
+      problems.push([`${language} '${pattern}'`, outcome.detail]);
+    }
+    if (outcome.kind === "ok") {
+      matched.push(`${language} '${pattern}' -> ${outcome.value.files.length} file(s)`);
+    }
+    if (mustMatch && outcome.kind !== "ok") {
+      problems.push([`${language} '${pattern}'`, `expected a match, got ${outcome.kind}`]);
+    }
+    workspace.free();
+  }
+  console.log(
+    `  ${PATTERNS.length} patterns: ` +
+      Object.entries(counts).sort().map(([k, v]) => `${k}=${v}`).join(", "),
+  );
+  // Which ones bit. A count of no-ops is not evidence either way without this: a
+  // pattern for a language the corpus does not contain *should* match nothing.
+  if (matched.length) {
+    console.log(`      matched: ${matched.join("; ")}`);
+  }
+  for (const [what, why] of problems.slice(0, 8)) {
+    console.log(`      ${what}`);
+    console.log(`      ${String(why).replace(/\s+/g, " ").slice(0, 170)}`);
+  }
+  for (const bad of ["BROKE", "TRAPPED", "UNPARSEABLE"]) {
+    if (counts[bad]) report("pattern DSL", `${counts[bad]} × ${bad}`);
+  }
+  if (problems.some(([, why]) => String(why).startsWith("expected"))) {
+    report("pattern DSL", "a pattern that must match found nothing");
+  }
+}
+
 // --------------------------------------------------- did the rename finish the job?
 
 console.log("\nrename fidelity");
