@@ -722,6 +722,39 @@ impl Workspace {
             /// make the reader work out which one they had asked for.
             framework: bool,
         }
+
+        // Three constructors rather than six literals. A field added to the struct is
+        // otherwise a field six call sites have to remember, and one of them will not:
+        // `framework` was missed at exactly one, in code no host build compiles, and
+        // the browser build in CI was what found it.
+        impl Option_ {
+            fn offered(language: &str, destination: String, draft: Option<String>) -> Option_ {
+                Option_ {
+                    language: language.to_string(),
+                    destination: Some(destination),
+                    unavailable: None,
+                    draft,
+                    framework: false,
+                }
+            }
+
+            fn refused(language: &str, why: String, destination: Option<String>) -> Option_ {
+                Option_ {
+                    language: language.to_string(),
+                    destination,
+                    unavailable: Some(why),
+                    draft: None,
+                    framework: false,
+                }
+            }
+
+            fn port(self) -> Option_ {
+                Option_ {
+                    framework: true,
+                    ..self
+                }
+            }
+        }
         let path_buf = PathBuf::from(path);
         let Some(from) = crate::lang::detect(&path_buf) else {
             return fail(format!("no grammar recognises {path}"));
@@ -736,32 +769,27 @@ impl Workspace {
         // in the path rather than the text.
         if crate::transpile::nextjs::is_api_route(&path_buf) {
             match crate::transpile::nextjs::plan(&path_buf) {
-                Ok(plan) => out.push(Option_ {
-                    language: "fastapi".to_string(),
-                    destination: Some(plan.destination.display().to_string()),
-                    unavailable: None,
-                    draft: Some(format!(
-                        "route {} — {}{}",
-                        plan.route,
-                        plan.methods.join(", "),
-                        if plan.fidelity.carried_verbatim == 0 {
-                            String::new()
-                        } else {
-                            format!(
-                                "; {} construct(s) carried over as comments",
-                                plan.fidelity.carried_verbatim
-                            )
-                        }
-                    )),
-                    framework: true,
-                }),
-                Err(e) => out.push(Option_ {
-                    language: "fastapi".to_string(),
-                    destination: None,
-                    unavailable: Some(e.to_string()),
-                    draft: None,
-                    framework: true,
-                }),
+                Ok(plan) => out.push(
+                    Option_::offered(
+                        "fastapi",
+                        plan.destination.display().to_string(),
+                        Some(format!(
+                            "route {} — {}{}",
+                            plan.route,
+                            plan.methods.join(", "),
+                            if plan.fidelity.carried_verbatim == 0 {
+                                String::new()
+                            } else {
+                                format!(
+                                    "; {} construct(s) carried over as comments",
+                                    plan.fidelity.carried_verbatim
+                                )
+                            }
+                        )),
+                    )
+                    .port(),
+                ),
+                Err(e) => out.push(Option_::refused("fastapi", e.to_string(), None).port()),
             }
         }
         for language in crate::lang::Language::ALL {
@@ -777,23 +805,16 @@ impl Workspace {
                 match crate::transpile::plan(&path_buf, *language) {
                     Ok(plan) => {
                         let f = &plan.fidelity;
-                        out.push(Option_ {
-                            language: language.name().to_string(),
-                            destination: Some(plan.destination.display().to_string()),
-                            unavailable: None,
-                            draft: Some(format!(
+                        out.push(Option_::offered(
+                            language.name(),
+                            plan.destination.display().to_string(),
+                            Some(format!(
                                 "a draft — {}/{} signatures complete, {} construct(s) carried over as comments",
                                 f.signatures_complete, f.functions, f.carried_verbatim
                             )),
-                        });
+                        ));
                     }
-                    Err(e) => out.push(Option_ {
-                        language: language.name().to_string(),
-                        destination: None,
-                        unavailable: Some(e.to_string()),
-                        draft: None,
-                        framework: false,
-                    }),
+                    Err(e) => out.push(Option_::refused(language.name(), e.to_string(), None)),
                 }
                 continue;
             }
@@ -802,31 +823,25 @@ impl Workspace {
                 // nesting is not CSS, and the button must say that before it is
                 // pressed rather than after.
                 match crate::translate::plan(&path_buf, *language) {
-                    Ok(plan) => out.push(Option_ {
-                        language: language.name().to_string(),
-                        destination: Some(plan.destination.display().to_string()),
-                        unavailable: None,
-                        draft: None,
-                        framework: false,
-                    }),
-                    Err(e) => out.push(Option_ {
-                        language: language.name().to_string(),
-                        destination: crate::translate::destination_for(&path_buf, *language)
+                    Ok(plan) => out.push(Option_::offered(
+                        language.name(),
+                        plan.destination.display().to_string(),
+                        None,
+                    )),
+                    Err(e) => out.push(Option_::refused(
+                        language.name(),
+                        e.to_string(),
+                        crate::translate::destination_for(&path_buf, *language)
                             .ok()
                             .map(|p| p.display().to_string()),
-                        unavailable: Some(e.to_string()),
-                        draft: None,
-                        framework: false,
-                    }),
+                    )),
                 }
             } else {
-                out.push(Option_ {
-                    language: language.name().to_string(),
-                    destination: None,
-                    unavailable: Some(crate::translate::why_not(from, *language)),
-                    draft: None,
-                    framework: false,
-                });
+                out.push(Option_::refused(
+                    language.name(),
+                    crate::translate::why_not(from, *language),
+                    None,
+                ));
             }
         }
         ok(&out)

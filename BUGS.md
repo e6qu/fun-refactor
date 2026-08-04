@@ -10,6 +10,20 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Open
 
+- [ ] B79: **`src/wasm.rs` cannot be compiled without a wasm toolchain, so every edit to
+  the browser API is checked only by CI.** `cargo check --features wasm` on a host
+  fails: `vfs::Handle`, `new_handle` and `activate` are gated on
+  `target_arch = "wasm32"` rather than on the feature, and the tree-sitter grammars are
+  C that needs a clang with the WebAssembly backend — which Apple's clang is built
+  without. The cost is real and was paid: a struct field added to `Option_` was missed
+  at one of six literals, `cargo test` and `cargo clippy` both passed, and the
+  playground job found it. Mitigated rather than fixed — the six literals are now three
+  constructors, so a new field is added in one place. The fix is to compile the
+  in-memory backing on the host too under the `wasm` feature, with the memory map
+  shadowing the filesystem while a handle is active, which would also let the
+  twenty-nine browser methods be tested by `cargo test` instead of only by
+  `web/test/api.mjs`.
+
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
   resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
   whose method set a type covers by name and arity, a TypeScript `implements`/`extends`
