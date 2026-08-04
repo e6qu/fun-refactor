@@ -259,6 +259,35 @@ fn two_symbols_in_one_file_do_not_produce_conflicting_edits() {
 }
 
 #[test]
+fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
+    // `rewrite`'s selector chooses *files*, and a file with no wrapping `if` in it
+    // simply had nothing to do. Counting that as a refusal made `on-refusal stop` —
+    // the default — abandon the run on the first ordinary file: over one package of
+    // helm, three files of five.
+    let (_tmp, report, _after) = run(
+        &[
+            (
+                "pkg/a.go",
+                "package pkg\n\nfunc A(x bool) {\n\tif x {\n\t\twork()\n\t}\n}\n",
+            ),
+            ("pkg/b.go", "package pkg\n\nfunc B() int {\n\treturn 1\n}\n"),
+        ],
+        "schema 1\nrecipe r { rewrite guard-clause where lang=go in=\"pkg/\" }",
+    );
+    assert_eq!(report.steps[0].matched, 2, "both files are selected");
+    assert!(
+        report.steps[0].refusals.is_empty(),
+        "a file with nothing to do is not a refusal: {:?}",
+        report.steps[0].refusals
+    );
+    assert_eq!(
+        report.steps[0].applied, 1,
+        "one site, in the one file that had one"
+    );
+    assert!(report.ok);
+}
+
+#[test]
 fn a_selector_that_matches_nothing_stops_the_recipe() {
     // Silently doing nothing is the failure this most wants to avoid, because it looks
     // exactly like success.

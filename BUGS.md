@@ -69,6 +69,38 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B95: **a recipe computed both workspace analyses whether or not an expectation
+  asked for either.** `find_unused` and `duplicates` ran over the whole workspace,
+  twice — before and after — for every recipe, including ones with no `expect no-new`
+  in them. Over helm that was most of a minute answering a question nobody asked.
+
+- [x] B94: **a recipe step rebuilt the whole index after every subject.** Correct and
+  unusable: five files of helm took two minutes forty, because each subject re-indexed
+  all five hundred and thirty-nine. It is needed exactly when a previous edit could
+  have moved the text this subject is about — when its own file has already been
+  edited, or once an operation has edited a file other than its subject's, as a rename
+  does. Otherwise one index does for all of them. Same result, 48 seconds.
+
+- [x] B93: **`rewrite` treated a file it had nothing to do in as a refusal.** The
+  selector chooses *files*, so a file with no wrapping `if` is one that needed no work
+  — but it was reported as refused, and `on-refusal stop` is the default, so a run
+  abandoned itself on the first ordinary file. Over one package of helm that was three
+  of five. It also means `applied` now counts *sites*, which is the unit `limit` is
+  about for this step.
+
+- [x] B92: **applying a micro-rewrite across a file asked at every byte offset.** Each
+  ask reparses, so it was O(bytes × parse) where it wanted to be O(anchors × parse).
+  All three transformations anchor on a conditional or a negation, and those offsets
+  come from one parse of the file.
+
+- [x] B91: **`fr signature move` could produce Python the interpreter rejects.**
+  Reordering `def circ(r, units="m")` to `def circ(units="m", r)` puts a defaulted
+  parameter before a required one, which Python refuses with *"parameter without a
+  default follows parameter with a default"* — and tree-sitter parses it without
+  complaint, so the engine's reparse check could not see it. The refactoring has to
+  know the rule itself; it now refuses for Python and TypeScript, naming what would
+  break, and leaves the languages with no defaults alone.
+
 - [x] B90: **every Go function body was carried into a translation as a single
   comment.** tree-sitter-go puts a `statement_list` between a block and its statements,
   so the reader saw one unknown node where a body should be. Invisible to the

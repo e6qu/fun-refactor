@@ -34,9 +34,11 @@
     <p class="eyebrow">The catalogue</p>
     <h1 class="prose">Fowler and Beck, worked in Python</h1>
     <p class="lede prose">
-      The named moves — Extract Function, Guard Clauses, Inline Variable — applied to
-      Python by the tool, one command each. Before, after, the diff, and the sentences
-      it printed about what it had done.
+      Twenty-three entries: the named moves — Extract Function, Guard Clauses, Inline
+      Variable, Reorder Parameters — applied by the tool, one command each. Before,
+      after, the diff, and the sentences it printed about what it had done. Four of them
+      are not edits: three are <strong>refusals</strong>, and one finds work without
+      doing it.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
@@ -64,6 +66,7 @@
       <button data-filter="all" role="tab" aria-selected="true">Everything</button>
       <button data-filter="fowler" role="tab" aria-selected="false">Fowler</button>
       <button data-filter="beck" role="tab" aria-selected="false">Beck</button>
+      <button data-filter="boundary" role="tab" aria-selected="false">Where it stops</button>
     </div>
 
     <div class="catalog-layout">
@@ -86,11 +89,22 @@
       manners.
     </p>
     <p>
-      The entry above that declines is the honest shape of that boundary. Fowler's own
-      Guard Clauses example is an <code>if</code>/<code>else</code> nest assigning to a
-      result, and turning the <code>else</code> into an early return means deciding what
-      the function returns on the path that used to fall through. That is a judgement
-      about the code. The tool says so and stops.
+      The three entries that decline are the honest shape of that boundary, and each
+      declines for a different reason. Fowler's own Guard Clauses example is an
+      <code>if</code>/<code>else</code> nest assigning to a result, and turning the
+      <code>else</code> into an early return means deciding what the function returns on
+      the path that used to fall through — a judgement about the code.
+      <code>delete</code> refuses anything still referenced, which is what makes
+      <code>fr unused</code>'s list worth acting on. And a reorder that would put a
+      defaulted parameter before a required one is refused because Python will not run
+      it — a rule the refactoring has to know, since tree-sitter parses the broken
+      result without complaint.
+    </p>
+    <p>
+      Two entries cite <em>neither</em> catalogue and say so. Renaming a CSS class
+      across a stylesheet and the markup that names it is a problem the books predate;
+      dropping unused imports is housekeeping nobody wrote a catalogue entry for. It
+      seemed better to admit that than to attach a plausible-looking section number.
     </p>
     <h3>The books</h3>
     <ul>

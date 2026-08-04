@@ -314,6 +314,95 @@
 </section>
 
 <section>
+  <div class="shell prose wide" id="contracts">
+    <h2>API contracts</h2>
+    <p>
+      A refactoring preserves <em>behaviour</em>. A translation preserves a
+      <em>signature</em>. Rewriting a service in another language has to preserve
+      something else again — the only thing anyone outside the repository can see: the
+      <strong>contract</strong>. A caller does not import your functions. It sends
+      <code>PATCH /posts/42</code> and expects <code>204</code>.
+    </p>
+    <p>
+      That makes it a strange kind of cross-language refactoring: the language, the
+      framework, the internal structure and every function signature are all free to
+      change, and the six things below are not.
+    </p>
+
+    <div class="scroll-x">
+      <table>
+        <tr><th>Contract element</th><th>Where it lives in Next.js</th><th>Carried?</th></tr>
+        <tr><td>URL template</td><td>the <em>file path</em></td><td><span class="tier-exact">yes</span></td></tr>
+        <tr><td>Catch-all segment</td><td><code>[...path]</code></td><td><span class="tier-exact">yes</span> — as <code>{path:path}</code></td></tr>
+        <tr><td>Method</td><td>the exported function's name</td><td><span class="tier-exact">yes</span></td></tr>
+        <tr><td>Path parameters</td><td>the bracketed segment</td><td><span class="tier-exact">yes</span>, typed</td></tr>
+        <tr><td>Request body schema</td><td>a zod schema, or an <code>interface</code></td><td><span class="tier-weak">only from an <code>interface</code></span></td></tr>
+        <tr><td>Response body schema</td><td>usually nowhere</td><td><span class="tier-refuse">no</span></td></tr>
+        <tr><td>Status codes</td><td>the returned object</td><td><span class="tier-weak">into the code, not the contract</span></td></tr>
+      </table>
+    </div>
+
+    <h3>The URL is the path</h3>
+    <p>
+      <code>app/api/posts/[postId]/route.ts</code> serves <code>/posts/{post_id}</code>,
+      and <strong>nothing inside the file says so</strong>. No content-only translation
+      can recover that, however well it reads TypeScript. It is the one part of the job
+      that needs the tree rather than the text, and it is most of the value.
+    </p>
+    <p>
+      <code>[...path]</code> is a catch-all — it matches across slashes, which FastAPI
+      spells <code>{path:path}</code>. A translation emitting <code>{path}</code> would
+      answer a strictly smaller set of URLs than the service it replaced, silently, and
+      only for the requests with a slash in them.
+    </p>
+
+    <h3>Why OpenAPI makes the two directions asymmetric</h3>
+    <p>
+      <strong>FastAPI derives OpenAPI from the code</strong> — the decorator gives the
+      URL and method, the annotated parameters give the path parameters, a Pydantic
+      model gives the body schema. The contract is a projection of the types rather than
+      a document somebody maintains. <strong>Next.js has no built-in equivalent.</strong>
+    </p>
+    <p>
+      So Next.js → FastAPI <em>gains</em> a machine-readable contract where none existed
+      — and that is the trap. The generated OpenAPI is exactly as complete as what
+      carried across, and <em>it does not look incomplete</em>.
+    </p>
+
+    <h3>Right behaviour, wrong document</h3>
+    <p>
+      The sharp edge, and the tool now reports it. A translated handler returns
+      <code>204</code> and behaves correctly, but FastAPI builds its OpenAPI from the
+      <em>decorator</em> — so a status on a returned <code>Response</code> changes what
+      the endpoint does without changing what it says it does:
+    </p>
+    <pre class="grammar"><code>@router.delete("/posts/{post_id}")          <em># documents 200</em>
+async def delete(post_id: str, req: Request):
+    return Response(status_code=204)        <em># returns 204</em></code></pre>
+    <p>
+      The rewrite is behaviour-preserving and contract-shrinking at once, and every test
+      you have will pass. The tool does not add <code>status_code=</code> to the
+      decorator, because which status is the <em>success</em> one is a judgement about
+      the endpoint rather than a fact about the syntax. It lists every status it saw and
+      says what will happen if you leave them where they are.
+    </p>
+
+    <h3>How you would actually check a rewrite</h3>
+    <p>
+      The tool preserves what it can see and reports the rest. It does <strong>not</strong>
+      verify the contract, and no amount of reading one side can: export the contract
+      before, rewrite, export <code>/openapi.json</code> after, and diff them — treating
+      every difference as a defect until argued otherwise. Emitting that baseline from
+      the route tree is a real gap, and it is written down as one.
+    </p>
+    <div class="btn-row">
+      <a class="btn" href="translate.html#nextjs-to-fastapi">A route, translated</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/API_CONTRACTS.md">The whole document</a>
+    </div>
+  </div>
+</section>
+
+<section>
   <div class="shell prose wide">
     <h2>The playground</h2>
     <p>

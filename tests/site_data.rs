@@ -172,6 +172,76 @@ def total(basket):
         return running
 "#;
 
+const SCOPES_PY: &str = r#"import math
+
+
+def band(inner, outer):
+    width = outer - inner
+    return width * 2
+
+
+def area(radius):
+    width = radius * 2
+    return math.pi * width * width
+"#;
+
+const CONNECT_PY: &str = r#"def send(host, port):
+    return connect(host, port)
+
+
+def main():
+    return send("example.com", 443)
+"#;
+
+const DEFAULTS_PY: &str = r#"import math
+
+
+def circ(r, units="m"):
+    """The distance around a circle."""
+    return f"{2 * math.pi * r}{units}"
+
+
+def rim(r):
+    return circ(r)
+"#;
+
+const REPEATED_PY: &str = r#"def total(order):
+    base = order.quantity * order.item_price
+    discount = order.quantity * order.item_price * 0.05
+    return base - discount
+"#;
+
+const UNSORTED_PY: &str = r#"import os
+import json
+import sys
+
+
+def load(path):
+    with open(path) as handle:
+        return json.load(handle)
+"#;
+
+const APP_CSS: &str = r#".nav-link {
+  color: red;
+}
+
+.footer {
+  color: blue;
+}
+"#;
+
+const PAGE_HTML: &str = r#"<nav><a class="nav-link" href="/">Home</a></nav>
+<footer class="footer">bye</footer>
+"#;
+
+const LIVE_PY: &str = r#"def helper():
+    return 1
+
+
+def entry():
+    return helper()
+"#;
+
 const TDD_CYCLE: &str = r#"def convert_usd(bank, amount):
     rate = bank.rate("USD", "CHF")
     converted = amount * rate
@@ -290,6 +360,119 @@ const ENTRIES: &[Entry] = &[
     },
     Entry {
         kind: Kind::Edit,
+        id: "rename-variable",
+        name: "Rename Variable",
+        sources: &[
+            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.7",
+            "Implementation Patterns — Kent Beck (2007), “Intention-Revealing Name”",
+        ],
+        intent: "A local whose name says nothing becomes one that says what it holds.",
+        note: "There are two variables called `width` in this file and only one of them \
+               is being renamed. Nothing here matches on the text `width`: the rename \
+               follows the lexical scope, so the one in `area` is a different binding \
+               and is left alone. A find-and-replace gets this wrong every time.",
+        files: &[("src/geometry.py", SCOPES_PY)],
+        argv: &["rename", "src/geometry.py:5:5", "span"],
+        subject: "src/geometry.py",
+    },
+    Entry {
+        kind: Kind::Edit,
+        id: "rename-across-languages",
+        name: "Rename, across a language boundary",
+        sources: &["Not in either catalogue — the catalogues predate the problem"],
+        intent: "A CSS class is renamed in the stylesheet and everywhere the markup names it.",
+        note: "Two files, two grammars, one name. The stylesheet declares `.nav-link` and \
+               the HTML reaches it through a `class` attribute — no import, no path, \
+               nothing a compiler would check. The catalogues are about one language at \
+               a time, and most of a web codebase is not.",
+        files: &[("web/app.css", APP_CSS), ("web/page.html", PAGE_HTML)],
+        argv: &["rename", "nav-link", "primary-link"],
+        subject: "web/page.html",
+    },
+    Entry {
+        kind: Kind::Edit,
+        id: "remove-parameter",
+        name: "Remove Parameter",
+        sources: &[
+            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.5 (Change Function Declaration)",
+            "The online refactoring catalogue — Martin Fowler",
+        ],
+        intent: "A parameter nobody needs goes, and every call site loses its argument.",
+        note: "The declaration and the calls change together or not at all. A call the \
+               tool could not resolve would be reported rather than left quietly \
+               passing an argument to a parameter that no longer exists.",
+        files: &[("src/geometry.py", DEFAULTS_PY)],
+        argv: &["signature", "circ", "remove:1"],
+        subject: "src/geometry.py",
+    },
+    Entry {
+        kind: Kind::Edit,
+        id: "reorder-parameters",
+        name: "Reorder Parameters",
+        sources: &[
+            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.5 (Change Function Declaration)",
+            "The online refactoring catalogue — Martin Fowler",
+        ],
+        intent: "Two parameters swap, and so do the arguments at every call.",
+        note: "The arguments move with the parameters. Getting one of the two halves \
+               right is worse than doing nothing, which is why this is a refactoring \
+               rather than two edits.",
+        files: &[("src/net.py", CONNECT_PY)],
+        argv: &["signature", "send", "move:0:1"],
+        subject: "src/net.py",
+    },
+    Entry {
+        kind: Kind::Refused,
+        id: "reorder-parameters-refused",
+        name: "…and the reorder that would not run",
+        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5"],
+        intent: "The same move, where the language will not have it.",
+        note: "Python requires every defaulted parameter to come last, so this would \
+               produce `def circ(units=\"m\", r):` — which Python rejects outright. The \
+               engine reparses every edit and would normally catch a broken result, but \
+               tree-sitter parses this without complaint, so the refactoring has to \
+               know the rule itself. It did not until this page was written.",
+        files: &[("src/geometry.py", DEFAULTS_PY)],
+        argv: &["signature", "circ", "move:0:1"],
+        subject: "src/geometry.py",
+    },
+    Entry {
+        kind: Kind::Edit,
+        id: "extract-variable-everywhere",
+        name: "Extract Variable, at every occurrence",
+        sources: &[
+            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.3",
+            "Tidy First? — Kent Beck (2023), “Explaining Variables”",
+        ],
+        intent: "One name for a repeated sub-expression, substituted everywhere it appears.",
+        note: "Fowler's mechanics say to replace *all* occurrences, and the second one \
+               here is inside a larger expression rather than alone on a line — which is \
+               why this matches on the parse tree rather than on the text.",
+        files: &[("src/pricing.py", REPEATED_PY)],
+        argv: &[
+            "extract",
+            "@src/pricing.py~order.quantity * order.item_price~@",
+            "gross",
+            "--all",
+        ],
+        subject: "src/pricing.py",
+    },
+    Entry {
+        kind: Kind::Edit,
+        id: "organize-imports",
+        name: "Remove unused imports",
+        sources: &["Not in either catalogue — but it is the tidying you do after the others"],
+        intent: "Imports nothing uses are dropped and the rest are sorted.",
+        note: "Read what it prints above the diff. Liveness is decided by name, so an \
+               import kept for a trait, a registration side effect or a doc comment \
+               would look unused — and it says so rather than letting you find out. \
+               This is the step a recipe puts last, with `imports where changed`.",
+        files: &[("src/loader.py", UNSORTED_PY)],
+        argv: &["imports", "src/loader.py"],
+        subject: "src/loader.py",
+    },
+    Entry {
+        kind: Kind::Edit,
         id: "move-function",
         name: "Move Function",
         sources: &[
@@ -318,6 +501,21 @@ const ENTRIES: &[Entry] = &[
         files: &[("src/reports.py", REPORTS)],
         argv: &["delete", "_legacy_histogram"],
         subject: "src/reports.py",
+    },
+    Entry {
+        kind: Kind::Refused,
+        id: "delete-refused",
+        name: "…and the one it will not delete",
+        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §8.9"],
+        intent: "Deleting something that is still reached is not dead-code removal.",
+        note: "The boundary that makes `fr unused` worth acting on: whatever the list \
+               says, `delete` checks again and refuses anything still referenced. The \
+               two halves have to agree, and running them against each other over a \
+               nine-language workspace is how thirteen disagreements in fifty-nine were \
+               found.",
+        files: &[("src/live.py", LIVE_PY)],
+        argv: &["delete", "helper"],
+        subject: "src/live.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -364,14 +562,16 @@ const ENTRIES: &[Entry] = &[
     Entry {
         kind: Kind::Edit,
         id: "de-morgan",
-        name: "Consolidate Conditional Expression",
+        name: "Push a negation through a conjunction (De Morgan)",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §10.2",
-            "Tidy First? — Kent Beck (2023), “Normalize Symmetries”",
+            "Not in either catalogue — De Morgan's law, 1847",
+            "Tidy First? — Kent Beck (2023), “Normalize Symmetries”, in spirit",
         ],
         intent: "A negated conjunction becomes a disjunction of negations, or the reverse.",
-        note: "De Morgan's law, applied by the grammar rather than by eye. The two forms \
-               mean the same thing and one of them is usually the one you meant.",
+        note: "Named honestly: this is not Fowler's Consolidate Conditional Expression \
+               (§10.2), which combines several conditionals that produce the same result. \
+               It is a law of logic applied by the grammar rather than by eye. The two \
+               forms mean the same thing and one of them is usually the one you meant.",
         files: &[("src/alerts.py", ALERTS)],
         argv: &["rewrite", "src/alerts.py:2:12", "de-morgan"],
         subject: "src/alerts.py",
@@ -380,7 +580,7 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Edit,
         id: "substitute-algorithm",
         name: "Substitute Algorithm",
-        sources: &["Refactoring — Martin Fowler (1999), §6.7; carried into the online catalogue"],
+        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §7.9"],
         intent: "Every occurrence of one shape of code becomes another shape.",
         note: "`$X` matches any node and substitutes back. This is the move to reach for \
                when an API changes under you and the change is mechanical.",
@@ -438,6 +638,9 @@ struct Translation {
     target: &'static str,
     /// Where the sample came from, when it is not written for this page.
     provenance: Option<&'static str>,
+    /// A directory under `tests/corpus/` to copy in whole, for a translation whose
+    /// input is a *tree* rather than a file — a Next.js route's URL is its path.
+    corpus: Option<&'static str>,
 }
 
 const TYPED_PYTHON: &str = r#"from dataclasses import dataclass
@@ -551,6 +754,7 @@ const TRANSLATIONS: &[Translation] = &[
         subject: "sensors.py",
         target: "typescript",
         provenance: None,
+        corpus: None,
     },
     Translation {
         id: "typescript-to-python",
@@ -561,6 +765,7 @@ const TRANSLATIONS: &[Translation] = &[
         subject: "sensors.ts",
         target: "python",
         provenance: None,
+        corpus: None,
     },
     Translation {
         id: "go-to-rust",
@@ -571,6 +776,7 @@ const TRANSLATIONS: &[Translation] = &[
         subject: "store.go",
         target: "rust",
         provenance: None,
+        corpus: None,
     },
     Translation {
         id: "rust-to-go",
@@ -581,6 +787,22 @@ const TRANSLATIONS: &[Translation] = &[
         subject: "store.rs",
         target: "go",
         provenance: None,
+        corpus: None,
+    },
+    Translation {
+        id: "nextjs-to-fastapi",
+        title: "A Next.js API route → FastAPI",
+        blurb: "Not a language translation — a *contract* one. The URL, the method and \
+                the path parameter come from where the file sits on disk, which is the \
+                one thing no content-only translation could recover.",
+        files: &[],
+        subject: "app/api/posts/[postId]/route.ts",
+        target: "fastapi",
+        provenance: Some(
+            "shadcn-ui/taxonomy @ 298a8857c7128a0d121e7f699dfd729f23b3966d, MIT. \
+             See tests/corpus/PROVENANCE.md.",
+        ),
+        corpus: Some("nextjs"),
     },
     Translation {
         id: "real-python-to-typescript",
@@ -595,6 +817,7 @@ const TRANSLATIONS: &[Translation] = &[
             "fastapi/full-stack-fastapi-template @ 750d3d0bc6dfece4dec2d6ef8c3ff7e64f72545d, \
              MIT. See tests/corpus/PROVENANCE.md.",
         ),
+        corpus: None,
     },
 ];
 
@@ -848,6 +1071,29 @@ pub fn on_error(kind: &str) {
 
 // ------------------------------------------------------------------- the runner
 
+/// Copy a vendored corpus tree into a temporary workspace.
+fn corpus(subdirectory: &str) -> (tempfile::TempDir, PathBuf) {
+    fn copy(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap() {
+            let entry = entry.unwrap();
+            let target = to.join(entry.file_name());
+            if entry.file_type().unwrap().is_dir() {
+                copy(&entry.path(), &target);
+            } else {
+                std::fs::copy(entry.path(), &target).unwrap();
+            }
+        }
+    }
+    let from = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/corpus")
+        .join(subdirectory);
+    let tmp = tempfile::tempdir().unwrap();
+    copy(&from, tmp.path());
+    let root = tmp.path().to_path_buf();
+    (tmp, root)
+}
+
 fn workspace(files: &[(&str, &str)]) -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
     for (name, content) in files {
@@ -1042,8 +1288,8 @@ fn catalog_data() -> String {
 }
 
 fn translate_data() -> String {
-    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/fastapi/crud.py");
-    let crud = std::fs::read_to_string(&corpus).expect("the vendored corpus");
+    let crud_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/fastapi/crud.py");
+    let crud = std::fs::read_to_string(&crud_path).expect("the vendored corpus");
 
     let mut out = String::from(
         "// Generated by `cargo test --test site_data`. Do not edit.\n\
@@ -1053,12 +1299,19 @@ fn translate_data() -> String {
          export const TRANSLATIONS = [\n",
     );
     for case in TRANSLATIONS {
-        let owned: Vec<(&str, &str)> = if case.files.is_empty() {
-            vec![(case.subject, crud.as_str())]
-        } else {
-            case.files.to_vec()
+        // A Next.js route's URL is its position on disk, so a corpus case copies the
+        // whole tree rather than one file.
+        let tmp = match case.corpus {
+            Some(directory) => corpus(directory).0,
+            None => {
+                let owned: Vec<(&str, &str)> = if case.files.is_empty() {
+                    vec![(case.subject, crud.as_str())]
+                } else {
+                    case.files.to_vec()
+                };
+                workspace(&owned)
+            }
         };
-        let tmp = workspace(&owned);
         let root = tmp.path();
 
         let before = std::fs::read_to_string(root.join(case.subject)).unwrap();
@@ -1073,10 +1326,11 @@ fn translate_data() -> String {
         run(root, &applied);
 
         // The translation writes beside the source under the target's extension.
-        let written = std::fs::read_dir(root)
+        let beside = root.join(case.subject);
+        let written = std::fs::read_dir(beside.parent().unwrap_or(root))
             .unwrap()
             .filter_map(|e| e.ok().map(|e| e.path()))
-            .find(|p| p.file_name() != Path::new(case.subject).file_name())
+            .find(|p| p.file_name() != Path::new(case.subject).file_name() && p.is_file())
             .unwrap_or_else(|| panic!("{} produced no file", case.id));
         // The banner names the file it was translated from, and that path is a
         // temporary directory with a different name every run. The page has to show
