@@ -76,6 +76,55 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B198: **extracting a region that awaited produced code that does not compile.**
+  The body kept its `await` in a function that is not async — `tsc` says `TS1308`,
+  CPython says `SyntaxError: 'await' outside async function` — and the call site handed
+  back a promise where the code after it expected a number. The extracted function is
+  marked async now and the call awaits it. Rust writes `.await` as a postfix, so there
+  is no keyword to move; that is refused rather than half-done.
+
+- [x] B197: **extracting a region containing `yield` silently did nothing.** In Python
+  the call constructed a generator and never ran it, so the loop body had no effect at
+  all and the accumulator it also updated stayed at zero; in TypeScript the result is a
+  `yield` outside a generator, which `tsc` rejects. `return`, `break` and `continue`
+  were refused from the day this was written, on the grounds that a call cannot
+  reproduce a jump the enclosing function can see. A `yield` has exactly that property
+  and was not among them.
+
+- [x] B196: **an expansion of two bracketed halves was left unbracketed.** The check for
+  "this is already inside brackets" read the first and last character, and
+  `(p + 1) / (q - 1)` starts with one and ends with one. So `2 * scale(p + 1, q - 1)`
+  expanded to `2 * (p + 1) / (q - 1)`, which for `p = 1, q = 4` is 1 where the call
+  returned 0. The check balances the brackets now.
+
+- [x] B195: **`fr inline --call` changed what the program computes, in all seven
+  languages.** The body binds its parameters at whatever precedence it was written with
+  and the argument arrives as text, so `n * 2` with `x + 1` for `n` produced
+  `x + 1 * 2` — `double(x + 1)` returning `x + 2`. Inlining a *variable* was fixed for
+  exactly this in an earlier pass; inlining a *call* substitutes in the other direction
+  and never was. The grouping test was reached through
+  `extract::supports_imperative_extract`, which is a different question with a mostly
+  overlapping answer, and the overlap is where the wrong ones live: Java groups with
+  parentheses like every other C-shaped language here and is absent from that list
+  because it has no inferred declaration to extract into. It now asks whether the
+  language groups with parentheses, which is what it wanted to know.
+
+- [x] B194: **a pytest fixture and a `unittest` fixture matched no rule.** Nothing calls
+  either by name — pytest injects a fixture by matching the parameter, and `unittest`
+  calls `setUp` itself — which is the same reasoning the Java catalog already gives for
+  `@Bean` and `@Component`. A fixture in `conftest.py`, where the shared ones live,
+  matched nothing at all: neither the file nor the function is named `test_*`. The ones
+  in a `test_*.py` file were found only by the file rule, so they looked covered.
+
+- [x] B193: **a Python script with a `__main__` guard reported no entry point.** Every
+  other catalog says `name: main`, because every other language here agrees that a
+  program starts in a function so called. Python's starts in a *statement*, and what it
+  calls can be named anything — so the rule that works everywhere else answered nothing
+  for an ordinary script, from the command whose only job is that question. The report
+  named css, scss and yaml as the languages without rules, which said Python was
+  covered. Catalogs gained `called_from_main_guard`, the first predicate here that is
+  not a property of a name.
+
 - [x] B192: **a type argument was read as a supertype.** The heritage reader took every
   type name under an `extends`/`implements` clause, so `implements Holder<Pet>` filed the
   class under `Pet`. A call that reached it by method name alone was then reported as

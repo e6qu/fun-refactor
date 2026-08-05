@@ -195,8 +195,30 @@ fn bound_value<'t>(node: tree_sitter::Node<'t>) -> Option<tree_sitter::Node<'t>>
 ///
 /// Languages without an expression grammar are left alone entirely. A YAML value is not
 /// an expression and `(true)` is not the same scalar as `true`.
+/// Does this language group a sub-expression by writing it in parentheses?
+///
+/// The question [`substitution`] needs, asked directly. It used to ask whether the
+/// language supported extract-variable, which is a different question with a mostly
+/// overlapping answer — and the overlap is where the wrong ones live. Java groups with
+/// parentheses like every other C-shaped language here and is missing from that list
+/// for an unrelated reason: it has no inferred declaration to extract into. Bash is the
+/// other way round, supporting the extraction while `( … )` there opens a subshell
+/// rather than grouping anything.
+fn groups_with_parentheses(language: Language) -> bool {
+    matches!(
+        language,
+        Language::Rust
+            | Language::Go
+            | Language::Zig
+            | Language::Java
+            | Language::TypeScript
+            | Language::Tsx
+            | Language::Python
+    )
+}
+
 fn substitution(language: Language, value: tree_sitter::Node<'_>, text: &str) -> String {
-    if !crate::refactor::extract::supports_imperative_extract(language) {
+    if !groups_with_parentheses(language) {
         return text.to_string();
     }
     const ATOMIC: &[&str] = &[
@@ -598,7 +620,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     let call_span = Span::from(call_node);
 
     let parameters = parameter_names(declaration, &callee_source);
-    let arguments = argument_texts(call_node, &caller_source);
+    let arguments = arguments_at(call_node, &caller_source, callee.language);
     if parameters.len() != arguments.len() {
         anyhow::bail!(
             "'{}' takes {} parameter(s) but the call passes {}; inlining would change \
@@ -613,16 +635,20 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     let body_text = body_expression.text(&callee_source);
     for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
         let uses = count_word(body_text, parameter);
-        if uses > 1 && !is_duplicable(argument) {
+        if uses > 1 && !is_duplicable(&argument.text) {
+            let text = &argument.text;
             anyhow::bail!(
                 "'{parameter}' is used {uses} times in the body and the argument \
-                 `{argument}` is not a simple value; inlining would evaluate it more \
+                 `{text}` is not a simple value; inlining would evaluate it more \
                  than once"
             );
         }
     }
 
-    let mut expansion = substitute_words(body_text, &parameters, &arguments);
+    // The body may bind an argument more tightly than the caller wrote it: `n * 2`
+    // with `x + 1` for `n` is `x + 1 * 2`, which is a different number.
+    let grouped: Vec<String> = arguments.iter().map(|a| a.grouped.clone()).collect();
+    let mut expansion = substitute_words(body_text, &parameters, &grouped);
     // The body was an expression in its own right; parenthesise it so it keeps its
     // meaning inside whatever expression the call sat in.
     if needs_parentheses(&expansion) {
@@ -736,7 +762,27 @@ fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<Stri
 }
 
 /// Argument texts of a call, in order.
-fn argument_texts(call: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
+/// One argument at a call site, in the two forms this needs it.
+struct Argument {
+    /// As written, for reporting and for deciding whether it may be duplicated.
+    text: String,
+    /// As it goes into the body, grouped when the body could bind it more tightly
+    /// than the caller wrote it.
+    grouped: String,
+}
+
+fn arguments_at(call: tree_sitter::Node<'_>, source: &str, language: Language) -> Vec<Argument> {
+    argument_nodes(call)
+        .into_iter()
+        .map(|node| {
+            let text = Span::from(node).text(source).trim().to_string();
+            let grouped = substitution(language, node, &text);
+            Argument { text, grouped }
+        })
+        .collect()
+}
+
+fn argument_nodes(call: tree_sitter::Node<'_>) -> Vec<tree_sitter::Node<'_>> {
     // As with parameters, not every grammar exposes an `arguments` field.
     let list = call.child_by_field_name("arguments").or_else(|| {
         let mut cursor = call.walk();
@@ -753,16 +799,11 @@ fn argument_texts(call: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
             .named_children(&mut cursor)
             .filter(|n| !n.kind().contains("comment"))
             .collect();
-        return children
-            .into_iter()
-            .skip(1)
-            .map(|n| Span::from(n).text(source).trim().to_string())
-            .collect();
+        return children.into_iter().skip(1).collect();
     };
     let mut cursor = list.walk();
     list.named_children(&mut cursor)
         .filter(|n| !n.kind().contains("comment"))
-        .map(|n| Span::from(n).text(source).trim().to_string())
         .collect()
 }
 
@@ -857,6 +898,37 @@ fn word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
 }
 
 /// Does the expansion need wrapping to survive its new context?
+/// Is the whole expression inside one pair of brackets?
+///
+/// `(a + b)` is. `(a + 1) / (b - 1)` is not, and reading only the first and last
+/// character says it is — which left `2 * scale(p + 1, q - 1)` expanding to
+/// `2 * (p + 1) / (q - 1)`. For `p = 1, q = 4` the call returns 0 and the expansion
+/// is 1.
+fn wrapped_in_one_group(text: &str) -> bool {
+    if !text.starts_with('(') || !text.ends_with(')') {
+        return false;
+    }
+    let mut depth = 0usize;
+    for (offset, character) in text.char_indices() {
+        match character {
+            '(' => depth += 1,
+            ')' => {
+                // Unbalanced text is nothing this can reason about, so it is treated
+                // as needing the brackets rather than as already having them.
+                depth = match depth.checked_sub(1) {
+                    Some(depth) => depth,
+                    None => return false,
+                };
+                if depth == 0 {
+                    return offset + character.len_utf8() == text.len();
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 fn needs_parentheses(expansion: &str) -> bool {
     let trimmed = expansion.trim();
     // A single token or an already-bracketed expression is safe as-is.
@@ -866,7 +938,7 @@ fn needs_parentheses(expansion: &str) -> bool {
     {
         return false;
     }
-    if trimmed.starts_with('(') && trimmed.ends_with(')') {
+    if wrapped_in_one_group(trimmed) {
         return false;
     }
     // An operator that is not already inside brackets could re-associate with the

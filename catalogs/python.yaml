@@ -1,4 +1,17 @@
 # Python entry points.
+#
+# Python says "this is where execution starts" with a statement rather than a name.
+# Every other catalog here can say `name: main` because every other language agrees
+# that the entry point is a function called `main`; a Python script's guard calls
+# whatever it likes, and matching on the name alone reported no entry point at all
+# for one that has a perfectly ordinary `if __name__ == "__main__":`.
+- id: python-main-guard
+  kind: cli-main
+  threat_model: local
+  languages: [python]
+  matches:
+    called_from_main_guard: true
+
 - id: python-main
   kind: cli-main
   threat_model: local
@@ -41,3 +54,37 @@
   languages: [python]
   matches:
     name: lambda_handler
+
+# Nothing calls a fixture by name — pytest injects it by matching the parameter. A
+# fixture in `conftest.py`, which is where shared ones live, matched no rule at all:
+# the file is not named `test_*` and the function need not be either.
+- id: python-pytest-fixture
+  kind: test
+  languages: [python]
+  matches:
+    annotated_with: fixture
+
+# `unittest` calls these itself, once per test, and no source refers to them.
+- id: python-unittest-setup
+  kind: test
+  languages: [python]
+  matches:
+    name: setUp
+
+- id: python-unittest-teardown
+  kind: test
+  languages: [python]
+  matches:
+    name: tearDown
+
+- id: python-unittest-setup-class
+  kind: test
+  languages: [python]
+  matches:
+    name: setUpClass
+
+- id: python-unittest-teardown-class
+  kind: test
+  languages: [python]
+  matches:
+    name: tearDownClass

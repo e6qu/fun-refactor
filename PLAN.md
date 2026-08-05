@@ -1404,6 +1404,112 @@ declared relationship. The edge is identical either way; the evidence for it is 
 presenting a guess as a declaration is the one thing this layer must not do. The helper's
 doc comment had claimed it excluded type arguments since the day it was written.
 
+### The entry point that is not a function
+
+The sweep through per-language tables reached the entry-point catalogs, and the probe
+was the simplest one available: write the same program in six languages and ask where it
+starts.
+
+```
+$ fr entrypoints
+cli-main   main   main.go
+cli-main   main   main.rs
+cli-main   main   main.zig
+cli-main   Report::main   Shape.java
+
+3 entry point(s)
+No entry-point rules exist for: css, scss, yaml
+```
+
+Python is missing, and the last line says it is covered. Every catalog says
+`name: main`, because every other language here agrees that a program starts in a
+function so called. Python's starts in a *statement*:
+
+```python
+if __name__ == "__main__":
+    cli()
+```
+
+`cli` can be named anything, so no name rule can find it — and the command whose only
+job is answering "where does this start?" answered nothing for a script that plainly
+starts somewhere. Catalogs gained `called_from_main_guard`, the first predicate here
+that is not a property of a name. Direct calls only: what the guard calls is the
+starting point, and what *that* calls is reachability, which the call graph already
+answers.
+
+Two more came out of the same file. **Nothing calls a pytest fixture by name** — pytest
+injects it by matching the parameter — which is exactly the reasoning the Java catalog
+already gives for `@Bean` and `@Component`. A fixture in `conftest.py`, which is where
+the shared ones live, matched no rule at all: neither the file nor the function is named
+`test_*`. The ones inside a `test_*.py` file were found by the file rule, which is what
+made the gap look closed. **And `unittest` calls `setUp` and `tearDown` itself**, once
+per test, with nothing in the source referring to them.
+
+### The inline that returned a different number
+
+`fr inline --call` was next, and the probe was the same one: the same function in six
+languages, inlined at the same call.
+
+```
+-    double(x + 1)
++    (x + 1 * 2)
+```
+
+Six languages, six wrong answers. `double(x + 1)` returns `(x + 1) * 2`; the expansion
+computes `x + 2`. The body binds its parameters at whatever precedence it was written
+with, the argument arrives as text, and nothing put it back together.
+
+Inlining a *variable* was fixed for exactly this earlier — the substitution runs the
+other way there, from the bound value into its use, and the fix for one is not the fix
+for the other. The grouping test existed; the call path did not reach it, and when it
+did reach it the test asked the wrong question. It was gated on
+`extract::supports_imperative_extract`, which has a mostly overlapping answer — and the
+overlap is where the wrong ones live. Java groups with parentheses like every other
+C-shaped language here and is missing from that list because it has no inferred
+declaration to extract into; Bash is the other way round, supporting the extraction
+while `( … )` there opens a subshell. It asks whether the language groups with
+parentheses now.
+
+**Then the outer bracket, which was a string heuristic.** "Is this already bracketed?"
+was answered by reading the first and last character, and `(p + 1) / (q - 1)` starts
+with one and ends with one:
+
+```
+-    2 * scale(p + 1, q - 1)
++    2 * (p + 1) / (q - 1)        # p = 1, q = 4: the call returns 0, this is 1
+```
+
+Both are the shape this project keeps finding: not a refusal, not a crash, a diff that
+applies cleanly and quietly means something else.
+
+### The two effects a call cannot reproduce
+
+`fr extract --function` refuses a region containing a `return`, a `break` or a
+`continue`, because a call cannot reproduce a jump the enclosing function can see. That
+reasoning has two more cases in it, and neither was checked.
+
+**`yield` was the silent one.** Python:
+
+```python
+-        yield item
+-        total += item
++        step(item, total)
+```
+
+The call constructs a generator and never runs it. The loop body has no effect
+whatsoever, `total` stays at zero, and nothing anywhere says so. TypeScript at least
+fails out loud — a `yield` outside a generator, which `tsc` rejects — and drops the
+`total` the body still writes to. Refused now, in the same words as the other three.
+
+**`await` was the loud one, and it did not have to be refused.** The extracted function
+kept the `await` while not being async: `TS1308` from `tsc`, `SyntaxError: 'await'
+outside async function` from CPython. And even compiling it would have been wrong, since
+the call site handed back a promise where the next line expected a number. Unlike a
+`yield`, this one a call *can* reproduce — the new function is async and the call awaits
+it — so that is what it does, verified by running `tsc` and `compile()` over the output.
+Rust writes `.await` as a postfix and has no keyword to move onto the definition, so
+there it refuses rather than emitting half of the change.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
