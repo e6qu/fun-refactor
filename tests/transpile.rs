@@ -531,3 +531,174 @@ fn a_word_zig_reserves_is_still_the_name_the_source_wrote() {
         "a reserved word carried across is escaped, not renamed:\n{output}"
     );
 }
+
+#[test]
+fn a_string_keeps_its_escapes_and_does_not_gain_any() {
+    // The IR holds what the string *is*, not how the source spelled it. Carrying the
+    // spelling meant every writer escaped the backslash again on the way out, so a
+    // newline crossed as a backslash and an `n`. The output parsed, so nothing caught
+    // it — and every string with an escape in it came out meaning something else.
+    let source = "pub const A: &str = \"one\\ntwo\\tthree\";\n\
+                  pub const B: &str = \"quote \\\" and back \\\\ slash\";\n";
+    for (target, first, second) in [
+        (
+            Language::Python,
+            "A: str = \"one\\ntwo\\tthree\"",
+            "B: str = \"quote \\\" and back \\\\ slash\"",
+        ),
+        (
+            Language::Go,
+            "const A = \"one\\ntwo\\tthree\"",
+            "const B = \"quote \\\" and back \\\\ slash\"",
+        ),
+        (
+            Language::TypeScript,
+            "const A: string = \"one\\ntwo\\tthree\"",
+            "const B: string = \"quote \\\" and back \\\\ slash\"",
+        ),
+    ] {
+        let (output, _) = translate(&[("s.rs", source)], "s.rs", target);
+        assert!(output.contains(first), "{target}:\n{output}");
+        assert!(output.contains(second), "{target}:\n{output}");
+    }
+}
+
+#[test]
+fn a_raw_string_keeps_its_backslashes() {
+    // `r"\d+"` is a regex, and reading its escapes would turn it into something that
+    // matches a different set of strings.
+    let source = "pub const PATTERN: &str = r\"\\d+\\.\\d+\";\n";
+    let (output, _) = translate(&[("s.rs", source)], "s.rs", Language::Python);
+    assert!(
+        output.contains("\"\\\\d+\\\\.\\\\d+\""),
+        "the backslashes are the value:\n{output}"
+    );
+}
+
+#[test]
+fn a_comment_between_two_parameters_is_not_a_third() {
+    // A comment is an *extra* in every one of these grammars, so it can appear between
+    // any two nodes anywhere. Every reader reads a parameter list either positionally
+    // or through a catch-all arm, and both read a comment as whatever they expected to
+    // find there — so a comment inside a parameter list became a parameter named after
+    // the sentence.
+    let source =
+        "pub fn f(\n    a: i64,\n    // Why b is what it is.\n    b: i64,\n) -> i64 {\n    \
+                  return a;\n}\n";
+    for target in [Language::Python, Language::TypeScript, Language::Go] {
+        let (output, _) = translate(&[("c.rs", source)], "c.rs", target);
+        let signature = output
+            .lines()
+            .find(|l| l.contains("f(") || l.contains("F("))
+            .unwrap_or_else(|| panic!("{target}:\n{output}"));
+        assert!(
+            !signature.contains("Why b is"),
+            "{target} read the comment as a parameter:\n{signature}"
+        );
+        // Two parameters, not three: the count is the point.
+        let parameters = signature
+            .split_once('(')
+            .and_then(|(_, rest)| rest.rsplit_once(')'))
+            .map(|(inside, _)| inside.split(',').filter(|p| !p.trim().is_empty()).count())
+            .unwrap_or_else(|| panic!("{target}: no parameter list in {signature}"));
+        assert_eq!(parameters, 2, "{target}: {signature}");
+    }
+}
+
+#[test]
+fn a_method_is_written_with_its_type() {
+    // Rust and Go declare methods apart from their type and the others declare them
+    // inside it. The IR keeps them with the type, which is what lets one shape become
+    // the other — and the Rust reader said exactly that in a comment while pushing
+    // them out as top-level functions. Every writer then wrote a free function whose
+    // body reached through a receiver nothing in the output binds.
+    let source = "pub struct Repo {\n    pub name: String,\n}\n\n\
+                  impl Repo {\n    pub fn label(&self) -> String {\n        \
+                  return self.name;\n    }\n\n    \
+                  pub fn empty() -> Repo {\n        return 0;\n    }\n}\n";
+    for (target, method, associated) in [
+        (
+            Language::Python,
+            "    def label(self) -> str:",
+            "    @staticmethod",
+        ),
+        (
+            Language::TypeScript,
+            "    label(): string {",
+            "    static empty(): Repo {",
+        ),
+        (
+            Language::Java,
+            "    public String label() {",
+            "    public static Repo empty() {",
+        ),
+        (
+            Language::Zig,
+            "    pub fn label(self: Repo) []const u8 {",
+            "    pub fn empty() Repo {",
+        ),
+    ] {
+        let (output, _) = translate(&[("r.rs", source)], "r.rs", target);
+        assert!(output.contains(method), "{target}:\n{output}");
+        assert!(output.contains(associated), "{target}:\n{output}");
+    }
+}
+
+#[test]
+fn a_rust_number_leaves_its_width_behind() {
+    // `0usize` writes the type into the literal, which is a spelling only Rust has.
+    let source = "pub fn f() -> i64 {\n    let n = 0usize;\n    return 1i32;\n}\n";
+    for target in transpile::SUPPORTED {
+        if *target == Language::Rust {
+            continue;
+        }
+        let (output, _) = translate(&[("n.rs", source)], "n.rs", *target);
+        assert!(
+            !output.contains("0usize") && !output.contains("1i32"),
+            "{target} carried Rust's suffix:\n{output}"
+        );
+    }
+}
+
+#[test]
+fn a_doc_comment_cannot_end_itself_early() {
+    // `*/` closes a block comment, and a doc comment quoting a glob carries that
+    // sequence in the middle of a sentence. Java and TypeScript both wrote it through,
+    // so the comment ended early and the rest of the sentence was parsed as code.
+    let source = "/// Both routers: `app/**/route.ts` under an `api` segment.\n\
+                  pub fn routes() -> i64 {\n    return 1;\n}\n";
+    for target in [Language::Java, Language::TypeScript] {
+        let (output, _) = translate(&[("d.rs", source)], "d.rs", target);
+        assert!(
+            !output.contains("`app/**/route.ts`"),
+            "{target} left a comment terminator inside a comment:\n{output}"
+        );
+    }
+}
+
+#[test]
+fn a_discard_is_not_a_binding() {
+    // `let _ = f();` binds nothing: it is a call whose result is deliberately dropped.
+    let source = "pub fn f() {\n    let _ = println(1);\n}\n";
+    for target in [Language::Python, Language::TypeScript, Language::Go] {
+        let (output, _) = translate(&[("u.rs", source)], "u.rs", target);
+        assert!(
+            !output.contains("  = ") && !output.contains(" := "),
+            "{target} declared something with no name:\n{output}"
+        );
+    }
+}
+
+#[test]
+fn a_tuple_struct_is_refused_rather_than_emptied() {
+    // A record in the IR is a *named* product, and a tuple struct's field has no name.
+    // Reading one gave a record with no fields at all and the payload type vanished
+    // without a word. There is no honest name to give it.
+    let source = "pub struct Wrapper(Vec<String>);\n";
+    let (output, fidelity) = translate(&[("w.rs", source)], "w.rs", Language::Python);
+    assert_eq!(fidelity.records, 0, "{output}");
+    assert!(
+        output.contains("pub struct Wrapper(Vec<String>);"),
+        "the source has to be in the output:\n{output}"
+    );
+}

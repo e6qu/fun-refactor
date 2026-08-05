@@ -289,6 +289,29 @@ Four things about the language shape the writer:
 spells an identifier that collides with one of its own words, and under it the name
 still says what the source said.
 
+### What real code has that a fixture does not
+
+The strongest check available without six compilers is that the output parses as the
+language it claims to be. Run over this repository's own source — twenty thousand lines
+of Rust, thirteen files of TypeScript, three of Go, and the vendored Python — that
+failed 97 of 235 translations, and every failure was a thing nobody thinks to put in a
+fixture:
+
+- **A comment between two parameters.** A comment is an *extra* in every one of these
+  grammars: it can appear between any two nodes anywhere. A reader that walks a
+  parameter list positionally reads it as a parameter.
+- **A string with an escape in it.** The IR has to hold the string's *value*; holding
+  its spelling means the next writer escapes the backslash again, and a newline becomes
+  a backslash and an `n` in a file that still parses.
+- **A doc comment quoting a glob.** `app/**/route.ts` contains `*/`, which closes the
+  `/** ... */` a Java or TypeScript writer put it in.
+- **A number with its width written into it.** `0usize` is a Rust spelling; everywhere
+  else it is a number glued to an identifier.
+- **A struct whose fields have no names.** A tuple struct is a Rust idea, and a record
+  here is a named product.
+
+None of these is exotic. All five are in the first file you would pick up.
+
 ### The receiver has six names
 
 `self`, `this`, or whatever the Go author called it. The receiver is the one binding

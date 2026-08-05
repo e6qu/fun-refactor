@@ -18,18 +18,83 @@ pub fn read(language: Language, source: &str, root: Node<'_>) -> Result<Module> 
         source,
         lines: &lines,
     };
-    match language {
-        Language::Rust => Ok(rust::module(&cx, root)),
-        Language::Python => Ok(python::module(&cx, root)),
-        Language::Go => Ok(go::module(&cx, root)),
-        Language::Java => Ok(java::module(&cx, root)),
-        Language::Zig => Ok(zig::module(&cx, root)),
-        Language::TypeScript | Language::Tsx => Ok(typescript::module(&cx, root)),
+    let mut module = match language {
+        Language::Rust => rust::module(&cx, root),
+        Language::Python => python::module(&cx, root),
+        Language::Go => go::module(&cx, root),
+        Language::Java => java::module(&cx, root),
+        Language::Zig => zig::module(&cx, root),
+        Language::TypeScript | Language::Tsx => typescript::module(&cx, root),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
              what its constructs mean"
         ),
+    };
+    settle_methods(&mut module);
+    Ok(module)
+}
+
+/// Put every method with the type it belongs to, and bind the receiver of any that has
+/// nowhere to go.
+///
+/// Rust and Go declare methods apart from their type; Python, TypeScript, Java and Zig
+/// declare them inside it. The IR keeps them with the type, which is what lets one
+/// shape become the other — and the Rust reader said so in a comment while pushing them
+/// out as top-level functions. Every writer then wrote them as free functions, with the
+/// body still reaching through a receiver that nothing in the output binds: a Python
+/// `def label(prefix)` whose body says `self.name`.
+///
+/// A method whose type is not in this file — an `impl` on somebody else's struct — has
+/// no record to join. Its receiver becomes an ordinary first parameter, which is what
+/// Go and Zig write anyway and what Python's `self` has always been.
+fn settle_methods(module: &mut Module) {
+    let declared: std::collections::BTreeSet<String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(r.name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    let mut orphaned: Vec<(String, Function)> = Vec::new();
+    let mut kept = Vec::new();
+    for item in std::mem::take(&mut module.items) {
+        match item {
+            Item::Function(f) if f.receiver.as_ref().is_some_and(|r| declared.contains(r)) => {
+                let owner = f.receiver.clone().expect("checked");
+                orphaned.push((owner, f));
+            }
+            Item::Function(mut f) if f.receiver.is_some() => {
+                let ty = f.receiver.clone().expect("checked");
+                let name = f.receiver_binding.clone().unwrap_or_else(|| "self".into());
+                f.params.insert(
+                    0,
+                    Param {
+                        name,
+                        ty: Some(Type::named(ty)),
+                        default: None,
+                        kind: ParamKind::Normal,
+                    },
+                );
+                f.receiver = None;
+                f.receiver_binding = None;
+                kept.push(Item::Function(f));
+            }
+            other => kept.push(other),
+        }
     }
+
+    for item in kept.iter_mut() {
+        if let Item::Record(record) = item {
+            for (owner, method) in orphaned.iter() {
+                if *owner == record.name {
+                    record.methods.push(method.clone());
+                }
+            }
+        }
+    }
+    module.items = kept;
 }
 
 /// Everything a reader needs that is not the node itself.
@@ -64,10 +129,66 @@ impl Cx<'_> {
     }
 
     /// Named children, which is what every reader below walks.
+    /// The named children that are part of the structure.
+    ///
+    /// **Comments are not.** Every one of these grammars makes a comment an *extra*,
+    /// which means it can appear between any two nodes anywhere in the tree — inside a
+    /// parameter list, between two struct fields, in the middle of an argument list.
+    /// Every reader here reads named children either positionally or through a
+    /// catch-all arm, and both of those read a comment as whatever they were expecting
+    /// in that position. A comment inside a Rust parameter list therefore became four
+    /// invented parameters called `// how this language separates the parts of a
+    /// qualified name`, which every target dutifully wrote into the signature.
+    ///
+    /// So they are filtered here, once, rather than in the twenty places that would
+    /// each have to remember. The one place that genuinely wants them —
+    /// [`Cx::children_with_comments`] — asks for them by name.
     fn children<'t>(&self, node: Node<'t>) -> Vec<Node<'t>> {
+        self.children_with_comments(node)
+            .into_iter()
+            .filter(|c| !is_comment(*c))
+            .collect()
+    }
+
+    /// The named children, comments included — for a statement block, which translates
+    /// them rather than skipping them.
+    fn children_with_comments<'t>(&self, node: Node<'t>) -> Vec<Node<'t>> {
         let mut cursor = node.walk();
         node.named_children(&mut cursor).collect()
     }
+}
+
+/// A Rust number without the type written into it.
+///
+/// `0usize` and `1.5f64` put the width in the literal, which is a spelling only Rust
+/// has: every other target here reads it as an identifier glued to a number and
+/// refuses the file. The IR carries the type separately, so the digits are what
+/// crosses.
+fn unsuffixed(text: &str) -> String {
+    const SUFFIXES: &[&str] = &[
+        "usize", "isize", "u128", "i128", "u64", "i64", "u32", "i32", "u16", "i16", "u8", "i8",
+        "f32", "f64",
+    ];
+    for suffix in SUFFIXES {
+        if let Some(head) = text.strip_suffix(suffix) {
+            // `0x1u8` is a suffix; `0xf64` is three hex digits. Only strip where what
+            // is left is still a number.
+            if head.ends_with(|c: char| c.is_ascii_digit() || c == '.' || c == '_') {
+                return head.trim_end_matches('_').to_string();
+            }
+        }
+    }
+    text.to_string()
+}
+
+/// Is this node a comment, in whichever grammar produced it?
+///
+/// The six grammars spell it three ways — `comment`, `line_comment`, `block_comment` —
+/// and Rust adds `inner_doc_comment_marker`. Matching on the substring rather than on
+/// the list means a seventh language cannot arrive with a fourth spelling and be read
+/// as a parameter.
+fn is_comment(node: Node<'_>) -> bool {
+    node.kind().contains("comment")
 }
 
 /// A call whose *callee* could not be translated is not a call this understands.
@@ -193,7 +314,16 @@ fn doc_above(cx: &Cx, node: Node<'_>, markers: &[&str]) -> Vec<String> {
         for terminator in ["*/", "-->"] {
             cleaned = cleaned.strip_suffix(terminator).unwrap_or(cleaned);
         }
-        lines.push(cleaned.trim().to_string());
+        // A `/** ... */` is one node however many lines it spans, and each of its inner
+        // lines carries its own ` * ` leader. One entry per line is what a writer
+        // expects: it puts the target's marker on each of them, and a single entry with
+        // newlines in it got a marker on the first line only — leaving the rest of a
+        // paragraph sitting in the file as code.
+        for line in cleaned.trim().lines().rev() {
+            let line = line.trim();
+            let stripped = line.strip_prefix("* ").or_else(|| line.strip_prefix("*"));
+            lines.push(stripped.unwrap_or(line).trim().to_string());
+        }
         previous = sibling.prev_named_sibling();
     }
     lines.reverse();
@@ -215,7 +345,10 @@ mod rust {
                     line: cx.line(child),
                 }),
                 "function_item" => module.items.push(Item::Function(function(cx, child, None))),
-                "struct_item" => module.items.push(Item::Record(record(cx, child))),
+                "struct_item" => module.items.push(match record(cx, child) {
+                    Some(r) => Item::Record(r),
+                    None => Item::Unsupported(cx.unsupported(child)),
+                }),
                 "const_item" | "static_item" => {
                     if let Some(c) = constant(cx, child) {
                         module.items.push(Item::Constant(c));
@@ -294,7 +427,20 @@ mod rust {
         }
     }
 
-    fn record(cx: &Cx, node: Node<'_>) -> Record {
+    /// A `struct` with named fields. A tuple struct is not one.
+    ///
+    /// `pub struct Wrapper(Vec<T>);` has a field with no name, and a record in the IR
+    /// is a *named* product — so reading one gave a record with no fields at all, and
+    /// the payload type vanished without a word. There is no honest name to give it:
+    /// Rust calls it `0`, and no target here can spell a field called that.
+    fn record(cx: &Cx, node: Node<'_>) -> Option<Record> {
+        if cx
+            .children(node)
+            .iter()
+            .any(|c| c.kind() == "ordered_field_declaration_list")
+        {
+            return None;
+        }
         let mut fields = Vec::new();
         if let Some(body) = cx.field(node, "body") {
             for f in cx.children(body) {
@@ -311,7 +457,7 @@ mod rust {
                 });
             }
         }
-        Record {
+        Some(Record {
             doc: doc_above(cx, node, &["///", "//"]),
             name: cx.field_text(node, "name").unwrap_or_default(),
             fields,
@@ -319,7 +465,7 @@ mod rust {
                 .children(&mut node.walk())
                 .any(|c| c.kind() == "visibility_modifier"),
             methods: Vec::new(),
-        }
+        })
     }
 
     fn constant(cx: &Cx, node: Node<'_>) -> Option<Constant> {
@@ -393,7 +539,7 @@ mod rust {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children(node)
+        cx.children_with_comments(node)
             .iter()
             .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
             .collect()
@@ -409,12 +555,25 @@ mod rust {
                 Stmt::Comment(super::uncomment(&cx.text(node)))
             }
             "return_expression" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
-            "let_declaration" => Stmt::Let {
-                name: cx.field_text(node, "pattern").unwrap_or_default(),
-                ty: cx.field(node, "type").map(|t| ty(cx, t)),
-                value: cx.field(node, "value").map(|v| expr(cx, v)),
-                mutable: cx.text(node).starts_with("let mut "),
-            },
+            "let_declaration" => {
+                let bound = cx.field_text(node, "pattern").unwrap_or_default();
+                let value = cx.field(node, "value").map(|v| expr(cx, v));
+                // `let _ = f();` binds nothing. It is a call whose result is
+                // deliberately dropped, which every target here can say — and reading
+                // it as a binding wrote `const  = f();`, a declaration with no name.
+                if bound == "_" || bound.is_empty() {
+                    return match value {
+                        Some(value) => Stmt::Expr(value),
+                        None => Stmt::Unsupported(cx.unsupported(node)),
+                    };
+                }
+                Stmt::Let {
+                    name: bound,
+                    ty: cx.field(node, "type").map(|t| ty(cx, t)),
+                    value,
+                    mutable: cx.text(node).starts_with("let mut "),
+                }
+            }
             "expression_statement" => match cx.children(node).first() {
                 Some(inner) => match inner.kind() {
                     "return_expression"
@@ -505,6 +664,8 @@ mod rust {
                 | "integer_literal"
                 | "float_literal"
                 | "string_literal"
+                | "raw_string_literal"
+                | "char_literal"
                 | "boolean_literal"
                 | "call_expression"
                 | "binary_expression"
@@ -520,19 +681,35 @@ mod rust {
                 Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
                 None => Expr::Unsupported(cx.unsupported(node)),
             },
-            "integer_literal" => Expr::Int(cx.text(node)),
-            "float_literal" => Expr::Float(cx.text(node)),
+            "integer_literal" => Expr::Int(unsuffixed(&cx.text(node))),
+            "float_literal" => Expr::Float(unsuffixed(&cx.text(node))),
             "boolean_literal" => Expr::Bool(cx.text(node) == "true"),
-            "string_literal" => Expr::Str(super::unquote(&cx.text(node))),
+            // `r"\d+"` and `b"bytes"` are strings too. Reading only the plain form left
+            // every regex in the file as "no counterpart", and a constant bound to one
+            // stopped being a constant: its name lost the convention that goes with a
+            // literal value.
+            "string_literal" | "raw_string_literal" | "char_literal" => {
+                Expr::Str(super::unquote(&cx.text(node)))
+            }
             "identifier" | "self" => Expr::Name(cx.text(node)),
-            "field_expression" => Expr::Field {
-                of: Box::new(
-                    cx.field(node, "value")
-                        .map(|v| expr(cx, v))
-                        .unwrap_or(Expr::Null),
-                ),
-                name: cx.field_text(node, "field").unwrap_or_default(),
-            },
+            "field_expression" => {
+                let name = cx.field_text(node, "field").unwrap_or_default();
+                // `self.0` reaches into a tuple struct, and a tuple struct is a Rust
+                // idea: no other target here has a field with a number for a name, and
+                // writing `.0` into any of them produces something that is either a
+                // syntax error or a decimal point.
+                if name.chars().all(|c| c.is_ascii_digit()) {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                Expr::Field {
+                    of: Box::new(
+                        cx.field(node, "value")
+                            .map(|v| expr(cx, v))
+                            .unwrap_or(Expr::Null),
+                    ),
+                    name,
+                }
+            }
             "index_expression" => {
                 let parts = cx.children(node);
                 Expr::Index {
@@ -950,7 +1127,7 @@ mod python {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        let children = cx.children(node);
+        let children = cx.children_with_comments(node);
         let mut out = Vec::new();
         for (i, child) in children.iter().enumerate() {
             // The docstring is the function's doc, not its first statement.
@@ -1546,9 +1723,9 @@ mod go {
         // one unknown node and carried *every Go function body ever translated* into
         // the output as a single comment — invisible to the round-trip tests, because
         // a body that is entirely a comment still parses.
-        let children = cx.children(node);
+        let children = cx.children_with_comments(node);
         let statements = match children.as_slice() {
-            [only] if only.kind() == "statement_list" => cx.children(*only),
+            [only] if only.kind() == "statement_list" => cx.children_with_comments(*only),
             _ => children,
         };
         statements
@@ -1986,7 +2163,7 @@ mod java {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children(node)
+        cx.children_with_comments(node)
             .iter()
             .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
             .collect()
@@ -2512,7 +2689,7 @@ mod zig {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children(node)
+        cx.children_with_comments(node)
             .iter()
             .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
             .collect()
@@ -2962,7 +3139,7 @@ mod typescript {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children(node)
+        cx.children_with_comments(node)
             .iter()
             .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
             .collect()
@@ -3494,17 +3671,129 @@ fn uncomment(text: &str) -> String {
                 .map(|rest| rest.strip_suffix("*/").unwrap_or(rest))
         })
         .unwrap_or(text);
-    body.trim().to_string()
+    // A `/* ... */` is one node however many lines it spans, and each of its inner
+    // lines carries its own ` * ` leader. Leaving those on wrote a JSDoc block into a
+    // language that does not have one, with the asterisks still in it.
+    body.lines()
+        .map(|line| {
+            line.trim()
+                .strip_prefix("* ")
+                .or_else(|| line.trim().strip_prefix("*"))
+                .unwrap_or(line.trim())
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string()
 }
 
 fn unquote(text: &str) -> String {
+    // `r"..."`, `b"..."`, `r#"..."#`: a raw literal has no escapes at all, and the
+    // backslashes in it are the value. Decoding them would turn a regex into
+    // something that no longer matches.
+    let prefix: String = text.chars().take_while(|c| c.is_alphabetic()).collect();
+    let raw = prefix.contains('r') || prefix.contains('R');
     let t = text
         .trim_start_matches(|c: char| c.is_alphabetic())
         .trim_start_matches('#');
     for quote in ["\"\"\"", "'''", "\"", "'", "`"] {
         if let Some(inner) = t.strip_prefix(quote).and_then(|s| s.strip_suffix(quote)) {
-            return inner.to_string();
+            return match raw {
+                true => inner.to_string(),
+                false => unescape(inner),
+            };
         }
     }
     t.to_string()
+}
+
+/// A string literal's **value**, with the escapes read rather than carried.
+///
+/// The IR holds what the string *is*, not how the source spelled it. Carrying the
+/// spelling meant every writer escaped the backslash again on the way out, so a string
+/// holding a newline crossed as one holding a backslash and an `n`. The output parsed,
+/// so nothing caught it; every string with an escape in it came out meaning something
+/// else.
+///
+/// A backslash before anything this does not recognise is kept as written, which is
+/// what Python does with `"\d"` and what the others cannot produce at all, since an
+/// unknown escape is a compile error in every one of them.
+fn unescape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        let Some(escape) = chars.next() else {
+            out.push('\\');
+            break;
+        };
+        match escape {
+            'n' => out.push('\n'),
+            't' => out.push('\t'),
+            'r' => out.push('\r'),
+            '0' => out.push('\0'),
+            'a' => out.push('\u{7}'),
+            'b' => out.push('\u{8}'),
+            'f' => out.push('\u{c}'),
+            'v' => out.push('\u{b}'),
+            '\\' | '"' | '\'' | '`' | '$' | '/' => out.push(escape),
+            // A line continuation: the newline and the indent after it are not part of
+            // the string.
+            '\n' => {
+                while chars
+                    .peek()
+                    .is_some_and(|c| c.is_whitespace() && *c != '\n')
+                {
+                    chars.next();
+                }
+            }
+            // `\xNN` everywhere, `\uXXXX` in Java, TypeScript, Python and Go, and
+            // `\u{...}` in Rust, Zig and modern TypeScript. All three name a code point.
+            'x' | 'u' | 'U' => {
+                let mut digits = String::new();
+                if escape == 'u' && chars.peek() == Some(&'{') {
+                    chars.next();
+                    while let Some(&c) = chars.peek() {
+                        chars.next();
+                        if c == '}' {
+                            break;
+                        }
+                        digits.push(c);
+                    }
+                } else {
+                    let width = match escape {
+                        'x' => 2,
+                        'u' => 4,
+                        _ => 8,
+                    };
+                    while digits.len() < width
+                        && chars.peek().is_some_and(|c| c.is_ascii_hexdigit())
+                    {
+                        digits.push(chars.next().expect("peeked"));
+                    }
+                }
+                match u32::from_str_radix(&digits, 16)
+                    .ok()
+                    .and_then(char::from_u32)
+                {
+                    Some(c) => out.push(c),
+                    // Half of a UTF-16 surrogate pair, or digits that name nothing.
+                    // Neither has a character to stand for it, so the spelling stays.
+                    None => {
+                        out.push('\\');
+                        out.push(escape);
+                        out.push_str(&digits);
+                    }
+                }
+            }
+            other => {
+                out.push('\\');
+                out.push(other);
+            }
+        }
+    }
+    out
 }

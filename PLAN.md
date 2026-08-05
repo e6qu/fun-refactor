@@ -820,6 +820,51 @@ private in Java and unreachable everywhere else, and every `private` field publi
 The stale prose was the usual crop: comments counting "four languages" in a file that
 had five, and a translation page pointing at "the third case" that had moved.
 
+### Translating the tool's own source, and the nine things that fell out
+
+Fixtures are written by whoever writes the assertion, and they pass. The repository
+itself was not: twenty thousand lines of Rust, thirteen files of TypeScript, three of Go
+and somebody else's Python, none of it written with a translator in mind. Running all of
+it through every target and asking only "does the output parse" failed **97 of 235
+translations** the first time.
+
+Nine defects, and three of them had been changing the meaning of files since the
+transpiler landed:
+
+- **A comment inside a parameter list was read as a parameter.** A comment is an *extra*
+  in every one of these grammars, so it can appear between any two nodes anywhere, and
+  every reader reads a parameter list either positionally or through a catch-all arm.
+  Both read a comment as whatever they expected in that position, so a four-line comment
+  between two parameters became four parameters named after the sentence — lower-cased
+  by the naming convention on the way. Fixed at the choke point: `Cx::children` returns
+  the children that are part of the structure, and the one caller that wants comments
+  asks for them by name.
+- **Every string escape was doubled on every crossing.** The IR held the source's
+  spelling rather than the string's value, so each writer escaped the backslash again
+  and a newline crossed as a backslash and an `n`. It parsed, so nothing caught it.
+- **A method became a free function whose body reached through a receiver nothing
+  bound.** The IR's own documentation says methods are kept with their type, which is
+  what lets one shape become the other; the Rust reader repeated that in a comment while
+  pushing them out as top-level functions.
+
+The other six: a multi-line comment got its marker on the first line only; a doc comment
+quoting `app/**/route.ts` ended itself early and the rest of the sentence was parsed as
+code; `0usize` was carried into languages that read it as a number glued to an
+identifier; a Rust tuple struct lost its payload type without a word; `let _ = f()`
+declared something with no name; and a method with no receiver was written as one with a
+receiver, because one `bool` was answering both "inside the type?" and "takes a
+receiver?".
+
+Two diagnostics were fixed on the way, because a defect report has to carry evidence.
+The self-check reported the *outermost* error, which for a whole-file failure is line 1,
+column 1 — and printed the banner as context. It reports the innermost now, prefers a
+`MISSING` node because that one names what was expected, and falls back to
+`error_spans` when its own walk finds nothing, which is what happened for the empty Zig
+struct.
+
+The regression test is the sweep itself, in `tests/self_translation.rs`. It costs ten
+seconds and it is the only test here whose inputs nobody chose.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
