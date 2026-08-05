@@ -811,7 +811,10 @@ fn a_zig_comptime_parameter_is_refused_rather_than_read_as_a_value() {
     let source = "fn Lazy(comptime T: type, comptime C: type) type {\n    return T;\n}\n";
     let (output, fidelity) = translate(&[("l.zig", source)], "l.zig", Language::Go);
     assert_eq!(fidelity.functions, 0, "{output}");
-    assert!(output.contains("comptime T: type"), "carried whole:\n{output}");
+    assert!(
+        output.contains("comptime T: type"),
+        "carried whole:\n{output}"
+    );
 }
 
 #[test]
