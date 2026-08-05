@@ -493,7 +493,7 @@ mod rust {
             returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
             body: cx
                 .field(node, "body")
-                .map(|b| block(cx, b))
+                .map(|b| function_body(cx, b))
                 .unwrap_or_default(),
             exported: node
                 .children(&mut node.walk())
@@ -651,6 +651,36 @@ mod rust {
             .iter()
             .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
             .collect()
+    }
+
+    /// A function's body, where the last expression is the value it returns.
+    ///
+    /// `fn f(a: i64) -> i64 { a + 1 }` is the ordinary way to write a Rust function and
+    /// the tail is its result. Reading it as a plain statement dropped the return in
+    /// every target at once: Python got a function that returns `None`, Zig one that
+    /// says `_ = a + 1;`, and Go, Java and TypeScript ones that do not compile — each
+    /// still declaring the return type the signature carried across.
+    ///
+    /// Only the body's own tail. A tail inside an `if` is a return too, and reading it
+    /// as one needs the whole of Rust's block-expression rule; that is left as it was
+    /// rather than half-done.
+    fn function_body(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        let mut body = block(cx, node);
+        // The tail is an expression the grammar did not wrap in a statement. Anything
+        // that already ends in `;` is an `expression_statement` and is not one.
+        let tail_is_a_value = cx.children_with_comments(node).last().is_some_and(|last| {
+            !last.kind().ends_with("statement") && !last.kind().contains("comment")
+        });
+        if tail_is_a_value {
+            if let Some(Stmt::Expr(value)) = body.pop() {
+                body.push(Stmt::Return(Some(value)));
+            } else {
+                // Not an expression after all — a trailing `if` or loop, which the
+                // reader has already turned into its own statement.
+                body = block(cx, node);
+            }
+        }
+        body
     }
 
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {

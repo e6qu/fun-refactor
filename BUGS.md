@@ -76,6 +76,23 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B205: **a Rust function's tail expression translated to nothing.**
+  `pub fn f(a: i64, b: i64) -> i64 { a + b }` is the ordinary way to write one, and the
+  tail is its result. Reading it as a plain statement dropped the return in every target
+  at once: Python got a function returning `None`, Zig one saying `_ = a + b;`, and Go,
+  Java and TypeScript ones that do not compile — each still declaring the return type
+  the signature carried across faithfully. Only the body's own tail is read as a return;
+  a tail inside an `if` needs the whole of Rust's block-expression rule and is left as
+  it was rather than half-done.
+
+- [x] B204: **every translation dropped the brackets.** All six writers rendered a
+  binary expression as `left op right` and nothing else, so `(a + b) * c` came out as
+  `a + b * c`, `a - (b - c)` as `a - b - c`, and `!(a && b)` as `!a && b` — in Python,
+  TypeScript, Go, Java and Zig, in both directions, for the most ordinary expression
+  there is. Brackets are decided from precedence now rather than copied from the source,
+  so the result is right where two languages disagree about binding and a group that was
+  never needed does not survive the trip either.
+
 - [x] B203: **the grouping nearly went into CSS.** The node kinds that bind their
   operands are recognised by substring, because six grammars name the same thing six
   ways — and CSS names a `descendant_selector` and an `attribute_selector`, which read
