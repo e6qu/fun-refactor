@@ -93,7 +93,22 @@ fn the_sample_go_translates_into_something_that_parses() {
 }
 
 #[test]
-fn the_vendored_corpus_translates_into_something_that_parses() {
+fn the_vendored_python_translates_into_something_that_parses() {
     // Somebody else's code entirely: see tests/corpus/PROVENANCE.md.
     every_target(&sources("tests/corpus/fastapi", "py"), "Python", 3);
+}
+
+#[test]
+fn the_vendored_java_translates_into_something_that_parses() {
+    // google/gson. Nothing in this repository is written in Java, so without a corpus
+    // the Java reader is exercised only by fixtures somebody wrote to pass.
+    every_target(&sources("tests/corpus/gson", "java"), "Java", 3);
+}
+
+#[test]
+fn the_vendored_zig_translates_into_something_that_parses() {
+    // zigtools/zls, and every one of these was a defect the first time it was read: a
+    // pointer type, an optional type, `comptime` parameters, `_` as a parameter name,
+    // and a destructuring that silently kept the first name and dropped the rest.
+    every_target(&sources("tests/corpus/zls", "zig"), "Zig", 2);
 }

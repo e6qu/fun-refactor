@@ -5,7 +5,7 @@
 //! `def create_user(*, session, user_create)` produced
 //! `export function createUser(*: unknown, …)`, a file TypeScript will not parse.
 //!
-//! The corpus is two MIT-licensed projects, vendored unmodified and pinned; see
+//! The corpus is four projects, vendored unmodified and pinned; see
 //! `tests/corpus/PROVENANCE.md`. What is asserted here is deliberately not "the output
 //! equals this string" — that would freeze today's translation and break on every
 //! improvement. It is the three properties that must hold for any translation to be

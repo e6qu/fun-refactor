@@ -6,6 +6,7 @@
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
+use fun_refactor::transpile::MARKER;
 use std::path::PathBuf;
 
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
@@ -701,4 +702,153 @@ fn a_tuple_struct_is_refused_rather_than_emptied() {
         output.contains("pub struct Wrapper(Vec<String>);"),
         "the source has to be in the output:\n{output}"
     );
+}
+
+/// The same conditional expression, written five ways.
+const TERNARY: &[(&str, &str)] = &[
+    (
+        "t.py",
+        "def pick(a: int) -> int:\n    return 1 if a > 0 else 2\n",
+    ),
+    (
+        "t.ts",
+        "export function pick(a: number): number {\n  return a > 0 ? 1 : 2;\n}\n",
+    ),
+    (
+        "t.rs",
+        "pub fn pick(a: i64) -> i64 {\n    return if a > 0 { 1 } else { 2 };\n}\n",
+    ),
+    (
+        "T.java",
+        "public class T {\n    public int pick(int a) {\n        return a > 0 ? 1 : 2;\n    }\n}\n",
+    ),
+    (
+        "t.zig",
+        "pub fn pick(a: i64) i64 {\n    return if (a > 0) 1 else 2;\n}\n",
+    ),
+];
+
+#[test]
+fn a_conditional_expression_crosses_between_the_five_that_have_one() {
+    // One expression that chooses between two. Go is the only target here without it,
+    // and turning one into an `if` statement needs somewhere to put the result — which
+    // does not exist inside an argument list, so Go says so instead.
+    for (name, source) in TERNARY {
+        for (target, expected) in [
+            (Language::Python, "1 if a > 0 else 2"),
+            (Language::TypeScript, "a > 0 ? 1 : 2"),
+            (Language::Rust, "if a > 0 { 1 } else { 2 }"),
+            (Language::Java, "a > 0 ? 1 : 2"),
+            (Language::Zig, "if (a > 0) 1 else 2"),
+        ] {
+            if fun_refactor::lang::detect(std::path::Path::new(name)) == Some(target) {
+                continue;
+            }
+            let (output, _) = translate(&[(name, source)], name, target);
+            assert!(
+                output.contains(expected),
+                "{name} -> {target} should say `{expected}`:\n{output}"
+            );
+        }
+        let (output, fidelity) = translate(&[(name, source)], name, Language::Go);
+        assert!(
+            output.contains(&format!("{MARKER}: a > 0 ? 1 : 2")),
+            "{name} -> go should carry it verbatim:\n{output}"
+        );
+        assert!(fidelity.carried_verbatim > 0, "and count it:\n{output}");
+    }
+}
+
+#[test]
+fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
+    // Three of these six languages have inheritance and three do not. Dropping the
+    // base silently made `class JsonPrimitive extends JsonElement` into a class that
+    // extends nothing — a different type, with the output saying nothing about it.
+    let source = "export class Primitive extends Element {\n  value: string;\n\n  \
+                  read(): string {\n    return this.value;\n  }\n}\n";
+    for (target, expected) in [
+        (Language::Java, "class Primitive extends Element {"),
+        (Language::Python, "class Primitive(Element):"),
+    ] {
+        let (output, _) = translate(&[("p.ts", source)], "p.ts", target);
+        assert!(output.contains(expected), "{target}:\n{output}");
+    }
+    for target in [Language::Rust, Language::Go, Language::Zig] {
+        let (output, fidelity) = translate(&[("p.ts", source)], "p.ts", target);
+        assert!(
+            fidelity
+                .notes
+                .iter()
+                .any(|note| note.contains("extends `Element`")),
+            "{target} dropped the base without a word:\n{output}\n{:?}",
+            fidelity.notes
+        );
+    }
+}
+
+#[test]
+fn zig_pointers_and_optionals_are_read_as_what_they_are() {
+    // The grammar calls `?T` a `nullable_type`, which is not what it looks like it
+    // should be called — so the arm written for `optional_type` matched nothing and
+    // every optional in every Zig file crossed as a foreign type spelled `?T`.
+    let source = "pub const Store = struct {\n    n: i64,\n};\n\n\
+                  pub fn find(store: *Store, key: ?[]const u8) ?i64 {\n    return 1;\n}\n";
+    let (output, fidelity) = translate(&[("p.zig", source)], "p.zig", Language::TypeScript);
+    assert!(
+        output.contains("find(store: Store, key: string | null): number | null"),
+        "{output}"
+    );
+    // And the pointer is not a type this tool does not know: it is a reference to one
+    // that is right there in the same output.
+    assert_eq!(fidelity.signatures_with_foreign_types, 0, "{output}");
+}
+
+#[test]
+fn a_zig_comptime_parameter_is_refused_rather_than_read_as_a_value() {
+    // `comptime T: type` is Zig's generics: the parameter is a *type*, supplied where
+    // another language writes `<T>`. Read as an ordinary parameter it produced
+    // `func Lazy(comptime type, comptime type) type`, which means something else.
+    let source = "fn Lazy(comptime T: type, comptime C: type) type {\n    return T;\n}\n";
+    let (output, fidelity) = translate(&[("l.zig", source)], "l.zig", Language::Go);
+    assert_eq!(fidelity.functions, 0, "{output}");
+    assert!(output.contains("comptime T: type"), "carried whole:\n{output}");
+}
+
+#[test]
+fn a_zig_destructuring_binds_more_names_than_the_ir_has() {
+    // `const a, const b = pair;` binds two and the IR binds one. Reading the first and
+    // dropping the rest kept `const a = pair;` and lost `b` without a word.
+    let source = "fn f(pair: T) void {\n    const a, const b = pair;\n    _ = a;\n    _ = b;\n}\n";
+    let (output, fidelity) = translate(&[("d.zig", source)], "d.zig", Language::TypeScript);
+    assert!(fidelity.carried_verbatim > 0, "{output}");
+    assert!(
+        output.contains("const a, const b = pair;"),
+        "the source has to be in the output:\n{output}"
+    );
+}
+
+#[test]
+fn an_underscore_is_not_a_name_to_re_case() {
+    // `_` is the word for "no name" in four of these languages, and putting it through
+    // a naming convention asked what the empty word is called in `camelCase`. The
+    // answer was the empty string, so `_ = x;` came out as ` = x;`.
+    let source = "fn f(_: *Analyser, value: i64) void {\n    _ = value;\n}\n";
+    for target in [Language::Go, Language::Java, Language::TypeScript] {
+        let (output, _) = translate(&[("u.zig", source)], "u.zig", target);
+        assert!(
+            !output.contains(" = value") || output.contains("_ = value"),
+            "{target} lost the discard's name:\n{output}"
+        );
+    }
+}
+
+#[test]
+fn a_note_is_reported_even_when_nothing_was_carried() {
+    // Not every note is about a carried construct, and printing them only when
+    // something *else* had gone wrong meant a translation that lost a supertype and
+    // nothing else reported a clean bill.
+    let source = "export class Primitive extends Element {\n  value: string;\n}\n";
+    let (_, fidelity) = translate(&[("n.ts", source)], "n.ts", Language::Rust);
+    assert_eq!(fidelity.carried_verbatim, 0);
+    assert!(!fidelity.notes.is_empty(), "{:?}", fidelity.notes);
 }
