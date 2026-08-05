@@ -69,6 +69,56 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B123: **a TypeScript class member is public unless it says otherwise, and every
+  one of them was read as private.** A free function and a class member have opposite
+  defaults, and reading both the same way made every translated method `private` in
+  Java and unreachable in Go, Rust and Zig — while making every `private` field public,
+  which is the same mistake pointing the other way.
+
+- [x] B122: **Python's `x = 1` is a declaration the first time and an assignment every
+  time after, and all of them were read as declarations.** `total = total + x` inside a
+  loop became `let total = total + x;` in Rust — which *shadows* rather than
+  accumulates, so the value outside the loop never changed. It parses, it type-checks,
+  and it is the wrong program. Python's scope is the function rather than the block, so
+  one set of bound names carried through the body in order is exactly its rule.
+
+- [x] B121: **the receiver had six names and the IR recorded none of them.** `self`,
+  `this`, or whatever the Go author called it — and because the receiver is the one
+  binding that is *not* in the parameter list, it never went through the rename every
+  other name goes through. Every translated method kept its source's word and referred
+  to a name the output never binds. The IR records the word the source used and each
+  writer puts its own back on.
+
+- [x] B120: **`self` is the one keyword Rust refuses to raw-escape.** The escape that
+  makes every other reserved word writable produced `r#self`, which is a compile error,
+  so a method body that was correct became a file that does not build. The same is true
+  of `crate`, `super` and `Self`, which take a suffix instead.
+
+- [x] B119: **Go's `error` is Zig's keyword for an error set**, so a signature carrying
+  the type across by name did not parse. Written `@"error"` — Zig's own spelling for an
+  identifier that collides with one of its words — under which the name still says what
+  the source said.
+
+- [x] B118: **the Zig reader read named children only, and in that grammar the `:`
+  before a type, the `=` before a value and every operator are anonymous.** Every field
+  and parameter lost its type, `var sum = 0` declared a variable called `var`, `a * b`
+  put the right operand where the operator should have been, and every `else` branch
+  was silently dropped. Found by running the translation rather than by reading it.
+
+- [x] B117: **a `for` over two sequences, and an `if`/`while` that unwraps an optional,
+  were read as if they were the one-binding form.** `for (xs, ys) |x, y|` and
+  `if (maybe) |value|` bind things the IR has no room for, and reading them as the
+  simple form dropped half of what the loop said. Refused instead.
+
+- [x] B116: **Zig rejects a `var` nothing writes to.** Only the Rust reader records
+  mutability at all; every other one says "mutable" because it has nothing better to
+  say. Taking that at its word turned a `const` file into one that will not build.
+  Which keyword a binding takes is worked out from what assigns to it.
+
+- [x] B115: **Zig has no block comment**, so a carried-over fragment written beside an
+  expression swallowed the rest of the statement, semicolon included. Carried text is
+  queued and flushed as whole-line comments above the statement instead.
+
 - [x] B114: **the ordered-pair translation test covered sixteen of twenty pairs and
   asserted twelve.** Four source files for five languages, with the expected count
   written as a literal, so adding a language quietly shrank the fraction of the matrix

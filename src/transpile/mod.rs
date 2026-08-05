@@ -1,7 +1,7 @@
 //! Rewriting a file as a different programming language.
 //!
 //! Source → [`ir`] → source. One reader and one writer per language rather than a
-//! translator per pair: four languages is twelve ordered pairs and eight files.
+//! translator per pair: six languages is thirty ordered pairs and twelve files.
 //!
 //! # What it promises
 //!
@@ -74,6 +74,7 @@ pub const SUPPORTED: &[Language] = &[
     Language::Java,
     Language::Python,
     Language::TypeScript,
+    Language::Zig,
 ];
 
 pub fn supports(language: Language) -> bool {

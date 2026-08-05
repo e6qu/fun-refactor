@@ -202,7 +202,7 @@ the right answer.
 
 Since this document was written, `fr translate` gained a second mode. The first —
 containment — writes the same bytes under a different grammar: CSS as SCSS, a manifest
-as a Helm template. The second **translates**, between Rust, Go, Java, Python and TypeScript,
+as a Helm template. The second **translates**, between Rust, Go, Java, Python, TypeScript and Zig,
 and is a different promise entirely.
 
 The signature is the contract: every parameter in order, with its type and the return
@@ -259,6 +259,48 @@ have been public becomes a package-private sibling with a comment saying why.
 Reading Java is the same job in reverse: a file *is* a class, so reading one means
 unwrapping it to find the module inside. A `static final` field is Java's only spelling
 for a module constant and reads as one; an instance field reads as a field.
+
+### Zig, and the language where a type is a value
+
+Zig is the sixth, and it is the far end of the range. A `struct` is not a declaration
+form — it is a **value**, so `const Reading = struct { … };` is a constant whose value
+happens to be a type, and the methods live inside it. Reading one means noticing that
+the grammar reuses `variable_declaration` for an assignment too: `sum = sum + x` and
+`var sum = 0` are the same node, and only the keyword tells them apart.
+
+Four things about the language shape the writer:
+
+- **No `new`, no exception, no `async`.** Failure is a value in the return type and the
+  error set is part of the type, so a `throw` arriving from Python or Java has nowhere
+  to go; `async` was removed in 0.11 and has not come back. Each is carried, because
+  inventing an error set would be inventing the program's vocabulary of failures.
+- **No block comment.** `//` runs to the end of the line, so a carried fragment written
+  beside an expression would swallow the rest of the statement, semicolon included. It
+  goes on its own line above the statement — the only place in Zig a comment can go.
+- **`var` is an error when nothing writes to it.** Only the Rust reader records
+  mutability; every other one says "mutable" because it has nothing better to say.
+  Which keyword a binding takes is therefore a fact about the rest of the body, worked
+  out by looking at what assigns to it.
+- **Three conventions, not two.** Types are `PascalCase`, functions are `camelCase` and
+  everything else is `snake_case` — a split no other target here makes, and one that
+  spelled every local like a function until the naming map learned to tell them apart.
+
+`error` is Go's type and Zig's keyword. It is written `@"error"`, which is how Zig
+spells an identifier that collides with one of its own words, and under it the name
+still says what the source said.
+
+### The receiver has six names
+
+`self`, `this`, or whatever the Go author called it. The receiver is the one binding
+that is **not in the parameter list**, so it never went through the rename that every
+other name goes through — and each body kept its source's word. `this.cache` inside a
+Rust `impl` is not a typo; it is a file that cannot compile, and it was in every
+translated method of every class until the IR started recording which word the source
+used and each writer started putting its own back on.
+
+Rust makes this sharper than the rest: `self` is the one keyword it refuses to
+raw-escape, so the escape that made every other reserved word writable turned a correct
+file into `r#self`, which is a compile error.
 
 ### Typed Python and typed TypeScript
 

@@ -23,6 +23,7 @@ pub fn read(language: Language, source: &str, root: Node<'_>) -> Result<Module> 
         Language::Python => Ok(python::module(&cx, root)),
         Language::Go => Ok(go::module(&cx, root)),
         Language::Java => Ok(java::module(&cx, root)),
+        Language::Zig => Ok(zig::module(&cx, root)),
         Language::TypeScript | Language::Tsx => Ok(typescript::module(&cx, root)),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
@@ -254,11 +255,12 @@ mod rust {
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
         let name = cx.field_text(node, "name").unwrap_or_default();
         let mut params = Vec::new();
+        let mut receiver_name = None;
         if let Some(list) = cx.field(node, "parameters") {
             for p in cx.children(list) {
                 match p.kind() {
                     // `&self` carries the receiver, which the IR records separately.
-                    "self_parameter" => {}
+                    "self_parameter" => receiver_name = Some("self".to_string()),
                     "parameter" => params.push(Param {
                         name: cx.field_text(p, "pattern").unwrap_or_default(),
                         ty: cx.field(p, "type").map(|t| ty(cx, t)),
@@ -278,6 +280,7 @@ mod rust {
             doc: doc_above(cx, node, &["///", "//!", "//"]),
             name,
             receiver,
+            receiver_binding: receiver_name,
             params,
             returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
             body: cx
@@ -666,6 +669,10 @@ mod python {
 
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
         let mut params = Vec::new();
+        // Python names the receiver in the parameter list, so what it is called is the
+        // author's choice — `self` by convention, `cls` on a classmethod, anything at
+        // all if they felt like it.
+        let mut receiver_name = None;
         if let Some(list) = cx.field(node, "parameters") {
             for p in cx.children(list) {
                 match p.kind() {
@@ -692,6 +699,7 @@ mod python {
                     "identifier" => {
                         let name = cx.text(p);
                         if name == "self" || name == "cls" {
+                            receiver_name = Some(name);
                             continue;
                         }
                         params.push(Param {
@@ -708,6 +716,7 @@ mod python {
                             .map(|n| cx.text(*n))
                             .unwrap_or_default();
                         if name == "self" {
+                            receiver_name = Some(name);
                             continue;
                         }
                         params.push(Param {
@@ -733,19 +742,82 @@ mod python {
             }
         }
         let body_node = cx.field(node, "body");
+        let mut body = body_node.map(|b| block(cx, b)).unwrap_or_default();
+        let mut bound: std::collections::BTreeSet<String> = params
+            .iter()
+            .map(|p| p.name.clone())
+            .chain(receiver_name.clone())
+            .collect();
+        rebindings(&mut body, &mut bound);
         Function {
             doc: docstring(cx, body_node),
             name: cx.field_text(node, "name").unwrap_or_default(),
             receiver,
+            receiver_binding: receiver_name,
             params,
             returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
-            body: body_node.map(|b| block(cx, b)).unwrap_or_default(),
+            body,
             // Python's convention, which is all there is to go on.
             exported: !cx
                 .field_text(node, "name")
                 .unwrap_or_default()
                 .starts_with('_'),
             is_async: cx.text(node).starts_with("async "),
+        }
+    }
+
+    /// Turn every re-binding into an assignment.
+    ///
+    /// Python has no declaration keyword, so `x = 1` declares the first time and
+    /// assigns every time after. Reading all of them as declarations produced
+    /// `let total = total + x;` inside a Rust loop — which shadows rather than
+    /// accumulates, so the value outside the loop never changed. Nothing downstream
+    /// can catch that: it parses, it type-checks, and it is the wrong program.
+    ///
+    /// One set carried through the body in order is exactly Python's rule, because its
+    /// scope is the function and not the block.
+    fn rebindings(body: &mut [Stmt], bound: &mut std::collections::BTreeSet<String>) {
+        for stmt in body.iter_mut() {
+            match stmt {
+                // An annotated `x: int = 1` is a declaration whatever came before it.
+                Stmt::Let {
+                    name, ty, value, ..
+                } if ty.is_none() && bound.contains(name) => {
+                    let target = Expr::Name(name.clone());
+                    let value = value.take().unwrap_or(Expr::Null);
+                    *stmt = Stmt::Assign { target, value };
+                }
+                Stmt::Let { name, .. } => {
+                    bound.insert(name.clone());
+                }
+                Stmt::If {
+                    then, otherwise, ..
+                } => {
+                    rebindings(then, bound);
+                    rebindings(otherwise, bound);
+                }
+                Stmt::While { body, .. } => rebindings(body, bound),
+                Stmt::ForEach { binding, body, .. } => {
+                    bound.insert(binding.clone());
+                    rebindings(body, bound);
+                }
+                Stmt::Try {
+                    body,
+                    catches,
+                    finally,
+                    ..
+                } => {
+                    rebindings(body, bound);
+                    for catch in catches.iter_mut() {
+                        if let Some(name) = &catch.binding {
+                            bound.insert(name.clone());
+                        }
+                        rebindings(&mut catch.body, bound);
+                    }
+                    rebindings(finally, bound);
+                }
+                _ => {}
+            }
         }
     }
 
@@ -1282,9 +1354,9 @@ mod go {
                     text: cx.text(child),
                     line: cx.line(child),
                 }),
-                "function_declaration" => {
-                    module.items.push(Item::Function(function(cx, child, None)))
-                }
+                "function_declaration" => module
+                    .items
+                    .push(Item::Function(function(cx, child, None, None))),
                 "method_declaration" => {
                     let owner = cx
                         .field(child, "receiver")
@@ -1292,7 +1364,15 @@ mod go {
                         .and_then(|p| cx.field(p, "type"))
                         .map(|t| cx.text(t).trim_start_matches('*').to_string())
                         .unwrap_or_default();
-                    pending.push((owner.clone(), function(cx, child, Some(owner))));
+                    // Go lets the author name the receiver, and most do: `func (c
+                    // *Collector) Add` binds `c`, not `self`.
+                    let bound = cx
+                        .field(child, "receiver")
+                        .and_then(|r| cx.children(r).first().copied())
+                        .and_then(|p| cx.children(p).first().copied())
+                        .filter(|n| n.kind() == "identifier")
+                        .map(|n| cx.text(n));
+                    pending.push((owner.clone(), function(cx, child, Some(owner), bound)));
                 }
                 "type_declaration" => {
                     for spec in cx.children(child) {
@@ -1328,7 +1408,12 @@ mod go {
         module
     }
 
-    fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
+    fn function(
+        cx: &Cx,
+        node: Node<'_>,
+        receiver: Option<String>,
+        receiver_name: Option<String>,
+    ) -> Function {
         let mut params = Vec::new();
         if let Some(list) = cx.field(node, "parameters") {
             for p in cx.children(list) {
@@ -1366,6 +1451,7 @@ mod go {
             exported: name.chars().next().is_some_and(|c| c.is_uppercase()),
             name,
             receiver,
+            receiver_binding: receiver_name,
             params,
             returns: cx.field(node, "result").map(|t| ty(cx, t)),
             body: cx
@@ -1806,7 +1892,7 @@ mod java {
                             });
                         }
                     }
-                    // `String... args` is a variadic, which three of the four targets
+                    // `String... args` is a variadic, which most of the other targets
                     // have a spelling for.
                     "spread_parameter" => {
                         if let Some(declarator) = cx
@@ -1834,6 +1920,9 @@ mod java {
             doc: doc_above(cx, node, &["///", "//", "/**", "*"]),
             name: cx.field_text(node, "name").unwrap_or_default(),
             receiver: None,
+            // Java names the receiver for you and the word is a keyword, so it can
+            // never be anything else.
+            receiver_binding: Some("this".to_string()),
             params,
             returns,
             body: cx
@@ -2199,6 +2288,464 @@ mod java {
     }
 }
 
+/// Zig.
+///
+/// Two things shape this reader. A `variable_declaration` with no `var` or `const` in
+/// front of it is an **assignment**, not a declaration — the grammar reuses the node —
+/// so telling the two apart means reading the keyword rather than the node kind. And a
+/// type is a value: `const Reading = struct { … };` is a `variable_declaration` whose
+/// value happens to be a struct, which is where records come from.
+///
+/// What deliberately does not cross: `try`, `catch`, error unions and `comptime`. Zig
+/// models failure in the return type and no other target here has anything to put
+/// there, so each is carried with the original beside it.
+mod zig {
+    use super::*;
+
+    /// Every child, punctuation included.
+    ///
+    /// `cx.children` gives the named nodes only, and in this grammar the `:` before a
+    /// type, the `=` before a value and every operator are anonymous — so the shape of
+    /// a declaration is invisible without them. Reading a binary expression by
+    /// position instead put the right operand where the operator should have been, and
+    /// every piece of arithmetic in the file came out as "no counterpart".
+    fn all<'t>(node: Node<'t>) -> Vec<Node<'t>> {
+        let mut cursor = node.walk();
+        node.children(&mut cursor).collect()
+    }
+
+    /// The node after `token`, up to the next `stop` token.
+    fn after<'t>(parts: &[Node<'t>], token: &str, stop: &str) -> Option<Node<'t>> {
+        let at = parts.iter().position(|c| c.kind() == token)?;
+        parts
+            .get(at + 1)
+            .filter(|c| c.kind() != stop)
+            .filter(|c| c.is_named())
+            .copied()
+    }
+
+    pub fn module(cx: &Cx, root: Node<'_>) -> Module {
+        let mut module = Module::default();
+        for child in cx.children(root) {
+            match child.kind() {
+                "comment" => {}
+                "function_declaration" => module.items.push(Item::Function(function(cx, child))),
+                "variable_declaration" => match declaration(cx, child) {
+                    Some(item) => module.items.push(item),
+                    None => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                },
+                _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
+            }
+        }
+        module
+    }
+
+    /// `const X = …;` at the top level: an import, a struct, or a constant.
+    fn declaration(cx: &Cx, node: Node<'_>) -> Option<Item> {
+        let parts = all(node);
+        let name = parts
+            .iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))?;
+        let exported = cx.text(node).trim_start().starts_with("pub");
+        let value = after(&parts, "=", ";")?;
+
+        // `const std = @import("std");` is a dependency, not a constant.
+        if value.kind() == "builtin_function" && cx.text(value).starts_with("@import") {
+            return Some(Item::Import {
+                text: cx.text(node),
+                line: cx.line(node),
+            });
+        }
+
+        if value.kind() == "struct_declaration" {
+            return Some(Item::Record(record(cx, node, name, exported, value)));
+        }
+        // An enum or a union has no counterpart in most of the targets, and
+        // flattening one into a record would lose which variant a value is.
+        if matches!(value.kind(), "enum_declaration" | "union_declaration") {
+            return None;
+        }
+
+        Some(Item::Constant(Constant {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
+            value: expr(cx, value),
+            exported,
+        }))
+    }
+
+    fn record(cx: &Cx, node: Node<'_>, name: String, exported: bool, body: Node<'_>) -> Record {
+        let mut record = Record {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            fields: Vec::new(),
+            exported,
+            methods: Vec::new(),
+        };
+        for member in cx.children(body) {
+            match member.kind() {
+                "container_field" => {
+                    let parts = all(member);
+                    let Some(field_name) = parts.first().map(|c| cx.text(*c)) else {
+                        continue;
+                    };
+                    record.fields.push(Field {
+                        doc: doc_above(cx, member, &["///", "//"]),
+                        name: field_name,
+                        // `x: i32` — the type is whatever follows the colon, and stops
+                        // before the `=` of a default.
+                        ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
+                        // Zig has no per-field visibility; a field of an exported type
+                        // is reachable wherever the type is.
+                        exported,
+                    });
+                }
+                "function_declaration" => record.methods.push(function(cx, member)),
+                _ => {}
+            }
+        }
+        record
+    }
+
+    fn function(cx: &Cx, node: Node<'_>) -> Function {
+        let children = cx.children(node);
+        let name = children
+            .iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))
+            .unwrap_or_default();
+
+        let mut params = Vec::new();
+        let mut receiver = None;
+        let mut receiver_name = None;
+        if let Some(list) = children.iter().find(|c| c.kind() == "parameters") {
+            for parameter in cx.children(*list) {
+                if parameter.kind() != "parameter" {
+                    continue;
+                }
+                let parts = all(parameter);
+                let Some(parameter_name) = parts.first().map(|c| cx.text(*c)) else {
+                    continue;
+                };
+                let ty = after(&parts, ":", ")").map(|t| ty_of(cx, t));
+                // `self: Reading` is the receiver, spelled as an ordinary parameter.
+                if parameter_name == "self" {
+                    receiver = ty.as_ref().map(|t| t.to_string());
+                    receiver_name = Some(parameter_name);
+                    continue;
+                }
+                params.push(Param {
+                    name: parameter_name,
+                    ty,
+                    default: None,
+                    kind: ParamKind::Normal,
+                });
+            }
+        }
+
+        // The return type sits between the parameter list and the body.
+        let returns = children
+            .iter()
+            .position(|c| c.kind() == "parameters")
+            .and_then(|at| children.get(at + 1))
+            .filter(|c| c.kind() != "block")
+            .map(|t| ty_of(cx, *t));
+
+        Function {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            receiver,
+            receiver_binding: receiver_name,
+            params,
+            returns,
+            body: children
+                .iter()
+                .find(|c| c.kind() == "block")
+                .map(|b| block(cx, *b))
+                .unwrap_or_default(),
+            exported: cx.text(node).trim_start().starts_with("pub"),
+            is_async: false,
+        }
+    }
+
+    fn ty_of(cx: &Cx, node: Node<'_>) -> Type {
+        let text = cx.text(node);
+        match node.kind() {
+            "builtin_type" => match text.as_str() {
+                "bool" => Type::Bool,
+                "void" | "noreturn" => Type::Unit,
+                "f16" | "f32" | "f64" | "f80" | "f128" => Type::Float,
+                other if other.starts_with('i') || other.starts_with('u') => Type::Int,
+                other => Type::named(other),
+            },
+            // `[]const u8` is Zig's string; `[]T` is a slice of anything else.
+            "slice_type" | "array_type" => {
+                let element = cx
+                    .children(node)
+                    .into_iter()
+                    .next_back()
+                    .map(|e| ty_of(cx, e))
+                    .unwrap_or_else(|| Type::named("anytype"));
+                if element == Type::Int && text.contains("u8") {
+                    return Type::String;
+                }
+                Type::List(Box::new(element))
+            }
+            "optional_type" => Type::Optional(Box::new(
+                cx.children(node)
+                    .into_iter()
+                    .next_back()
+                    .map(|inner| ty_of(cx, inner))
+                    .unwrap_or_else(|| Type::named("anytype")),
+            )),
+            // `!T` is an error union: the error set is part of the type and none of the
+            // targets has one, so the type is written through by name.
+            "error_union_type" => Type::named(text.trim()),
+            _ => match text.trim() {
+                "bool" => Type::Bool,
+                "void" => Type::Unit,
+                other => Type::named(other),
+            },
+        }
+    }
+
+    fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        cx.children(node)
+            .iter()
+            .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
+            .collect()
+    }
+
+    /// The statements inside a `block_expression`, or the one statement without braces.
+    fn body_of(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        match node.kind() {
+            // A braced body arrives wrapped, and an `else { … }` arrives wrapped
+            // twice: the grammar treats every block as labelable whether or not it
+            // carries a label.
+            "block_expression" | "labeled_statement" => cx
+                .children(node)
+                .into_iter()
+                .find(|c| c.kind() == "block")
+                .map(|b| block(cx, b))
+                .unwrap_or_default(),
+            "block" => block(cx, node),
+            _ => vec![keep_whole(cx, node, stmt(cx, node))],
+        }
+    }
+
+    /// Is this node the braced body of something?
+    fn is_body(node: Node<'_>) -> bool {
+        matches!(
+            node.kind(),
+            "block_expression" | "block" | "labeled_statement"
+        )
+    }
+
+    fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
+        match node.kind() {
+            "comment" => Stmt::Comment(super::uncomment(&cx.text(node))),
+            "expression_statement" => match cx.children(node).first().copied() {
+                Some(inner) => stmt(cx, inner),
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "return_expression" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
+            "break_expression" => Stmt::Break,
+            "continue_expression" => Stmt::Continue,
+            // The grammar reuses this node for both a declaration and an assignment;
+            // only the keyword tells them apart.
+            "variable_declaration" => {
+                let text = cx.text(node);
+                let parts = all(node);
+                let declares = text.trim_start().starts_with("var ")
+                    || text.trim_start().starts_with("const ");
+                // The first *named* child: `var sum = 0` starts with the keyword,
+                // which is punctuation, and taking it declared a variable called `var`.
+                let Some(target) = parts.iter().find(|c| c.is_named()).copied() else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let Some(value) = after(&parts, "=", ";") else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                if !declares {
+                    return Stmt::Assign {
+                        target: expr(cx, target),
+                        value: expr(cx, value),
+                    };
+                }
+                Stmt::Let {
+                    name: cx.text(target),
+                    ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
+                    value: Some(expr(cx, value)),
+                    mutable: text.trim_start().starts_with("var "),
+                }
+            }
+            "if_statement" => {
+                let children = cx.children(node);
+                // `if (maybe) |value| { … }` unwraps an optional and binds what was
+                // inside it. That is not a condition, and reading it as one would drop
+                // the binding and leave the body referring to a name nothing declares.
+                if children.iter().any(|c| c.kind() == "payload") {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                let condition = children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null);
+                Stmt::If {
+                    condition,
+                    then: children
+                        .iter()
+                        .skip(1)
+                        .find(|c| is_body(**c))
+                        .map(|b| body_of(cx, *b))
+                        .unwrap_or_default(),
+                    // The else branch is one level down, inside an `else_clause`.
+                    otherwise: children
+                        .iter()
+                        .find(|c| c.kind() == "else_clause")
+                        .and_then(|e| cx.children(*e).into_iter().find(|c| is_body(*c)))
+                        .map(|b| body_of(cx, b))
+                        .unwrap_or_default(),
+                }
+            }
+            "while_statement" => {
+                let children = cx.children(node);
+                // `while (it.next()) |item|` is the same binding form as `if`, and the
+                // same reason to refuse it.
+                if children.iter().any(|c| c.kind() == "payload") {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::While {
+                    condition: children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null),
+                    body: children
+                        .iter()
+                        .skip(1)
+                        .find(|c| is_body(**c))
+                        .map(|b| body_of(cx, *b))
+                        .unwrap_or_default(),
+                }
+            }
+            // `for (xs) |x| { … }` — the binding is in the payload.
+            "for_statement" => {
+                let children = cx.children(node);
+                let Some(payload) = children.iter().find(|c| c.kind() == "payload") else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let bindings: Vec<Node> = cx
+                    .children(*payload)
+                    .into_iter()
+                    .filter(|c| c.kind() == "identifier")
+                    .collect();
+                let sequences: Vec<Node> = children
+                    .iter()
+                    .take_while(|c| c.kind() != "payload")
+                    .copied()
+                    .collect();
+                // `for (xs, ys) |x, y|` walks two sequences in step, and `for (xs, 0..)
+                // |x, i|` counts as it goes. The IR binds one name to one iterable, so
+                // either would have to drop half of what the loop said.
+                if bindings.len() != 1 || sequences.len() != 1 {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::ForEach {
+                    binding: cx.text(bindings[0]),
+                    iterable: expr(cx, sequences[0]),
+                    body: children
+                        .iter()
+                        .find(|c| is_body(**c))
+                        .map(|b| body_of(cx, *b))
+                        .unwrap_or_default(),
+                }
+            }
+            // A `for` or `while` may carry a label; the loop is inside it.
+            "labeled_statement" => match cx
+                .children(node)
+                .into_iter()
+                .find(|c| matches!(c.kind(), "for_statement" | "while_statement"))
+            {
+                Some(loop_node) => stmt(cx, loop_node),
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "call_expression" | "field_expression" | "identifier" => Stmt::Expr(expr(cx, node)),
+            _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    fn expr(cx: &Cx, node: Node<'_>) -> Expr {
+        match node.kind() {
+            "integer" => Expr::Int(cx.text(node)),
+            "float" => Expr::Float(cx.text(node)),
+            "true" => Expr::Bool(true),
+            "false" => Expr::Bool(false),
+            "null" | "undefined" => Expr::Null,
+            "string" => Expr::Str(super::unquote(&cx.text(node))),
+            "identifier" => Expr::Name(cx.text(node)),
+            "field_expression" => {
+                let parts = cx.children(node);
+                match (parts.first(), parts.last()) {
+                    (Some(of), Some(name)) if parts.len() >= 2 => Expr::Field {
+                        of: Box::new(expr(cx, *of)),
+                        name: cx.text(*name),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "call_expression" => {
+                let parts = cx.children(node);
+                let Some(callee) = parts.first().copied() else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                let args = parts
+                    .iter()
+                    .find(|c| c.kind() == "arguments")
+                    .map(|a| cx.children(*a).into_iter().map(|n| expr(cx, n)).collect())
+                    .unwrap_or_default();
+                call_or_carry(cx, node, expr(cx, callee), args)
+            }
+            // The operator is punctuation, so it is not among the named children:
+            // `a * b` has two of those and the `*` is between them.
+            "binary_expression" => {
+                let parts = all(node);
+                let operator = parts
+                    .iter()
+                    .find(|c| !c.is_named())
+                    .map(|c| cx.text(*c))
+                    .unwrap_or_default();
+                let operands: Vec<Node> = parts.iter().filter(|c| c.is_named()).copied().collect();
+                match super::binary_op(&operator) {
+                    Some(op) if operands.len() == 2 => Expr::Binary {
+                        op,
+                        left: Box::new(expr(cx, operands[0])),
+                        right: Box::new(expr(cx, operands[1])),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "unary_expression" => {
+                let parts = all(node);
+                let operand = parts
+                    .iter()
+                    .find(|c| c.is_named())
+                    .map(|o| expr(cx, *o))
+                    .unwrap_or(Expr::Null);
+                match parts.first().map(|c| cx.text(*c)).as_deref() {
+                    Some("!") => Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: Box::new(operand),
+                    },
+                    Some("-") => Expr::Unary {
+                        op: UnaryOp::Neg,
+                        operand: Box::new(operand),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `try`, `catch`, `orelse` and `comptime` are how Zig says what the others
+            // say with exceptions and generics, and none of them has a counterpart.
+            _ => Expr::Unsupported(cx.unsupported(node)),
+        }
+    }
+}
+
 mod typescript {
     /// Does this access use `?.`?
     ///
@@ -2310,6 +2857,7 @@ mod typescript {
         Function {
             doc: Vec::new(),
             name: cx.field_text(node, "name").unwrap_or_default(),
+            receiver_binding: receiver.as_ref().map(|_| "this".to_string()),
             receiver,
             params,
             returns,
@@ -2320,6 +2868,19 @@ mod typescript {
             exported: false,
             is_async,
         }
+    }
+
+    /// Is this class member reachable from outside the class?
+    ///
+    /// A TypeScript member is public unless it says otherwise, which is the opposite
+    /// of what a free function does. Reading both the same way made every translated
+    /// method private in Java and unreachable in Go, Rust and Zig — and made every
+    /// `private` field public, which is the same mistake pointing the other way.
+    fn is_visible(cx: &Cx, member: Node<'_>) -> bool {
+        !cx.children(member).iter().any(|c| {
+            c.kind() == "accessibility_modifier"
+                && matches!(cx.text(*c).as_str(), "private" | "protected")
+        })
     }
 
     fn record(cx: &Cx, node: Node<'_>) -> Record {
@@ -2333,10 +2894,12 @@ mod typescript {
                         doc: Vec::new(),
                         name: cx.field_text(member, "name").unwrap_or_default(),
                         ty: cx.field(member, "type").map(|t| ty(cx, t)),
-                        exported: true,
+                        exported: is_visible(cx, member),
                     }),
                     "method_definition" | "method_signature" => {
-                        methods.push(function(cx, member, Some(name.clone())))
+                        let mut method = function(cx, member, Some(name.clone()));
+                        method.exported = is_visible(cx, member);
+                        methods.push(method);
                     }
                     _ => {}
                 }
@@ -2873,7 +3436,7 @@ fn named_with_args(text: &str, resolve: &dyn Fn(&str) -> Type) -> Type {
     }
 }
 
-/// The scalar types that mean the same thing in all four languages.
+/// The scalar types that mean the same thing in every language here.
 ///
 /// Width is deliberately dropped: `i64` and `int` and `number` are all [`Type::Int`],
 /// because carrying a width into a language that has none would be inventing a
@@ -2917,7 +3480,7 @@ fn binary_op(text: &str) -> Option<BinaryOp> {
 /// The text of a string literal, without its quotes or prefix.
 /// The text of a comment, without whichever marker the source language used.
 ///
-/// The marker is the only thing that differs between these four, so stripping it here
+/// The marker is the only thing that differs between them, so stripping it here
 /// and letting each writer add its own is the whole of comment translation.
 fn uncomment(text: &str) -> String {
     let text = text.trim();
