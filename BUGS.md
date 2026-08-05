@@ -76,6 +76,34 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B186: **a reference in an argument position could be mistaken for the call.** The
+  hunt for a call walks up to eight parents from the reference, and once it stopped
+  filtering on the recorded kind (B185) a type named inside somebody *else's* argument
+  list — `register(Pet.class, 7)` — found that enclosing call and would have reordered
+  its arguments as though they belonged to `Pet`. Found while fixing B185, before it
+  could ship. The walk now requires the reference to sit before the argument list of the
+  call it lands on, which is what "this reference names the thing being called" means.
+
+- [x] B185: **a constructor's parameters were reordered and every `new` left as it
+  was.** `new Thing(1, "x")` is written down as a reference to the *type* — which it
+  also is — and the call-site loop skipped everything whose recorded kind was not
+  `Call`. So the declaration changed, thirteen construction sites did not, and nothing
+  warned: the same silently-partial result already fixed for `rename`. The grammar now
+  decides whether a reference is a call, not the kind the extractor wrote down. A
+  mention that really is not a call — the `C` in `static C make()` — has no arguments to
+  change and is passed over; a recorded call the grammar will not show as one is still
+  refused.
+
+- [x] B184: **`fr signature` refused at every Java call site there has ever been.** The
+  lookup matched on `kind().contains("call")` plus one named exception, under a comment
+  claiming SCSS's `include_statement` was "the one call form whose kind does not say
+  call" — true of the languages it was written against. Java spells a call a
+  `method_invocation` and a construction an `object_creation_expression`, so both were
+  invisible and the refusal came out as a sentence about resolution strength for a
+  reference that had resolved exactly. The message for a call the grammar genuinely
+  will not expose is now a `Refusal::Unknowable`, which says what is actually wrong
+  instead of blaming a confidence that was never the problem.
+
 - [x] B183: **the imports a moved symbol needs were written above the code rather than
   where imports go.** Prepending them to the moved text put an `import` statement in the
   middle of the destination — legal in Python, a syntax error in half the other targets,

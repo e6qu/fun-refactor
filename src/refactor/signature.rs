@@ -237,22 +237,28 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     // Now every call site.
     let mut call_sites = 0;
     for reference in &references {
-        if reference.kind != crate::model::ReferenceKind::Call {
-            continue;
-        }
         let call_source = crate::vfs::read_to_string(&reference.file)?;
         let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
-        let Some(call) = call_expression(&call_parsed, reference.span) else {
-            return Err(Refusal::TooWeak {
-                confidence: reference.confidence,
-                detail: format!(
-                    "the call to `{}` at {} is not a call expression this grammar exposes, \
-                     so its arguments cannot be rewritten",
-                    sym.name,
-                    location(&reference.file, reference.span.start)
-                ),
+        // The grammar decides whether this is a call, not the kind the extractor
+        // recorded. `new Thing(1, "x")` is written down as a reference to the *type* —
+        // which it also is — so filtering on the kind skipped it, and a constructor's
+        // parameters could be reordered while every `new` was left as it was. A mention
+        // that really is not a call has no arguments to change and is passed over; a
+        // recorded call the grammar will not show as one is the case worth refusing.
+        let call = match call_expression(&call_parsed, reference.span) {
+            Some(call) => call,
+            None if reference.kind != crate::model::ReferenceKind::Call => continue,
+            None => {
+                return Err(Refusal::Unknowable {
+                    detail: format!(
+                        "the call to `{}` at {} is not a call expression this grammar \
+                         exposes, so its arguments cannot be rewritten",
+                        sym.name,
+                        location(&reference.file, reference.span.start)
+                    ),
+                }
+                .into())
             }
-            .into());
         };
         // An unparsed call site would be silently skipped, and a skipped call site
         // is exactly the partial update this refactoring exists to avoid.
@@ -595,10 +601,27 @@ fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
         .root()
         .descendant_for_byte_range(span.start, span.end)?;
     for _ in 0..8 {
-        // SCSS spells a mixin call `@include name(args)`, which is an
-        // `include_statement` — the one call form whose kind does not say "call".
-        if node.kind().contains("call") || node.kind() == "include_statement" {
-            return Some(node);
+        // Two grammars do not say "call". SCSS spells a mixin call `@include
+        // name(args)`, an `include_statement`; Java spells every call a
+        // `method_invocation` and every construction an `object_creation_expression`.
+        //
+        // The comment here used to say "the one call form whose kind does not say
+        // call", which was true of the languages it was written against — and meant
+        // `fr signature` refused at every Java call site there has ever been.
+        if node.kind().contains("call")
+            || matches!(
+                node.kind(),
+                "include_statement" | "method_invocation" | "object_creation_expression"
+            )
+        {
+            // The walk has to find the call this reference *names*, not one it merely
+            // sits inside. A mention in an argument position — `render(Pet)` — walks up
+            // into a call to something else entirely, whose arguments would then be
+            // reordered as if they were the mentioned symbol's.
+            return match argument_list(node) {
+                Some(args) if span.start >= args.start_byte() => None,
+                _ => Some(node),
+            };
         }
         node = node.parent()?;
     }
