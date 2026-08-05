@@ -1319,6 +1319,41 @@ fn run(root: &Path, argv: &[String]) -> String {
     text.trim_end().to_string()
 }
 
+/// One command's standard error, on its own.
+///
+/// `fr openapi` puts the document on stdout and everything it could not settle on
+/// stderr, so that the document stays a document. The page wants both halves and has to
+/// keep them apart.
+fn run_stderr(root: &Path, argv: &[String]) -> String {
+    let output = Command::new(FR)
+        .arg("--root")
+        .arg(root)
+        .args(argv)
+        .output()
+        .expect("running fr");
+    let mut text = String::from_utf8_lossy(&output.stderr).to_string();
+    let root_text = root.to_string_lossy().to_string();
+    let private = format!("/private{root_text}");
+    for prefix in [private.as_str(), root_text.as_str()] {
+        text = text.replace(&format!("{prefix}/"), "").replace(prefix, ".");
+    }
+    text.trim_end().to_string()
+}
+
+/// Copy a directory tree, so a sample kept in the repository can be run against.
+fn copy(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), &target).unwrap();
+        }
+    }
+}
+
 fn json_string(value: &str) -> String {
     serde_json::to_string(value).unwrap()
 }
@@ -1581,4 +1616,166 @@ fn the_recipe_tutorial_shows_what_the_tool_does() {
 #[test]
 fn the_translation_page_shows_what_the_tool_does() {
     check("docs/translate-data.js", translate_data());
+}
+
+// -------------------------------------------------------------- the contract
+
+/// One endpoint of the pet store, and what it looks like on both sides of the crossing.
+struct Endpoint {
+    /// The route file, relative to the sample tree.
+    route: &'static str,
+    /// What kind of endpoint this is, for the reader working down the page.
+    shape: &'static str,
+    /// What this one demonstrates that the others do not.
+    note: &'static str,
+}
+
+/// Every shape a CRUD API has, in one tree.
+///
+/// Not a sampler: a router that answers all of these is a router that has met a
+/// collection, a member, a sub-collection, a sub-member, a replacement, an action, an
+/// aggregate and a catch-all — which is the whole surface most APIs ever have.
+const ENDPOINTS: &[Endpoint] = &[
+    Endpoint {
+        route: "app/api/pets/route.ts",
+        shape: "A collection: list and create",
+        note: "`GET` reads `species` out of the query string and `POST` validates its \
+               body against a zod schema declared in another module. Neither is a \
+               declaration Next.js makes, and both are in the contract.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/route.ts",
+        shape: "A member: read, patch, delete",
+        note: "`context.params.petId` becomes `pet_id` wherever it appears, because \
+               FastAPI supplies the path parameter directly. The URL is unchanged; only \
+               the way the handler reaches the value did.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/photos/route.ts",
+        shape: "A sub-collection under a member",
+        note: "The parent's path parameter is still in scope: `/pets/{pet_id}/photos` \
+               carries `pet_id` into a handler that also takes a body.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/photos/[photoId]/route.ts",
+        shape: "A sub-member: two path parameters",
+        note: "Both parameters arrive, in the order the tree declares them, and both \
+               are used in the body. Getting one of them right is not half a rewrite.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/status/route.ts",
+        shape: "A sub-resource replaced whole: PUT",
+        note: "A nullable field in the schema — `note: z.string().nullable()` — becomes \
+               `str | None`, and the contract leaves it out of `required`.",
+    },
+    Endpoint {
+        route: "app/api/pets/search/route.ts",
+        shape: "An action, which is not CRUD at all",
+        note: "`/pets/search` is a *sibling* of `/pets/{pet_id}` in the tree, so a \
+               router has to tell a literal segment from a parameter. Both are in the \
+               contract, and the order they are declared in decides which wins.",
+    },
+    Endpoint {
+        route: "app/api/stores/[storeId]/inventory/route.ts",
+        shape: "An aggregate over a different resource",
+        note: "A second root — `/stores/…` — with a path parameter of its own, to show \
+               the tree is not one resource deep.",
+    },
+    Endpoint {
+        route: "app/api/files/[...path]/route.ts",
+        shape: "A catch-all segment",
+        note: "`[...path]` matches across slashes; FastAPI spells that `{path:path}`. A \
+               rewrite that emitted `{path}` would answer a strictly smaller set of \
+               URLs than the one it replaced — silently, and only for the requests with \
+               a slash in them.",
+    },
+];
+
+/// The pet store, translated route by route, with the contract it declares.
+fn contract_data() -> String {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/petstore");
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    // Named, not the temporary directory itself: `fr openapi` titles the document after
+    // the workspace, and a title that is a different random string every run would make
+    // the committed page churn for no reason.
+    let workspace = tmp.path().join("petstore");
+    copy(&root, &workspace);
+    let workspace = workspace.as_path();
+
+    let contract = run(workspace, &["openapi".into(), "--yaml".into()]);
+    assert!(
+        contract.contains("openapi: 3.1.0"),
+        "the contract is a document:\n{contract}"
+    );
+    // The notes go to stderr, so what lands here is the document. Everything the
+    // document could not settle is fetched separately, because it is the other half of
+    // the story: a baseline that quietly invents an entry is worse than no baseline.
+    let notes = run_stderr(workspace, &["openapi".into()]);
+
+    let mut out = String::from(
+        "// Generated by `cargo test --test site_data`. Do not edit.\n\
+         //\n\
+         // The contract, and every endpoint on both sides of the crossing, produced by\n\
+         // running the real binary over `tests/petstore`. Regenerate with:\n\
+         //   UPDATE_SITE_DATA=1 cargo test --test site_data\n",
+    );
+    out.push_str(&format!(
+        "export const CONTRACT = {};\n\nexport const CONTRACT_NOTES = {};\n\n\
+         export const ENDPOINTS = [\n",
+        json_string(&contract),
+        json_string(&notes)
+    ));
+
+    for endpoint in ENDPOINTS {
+        let before = std::fs::read_to_string(workspace.join(endpoint.route)).unwrap();
+        let argv = vec![
+            "translate".to_string(),
+            endpoint.route.to_string(),
+            "fastapi".to_string(),
+        ];
+        let report = run(workspace, &argv);
+        assert!(
+            !report.starts_with("Error:"),
+            "{}: {report}",
+            endpoint.route
+        );
+        let mut applied = argv.clone();
+        applied.push("--write".to_string());
+        run(workspace, &applied);
+        // The destination is beside the route, named after the URL it serves.
+        let directory = workspace
+            .join(endpoint.route)
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        // Read off disk rather than out of the report, so it has to be scrubbed here:
+        // the header names the file it was translated from, and that path is a
+        // temporary directory whose name changes every run.
+        let after = std::fs::read_dir(&directory)
+            .unwrap()
+            .flatten()
+            .map(|e| e.path())
+            .find(|p| p.extension().is_some_and(|x| x == "py"))
+            .map(|p| scrub(&std::fs::read_to_string(p).unwrap(), workspace))
+            .unwrap_or_else(|| panic!("{} produced no Python", endpoint.route));
+
+        out.push_str(&format!(
+            "  {{\n    route: {},\n    shape: {},\n    note: {},\n    command: {},\n    \
+             before: {},\n    after: {},\n    report: {},\n  }},\n",
+            json_string(endpoint.route),
+            json_string(endpoint.shape),
+            json_string(endpoint.note),
+            json_string(&format!("fr translate '{}' fastapi", endpoint.route)),
+            json_string(&before),
+            json_string(&after),
+            json_string(&report),
+        ));
+    }
+    out.push_str("];\n");
+    out
+}
+
+#[test]
+fn the_contract_page_shows_what_the_tool_does() {
+    check("docs/contract-data.js", contract_data());
 }

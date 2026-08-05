@@ -76,6 +76,35 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B174: **a handler's inline `context.params.petId` was left naming an object
+  Python does not have.** Dropping the *statement* `const id = context.params.id` was
+  only half of it: a handler that reads the path parameter inline — inside a `where`
+  clause, inside a call — kept the Next.js spelling, so the translated endpoint answered
+  every request with a `NameError`. The path parameter arrives by a different route in
+  FastAPI and every use of it now arrives with it.
+
+- [x] B173: **the contract had no query parameters at all.** Next.js declares none —
+  a handler reads them out of the URL — so a document built from declarations said the
+  endpoints take no query, and a caller passing `?species=cat` was outside a contract
+  that claimed to describe it. Read from `searchParams.get("…")` now; and where a
+  statement could not be read at all, the document says a query parameter inside it may
+  be missing, because a gap nothing mentions is the failure this is all about.
+
+- [x] B172: **the contract listed schemas that nothing referred to.** A `components`
+  section with no `requestBody` pointing at it says every endpoint takes no body. The
+  link comes from the `petCreateSchema.parse(json)` call inside the handler, which is
+  the only place a Next.js route records it.
+
+- [x] B171: **a zod schema declared in another module was invisible.** A real Next.js
+  application keeps its shapes in something like `lib/schemas.ts` and imports them, and
+  only the route file was read — so the contract came out with an empty `components`
+  section. Every `.ts` file in the tree is read now.
+
+- [x] B170: **removing a parameter the body still reads.** `def f(a, b): return a + b`
+  with `remove:1` produced `def f(a): return a + b`, which names something nothing
+  supplies. The rule existed for shell functions — "the body still reads `$2`" — and for
+  nothing else. Two SCSS tests were asserting the broken output.
+
 - [x] B169: **extracting an expression that *is* its statement left a statement that
   only names the binding.** `zzx;` is a parse error in Zig, an unused value in Go, and
   nothing at all in the other three. The value is already being computed for its effect,

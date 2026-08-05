@@ -95,7 +95,7 @@ fr rewrite <path:l:c>         # list local transformations that apply here
 fr rewrite <path:l:c> guard-clause   # ...and apply one
 fr translate <file> [language]  # write it as another language, or `fastapi`
 fr recipe <file.recipe>       # a refactoring written down: find, do, expect
-fr openapi                    # the contract a Next.js route tree declares
+fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call
 fr graph --dot                # the call graph

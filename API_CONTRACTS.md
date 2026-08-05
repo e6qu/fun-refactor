@@ -164,13 +164,14 @@ contract, and no amount of reading one side can. The check is a comparison:
 4. **Diff them**, and treat every difference as a defect until argued otherwise.
 
 Step 1 is `fr openapi`. It walks the tree, finds every API route, and emits an
-OpenAPI 3.1 document from what the source *declares*:
+OpenAPI 3.1 document from what the source *declares* — as JSON, or as YAML with
+`--yaml`, which is what a contract kept beside the code is usually written in:
 
 ```sh
-fr openapi > before.json          # from the Next.js tree
+fr openapi --yaml > before.yaml   # from the Next.js tree
 # … rewrite, finish the handlers, run it …
 curl -s localhost:8000/openapi.json > after.json
-diff <(jq -S . before.json) <(jq -S . after.json)
+diff <(yq -P -S . before.yaml) <(yq -P -S . after.json)
 ```
 
 Paths, methods and path parameters are exact, because they come from the tree. Schemas
@@ -182,6 +183,94 @@ against, which is worse than an empty entry.
 Everything it could not settle is printed beside the document rather than guessed at,
 because a baseline that quietly invents an entry is the worst possible outcome: the
 diff comes out clean and the contract still shrank.
+
+## A worked example: the pet store
+
+`tests/petstore/` is a Next.js App Router API with eight route files and thirteen
+operations, and it is there to be run rather than read about. Every figure below comes
+from running the tool over it; the generated page is `docs/contract.html`.
+
+It has one of every shape a CRUD API has, because the shapes are where the difficulty
+is:
+
+| Route file | URL | What it is |
+| --- | --- | --- |
+| `app/api/pets/route.ts` | `/pets` | a **collection**: `GET` with a query, `POST` with a body |
+| `app/api/pets/[petId]/route.ts` | `/pets/{pet_id}` | a **member**: `GET`, `PATCH`, `DELETE` |
+| `app/api/pets/[petId]/photos/route.ts` | `/pets/{pet_id}/photos` | a **sub-collection** |
+| `app/api/pets/[petId]/photos/[photoId]/route.ts` | `/pets/{pet_id}/photos/{photo_id}` | a **sub-member**: two path parameters |
+| `app/api/pets/[petId]/status/route.ts` | `/pets/{pet_id}/status` | a sub-resource **replaced whole**: `PUT` |
+| `app/api/pets/search/route.ts` | `/pets/search` | an **action**, which is not CRUD |
+| `app/api/stores/[storeId]/inventory/route.ts` | `/stores/{store_id}/inventory` | an **aggregate**, under a second root |
+| `app/api/files/[...path]/route.ts` | `/files/{path:path}` | a **catch-all** |
+
+### The steps, in order
+
+```sh
+fr openapi --yaml > contract.yaml          # 1. the baseline, before touching anything
+fr translate app/api/pets/route.ts fastapi # 2. one route at a time, reading each report
+#                                            3. finish the handlers by hand
+curl -s localhost:8000/openapi.json > after.json
+#                                            4. diff, and argue about every difference
+```
+
+Step 1 is the one teams skip, and skipping it is what makes the rest unfalsifiable. A
+rewrite with no baseline cannot be shown to have preserved anything.
+
+### What has to be read that nobody declared
+
+Next.js declares none of the contract. Every element is inferred from somewhere else,
+and each one is a different kind of reading:
+
+- **The URL is the file's path.** `app/api/pets/[petId]/route.ts` serves
+  `/pets/{pet_id}`, and **nothing inside the file says so**. No content-only translation
+  can recover it, however well it reads TypeScript. This is most of the value.
+- **`[...path]` is a catch-all**, matching across slashes. FastAPI spells that
+  `{path:path}`; emitting `{path}` produces a service that answers a strictly smaller
+  set of URLs than the one it replaced — silently, and only for the requests with a
+  slash in them.
+- **The method is the exported function's name.** `export async function PATCH` is
+  `@router.patch`.
+- **The request body is a zod schema in another module.** `lib/schemas.ts` here, which
+  is where a real application keeps them. Reading only the route file finds nothing, so
+  the schemas are collected from anywhere in the tree — and the *link* between an
+  operation and its body comes from the `petCreateSchema.parse(json)` call inside the
+  handler. A `components` section nothing refers to is not a contract; it says every
+  endpoint takes no body.
+- **The query parameters are read out of the URL by hand.**
+  `req.nextUrl.searchParams.get("species")` is the only declaration there is, so that
+  is what is read. Where a handler's statement could not be read at all, the document
+  says so: a query parameter inside a statement this tool carried verbatim is missing,
+  and a missing one that nothing mentions is the failure this whole document is about.
+
+### The one thing that moves
+
+A Next.js handler receives `(request, context)` and digs the path parameter out of
+`context.params.petId`. FastAPI passes it as an argument. So the value arrives by a
+different route, and **every use of it moves with the parameter**:
+
+```ts
+const pet = await db.pet.findUnique({ where: { id: context.params.petId } })
+```
+```python
+pet = await db.pet.findUnique({"where": {"id": pet_id}})
+```
+
+That is the behaviour being redistributed while the URL it answers stays exactly the
+same. Rewriting the declaration and leaving `context.params.petId` in the body produces
+a file that parses, imports and starts — and answers every request with a `NameError`.
+
+### What the contract comes out as
+
+Thirteen operations, five schemas, every path parameter, the catch-all converter, and
+the query parameters the handlers read. What it deliberately does *not* have:
+
+- **Response bodies.** Next.js does not declare one and neither does the output.
+- **Status codes.** They carry into the *code* and are reported for the *contract* —
+  see below, because this is the sharp edge.
+- **Required-ness of a query parameter.** A handler that defaults it and a handler that
+  rejects the request without it read the same way, so every query parameter is
+  optional in the baseline and the diff will tell you which ones are not.
 
 ## What this is not
 
@@ -197,6 +286,9 @@ segment costs you a week and a missing `:path` costs you the requests nobody rep
 
 ## See also
 
+- `docs/contract.html` — the pet store, worked, with every figure generated by running
+  the tool
+- `tests/petstore/` — the source it is worked from
 - `CROSS_LANGUAGE.md` — what crosses between languages and what does not
 - `src/transpile/nextjs.rs` — the implementation, and what it refuses
 - `tests/nextjs.rs`, `tests/corpus.rs` — including the refusal for a `.tsx` file
