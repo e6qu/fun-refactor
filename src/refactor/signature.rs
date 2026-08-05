@@ -115,6 +115,44 @@ pub struct SignaturePlan {
     pub notes: Vec<String>,
 }
 
+/// Refuse to remove a parameter the body still reads.
+///
+/// `def f(a, b): return a + b` with `remove:1` produced `def f(a): return a + b`, which
+/// names something nothing supplies. The shell path has had this rule since it was
+/// written — "the body still reads $2, the parameter being removed" — and it was never
+/// true of anything else, which is the shape most of the defects in this tool have had:
+/// a rule that holds for the language it was written against.
+fn still_read(
+    index: &Index,
+    sym: &crate::model::Symbol,
+    items: &[Span],
+    change: &Change,
+) -> Result<()> {
+    let Change::Remove(at) = change else {
+        return Ok(());
+    };
+    let Some(span) = items.get(*at).copied() else {
+        return Ok(());
+    };
+    // The parameter symbol is the one this file declares inside the removed span.
+    let Some(parameter) = index.symbols.iter().find(|s| {
+        s.file == sym.file && s.kind == SymbolKind::Parameter && span.contains(s.name_span)
+    }) else {
+        return Ok(());
+    };
+    let uses = index.references_to(parameter.id);
+    if let Some(first) = uses.first() {
+        anyhow::bail!(
+            "the body of `{}` still reads `{}` at {}; removing the parameter would leave \
+             a name nothing supplies",
+            sym.name,
+            parameter.name,
+            location(&first.file, first.span.start)
+        );
+    }
+    Ok(())
+}
+
 /// Apply `change` to `symbol` and every call site.
 pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<SignaturePlan> {
     let sym = index
@@ -169,6 +207,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     match parameter_list(declaration) {
         Some(params) => {
             let param_spans = list_items(params);
+            still_read(index, sym, &param_spans, &change)?;
             apply_change(
                 &mut edits,
                 &Site {

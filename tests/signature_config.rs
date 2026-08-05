@@ -675,14 +675,17 @@ fn a_locals_entry_is_not_a_module_variable() {
 // `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call,
 // so a mixin's signature changes through exactly the same path a function's does.
 
-const THEME_SCSS: &str = "@mixin theme($fg, $bg) {\n  color: $fg;\n  background: $bg;\n}\n";
+// `$legacy` is declared and never used, which is what makes removing it a refactoring:
+// the body does not read it, so nothing that renders today renders differently.
+const THEME_SCSS: &str =
+    "@mixin theme($fg, $bg, $legacy) {\n  color: $fg;\n  background: $bg;\n}\n";
 
 const BUTTONS_SCSS: &str = concat!(
     "@use 'theme';\n",
     "\n",
-    ".btn {\n  @include theme(white, black);\n}\n",
+    ".btn {\n  @include theme(white, black, 0);\n}\n",
     "\n",
-    ".btn-ghost {\n  @include theme(black, white);\n}\n"
+    ".btn-ghost {\n  @include theme(black, white, 0);\n}\n"
 );
 
 fn stylesheets() -> Workspace {
@@ -712,22 +715,22 @@ fn a_mixin_is_a_callable_symbol_with_resolved_call_sites() {
 fn removing_a_mixin_parameter_updates_every_include() {
     let ws = stylesheets();
     let theme = ws.symbol("theme", SymbolKind::Function);
-    let plan = signature::change(&ws.index, theme, Change::Remove(1)).unwrap();
+    let plan = signature::change(&ws.index, theme, Change::Remove(2)).unwrap();
 
     assert_eq!(plan.subject, "theme");
     assert_eq!(plan.call_sites, 2);
     assert_eq!(
         applied(&plan, &ws.path("theme.scss")),
-        "@mixin theme($fg) {\n  color: $fg;\n  background: $bg;\n}\n"
+        "@mixin theme($fg, $bg) {\n  color: $fg;\n  background: $bg;\n}\n"
     );
     assert_eq!(
         applied(&plan, &ws.path("buttons.scss")),
         concat!(
             "@use 'theme';\n",
             "\n",
-            ".btn {\n  @include theme(white);\n}\n",
+            ".btn {\n  @include theme(white, black);\n}\n",
             "\n",
-            ".btn-ghost {\n  @include theme(black);\n}\n"
+            ".btn-ghost {\n  @include theme(black, white);\n}\n"
         )
     );
 }
@@ -739,16 +742,16 @@ fn reordering_mixin_parameters_reorders_every_argument() {
     let plan = signature::change(&ws.index, theme, Change::Move { from: 0, to: 1 }).unwrap();
     assert_eq!(
         applied(&plan, &ws.path("theme.scss")),
-        "@mixin theme($bg, $fg) {\n  color: $fg;\n  background: $bg;\n}\n"
+        "@mixin theme($bg, $fg, $legacy) {\n  color: $fg;\n  background: $bg;\n}\n"
     );
     assert_eq!(
         applied(&plan, &ws.path("buttons.scss")),
         concat!(
             "@use 'theme';\n",
             "\n",
-            ".btn {\n  @include theme(black, white);\n}\n",
+            ".btn {\n  @include theme(black, white, 0);\n}\n",
             "\n",
-            ".btn-ghost {\n  @include theme(white, black);\n}\n"
+            ".btn-ghost {\n  @include theme(white, black, 0);\n}\n"
         )
     );
 }
@@ -769,16 +772,16 @@ fn adding_a_mixin_parameter_passes_it_at_every_include() {
     .unwrap();
     assert_eq!(
         applied(&plan, &ws.path("theme.scss")),
-        "@mixin theme($fg, $bg, $radius: 0) {\n  color: $fg;\n  background: $bg;\n}\n"
+        "@mixin theme($fg, $bg, $radius: 0, $legacy) {\n  color: $fg;\n  background: $bg;\n}\n"
     );
     assert_eq!(
         applied(&plan, &ws.path("buttons.scss")),
         concat!(
             "@use 'theme';\n",
             "\n",
-            ".btn {\n  @include theme(white, black, 4px);\n}\n",
+            ".btn {\n  @include theme(white, black, 4px, 0);\n}\n",
             "\n",
-            ".btn-ghost {\n  @include theme(black, white, 4px);\n}\n"
+            ".btn-ghost {\n  @include theme(black, white, 4px, 0);\n}\n"
         )
     );
 }
@@ -788,7 +791,7 @@ fn scss_signature_changes_reparse_clean() {
     let ws = stylesheets();
     let theme = ws.symbol("theme", SymbolKind::Function);
     for change in [
-        Change::Remove(0),
+        Change::Remove(2),
         Change::Move { from: 0, to: 1 },
         Change::Add {
             at: 0,
