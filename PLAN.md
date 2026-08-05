@@ -1445,6 +1445,43 @@ the shared ones live, matched no rule at all: neither the file nor the function 
 made the gap look closed. **And `unittest` calls `setUp` and `tearDown` itself**, once
 per test, with nothing in the source referring to them.
 
+### The inline that returned a different number
+
+`fr inline --call` was next, and the probe was the same one: the same function in six
+languages, inlined at the same call.
+
+```
+-    double(x + 1)
++    (x + 1 * 2)
+```
+
+Six languages, six wrong answers. `double(x + 1)` returns `(x + 1) * 2`; the expansion
+computes `x + 2`. The body binds its parameters at whatever precedence it was written
+with, the argument arrives as text, and nothing put it back together.
+
+Inlining a *variable* was fixed for exactly this earlier — the substitution runs the
+other way there, from the bound value into its use, and the fix for one is not the fix
+for the other. The grouping test existed; the call path did not reach it, and when it
+did reach it the test asked the wrong question. It was gated on
+`extract::supports_imperative_extract`, which has a mostly overlapping answer — and the
+overlap is where the wrong ones live. Java groups with parentheses like every other
+C-shaped language here and is missing from that list because it has no inferred
+declaration to extract into; Bash is the other way round, supporting the extraction
+while `( … )` there opens a subshell. It asks whether the language groups with
+parentheses now.
+
+**Then the outer bracket, which was a string heuristic.** "Is this already bracketed?"
+was answered by reading the first and last character, and `(p + 1) / (q - 1)` starts
+with one and ends with one:
+
+```
+-    2 * scale(p + 1, q - 1)
++    2 * (p + 1) / (q - 1)        # p = 1, q = 4: the call returns 0, this is 1
+```
+
+Both are the shape this project keeps finding: not a refusal, not a crash, a diff that
+applies cleanly and quietly means something else.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

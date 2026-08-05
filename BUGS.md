@@ -76,6 +76,24 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B196: **an expansion of two bracketed halves was left unbracketed.** The check for
+  "this is already inside brackets" read the first and last character, and
+  `(p + 1) / (q - 1)` starts with one and ends with one. So `2 * scale(p + 1, q - 1)`
+  expanded to `2 * (p + 1) / (q - 1)`, which for `p = 1, q = 4` is 1 where the call
+  returned 0. The check balances the brackets now.
+
+- [x] B195: **`fr inline --call` changed what the program computes, in all seven
+  languages.** The body binds its parameters at whatever precedence it was written with
+  and the argument arrives as text, so `n * 2` with `x + 1` for `n` produced
+  `x + 1 * 2` — `double(x + 1)` returning `x + 2`. Inlining a *variable* was fixed for
+  exactly this in an earlier pass; inlining a *call* substitutes in the other direction
+  and never was. The grouping test was reached through
+  `extract::supports_imperative_extract`, which is a different question with a mostly
+  overlapping answer, and the overlap is where the wrong ones live: Java groups with
+  parentheses like every other C-shaped language here and is absent from that list
+  because it has no inferred declaration to extract into. It now asks whether the
+  language groups with parentheses, which is what it wanted to know.
+
 - [x] B194: **a pytest fixture and a `unittest` fixture matched no rule.** Nothing calls
   either by name — pytest injects a fixture by matching the parameter, and `unittest`
   calls `setUp` itself — which is the same reasoning the Java catalog already gives for
