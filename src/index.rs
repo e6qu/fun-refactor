@@ -467,8 +467,31 @@ impl Index {
             .collect();
         let candidates = &candidates;
 
+        // A member access is a scope lookup only where the scope chain can settle it.
+        // `c.run(1)` names a member of whatever `c` is, and the lexical scope has
+        // nothing to say about that — but it was answering anyway, with `Exact`, by
+        // picking whichever same-named method sat in an enclosing scope. With two
+        // classes declaring `run`, a call on one was attributed to the other, and
+        // renaming that one rewrote the call and left the real one behind.
+        //
+        // Two things keep the scope chain in play, and between them they cover the
+        // cases where it is not a guess: a receiver that *is* the enclosing instance —
+        // `this.run`, `self.run` mean a member of the type this code is written in —
+        // and a name only one member in the workspace has, where there is nothing to
+        // be wrong about. Anything else falls through to step 5, which says "either".
+        let receiver_is_self = reference
+            .receiver
+            .as_deref()
+            .is_some_and(|r| matches!(r, "this" | "self"));
+        let member_candidates = candidates
+            .iter()
+            .filter_map(|id| self.symbol(*id))
+            .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
+            .count();
+        let scope_can_settle_it = !member_access || receiver_is_self || member_candidates <= 1;
         let scoped = in_file
             .iter()
+            .filter(|_| scope_can_settle_it)
             .filter(|s| scope_chain.contains(&s.scope))
             .min_by_key(|s| {
                 // Innermost enclosing scope wins; ties break toward the nearest
@@ -497,7 +520,25 @@ impl Index {
                 )
             });
         if let Some(symbol) = scoped {
-            return (Some(symbol.id), Confidence::Exact);
+            // Proximity is evidence for a binding and not for a callable. `let x`
+            // twice in one block is shadowing, and the nearer one is the answer; two
+            // methods declared in one class body are an overload set, and the nearer
+            // one is a coin flip. Java's `add(int)` beside `add(String)` resolved both
+            // bare `add(...)` calls to whichever was written second, at `Exact` — so a
+            // rename rewrote calls belonging to the other one.
+            let callable = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method);
+            let tied = in_file
+                .iter()
+                .filter(|s| {
+                    s.id != symbol.id
+                        && s.scope == symbol.scope
+                        && s.container == symbol.container
+                        && matches!(s.kind, SymbolKind::Function | SymbolKind::Method)
+                })
+                .count();
+            if !(callable && tied > 0) {
+                return (Some(symbol.id), Confidence::Exact);
+            }
         }
 
         // 2. Any other definition in the same file (e.g. a function defined below its

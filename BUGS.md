@@ -76,6 +76,32 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B166: **an overload set was resolved by proximity, at `Exact`.** Two methods
+  declared in one class body are equally plausible targets for a bare call, and the
+  nearer one is a coin flip — so Java's `add(int)` beside `add(String)` sent both
+  `add(...)` calls to whichever was written second, with the highest confidence there
+  is. Renaming that one rewrote calls belonging to the other. Proximity is evidence for
+  a binding, where it reads as shadowing, and not for a callable.
+
+- [x] B165: **a rename that left a call behind said nothing at all.** Same-named
+  references were reported only when they resolved to *nothing*; one that resolved
+  weakly to some other symbol was skipped in silence, because the winner was not the
+  symbol being renamed. The rename went through, the calls stayed, and the warning list
+  was empty. A weak resolution is a guess wherever it lands.
+
+- [x] B164: **a member access was resolved through the lexical scope chain.** `c.run(1)`
+  names a member of whatever `c` is, and the scope chain has nothing to say about that —
+  but it answered anyway, at `Exact`, by picking whichever same-named method sat in an
+  enclosing scope. With two classes declaring `run` in one file, a call on one was
+  attributed to the other. The chain still answers where it can settle it: a receiver
+  that *is* the enclosing instance, or a name only one member in the workspace has.
+
+- [x] B163: **the rename collision guard was file-scoped, not scope-scoped.** A parameter
+  is written outside the body it belongs to, so the scope it falls in is the one *around*
+  its function — the file. Every parameter of every function therefore shared a scope,
+  and renaming one to a name used by an unrelated function was refused as a collision.
+  Measured over the vendored corpora, that was most of the renames a real file offers.
+
 - [x] B162: **a Go type's recursion was not its entry point.** The value of a
   `map[string][]SymbolId` resolved one layer and lost the slice: the outer map was read
   by one rule and the inner type by a helper that only knew scalars. The same lesson was

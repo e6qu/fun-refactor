@@ -1015,6 +1015,41 @@ convenient: a type this tool cannot write at all is replaced by a placeholder, w
 a rename and the one exception; and a constructor may change its name in either
 direction, because in three of these languages "constructor" *is* a naming convention.
 
+### Rename, and the name that belongs to more than one thing
+
+The translation side has been checked against real code three times over. The
+refactorings had not, and the newly vendored Java and Zig had never been renamed at all.
+The probe was the same shape as the round trip: rename every symbol in the corpus to
+something else and back, and see whether the file comes home.
+
+Thirteen of a hundred and fifty-five did not, and behind them were four defects.
+
+**The collision guard was file-scoped.** A parameter is written outside the body it
+belongs to, so the scope it falls in is the one *around* its function — the file. Every
+parameter of every function therefore shared a scope, and renaming one of them to a name
+used by an unrelated function was refused as a collision. That was most of the renames a
+real file offers.
+
+Then the serious one. Renaming `add(int)` in a class that also declares `add(String)`
+rewrote the declaration, left both call sites saying `add`, and reported **no warnings at
+all**. Three separate things had to be true for that:
+
+- **A member access was resolved through the lexical scope chain.** `c.run(1)` names a
+  member of whatever `c` is; the scope chain has nothing to say about it, and answered
+  anyway at `Exact` by picking whichever same-named method sat in an enclosing scope. The
+  code four steps further down already says the right thing — "for a member access,
+  proximity is not evidence" — but never ran, because step one had answered.
+- **An overload set was resolved by proximity.** Two methods in one class body are a coin
+  flip for a bare call. Proximity is evidence for a *binding*, where it reads as
+  shadowing, and not for a callable.
+- **A rename reported a same-named reference only when it resolved to nothing.** One that
+  resolved *weakly to something else* was skipped in silence, because the winner was not
+  the symbol being renamed. A weak resolution is a guess wherever it lands.
+
+Measured over this repository's own source, the change costs seventeen `exact`
+resolutions — every one of them a member access with more than one candidate, which is
+precisely the case that was being guessed — and gains four hundred honest weaker ones.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

@@ -96,17 +96,29 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // Same-named references that resolved somewhere else entirely. These are not
+    // Same-named references that resolved somewhere else, or nowhere. These are not
     // ours to touch, but a human should confirm the resolution was right.
+    //
+    // "Somewhere else *weakly*" counts. Java overloads `add(int)` beside
+    // `add(String)`, and a bare `add(1)` is name-only against both — so it was
+    // attributed to whichever was written nearer and then skipped in silence, because
+    // the winner was not the symbol being renamed. The rename went through, the calls
+    // stayed behind, and the report said nothing at all. A weak resolution is a guess
+    // wherever it lands.
     for reference in index.unresolved_matching(symbol_id) {
-        if reference.target.is_none()
-            && !seen_spans.contains(&(reference.file.clone(), reference.span))
+        let confidently_elsewhere =
+            reference.target.is_some() && reference.confidence.is_safe_to_rewrite();
+        if !confidently_elsewhere && !seen_spans.contains(&(reference.file.clone(), reference.span))
         {
             warnings.push(locate_warning(
                 WarningKind::WeaklyResolved,
                 &reference.file,
                 reference.span.start,
-                format!("unresolved occurrence of '{}'; left unchanged", symbol.name),
+                format!(
+                    "occurrence of '{}' that resolved only as '{}'; left unchanged",
+                    symbol.name,
+                    reference.confidence.as_str()
+                ),
             ));
         }
     }
@@ -302,8 +314,15 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
     let existing = index.find_symbols(new_name, Some(&symbol.file));
     for other in existing {
         // A collision matters when the two could be visible at the same point: the
-        // same scope, or either one at file level.
-        let same_scope = other.scope == symbol.scope;
+        // same scope *and* the same enclosing symbol, or either one at file level.
+        //
+        // The container is not decoration. A parameter is written outside the body it
+        // belongs to, so the scope it falls in is the one *around* its function — which
+        // is the file. Every parameter of every function in a file therefore shared a
+        // scope, and renaming one of them to a name used by an unrelated function was
+        // refused as a collision. Measured over the vendored corpora, that was most of
+        // the renames a real file offers.
+        let same_scope = other.scope == symbol.scope && other.container == symbol.container;
         let either_top_level = other.container.is_none() || symbol.container.is_none();
         if same_scope || (either_top_level && other.kind == symbol.kind) {
             return Err(Refusal::NameCollision {
