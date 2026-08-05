@@ -76,6 +76,21 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B198: **extracting a region that awaited produced code that does not compile.**
+  The body kept its `await` in a function that is not async — `tsc` says `TS1308`,
+  CPython says `SyntaxError: 'await' outside async function` — and the call site handed
+  back a promise where the code after it expected a number. The extracted function is
+  marked async now and the call awaits it. Rust writes `.await` as a postfix, so there
+  is no keyword to move; that is refused rather than half-done.
+
+- [x] B197: **extracting a region containing `yield` silently did nothing.** In Python
+  the call constructed a generator and never ran it, so the loop body had no effect at
+  all and the accumulator it also updated stayed at zero; in TypeScript the result is a
+  `yield` outside a generator, which `tsc` rejects. `return`, `break` and `continue`
+  were refused from the day this was written, on the grounds that a call cannot
+  reproduce a jump the enclosing function can see. A `yield` has exactly that property
+  and was not among them.
+
 - [x] B196: **an expansion of two bracketed halves was left unbracketed.** The check for
   "this is already inside brackets" read the first and last character, and
   `(p + 1) / (q - 1)` starts with one and ends with one. So `2 * scale(p + 1, q - 1)`

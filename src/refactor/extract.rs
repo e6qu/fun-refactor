@@ -610,6 +610,25 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         );
     }
 
+    if yields_to_caller(&parsed, region) {
+        anyhow::bail!(
+            "the selected code contains a `yield`, which belongs to the function whose \
+             iteration the caller is driving; a call cannot hand that back, so this \
+             region cannot be extracted as-is"
+        );
+    }
+
+    // An `await` *can* be carried across, by marking the extracted function async and
+    // awaiting the call. Where the language writes it some other way, it cannot.
+    let is_async = awaits(&parsed, region);
+    if is_async && !awaits_with_a_keyword(language) {
+        anyhow::bail!(
+            "the selected code awaits, and {language} does not spell that as a prefix \
+             keyword this can move onto the extracted function, so the region cannot be \
+             extracted as-is"
+        );
+    }
+
     let enclosing = enclosing_function(index, file, region.start).ok_or_else(|| {
         anyhow::anyhow!(
             "the selection is not inside a function, so there is nothing to extract from"
@@ -716,13 +735,16 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
 
     let body = region.text(&source).to_string();
     let indent = line_indent(&source, region.start);
-    let call = render_call(language, name, &parameters, &returns);
+    let call = render_call(language, name, &parameters, &returns, is_async);
     let definition = render_function(
         language,
-        name,
-        &parameters,
-        &returns,
-        return_type.as_deref(),
+        Signature {
+            name,
+            parameters: &parameters,
+            returns: &returns,
+            is_async,
+            return_type: return_type.as_deref(),
+        },
         &body,
         Indentation {
             outer: &indent,
@@ -868,6 +890,56 @@ fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> 
     None
 }
 
+/// Does the region `yield`?
+///
+/// A `yield` belongs to the function whose iteration the caller is driving, and a call
+/// cannot hand that back. Extracting one produced a Python generator that was
+/// constructed and never run — the loop body silently did nothing — and TypeScript that
+/// `tsc` rejects. `return`, `break` and `continue` were refused for the same reason from
+/// the day this was written; `yield` was not, and it is the one whose failure is silent.
+fn yields_to_caller(parsed: &Parsed, region: Span) -> bool {
+    node_in_region(parsed, region, |kind| kind.contains("yield"))
+}
+
+/// Does the region `await`?
+///
+/// Unlike a `yield`, this one a call *can* reproduce: the extracted function is async
+/// and the call awaits it. Without that the body kept an `await` in a function that is
+/// not async — `TS1308`, and `SyntaxError: 'await' outside async function` — and the
+/// call site handed back a promise where the code expected a number.
+fn awaits(parsed: &Parsed, region: Span) -> bool {
+    node_in_region(parsed, region, |kind| kind.contains("await"))
+}
+
+/// Is there a node wholly inside the region whose kind `wanted` accepts?
+fn node_in_region(parsed: &Parsed, region: Span, wanted: impl Fn(&str) -> bool) -> bool {
+    let mut cursor = parsed.root().walk();
+    let mut stack = vec![parsed.root()];
+    while let Some(node) = stack.pop() {
+        let span = Span::from(node);
+        if !span.overlaps(region) {
+            continue;
+        }
+        if region.contains(span) && wanted(node.kind()) {
+            return true;
+        }
+        stack.extend(node.children(&mut cursor));
+    }
+    false
+}
+
+/// Does this language write `await` as a prefix keyword, so an extracted region that
+/// uses one can be carried across by marking the new function async?
+///
+/// Rust writes `.await` as a postfix and Go and Zig have no such thing, so the
+/// question is per-language rather than a property of the region.
+fn awaits_with_a_keyword(language: Language) -> bool {
+    matches!(
+        language,
+        Language::Python | Language::TypeScript | Language::Tsx
+    )
+}
+
 /// Does a loop containing `node` also sit inside the region?
 fn has_enclosing_loop_within(node: Node<'_>, region: Span) -> bool {
     let mut current = node;
@@ -938,13 +1010,19 @@ fn render_call(
     name: &str,
     parameters: &[Parameter],
     returns: &[String],
+    is_async: bool,
 ) -> String {
     let args = parameters
         .iter()
         .map(|p| p.name.clone())
         .collect::<Vec<_>>()
         .join(", ");
-    let call = format!("{name}({args})");
+    // The call has to await what the region awaited, or the binding holds a promise
+    // where the code that follows expects a value.
+    let call = match is_async {
+        true => format!("await {name}({args})"),
+        false => format!("{name}({args})"),
+    };
 
     match (returns.len(), language) {
         (0, Language::Python | Language::Go) => call,
@@ -971,15 +1049,31 @@ struct Indentation<'a> {
 }
 
 /// The new function definition.
+/// What the extracted function has to say about itself, as against its body.
+struct Signature<'a> {
+    name: &'a str,
+    parameters: &'a [Parameter],
+    /// Bindings the region produced that the code after it still reads.
+    returns: &'a [String],
+    /// The region awaited, so the function does too and the call awaits it back.
+    is_async: bool,
+    /// The declared type of the single returned binding, where the source stated one.
+    return_type: Option<&'a str>,
+}
+
 fn render_function(
     language: Language,
-    name: &str,
-    parameters: &[Parameter],
-    returns: &[String],
-    return_type: Option<&str>,
+    signature: Signature<'_>,
     body: &str,
     indent: Indentation<'_>,
 ) -> String {
+    let Signature {
+        name,
+        parameters,
+        returns,
+        is_async,
+        return_type,
+    } = signature;
     let Indentation {
         outer: indent,
         unit: body_indent,
@@ -1002,13 +1096,20 @@ fn render_function(
         .collect::<Vec<_>>()
         .join("\n");
 
+    // `async` goes in front of the keyword that opens the definition, and only the
+    // languages that spell it that way ever get here.
+    let prefix = match is_async {
+        true => "async ",
+        false => "",
+    };
+
     match language {
         Language::Python => {
             let tail = match returns.len() {
                 0 => String::new(),
                 _ => format!("\n{body_indent}return {}", returns.join(", ")),
             };
-            format!("\n\ndef {name}({params}):\n{reindented}{tail}")
+            format!("\n\n{prefix}def {name}({params}):\n{reindented}{tail}")
         }
         Language::Rust => {
             let ret = match return_type {
@@ -1047,7 +1148,7 @@ fn render_function(
                 Some(r) => format!("\n{body_indent}return {r};"),
                 None => String::new(),
             };
-            format!("\n\nfunction {name}({params}) {{\n{reindented}{tail}\n}}")
+            format!("\n\n{prefix}function {name}({params}) {{\n{reindented}{tail}\n}}")
         }
     }
 }

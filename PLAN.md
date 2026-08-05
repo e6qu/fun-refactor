@@ -1482,6 +1482,34 @@ with one and ends with one:
 Both are the shape this project keeps finding: not a refusal, not a crash, a diff that
 applies cleanly and quietly means something else.
 
+### The two effects a call cannot reproduce
+
+`fr extract --function` refuses a region containing a `return`, a `break` or a
+`continue`, because a call cannot reproduce a jump the enclosing function can see. That
+reasoning has two more cases in it, and neither was checked.
+
+**`yield` was the silent one.** Python:
+
+```python
+-        yield item
+-        total += item
++        step(item, total)
+```
+
+The call constructs a generator and never runs it. The loop body has no effect
+whatsoever, `total` stays at zero, and nothing anywhere says so. TypeScript at least
+fails out loud — a `yield` outside a generator, which `tsc` rejects — and drops the
+`total` the body still writes to. Refused now, in the same words as the other three.
+
+**`await` was the loud one, and it did not have to be refused.** The extracted function
+kept the `await` while not being async: `TS1308` from `tsc`, `SyntaxError: 'await'
+outside async function` from CPython. And even compiling it would have been wrong, since
+the call site handed back a promise where the next line expected a number. Unlike a
+`yield`, this one a call *can* reproduce — the new function is async and the call awaits
+it — so that is what it does, verified by running `tsc` and `compile()` over the output.
+Rust writes `.await` as a postfix and has no keyword to move onto the definition, so
+there it refuses rather than emitting half of the change.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
