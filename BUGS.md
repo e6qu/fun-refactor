@@ -76,6 +76,17 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B183: **the imports a moved symbol needs were written above the code rather than
+  where imports go.** Prepending them to the moved text put an `import` statement in the
+  middle of the destination — legal in Python, a syntax error in half the other targets,
+  and wrong-looking in all of them.
+
+- [x] B182: **moving a symbol into a file that imported it left the import behind.**
+  `from .b import area` in the file `area` is moving *into* points at a file that no
+  longer defines the name, so the destination fails on the line that used to make it
+  work. Nothing was adding that import, so nothing was removing it either. An import
+  naming several things is narrowed rather than deleted: the rest are still over there.
+
 - [x] B181: **an `if` that binds what it tested could be inverted.** Zig writes
   `if (maybe) |value| { … }`: the condition is an optional and the payload binds what
   was inside it. Inverting gave `if (!maybe) |value|`, which is not a program — the

@@ -1246,6 +1246,41 @@ The pet store's TypeScript joined the translation and round-trip sweeps at the s
 time. It is the most idiomatic TypeScript in the repository — builder chains, shorthand
 properties, nullish coalescing, a shared schema module — and it passes both.
 
+### The move that left an import pointing at nothing
+
+Two more operations probed over the corpora, and the two answers were opposite.
+
+**Organising imports is idempotent** — do it twice and the second time changes nothing.
+Forty-four files across five languages, and it holds everywhere.
+
+**Moving a symbol was not.** The probe that found it was the wrong probe: a move out and
+back is never byte-identical, because the symbol comes back at the end of the file rather
+than where it left. But looking at one concrete pair showed something that had nothing to
+do with round trips:
+
+```python
+# a.py, after moving `area` into it from b.py
+from .b import area          # b.py no longer defines it
+
+def label(r): …
+
+import math                  # in the middle of the file
+def area(r): …
+```
+
+**The destination kept importing what it now defines.** The move adds an import to every
+file that references the symbol, deliberately skipping the destination — which is right,
+because it does not need one. Nothing removed the import it already had, so the file
+failed on the line that used to make it work. An import naming several things is narrowed
+rather than deleted; the rest are still over there.
+
+**And what the moved code needs was written above the code rather than where imports
+go.** Legal in Python, a syntax error in half the other targets, and wrong-looking in all
+of them.
+
+The property that *is* right for a move — every reference still resolves — holds over
+seventy moves in three languages, before and after.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
