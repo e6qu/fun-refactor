@@ -71,17 +71,14 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .root()
         .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
         .ok_or_else(|| anyhow::anyhow!("could not locate the binding"))?;
-    let value = node
-        .child_by_field_name("value")
-        .or_else(|| node.child_by_field_name("right"))
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "'{}' has no initialiser, so there is nothing to inline",
-                sym.name
-            )
-        })?;
+    let value = bound_value(node).ok_or_else(|| {
+        anyhow::anyhow!(
+            "'{}' has no initialiser, so there is nothing to inline",
+            sym.name
+        )
+    })?;
     let value_span = Span::from(value);
-    let value_text = value_span.text(&source).to_string();
+    let value_text = substitution(sym.language, value, value_span.text(&source));
 
     let references = index.references_to(symbol);
     if references.is_empty() {
@@ -162,6 +159,78 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 }
 
 /// A later assignment to the same name, if any.
+/// The value a binding is bound to.
+///
+/// Most grammars name it — `value`, or `right` for an assignment — and tree-sitter-zig
+/// names nothing at all: a `variable_declaration` there holds the `=` as an anonymous
+/// token with the value after it. Asking only for the field meant `inline` refused
+/// every Zig binding there has ever been, while the capability matrix said it worked.
+fn bound_value<'t>(node: tree_sitter::Node<'t>) -> Option<tree_sitter::Node<'t>> {
+    if let Some(value) = node
+        .child_by_field_name("value")
+        .or_else(|| node.child_by_field_name("right"))
+    {
+        return Some(value);
+    }
+    let mut cursor = node.walk();
+    let children: Vec<tree_sitter::Node<'t>> = node.children(&mut cursor).collect();
+    let at = children.iter().position(|c| c.kind() == "=")?;
+    children
+        .get(at + 1)
+        .copied()
+        .filter(|c| c.kind() != ";" && c.kind() != "}")
+}
+
+/// The value as it must read at a use site.
+///
+/// `b = a + 1; return b * 2` inlined to `return a + 1 * 2`, which is `a + 2`. A
+/// refactoring that changes the answer is the one thing this tool must never do, and it
+/// was doing it in every language with an expression grammar.
+///
+/// The rule errs toward a parenthesis. A pair around an expression never changes what it
+/// means, while deciding precedence properly means a table of operators per grammar —
+/// and a table like that is wrong somewhere, silently, in exactly this way. What is left
+/// bare is the set of things no surrounding operator can split: a name, a literal, a
+/// call, a field, an index, and anything already wrapped.
+///
+/// Languages without an expression grammar are left alone entirely. A YAML value is not
+/// an expression and `(true)` is not the same scalar as `true`.
+fn substitution(language: Language, value: tree_sitter::Node<'_>, text: &str) -> String {
+    if !crate::refactor::extract::supports_imperative_extract(language) {
+        return text.to_string();
+    }
+    const ATOMIC: &[&str] = &[
+        "identifier",
+        "literal",
+        "number",
+        "integer",
+        "float",
+        "string",
+        "char",
+        "true",
+        "false",
+        "null",
+        "nil",
+        "none",
+        "self",
+        "this",
+        "call",
+        "invocation",
+        "field",
+        "selector",
+        "attribute",
+        "member",
+        "subscript",
+        "index",
+        "parenthes",
+    ];
+    let kind = value.kind();
+    match ATOMIC.iter().any(|atom| kind.contains(atom)) {
+        true => text.to_string(),
+        false => format!("({text})"),
+    }
+}
+
 fn other_assignment(
     index: &Index,
     symbol: SymbolId,
@@ -336,9 +405,12 @@ mod tests {
 
         let plan = variable(&index, id).unwrap();
         assert_eq!(plan.use_sites, 2);
+        // Parenthesised at every site, including the two where nothing could have
+        // bound tighter. Knowing that would mean a precedence table per grammar, and a
+        // table like that is wrong somewhere — silently, and by changing the answer.
         assert_eq!(
             apply(&plan, &path),
-            "fn f() {\n    p(a + b);\n    q(a + b);\n}\n"
+            "fn f() {\n    p((a + b));\n    q((a + b));\n}\n"
         );
     }
 
@@ -402,7 +474,7 @@ mod tests {
     }
 
     #[test]
-    fn extract_then_inline_returns_the_original() {
+    fn extract_then_inline_returns_the_original_expression() {
         // The two refactorings are inverses; round-tripping must restore the file.
         let src = "fn f() {\n    let total = price * quantity + 10;\n}\n";
         let (tmp, index) = workspace(&[("a.rs", src)]);
@@ -433,7 +505,14 @@ mod tests {
         let after_inline =
             apply_to_string(&after_extract, inlined.edits.edits_for(&path).unwrap()).unwrap();
 
-        assert_eq!(after_inline, src);
+        // Not byte-for-byte: what comes back is the original with the substituted
+        // expression in parentheses. That is the price of not having a precedence
+        // table, it never changes what the code does, and it is worth saying out loud
+        // rather than hiding behind a comparison that strips them.
+        assert_eq!(
+            after_inline,
+            "fn f() {\n    let total = (price * quantity) + 10;\n}\n"
+        );
     }
 
     #[test]
@@ -444,7 +523,7 @@ mod tests {
         let id = var_at(&index, &path, src.find("x = a + b").unwrap());
 
         let plan = variable(&index, id).unwrap();
-        assert_eq!(apply(&plan, &path), "def f():\n    g(a + b)\n");
+        assert_eq!(apply(&plan, &path), "def f():\n    g((a + b))\n");
     }
 }
 

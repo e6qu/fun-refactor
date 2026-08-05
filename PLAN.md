@@ -1050,6 +1050,43 @@ Measured over this repository's own source, the change costs seventeen `exact`
 resolutions — every one of them a member access with more than one candidate, which is
 precisely the case that was being guessed — and gains four hundred honest weaker ones.
 
+### Extract and inline are inverses, and one of them was changing the answer
+
+The rename probe worked, so the next pair got the same treatment: extract a
+sub-expression into a binding, inline it straight back, and see whether the file comes
+home. Five hundred and eighty-nine extractions across the vendored Java, Zig and Python.
+
+**`inline` refused every Zig binding there has ever been.** tree-sitter-zig names nothing
+on a `variable_declaration` — the `=` is an anonymous token with the value after it — and
+the lookup asked only for a `value` or `right` field. The capability matrix said inline
+variable worked for Zig; it had never worked once.
+
+With that fixed, the round trip ran, and the answer it gave back was wrong:
+
+    b = a + 1
+    return b * 2        →        return a + 1 * 2
+
+which is `a + 2`. **Every language with an expression grammar, since the operation was
+written.** A refactoring that changes what the code does is the one thing this tool must
+never do.
+
+The fix errs toward a parenthesis. What is left bare is the set of things no surrounding
+operator can split — a name, a literal, a call, a field, an index — and everything else
+is wrapped, including where nothing could have bound tighter. The alternative is a
+precedence table per grammar, and a table like that is wrong somewhere, silently, in
+exactly the way that was just found. The `extract_then_inline_returns_the_original` test
+now says `_expression` instead: what comes back is the original with the substituted
+expression in parentheses, and that is worth stating rather than hiding behind a
+comparison that strips them.
+
+One more, from the Zig side: extracting an expression that *is* its statement leaves a
+statement that only names the binding. `zzx;` is a parse error in Zig, an unused value in
+Go, and nothing at all in the other three — and the value is already being computed for
+its effect, so there is nothing to hoist.
+
+After the three: 589 extractions, 21 refusals — all of them name capture or a struct —
+and 40 files that came back differing only in parentheses.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
