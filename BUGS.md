@@ -76,6 +76,45 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B162: **a Go type's recursion was not its entry point.** The value of a
+  `map[string][]SymbolId` resolved one layer and lost the slice: the outer map was read
+  by one rule and the inner type by a helper that only knew scalars. The same lesson was
+  already written down for TypeScript, in a comment, one reader away.
+
+- [x] B161: **a Rust reference was stripped after the containers were checked**, so
+  `&HashMap<K, V>`, `&Vec<T>` and `&Option<T>` — which in Rust is most of them — were
+  read as names rather than as what they are. `&'a str` kept its lifetime and became a
+  type this tool could not write; `Node<'_>` read the lifetime as a type argument and
+  produced a type with an empty name; and generic arguments were split on the first
+  comma, so `HashMap<String, Vec<A, B>>` split in the wrong place.
+
+- [x] B160: **`readonly string[]` was read as an array of `readonly string`.** No other
+  language here has anywhere to put "you may not write to it".
+
+- [x] B159: **every Zig type read from text was read wrong.** The grammar binds `?`
+  tighter than `.`, so `?http.Request` arrives as a field expression whose left side is
+  a nullable `http` — inside out. A generic type is a name *applied* to its arguments,
+  and reading `std.StringHashMap([]const u8)` as one name turned a dictionary into a
+  type with that name. Zig's own scalar names were recognised only on a `builtin_type`
+  node, so an `i64` read from text stayed an `i64`. And a type's text can span lines and
+  hold doc comments, which went into the name: two hundred characters of prose where a
+  type should be.
+
+- [x] B158: **the Zig reader required a named node after `=`**, and `undefined` is an
+  anonymous token — so every constant this tool's own Zig writer emits for something it
+  could not translate was lost on the way home.
+
+- [x] B157: **the Python reader would not read back what the Python writer writes.** It
+  required SCREAMING_SNAKE for a module constant; the writer spells a constant bound to
+  anything but a literal in lower case, on the grounds that shouting the name of
+  `schema = z.object(...)` would be wrong. Two rules deciding one thing, disagreeing.
+
+- [x] B156: **the round trip checked functions and not data.** A field that vanishes is
+  exactly as bad as a parameter that vanishes, and nothing was looking. Fields,
+  constants and now parameter and return *types* are compared — as shapes, since
+  TypeScript has one numeric type and Go writes nothing at all for a function that
+  returns nothing.
+
 - [x] B150: **the methods of every generic Rust type became free functions.** An
   `impl<'a> Ctx<'a>` was read as an impl on `Ctx<'a>`, which matches no record in the
   file, so its methods never joined their type — and each one gained a `self` parameter

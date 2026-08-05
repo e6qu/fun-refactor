@@ -988,3 +988,94 @@ fn a_generic_impl_still_belongs_to_its_type() {
         "the method belongs inside the class:\n{output}"
     );
 }
+
+#[test]
+fn a_container_passed_by_reference_is_still_a_container() {
+    // The reference has to come off *first*. Checking the containers before stripping
+    // the `&` meant every map, list and option passed by reference — which in Rust is
+    // most of them — was read as a name instead of as what it is.
+    let source =
+        "pub fn f(by_name: &HashMap<String, Vec<i64>>, xs: &[i64], s: &'a str) -> i64 {\n    \
+                  return 1;\n}\n";
+    let (output, _) = translate(&[("m.rs", source)], "m.rs", Language::Python);
+    assert!(
+        output.contains("def f(by_name: dict[str, list[int]], xs: list[int], s: str) -> int:"),
+        "{output}"
+    );
+}
+
+#[test]
+fn a_lifetime_is_not_a_type_argument() {
+    // `Node<'_>` is a `Node`. Reading the `'_` as an argument gave a type with an empty
+    // name, which is not a name.
+    let source = "pub fn f(n: Node<'_>) -> i64 {\n    return 1;\n}\n";
+    let (output, _) = translate(&[("n.rs", source)], "n.rs", Language::TypeScript);
+    assert!(output.contains("function f(n: Node): number"), "{output}");
+}
+
+#[test]
+fn a_nested_container_keeps_every_layer() {
+    // The entry point and the recursion have to be the same function. When they were
+    // not, the value of a `map[string][]SymbolId` resolved one layer and lost the
+    // slice: the outer map was read by one rule and the inner type by a helper that
+    // only knew scalars.
+    let source = "package main\n\nfunc F(byName map[string][]int) int {\n\treturn 1\n}\n";
+    let (output, _) = translate(&[("g.go", source)], "g.go", Language::Python);
+    assert!(
+        output.contains("def f(by_name: dict[str, list[int]]) -> int:"),
+        "{output}"
+    );
+}
+
+#[test]
+fn a_zig_optional_of_a_qualified_type_is_still_optional() {
+    // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a field
+    // expression whose left side is a nullable `http` — inside out. Read as written, it
+    // became a type this tool could not write at all.
+    let source = "pub fn f(r: ?http.Request) void {\n    return;\n}\n";
+    let (output, _) = translate(&[("q.zig", source)], "q.zig", Language::TypeScript);
+    assert!(
+        output.contains("function f(r: http.Request | null): void"),
+        "{output}"
+    );
+}
+
+#[test]
+fn a_zig_map_comes_home_a_map() {
+    // A generic type in Zig is a name *applied* to its arguments, which is what the
+    // writer emits. Reading the whole thing as one name turned a dictionary into a type
+    // called `std.StringHashMap([]const u8)`.
+    let source = "pub fn f(units: std.StringHashMap([]const u8), n: std.AutoHashMap(i64, bool)) void {\n    \
+                  return;\n}\n";
+    let (output, _) = translate(&[("h.zig", source)], "h.zig", Language::Python);
+    assert!(
+        output.contains("def f(units: dict[str, str], n: dict[int, bool]) -> None:"),
+        "{output}"
+    );
+}
+
+#[test]
+fn a_readonly_array_is_an_array() {
+    // `readonly string[]` is a `string[]` that says you may not write to it, and no
+    // other language here has anywhere to put that.
+    let source = "export function f(xs: readonly string[]): number {\n  return 1;\n}\n";
+    let (output, _) = translate(&[("r.ts", source)], "r.ts", Language::Python);
+    // TypeScript has one numeric type, so `number` crosses as a float.
+    assert!(
+        output.contains("def f(xs: list[str]) -> float:"),
+        "{output}"
+    );
+}
+
+#[test]
+fn a_python_module_binding_is_a_constant_whatever_it_is_called() {
+    // Python has no `const`, so a module-level binding is the only thing a constant can
+    // look like — and requiring SCREAMING_SNAKE meant this tool could not read back
+    // what it writes: its own Python writer spells a constant bound to anything but a
+    // literal in lower case.
+    let source = "actions = [1, 2]\nMAX = 3\n";
+    let (output, fidelity) = translate(&[("c.py", source)], "c.py", Language::TypeScript);
+    assert_eq!(fidelity.constants, 2, "{output}");
+    assert!(output.contains("const actions"), "{output}");
+    assert!(output.contains("const MAX"), "{output}");
+}
