@@ -1182,6 +1182,32 @@ do more than it did.
 The note counts one statement now, `limit` is on both sides of the crossing, and the
 page says what closing a gap looks like from here.
 
+### The shorthand every TypeScript file is written in
+
+The pet store's baseline still said one statement could not be read, and it was this:
+
+```ts
+const pets = await db.pet.findMany({ where: species ? { species } : {}, … })
+```
+
+`{ species }` means `{ species: species }`. Reading it as something unrecognised refused
+the whole object, and refusing the object refused the statement the object was in — so a
+single shorthand property cost the endpoint its body. The count is zero now, and every
+route in the pet store translates with nothing carried.
+
+### The palette
+
+Grey scale, one saturated blue that means "you can act on this", square corners
+everywhere. Every colour that is not the blue is carrying information — a confidence
+tier, a diff line — so there is nothing left over to decorate with, which is the same
+argument the rest of this tool makes about output.
+
+Two things had to be said out loud rather than inherited. A terminal is dark whichever
+way the page is, so its prompt cannot borrow the page's blue: `#0043ce` on `#161616` is
+a shape rather than a colour. And the primary button's label is fixed rather than
+following the paper, because the blue is light in one theme and dark in the other and a
+label that followed would vanish into one of them.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

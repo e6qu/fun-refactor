@@ -5,40 +5,43 @@
  * invisible in whichever theme it happens to suit and shows up as black-on-black in
  * the other, which is exactly the bug that is hardest to notice while writing it.
  *
- * The palette is the site's — warm paper, a burnt-orange accent, and the three
- * confidence colours the tool has always used. The layout is its own, because a
- * three-column editor has nothing in common with a page of prose. */
+ * The palette is the site's — a flat grey scale, one saturated blue that means "you
+ * can act on this", square corners, and the three confidence colours the tool has
+ * always used. The layout is its own, because a three-column editor has nothing in
+ * common with a page of prose. */
 
 :root {
   color-scheme: light;
 
-  --ink: #16181d;
-  --ink-soft: #4a4f5a;
-  --ink-faint: #767c88;
+  --ink: #161616;
+  --ink-soft: #525252;
+  --ink-faint: #6f6f6f;
 
-  --paper: #f7f5f2;
-  --raised: #fffefc;
-  --sunken: #efece7;
-  --rule: #e0dcd5;
-  --rule-soft: #ebe8e2;
+  --paper: #f4f4f4;
+  --raised: #ffffff;
+  --sunken: #e0e0e0;
+  --rule: #c6c6c6;
+  --rule-soft: #e0e0e0;
 
-  --accent: #9a3412;
-  --accent-soft: #9a34121a;
-  --accent-ink: #fffefc;
-  --exact: #15803d;
-  --weak: #a16207;
-  --refuse: #b91c1c;
+  --accent: #0043ce;
+  --accent-soft: #0043ce1a;
+  --accent-ink: #ffffff;
+  --exact: #0e6027;
+  --weak: #8e6a00;
+  --refuse: #a2191f;
 
-  --shadow-1: 0 1px 2px #16181d0d, 0 1px 3px #16181d0a;
-  --shadow-2: 0 4px 12px #16181d1a, 0 12px 32px #16181d14;
-  --backdrop: #16181d5c;
-  --hover: #16181d0a;
-  --active: #16181d14;
+  --shadow-1: 0 1px 2px #1616160d, 0 1px 3px #1616160a;
+  --shadow-2: 0 4px 12px #1616161a, 0 12px 32px #16161614;
+  --backdrop: #1616165c;
+  --hover: #1616160a;
+  --active: #16161614;
 
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --radius: 7px;
-  --radius-lg: 12px;
+  /* Named first where it happens to be installed, never fetched. */
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Square. A rounded corner is a decision about mood; this palette has none to make. */
+  --radius: 0;
+  --radius-lg: 0;
 }
 
 /* Written once and used twice: by the system preference when nothing overrides it,
@@ -46,20 +49,20 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --ink: #e8e6e1;
-    --ink-soft: #a5a29a;
-    --ink-faint: #7b7871;
-    --paper: #111216;
-    --raised: #191a1f;
-    --sunken: #0c0d10;
-    --rule: #2b2d34;
-    --rule-soft: #212329;
-    --accent: #fb923c;
-    --accent-soft: #fb923c1f;
-    --accent-ink: #17181c;
-    --exact: #4ade80;
-    --weak: #fbbf24;
-    --refuse: #f87171;
+    --ink: #f4f4f4;
+    --ink-soft: #c6c6c6;
+    --ink-faint: #8d8d8d;
+    --paper: #161616;
+    --raised: #262626;
+    --sunken: #0b0b0b;
+    --rule: #393939;
+    --rule-soft: #262626;
+    --accent: #78a9ff;
+    --accent-soft: #78a9ff1f;
+    --accent-ink: #161616;
+    --exact: #42be65;
+    --weak: #f1c21b;
+    --refuse: #ff8389;
     --shadow-1: 0 1px 2px #00000059, 0 1px 3px #0000003d;
     --shadow-2: 0 4px 14px #00000073, 0 14px 36px #0000005c;
     --backdrop: #000000a6;
@@ -70,20 +73,20 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #e8e6e1;
-  --ink-soft: #a5a29a;
-  --ink-faint: #7b7871;
-  --paper: #111216;
-  --raised: #191a1f;
-  --sunken: #0c0d10;
-  --rule: #2b2d34;
-  --rule-soft: #212329;
-  --accent: #fb923c;
-  --accent-soft: #fb923c1f;
-  --accent-ink: #17181c;
-  --exact: #4ade80;
-  --weak: #fbbf24;
-  --refuse: #f87171;
+  --ink: #f4f4f4;
+  --ink-soft: #c6c6c6;
+  --ink-faint: #8d8d8d;
+  --paper: #161616;
+  --raised: #262626;
+  --sunken: #0b0b0b;
+  --rule: #393939;
+  --rule-soft: #262626;
+  --accent: #78a9ff;
+  --accent-soft: #78a9ff1f;
+  --accent-ink: #161616;
+  --exact: #42be65;
+  --weak: #f1c21b;
+  --refuse: #ff8389;
   --shadow-1: 0 1px 2px #00000059, 0 1px 3px #0000003d;
   --shadow-2: 0 4px 14px #00000073, 0 14px 36px #0000005c;
   --backdrop: #000000a6;
@@ -105,7 +108,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* --------------------------------------------------------------- the top bar */
 
@@ -138,7 +141,7 @@ body {
   letter-spacing: 0.1em;
   color: var(--ink-faint);
   border: 1px solid var(--rule);
-  border-radius: 100px;
+  border-radius: var(--radius);
   padding: 0.08rem 0.5rem;
 }
 
@@ -210,7 +213,7 @@ button.ghost { color: var(--ink-soft); background: transparent; }
 .icon-button:hover:not(:disabled) { color: var(--accent); background: var(--hover); border-color: transparent; }
 .icon-button:disabled { opacity: 0.3; }
 .icon-button svg { width: 17px; height: 17px; display: block; }
-.icon-button.round { border-radius: 100px; border-color: var(--rule); }
+.icon-button.round { border-radius: 50%; border-color: var(--rule); }
 
 /* Hover labels. The button's own `data-label` is the single source: a tooltip that
    can disagree with the button is worse than none. */
@@ -319,7 +322,7 @@ body.dragging { user-select: none; cursor: col-resize; }
   font-family: var(--mono);
   font-size: 0.72rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius);
   padding: 0.18rem 0.4rem;
   background: var(--paper);
   color: var(--ink);
@@ -333,7 +336,7 @@ body.dragging { user-select: none; cursor: col-resize; }
   font-size: 0.7rem;
   width: 6rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius);
   padding: 0.12rem 0.35rem;
   background: var(--paper);
   color: var(--ink);
@@ -394,7 +397,7 @@ body.dragging { user-select: none; cursor: col-resize; }
   padding: 0.06rem 0.4rem;
   color: var(--accent);
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius);
   background: var(--paper);
   white-space: nowrap;
   flex: 0 0 auto;
@@ -421,7 +424,7 @@ body.dragging { user-select: none; cursor: col-resize; }
   font-size: 0.64rem;
   padding: 0.03rem 0.34rem;
   border: 1px solid var(--rule);
-  border-radius: 100px;
+  border-radius: var(--radius);
   color: var(--ink-faint);
   white-space: nowrap;
 }
@@ -456,7 +459,7 @@ body.dragging { user-select: none; cursor: col-resize; }
 .tier.edits {
   color: var(--accent);
   border: 1px solid currentColor;
-  border-radius: 100px;
+  border-radius: var(--radius);
   padding: 0 0.3rem;
   font-size: 0.6rem;
 }
@@ -545,7 +548,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: 0.4rem; margin: 1re
   font-size: 0.9em;
   background: var(--sunken);
   border: 1px solid var(--rule-soft);
-  border-radius: 4px;
+  border-radius: var(--radius);
   padding: 0.05rem 0.25rem;
 }
 .help-body table { border-collapse: collapse; width: 100%; margin: 0 0 0.8rem; }
@@ -610,7 +613,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: 0.4rem; margin: 1re
   border: none;
   background: transparent;
   padding: 0.3rem 0.55rem;
-  border-radius: 5px;
+  border-radius: var(--radius);
   font-size: 0.8rem;
 }
 .menu button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }

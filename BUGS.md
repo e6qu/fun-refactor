@@ -76,6 +76,12 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B178: **a shorthand object property refused the whole object.** `{ species }`
+  means `{ species: species }` and is how every modern TypeScript file is written;
+  reading it as something unrecognised refused the object, and refusing the object
+  refused the statement the object was in. In the pet store that cost `GET /pets` its
+  entire body.
+
 - [x] B177: **`??` had no counterpart in the IR**, so every nullish coalescing in every
   TypeScript file was carried verbatim — and in the pet store it took a whole `const`
   statement with it, which is how a query parameter went missing from both sides of a

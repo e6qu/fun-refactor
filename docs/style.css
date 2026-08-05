@@ -1,89 +1,105 @@
 /* fun-refactor — one stylesheet, no external requests.
    The type does the work: this is a tool for people who read diffs, so the page is
-   set like something meant to be read, with the terminal voice kept for terminals. */
+   set like something meant to be read, with the terminal voice kept for terminals.
+
+   The palette is the one the mainframe manuals were printed in: a flat grey scale, one
+   saturated blue that means "you can act on this", and square corners everywhere. Any
+   colour that is not the blue is carrying information — a confidence tier, a diff line —
+   so there is nothing left over to decorate with. */
 
 :root {
   color-scheme: light dark;
 
-  --ink: #16181d;
-  --ink-soft: #4a4f5a;
-  --ink-faint: #767c88;
-  --paper: #fbfaf8;
+  --ink: #161616;
+  --ink-soft: #525252;
+  --ink-faint: #6f6f6f;
+  --paper: #f4f4f4;
   --paper-raised: #ffffff;
-  --rule: #e3e0da;
-  --rule-soft: #eeece7;
+  --rule: #c6c6c6;
+  --rule-soft: #e0e0e0;
 
-  --accent: #9a3412;
-  --accent-soft: #c2410c;
-  --exact: #15803d;
-  --weak: #a16207;
-  --refuse: #b91c1c;
+  /* One blue, and a darker one for the pressed state. Nothing else is blue. */
+  --accent: #0043ce;
+  --accent-soft: #002d9c;
+  --btn-ink: #ffffff;
+  --exact: #0e6027;
+  --weak: #8e6a00;
+  --refuse: #a2191f;
 
-  --term-bg: #1a1b20;
-  --term-ink: #d9d7d0;
-  --term-dim: #8b8a84;
+  --term-bg: #161616;
+  --term-ink: #f4f4f4;
+  --term-dim: #8d8d8d;
+  /* The terminal is dark whichever way the page is, so it cannot borrow the page's
+     blue: `#0043ce` on `#161616` is a shape rather than a colour. */
+  --term-accent: #78a9ff;
 
   --measure: 34rem;
   --wide: 74rem;
 
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  /* Named first where it happens to be installed, never fetched: a stylesheet that
+     reaches for a font is a stylesheet that fails offline. */
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
 
   --step: 0.25rem;
-  --radius: 6px;
+  /* Square. A rounded corner is a decision about mood; this palette has none to make. */
+  --radius: 0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #e6e4de;
-    --ink-soft: #a8a59d;
-    --ink-faint: #7d7a73;
-    --paper: #131418;
-    --paper-raised: #1a1b21;
-    --rule: #2c2e35;
-    --rule-soft: #232529;
-    --accent: #fb923c;
-    --accent-soft: #fdba74;
-    --exact: #4ade80;
-    --weak: #fbbf24;
-    --refuse: #f87171;
-    --term-bg: #0d0e11;
+    --ink: #f4f4f4;
+    --ink-soft: #c6c6c6;
+    --ink-faint: #8d8d8d;
+    --paper: #161616;
+    --paper-raised: #262626;
+    --rule: #393939;
+    --rule-soft: #262626;
+    --accent: #78a9ff;
+    --accent-soft: #a6c8ff;
+    --btn-ink: #161616;
+    --exact: #42be65;
+    --weak: #f1c21b;
+    --refuse: #ff8389;
+    --term-bg: #0b0b0b;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #e6e4de;
-  --ink-soft: #a8a59d;
-  --ink-faint: #7d7a73;
-  --paper: #131418;
-  --paper-raised: #1a1b21;
-  --rule: #2c2e35;
-  --rule-soft: #232529;
-  --accent: #fb923c;
-  --accent-soft: #fdba74;
-  --exact: #4ade80;
-  --weak: #fbbf24;
-  --refuse: #f87171;
-  --term-bg: #0d0e11;
+  --ink: #f4f4f4;
+  --ink-soft: #c6c6c6;
+  --ink-faint: #8d8d8d;
+  --paper: #161616;
+  --paper-raised: #262626;
+  --rule: #393939;
+  --rule-soft: #262626;
+  --accent: #78a9ff;
+  --accent-soft: #a6c8ff;
+  --btn-ink: #161616;
+  --exact: #42be65;
+  --weak: #f1c21b;
+  --refuse: #ff8389;
+  --term-bg: #0b0b0b;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --ink: #16181d;
-  --ink-soft: #4a4f5a;
-  --ink-faint: #767c88;
-  --paper: #fbfaf8;
+  --ink: #161616;
+  --ink-soft: #525252;
+  --ink-faint: #6f6f6f;
+  --paper: #f4f4f4;
   --paper-raised: #ffffff;
-  --rule: #e3e0da;
-  --rule-soft: #eeece7;
-  --accent: #9a3412;
-  --accent-soft: #c2410c;
-  --exact: #15803d;
-  --weak: #a16207;
-  --refuse: #b91c1c;
-  --term-bg: #1a1b20;
+  --rule: #c6c6c6;
+  --rule-soft: #e0e0e0;
+  --accent: #0043ce;
+  --accent-soft: #002d9c;
+  --btn-ink: #ffffff;
+  --exact: #0e6027;
+  --weak: #8e6a00;
+  --refuse: #a2191f;
+  --term-bg: #161616;
 }
 
 * { box-sizing: border-box; }
@@ -201,7 +217,7 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
 .term {
   background: var(--term-bg);
   color: var(--term-ink);
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-family: var(--mono);
   font-size: 0.82rem;
   line-height: 1.6;
@@ -218,19 +234,19 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
   color: var(--term-dim);
   font-size: 0.72rem;
 }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: #3a3c44; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #525252; }
 .term-title { margin-left: 0.5rem; }
 
 .term-body { padding: 1rem 1.1rem; overflow-x: auto; }
 .term-body pre { margin: 0; white-space: pre; font: inherit; }
 
 .term .cmd { color: #fff; }
-.term .cmd::before { content: "$ "; color: var(--accent-soft); }
-.term .exact { color: #4ade80; }
-.term .weak { color: #fbbf24; }
-.term .refuse { color: #f87171; }
-.term .add { color: #4ade80; }
-.term .del { color: #f87171; }
+.term .cmd::before { content: "$ "; color: var(--term-accent); }
+.term .exact { color: #42be65; }
+.term .weak { color: #f1c21b; }
+.term .refuse { color: #ff8389; }
+.term .add { color: #42be65; }
+.term .del { color: #ff8389; }
 .term .dim { color: var(--term-dim); }
 
 /* ---------------------------------------------------------------- components */
@@ -242,7 +258,7 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
 .card {
   background: var(--paper-raised);
   border: 1px solid var(--rule);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 1.4rem;
 }
 .card h3 { margin-top: 0; font-size: 1rem; }
@@ -264,7 +280,7 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
   font-family: var(--mono);
   font-size: 0.78rem;
   border: 1px solid var(--rule);
-  border-radius: 100px;
+  border-radius: var(--radius);
   padding: 0.15rem 0.7rem;
   color: var(--ink-soft);
 }
@@ -277,7 +293,9 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
   text-decoration: none;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: var(--paper);
+  /* Fixed, not the page's paper: the blue is light in the dark theme and dark in the
+     light one, and a label that followed the page would vanish into one of them. */
+  color: var(--btn-ink);
   font-weight: 500;
 }
 .btn.ghost { background: none; color: var(--ink); border-color: var(--rule); }
@@ -289,7 +307,7 @@ code:not(pre code) {
   font-size: 0.86em;
   background: var(--rule-soft);
   padding: 0.1em 0.35em;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 /* Tables scroll on their own so the page never does. */
@@ -359,7 +377,7 @@ footer a { color: var(--ink-soft); }
   letter-spacing: 0.08em;
   color: var(--ink-faint);
   border: 1px solid var(--rule);
-  border-radius: 100px;
+  border-radius: var(--radius);
   padding: 0.1rem 0.6rem;
 }
 
@@ -376,7 +394,7 @@ footer a { color: var(--ink-soft); }
   background: none;
   color: var(--ink-faint);
   border: 1px solid var(--rule);
-  border-radius: 99px;
+  border-radius: var(--radius);
   padding: 0.3rem 0.9rem;
   cursor: pointer;
 }
@@ -446,7 +464,7 @@ footer a { color: var(--ink-soft); }
   background: none;
   color: var(--term-dim);
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius);
   padding: 0.15rem 0.55rem;
   cursor: pointer;
 }
@@ -471,7 +489,7 @@ footer a { color: var(--ink-soft); }
   flex: none;
   background: none;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius);
   color: var(--ink-faint);
   padding: 0.1rem 0.5rem;
   cursor: pointer;
@@ -508,8 +526,8 @@ footer a { color: var(--ink-soft); }
 }
 .contract-columns h4 { margin: 0 0 0.5rem; font-size: 0.95rem; color: var(--ink-soft); }
 .op-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
-.op-list li { padding: 0.15rem 0.4rem; border-radius: 3px; }
+.op-list li { padding: 0.15rem 0.4rem; }
 /* The same two colours the diff panes use, so a reader who has scrolled past one
    recognises the other. */
-.op-list li.del { background: color-mix(in srgb, #f87171 18%, transparent); }
-.op-list li.add { background: color-mix(in srgb, #4ade80 18%, transparent); }
+.op-list li.del { background: color-mix(in srgb, #ff8389 18%, transparent); }
+.op-list li.add { background: color-mix(in srgb, #42be65 18%, transparent); }
