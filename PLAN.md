@@ -1161,11 +1161,26 @@ Thirteen operations now go in and thirteen come out with **everything** identica
 the site data test asserts it rather than the page claiming it.
 
 What that does *not* mean is that the contract is complete, and the difference is the
-more important half. `GET /pets` also reads a `limit`, through `??` — a TypeScript
-operator this tool has no equivalent for — so the statement is carried as a comment and
-`limit` reaches neither document. Both sides agree, and both are missing it. The notes
-beside the baseline say so in as many words. A gap that announces itself is a gap you
-can close; a gap that does not is what the whole exercise is about.
+more important half: both sides can be missing the same thing and agree perfectly. So
+the baseline says what it could not read, and that number is what to watch.
+
+### The gap that announced itself, closed
+
+It said *two statements* in `app/api/pets/route.ts`, and one of them was
+`const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50")`. `??` had no
+counterpart in the IR, so it took the whole statement with it and `limit` reached
+neither document.
+
+It asks whether a value is absent, which is a question rather than an arithmetic
+operator, and the six languages disagree about how to ask it: Zig spells it `orelse`,
+Rust reaches for `Option::unwrap_or`, Java for a static method, Python has to name the
+value twice, and Go cannot say it at all. `Expr::Coalesce` carries the question; each
+writer asks it its own way; and the two that can only ask by naming the value twice
+refuse when naming it twice would *call* it twice, because that would make the program
+do more than it did.
+
+The note counts one statement now, `limit` is on both sides of the crossing, and the
+page says what closing a gap looks like from here.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,

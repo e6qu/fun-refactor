@@ -1112,6 +1112,13 @@ fn rust_type(ty: &Type) -> String {
 
 fn rust_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // `Option::unwrap_or`, which is what a Rust reader expects and what the IR's
+        // `Optional` becomes.
+        Expr::Coalesce { value, fallback } => format!(
+            "{}.unwrap_or({})",
+            rust_expr(out, value),
+            rust_expr(out, fallback)
+        ),
         // Rust's `if` is an expression already.
         Expr::Ternary {
             condition,
@@ -1632,6 +1639,29 @@ fn python_type(ty: &Type) -> String {
 
 fn python_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Python has to name the value twice, and naming a call twice calls it twice.
+        Expr::Coalesce { value, fallback } => match nameable(value) {
+            true => format!(
+                "{} if {} is not None else {}",
+                python_expr(out, value),
+                python_expr(out, value),
+                python_expr(out, fallback)
+            ),
+            false => {
+                let source = format!(
+                    "{} ?? {}",
+                    python_expr(out, value),
+                    python_expr(out, fallback)
+                );
+                out.carried(&Unsupported {
+                    construct: "?? on a value that cannot be named twice".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                out.pending.push(format!("{MARKER}: {source}"));
+                "None".to_string()
+            }
+        },
         // Python puts the condition in the middle, which is the only thing that
         // differs.
         Expr::Ternary {
@@ -2107,6 +2137,18 @@ fn go_zero(ty: &Type) -> String {
 
 fn go_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Go has nothing for this: not an operator, not a standard function. Writing
+        // the `if` it would take needs somewhere to put the result, which does not
+        // exist inside an argument list.
+        Expr::Coalesce { value, fallback } => {
+            let source = format!("{} ?? {}", go_expr(out, value), go_expr(out, fallback));
+            out.carried(&Unsupported {
+                construct: "??".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
         // Go is the one language here with no conditional expression, and turning one
         // into an `if` statement needs somewhere to put the result — which does not
         // exist inside an argument list.
@@ -2641,6 +2683,9 @@ fn ts_type(ty: &Type) -> String {
 
 fn ts_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        Expr::Coalesce { value, fallback } => {
+            format!("{} ?? {}", ts_expr(out, value), ts_expr(out, fallback))
+        }
         Expr::Ternary {
             condition,
             then,
@@ -3197,6 +3242,23 @@ fn java_inferred(value: &Expr) -> String {
 
 fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Java spells it as a static call, and has to name the value twice to do it.
+        Expr::Coalesce { value, fallback } => match nameable(value) {
+            true => format!(
+                "Objects.requireNonNullElse({}, {})",
+                java_expr(out, value),
+                java_expr(out, fallback)
+            ),
+            false => {
+                let source = format!("{} ?? {}", java_expr(out, value), java_expr(out, fallback));
+                out.carried(&Unsupported {
+                    construct: "?? on a value that cannot be named twice".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+            }
+        },
         Expr::Ternary {
             condition,
             then,
@@ -3795,6 +3857,12 @@ fn zig_carry(out: &mut Out, construct: &str, source: String) -> String {
 
 fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Zig has the operator, and means exactly this by it.
+        Expr::Coalesce { value, fallback } => format!(
+            "{} orelse {}",
+            zig_expr(out, value),
+            zig_expr(out, fallback)
+        ),
         // Zig's `if` is an expression, and takes the branches without braces.
         Expr::Ternary {
             condition,
@@ -4140,6 +4208,26 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
 /// author wrote.
 fn block_comment_safe(text: &str) -> String {
     text.replace("*/", "* /")
+}
+
+/// Can this value be written twice without doing anything twice?
+///
+/// Python and Java can only ask "is this absent" by naming the value, so `a ?? b`
+/// becomes two mentions of `a`. That is free for a name, a literal or a field read, and
+/// it is a second call for anything else — which would make the program do more than it
+/// did. Those are carried instead.
+fn nameable(e: &Expr) -> bool {
+    match e {
+        Expr::Name(_)
+        | Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::Bool(_)
+        | Expr::Null => true,
+        Expr::Field { of, .. } => nameable(of),
+        Expr::Index { of, index } => nameable(of) && nameable(index),
+        _ => false,
+    }
 }
 
 /// A name that is not a type, turned into something that at least parses.

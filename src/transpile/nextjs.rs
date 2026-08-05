@@ -415,7 +415,11 @@ fn read_queries(module: &Module) -> Vec<(String, String)> {
                     in_expr(argument, found);
                 }
             }
-            Expr::Binary { left, right, .. } => {
+            Expr::Binary { left, right, .. }
+            | Expr::Coalesce {
+                value: left,
+                fallback: right,
+            } => {
                 in_expr(left, found);
                 in_expr(right, found);
             }
@@ -506,7 +510,11 @@ fn parsed_bodies(module: &Module) -> Vec<(String, String)> {
                     in_expr(argument, found);
                 }
             }
-            Expr::Binary { left, right, .. } => {
+            Expr::Binary { left, right, .. }
+            | Expr::Coalesce {
+                value: left,
+                fallback: right,
+            } => {
                 in_expr(left, found);
                 in_expr(right, found);
             }
@@ -1325,6 +1333,10 @@ fn supply_query_parameters(stmt: Stmt, declared: &[String]) -> Stmt {
                 left: Box::new(in_expr(*left, declared)),
                 right: Box::new(in_expr(*right, declared)),
             },
+            Expr::Coalesce { value, fallback } => Expr::Coalesce {
+                value: Box::new(in_expr(*value, declared)),
+                fallback: Box::new(in_expr(*fallback, declared)),
+            },
             Expr::Unary { op, operand } => Expr::Unary {
                 op,
                 operand: Box::new(in_expr(*operand, declared)),
@@ -1482,6 +1494,10 @@ fn supply_path_parameters(stmt: Stmt, dropped: &[String], parameters: &[String])
                 op,
                 left: Box::new(in_expr(*left, dropped, parameters)),
                 right: Box::new(in_expr(*right, dropped, parameters)),
+            },
+            Expr::Coalesce { value, fallback } => Expr::Coalesce {
+                value: Box::new(in_expr(*value, dropped, parameters)),
+                fallback: Box::new(in_expr(*fallback, dropped, parameters)),
             },
             Expr::Unary { op, operand } => Expr::Unary {
                 op,

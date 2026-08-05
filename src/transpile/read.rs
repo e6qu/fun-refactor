@@ -239,6 +239,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
             Expr::Keyword { value, .. } => bad(value),
+            Expr::Coalesce { value, fallback } => bad(value) || bad(fallback),
             Expr::Ternary {
                 condition,
                 then,
@@ -3322,6 +3323,13 @@ mod zig {
                     .map(|c| cx.text(*c))
                     .unwrap_or_default();
                 let operands: Vec<Node> = parts.iter().filter(|c| c.is_named()).copied().collect();
+                // `a orelse b` is Zig's word for exactly the question `??` asks.
+                if operator == "orelse" && operands.len() == 2 {
+                    return Expr::Coalesce {
+                        value: Box::new(expr(cx, operands[0])),
+                        fallback: Box::new(expr(cx, operands[1])),
+                    };
+                }
                 match super::binary_op(&operator) {
                     Some(op) if operands.len() == 2 => Expr::Binary {
                         op,
@@ -3976,19 +3984,31 @@ mod typescript {
                 }
             }
             "binary_expression" => {
-                match super::binary_op(&cx.field_text(node, "operator").unwrap_or_default()) {
+                let left = || {
+                    cx.field(node, "left")
+                        .map(|l| expr(cx, l))
+                        .unwrap_or(Expr::Null)
+                };
+                let right = || {
+                    cx.field(node, "right")
+                        .map(|r| expr(cx, r))
+                        .unwrap_or(Expr::Null)
+                };
+                let operator = cx.field_text(node, "operator").unwrap_or_default();
+                // `a ?? b` asks whether the left side is absent, which is a question
+                // rather than an arithmetic operator — half these languages spell it
+                // with a word or a method, and one cannot spell it at all.
+                if operator == "??" {
+                    return Expr::Coalesce {
+                        value: Box::new(left()),
+                        fallback: Box::new(right()),
+                    };
+                }
+                match super::binary_op(&operator) {
                     Some(op) => Expr::Binary {
                         op,
-                        left: Box::new(
-                            cx.field(node, "left")
-                                .map(|l| expr(cx, l))
-                                .unwrap_or(Expr::Null),
-                        ),
-                        right: Box::new(
-                            cx.field(node, "right")
-                                .map(|r| expr(cx, r))
-                                .unwrap_or(Expr::Null),
-                        ),
+                        left: Box::new(left()),
+                        right: Box::new(right()),
                     },
                     None => Expr::Unsupported(cx.unsupported(node)),
                 }

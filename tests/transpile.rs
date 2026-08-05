@@ -1079,3 +1079,43 @@ fn a_python_module_binding_is_a_constant_whatever_it_is_called() {
     assert!(output.contains("const actions"), "{output}");
     assert!(output.contains("const MAX"), "{output}");
 }
+
+#[test]
+fn a_coalesce_crosses_as_the_question_it_asks() {
+    // `a ?? b` asks whether the left side is absent, which is a question rather than an
+    // arithmetic operator. Zig spells it with a word, Rust and Java with a call, Python
+    // has to name the value twice, and Go cannot say it at all.
+    let source = "export function f(x: number | null): number {\n  const a = x ?? 5;\n  \
+                  return a;\n}\n";
+    for (target, expected) in [
+        (Language::Python, "a = x if x is not None else 5"),
+        (Language::Rust, "let a = x.unwrap_or(5);"),
+        (Language::Zig, "const a = x orelse 5;"),
+        (Language::Java, "var a = Objects.requireNonNullElse(x, 5);"),
+    ] {
+        let (output, _) = translate(&[("c.ts", source)], "c.ts", target);
+        assert!(output.contains(expected), "{target}:\n{output}");
+    }
+    let (output, fidelity) = translate(&[("c.ts", source)], "c.ts", Language::Go);
+    assert!(output.contains(&format!("{MARKER}: x ?? 5")), "{output}");
+    assert!(fidelity.carried_verbatim > 0, "{output}");
+}
+
+#[test]
+fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
+    // Python and Java can only ask "is this absent" by naming the value, and naming a
+    // call twice calls it twice — which would make the program do more than it did.
+    let source = "export function f(): number {\n  const a = get(\"x\") ?? 5;\n  return a;\n}\n";
+    for target in [Language::Python, Language::Java] {
+        let (output, fidelity) = translate(&[("d.ts", source)], "d.ts", target);
+        assert!(fidelity.carried_verbatim > 0, "{target}:\n{output}");
+        assert!(
+            !output.contains("get(\"x\") is not None")
+                && !output.contains("requireNonNullElse(get"),
+            "{target} named the call twice:\n{output}"
+        );
+    }
+    // Zig's operator evaluates the left side once, so it has nothing to refuse.
+    let (output, _) = translate(&[("d.ts", source)], "d.ts", Language::Zig);
+    assert!(output.contains("get(\"x\") orelse 5"), "{output}");
+}

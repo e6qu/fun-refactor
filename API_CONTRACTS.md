@@ -292,19 +292,12 @@ nothing invented, and the test suite asserts it, so a translation that started d
 endpoints would fail the build.
 
 **That the two documents agree does not mean the contract is complete**, and the
-difference matters more than the agreement. `GET /pets` also reads a `limit`:
-
-```ts
-const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50")
-```
-
-`??` is a TypeScript operator this tool has no equivalent for, so the whole statement is
-carried into the output as a comment and `limit` reaches neither document. Both sides
-agree, and both are missing it — which the notes beside the baseline say in as many
-words:
+difference matters more than the agreement: both sides can be missing the same thing and
+agree perfectly. So the baseline says what it could not read, and that is the number to
+watch:
 
 ```
-app/api/pets/route.ts: 2 statement(s) could not be read; any query parameter
+app/api/pets/route.ts: 1 statement(s) could not be read; any query parameter
 read inside one of them is missing from this document
 ```
 

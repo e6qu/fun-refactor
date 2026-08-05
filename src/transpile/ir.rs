@@ -377,6 +377,21 @@ pub enum Expr {
         callee: Box<Expr>,
         args: Vec<Expr>,
     },
+    /// `a ?? b`, `a orelse b` — the value unless it is absent, and then the fallback.
+    ///
+    /// Its own node rather than a [`BinaryOp`], because it is not an operator on values
+    /// in most of these languages: Zig spells it `orelse`, Rust reaches for
+    /// `Option::unwrap_or`, Java for a static method, and Go has nothing at all. What is
+    /// shared is the *question* — is this absent, and what then — and that is what
+    /// crosses.
+    ///
+    /// The catch is that three of the six can only say it by naming the value twice. A
+    /// value that is a call cannot be named twice without calling it twice, so those
+    /// writers say so rather than changing how many times the program does something.
+    Coalesce {
+        value: Box<Expr>,
+        fallback: Box<Expr>,
+    },
     /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
     ///
     /// One expression that chooses between two, and five of these six languages have
