@@ -294,3 +294,162 @@ fn json_type(ty: &Type) -> Value {
         },
     }
 }
+
+// ------------------------------------------------- the other side of the crossing
+
+/// The contract a FastAPI tree *declares*, read the same way FastAPI reads it.
+///
+/// The point of a baseline is to be diffed against the finished service, and doing that
+/// properly means running the service. This is the check you can make without one: the
+/// decorators and the signatures say what the router will answer, and comparing them
+/// with the Next.js baseline catches the failure that matters — an endpoint that did
+/// not survive the crossing, or a path that quietly changed shape.
+///
+/// It reads what is written, not what will happen. A route added at run time, a router
+/// mounted under a prefix, a dependency that rejects the request: none of those are
+/// here, and the document says so rather than pretending otherwise.
+pub fn from_fastapi(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseline> {
+    const METHODS: &[&str] = &["get", "post", "put", "patch", "delete", "head", "options"];
+
+    let parsers = crate::parse::Parsers::new();
+    let mut paths: Map<String, Value> = Map::new();
+    let mut notes = Vec::new();
+    let mut routes = Vec::new();
+
+    for file in files {
+        if crate::lang::detect(file) != Some(crate::lang::Language::Python) {
+            continue;
+        }
+        let source = crate::vfs::read_to_string(file)?;
+        let parsed = parsers.parse(crate::lang::Language::Python, &source)?;
+        if parsed.has_errors() {
+            notes.push(format!(
+                "{}: does not parse cleanly, so what it declares is a guess",
+                relative(root, file)
+            ));
+            continue;
+        }
+
+        let mut found_here = false;
+        let mut stack = vec![parsed.root()];
+        let mut cursor = parsed.root().walk();
+        while let Some(node) = stack.pop() {
+            for child in node.children(&mut cursor) {
+                stack.push(child);
+            }
+            if node.kind() != "decorated_definition" {
+                continue;
+            }
+            let mut children = node.walk();
+            let parts: Vec<_> = node.children(&mut children).collect();
+            let Some(function) = parts.iter().find(|c| c.kind() == "function_definition") else {
+                continue;
+            };
+            for decorator in parts.iter().filter(|c| c.kind() == "decorator") {
+                let text = decorator.utf8_text(source.as_bytes()).unwrap_or("");
+                let Some((verb, route)) = route_of(text, METHODS) else {
+                    continue;
+                };
+                found_here = true;
+                let parameters = signature_of(*function, &source, &route);
+                let entry = paths
+                    .entry(route.clone())
+                    .or_insert_with(|| json!({}))
+                    .as_object_mut()
+                    .expect("a path item is an object");
+                entry.insert(
+                    verb.clone(),
+                    json!({
+                        "operationId": format!("{verb}{}", operation_suffix(&route)),
+                        "parameters": parameters,
+                        "responses": {
+                            "default": { "description": "not declared by the source" }
+                        }
+                    }),
+                );
+            }
+        }
+        if found_here {
+            routes.push(file.clone());
+        }
+    }
+
+    let document = json!({
+        "openapi": "3.1.0",
+        "info": {
+            "title": title,
+            "version": "0.0.0",
+            "description":
+                "Derived from a FastAPI router by fun-refactor, by reading the decorators \
+                 and the signatures. What a router does at run time — a prefix, a \
+                 dependency, a route added dynamically — is not here.",
+        },
+        "paths": Value::Object(paths),
+        "components": { "schemas": {} },
+    });
+
+    Ok(Baseline {
+        document,
+        notes,
+        routes,
+    })
+}
+
+/// `@router.get("/pets/{pet_id}")` — the method and the path it answers.
+fn route_of(decorator: &str, methods: &[&str]) -> Option<(String, String)> {
+    let after_dot = decorator.rsplit_once('.')?.1;
+    let (verb, rest) = after_dot.split_once('(')?;
+    let verb = verb.trim();
+    if !methods.contains(&verb) {
+        return None;
+    }
+    // The first string literal in the call is the path; anything after it is a keyword
+    // argument, and `status_code=201` is not a URL.
+    let opened = rest.find(['"', '\''])?;
+    let quote = rest.as_bytes()[opened] as char;
+    let rest = &rest[opened + 1..];
+    let closed = rest.find(quote)?;
+    Some((verb.to_string(), rest[..closed].to_string()))
+}
+
+/// The parameters a handler declares, sorted into path and query.
+///
+/// Which is which is decided by the path template, exactly as FastAPI decides it: a
+/// parameter whose name is a segment of the URL is a path parameter and everything else
+/// the caller supplies is a query one. `Request` and `Response` are FastAPI's own and
+/// are not part of the contract.
+fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> Vec<Value> {
+    let in_path = nextjs::path_parameters(route);
+    let Some(list) = function.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    let mut cursor = list.walk();
+    let mut out = Vec::new();
+    for parameter in list.named_children(&mut cursor) {
+        let text = parameter.utf8_text(source.as_bytes()).unwrap_or("");
+        let (name, annotation) = match text.split_once(':') {
+            Some((name, annotation)) => (name.trim(), annotation.trim()),
+            None => (text.trim(), ""),
+        };
+        let name = name.split('=').next().unwrap_or(name).trim();
+        if name.is_empty() || name == "self" {
+            continue;
+        }
+        if matches!(annotation, "Request" | "Response") {
+            continue;
+        }
+        let where_it_comes_from = match in_path.iter().any(|p| p == name) {
+            true => "path",
+            // A parameter annotated with a model is the request body, not a query.
+            false if annotation.starts_with(|c: char| c.is_uppercase()) => continue,
+            false => "query",
+        };
+        out.push(json!({
+            "name": name,
+            "in": where_it_comes_from,
+            "required": where_it_comes_from == "path",
+            "schema": { "type": "string" }
+        }));
+    }
+    out
+}

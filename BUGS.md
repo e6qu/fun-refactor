@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B175: **the contract could only be derived from one side of the crossing.** The
+  method says to diff the baseline against the finished service, and half of that check
+  needs no server: a FastAPI router declares its contract on the decorators and in the
+  signatures, which is where FastAPI itself reads it. Run over the pet store, thirteen
+  operations go in and thirteen come out with every URL, method and path parameter
+  identical — and the one thing that does not survive, a query parameter the translated
+  handler still reads off the request object, shows up as a line of diff instead of as
+  nothing at all.
+
 - [x] B174: **a handler's inline `context.params.petId` was left naming an object
   Python does not have.** Dropping the *statement* `const id = context.params.id` was
   only half of it: a handler that reads the path parameter inline — inside a `where`

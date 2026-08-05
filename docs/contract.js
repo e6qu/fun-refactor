@@ -1,4 +1,10 @@
-import { CONTRACT, CONTRACT_NOTES, ENDPOINTS } from "./contract-data.js";
+import {
+  CONTRACT,
+  CONTRACT_NOTES,
+  CROSSED,
+  ENDPOINTS,
+  SURVIVED,
+} from "./contract-data.js";
 import { specimen, split, paintDiff, paintReport, escape } from "./panes.js";
 
 // The contract, and everything it could not settle. Two panes, because they are two
@@ -43,5 +49,36 @@ for (const endpoint of ENDPOINTS) {
     command: endpoint.command,
     panes,
     caption: escape(endpoint.note),
+  });
+}
+
+// Did the contract survive? Read the *other* side — the decorators and the signatures
+// the translated router declares — and compare, operation by operation. This is the
+// check you can make without running the service, and it catches the failure the whole
+// exercise is about: an endpoint that did not survive, or a path that changed shape.
+const survived = document.getElementById("survived");
+if (survived) {
+  const row = (op, cls) => `<li class="${cls}"><code>${escape(op)}</code></li>`;
+  const lost = new Set(SURVIVED.lost);
+  const gained = new Set(SURVIVED.gained);
+  survived.innerHTML = `
+    <div class="contract-columns">
+      <div>
+        <h4>Declared by the Next.js tree</h4>
+        <ul class="op-list">${SURVIVED.before.map((o) => row(o, lost.has(o) ? "del" : "")).join("")}</ul>
+      </div>
+      <div>
+        <h4>Declared by the FastAPI router it became</h4>
+        <ul class="op-list">${SURVIVED.after.map((o) => row(o, gained.has(o) ? "add" : "")).join("")}</ul>
+      </div>
+    </div>`;
+}
+
+const crossed = document.getElementById("crossed");
+if (crossed) {
+  specimen(crossed, {
+    title: "the same command, on the other side",
+    command: "fr openapi --yaml",
+    panes: [{ label: "Read back off the FastAPI router", body: CROSSED }],
   });
 }

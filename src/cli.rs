@@ -1280,12 +1280,23 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "workspace".to_string());
-    let baseline = crate::openapi::from_routes(&title, &root, &files)?;
+    // Either side of the crossing. A Next.js tree declares nothing and the contract is
+    // inferred from where the files sit; a FastAPI tree declares everything and the
+    // contract is read off the decorators. Which one is here decides which is read, and
+    // the report says which it was — because a document that does not say where it came
+    // from cannot be argued with.
+    let mut baseline = crate::openapi::from_routes(&title, &root, &files)?;
+    let mut side = "Next.js route tree";
+    if baseline.routes.is_empty() {
+        baseline = crate::openapi::from_fastapi(&title, &root, &files)?;
+        side = "FastAPI router";
+    }
 
     if baseline.routes.is_empty() {
         anyhow::bail!(
-            "no Next.js API route under {}. Those are `app/**/api/**/route.ts` or \
-             anything under `pages/api/`, and the URL comes from where the file sits.",
+            "no API under {}. A Next.js route is `app/**/api/**/route.ts` or anything \
+             under `pages/api/`, with the URL coming from where the file sits; a FastAPI \
+             one is a `@router.get(\"…\")` on an `async def`.",
             root.display()
         );
     }
@@ -1301,7 +1312,7 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
             crate::vfs::write(path, format!("{text}\n"))?;
             if !cli.json {
                 println!(
-                    "{} route file(s) -> {}",
+                    "{} route file(s) from a {side} -> {}",
                     baseline.routes.len(),
                     path.display()
                 );
