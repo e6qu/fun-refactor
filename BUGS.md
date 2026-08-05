@@ -76,6 +76,22 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B194: **a pytest fixture and a `unittest` fixture matched no rule.** Nothing calls
+  either by name — pytest injects a fixture by matching the parameter, and `unittest`
+  calls `setUp` itself — which is the same reasoning the Java catalog already gives for
+  `@Bean` and `@Component`. A fixture in `conftest.py`, where the shared ones live,
+  matched nothing at all: neither the file nor the function is named `test_*`. The ones
+  in a `test_*.py` file were found only by the file rule, so they looked covered.
+
+- [x] B193: **a Python script with a `__main__` guard reported no entry point.** Every
+  other catalog says `name: main`, because every other language here agrees that a
+  program starts in a function so called. Python's starts in a *statement*, and what it
+  calls can be named anything — so the rule that works everywhere else answered nothing
+  for an ordinary script, from the command whose only job is that question. The report
+  named css, scss and yaml as the languages without rules, which said Python was
+  covered. Catalogs gained `called_from_main_guard`, the first predicate here that is
+  not a property of a name.
+
 - [x] B192: **a type argument was read as a supertype.** The heritage reader took every
   type name under an `extends`/`implements` clause, so `implements Holder<Pet>` filed the
   class under `Pet`. A call that reached it by method name alone was then reported as

@@ -150,6 +150,14 @@ pub struct Matcher {
     /// name alone left 141 of its 296 test functions looking like dead code.
     #[serde(default)]
     pub annotated_with: Option<String>,
+    /// The symbol is called from the module's `if __name__ == "__main__":` block.
+    ///
+    /// Every other language here says its entry point is a function called `main`, and
+    /// the rules were written that way. Python's is not a function at all — it is a
+    /// statement, and what it calls can be named anything. A script whose guard calls
+    /// `cli()` reported no entry point whatsoever.
+    #[serde(default)]
+    pub called_from_main_guard: Option<bool>,
 }
 
 /// A detected entry point.
@@ -309,7 +317,8 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
         || m.path_contains.is_some()
         || m.file_suffix.is_some()
         || m.file_prefix.is_some()
-        || m.annotated_with.is_some();
+        || m.annotated_with.is_some()
+        || m.called_from_main_guard.is_some();
     if !has_condition {
         return false;
     }
@@ -356,6 +365,11 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
     }
     if let Some(annotation) = &m.annotated_with {
         if !annotated_with(symbol, annotation) {
+            return false;
+        }
+    }
+    if let Some(wanted) = m.called_from_main_guard {
+        if called_from_main_guard(symbol) != wanted {
             return false;
         }
     }
@@ -433,6 +447,76 @@ pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
         break;
     }
     false
+}
+
+/// Is this symbol called from its module's `if __name__ == "__main__":` block?
+///
+/// The guard is a statement rather than a declaration, so there is no symbol to match a
+/// name against — which is why every other rule here could be written as a name and
+/// this one could not. What it calls is the program's starting point whatever it is
+/// called, and reporting nothing for a script that has one is the wrong answer to the
+/// only question `fr entrypoints` asks.
+///
+/// Direct calls only: `cli()` inside the guard, not a call made by something the guard
+/// calls. The second is reachability, which the call graph answers, and folding it in
+/// here would tag half a program as an entry point.
+fn called_from_main_guard(symbol: &Symbol) -> bool {
+    if symbol.language != Language::Python || symbol.container.is_some() {
+        return false;
+    }
+    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
+        return false;
+    };
+    // Cheap first: no guard in the file means no parse.
+    if !source.contains("__main__") {
+        return false;
+    }
+    let Ok(parsed) = crate::parse::Parsers::new().parse(Language::Python, &source) else {
+        return false;
+    };
+
+    let mut called = false;
+    let mut cursor = parsed.root().walk();
+    for statement in parsed.root().named_children(&mut cursor) {
+        if statement.kind() != "if_statement" {
+            continue;
+        }
+        let Some(condition) = statement.child_by_field_name("condition") else {
+            continue;
+        };
+        let condition = &source[condition.byte_range()];
+        if !(condition.contains("__name__") && condition.contains("__main__")) {
+            continue;
+        }
+        let Some(body) = statement.child_by_field_name("consequence") else {
+            continue;
+        };
+        called |= calls_by_name(body, &source).contains(&symbol.name);
+    }
+    called
+}
+
+/// The names called anywhere under a node: `cli()` and `app.run()` name `cli` and
+/// `run`.
+fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut stack = vec![node];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "call" {
+            if let Some(function) = node.child_by_field_name("function") {
+                let named = match function.kind() {
+                    "attribute" => function.child_by_field_name("attribute"),
+                    _ => Some(function),
+                };
+                if let Some(named) = named {
+                    names.push(source[named.byte_range()].to_string());
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.named_children(&mut cursor));
+    }
+    names
 }
 
 /// Does this fragment name the annotation, whatever punctuation surrounds it?

@@ -1404,6 +1404,47 @@ declared relationship. The edge is identical either way; the evidence for it is 
 presenting a guess as a declaration is the one thing this layer must not do. The helper's
 doc comment had claimed it excluded type arguments since the day it was written.
 
+### The entry point that is not a function
+
+The sweep through per-language tables reached the entry-point catalogs, and the probe
+was the simplest one available: write the same program in six languages and ask where it
+starts.
+
+```
+$ fr entrypoints
+cli-main   main   main.go
+cli-main   main   main.rs
+cli-main   main   main.zig
+cli-main   Report::main   Shape.java
+
+3 entry point(s)
+No entry-point rules exist for: css, scss, yaml
+```
+
+Python is missing, and the last line says it is covered. Every catalog says
+`name: main`, because every other language here agrees that a program starts in a
+function so called. Python's starts in a *statement*:
+
+```python
+if __name__ == "__main__":
+    cli()
+```
+
+`cli` can be named anything, so no name rule can find it — and the command whose only
+job is answering "where does this start?" answered nothing for a script that plainly
+starts somewhere. Catalogs gained `called_from_main_guard`, the first predicate here
+that is not a property of a name. Direct calls only: what the guard calls is the
+starting point, and what *that* calls is reachability, which the call graph already
+answers.
+
+Two more came out of the same file. **Nothing calls a pytest fixture by name** — pytest
+injects it by matching the parameter — which is exactly the reasoning the Java catalog
+already gives for `@Bean` and `@Component`. A fixture in `conftest.py`, which is where
+the shared ones live, matched no rule at all: neither the file nor the function is named
+`test_*`. The ones inside a `test_*.py` file were found by the file rule, which is what
+made the gap look closed. **And `unittest` calls `setUp` and `tearDown` itself**, once
+per test, with nothing in the source referring to them.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
