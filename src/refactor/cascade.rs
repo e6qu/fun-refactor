@@ -291,8 +291,24 @@ fn substitute_flag(
         }
     }
 
-    // The definition goes with its whole line.
-    changes.push((definition.file.clone(), definition.full_span, String::new()));
+    // The definition goes with whatever holds it and then with its whole line — the
+    // same two steps `fr delete` takes, because the answer is the same question. Taking
+    // the symbol's own span instead removed `NEW_UI = true` from `const NEW_UI = true;`
+    // and left `const ;` behind: the edit guard caught it, so `fr remove-flag` did not
+    // damage a TypeScript file, it simply never worked on one.
+    let definition_span = match sources.get(&definition.file) {
+        Some((language, source)) => {
+            let widened = match parsers.parse(*language, source) {
+                Ok(parsed) => {
+                    crate::refactor::delete::widen_for_delete(&parsed, source, definition)
+                }
+                Err(_) => definition.full_span,
+            };
+            crate::refactor::delete::deletion_span(source, widened)
+        }
+        None => definition.full_span,
+    };
+    changes.push((definition.file.clone(), definition_span, String::new()));
     Ok(changes)
 }
 
