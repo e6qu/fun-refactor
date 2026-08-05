@@ -272,6 +272,40 @@ the query parameters the handlers read. What it deliberately does *not* have:
   rejects the request without it read the same way, so every query parameter is
   optional in the baseline and the diff will tell you which ones are not.
 
+### Checking the crossing without running anything
+
+Step 4 says to run the finished service and diff its `/openapi.json` against the
+baseline. Half of that check needs no server: **`fr openapi` reads a FastAPI router
+too**, off the decorators and the signatures, so the same command answers the same
+question about the code the rewrite produced.
+
+```sh
+fr openapi --yaml > before.yaml      # the Next.js tree
+# … translate every route …
+fr openapi --yaml > after.yaml       # the FastAPI router it became
+diff before.yaml after.yaml
+```
+
+Run over the pet store, thirteen operations go in and thirteen come out, with every
+URL, every method and every path parameter identical. **One thing does not survive**,
+and being able to see which is the whole point:
+
+```
+- GET /pets?species
++ GET /pets
+```
+
+`GET /pets` read `species` out of the query string. The translated handler still reads
+it from the request object rather than declaring it as a FastAPI parameter, so the
+router that came out the other side does not say it takes a query — and a caller
+sending `?species=cat` is outside a contract that claims to describe it. The endpoint
+answers, the tests pass, and the contract quietly got smaller. That is the failure this
+whole document exists to catch, and it is one line of diff.
+
+What this cannot see, because it reads what is written rather than what will happen: a
+router mounted under a prefix, a route added at run time, a dependency that rejects the
+request. For those you need the server, which is why step 4 is still step 4.
+
 ## What this is not
 
 **Not a proof.** Preserving the addressing half of a contract is a syntactic property

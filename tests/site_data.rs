@@ -1319,6 +1319,20 @@ fn run(root: &Path, argv: &[String]) -> String {
     text.trim_end().to_string()
 }
 
+/// One command's standard output, on its own.
+///
+/// `run` glues stderr on the end, which is right for a report and wrong for a document:
+/// `fr openapi` puts the notes on stderr precisely so that stdout stays parseable.
+fn run_stdout(root: &Path, argv: &[String]) -> String {
+    let output = Command::new(FR)
+        .arg("--root")
+        .arg(root)
+        .args(argv)
+        .output()
+        .expect("running fr");
+    scrub(&String::from_utf8_lossy(&output.stdout), root)
+}
+
 /// One command's standard error, on its own.
 ///
 /// `fr openapi` puts the document on stdout and everything it could not settle on
@@ -1702,7 +1716,7 @@ fn contract_data() -> String {
     copy(&root, &workspace);
     let workspace = workspace.as_path();
 
-    let contract = run(workspace, &["openapi".into(), "--yaml".into()]);
+    let contract = run_stdout(workspace, &["openapi".into(), "--yaml".into()]);
     assert!(
         contract.contains("openapi: 3.1.0"),
         "the contract is a document:\n{contract}"
@@ -1771,7 +1785,104 @@ fn contract_data() -> String {
             json_string(&report),
         ));
     }
-    out.push_str("];\n");
+    out.push_str("];\n\n");
+
+    // The crossing, checked. Every route file has been translated by now, so the same
+    // command reads the *other* side — the decorators and the signatures a FastAPI
+    // router declares — and the two documents are compared operation by operation.
+    //
+    // This is the check you can make without running the service, and it catches the
+    // failure the whole exercise is about: an endpoint that did not survive, or a path
+    // that quietly changed shape.
+    for route in ENDPOINTS {
+        std::fs::remove_file(workspace.join(route.route)).unwrap();
+    }
+    let crossed = run_stdout(workspace, &["openapi".into(), "--yaml".into()]);
+    out.push_str(&format!(
+        "export const CROSSED = {};\n",
+        json_string(&crossed)
+    ));
+
+    let operations = |document: &str| -> Vec<String> {
+        let value: serde_json::Value = serde_yaml::from_str(document).expect("a document");
+        let mut found = Vec::new();
+        if let Some(paths) = value.get("paths").and_then(|p| p.as_object()) {
+            for (path, item) in paths {
+                for (method, operation) in item.as_object().into_iter().flatten() {
+                    let query: Vec<String> = operation
+                        .get("parameters")
+                        .and_then(|p| p.as_array())
+                        .map(|all| {
+                            all.iter()
+                                .filter(|p| p.get("in").and_then(|i| i.as_str()) == Some("query"))
+                                .filter_map(|p| p.get("name").and_then(|n| n.as_str()))
+                                .map(|n| n.to_string())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    found.push(match query.is_empty() {
+                        true => format!("{} {path}", method.to_uppercase()),
+                        false => format!("{} {path}?{}", method.to_uppercase(), query.join("&")),
+                    });
+                }
+            }
+        }
+        found.sort();
+        found
+    };
+
+    let before = operations(&contract);
+    let after = operations(&crossed);
+    // The addressing half — the URLs and the methods — has to be identical. That is the
+    // part this tool takes responsibility for.
+    let addressing = |ops: &[String]| -> Vec<String> {
+        let mut out: Vec<String> = ops
+            .iter()
+            .map(|o| o.split('?').next().unwrap_or(o).to_string())
+            .collect();
+        out.sort();
+        out.dedup();
+        out
+    };
+    assert_eq!(
+        addressing(&before),
+        addressing(&after),
+        "the URLs and methods must survive the crossing"
+    );
+
+    let lost: Vec<String> = before
+        .iter()
+        .filter(|o| !after.contains(o))
+        .cloned()
+        .collect();
+    let gained: Vec<String> = after
+        .iter()
+        .filter(|o| !before.contains(o))
+        .cloned()
+        .collect();
+    out.push_str(&format!(
+        "\nexport const SURVIVED = {{\n  before: [{}],\n  after: [{}],\n  \
+         lost: [{}],\n  gained: [{}],\n}};\n",
+        before
+            .iter()
+            .map(|o| json_string(o))
+            .collect::<Vec<_>>()
+            .join(", "),
+        after
+            .iter()
+            .map(|o| json_string(o))
+            .collect::<Vec<_>>()
+            .join(", "),
+        lost.iter()
+            .map(|o| json_string(o))
+            .collect::<Vec<_>>()
+            .join(", "),
+        gained
+            .iter()
+            .map(|o| json_string(o))
+            .collect::<Vec<_>>()
+            .join(", "),
+    ));
     out
 }
 

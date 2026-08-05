@@ -180,6 +180,34 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
 
 <section>
   <div class="shell prose wide">
+    <h2>Did the contract survive?</h2>
+    <p>
+      The method says to run the finished service and diff its
+      <code>/openapi.json</code> against the baseline. This is the half you can check
+      without running anything: <code>fr openapi</code> reads the <em>other</em> side
+      too — the decorators and the signatures a FastAPI router declares — so the same
+      command answers the same question about the code the rewrite produced.
+    </p>
+    <p>
+      Thirteen operations went in and thirteen came out, with every URL, every method
+      and every path parameter identical. <strong>One thing did not survive</strong>,
+      and the point of the exercise is that you can see which:
+    </p>
+    <div id="survived"></div>
+    <p style="margin-top:1rem">
+      <code>GET /pets</code> read <code>species</code> out of the query string. The
+      translated handler still reads it from the request object rather than declaring it
+      as a FastAPI parameter, so the router that came out the other side does not say it
+      takes a query — and a caller sending <code>?species=cat</code> is outside a
+      contract that claims to describe it. That is the whole failure mode in one line:
+      the endpoint answers, the tests pass, and the contract quietly got smaller.
+    </p>
+    <div id="crossed"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
     <h2>Where it stops</h2>
     <p>
       <strong>Not a proof.</strong> Preserving the addressing half of a contract — the
