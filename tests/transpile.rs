@@ -283,6 +283,10 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             "E.java",
             "public class E {\n    /** Add two things. */\n    public int add(int a, int b) {\n             \treturn a + b;\n    }\n}\n",
         ),
+        (
+            "f.zig",
+            "/// Add two things.\npub fn add(a: i64, b: i64) i64 {\n    return a + b;\n}\n",
+        ),
     ];
     let (_tmp, root) = workspace(&sources);
     let parsers = fun_refactor::parse::Parsers::new();
@@ -307,9 +311,8 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             checked += 1;
         }
     }
-    // Five languages is twenty ordered pairs, and the count is written down so that
-    // adding a language without adding a source for it fails here rather than quietly
-    // testing four fifths of the matrix.
+    // The count is written down so that adding a language without adding a source for
+    // it fails here rather than quietly testing a fraction of the matrix.
     let languages = transpile::SUPPORTED.len();
     assert_eq!(
         checked,
@@ -373,5 +376,158 @@ fn translating_into_a_language_with_no_writer_is_refused() {
     assert!(
         error.to_string().contains("no writer"),
         "the refusal should say what is missing: {error}"
+    );
+}
+
+/// A class with a method, in each source language, spelled that language's way.
+const METHODS: &[(&str, &str)] = &[
+    (
+        "m.ts",
+        "export class Repo {\n  name: string;\n\n  label(prefix: string): string {\n    \
+         return this.name;\n  }\n}\n",
+    ),
+    (
+        "m.py",
+        "class Repo:\n    name: str\n\n    def label(self, prefix: str) -> str:\n        \
+         return self.name\n",
+    ),
+    (
+        "m.rs",
+        "pub struct Repo {\n    pub name: String,\n}\n\nimpl Repo {\n    \
+         pub fn label(&self, prefix: String) -> String {\n        return self.name;\n    }\n}\n",
+    ),
+    (
+        "m.go",
+        "package main\n\ntype Repo struct {\n\tName string\n}\n\n\
+         func (r *Repo) Label(prefix string) string {\n\treturn r.Name\n}\n",
+    ),
+    (
+        "m.zig",
+        "pub const Repo = struct {\n    name: []const u8,\n\n    \
+         pub fn label(self: Repo, prefix: []const u8) []const u8 {\n        \
+         return self.name;\n    }\n};\n",
+    ),
+];
+
+#[test]
+fn the_receiver_is_spelled_the_way_the_target_spells_it() {
+    // Six languages, and the receiver is not in the parameter list to be renamed with
+    // the rest: Rust, Python and Zig say `self`, Java and TypeScript say `this`, and Go
+    // says whatever the author called it. Every body used to keep its *source's* word,
+    // so a translated method referred to a name the output never binds — `this.cache`
+    // inside a Rust `impl` is not a typo, it is a file that cannot compile.
+    for (name, source) in METHODS {
+        let from = fun_refactor::lang::detect(std::path::Path::new(name)).unwrap();
+        for to in transpile::SUPPORTED {
+            if *to == from {
+                continue;
+            }
+            let (output, _) = translate(&[(name, source)], name, *to);
+            // Go capitalises an exported field, so the search has to be about the
+            // word rather than its spelling.
+            let body = output
+                .lines()
+                .find(|l| l.contains("return") && l.to_lowercase().contains("name"))
+                .unwrap_or_else(|| panic!("{name} -> {to} lost the body:\n{output}"));
+            let expected = match to {
+                Language::Java | Language::TypeScript | Language::Tsx => "this.",
+                _ => "self.",
+            };
+            assert!(
+                body.contains(expected),
+                "{name} -> {to} should reach the field through `{expected}`, not:\n{body}"
+            );
+            // And whatever the body reaches through, the signature has to bind.
+            let bound = expected.trim_end_matches('.');
+            assert!(
+                *to == Language::Java
+                    || *to == Language::TypeScript
+                    || *to == Language::Tsx
+                    || output.contains(bound),
+                "{name} -> {to} uses `{bound}` without binding it:\n{output}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
+    // The opposite of what a free function does, and reading both the same way made
+    // every translated method private in Java and unreachable everywhere else — while
+    // making every `private` field public, which is the same mistake pointing the
+    // other way.
+    let source = "export class Guard {\n  private secret: string;\n  token: string;\n\n  \
+                  check(t: string): boolean {\n    return t === this.secret;\n  }\n\n  \
+                  private hash(t: string): string {\n    return t;\n  }\n}\n";
+    let (output, _) = translate(&[("g.ts", source)], "g.ts", Language::Java);
+    assert!(
+        output.contains("private String secret;"),
+        "a private field should stay private:\n{output}"
+    );
+    assert!(
+        output.contains("public String token;"),
+        "a plain field is public:\n{output}"
+    );
+    assert!(
+        output.contains("public boolean check("),
+        "a plain method is public:\n{output}"
+    );
+    assert!(
+        output.contains("private String hash("),
+        "a private method should stay private:\n{output}"
+    );
+}
+
+#[test]
+fn zig_says_var_only_where_something_writes() {
+    // Zig rejects a `var` nothing writes to, and only the Rust reader records
+    // mutability at all — every other one says "mutable" because it has nothing better
+    // to say. Taking that at its word turned a `const` file into one that will not
+    // build.
+    let source = "def tally(xs: list[int]) -> int:\n    total = 0\n    label = \"n\"\n    \
+                  for x in xs:\n        total = total + x\n    return total\n";
+    let (output, _) = translate(&[("t.py", source)], "t.py", Language::Zig);
+    assert!(
+        output.contains("var total"),
+        "`total` is written to in the loop:\n{output}"
+    );
+    assert!(
+        output.contains("const label"),
+        "`label` is never written to:\n{output}"
+    );
+}
+
+#[test]
+fn zig_carries_what_it_cannot_say_above_the_statement() {
+    // Zig is the only target here with no block comment: `//` runs to the end of the
+    // line, so a carried fragment written beside an expression would swallow the rest
+    // of the statement, semicolon included.
+    let source = "def greet(name: str) -> str:\n    line = f\"hi {name}\"\n    return line\n";
+    let (output, fidelity) = translate(&[("g.py", source)], "g.py", Language::Zig);
+    assert_eq!(fidelity.carried_verbatim, 1, "{output}");
+    let at = output
+        .find("const line")
+        .unwrap_or_else(|| panic!("no binding:\n{output}"));
+    let before = output[..at].trim_end();
+    assert!(
+        before.lines().last().unwrap().trim().starts_with("//"),
+        "the carried text belongs on its own line above:\n{output}"
+    );
+    assert!(
+        output.contains("const line = undefined;"),
+        "the statement has to survive whole:\n{output}"
+    );
+}
+
+#[test]
+fn a_word_zig_reserves_is_still_the_name_the_source_wrote() {
+    // Go's `error` is Zig's keyword for an error set, and a signature returning one did
+    // not parse. `@"error"` is how Zig writes an identifier that collides with one of
+    // its own words, and under it the name still says what the source said.
+    let source = "package main\n\nfunc Check(a int) error {\n\treturn nil\n}\n";
+    let (output, _) = translate(&[("c.go", source)], "c.go", Language::Zig);
+    assert!(
+        output.contains("@\"error\""),
+        "a reserved word carried across is escaped, not renamed:\n{output}"
     );
 }

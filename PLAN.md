@@ -761,6 +761,65 @@ it was quietly testing sixteen of twenty. It computes the count from `SUPPORTED`
 which means adding a language without adding a source for it fails there rather than
 silently testing four fifths of the matrix.
 
+### Zig translation, and the receiver that had six names
+
+The sixth language, and the one with the least in common with the rest. A `struct` in
+Zig is not a declaration form but a **value**, so a record is a `const` whose value
+happens to be a type and the methods live inside it. The grammar reuses one node for a
+declaration and an assignment, so which of the two you are looking at is in the keyword
+rather than in the shape.
+
+The reader was written from a grammar dump and it was wrong in five ways, all of them
+the same way: `cx.children` returns *named* children, and in this grammar the `:` before
+a type, the `=` before a value and every operator are anonymous. Every field and
+parameter lost its type, `var sum = 0` declared a variable called `var`, `a * b` put the
+right operand where the operator belonged, and every `else` branch vanished without a
+word. Running the translation found all five in one go; reading the code had found none
+of them.
+
+Four facts about the language shaped the writer, and each is a thing no other target
+here needed:
+
+- **No block comment.** `//` runs to the end of the line, so a carried fragment written
+  beside an expression swallows the rest of the statement — semicolon included. Carried
+  text is queued and flushed above the statement.
+- **`var` is an error when nothing writes to it.** Only the Rust reader records
+  mutability; every other one says "mutable" for want of anything better. The keyword is
+  now worked out from what assigns to the binding.
+- **Three naming conventions, not two.** Types `PascalCase`, functions `camelCase`,
+  everything else `snake_case` — which is why `Kind` had to grow a `Function` case that
+  is identical to `Value` in every other target.
+- **`error` is a keyword.** Go's type carried across by name did not parse; it is
+  written `@"error"`, which is Zig's own spelling for that collision.
+
+Then the boyscout half, which was larger than the phase:
+
+**The receiver has six names and the IR recorded none of them.** `self`, `this`, or
+whatever the Go author called it — and because the receiver is the one binding that is
+*not* in the parameter list, it never went through the rename every other name goes
+through. Every translated method in the tool's history kept its **source's** word:
+`this.cache` inside a Rust `impl`, `self.Cache` inside a Go method whose signature bound
+`s`. It parses in neither. The IR records the word the source used and each writer puts
+its own back on, through the same naming map every other rename goes through.
+
+Underneath it, Rust refuses to raw-escape `self` — so the escape that makes every other
+reserved word writable produced `r#self`, turning a correct body into a file that does
+not build. `crate`, `super` and `Self` are the same and take a suffix instead.
+
+**Python's `x = 1` declares once and assigns thereafter**, and every one of them was
+read as a declaration. `total = total + x` inside a loop became `let total = total + x;`
+in Rust, which shadows rather than accumulates: the value outside the loop never
+changed. It parses, it type-checks, and it is the wrong program — the exact failure the
+parse self-check cannot see. Python's scope is the function, so one set of bound names
+carried through the body in order is precisely its rule.
+
+**A TypeScript class member is public unless it says otherwise**, which is the opposite
+of a free function's default. Reading both the same way made every translated method
+private in Java and unreachable everywhere else, and every `private` field public.
+
+The stale prose was the usual crop: comments counting "four languages" in a file that
+had five, and a translation page pointing at "the third case" that had moved.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

@@ -616,6 +616,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
                 doc: handler.doc.clone(),
                 name: "body".into(),
                 receiver: None,
+                receiver_binding: None,
                 params: Vec::new(),
                 returns: None,
                 body,

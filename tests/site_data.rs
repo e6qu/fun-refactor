@@ -743,6 +743,34 @@ pub fn warmer(readings: Vec<Reading>, limit: f64) -> i64 {
 }
 "#;
 
+const TYPED_ZIG: &str = r#"//! Readings from a sensor.
+
+const default_limit: f64 = 30.0;
+
+/// One sample from a sensor.
+pub const Reading = struct {
+    sensor_id: []const u8,
+    celsius: f64,
+    valid: bool,
+
+    /// Whether this reading is above a limit.
+    pub fn warmerThan(self: Reading, limit: f64) bool {
+        return self.celsius > limit;
+    }
+};
+
+/// Count the readings above a limit.
+pub fn warmer(readings: []const Reading, limit: f64) i64 {
+    var count: i64 = 0;
+    for (readings) |reading| {
+        if (reading.celsius > limit) {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+"#;
+
 const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "python-to-typescript",
@@ -799,6 +827,32 @@ const TRANSLATIONS: &[Translation] = &[
         files: &[("sensors.py", TYPED_PYTHON)],
         subject: "sensors.py",
         target: "java",
+        provenance: None,
+        corpus: None,
+    },
+    Translation {
+        id: "zig-to-rust",
+        title: "Zig → Rust",
+        blurb: "Zig has no keyword for a method: `self` is the first parameter and a \
+                struct is a value bound to a `const`. Rust puts the same shape in an \
+                `impl` block, and `[]const u8` — Zig's string, which is a slice of \
+                bytes that does not change — becomes `String`.",
+        files: &[("sensors.zig", TYPED_ZIG)],
+        subject: "sensors.zig",
+        target: "rust",
+        provenance: None,
+        corpus: None,
+    },
+    Translation {
+        id: "typescript-to-zig",
+        title: "Typed TypeScript → Zig",
+        blurb: "The other way, into the language with the least in common with the rest. \
+                There is no `new`, no exception, no interpolated string and no block \
+                comment — so a fragment with no counterpart goes on its own line above \
+                the statement, because `//` in Zig would swallow the semicolon.",
+        files: &[("sensors.ts", TYPED_TYPESCRIPT)],
+        subject: "sensors.ts",
+        target: "zig",
         provenance: None,
         corpus: None,
     },

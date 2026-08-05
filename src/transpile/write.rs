@@ -24,12 +24,19 @@ use std::collections::BTreeMap;
 /// What kind of thing a name names, since the conventions differ by kind.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Kind {
-    /// A struct, class, interface — `PascalCase` in all four.
+    /// A struct, class, interface — `PascalCase` in every one of them.
     Type,
-    /// A module-level constant — `SCREAMING_SNAKE` in three of the four; Go spells it
-    /// like anything else, because there the capital letter means exported.
+    /// A module-level constant — `SCREAMING_SNAKE` in most of them. Go spells it like
+    /// anything else, because there the capital letter means exported, and Zig does not
+    /// shout at all.
     Constant,
-    /// A function, method, field, parameter or local.
+    /// A function or method.
+    ///
+    /// The same as [`Kind::Value`] in every target but Zig, whose style guide splits
+    /// what the others join: `camelCase` for what you call, `snake_case` for what you
+    /// bind. One `Kind` for both spelled every local in a Zig file as a function.
+    Function,
+    /// A field, parameter or local.
     Value,
 }
 
@@ -47,10 +54,18 @@ fn spellings(language: Language, module: &Module) -> Spellings {
             Kind::Type => pascal(name),
             Kind::Constant => match language {
                 Language::Go => go_name(name, exported),
+                // Zig does not shout. Its standard library writes `std.math.pi`, and
+                // a capital there would say "type" rather than "constant".
+                Language::Zig => snake_always(name),
                 _ => screaming(name),
             },
-            Kind::Value => match language {
+            Kind::Function => match language {
                 Language::Rust | Language::Python => snake_always(name),
+                Language::Go => go_name(name, exported),
+                _ => camel(name),
+            },
+            Kind::Value => match language {
+                Language::Rust | Language::Python | Language::Zig => snake_always(name),
                 Language::Go => go_name(name, exported),
                 _ => camel(name),
             },
@@ -92,7 +107,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     }
 
     fn walk_function(f: &Function, add: &mut impl FnMut(&str, Kind, bool)) {
-        add(&f.name, Kind::Value, f.exported);
+        add(&f.name, Kind::Function, f.exported);
         for param in &f.params {
             add(&param.name, Kind::Value, false);
         }
@@ -305,15 +320,83 @@ fn reserved(language: Language, name: &str) -> bool {
         "false",
         "null",
     ];
+    const ZIG: &[&str] = &[
+        "addrspace",
+        "align",
+        "allowzero",
+        "and",
+        "anyframe",
+        "anytype",
+        "asm",
+        "async",
+        "await",
+        "break",
+        "callconv",
+        "catch",
+        "comptime",
+        "const",
+        "continue",
+        "defer",
+        "else",
+        "enum",
+        "errdefer",
+        "error",
+        "export",
+        "extern",
+        "fn",
+        "for",
+        "if",
+        "inline",
+        "linksection",
+        "noalias",
+        "noinline",
+        "nosuspend",
+        "opaque",
+        "or",
+        "orelse",
+        "packed",
+        "pub",
+        "resume",
+        "return",
+        "struct",
+        "suspend",
+        "switch",
+        "test",
+        "threadlocal",
+        "try",
+        "union",
+        "unreachable",
+        "usingnamespace",
+        "var",
+        "volatile",
+        "while",
+    ];
     let list = match language {
         Language::Rust => RUST,
         Language::Go => GO,
         Language::Java => JAVA,
         Language::Python => PYTHON,
+        Language::Zig => ZIG,
         Language::TypeScript | Language::Tsx => TYPESCRIPT,
         _ => return false,
     };
     list.contains(&name)
+}
+
+/// What this language calls the receiver inside a method body.
+///
+/// The readers normalise nothing: each records the word its own source used, because
+/// Go lets the author choose it. This is the other half — the word to put back on —
+/// and it is a fact about the target rather than about the source.
+fn receiver_word(language: Language) -> &'static str {
+    match language {
+        Language::Java | Language::TypeScript | Language::Tsx => "this",
+        // Go's convention is a one- or two-letter abbreviation of the type, and there
+        // is no way to pick one that is guaranteed not to collide with a parameter.
+        // `self` is not a keyword there and cannot collide with anything the source
+        // declared, because a Go file that used it would have been read as a receiver.
+        _ => "self",
+    }
 }
 
 /// The marker every carried-over fragment is written under.
@@ -353,6 +436,7 @@ pub fn write_in_context(
         Language::Python => python(&mut out, module),
         Language::Go => go(&mut out, module),
         Language::Java => java(&mut out, module),
+        Language::Zig => zig(&mut out, module),
         Language::TypeScript | Language::Tsx => typescript(&mut out, module),
         other => bail!(
             "there is no writer for {other}: it has no functions or records to write \
@@ -404,6 +488,14 @@ struct Out {
     /// the file's own records as foreign made a perfect translation confess to a
     /// problem it did not have, which is how a fidelity report stops being read.
     declared_types: std::collections::BTreeSet<String>,
+    /// Text a writer could not put where the expression it replaced stood.
+    ///
+    /// Zig is the only target here with no block comment: `//` runs to the end of the
+    /// line, so a carried fragment written beside an expression would swallow the rest
+    /// of the statement — including its semicolon. It is queued here and flushed as
+    /// whole-line comments above the statement, which is the only place in Zig a
+    /// comment can go.
+    pending: Vec<String>,
     /// The same, for record fields, which are a separate namespace.
     ///
     /// Not folded into `names`: a Rust `Reading { sensor }` with an exported field
@@ -424,6 +516,7 @@ impl Out {
             names: BTreeMap::new(),
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
+            pending: Vec::new(),
             fields: BTreeMap::new(),
         }
     }
@@ -443,10 +536,24 @@ impl Out {
         if !reserved(self.language, &spelled) {
             return spelled;
         }
+        // The receiver's own word is never an escape problem: it reaches here only
+        // because a method body used it, and it is exactly the word this target binds.
+        // Rust also refuses to raw-escape `self`, so escaping it replaced a correct
+        // file with `r#self`, which is a compile error.
+        if spelled == receiver_word(self.language) {
+            return spelled;
+        }
         self.escaped.borrow_mut().insert(spelled.clone());
         match self.language {
-            // Rust has a spelling for exactly this and it stays the same identifier.
-            Language::Rust => format!("r#{spelled}"),
+            // Rust and Zig both have a spelling for exactly this, and under it the
+            // name stays the same identifier rather than becoming a different one.
+            // Rust's does not stretch to the three words that name a scope: `r#crate`,
+            // `r#super` and `r#Self` are rejected the same way `r#self` is.
+            Language::Rust => match spelled.as_str() {
+                "crate" | "super" | "Self" => format!("{spelled}_"),
+                _ => format!("r#{spelled}"),
+            },
+            Language::Zig => format!("@\"{spelled}\""),
             _ => format!("{spelled}_"),
         }
     }
@@ -474,6 +581,23 @@ impl Out {
             .cloned()
             .unwrap_or_else(|| raw.to_string());
         self.legal(spelled)
+    }
+
+    /// Spell the receiver this target's way while a method body is written.
+    ///
+    /// Returns what was there before, for [`Out::unbind_receiver`]. The mapping goes
+    /// through the same [`Out::names`] every other rename does, so a body reaches it
+    /// by the one route rather than by a second rule that can drift from the first.
+    fn bind_receiver(&mut self, bound: &str) -> Option<String> {
+        let word = receiver_word(self.language).to_string();
+        self.names.insert(bound.to_string(), word)
+    }
+
+    fn unbind_receiver(&mut self, bound: &str, previous: Option<String>) {
+        match previous {
+            Some(name) => self.names.insert(bound.to_string(), name),
+            None => self.names.remove(bound),
+        };
     }
 
     fn line(&mut self, text: &str) {
@@ -705,6 +829,11 @@ fn rust(out: &mut Out, module: &Module) {
 }
 
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
+    // The source's word for the receiver, spelled this target's way for as long as
+    // this body is being written. Outside a method there is nothing to bind.
+    let bound = f.receiver_binding.clone();
+    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+
     for line in &f.doc {
         out.line(&format!("/// {line}"));
     }
@@ -714,7 +843,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     if method {
-        params.push("&self".to_string());
+        params.push(format!("&{}", receiver_word(out.language)));
     }
     let mut foreign = false;
     for p in &f.params {
@@ -760,6 +889,9 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     out.close();
     out.line("}");
 
+    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
+        out.unbind_receiver(b, p);
+    }
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -1130,10 +1262,15 @@ fn python(out: &mut Out, module: &Module) {
 }
 
 fn python_function(out: &mut Out, f: &Function, method: bool) {
+    // The source's word for the receiver, spelled this target's way for as long as
+    // this body is being written. Outside a method there is nothing to bind.
+    let bound = f.receiver_binding.clone();
+    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     if method {
-        params.push("self".to_string());
+        params.push(receiver_word(out.language).to_string());
     }
     let mut foreign = false;
     for p in &f.params {
@@ -1195,6 +1332,9 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     python_block(out, &f.body);
     out.close();
 
+    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
+        out.unbind_receiver(b, p);
+    }
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -1562,6 +1702,11 @@ fn go_name(name: &str, exported: bool) -> String {
 }
 
 fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
+    // The source's word for the receiver, spelled this target's way for as long as
+    // this body is being written. Outside a method there is nothing to bind.
+    let bound = f.receiver_binding.clone();
+    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+
     let name = out.name(&f.name);
     for line in &f.doc {
         out.line(&format!("// {name} {line}"));
@@ -1607,7 +1752,12 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             format!(" {}", go_type(t))
         }
     };
-    let receiver = receiver.map(|r| format!("(s *{r}) ")).unwrap_or_default();
+    // Go's convention is a one- or two-letter abbreviation, and there is no letter
+    // guaranteed not to be a parameter's name already. The word the body uses and the
+    // word the signature binds have to be the same one, so both come from here.
+    let receiver = receiver
+        .map(|r| format!("({} *{r}) ", receiver_word(out.language)))
+        .unwrap_or_default();
     out.line(&format!(
         "func {receiver}{name}({}){returns} {{",
         params.join(", ")
@@ -1617,6 +1767,9 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     out.close();
     out.line("}");
 
+    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
+        out.unbind_receiver(b, p);
+    }
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -1995,6 +2148,11 @@ fn typescript(out: &mut Out, module: &Module) {
 }
 
 fn ts_function(out: &mut Out, f: &Function, method: bool) {
+    // The source's word for the receiver, spelled this target's way for as long as
+    // this body is being written. Outside a method there is nothing to bind.
+    let bound = f.receiver_binding.clone();
+    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+
     for line in &f.doc {
         out.line(&format!("/** {line} */"));
     }
@@ -2064,6 +2222,9 @@ fn ts_function(out: &mut Out, f: &Function, method: bool) {
     out.close();
     out.line("}");
 
+    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
+        out.unbind_receiver(b, p);
+    }
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -2520,6 +2681,11 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
 }
 
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
+    // The source's word for the receiver, spelled this target's way for as long as
+    // this body is being written. Outside a method there is nothing to bind.
+    let bound = f.receiver_binding.clone();
+    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+
     for line in &f.doc {
         out.line(&format!("/** {line} */"));
     }
@@ -2579,6 +2745,9 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     out.close();
     out.line("}");
 
+    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
+        out.unbind_receiver(b, p);
+    }
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -2898,6 +3067,602 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
+// ------------------------------------------------------------------------- Zig
+
+/// Zig.
+///
+/// Two facts about the language shape this writer. **A type is a value**: a struct is
+/// what a `const` is bound to, so a record is written `const Reading = struct { … };`
+/// and its methods live inside it rather than beside it. And **there is no block
+/// comment** — `//` runs to the end of the line — so a carried-over fragment cannot be
+/// written beside the expression it replaced. It goes above the statement instead, via
+/// [`Out::pending`].
+///
+/// What has no counterpart and is carried rather than guessed at: `new`, `await`,
+/// `throw`, `try`/`catch`, map literals, interpolated strings and comprehensions. Zig
+/// models failure in the return type and removed `async` in 0.11, so an exception or a
+/// suspension point arriving from another language has nowhere to land, and inventing
+/// an error set would be inventing the program's vocabulary of failures.
+fn zig(out: &mut Out, module: &Module) {
+    for line in &module.doc {
+        out.line(&format!("//! {line}"));
+    }
+    if !module.doc.is_empty() {
+        out.blank();
+    }
+
+    for item in &module.items {
+        match item {
+            Item::Import { text, line } => {
+                out.fidelity.imports_listed += 1;
+                let header = out.comment(&format!(
+                    "the source imported this at line {line}; the equivalent here is \
+                     yours to add"
+                ));
+                out.line(&header);
+                for l in text.lines() {
+                    let commented = out.comment(l);
+                    out.line(&commented);
+                }
+                out.blank();
+            }
+            Item::Constant(c) => {
+                for line in &c.doc {
+                    out.line(&format!("/// {line}"));
+                }
+                let annotation =
+                    c.ty.as_ref()
+                        .map(|t| format!(": {}", zig_type(t)))
+                        .unwrap_or_default();
+                let value = zig_expr(out, &c.value);
+                let name = out.name(&c.name);
+                let visibility = if c.exported { "pub " } else { "" };
+                zig_line(
+                    out,
+                    &format!("{visibility}const {name}{annotation} = {value};"),
+                );
+                out.fidelity.constants += 1;
+                out.blank();
+            }
+            // A struct is a value bound to a `const`, which is why this reads as a
+            // declaration of a constant that happens to be a type.
+            Item::Record(r) => {
+                for line in &r.doc {
+                    out.line(&format!("/// {line}"));
+                }
+                let name = out.name(&r.name);
+                let visibility = if r.exported { "pub " } else { "" };
+                out.line(&format!("{visibility}const {name} = struct {{"));
+                out.open();
+                for f in &r.fields {
+                    let ty =
+                        f.ty.as_ref()
+                            .map(zig_type)
+                            .unwrap_or_else(|| unknown(out, &f.name));
+                    let field_name = out.field(&f.name);
+                    out.line(&format!("{field_name}: {ty},"));
+                }
+                for m in &r.methods {
+                    out.blank();
+                    zig_function(out, m, Some(&name));
+                }
+                out.close();
+                out.line("};");
+                out.fidelity.records += 1;
+                out.blank();
+            }
+            Item::Function(f) => {
+                zig_function(out, f, None);
+                out.blank();
+            }
+            Item::Unsupported(u) => {
+                carry(out, u);
+                out.blank();
+            }
+        }
+    }
+}
+
+fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
+    // The source's word for the receiver, spelled this target's way for as long as
+    // this body is being written. Outside a method there is nothing to bind.
+    let bound = f.receiver_binding.clone();
+    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+
+    for line in &f.doc {
+        out.line(&format!("/// {line}"));
+    }
+    if f.is_async {
+        let note = out.comment(
+            "declared async in the source; Zig removed `async` in 0.11 and has not \
+             brought it back — this runs to completion",
+        );
+        out.line(&note);
+    }
+
+    let mut foreign = false;
+    let mut changed = false;
+    let mut params: Vec<String> = Vec::new();
+    // A method takes its own type as an ordinary first parameter; there is no
+    // receiver syntax to put it in.
+    if let Some(ty) = receiver {
+        params.push(format!("{}: {ty}", receiver_word(out.language)));
+    }
+    for p in &f.params {
+        let Some(spelled) = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)
+        else {
+            continue;
+        };
+        if p.kind != ParamKind::Normal {
+            params.push(spelled);
+            continue;
+        }
+        // Zig writes a type on every parameter and infers none of them, so one the
+        // source never declared becomes `anytype` and is counted.
+        let ty = match &p.ty {
+            Some(t) => {
+                if out.is_foreign(t) {
+                    foreign = true;
+                }
+                zig_type(t)
+            }
+            None => {
+                foreign = true;
+                unknown(out, &p.name)
+            }
+        };
+        params.push(format!("{spelled}: {ty}"));
+    }
+
+    let returns = match &f.returns {
+        Some(Type::Unit) | None => "void".to_string(),
+        Some(t) => {
+            if out.is_foreign(t) {
+                foreign = true;
+            }
+            zig_type(t)
+        }
+    };
+
+    let visibility = if f.exported { "pub " } else { "" };
+    out.line(&format!(
+        "{visibility}fn {}({}) {returns} {{",
+        out.name(&f.name),
+        params.join(", ")
+    ));
+    out.open();
+    // Zig rejects a `var` nothing writes to, so which keyword a binding takes is a
+    // fact about the rest of the body rather than about the binding. Only the Rust
+    // reader records mutability at all; every other one says "mutable" because it has
+    // nothing better to say, and taking that at its word made a `const` file into a
+    // `var` one that will not build.
+    let mutated = zig_mutated(&f.body);
+    zig_block(out, &f.body, f.returns.as_ref(), &mutated);
+    out.close();
+    out.line("}");
+
+    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
+        out.unbind_receiver(b, p);
+    }
+    out.fidelity.functions += 1;
+    if changed {
+        out.fidelity.signatures_with_changed_calls += 1;
+    }
+    if foreign {
+        out.fidelity.signatures_with_foreign_types += 1;
+    } else if !changed {
+        out.fidelity.signatures_complete += 1;
+    }
+}
+
+/// Every name this body writes to, including through a field or an index.
+///
+/// `r.value = 1` and `xs[0] = 1` both need `r` and `xs` to be `var`, so the root of
+/// the target is what counts rather than the whole expression.
+fn zig_mutated(body: &[Stmt]) -> std::collections::BTreeSet<String> {
+    fn root(e: &Expr) -> Option<&str> {
+        match e {
+            Expr::Name(n) => Some(n),
+            Expr::Field { of, .. } | Expr::Index { of, .. } => root(of),
+            _ => None,
+        }
+    }
+    fn walk(body: &[Stmt], found: &mut std::collections::BTreeSet<String>) {
+        for stmt in body {
+            match stmt {
+                Stmt::Assign { target, .. } => {
+                    if let Some(name) = root(target) {
+                        found.insert(name.to_string());
+                    }
+                }
+                Stmt::If {
+                    then, otherwise, ..
+                } => {
+                    walk(then, found);
+                    walk(otherwise, found);
+                }
+                Stmt::While { body, .. } | Stmt::ForEach { body, .. } => walk(body, found),
+                Stmt::Try {
+                    body,
+                    catches,
+                    finally,
+                    ..
+                } => {
+                    walk(body, found);
+                    for catch in catches {
+                        walk(&catch.body, found);
+                    }
+                    walk(finally, found);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut found = std::collections::BTreeSet::new();
+    walk(body, &mut found);
+    found
+}
+
+fn zig_block(
+    out: &mut Out,
+    body: &[Stmt],
+    returns: Option<&Type>,
+    mutated: &std::collections::BTreeSet<String>,
+) {
+    if body.is_empty() {
+        // A function that returns something has to return something, and an invented
+        // value would be a guess at what the body did.
+        if matches!(returns, Some(t) if *t != Type::Unit) {
+            out.line("@panic(\"not translated\");");
+        }
+        return;
+    }
+    for stmt in body {
+        zig_stmt(out, stmt, mutated);
+    }
+}
+
+/// A line, preceded by anything an expression could not say where it stood.
+///
+/// Every arm of [`zig_stmt`] renders its expressions first and writes afterwards, so
+/// by the time this is called the queue holds exactly the fragments belonging to this
+/// statement.
+fn zig_line(out: &mut Out, text: &str) {
+    let pending = std::mem::take(&mut out.pending);
+    for note in pending {
+        for line in note.lines() {
+            let commented = out.comment(line);
+            out.line(&commented);
+        }
+    }
+    out.line(text);
+}
+
+fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<String>) {
+    match stmt {
+        Stmt::Comment(text) => {
+            let line = out.comment(text);
+            out.line(&line);
+        }
+        Stmt::Return(value) => {
+            let text = value
+                .as_ref()
+                .map(|e| format!(" {}", zig_expr(out, e)))
+                .unwrap_or_default();
+            zig_line(out, &format!("return{text};"));
+        }
+        // Zig has no exceptions: a failure is a value in the return type, and which
+        // error it is belongs to an error set this has no way to name.
+        Stmt::Throw(value) => {
+            let rendered = zig_expr(out, value);
+            let source = format!("throw {rendered}");
+            out.carried(&Unsupported {
+                construct: "throw".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            out.pending.push(format!("{MARKER}: {source}"));
+            zig_line(out, "unreachable;");
+        }
+        Stmt::Let {
+            name,
+            ty,
+            value,
+            mutable,
+        } => {
+            let rendered = value
+                .as_ref()
+                .map(|v| zig_expr(out, v))
+                .unwrap_or_else(|| "undefined".to_string());
+            let annotation = ty
+                .as_ref()
+                .map(|t| format!(": {}", zig_type(t)))
+                .unwrap_or_default();
+            let keyword = if *mutable && mutated.contains(name) {
+                "var"
+            } else {
+                "const"
+            };
+            let bound = out.name(name);
+            zig_line(out, &format!("{keyword} {bound}{annotation} = {rendered};"));
+        }
+        Stmt::Assign { target, value } => {
+            let left = zig_expr(out, target);
+            let right = zig_expr(out, value);
+            zig_line(out, &format!("{left} = {right};"));
+        }
+        Stmt::If {
+            condition,
+            then,
+            otherwise,
+        } => {
+            let c = zig_expr(out, condition);
+            zig_line(out, &format!("if ({c}) {{"));
+            out.open();
+            zig_block(out, then, None, mutated);
+            out.close();
+            if otherwise.is_empty() {
+                out.line("}");
+            } else {
+                out.line("} else {");
+                out.open();
+                zig_block(out, otherwise, None, mutated);
+                out.close();
+                out.line("}");
+            }
+        }
+        Stmt::While { condition, body } => {
+            let c = zig_expr(out, condition);
+            zig_line(out, &format!("while ({c}) {{"));
+            out.open();
+            zig_block(out, body, None, mutated);
+            out.close();
+            out.line("}");
+        }
+        // `for (xs) |x| { … }` — the binding goes in a payload after the header rather
+        // than inside it.
+        Stmt::ForEach {
+            binding,
+            iterable,
+            body,
+        } => {
+            let it = zig_expr(out, iterable);
+            let bound = out.name(binding);
+            zig_line(out, &format!("for ({it}) |{bound}| {{"));
+            out.open();
+            zig_block(out, body, None, mutated);
+            out.close();
+            out.line("}");
+        }
+        Stmt::Try { source, line, .. } => carry(
+            out,
+            &Unsupported {
+                construct: "try/catch".into(),
+                source: source.clone(),
+                line: *line,
+            },
+        ),
+        Stmt::Expr(Expr::Null) => {}
+        // Zig has no bare expression statement: a value has to go somewhere. A call is
+        // the one exception, and everything else is discarded into `_`, which is what
+        // Zig would make you write by hand.
+        Stmt::Expr(e) => {
+            let text = zig_expr(out, e);
+            match e {
+                Expr::Call { .. } => zig_line(out, &format!("{text};")),
+                _ => zig_line(out, &format!("_ = {text};")),
+            }
+        }
+        Stmt::Break => out.line("break;"),
+        Stmt::Continue => out.line("continue;"),
+        Stmt::Unsupported(u) => carry(out, u),
+    }
+}
+
+fn zig_type(ty: &Type) -> String {
+    match ty {
+        Type::Unit => "void".to_string(),
+        Type::Bool => "bool".to_string(),
+        Type::Int => "i64".to_string(),
+        Type::Float => "f64".to_string(),
+        // Zig has no string type. A string is a slice of bytes that does not change,
+        // and that is what a literal is.
+        Type::String => "[]const u8".to_string(),
+        Type::List(inner) => format!("[]const {}", zig_type(inner)),
+        // Hashing a slice by its contents and hashing it by its address are different
+        // maps in Zig, and the standard library makes you pick: `AutoHashMap` cannot
+        // take a string key at all.
+        Type::Map(key, value) => match key.as_ref() {
+            Type::String => format!("std.StringHashMap({})", zig_type(value)),
+            other => format!("std.AutoHashMap({}, {})", zig_type(other), zig_type(value)),
+        },
+        Type::Optional(inner) => format!("?{}", zig_type(inner)),
+        // A generic type is a function of its arguments, so it is applied rather than
+        // bracketed: `ArrayList(u8)`, not `ArrayList<u8>`.
+        Type::Named { name, args } => {
+            let path = zig_path(&generic(name, &[], "(", ")", ".", zig_type));
+            if args.is_empty() {
+                return path;
+            }
+            let rendered: Vec<String> = args.iter().map(zig_type).collect();
+            format!("{path}({})", rendered.join(", "))
+        }
+    }
+}
+
+/// A type name carried across, with any part Zig reserves written its way.
+///
+/// A type written through by name can be a word this language spells something else
+/// with: Go's `error` is Zig's keyword for an error set, and a signature returning it
+/// did not parse. `@"error"` is how Zig writes an identifier that collides with one of
+/// its own words, and under it the name still says what the source said.
+fn zig_path(name: &str) -> String {
+    name.split('.')
+        .map(|part| match reserved(Language::Zig, part) {
+            true => format!("@\"{part}\""),
+            false => part.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+/// Queue the source of something with no counterpart, and stand `undefined` in for it.
+///
+/// `undefined` is Zig's own word for a value that has not been decided yet, and using
+/// it is deliberate: the program will not run until a person replaces it.
+fn zig_carry(out: &mut Out, construct: &str, source: String) -> String {
+    out.carried(&Unsupported {
+        construct: construct.into(),
+        source: source.clone(),
+        line: 0,
+    });
+    out.pending.push(format!("{MARKER}: {source}"));
+    "undefined".to_string()
+}
+
+fn zig_expr(out: &mut Out, e: &Expr) -> String {
+    match e {
+        Expr::Int(v) => v.clone(),
+        Expr::Float(v) => v.clone(),
+        Expr::Str(v) => format!("{v:?}"),
+        Expr::Bool(v) => v.to_string(),
+        Expr::Null => "null".to_string(),
+        Expr::Name(n) => out.name(n),
+        Expr::Field { of, name } => {
+            let object = zig_expr(out, of);
+            format!("{object}.{}", out.field(name))
+        }
+        // `[…]` on a slice or an array and `.get(…)` on a map, and which this is
+        // depends on a type nothing here tracks. Zig's indexable is the slice.
+        Expr::Index { of, index } => {
+            let object = zig_expr(out, of);
+            let at = zig_expr(out, index);
+            format!("{object}[{at}]")
+        }
+        Expr::Call { callee, args } => {
+            let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
+            format!("{}({})", zig_expr(out, callee), rendered.join(", "))
+        }
+        // Zig has no `new`. A value is made by whatever function on the type returns
+        // one, and which function that is — `init`, a literal, an allocator call — is
+        // a fact about the type rather than about this expression.
+        Expr::New { callee, args } => {
+            let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
+            let target = zig_expr(out, callee);
+            zig_carry(out, "new", format!("new {target}({})", rendered.join(", ")))
+        }
+        Expr::Binary { op, left, right } => format!(
+            "{} {} {}",
+            zig_expr(out, left),
+            zig_binary(*op),
+            zig_expr(out, right)
+        ),
+        Expr::Unary { op, operand } => {
+            let sign = match op {
+                UnaryOp::Not => "!",
+                UnaryOp::Neg => "-",
+            };
+            format!("{sign}{}", zig_expr(out, operand))
+        }
+        // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
+        // is used rather than by the literal.
+        Expr::ListLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
+            format!(".{{ {} }}", rendered.join(", "))
+        }
+        // Zig's maps are built at run time through an allocator; there is no literal.
+        Expr::MapLit(entries) => {
+            let rendered: Vec<String> = entries
+                .iter()
+                .map(|(k, v)| format!("{}: {}", zig_expr(out, k), zig_expr(out, v)))
+                .collect();
+            zig_carry(out, "map literal", format!("{{ {} }}", rendered.join(", ")))
+        }
+        Expr::Template(parts) => {
+            // A template with nothing in it but text is a string, and saying otherwise
+            // would report a gap that is not there.
+            if let Some(text) = literal_text(parts) {
+                return format!("{text:?}");
+            }
+            let rendered: Vec<String> = parts
+                .iter()
+                .map(|part| match part {
+                    TemplatePart::Text(text) => format!("{text:?}"),
+                    TemplatePart::Expr(e) => zig_expr(out, e),
+                })
+                .collect();
+            // Zig formats at run time, into a writer or an allocator, and choosing one
+            // is a decision about the program.
+            zig_carry(out, "interpolated string", rendered.join(" ++ "))
+        }
+        Expr::Comprehension {
+            element,
+            binding,
+            iterable,
+            condition,
+        } => {
+            let it = zig_expr(out, iterable);
+            let name = out.name(binding);
+            let filter = condition
+                .as_ref()
+                .map(|c| format!(" if {}", zig_expr(out, c)))
+                .unwrap_or_default();
+            let body = zig_expr(out, element);
+            // Zig has no iterator adaptors and no way to build a collection without an
+            // allocator, so this is a `for` loop over one — and which allocator is a
+            // decision this cannot make.
+            zig_carry(
+                out,
+                "comprehension",
+                format!("{body} for {name} in {it}{filter}"),
+            )
+        }
+        // Zig asks this with a tagged-union `switch`, which needs the union — and a
+        // type arriving from a language with runtime classes does not have one.
+        Expr::InstanceOf { value, ty } => {
+            let rendered = zig_expr(out, value);
+            let named = zig_expr(out, ty);
+            zig_carry(out, "instanceof", format!("{rendered} instanceof {named}"));
+            "false".to_string()
+        }
+        Expr::Await(inner) => {
+            let rendered = zig_expr(out, inner);
+            zig_carry(out, "await", format!("await {rendered}"))
+        }
+        // Zig calls positionally and has nothing that names an argument.
+        Expr::Keyword { name, value } => {
+            let rendered = zig_expr(out, value);
+            zig_carry(out, "keyword argument", format!("{name}={rendered}"))
+        }
+        Expr::Unsupported(u) => {
+            out.carried(u);
+            out.pending.push(format!("{MARKER}: {}", u.source));
+            "undefined".to_string()
+        }
+    }
+}
+
+/// The text of a template that interpolates nothing, if that is what this is.
+fn literal_text(parts: &[TemplatePart]) -> Option<String> {
+    let mut text = String::new();
+    for part in parts {
+        match part {
+            TemplatePart::Text(piece) => text.push_str(piece),
+            TemplatePart::Expr(_) => return None,
+        }
+    }
+    Some(text)
+}
+
+/// Zig spells the two logical operators as words and the rest as C does.
+fn zig_binary(op: BinaryOp) -> &'static str {
+    match op {
+        BinaryOp::And => "and",
+        BinaryOp::Or => "or",
+        other => other.c_like(),
+    }
+}
+
 // ------------------------------------------------------------------------ shared
 
 /// A named type, spelled the way this target spells generics.
@@ -2974,6 +3739,9 @@ fn unknown(out: &mut Out, of: &str) -> String {
         Language::Rust => "()".to_string(),
         Language::Python => "object".to_string(),
         Language::Go => "any".to_string(),
+        // Zig has no dynamic type; `anytype` says the caller decides, which is exactly
+        // true of a parameter whose type the source never wrote down.
+        Language::Zig => "anytype".to_string(),
         _ => "unknown".to_string(),
     }
 }

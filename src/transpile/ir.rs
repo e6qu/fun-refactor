@@ -1,8 +1,8 @@
 //! What a file means, said in a way no one language owns.
 //!
 //! Translation goes source → IR → source, so adding a language costs one reader and
-//! one writer rather than a pair for every language already here. Four languages is
-//! twelve ordered pairs and eight files.
+//! one writer rather than a pair for every language already here. Six languages is
+//! thirty ordered pairs and twelve files.
 //!
 //! # What is deliberately in it
 //!
@@ -66,6 +66,16 @@ pub struct Function {
     pub name: String,
     /// The type this is a method on, when it is one.
     pub receiver: Option<String>,
+    /// What the source called the receiver inside the body.
+    ///
+    /// The six languages disagree — Rust, Python and Zig say `self`, Java and
+    /// TypeScript say `this`, and Go says whatever the author called it — and the
+    /// receiver is not in the parameter list to be renamed with the rest. Recording
+    /// the word here lets a writer spell it its own way; without it every translated
+    /// method kept its source's word and referred to a name the output never binds.
+    /// `this.cache` inside a Rust `impl` is not a typo, it is a file that cannot
+    /// compile.
+    pub receiver_binding: Option<String>,
     pub params: Vec<Param>,
     pub returns: Option<Type>,
     pub body: Vec<Stmt>,
@@ -240,7 +250,7 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
-    /// `for x in xs` — the shape all four languages share. A C-style `for` is not
+    /// `for x in xs` — the shape every language here shares. A C-style `for` is not
     /// this, and is carried as unsupported.
     ForEach {
         binding: String,
@@ -260,12 +270,12 @@ pub enum Stmt {
     Throw(Expr),
     /// `try { } catch { } finally { }`, and Python's `try/except/finally`.
     ///
-    /// Two of these four languages have it. Rust models failure in the return type and
-    /// Go returns an error value, and neither has any general translation of a catch
-    /// block — so those writers carry it, which is why the original text travels with
-    /// it. Python and TypeScript agree closely enough to translate: a typed `except`
-    /// becomes an `instanceof` test inside one `catch`, which is exactly how the same
-    /// intent is written in TypeScript.
+    /// Half of these languages have it. Rust and Zig model failure in the return type
+    /// and Go returns an error value, and none of the three has any general translation
+    /// of a catch block — so those writers carry it, which is why the original text
+    /// travels with it. Python, TypeScript and Java agree closely enough to translate:
+    /// a typed `except` becomes an `instanceof` test inside one `catch`, which is
+    /// exactly how the same intent is written in the other two.
     Try {
         body: Vec<Stmt>,
         catches: Vec<Catch>,
@@ -320,7 +330,7 @@ pub enum Expr {
     },
     /// `await x`, `x.await`.
     ///
-    /// Three of these four languages have it and mean the same thing by it: suspend
+    /// Three of these languages have it and mean the same thing by it: suspend
     /// until this resolves. Only the spelling differs — prefix in Python and
     /// TypeScript, postfix in Rust. Go has no counterpart and says so rather than
     /// dropping the keyword, which would turn a suspension point into a plain call.
@@ -380,7 +390,7 @@ pub enum TemplatePart {
     Expr(Expr),
 }
 
-/// The operators that mean the same thing in all four languages.
+/// The operators that mean the same thing in every language here.
 ///
 /// Notably absent: `==` on anything but scalars, which is reference equality in some
 /// of these and structural in others. The reader emits it; the writer notes it where

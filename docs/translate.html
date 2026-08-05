@@ -39,7 +39,10 @@
       <code>Record&lt;string, number&gt;</code>, <code>Optional[T]</code> is
       <code>T | null</code>, a <code>@dataclass</code> is an <code>interface</code>, an
       f-string is a template literal, a comprehension is a <code>.filter()</code> chain,
-      and <code>await</code> means the same thing in both.
+      and <code>await</code> means the same thing in both. Six languages go through the
+      same shared meaning — Rust, Go, Java, Python, TypeScript and Zig — so every one of
+      the thirty ordered pairs is a reader and a writer rather than a translator of its
+      own.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
@@ -48,9 +51,10 @@
       <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. The first two carry
       <strong>nothing</strong> over as a comment in either direction — the strongest
       claim any pair in this tool makes. The rest are real code from real projects, and
-      say exactly where the translation stops being one. The Next.js route is a
-      different kind of crossing again: what it preserves is an
-      <a href="docs.html#contracts">API contract</a>, not a signature.
+      say exactly where the translation stops being one. Zig is the far end of the
+      range: no <code>new</code>, no exception, no interpolated string and no block
+      comment at all. The Next.js route is a different kind of crossing again: what it
+      preserves is an <a href="docs.html#contracts">API contract</a>, not a signature.
     </p>
   </div>
 </section>
@@ -88,8 +92,9 @@
 
     <h3>Where it stops</h3>
     <p>
-      It is not a compiler, and the result is a draft. The third case above is the
-      honest picture: five signatures mention types from libraries this tool has never
+      It is not a compiler, and the result is a draft. The FastAPI backend at the
+      bottom is the honest picture: five of its five signatures mention types from
+      libraries this tool has never
       heard of, and Python's keyword-only parameters have no TypeScript spelling at all
       — so the types cross, and the report says that callers will write the call
       differently. That sentence is worth more than a silently plausible file.
