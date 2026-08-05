@@ -17,7 +17,7 @@
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use fun_refactor::transpile::ir::{Function, Item, Module, ParamKind};
+use fun_refactor::transpile::ir::{Function, Item, Module, ParamKind, Type};
 use std::path::{Path, PathBuf};
 
 /// Every function in a module, wherever it is written.
@@ -57,7 +57,7 @@ fn signature(f: &Function) -> (String, Vec<String>) {
         .params
         .iter()
         .filter(|p| p.kind == ParamKind::Normal)
-        .map(|p| plain(&p.name))
+        .map(|p| format!("{}: {}", plain(&p.name), shape(p.ty.as_ref())))
         .collect();
     // A constructor's name is not information: Java names it after the class, Python
     // calls it `__init__`, and Rust, Go and Zig call it `new`, `NewThing` and `init` by
@@ -72,6 +72,83 @@ fn signature(f: &Function) -> (String, Vec<String>) {
 fn signatures(module: &Module) -> Vec<(String, Vec<String>)> {
     let mut out: Vec<(String, Vec<String>)> =
         functions(module).iter().map(|f| signature(f)).collect();
+    out.sort();
+    out
+}
+
+/// A type with the target's spelling taken back off.
+///
+/// Which scalar is not compared: TypeScript has one numeric type, so an `i64` that goes
+/// through it comes back a `number` and there is nothing wrong with that. What is
+/// compared is the *shape* — a list stays a list, an optional stays optional, a named
+/// type keeps its name — because none of those can change for a good reason.
+fn shape(ty: Option<&Type>) -> String {
+    match ty {
+        // Go writes nothing at all for a function that returns nothing, so "returns
+        // `()`" and "declares no return type" are the same sentence there.
+        None | Some(Type::Unit) => "nothing".to_string(),
+        Some(Type::Bool) => "bool".to_string(),
+        Some(Type::Int) | Some(Type::Float) => "number".to_string(),
+        Some(Type::String) => "string".to_string(),
+        Some(Type::List(inner)) => format!("list<{}>", shape(Some(inner))),
+        Some(Type::Map(key, value)) => {
+            format!("map<{},{}>", shape(Some(key)), shape(Some(value)))
+        }
+        Some(Type::Optional(inner)) => format!("option<{}>", shape(Some(inner))),
+        // A name this tool cannot write at all — a Python `str | Any`, a Rust closure —
+        // is replaced by a placeholder, which is a rename and the one exception this
+        // check has to allow. The fidelity report is where that loss is stated.
+        Some(Type::Named { name, .. }) if name.starts_with("Unwritable") => {
+            "<unwritable>".to_string()
+        }
+        // Each target has a word for "the source did not say": `any`, `unknown`,
+        // `object`, `anytype`. Reading one back is reading "no type was declared", which
+        // is what it was.
+        Some(Type::Named { name, args })
+            if args.is_empty()
+                && matches!(name.as_str(), "any" | "unknown" | "object" | "anytype") =>
+        {
+            "nothing".to_string()
+        }
+        // A character is an integral type in Java and a byte in Zig. The IR has no
+        // character, so which number it is depends on where it has been.
+        Some(Type::Named { name, args })
+            if args.is_empty() && matches!(name.as_str(), "char" | "rune" | "byte") =>
+        {
+            "number".to_string()
+        }
+        // The last segment only. A qualified name says where a type came from, and Go
+        // has room for exactly one level of that — `crate::model::Reference` is
+        // `model.Reference` there and cannot be anything else. What must not change is
+        // which type it is.
+        Some(Type::Named { name, args }) => {
+            let last = name.rsplit([':', '.']).next().unwrap_or(name);
+            format!("{}/{}", plain(last), args.len())
+        }
+    }
+}
+
+/// Every field of every record, and every module constant.
+///
+/// A field that vanishes is exactly as bad as a parameter that vanishes, and nothing
+/// was checking. They are listed with the type they belong to, since two records may
+/// both have a `name`.
+fn fields(module: &Module) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for item in &module.items {
+        match item {
+            Item::Record(r) => {
+                for field in &r.fields {
+                    out.push((plain(&r.name), plain(&field.name)));
+                }
+            }
+            // Java has no top level below the type, so a module constant is written as
+            // a `static final` field of the file's class and read back as one. Which
+            // side of that line it sits on is the translation working.
+            Item::Constant(c) => out.push((String::new(), plain(&c.name))),
+            _ => {}
+        }
+    }
     out.sort();
     out
 }
@@ -116,20 +193,49 @@ fn sources(directory: &str, extension: &str) -> Vec<PathBuf> {
 fn nothing_goes_missing(files: &[PathBuf], least: usize) {
     assert!(files.len() >= least, "found only {} files", files.len());
     for file in files {
-        let before = signatures(&transpile::read_file(file).expect("the source reads"));
+        let source = transpile::read_file(file).expect("the source reads");
+        let before = signatures(&source);
+        let fields_before = fields(&source);
         let from = fun_refactor::lang::detect(file).expect("a language");
         for to in transpile::SUPPORTED {
             if *to == from {
                 continue;
             }
-            let after = signatures(&there_and_back(file, *to));
+            let there = there_and_back(file, *to);
+            let after = signatures(&there);
             // The whole list at once, sorted, rather than each name looked up in turn:
             // a name is not unique. Java overloads `add(Boolean)` beside
             // `add(Character)`, and Zig writes a `deinit` in every struct in the file,
             // so looking one up by name compares two different functions and calls the
             // difference a defect.
-            let mut missing: Vec<_> = before.iter().filter(|s| !after.contains(s)).collect();
-            let mut gained: Vec<_> = after.iter().filter(|s| !before.contains(s)).collect();
+            // A placeholder stands for a type that could not be written, so it
+            // compares equal to whatever it replaced.
+            // A parameter's name always has to match. Its type has to match unless one
+            // side holds a placeholder for something this tool cannot write — a tuple,
+            // a closure, a union — because the placeholder *is* the loss, and the
+            // fidelity report is where it is stated.
+            let same_parameters = |a: &[String], b: &[String]| {
+                a.len() == b.len()
+                    && a.iter().zip(b.iter()).all(|(x, y)| {
+                        if x == y {
+                            return true;
+                        }
+                        let (xn, xt) = x.split_once(": ").unwrap_or((x, ""));
+                        let (yn, yt) = y.split_once(": ").unwrap_or((y, ""));
+                        xn == yn && (xt.contains("<unwritable>") || yt.contains("<unwritable>"))
+                    })
+            };
+            let alike = |a: &(String, Vec<String>), b: &(String, Vec<String>)| {
+                a.0 == b.0 && same_parameters(&a.1, &b.1)
+            };
+            let mut missing: Vec<_> = before
+                .iter()
+                .filter(|s| !after.iter().any(|t| alike(s, t)))
+                .collect();
+            let mut gained: Vec<_> = after
+                .iter()
+                .filter(|s| !before.iter().any(|t| alike(s, t)))
+                .collect();
             // A constructor may change its name in either direction, because in three
             // of these languages "constructor" *is* a naming convention. Java overloads
             // them and nobody else does, so a second one written elsewhere keeps its
@@ -138,37 +244,34 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             // constructor — so it comes back as `Handle::new`. Both are the signature
             // surviving under the target's own convention, which is the promise. What is
             // never allowed is the parameters changing.
-            let swapped = |from: &[&(String, Vec<String>)],
-                           to: &mut Vec<&(String, Vec<String>)>| {
-                let mut matched = Vec::new();
-                for (name, params) in from {
-                    if name != "<constructor>" {
-                        continue;
-                    }
-                    if let Some(at) = to.iter().position(|(_, p)| p == params) {
-                        matched.push(params.clone());
-                        to.remove(at);
-                    }
-                }
-                matched
-            };
-            for params in swapped(&missing.clone(), &mut gained) {
-                let at = missing
-                    .iter()
-                    .position(|(n, p)| n == "<constructor>" && *p == params)
-                    .expect("just found");
-                missing.remove(at);
-            }
-            for params in swapped(&gained.clone(), &mut missing) {
-                let at = gained
-                    .iter()
-                    .position(|(n, p)| n == "<constructor>" && *p == params)
-                    .expect("just found");
-                gained.remove(at);
+            loop {
+                let pair = missing.iter().enumerate().find_map(|(at, (name, params))| {
+                    let constructor = name == "<constructor>";
+                    gained
+                        .iter()
+                        .position(|(other, p)| {
+                            (constructor || other == "<constructor>") && same_parameters(params, p)
+                        })
+                        .map(|other| (at, other))
+                });
+                let Some((mine, theirs)) = pair else { break };
+                missing.remove(mine);
+                gained.remove(theirs);
             }
             assert!(
                 missing.is_empty() && gained.is_empty(),
                 "{} -> {to} -> {from} did not come back the same\n  lost:   {missing:?}\n  gained: {gained:?}",
+                file.display()
+            );
+
+            let after = fields(&there);
+            let lost: Vec<_> = fields_before
+                .iter()
+                .filter(|f| !after.contains(f))
+                .collect();
+            assert!(
+                lost.is_empty(),
+                "{} -> {to} -> {from} lost data: {lost:?}\n  came back: {after:?}",
                 file.display()
             );
         }

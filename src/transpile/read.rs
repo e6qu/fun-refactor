@@ -562,57 +562,87 @@ mod rust {
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
         let text = cx.text(node);
-        super::scalar(&text).unwrap_or_else(|| {
-            let trimmed = text.trim();
-            // `Vec<T>`, `Option<T>`, `HashMap<K, V>` are the three the IR knows.
-            if let Some(inner) = trimmed
-                .strip_prefix("Vec<")
-                .and_then(|s| s.strip_suffix('>'))
-            {
-                return Type::List(Box::new(named_or_scalar(inner)));
-            }
-            if let Some(inner) = trimmed
-                .strip_prefix("Option<")
-                .and_then(|s| s.strip_suffix('>'))
-            {
-                return Type::Optional(Box::new(named_or_scalar(inner)));
-            }
-            for prefix in ["HashMap<", "BTreeMap<"] {
-                if let Some(inner) = trimmed
-                    .strip_prefix(prefix)
-                    .and_then(|s| s.strip_suffix('>'))
-                {
-                    if let Some((k, v)) = inner.split_once(',') {
-                        return Type::Map(
-                            Box::new(named_or_scalar(k)),
-                            Box::new(named_or_scalar(v)),
-                        );
-                    }
-                }
-            }
-            let bare = trimmed
-                .trim_start_matches('&')
-                .trim_start_matches("mut ")
-                .trim();
-            // `&[T]` is a list, and so is `[T; N]`.
-            if let Some(inner) = bare.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
-                let element = inner.split(';').next().unwrap_or(inner);
-                return Type::List(Box::new(named_or_scalar(element)));
-            }
-            if let Some(t) = super::scalar(bare) {
-                return t;
-            }
-            named_with_args(bare, &named_or_scalar)
-        })
+        super::scalar(&text).unwrap_or_else(|| ty_text(text.trim()))
     }
 
-    fn named_or_scalar(text: &str) -> Type {
-        let bare = text
-            .trim()
-            .trim_start_matches('&')
-            .trim_start_matches("mut ")
-            .trim();
-        super::scalar(bare).unwrap_or_else(|| named_with_args(bare, &named_or_scalar))
+    /// A Rust type from its text.
+    ///
+    /// The reference comes off **first**. `&HashMap<K, V>` is a `HashMap`, and checking
+    /// the containers before stripping the `&` meant every map, list and option passed
+    /// by reference — which in Rust is most of them — was read as a name instead.
+    fn ty_text(text: &str) -> Type {
+        let trimmed = text.trim();
+        if let Some(t) = super::scalar(trimmed) {
+            return t;
+        }
+
+        // A lifetime is not part of the type: `&'a str` is a `&str` that says how long
+        // it lives, and no other language here has anywhere to put that.
+        let mut bare = trimmed.trim_start_matches('&').trim_start();
+        if let Some(rest) = bare.strip_prefix('\'') {
+            bare = rest
+                .trim_start_matches(|c: char| c.is_alphanumeric() || c == '_')
+                .trim_start();
+        }
+        let bare = bare.trim_start_matches("mut ").trim();
+        if let Some(t) = super::scalar(bare) {
+            return t;
+        }
+
+        // `&[T]` is a list, and so is `[T; N]`.
+        if let Some(inner) = bare.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+            let element = inner.split(';').next().unwrap_or(inner);
+            return Type::List(Box::new(ty_text(element)));
+        }
+
+        // `std::collections::HashMap<K, V>` is a `HashMap`. The writer spells the path
+        // in full, so a reader that only knew the bare name could not read back what
+        // this tool writes.
+        let Some((head, rest)) = bare.split_once('<') else {
+            return named_with_args(bare, &ty_text);
+        };
+        let Some(arguments) = rest.strip_suffix('>') else {
+            return named_with_args(bare, &ty_text);
+        };
+        let base = head.rsplit("::").next().unwrap_or(head).trim();
+        // A lifetime is not a type argument. `Node<'_>` is a `Node`, and reading the
+        // `'_` as an argument gave a type with an empty name.
+        let arguments: Vec<&str> = split_arguments(arguments)
+            .into_iter()
+            .filter(|argument| !argument.starts_with('\''))
+            .collect();
+        match (base, arguments.as_slice()) {
+            ("Vec" | "VecDeque", [inner]) => Type::List(Box::new(ty_text(inner))),
+            ("Option", [inner]) => Type::Optional(Box::new(ty_text(inner))),
+            ("HashMap" | "BTreeMap", [key, value]) => {
+                Type::Map(Box::new(ty_text(key)), Box::new(ty_text(value)))
+            }
+            (_, []) => Type::named(base),
+            _ => Type::Named {
+                name: base.to_string(),
+                args: arguments.into_iter().map(ty_text).collect(),
+            },
+        }
+    }
+
+    /// The top-level arguments of a generic, split on commas that are not inside one.
+    fn split_arguments(text: &str) -> Vec<&str> {
+        let mut out = Vec::new();
+        let mut depth = 0i32;
+        let mut start = 0;
+        for (at, c) in text.char_indices() {
+            match c {
+                '<' | '(' | '[' => depth += 1,
+                '>' | ')' | ']' => depth -= 1,
+                ',' if depth == 0 => {
+                    out.push(text[start..at].trim());
+                    start = at + 1;
+                }
+                _ => {}
+            }
+        }
+        out.push(text[start..].trim());
+        out
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
@@ -1237,11 +1267,13 @@ mod python {
 
     fn constant(cx: &Cx, node: Node<'_>) -> Option<Constant> {
         let name = cx.field_text(node, "left")?;
-        // Only a name that looks like a constant; a module-level `x = 1` is a variable.
-        if !name
-            .chars()
-            .all(|c| c.is_uppercase() || c == '_' || c.is_numeric())
-        {
+        // Python has no `const`, so a module-level binding is the only thing a
+        // constant can look like — and requiring SCREAMING_SNAKE meant this tool could
+        // not read back what it writes. Its own Python writer spells a constant bound to
+        // anything but a literal in lower case, on the grounds that shouting the name of
+        // `schema = z.object(...)` would be wrong; every one of those was then lost on
+        // the way home. Two rules were deciding one thing and disagreeing.
+        if name.is_empty() {
             return None;
         }
         Some(Constant {
@@ -1893,27 +1925,32 @@ mod go {
     }
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
-        let text = cx.text(node);
+        ty_text(cx.text(node).trim())
+    }
+
+    /// A Go type from its text.
+    ///
+    /// The entry point and the recursion are the same function. When they were not, the
+    /// value of a `map[string][]SymbolId` resolved one layer and lost the slice: the
+    /// outer map was read here and the inner type by a helper that only knew scalars.
+    fn ty_text(text: &str) -> Type {
         let trimmed = text.trim();
         if let Some(t) = super::scalar(trimmed) {
             return t;
         }
         if let Some(inner) = trimmed.strip_prefix("[]") {
-            return Type::List(Box::new(named_or_scalar(inner)));
+            return Type::List(Box::new(ty_text(inner)));
         }
         if let Some(inner) = trimmed.strip_prefix("map[") {
-            if let Some((k, v)) = inner.split_once(']') {
-                return Type::Map(Box::new(named_or_scalar(k)), Box::new(named_or_scalar(v)));
+            if let Some((key, value)) = inner.split_once(']') {
+                return Type::Map(Box::new(ty_text(key)), Box::new(ty_text(value)));
             }
         }
+        // A pointer is Go's way of saying a value may be absent.
         if let Some(inner) = trimmed.strip_prefix('*') {
-            return Type::Optional(Box::new(named_or_scalar(inner)));
+            return Type::Optional(Box::new(ty_text(inner)));
         }
-        named_with_args(trimmed, &named_or_scalar)
-    }
-
-    fn named_or_scalar(text: &str) -> Type {
-        super::scalar(text).unwrap_or_else(|| super::named_with_args(text.trim(), &named_or_scalar))
+        named_with_args(trimmed, &ty_text)
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
@@ -2722,13 +2759,13 @@ mod zig {
     }
 
     /// The node after `token`, up to the next `stop` token.
+    ///
+    /// Named-ness is not the test. `undefined` is an anonymous token in this grammar
+    /// and it is a perfectly good value, so requiring a named node lost every constant
+    /// this tool's own Zig writer emits for something it could not translate.
     fn after<'t>(parts: &[Node<'t>], token: &str, stop: &str) -> Option<Node<'t>> {
         let at = parts.iter().position(|c| c.kind() == token)?;
-        parts
-            .get(at + 1)
-            .filter(|c| c.kind() != stop)
-            .filter(|c| c.is_named())
-            .copied()
+        parts.get(at + 1).filter(|c| c.kind() != stop).copied()
     }
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
@@ -2934,13 +2971,7 @@ mod zig {
     fn ty_of(cx: &Cx, node: Node<'_>) -> Type {
         let text = cx.text(node);
         match node.kind() {
-            "builtin_type" => match text.as_str() {
-                "bool" => Type::Bool,
-                "void" | "noreturn" => Type::Unit,
-                "f16" | "f32" | "f64" | "f80" | "f128" => Type::Float,
-                other if other.starts_with('i') || other.starts_with('u') => Type::Int,
-                other => Type::named(other),
-            },
+            "builtin_type" => builtin(text.trim()).unwrap_or_else(|| Type::named(text.trim())),
             // `[]const u8` is Zig's string; `[]T` is a slice of anything else.
             "slice_type" | "array_type" => {
                 let element = cx
@@ -2975,13 +3006,98 @@ mod zig {
                 .unwrap_or_else(|| Type::named("anytype")),
             // `!T` is an error union: the error set is part of the type and none of the
             // targets has one, so the type is written through by name.
-            "error_union_type" => Type::named(text.trim()),
-            _ => match text.trim() {
-                "bool" => Type::Bool,
-                "void" => Type::Unit,
-                other => Type::named(other),
-            },
+            "error_union_type" => Type::named(type_text(&text)),
+            // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a
+            // field expression whose left side is a nullable `http` — inside out. The
+            // text is the only way back to what was actually written.
+            _ => from_text(&type_text(&text)),
         }
+    }
+
+    /// A type name with the whitespace collapsed and the comments taken out.
+    ///
+    /// A Zig type can span lines and hold doc comments — an error union over an
+    /// anonymous union does — and `cx.text` returns all of it. Written through as a
+    /// name, that produced two hundred characters of prose where a type should be.
+    fn type_text(text: &str) -> String {
+        text.lines()
+            .map(|line| line.split("//").next().unwrap_or("").trim())
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    /// A type read from its text, for the shapes the grammar hands back inside out.
+    fn from_text(text: &str) -> Type {
+        let text = text.trim();
+        if let Some(rest) = text.strip_prefix('?') {
+            return Type::Optional(Box::new(from_text(rest)));
+        }
+        // A generic type here is a name *applied* to its arguments — `ArrayList(u8)` —
+        // which is what the writer emits. Reading the whole thing as one name turned
+        // `HashSet(Thing)` into a type called `HashSet(Thing)`.
+        // A slice is a list. The grammar gives this its own node most of the time, and
+        // the rest of the time it arrives here as text.
+        if let Some(rest) = text.strip_prefix("[]") {
+            let element = rest.trim_start().trim_start_matches("const ").trim();
+            return match element {
+                "u8" => Type::String,
+                other => Type::List(Box::new(from_text(other))),
+            };
+        }
+        if let Some((head, rest)) = text.split_once('(') {
+            if let Some(args) = rest.strip_suffix(')') {
+                let head = head.trim();
+                if !head.is_empty() {
+                    let arguments: Vec<Type> = args.split(',').map(from_text).collect();
+                    // The two maps this tool's own Zig writer emits. Reading them back
+                    // as ordinary named types made a `dict[str, str]` cross once and
+                    // never come home.
+                    let base = head.rsplit('.').next().unwrap_or(head);
+                    return match (base, arguments.as_slice()) {
+                        ("StringHashMap", [value]) => {
+                            Type::Map(Box::new(Type::String), Box::new(value.clone()))
+                        }
+                        ("AutoHashMap", [key, value]) => {
+                            Type::Map(Box::new(key.clone()), Box::new(value.clone()))
+                        }
+                        ("ArrayList", [element]) => Type::List(Box::new(element.clone())),
+                        _ => Type::Named {
+                            name: head.to_string(),
+                            args: arguments,
+                        },
+                    };
+                }
+            }
+        }
+        // A pointer is how Zig writes a reference, and the languages without pointers
+        // still have the thing being pointed at.
+        if let Some(rest) = text.strip_prefix('*') {
+            return from_text(rest.trim_start().trim_start_matches("const ").trim_start());
+        }
+        builtin(text).unwrap_or_else(|| match text {
+            "" => Type::named("anytype"),
+            other => Type::named(other),
+        })
+    }
+
+    /// Zig's own scalar names, wherever a type is read from.
+    fn builtin(text: &str) -> Option<Type> {
+        Some(match text {
+            "bool" => Type::Bool,
+            "void" | "noreturn" => Type::Unit,
+            "f16" | "f32" | "f64" | "f80" | "f128" => Type::Float,
+            other if other.len() > 1 && other.starts_with(['i', 'u']) => {
+                match other[1..].chars().all(|c| c.is_ascii_digit())
+                    || other == "isize"
+                    || other == "usize"
+                {
+                    true => Type::Int,
+                    false => return None,
+                }
+            }
+            _ => return None,
+        })
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
@@ -3449,7 +3565,15 @@ mod typescript {
     /// `Promise<Record<string, string>>` resolved its outer layer and left the inner
     /// one as an opaque name, so a round trip produced `Record[str, str]` in Python.
     fn ty_text(text: &str) -> Type {
-        let trimmed = text.trim().trim_start_matches(':').trim();
+        // `readonly string[]` is a `string[]` that says you may not write to it, and no
+        // other language here has anywhere to put that. Left on, it made every
+        // read-only array in the file an element type this tool could not write.
+        let trimmed = text
+            .trim()
+            .trim_start_matches(':')
+            .trim()
+            .trim_start_matches("readonly ")
+            .trim();
         if let Some(t) = super::scalar(trimmed) {
             return t;
         }

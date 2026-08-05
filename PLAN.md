@@ -973,6 +973,48 @@ Ctx<'a>` was read as an impl on `Ctx<'a>`, which matches no record in the file. 
 methods of every generic Rust type had been coming out as free functions** with a `self`
 parameter bolted on.
 
+### Types, and the seven readers that were reading them wrong
+
+The round trip checked which functions came back and what their parameters were called.
+It did not look at data at all — a field that vanishes is exactly as bad as a parameter
+that vanishes — and it said nothing about types.
+
+Adding fields and constants found the first disagreement immediately: **the Python
+reader would not read back what the Python writer writes.** It required SCREAMING_SNAKE
+for a module constant, while the writer spells a constant bound to anything but a
+literal in lower case — on the grounds, written down in a comment, that shouting the
+name of `schema = z.object(...)` would be wrong. Two rules deciding one thing.
+
+Then types, compared as *shapes*: a list stays a list, an optional stays optional, a
+named type keeps its name. Not which scalar — TypeScript has one numeric type, so an
+`i64` that goes through it comes back a `number` and there is nothing wrong with that.
+Not the qualifier either: Go has room for exactly one level of it, so
+`crate::model::Reference` is `model.Reference` there and cannot be anything else.
+
+That found something in almost every reader:
+
+- **Rust stripped the reference last.** `&HashMap<K, V>`, `&Vec<T>`, `&Option<T>` — most
+  of the types in a Rust file — were checked against the container patterns *before* the
+  `&` came off, so none of them matched and all of them were read as names. Alongside
+  it: `&'a str` kept its lifetime, `Node<'_>` read the lifetime as a type argument and
+  produced a type with an empty name, and generic arguments were split on the first
+  comma rather than the first one at depth zero.
+- **Go's recursion was not its entry point.** The value of `map[string][]SymbolId`
+  resolved one layer and lost the slice. The same lesson was already written down for
+  TypeScript, in a comment, one reader away — which is the point of writing it down.
+- **Every Zig type read from text was read wrong.** The grammar binds `?` tighter than
+  `.`, so `?http.Request` arrives inside out as a field expression over a nullable
+  `http`. A generic there is a name applied to its arguments, and reading
+  `std.StringHashMap(V)` as one name turned a dictionary into a type with that name.
+  Scalars were recognised only on a `builtin_type` node. And a Zig type can span lines
+  and hold doc comments, all of which went into the name.
+- **TypeScript read `readonly string[]` as an array of `readonly string`.**
+
+Two tolerances had to be written into the check, and both are true rather than
+convenient: a type this tool cannot write at all is replaced by a placeholder, which is
+a rename and the one exception; and a constructor may change its name in either
+direction, because in three of these languages "constructor" *is* a naming convention.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
