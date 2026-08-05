@@ -76,6 +76,24 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B169: **extracting an expression that *is* its statement left a statement that
+  only names the binding.** `zzx;` is a parse error in Zig, an unused value in Go, and
+  nothing at all in the other three. The value is already being computed for its effect,
+  so there is nothing to hoist; the extraction is refused with that reason.
+
+- [x] B168: **`inline` refused every Zig binding there has ever been**, while the
+  capability matrix said it worked. tree-sitter-zig names nothing on a
+  `variable_declaration` — the `=` is an anonymous token with the value after it — and
+  the lookup asked only for a `value` or `right` field.
+
+- [x] B167: **`inline` changed what the code does.** `b = a + 1; return b * 2` became
+  `return a + 1 * 2`, which is `a + 2`. Every language with an expression grammar, since
+  the operation was written. A refactoring that changes the answer is the one thing this
+  tool must never do. The substituted value is parenthesised now unless nothing
+  surrounding it could split it — a name, a literal, a call, a field, an index. That errs
+  toward a redundant pair, which is the price of not keeping a precedence table per
+  grammar; such a table is wrong somewhere, silently, in exactly this way.
+
 - [x] B166: **an overload set was resolved by proximity, at `Exact`.** Two methods
   declared in one class body are equally plausible targets for a bare call, and the
   nearer one is a coin flip — so Java's `add(int)` beside `add(String)` sent both

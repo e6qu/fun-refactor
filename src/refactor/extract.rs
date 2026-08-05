@@ -91,6 +91,21 @@ pub fn variable(
         anyhow::bail!("'{expr_text}' is already a name; extracting it would only create an alias");
     }
 
+    // An expression that *is* its statement has nothing left behind it. Replacing it
+    // with the new name leaves a statement that only names the binding: `zzx;`, which
+    // Zig rejects outright, Go rejects as an unused value, and the other three accept
+    // while meaning nothing. The value is already being computed for its effect, so
+    // there is nothing to hoist.
+    if expr
+        .parent()
+        .is_some_and(|p| p.kind().contains("expression_statement") && p.named_child_count() == 1)
+    {
+        anyhow::bail!(
+            "`{expr_text}` is the whole of its statement; extracting it would leave a \
+             statement that only names the binding"
+        );
+    }
+
     // A name already defined in this file would collide or shadow.
     if !index.find_symbols(name, Some(file)).is_empty() {
         return Err(Refusal::NameCollision {
@@ -140,7 +155,7 @@ pub fn variable(
 
 /// Is extract-variable meaningful for this language?
 /// Languages whose extraction goes through the generic statement-based path.
-fn supports_imperative_extract(language: Language) -> bool {
+pub(crate) fn supports_imperative_extract(language: Language) -> bool {
     matches!(
         language,
         Language::Rust
