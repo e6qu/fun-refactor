@@ -1621,6 +1621,50 @@ CSS names a `descendant_selector` and an `attribute_selector`. Both matched, and
 Grouping now asks the same predicate `inline` asks, so there is one answer in the
 codebase to "does this language group with brackets" rather than two that can drift.
 
+### The arithmetic that changed on the way across
+
+Three refactorings have now been caught moving an expression into a context it was not
+written for. There is a fourth place the tool does that, and it does nothing else:
+translation.
+
+```rust
+pub fn f(a: i64, b: i64, c: i64) -> i64 {
+    return (a + b) * c;
+}
+```
+
+```python
+def f(a: int, b: int, c: int) -> int:
+    return a + b * c
+```
+
+Every writer rendered a binary expression as `left op right` and nothing else, so the
+group the source wrote was a group the translation lost. Python, TypeScript, Go, Java
+and Zig, in both directions, for the most ordinary expression there is. `a - (b - c)`
+came out as `a - b - c`; `!(a && b)` came out as `!a && b`, which is the very thing
+`fr rewrite de-morgan` exists to do deliberately.
+
+The brackets are decided from precedence now rather than copied from the source. One
+table, because every target orders these the same way, and the result is therefore right
+where two languages disagree about binding — and tidy where they agree, since
+`(a - b) - c` comes out as `a - b - c` and stays correct.
+
+**And the function had stopped returning anything.** The same probe, on the shape every
+Rust function is written in:
+
+```rust
+pub fn f(a: i64, b: i64) -> i64 {
+    a + b
+}
+```
+
+The tail is the result. Read as a plain statement, the return vanished in every target
+at once — Python returning `None`, Zig saying `_ = a + b;`, and Go, Java and TypeScript
+producing something that does not compile. Each of them still declaring the return type
+the signature had carried across perfectly. Only the body's own tail is read this way; a
+tail inside an `if` needs the whole of Rust's block-expression rule, and half of that
+rule is worth less than none of it.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

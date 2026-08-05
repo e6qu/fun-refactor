@@ -1110,6 +1110,49 @@ fn rust_type(ty: &Type) -> String {
     }
 }
 
+/// One side of a binary expression, bracketed when the enclosing operator would bind
+/// into it.
+///
+/// The writers rendered `left op right` and nothing else, so a group the source wrote
+/// was a group the translation lost: `(a + b) * c` came out of every one of them as
+/// `a + b * c`, and `a - (b - c)` as `a - b - c`. Neither is the same number.
+///
+/// Brackets are decided from precedence rather than copied from the source, so the
+/// result is right even where the two languages disagree about binding — and a group
+/// that was never needed does not survive the trip either.
+///
+/// The right-hand side takes brackets at *equal* precedence as well, because every
+/// operator here associates to the left: `a - (b - c)` needs them and `(a - b) - c`
+/// does not.
+fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_right: bool) -> String {
+    let inner = match operand {
+        Expr::Binary { op, .. } => op.precedence(),
+        // A conditional binds looser than any operator in the table, so it always
+        // needs the brackets. Everything else — a name, a literal, a call, an index —
+        // is one thing and never does.
+        Expr::Ternary { .. } | Expr::Coalesce { .. } => 0,
+        _ => return text,
+    };
+    let outer = enclosing.precedence();
+    match inner < outer || (on_the_right && inner == outer) {
+        true => format!("({text})"),
+        false => text,
+    }
+}
+
+/// The operand of `!` or `-`, bracketed when it is not a single thing.
+///
+/// `-(a + b)` is not `-a + b`, and `!(a and b)` is not `!a and b` — which is the whole
+/// of De Morgan's law and the reason it is a refactoring in its own right.
+fn unary_operand(text: String, operand: &Expr) -> String {
+    match operand {
+        Expr::Binary { .. } | Expr::Ternary { .. } | Expr::Coalesce { .. } => {
+            format!("({text})")
+        }
+        _ => text,
+    }
+}
+
 fn rust_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         // `Option::unwrap_or`, which is what a Rust reader expects and what the IR's
@@ -1149,9 +1192,9 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
-            rust_expr(out, left),
+            binary_operand(rust_expr(out, left), left, *op, false),
             op.c_like(),
-            rust_expr(out, right)
+            binary_operand(rust_expr(out, right), right, *op, true)
         ),
         // Rust puts it after; the other two put it in front.
         Expr::Await(inner) => format!("{}.await", rust_expr(out, inner)),
@@ -1196,7 +1239,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
             };
-            format!("{sign}{}", rust_expr(out, operand))
+            format!("{sign}{}", unary_operand(rust_expr(out, operand), operand))
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
@@ -1702,8 +1745,8 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!(
                 "{} {spelling} {}",
-                python_expr(out, left),
-                python_expr(out, right)
+                binary_operand(python_expr(out, left), left, *op, false),
+                binary_operand(python_expr(out, right), right, *op, true)
             )
         }
         Expr::Await(inner) => format!("await {}", python_expr(out, inner)),
@@ -1720,10 +1763,13 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             let rendered = python_expr(out, value);
             format!("{name}={rendered}")
         }
-        Expr::Unary { op, operand } => match op {
-            UnaryOp::Not => format!("not {}", python_expr(out, operand)),
-            UnaryOp::Neg => format!("-{}", python_expr(out, operand)),
-        },
+        Expr::Unary { op, operand } => {
+            let rendered = unary_operand(python_expr(out, operand), operand);
+            match op {
+                UnaryOp::Not => format!("not {rendered}"),
+                UnaryOp::Neg => format!("-{rendered}"),
+            }
+        }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
@@ -2189,9 +2235,9 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
-            go_expr(out, left),
+            binary_operand(go_expr(out, left), left, *op, false),
             op.c_like(),
-            go_expr(out, right)
+            binary_operand(go_expr(out, right), right, *op, true)
         ),
         // Go has no `await`. Writing the inner expression alone would turn a
         // suspension point into a plain call, which is the kind of silent change this
@@ -2247,7 +2293,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
             };
-            format!("{sign}{}", go_expr(out, operand))
+            format!("{sign}{}", unary_operand(go_expr(out, operand), operand))
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
@@ -2717,7 +2763,11 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 BinaryOp::Ne => "!==",
                 other => other.c_like(),
             };
-            format!("{} {spelling} {}", ts_expr(out, left), ts_expr(out, right))
+            format!(
+                "{} {spelling} {}",
+                binary_operand(ts_expr(out, left), left, *op, false),
+                binary_operand(ts_expr(out, right), right, *op, true)
+            )
         }
         Expr::Await(inner) => format!("await {}", ts_expr(out, inner)),
         Expr::New { callee, args } => {
@@ -2743,7 +2793,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
             };
-            format!("{sign}{}", ts_expr(out, operand))
+            format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| ts_expr(out, i)).collect();
@@ -3300,16 +3350,16 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
-            java_expr(out, left),
+            binary_operand(java_expr(out, left), left, *op, false),
             op.c_like(),
-            java_expr(out, right)
+            binary_operand(java_expr(out, right), right, *op, true)
         ),
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
             };
-            format!("{sign}{}", java_expr(out, operand))
+            format!("{sign}{}", unary_operand(java_expr(out, operand), operand))
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
@@ -3905,16 +3955,16 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
-            zig_expr(out, left),
+            binary_operand(zig_expr(out, left), left, *op, false),
             zig_binary(*op),
-            zig_expr(out, right)
+            binary_operand(zig_expr(out, right), right, *op, true)
         ),
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
             };
-            format!("{sign}{}", zig_expr(out, operand))
+            format!("{sign}{}", unary_operand(zig_expr(out, operand), operand))
         }
         // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
         // is used rather than by the literal.

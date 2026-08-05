@@ -482,6 +482,27 @@ impl BinaryOp {
             other => other.c_like(),
         }
     }
+
+    /// How tightly this operator binds. Higher binds tighter.
+    ///
+    /// One table for every target, because every target orders these the same way —
+    /// multiplication before addition, arithmetic before comparison, comparison before
+    /// `and`, `and` before `or`. Python spells two of them with words and agrees about
+    /// all of it.
+    ///
+    /// This exists because the writers rendered `left op right` and nothing else, so a
+    /// group the source wrote was a group the translation lost: `(a + b) * c` came out
+    /// as `a + b * c` in all six languages, which is a different number.
+    pub fn precedence(self) -> u8 {
+        match self {
+            BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => 6,
+            BinaryOp::Add | BinaryOp::Sub => 5,
+            BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
+            BinaryOp::Eq | BinaryOp::Ne => 3,
+            BinaryOp::And => 2,
+            BinaryOp::Or => 1,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
