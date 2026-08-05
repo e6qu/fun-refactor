@@ -1119,3 +1119,18 @@ fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
     let (output, _) = translate(&[("d.ts", source)], "d.ts", Language::Zig);
     assert!(output.contains("get(\"x\") orelse 5"), "{output}");
 }
+
+#[test]
+fn a_shorthand_property_is_a_property() {
+    // `{ species }` means `{ species: species }` — the shorthand every modern
+    // TypeScript file is written in. Refusing it refused the whole object, and with it
+    // the statement the object was in.
+    let source = "export function f(species: string, take: number): object {\n  \
+                  return { species, take };\n}\n";
+    let (output, fidelity) = translate(&[("o.ts", source)], "o.ts", Language::Python);
+    assert!(
+        output.contains("return {\"species\": species, \"take\": take}"),
+        "{output}"
+    );
+    assert_eq!(fidelity.carried_verbatim, 0, "{output}");
+}

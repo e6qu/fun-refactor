@@ -207,26 +207,36 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
       on this page: both sides can be missing the same thing and agree perfectly.
     </p>
     <p>
-      So the baseline says what it could not read, and that is the number to watch:
-    </p>
-<pre class="term-body"><code>app/api/pets/route.ts: 1 statement(s) could not be read; any query
-parameter read inside one of them is missing from this document</code></pre>
-    <p>
-      A gap that announces itself is a gap you can close. A gap that does not is the
-      thing this whole document exists to prevent — the endpoint answers, the tests
-      pass, and the contract quietly got smaller.
+      So the baseline says what it could not read. A statement the tool carries whole is
+      a statement it did not look inside, and a query parameter read in there is missing
+      from the document — which is why that note exists and why it counts. It is in the
+      <em>What it does not settle</em> pane above, and the count is the number to watch.
+      A gap that announces itself is a gap you can close; a gap that does not is the
+      thing this whole document exists to prevent.
     </p>
     <p>
-      That note used to read <em>2 statements</em>, and one of them was this:
+      This example has closed twice while it was being written. It read
+      <em>two statements</em> the tool could not follow, and they were these:
     </p>
-<pre class="term-body"><code>const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50")</code></pre>
+<pre class="term-body"><code>const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50")
+
+const pets = await db.pet.findMany({
+  where: species ? { species } : {},
+  …
+})</code></pre>
     <p>
       <code>??</code> asks whether a value is absent, which is a question rather than an
       arithmetic operator: Zig spells it <code>orelse</code>, Rust reaches for
       <code>Option::unwrap_or</code>, Java for a static method, Python has to name the
-      value twice, and Go cannot say it at all. Once the tool could read it,
-      <code>limit</code> appeared on both sides of the crossing — and the note counted
-      one statement instead of two. That is what closing a gap looks like from here.
+      value twice, and Go cannot say it at all. And <code>{ species }</code> is the
+      shorthand every modern TypeScript file is written in — it means
+      <code>{ species: species }</code>, and not reading it refused the whole object,
+      and with it the statement the object was in.
+    </p>
+    <p>
+      Both are read now, the note is gone, and <code>limit</code> is on both sides of
+      the crossing. That is what closing a gap looks like from here: the count goes
+      down, and the contract gets bigger.
     </p>
     <div id="crossed"></div>
   </div>

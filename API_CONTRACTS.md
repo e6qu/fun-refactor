@@ -293,16 +293,22 @@ endpoints would fail the build.
 
 **That the two documents agree does not mean the contract is complete**, and the
 difference matters more than the agreement: both sides can be missing the same thing and
-agree perfectly. So the baseline says what it could not read, and that is the number to
-watch:
+agree perfectly. So the baseline says what it could not read:
 
 ```
-app/api/pets/route.ts: 1 statement(s) could not be read; any query parameter
+<route file>: N statement(s) could not be read; any query parameter
 read inside one of them is missing from this document
 ```
 
-A gap that announces itself is a gap you can close. A gap that does not is what this
-document exists to prevent.
+A statement the tool carries whole is a statement it did not look inside, so that count
+is the number to watch. A gap that announces itself is a gap you can close; a gap that
+does not is what this document exists to prevent.
+
+The pet store's count has been two and is now zero. The two were
+`const limit = Number(… ?? "50")` — `??` had no counterpart in the IR — and
+`{ where: species ? { species } : {} }`, where `{ species }` is the shorthand every
+modern TypeScript file is written in and refusing it refused the whole object, and with
+it the statement the object was in.
 
 What this cannot see, because it reads what is written rather than what will happen: a
 router mounted under a prefix, a route added at run time, a dependency that rejects the

@@ -3949,6 +3949,15 @@ mod typescript {
             "object" => {
                 let mut entries = Vec::new();
                 for pair in cx.children(node) {
+                    // `{ species }` is `{ species: species }` — the shorthand every
+                    // modern TypeScript file is written in. Reading it as something
+                    // unrecognised refused the whole object, and with it the statement
+                    // the object was in.
+                    if pair.kind() == "shorthand_property_identifier" {
+                        let name = cx.text(pair);
+                        entries.push((Expr::Str(name.clone()), Expr::Name(name)));
+                        continue;
+                    }
                     if pair.kind() != "pair" {
                         return Expr::Unsupported(cx.unsupported(node));
                     }
