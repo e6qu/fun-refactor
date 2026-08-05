@@ -289,6 +289,11 @@ fn the_playgrounds_typescript_survives_a_round_trip_through_every_language() {
 }
 
 #[test]
+fn the_petstore_survives_a_round_trip_through_every_language() {
+    nothing_goes_missing(&sources("tests/petstore", "ts"), 8);
+}
+
+#[test]
 fn the_samples_survive_a_round_trip_through_every_language() {
     nothing_goes_missing(&sources("web/sample", "go"), 3);
 }
