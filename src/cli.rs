@@ -253,6 +253,12 @@ enum Command {
         /// Write the document here instead of to standard output.
         #[arg(long)]
         out: Option<PathBuf>,
+        /// Write YAML instead of JSON.
+        ///
+        /// The same document either way. YAML is what a contract kept beside the code
+        /// is usually written in, and it is what a person reads.
+        #[arg(long)]
+        yaml: bool,
     },
     /// Run a refactoring recipe: a file that says what to find, what to do to it,
     /// and what must be true afterwards.
@@ -475,7 +481,7 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(&cli, target, *call, *write),
-        Command::Openapi { out } => cmd_openapi(&cli, out.as_deref()),
+        Command::Openapi { out, yaml } => cmd_openapi(&cli, out.as_deref(), *yaml),
         Command::Recipe {
             file,
             write,
@@ -1265,7 +1271,7 @@ fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Resu
 }
 
 /// `fr openapi` — the contract a Next.js tree declares, before it is rewritten.
-fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>) -> Result<()> {
+fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<()> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     let scanned = scan(&root, &ScanOptions::default())?;
     let files: Vec<PathBuf> = scanned.files.iter().map(|f| f.path.clone()).collect();
@@ -1284,7 +1290,12 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>) -> Result<()> {
         );
     }
 
-    let text = serde_json::to_string_pretty(&baseline.document)?;
+    // The same document, spelled the way the reader asked for. A contract kept beside
+    // the code is usually YAML, and the file this produces is meant to be read.
+    let text = match yaml {
+        true => serde_yaml::to_string(&baseline.document)?,
+        false => serde_json::to_string_pretty(&baseline.document)?,
+    };
     match out {
         Some(path) => {
             crate::vfs::write(path, format!("{text}\n"))?;

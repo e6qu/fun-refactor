@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The contract — fun-refactor</title>
+<meta name="description" content="A pet store API rewritten from Next.js to FastAPI with the HTTP contract held constant. One OpenAPI document, eight endpoint shapes, every result produced by running the tool.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="catalog.html">Catalogue</a>
+      <a href="recipes.html">Recipes</a>
+      <a href="translate.html">Translate</a>
+      <a href="contract.html" aria-current="page">Contract</a>
+      <a href="playground/">Playground</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">Cross-language, contract first</p>
+    <h1 class="prose">A pet store, moved from Next.js to FastAPI without moving its API</h1>
+    <p class="lede prose">
+      A refactoring preserves what a function does. A translation preserves a
+      signature. Rewriting a service in another language has to preserve the only thing
+      anyone outside the repository can see: the <strong>HTTP contract</strong>. A
+      caller does not import your functions. It sends
+      <code>PATCH /pets/42</code> with a JSON body and expects <code>200</code>.
+    </p>
+    <p class="lede prose">
+      Everything below is one worked example: eight route files, thirteen operations,
+      five request schemas, and every shape a CRUD API has — a collection, a member, a
+      sub-collection, a sub-member, a whole-resource replacement, an action that is not
+      CRUD at all, an aggregate, and a catch-all that matches across slashes.
+    </p>
+
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Generated</span> &nbsp;The contract and every translation
+      on this page were produced by running <code>fr</code> over
+      <code>tests/petstore</code>, captured by
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. Nothing here is typed by
+      hand, so nothing here can drift from what the tool does.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>The method</h2>
+    <p>
+      The two frameworks are not mirror images, and the difference decides the order of
+      the steps.
+    </p>
+    <p>
+      <strong>FastAPI derives OpenAPI from the code.</strong> The path decorator gives
+      the URL and the method, the annotated parameters give the path and query
+      parameters, a Pydantic model gives the body schema, and
+      <code>/openapi.json</code> falls out. The contract is not a document somebody
+      maintains; it is a projection of the types.
+    </p>
+    <p>
+      <strong>Next.js does not.</strong> The App Router has no equivalent. The URL is
+      the file's position on disk, the method is the exported function's name, the body
+      is whatever a zod schema in some other module validates, and the query parameters
+      are read out of the URL by hand. None of it is declared.
+    </p>
+    <p>
+      So the rewrite goes in one direction and the checking goes in the other:
+    </p>
+    <ol>
+      <li>
+        <strong>Derive the contract from the tree, before touching anything.</strong>
+        <code>fr openapi --yaml &gt; contract.yaml</code>. This is the baseline, and it
+        is the step most teams have skipped — which is why the rewrite that follows has
+        nothing to be wrong about.
+      </li>
+      <li>
+        <strong>Translate route by route.</strong>
+        <code>fr translate app/api/pets/[petId]/route.ts fastapi</code>. Read the report
+        each time: what carried, what did not, and which status codes are returned but
+        not declared.
+      </li>
+      <li>
+        <strong>Finish the handlers.</strong> The database calls and helpers the route
+        imported have no counterpart and are yours. The tool did the mechanical,
+        error-prone half — the half where a mistyped path segment costs you a week and a
+        missing <code>:path</code> costs you the requests nobody reports.
+      </li>
+      <li>
+        <strong>Run the service and diff.</strong>
+        <code>curl -s localhost:8000/openapi.json | …</code> against the baseline. Every
+        difference is a defect until argued otherwise.
+      </li>
+    </ol>
+    <p>
+      The failure this catches is the one nothing else catches: a contract that quietly
+      got <em>smaller</em>. A smaller contract looks exactly like a correct one. Every
+      test you have will pass, and the requests that stop working are the ones nobody
+      sends often.
+    </p>
+
+    <h3>What the tool has to read that nobody declared</h3>
+    <table>
+      <thead><tr><th>Contract element</th><th>Where it lives in Next.js</th><th>How it is read</th></tr></thead>
+      <tbody>
+        <tr><td>URL template</td><td>the file's path on disk</td><td>from the tree — nothing inside the file says it</td></tr>
+        <tr><td>Catch-all segment</td><td><code>[...path]</code></td><td>becomes <code>{path:path}</code>, which matches across slashes</td></tr>
+        <tr><td>Method</td><td>the exported function's name</td><td><code>export async function PATCH</code></td></tr>
+        <tr><td>Path parameters</td><td>the bracketed segments</td><td>typed <code>str</code>, named the way Python names things</td></tr>
+        <tr><td>Query parameters</td><td>nowhere</td><td>read from <code>req.nextUrl.searchParams.get("…")</code> in the handler</td></tr>
+        <tr><td>Request body</td><td>a zod schema, usually in another module</td><td>the schema is found anywhere in the tree; the <em>link</em> comes from the <code>.parse()</code> call inside the handler</td></tr>
+        <tr><td>Response body</td><td>nowhere</td><td>not in the contract, and said so rather than invented</td></tr>
+        <tr><td>Status codes</td><td>the returned object</td><td>carried into the code, reported for the contract</td></tr>
+      </tbody>
+    </table>
+
+    <h3>The one thing that moves</h3>
+    <p>
+      A Next.js handler receives <code>(request, context)</code> and digs the path
+      parameter out of <code>context.params.petId</code>. FastAPI passes it as an
+      argument. So the value arrives by a different route and <em>every use of it moves
+      with the parameter</em> — that is the behaviour being redistributed while the URL
+      it answers stays exactly the same:
+    </p>
+<pre class="term-body"><code>// Next.js
+const pet = await db.pet.findUnique({ where: { id: context.params.petId } })
+
+# FastAPI
+pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
+    <p>
+      Rewriting the declaration and leaving <code>context.params.petId</code> in the
+      body would produce a file that parses, imports and starts — and answers every
+      request with a <code>NameError</code>.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>The contract</h2>
+    <p>
+      Derived from the tree, before the rewrite. Paths, methods and path parameters are
+      exact, because they come from where the files sit. Schemas are as good as what the
+      source declared. Responses are <code>default</code> only — which status an
+      endpoint returns is a fact about its code rather than its declaration, and writing
+      <code>200</code> for everything would put fiction into the file you are about to
+      diff against.
+    </p>
+    <div id="contract"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Every endpoint, both sides</h2>
+    <p>
+      One command each, in the order a reader meets them. The Python is what
+      <code>fr translate</code> produced; the report beside it is what the tool said
+      about the parts it could not carry.
+    </p>
+  </div>
+  <div class="shell">
+    <div id="endpoints"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Where it stops</h2>
+    <p>
+      <strong>Not a proof.</strong> Preserving the addressing half of a contract — the
+      URLs, the methods, the path parameters — is a syntactic property and the tool can
+      be held to it. Preserving the shape half needs to know what the handlers do, and
+      the handlers are the part carried across for a person to finish.
+    </p>
+    <p>
+      <strong>Not a migration.</strong> Authentication, database access, middleware
+      ordering and every library the route imported have no counterpart and are
+      reported, not translated.
+    </p>
+    <p>
+      <strong>Not the other direction.</strong> FastAPI → Next.js <em>loses</em> a
+      machine-readable contract rather than gaining one: nothing in the target
+      regenerates it, so it would have to be exported before the rewrite and asserted
+      against afterwards. This tool does not do that direction.
+    </p>
+    <p>
+      <strong>Read the notes.</strong> Everything the document could not settle is
+      printed beside it rather than guessed at, because a baseline that quietly invents
+      an entry is the worst possible outcome: the diff comes out clean and the contract
+      still shrank.
+    </p>
+    <div class="btn-row">
+      <a class="btn" href="https://github.com/e6qu/fun-refactor/blob/main/API_CONTRACTS.md">The written version</a>
+      <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/tree/main/tests/petstore">The pet store source</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="theme.js"></script>
+<script type="module" src="contract.js"></script>
+</body>
+</html>

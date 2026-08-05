@@ -58,6 +58,20 @@ pub struct RoutePlan {
     pub edits: crate::edit::EditSet,
     /// The shapes this route declares, as an OpenAPI document would name them.
     pub models: Vec<Model>,
+    /// Which schema each handler validates its body against.
+    ///
+    /// `(method, schema name)`, from `petCreateSchema.parse(json)` inside `POST`. The
+    /// contract needs the *link*, not only the shape: a document with a `components`
+    /// section nothing refers to says the endpoints take no body at all, which is a
+    /// smaller contract than the one it stands in for.
+    pub bodies: Vec<(String, String)>,
+    /// The query parameters each handler reads.
+    ///
+    /// `(method, name)`, from `req.nextUrl.searchParams.get("limit")`. Next.js declares
+    /// nothing about them — they are read out of the URL by hand — so a contract built
+    /// without them says the endpoint takes no query at all, and a caller passing
+    /// `?limit=10` is outside a contract that claims to describe it.
+    pub queries: Vec<(String, String)>,
 }
 
 /// A named shape a route declares — from an exported `interface` or a zod schema.
@@ -223,29 +237,10 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
     let (output, fidelity, methods) = write(&module, &route, path)?;
 
     // The declared shapes, from either place a Next.js route keeps them.
-    let models: Vec<Model> = module
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            Item::Record(record) => Some(Model {
-                name: record.name.clone(),
-                fields: record
-                    .fields
-                    .iter()
-                    .map(|f| (f.name.clone(), f.ty.clone()))
-                    .collect(),
-            }),
-            Item::Constant(c) => record_from_zod(&c.name, &c.value).map(|record| Model {
-                name: record.name.clone(),
-                fields: record
-                    .fields
-                    .iter()
-                    .map(|f| (f.name.clone(), f.ty.clone()))
-                    .collect(),
-            }),
-            _ => None,
-        })
-        .collect();
+    let models: Vec<Model> = models_of(&module);
+
+    let bodies = parsed_bodies(&module);
+    let queries = read_queries(&module);
 
     if methods.is_empty() {
         bail!(
@@ -306,6 +301,8 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
         output,
         fidelity,
         models,
+        bodies,
+        queries,
     })
 }
 
@@ -334,6 +331,234 @@ impl ThenOr for String {
 /// replaced. That is the failure `API_CONTRACTS.md` is about, and this is the half of
 /// it that can be fixed by reading harder.
 ///
+/// Every shape a TypeScript module declares, wherever the module sits.
+///
+/// A real Next.js application keeps its zod schemas in a module the routes import, so
+/// reading only the route file found none of them. This reads any `.ts` file, which is
+/// what lets the contract carry a body declared in `lib/schemas.ts`.
+pub fn models_in(path: &Path) -> Result<Vec<Model>> {
+    let Some(language) = crate::lang::detect(path) else {
+        return Ok(Vec::new());
+    };
+    if !matches!(language, Language::TypeScript | Language::Tsx) {
+        return Ok(Vec::new());
+    }
+    let source = crate::vfs::read_to_string(path)?;
+    let parsed = Parsers::new().parse(language, &source)?;
+    if parsed.has_errors() {
+        return Ok(Vec::new());
+    }
+    let module = super::read_module(language, &source, parsed.root())?;
+    Ok(models_of(&module))
+}
+
+/// The shapes a module declares, from either place a Next.js file keeps them.
+fn models_of(module: &Module) -> Vec<Model> {
+    module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(record) => Some(Model {
+                name: record.name.clone(),
+                fields: record
+                    .fields
+                    .iter()
+                    .map(|f| (f.name.clone(), f.ty.clone()))
+                    .collect(),
+            }),
+            Item::Constant(c) => record_from_zod(&c.name, &c.value).map(|record| Model {
+                name: record.name.clone(),
+                fields: record
+                    .fields
+                    .iter()
+                    .map(|f| (f.name.clone(), f.ty.clone()))
+                    .collect(),
+            }),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Which query parameters each handler reads out of the URL.
+///
+/// `req.nextUrl.searchParams.get("limit")`, and the two other spellings of the same
+/// thing. Next.js has no declaration for these — the handler reaches into the URL — so
+/// a reader that only looks at declarations finds nothing and the contract comes out
+/// claiming the endpoint takes no query.
+fn read_queries(module: &Module) -> Vec<(String, String)> {
+    /// Does this expression reach through `searchParams`?
+    fn from_search_params(e: &Expr) -> bool {
+        match e {
+            Expr::Name(name) => name == "searchParams",
+            Expr::Field { of, name } => name == "searchParams" || from_search_params(of),
+            Expr::Call { callee, .. } => from_search_params(callee),
+            _ => false,
+        }
+    }
+
+    fn in_expr(e: &Expr, found: &mut Vec<String>) {
+        if let Expr::Call { callee, args } = e {
+            if let Expr::Field { of, name } = callee.as_ref() {
+                let reads = matches!(name.as_str(), "get" | "getAll" | "has");
+                if reads && from_search_params(of) {
+                    if let Some(Expr::Str(key)) = args.first() {
+                        found.push(key.clone());
+                    }
+                }
+            }
+        }
+        match e {
+            Expr::Await(inner) | Expr::Unary { operand: inner, .. } => in_expr(inner, found),
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                in_expr(callee, found);
+                for argument in args {
+                    in_expr(argument, found);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                in_expr(left, found);
+                in_expr(right, found);
+            }
+            Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            } => {
+                in_expr(condition, found);
+                in_expr(then, found);
+                in_expr(otherwise, found);
+            }
+            _ => {}
+        }
+    }
+
+    fn in_stmts(stmts: &[Stmt], found: &mut Vec<String>) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Let { value: Some(v), .. } | Stmt::Expr(v) | Stmt::Return(Some(v)) => {
+                    in_expr(v, found)
+                }
+                Stmt::Assign { value, .. } => in_expr(value, found),
+                Stmt::If {
+                    condition,
+                    then,
+                    otherwise,
+                } => {
+                    in_expr(condition, found);
+                    in_stmts(then, found);
+                    in_stmts(otherwise, found);
+                }
+                Stmt::While { body, .. } | Stmt::ForEach { body, .. } => in_stmts(body, found),
+                Stmt::Try {
+                    body,
+                    catches,
+                    finally,
+                    ..
+                } => {
+                    in_stmts(body, found);
+                    for catch in catches {
+                        in_stmts(&catch.body, found);
+                    }
+                    in_stmts(finally, found);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    let mut out = Vec::new();
+    for item in &module.items {
+        let Item::Function(f) = item else { continue };
+        if !METHODS.contains(&f.name.to_uppercase().as_str()) {
+            continue;
+        }
+        let mut found = Vec::new();
+        in_stmts(&f.body, &mut found);
+        found.dedup();
+        for key in found {
+            out.push((f.name.clone(), key));
+        }
+    }
+    out
+}
+
+/// Which schema each handler parses its body with.
+///
+/// A Next.js handler validates by hand — `const body = petCreateSchema.parse(json)` —
+/// so the link between an operation and its request body is a *call* rather than a
+/// declaration. Reading it is what lets the contract say `requestBody` instead of
+/// listing a shape under `components` that nothing points at.
+fn parsed_bodies(module: &Module) -> Vec<(String, String)> {
+    fn in_expr(e: &Expr, found: &mut Vec<String>) {
+        if let Expr::Call { callee, .. } = e {
+            if let Expr::Field { of, name } = callee.as_ref() {
+                let validates = matches!(name.as_str(), "parse" | "parseAsync" | "safeParse");
+                if let (true, Expr::Name(schema)) = (validates, of.as_ref()) {
+                    found.push(schema.clone());
+                }
+            }
+        }
+        match e {
+            Expr::Await(inner) | Expr::Unary { operand: inner, .. } => in_expr(inner, found),
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                in_expr(callee, found);
+                for argument in args {
+                    in_expr(argument, found);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                in_expr(left, found);
+                in_expr(right, found);
+            }
+            _ => {}
+        }
+    }
+
+    fn in_stmts(stmts: &[Stmt], found: &mut Vec<String>) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Let { value: Some(v), .. } | Stmt::Expr(v) | Stmt::Return(Some(v)) => {
+                    in_expr(v, found)
+                }
+                Stmt::Assign { value, .. } => in_expr(value, found),
+                Stmt::If {
+                    then, otherwise, ..
+                } => {
+                    in_stmts(then, found);
+                    in_stmts(otherwise, found);
+                }
+                Stmt::While { body, .. } | Stmt::ForEach { body, .. } => in_stmts(body, found),
+                Stmt::Try {
+                    body,
+                    catches,
+                    finally,
+                    ..
+                } => {
+                    in_stmts(body, found);
+                    for catch in catches {
+                        in_stmts(&catch.body, found);
+                    }
+                    in_stmts(finally, found);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    let mut out = Vec::new();
+    for item in &module.items {
+        let Item::Function(f) = item else { continue };
+        if !METHODS.contains(&f.name.to_uppercase().as_str()) {
+            continue;
+        }
+        let mut found = Vec::new();
+        in_stmts(&f.body, &mut found);
+        if let Some(schema) = found.first() {
+            out.push((f.name.clone(), model_name(schema)));
+        }
+    }
+    out
+}
 /// The IR already holds the whole builder chain, so this is a walk rather than a parse.
 fn record_from_zod(name: &str, value: &Expr) -> Option<Record> {
     let fields = object_fields(value)?;
@@ -600,7 +825,10 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
                      path parameter, so that line is not needed and was dropped",
                     handler.name
                 )),
-                None => body.push(as_fastapi(stmt.clone(), &mut responses)),
+                None => {
+                    let supplied = supply_path_parameters(stmt.clone(), &dropped, &parameters);
+                    body.push(as_fastapi(supplied, &mut responses))
+                }
             }
         }
         let uses_dropped: Vec<String> = dropped
@@ -977,6 +1205,172 @@ fn status_in(options: &Expr) -> Option<Expr> {
         };
         (named == "status").then(|| value.clone())
     })
+}
+
+/// Read every `context.params.petId` as the parameter FastAPI already supplies.
+///
+/// Dropping the *statement* `const id = context.params.id` was only half of it: a
+/// handler that writes `context.params.petId` inline — inside a `where` clause, inside
+/// a call — kept naming an object Python does not have. The path parameter arrives by
+/// a different route in FastAPI and every use of it has to arrive with it, which is
+/// what makes the endpoint answer the same URL with the same value.
+fn supply_path_parameters(stmt: Stmt, dropped: &[String], parameters: &[String]) -> Stmt {
+    fn in_expr(e: Expr, dropped: &[String], parameters: &[String]) -> Expr {
+        // `<context>.params.<field>` — and nothing else with that shape.
+        if let Expr::Field { of, name: field } = &e {
+            if let Expr::Field {
+                of: object,
+                name: params,
+            } = of.as_ref()
+            {
+                if let Expr::Name(object) = object.as_ref() {
+                    let supplied = super::snake_always(field);
+                    if params == "params"
+                        && dropped.contains(object)
+                        && parameters.contains(&supplied)
+                    {
+                        return Expr::Name(supplied);
+                    }
+                }
+            }
+        }
+        match e {
+            Expr::Field { of, name } => Expr::Field {
+                of: Box::new(in_expr(*of, dropped, parameters)),
+                name,
+            },
+            Expr::Index { of, index } => Expr::Index {
+                of: Box::new(in_expr(*of, dropped, parameters)),
+                index: Box::new(in_expr(*index, dropped, parameters)),
+            },
+            Expr::Call { callee, args } => Expr::Call {
+                callee: Box::new(in_expr(*callee, dropped, parameters)),
+                args: args
+                    .into_iter()
+                    .map(|a| in_expr(a, dropped, parameters))
+                    .collect(),
+            },
+            Expr::New { callee, args } => Expr::New {
+                callee: Box::new(in_expr(*callee, dropped, parameters)),
+                args: args
+                    .into_iter()
+                    .map(|a| in_expr(a, dropped, parameters))
+                    .collect(),
+            },
+            Expr::Binary { op, left, right } => Expr::Binary {
+                op,
+                left: Box::new(in_expr(*left, dropped, parameters)),
+                right: Box::new(in_expr(*right, dropped, parameters)),
+            },
+            Expr::Unary { op, operand } => Expr::Unary {
+                op,
+                operand: Box::new(in_expr(*operand, dropped, parameters)),
+            },
+            Expr::Await(inner) => Expr::Await(Box::new(in_expr(*inner, dropped, parameters))),
+            Expr::Keyword { name, value } => Expr::Keyword {
+                name,
+                value: Box::new(in_expr(*value, dropped, parameters)),
+            },
+            Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            } => Expr::Ternary {
+                condition: Box::new(in_expr(*condition, dropped, parameters)),
+                then: Box::new(in_expr(*then, dropped, parameters)),
+                otherwise: Box::new(in_expr(*otherwise, dropped, parameters)),
+            },
+            Expr::ListLit(items) => Expr::ListLit(
+                items
+                    .into_iter()
+                    .map(|i| in_expr(i, dropped, parameters))
+                    .collect(),
+            ),
+            Expr::MapLit(entries) => Expr::MapLit(
+                entries
+                    .into_iter()
+                    .map(|(k, v)| {
+                        (
+                            in_expr(k, dropped, parameters),
+                            in_expr(v, dropped, parameters),
+                        )
+                    })
+                    .collect(),
+            ),
+            other => other,
+        }
+    }
+
+    fn in_stmts(stmts: Vec<Stmt>, dropped: &[String], parameters: &[String]) -> Vec<Stmt> {
+        stmts
+            .into_iter()
+            .map(|s| supply_path_parameters(s, dropped, parameters))
+            .collect()
+    }
+
+    match stmt {
+        Stmt::Let {
+            name,
+            ty,
+            value,
+            mutable,
+        } => Stmt::Let {
+            name,
+            ty,
+            value: value.map(|v| in_expr(v, dropped, parameters)),
+            mutable,
+        },
+        Stmt::Assign { target, value } => Stmt::Assign {
+            target: in_expr(target, dropped, parameters),
+            value: in_expr(value, dropped, parameters),
+        },
+        Stmt::Return(value) => Stmt::Return(value.map(|v| in_expr(v, dropped, parameters))),
+        Stmt::Expr(e) => Stmt::Expr(in_expr(e, dropped, parameters)),
+        Stmt::Throw(e) => Stmt::Throw(in_expr(e, dropped, parameters)),
+        Stmt::If {
+            condition,
+            then,
+            otherwise,
+        } => Stmt::If {
+            condition: in_expr(condition, dropped, parameters),
+            then: in_stmts(then, dropped, parameters),
+            otherwise: in_stmts(otherwise, dropped, parameters),
+        },
+        Stmt::While { condition, body } => Stmt::While {
+            condition: in_expr(condition, dropped, parameters),
+            body: in_stmts(body, dropped, parameters),
+        },
+        Stmt::ForEach {
+            binding,
+            iterable,
+            body,
+        } => Stmt::ForEach {
+            binding,
+            iterable: in_expr(iterable, dropped, parameters),
+            body: in_stmts(body, dropped, parameters),
+        },
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            source,
+            line,
+        } => Stmt::Try {
+            body: in_stmts(body, dropped, parameters),
+            catches: catches
+                .into_iter()
+                .map(|c| crate::transpile::ir::Catch {
+                    binding: c.binding,
+                    ty: c.ty,
+                    body: in_stmts(c.body, dropped, parameters),
+                })
+                .collect(),
+            finally: in_stmts(finally, dropped, parameters),
+            source,
+            line,
+        },
+        other => other,
+    }
 }
 
 /// Is this statement just pulling a path parameter off the Next.js context?

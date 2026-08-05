@@ -51,12 +51,18 @@ struct Entry {
     intent: &'static str,
     /// What this particular sample shows, beyond the move itself.
     note: &'static str,
+    /// What is the same after the change as it was before.
+    ///
+    /// A refactoring is a change to the *text* of a program that leaves what the
+    /// program does alone. Every entry has to be able to say what that means for it —
+    /// and a move that redistributes behaviour across several files has to say where
+    /// the behaviour went, not only where the edit landed. Naming it per entry is what
+    /// stops the page from being a list of edits that happen to be reversible.
+    invariant: &'static str,
     files: &'static [(&'static str, &'static str)],
     /// The `fr` invocation, with `@from…to@` standing for a range this test computes
     /// from the source rather than a line and column somebody counted by hand.
     argv: &'static [&'static str],
-    /// Which file the page shows before and after.
-    subject: &'static str,
 }
 
 const BILLING: &str = r#"def print_invoice(invoice):
@@ -95,6 +101,15 @@ const GEOMETRY: &str = r#"import math
 def circ(r):
     """The distance around a circle."""
     return 2 * math.pi * r
+"#;
+
+/// The consumer, in a file of its own.
+///
+/// A signature change is only half a refactoring until the calls change with it, and a
+/// page that shows the declaration alone is showing the half that would break the
+/// program. Every sample whose move ripples outward keeps its callers where a reader
+/// can watch them move.
+const GEOMETRY_USES: &str = r#"from geometry import circ
 
 
 def band_width(inner, outer):
@@ -187,22 +202,37 @@ def area(radius):
 
 const CONNECT_PY: &str = r#"def send(host, port):
     return connect(host, port)
+"#;
+
+const CONNECT_USES_PY: &str = r#"from net import send
 
 
 def main():
     return send("example.com", 443)
+
+
+def retry():
+    return send("backup.example.com", 8443)
 "#;
 
+// `precision` is passed at every call and read by nothing: the parameter nobody needs.
 const DEFAULTS_PY: &str = r#"import math
 
 
-def circ(r, units="m"):
+def circ(r, precision, units="m"):
     """The distance around a circle."""
     return f"{2 * math.pi * r}{units}"
+"#;
+
+const DEFAULTS_USES_PY: &str = r#"from geometry import circ
 
 
 def rim(r):
-    return circ(r)
+    return circ(r, 2)
+
+
+def label(r):
+    return "rim: " + circ(r, 4)
 "#;
 
 const REPEATED_PY: &str = r#"def total(order):
@@ -268,6 +298,7 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Extract Helper”",
         ],
         intent: "A fragment of code that can be grouped together gets its own name.",
+        invariant: "The statements run in the same order, on the same values, and produce the same result; they are reached through a call now instead of being written where they run.",
         note: "The extracted statements read two variables defined above them, so the new \
                function takes both as parameters and the call passes them. Nothing here \
                was told what `invoice` is, or what an `outstanding` is; the parameters \
@@ -279,7 +310,6 @@ const ENTRIES: &[Entry] = &[
             "print_details",
             "--function",
         ],
-        subject: "src/billing.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -290,6 +320,7 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Explaining Variables”",
         ],
         intent: "A sub-expression that is hard to read gets a name that says what it is.",
+        invariant: "The expression is computed once instead of where it stood, and every place that used it reads the same value.",
         note: "The name is the whole point of the move: the expression is unchanged and \
                the code is no shorter.",
         files: &[("src/pricing.py", PRICING)],
@@ -298,7 +329,6 @@ const ENTRIES: &[Entry] = &[
             "@src/pricing.py~order.quantity * order.item_price~@",
             "base_price",
         ],
-        subject: "src/pricing.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -309,11 +339,11 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “One Pile”",
         ],
         intent: "A name that says no more than the expression it stands for is removed.",
+        invariant: "The value is computed where it is used instead of once above; the parentheses keep the operators binding the way they did.",
         note: "The reverse of Extract Variable, and the reason both are in the catalogue: \
                which one is an improvement depends on whether the name earns its keep.",
         files: &[("src/pricing.py", PRICING)],
         argv: &["inline", "src/pricing.py:6:5"],
-        subject: "src/pricing.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -321,11 +351,11 @@ const ENTRIES: &[Entry] = &[
         name: "Inline Function",
         sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.2"],
         intent: "A function whose body is as clear as its name is replaced by its body.",
+        invariant: "The callee's body runs at the call site instead of inside a call; the same expression is evaluated on the same arguments.",
         note: "The call is replaced with the callee's body, with the arguments substituted \
                for the parameters.",
         files: &[("src/delivery.py", DELIVERY)],
         argv: &["inline", "src/delivery.py:2:17", "--call"],
-        subject: "src/delivery.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -336,11 +366,14 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Explicit Parameters”",
         ],
         intent: "A function's parameters change, and every call site changes with them.",
+        invariant: "Every call passes the same values it did, plus the new one. The declaration and the call sites move together: either both change or nothing does.",
         note: "The call inside `band_width` is updated twice, because it is called twice. \
                A call the tool could not resolve would be reported rather than rewritten.",
-        files: &[("src/geometry.py", GEOMETRY)],
+        files: &[
+            ("src/geometry.py", GEOMETRY),
+            ("src/report.py", GEOMETRY_USES),
+        ],
         argv: &["signature", "circ", "add:1:units: str:\"m\""],
-        subject: "src/geometry.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -351,12 +384,15 @@ const ENTRIES: &[Entry] = &[
             "Implementation Patterns — Kent Beck (2007), “Intention-Revealing Name”",
         ],
         intent: "A name that does not say what the thing is becomes one that does.",
+        invariant: "Nothing but the name changes. Every call still reaches the same function, in both files.",
         note: "`circ` appears twice inside `band_width` and once in the docstring. The \
                docstring mention is reported, not rewritten — a name in prose is not a \
                reference.",
-        files: &[("src/geometry.py", GEOMETRY)],
+        files: &[
+            ("src/geometry.py", GEOMETRY),
+            ("src/report.py", GEOMETRY_USES),
+        ],
         argv: &["rename", "circ", "circumference"],
-        subject: "src/geometry.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -367,13 +403,13 @@ const ENTRIES: &[Entry] = &[
             "Implementation Patterns — Kent Beck (2007), “Intention-Revealing Name”",
         ],
         intent: "A local whose name says nothing becomes one that says what it holds.",
+        invariant: "One binding is renamed and the other `width` — a different binding in a different function — is not. Every read still reads what it read.",
         note: "There are two variables called `width` in this file and only one of them \
                is being renamed. Nothing here matches on the text `width`: the rename \
                follows the lexical scope, so the one in `area` is a different binding \
                and is left alone. A find-and-replace gets this wrong every time.",
         files: &[("src/geometry.py", SCOPES_PY)],
         argv: &["rename", "src/geometry.py:5:5", "span"],
-        subject: "src/geometry.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -381,13 +417,13 @@ const ENTRIES: &[Entry] = &[
         name: "Rename, across a language boundary",
         sources: &["Not in either catalogue — the catalogues predate the problem"],
         intent: "A CSS class is renamed in the stylesheet and everywhere the markup names it.",
+        invariant: "The stylesheet still styles the same element. The rule and the `class` attribute that reaches it are renamed together, across two grammars.",
         note: "Two files, two grammars, one name. The stylesheet declares `.nav-link` and \
                the HTML reaches it through a `class` attribute — no import, no path, \
                nothing a compiler would check. The catalogues are about one language at \
                a time, and most of a web codebase is not.",
         files: &[("web/app.css", APP_CSS), ("web/page.html", PAGE_HTML)],
         argv: &["rename", "nav-link", "primary-link"],
-        subject: "web/page.html",
     },
     Entry {
         kind: Kind::Edit,
@@ -398,12 +434,33 @@ const ENTRIES: &[Entry] = &[
             "The online refactoring catalogue — Martin Fowler",
         ],
         intent: "A parameter nobody needs goes, and every call site loses its argument.",
+        invariant: "The parameter was unused, so no call was passing anything the body read. Every call keeps the arguments the body still uses.",
         note: "The declaration and the calls change together or not at all. A call the \
                tool could not resolve would be reported rather than left quietly \
                passing an argument to a parameter that no longer exists.",
-        files: &[("src/geometry.py", DEFAULTS_PY)],
+        files: &[
+            ("src/geometry.py", DEFAULTS_PY),
+            ("src/rim.py", DEFAULTS_USES_PY),
+        ],
         argv: &["signature", "circ", "remove:1"],
-        subject: "src/geometry.py",
+    },
+    Entry {
+        kind: Kind::Refused,
+        id: "remove-parameter-refused",
+        name: "…and the parameter that could not go",
+        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5"],
+        intent: "The same move, where taking the parameter away would change what runs.",
+        invariant: "Nothing changes. `units` is read by the body, so removing it would \
+                    leave a name nothing supplies — a change to what the program does, \
+                    which is the definition of not a refactoring.",
+        note: "The rule existed for shell functions, where a parameter is `$1` and the \
+               body reading `$2` is obvious, and for nothing else. `def circ(r): return \
+               f\"…{units}\"` was produced happily until this page asked for it.",
+        files: &[
+            ("src/geometry.py", DEFAULTS_PY),
+            ("src/rim.py", DEFAULTS_USES_PY),
+        ],
+        argv: &["signature", "circ", "remove:2"],
     },
     Entry {
         kind: Kind::Edit,
@@ -414,12 +471,15 @@ const ENTRIES: &[Entry] = &[
             "The online refactoring catalogue — Martin Fowler",
         ],
         intent: "Two parameters swap, and so do the arguments at every call.",
+        invariant: "Each argument still arrives at the parameter it was written for, in both files: the parameters and the arguments move in step.",
         note: "The arguments move with the parameters. Getting one of the two halves \
                right is worse than doing nothing, which is why this is a refactoring \
                rather than two edits.",
-        files: &[("src/net.py", CONNECT_PY)],
+        files: &[
+            ("src/net.py", CONNECT_PY),
+            ("src/client.py", CONNECT_USES_PY),
+        ],
         argv: &["signature", "send", "move:0:1"],
-        subject: "src/net.py",
     },
     Entry {
         kind: Kind::Refused,
@@ -427,14 +487,14 @@ const ENTRIES: &[Entry] = &[
         name: "…and the reorder that would not run",
         sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5"],
         intent: "The same move, where the language will not have it.",
+        invariant: "Nothing changes, because the only change available would not preserve anything — the file would stop parsing as Python.",
         note: "Python requires every defaulted parameter to come last, so this would \
                produce `def circ(units=\"m\", r):` — which Python rejects outright. The \
                engine reparses every edit and would normally catch a broken result, but \
                tree-sitter parses this without complaint, so the refactoring has to \
                know the rule itself. It did not until this page was written.",
         files: &[("src/geometry.py", DEFAULTS_PY)],
-        argv: &["signature", "circ", "move:0:1"],
-        subject: "src/geometry.py",
+        argv: &["signature", "circ", "move:0:2"],
     },
     Entry {
         kind: Kind::Edit,
@@ -445,6 +505,7 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Explaining Variables”",
         ],
         intent: "One name for a repeated sub-expression, substituted everywhere it appears.",
+        invariant: "Both occurrences read one binding instead of computing the same expression twice; the expression was the same, so the value is.",
         note: "Fowler's mechanics say to replace *all* occurrences, and the second one \
                here is inside a larger expression rather than alone on a line — which is \
                why this matches on the parse tree rather than on the text.",
@@ -455,7 +516,6 @@ const ENTRIES: &[Entry] = &[
             "gross",
             "--all",
         ],
-        subject: "src/pricing.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -463,13 +523,13 @@ const ENTRIES: &[Entry] = &[
         name: "Remove unused imports",
         sources: &["Not in either catalogue — but it is the tidying you do after the others"],
         intent: "Imports nothing uses are dropped and the rest are sorted.",
+        invariant: "The same modules are imported. Only the order changes, and Python does not care about the order of independent imports.",
         note: "Read what it prints above the diff. Liveness is decided by name, so an \
                import kept for a trait, a registration side effect or a doc comment \
                would look unused — and it says so rather than letting you find out. \
                This is the step a recipe puts last, with `imports where changed`.",
         files: &[("src/loader.py", UNSORTED_PY)],
         argv: &["imports", "src/loader.py"],
-        subject: "src/loader.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -480,11 +540,11 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Cohesion Order”",
         ],
         intent: "A function moves to the module it belongs with, and its callers follow.",
+        invariant: "The function is called through an import instead of from beside its caller. The same code runs on the same arguments; only where it is written moved.",
         note: "The import appears in the file it left, because the function that stayed \
                behind still calls it.",
         files: &[("src/account.py", ACCOUNT), ("src/rates.py", RATES)],
         argv: &["move", "days_overdue", "src/rates.py"],
-        subject: "src/account.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -495,12 +555,12 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Dead Code”",
         ],
         intent: "Code nothing calls is deleted rather than maintained.",
+        invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. That is what makes the deletion safe rather than a guess.",
         note: "`fr unused` finds it and `fr delete` removes it, and the two must agree: \
                delete refuses anything still referenced, which is what makes the list \
                worth acting on.",
         files: &[("src/reports.py", REPORTS)],
         argv: &["delete", "_legacy_histogram"],
-        subject: "src/reports.py",
     },
     Entry {
         kind: Kind::Refused,
@@ -508,6 +568,7 @@ const ENTRIES: &[Entry] = &[
         name: "…and the one it will not delete",
         sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §8.9"],
         intent: "Deleting something that is still reached is not dead-code removal.",
+        invariant: "Nothing changes. The symbol is reachable, so removing it would change what the program does — which is the definition of not a refactoring.",
         note: "The boundary that makes `fr unused` worth acting on: whatever the list \
                says, `delete` checks again and refuses anything still referenced. The \
                two halves have to agree, and running them against each other over a \
@@ -515,7 +576,6 @@ const ENTRIES: &[Entry] = &[
                found.",
         files: &[("src/live.py", LIVE_PY)],
         argv: &["delete", "helper"],
-        subject: "src/live.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -526,11 +586,11 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Guard Clauses”",
         ],
         intent: "The special cases leave early, so the normal path is not indented.",
+        invariant: "The same conditions decide the same outcome; the nesting is inverted so the exceptional cases leave early.",
         note: "Beck's version is the one this does: a single guard at a time, taken off \
                the front. Run it again on what is left and the second guard comes off too.",
         files: &[("src/notify.py", NOTIFY)],
         argv: &["rewrite", "src/notify.py:2:5", "guard-clause"],
-        subject: "src/notify.py",
     },
     Entry {
         kind: Kind::Refused,
@@ -538,6 +598,7 @@ const ENTRIES: &[Entry] = &[
         name: "…and where it stops",
         sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §10.3"],
         intent: "Fowler's own example is an `if`/`else` nest that assigns to a result.",
+        invariant: "Nothing changes. The tool could not prove the shape it needs, and a guess here would reorder the conditions.",
         note: "The tool will not do this one, and says why rather than guessing. Turning \
                an `else` into an early return means deciding what the function returns on \
                the path that used to fall through — a judgement about the code, not a \
@@ -545,7 +606,6 @@ const ENTRIES: &[Entry] = &[
                entry below is that same file.",
         files: &[("src/payout.py", PAYOUT)],
         argv: &["rewrite", "src/payout.py:2:5", "guard-clause"],
-        subject: "src/payout.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -553,11 +613,11 @@ const ENTRIES: &[Entry] = &[
         name: "Reverse Conditional",
         sources: &["The online refactoring catalogue — Martin Fowler"],
         intent: "A condition is negated and its branches swapped, when that reads better.",
+        invariant: "The branches swap and the condition is negated with them, so each case still runs for the same inputs.",
         note: "Purely local: the tool does not need to resolve a single name to know this \
                is sound, which is why it is offered at a position rather than for a symbol.",
         files: &[("src/payout.py", PAYOUT)],
         argv: &["rewrite", "src/payout.py:2:5", "invert-if"],
-        subject: "src/payout.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -568,13 +628,13 @@ const ENTRIES: &[Entry] = &[
             "Tidy First? — Kent Beck (2023), “Normalize Symmetries”, in spirit",
         ],
         intent: "A negated conjunction becomes a disjunction of negations, or the reverse.",
+        invariant: "`not (a and b)` and `not a or not b` are the same predicate; the same readings still alert.",
         note: "Named honestly: this is not Fowler's Consolidate Conditional Expression \
                (§10.2), which combines several conditionals that produce the same result. \
                It is a law of logic applied by the grammar rather than by eye. The two \
                forms mean the same thing and one of them is usually the one you meant.",
         files: &[("src/alerts.py", ALERTS)],
         argv: &["rewrite", "src/alerts.py:2:12", "de-morgan"],
-        subject: "src/alerts.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -582,6 +642,7 @@ const ENTRIES: &[Entry] = &[
         name: "Substitute Algorithm",
         sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §7.9"],
         intent: "Every occurrence of one shape of code becomes another shape.",
+        invariant: "Both bodies send the same metric for the same event. One of them now does it by calling the other.",
         note: "`$X` matches any node and substitutes back. This is the move to reach for \
                when an API changes under you and the change is mechanical.",
         files: &[("src/telemetry.py", TELEMETRY)],
@@ -592,7 +653,6 @@ const ENTRIES: &[Entry] = &[
             "--lang",
             "python",
         ],
-        subject: "src/telemetry.py",
     },
     Entry {
         kind: Kind::Edit,
@@ -603,11 +663,11 @@ const ENTRIES: &[Entry] = &[
             "Feature Toggles — Martin Fowler & Pete Hodgson (2017)",
         ],
         intent: "A flag that is now always one value is removed, and the branch it chose with it.",
+        invariant: "The flag was constant, so only one branch could ever run. The branch that ran still runs; the one that could not is gone.",
         note: "The dead branch goes with the flag. This is the one move on the page that \
                cascades: it keeps going until nothing else falls out.",
         files: &[("src/checkout.py", CHECKOUT)],
         argv: &["remove-flag", "NEW_CHECKOUT", "--value", "true"],
-        subject: "src/checkout.py",
     },
     Entry {
         kind: Kind::Report,
@@ -615,6 +675,7 @@ const ENTRIES: &[Entry] = &[
         name: "The refactor step of red–green–refactor",
         sources: &["Test-Driven Development by Example — Kent Beck (2002)"],
         intent: "Once the test passes, the duplication that made it pass is removed.",
+        invariant: "The test does not change, which is the whole point: it passed before the move and it passes after.",
         note: "The cycle ends with a refactoring, and the refactoring starts with seeing \
                the duplication. These two functions share not one identifier — `bank` and \
                `exchange`, `rate` and `ratio`, `converted` and `result` — and they are the \
@@ -622,7 +683,6 @@ const ENTRIES: &[Entry] = &[
                search never finds. What to do about it is yours; the moves above are the menu.",
         files: &[("src/exchange.py", TDD_CYCLE)],
         argv: &["duplicates", "--min-tokens", "40"],
-        subject: "src/exchange.py",
     },
 ];
 
@@ -1259,6 +1319,41 @@ fn run(root: &Path, argv: &[String]) -> String {
     text.trim_end().to_string()
 }
 
+/// One command's standard error, on its own.
+///
+/// `fr openapi` puts the document on stdout and everything it could not settle on
+/// stderr, so that the document stays a document. The page wants both halves and has to
+/// keep them apart.
+fn run_stderr(root: &Path, argv: &[String]) -> String {
+    let output = Command::new(FR)
+        .arg("--root")
+        .arg(root)
+        .args(argv)
+        .output()
+        .expect("running fr");
+    let mut text = String::from_utf8_lossy(&output.stderr).to_string();
+    let root_text = root.to_string_lossy().to_string();
+    let private = format!("/private{root_text}");
+    for prefix in [private.as_str(), root_text.as_str()] {
+        text = text.replace(&format!("{prefix}/"), "").replace(prefix, ".");
+    }
+    text.trim_end().to_string()
+}
+
+/// Copy a directory tree, so a sample kept in the repository can be run against.
+fn copy(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), &target).unwrap();
+        }
+    }
+}
+
 fn json_string(value: &str) -> String {
     serde_json::to_string(value).unwrap()
 }
@@ -1281,14 +1376,26 @@ fn catalog_data() -> String {
             .map(|a| resolve(a, root))
             .collect::<Vec<_>>();
 
-        let before = std::fs::read_to_string(root.join(entry.subject)).unwrap();
+        // Every file in the sample, not one of them. A refactoring that changes a
+        // signature has to change the callers too, and a page that shows only the
+        // declaration is showing half of the move — the half that on its own would
+        // break the program.
+        let before: Vec<String> = entry
+            .files
+            .iter()
+            .map(|(path, _)| std::fs::read_to_string(root.join(path)).unwrap())
+            .collect();
         let output = run(root, &argv);
         let after = match entry.kind {
             Kind::Edit => {
                 let mut applied = argv.clone();
                 applied.push("--write".to_string());
                 run(root, &applied);
-                let after = std::fs::read_to_string(root.join(entry.subject)).unwrap();
+                let after: Vec<String> = entry
+                    .files
+                    .iter()
+                    .map(|(path, _)| std::fs::read_to_string(root.join(path)).unwrap())
+                    .collect();
                 assert_ne!(
                     before, after,
                     "{} claims to be an edit and changed nothing. What it printed:\n{output}",
@@ -1305,7 +1412,7 @@ fn catalog_data() -> String {
                     "{} is a report and failed:\n{output}",
                     entry.id
                 );
-                String::new()
+                before.clone()
             }
             Kind::Refused => {
                 assert!(
@@ -1313,7 +1420,7 @@ fn catalog_data() -> String {
                     "{} claims to be refused and was not:\n{output}",
                     entry.id
                 );
-                String::new()
+                before.clone()
             }
         };
 
@@ -1329,10 +1436,23 @@ fn catalog_data() -> String {
                 .join(" ")
         );
         let sources: Vec<String> = entry.sources.iter().map(|s| json_string(s)).collect();
+        let files: Vec<String> = entry
+            .files
+            .iter()
+            .zip(before.iter().zip(after.iter()))
+            .map(|((path, _), (before, after))| {
+                format!(
+                    "{{ path: {}, before: {}, after: {} }}",
+                    json_string(path),
+                    json_string(before),
+                    json_string(after)
+                )
+            })
+            .collect();
         out.push_str(&format!(
             "  {{\n    id: {},\n    kind: {},\n    name: {},\n    sources: [{}],\n    \
-             intent: {},\n    note: {},\n    command: {},\n    file: {},\n    before: {},\n    \
-             after: {},\n    output: {},\n  }},\n",
+             intent: {},\n    invariant: {},\n    note: {},\n    command: {},\n    \
+             files: [\n      {},\n    ],\n    output: {},\n  }},\n",
             json_string(entry.id),
             json_string(match entry.kind {
                 Kind::Edit => "edit",
@@ -1342,11 +1462,10 @@ fn catalog_data() -> String {
             json_string(entry.name),
             sources.join(", "),
             json_string(entry.intent),
+            json_string(entry.invariant),
             json_string(entry.note),
             json_string(&command),
-            json_string(entry.subject),
-            json_string(&before),
-            json_string(&after),
+            files.join(",\n      "),
             json_string(&output),
         ));
     }
@@ -1497,4 +1616,166 @@ fn the_recipe_tutorial_shows_what_the_tool_does() {
 #[test]
 fn the_translation_page_shows_what_the_tool_does() {
     check("docs/translate-data.js", translate_data());
+}
+
+// -------------------------------------------------------------- the contract
+
+/// One endpoint of the pet store, and what it looks like on both sides of the crossing.
+struct Endpoint {
+    /// The route file, relative to the sample tree.
+    route: &'static str,
+    /// What kind of endpoint this is, for the reader working down the page.
+    shape: &'static str,
+    /// What this one demonstrates that the others do not.
+    note: &'static str,
+}
+
+/// Every shape a CRUD API has, in one tree.
+///
+/// Not a sampler: a router that answers all of these is a router that has met a
+/// collection, a member, a sub-collection, a sub-member, a replacement, an action, an
+/// aggregate and a catch-all — which is the whole surface most APIs ever have.
+const ENDPOINTS: &[Endpoint] = &[
+    Endpoint {
+        route: "app/api/pets/route.ts",
+        shape: "A collection: list and create",
+        note: "`GET` reads `species` out of the query string and `POST` validates its \
+               body against a zod schema declared in another module. Neither is a \
+               declaration Next.js makes, and both are in the contract.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/route.ts",
+        shape: "A member: read, patch, delete",
+        note: "`context.params.petId` becomes `pet_id` wherever it appears, because \
+               FastAPI supplies the path parameter directly. The URL is unchanged; only \
+               the way the handler reaches the value did.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/photos/route.ts",
+        shape: "A sub-collection under a member",
+        note: "The parent's path parameter is still in scope: `/pets/{pet_id}/photos` \
+               carries `pet_id` into a handler that also takes a body.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/photos/[photoId]/route.ts",
+        shape: "A sub-member: two path parameters",
+        note: "Both parameters arrive, in the order the tree declares them, and both \
+               are used in the body. Getting one of them right is not half a rewrite.",
+    },
+    Endpoint {
+        route: "app/api/pets/[petId]/status/route.ts",
+        shape: "A sub-resource replaced whole: PUT",
+        note: "A nullable field in the schema — `note: z.string().nullable()` — becomes \
+               `str | None`, and the contract leaves it out of `required`.",
+    },
+    Endpoint {
+        route: "app/api/pets/search/route.ts",
+        shape: "An action, which is not CRUD at all",
+        note: "`/pets/search` is a *sibling* of `/pets/{pet_id}` in the tree, so a \
+               router has to tell a literal segment from a parameter. Both are in the \
+               contract, and the order they are declared in decides which wins.",
+    },
+    Endpoint {
+        route: "app/api/stores/[storeId]/inventory/route.ts",
+        shape: "An aggregate over a different resource",
+        note: "A second root — `/stores/…` — with a path parameter of its own, to show \
+               the tree is not one resource deep.",
+    },
+    Endpoint {
+        route: "app/api/files/[...path]/route.ts",
+        shape: "A catch-all segment",
+        note: "`[...path]` matches across slashes; FastAPI spells that `{path:path}`. A \
+               rewrite that emitted `{path}` would answer a strictly smaller set of \
+               URLs than the one it replaced — silently, and only for the requests with \
+               a slash in them.",
+    },
+];
+
+/// The pet store, translated route by route, with the contract it declares.
+fn contract_data() -> String {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/petstore");
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    // Named, not the temporary directory itself: `fr openapi` titles the document after
+    // the workspace, and a title that is a different random string every run would make
+    // the committed page churn for no reason.
+    let workspace = tmp.path().join("petstore");
+    copy(&root, &workspace);
+    let workspace = workspace.as_path();
+
+    let contract = run(workspace, &["openapi".into(), "--yaml".into()]);
+    assert!(
+        contract.contains("openapi: 3.1.0"),
+        "the contract is a document:\n{contract}"
+    );
+    // The notes go to stderr, so what lands here is the document. Everything the
+    // document could not settle is fetched separately, because it is the other half of
+    // the story: a baseline that quietly invents an entry is worse than no baseline.
+    let notes = run_stderr(workspace, &["openapi".into()]);
+
+    let mut out = String::from(
+        "// Generated by `cargo test --test site_data`. Do not edit.\n\
+         //\n\
+         // The contract, and every endpoint on both sides of the crossing, produced by\n\
+         // running the real binary over `tests/petstore`. Regenerate with:\n\
+         //   UPDATE_SITE_DATA=1 cargo test --test site_data\n",
+    );
+    out.push_str(&format!(
+        "export const CONTRACT = {};\n\nexport const CONTRACT_NOTES = {};\n\n\
+         export const ENDPOINTS = [\n",
+        json_string(&contract),
+        json_string(&notes)
+    ));
+
+    for endpoint in ENDPOINTS {
+        let before = std::fs::read_to_string(workspace.join(endpoint.route)).unwrap();
+        let argv = vec![
+            "translate".to_string(),
+            endpoint.route.to_string(),
+            "fastapi".to_string(),
+        ];
+        let report = run(workspace, &argv);
+        assert!(
+            !report.starts_with("Error:"),
+            "{}: {report}",
+            endpoint.route
+        );
+        let mut applied = argv.clone();
+        applied.push("--write".to_string());
+        run(workspace, &applied);
+        // The destination is beside the route, named after the URL it serves.
+        let directory = workspace
+            .join(endpoint.route)
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        // Read off disk rather than out of the report, so it has to be scrubbed here:
+        // the header names the file it was translated from, and that path is a
+        // temporary directory whose name changes every run.
+        let after = std::fs::read_dir(&directory)
+            .unwrap()
+            .flatten()
+            .map(|e| e.path())
+            .find(|p| p.extension().is_some_and(|x| x == "py"))
+            .map(|p| scrub(&std::fs::read_to_string(p).unwrap(), workspace))
+            .unwrap_or_else(|| panic!("{} produced no Python", endpoint.route));
+
+        out.push_str(&format!(
+            "  {{\n    route: {},\n    shape: {},\n    note: {},\n    command: {},\n    \
+             before: {},\n    after: {},\n    report: {},\n  }},\n",
+            json_string(endpoint.route),
+            json_string(endpoint.shape),
+            json_string(endpoint.note),
+            json_string(&format!("fr translate '{}' fastapi", endpoint.route)),
+            json_string(&before),
+            json_string(&after),
+            json_string(&report),
+        ));
+    }
+    out.push_str("];\n");
+    out
+}
+
+#[test]
+fn the_contract_page_shows_what_the_tool_does() {
+    check("docs/contract-data.js", contract_data());
 }

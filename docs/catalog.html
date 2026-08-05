@@ -19,6 +19,7 @@
       <a href="catalog.html" aria-current="page">Catalogue</a>
       <a href="recipes.html">Recipes</a>
       <a href="translate.html">Translate</a>
+      <a href="contract.html">Contract</a>
       <a href="playground/">Playground</a>
       <a href="docs.html">Docs</a>
       <a href="why.html">Why</a>
@@ -34,11 +35,26 @@
     <p class="eyebrow">The catalogue</p>
     <h1 class="prose">Fowler and Beck, worked in Python</h1>
     <p class="lede prose">
-      Twenty-three entries: the named moves — Extract Function, Guard Clauses, Inline
+      A refactoring is a change to the <em>text</em> of a program that leaves what the
+      program <em>does</em> alone. That is the whole definition, and it is the only
+      thing every entry here has in common — so every entry says, in its own words,
+      what stayed the same.
+    </p>
+    <p class="lede prose">
+      Twenty-four entries: the named moves — Extract Function, Guard Clauses, Inline
       Variable, Reorder Parameters — applied by the tool, one command each. Before,
-      after, the diff, and the sentences it printed about what it had done. Four of them
-      are not edits: three are <strong>refusals</strong>, and one finds work without
+      after, the diff, and the sentences it printed about what it had done. Five of them
+      are not edits: four are <strong>refusals</strong>, and one finds work without
       doing it.
+    </p>
+
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Every file</span> &nbsp;Where a move reaches past the file
+      it started in, <strong>every file is here</strong> — including the ones that did
+      not have to change. Changing a signature and not its callers is not half a
+      refactoring; it is a broken program. So the declaration and the calls appear
+      together, in their own tabs, and you can watch the behaviour move from one to the
+      other and stay the same.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
@@ -66,6 +82,7 @@
       <button data-filter="all" role="tab" aria-selected="true">Everything</button>
       <button data-filter="fowler" role="tab" aria-selected="false">Fowler</button>
       <button data-filter="beck" role="tab" aria-selected="false">Beck</button>
+      <button data-filter="rippling" role="tab" aria-selected="false">Reaches other files</button>
       <button data-filter="boundary" role="tab" aria-selected="false">Where it stops</button>
     </div>
 

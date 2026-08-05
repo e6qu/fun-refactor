@@ -52,6 +52,20 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
     let mut notes = Vec::new();
     let mut routes = Vec::new();
 
+    // Every shape the tree declares, wherever it is declared.
+    //
+    // A real Next.js application keeps its zod schemas in a module the routes import —
+    // `@/lib/schemas` here — and reading only the route file found none of them. The
+    // contract came out with an empty `components` section, which says the endpoints
+    // take no body at all: a smaller contract than the one it stands in for, and
+    // exactly the failure this document exists to catch.
+    let mut declared: std::collections::BTreeMap<String, Model> = std::collections::BTreeMap::new();
+    for file in files {
+        for model in nextjs::models_in(file).unwrap_or_default() {
+            declared.entry(model.name.clone()).or_insert(model);
+        }
+    }
+
     for file in files.iter().filter(|f| nextjs::is_api_route(f)) {
         let plan = match nextjs::plan(file) {
             Ok(plan) => plan,
@@ -66,6 +80,11 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
 
         for model in &plan.models {
             schemas.insert(model.name.clone(), schema_of(model, &mut notes));
+        }
+        for (_, name) in &plan.bodies {
+            if let Some(model) = declared.get(name) {
+                schemas.insert(model.name.clone(), schema_of(model, &mut notes));
+            }
         }
 
         let entry = paths
@@ -89,13 +108,49 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             .collect();
 
         for method in &plan.methods {
-            let operation = json!({
+            // The path parameters, plus whatever this handler reads out of the query.
+            // Next.js declares neither; the path ones come from the tree and the query
+            // ones from the handler reaching into the URL.
+            let mut all = parameters.clone();
+            for (_, name) in plan.queries.iter().filter(|(m, _)| m == method) {
+                all.push(json!({
+                    "name": name,
+                    "in": "query",
+                    // Nothing says it is required: a handler that defaults it and a
+                    // handler that rejects the request without it read the same way.
+                    "required": false,
+                    "schema": { "type": "string" }
+                }));
+            }
+            let mut operation = json!({
                 "operationId": format!("{}{}", method.to_lowercase(), operation_suffix(&plan.route)),
-                "parameters": parameters,
+                "parameters": all,
                 "responses": {
                     "default": { "description": "not declared by the source" }
                 }
             });
+            // The body the handler validates, linked to the operation that validates
+            // it. A `components` section nothing refers to is not a contract.
+            if let Some((_, schema)) = plan.bodies.iter().find(|(m, _)| m == method) {
+                match declared.contains_key(schema) || plan.models.iter().any(|m| m.name == *schema)
+                {
+                    true => {
+                        operation["requestBody"] = json!({
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": { "$ref": format!("#/components/schemas/{schema}") }
+                                }
+                            }
+                        });
+                    }
+                    false => notes.push(format!(
+                        "{}: {method} validates its body with `{schema}`, which is declared \
+                         nowhere this document can see — the body is not in the contract",
+                        relative(root, file)
+                    )),
+                }
+            }
             entry.insert(method.to_lowercase(), operation);
         }
 
@@ -109,6 +164,20 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                     .map(|m| m.name.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
+            ));
+        }
+
+        // A handler this could not read whole may be reaching into the URL in the part
+        // it could not read. `Number(req.nextUrl.searchParams.get("limit") ?? "50")`
+        // uses `??`, which the IR has no node for, so the statement is carried verbatim
+        // — and `limit` never reaches this document. Saying so is the difference
+        // between a contract with a gap and a contract that looks complete.
+        if plan.fidelity.carried_verbatim > 0 {
+            notes.push(format!(
+                "{}: {} statement(s) could not be read; any query parameter read inside \
+                 one of them is missing from this document",
+                relative(root, file),
+                plan.fidelity.carried_verbatim
             ));
         }
 
