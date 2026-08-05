@@ -76,6 +76,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B207: **`a %% b` on two integers meant something else in Python, silently.** The
+  same disagreement as division, found by asking the same question of the next operator
+  in the table: every other language here takes the remainder's sign from the dividend
+  and Python takes it from the divisor, so `-7 %% 2` is -1 on one side and 1 on the
+  other. Unlike division there is no readable Python form — writing it exactly means
+  `a - b * int(a / b)` — so the idiomatic operator is kept and the difference is
+  reported, with the expression quoted and the exact condition named. Float remainders
+  agree and are not reported, because a note nobody needs is how a note somebody needs
+  gets missed.
+
 - [x] B206: **`a / b` on two integers became float division in Python.** Rust, Go, Java
   and Zig all truncate; Python's `/` produces a float and its `//` floors, so neither
   operator means what the source meant. `half(7, 2)` returned 3 on one side and 3.5 on

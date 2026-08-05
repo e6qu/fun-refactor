@@ -1807,6 +1807,28 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             // are 3.5 and -3.5 where the source meant 3 and -3. `int(a / b)` truncates
             // toward zero, which is exactly what the source said — at float precision,
             // which is every integer a program of this kind divides.
+            // `%` has the same disagreement and no readable Python form: every other
+            // language here takes the sign from the dividend, Python from the divisor,
+            // so `-7 % 2` is -1 there and 1 here. Writing it exactly means
+            // `a - b * int(a / b)`, which is arithmetic nobody would read twice — so
+            // the idiomatic operator is kept and the difference is reported instead of
+            // being left for someone to find with a negative number.
+            if *op == BinaryOp::Rem && holds_an_integer(out, left) && holds_an_integer(out, right) {
+                let rendered = format!(
+                    "{} % {}",
+                    binary_operand(python_expr(out, left), left, *op, false),
+                    binary_operand(python_expr(out, right), right, *op, true)
+                );
+                let note = format!(
+                    "`{rendered}` takes its sign from the divisor in Python and from the \
+                     dividend in the source language, so the two differ whenever the \
+                     operands have different signs"
+                );
+                if !out.fidelity.notes.contains(&note) {
+                    out.fidelity.notes.push(note);
+                }
+                return rendered;
+            }
             if *op == BinaryOp::Div && holds_an_integer(out, left) && holds_an_integer(out, right) {
                 return format!(
                     "int({} / {})",

@@ -1693,6 +1693,14 @@ Python's `//` going the other way was already reported as a construct with no
 counterpart, which is what made the asymmetry visible: the tool refused the operation in
 one direction and performed it silently in the other.
 
+**The next operator in the table has the same disagreement.** `%` takes its sign from
+the dividend in Rust, Go, Java and Zig, and from the divisor in Python: `-7 % 2` is -1
+on one side and 1 on the other. Here there is no readable Python form — written exactly
+it is `a - b * int(a / b)`, arithmetic nobody would read twice — so the idiomatic
+operator is kept and the difference is reported, with the expression quoted and the
+exact condition named. Float remainders agree and are not reported: a note nobody needs
+is how a note somebody needs gets missed.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
