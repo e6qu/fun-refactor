@@ -153,19 +153,23 @@ fn spellings(language: Language, module: &Module) -> Spellings {
 /// change of convention everywhere but Python. `changed` is reported rather than
 /// hidden, because a caller of the translated function writes the call differently and
 /// nothing else in the output would say so.
-fn spell_param(
-    language: Language,
-    kind: ParamKind,
-    name: &str,
-    changed: &mut bool,
-) -> Option<String> {
+fn spell_param(out: &Out, kind: ParamKind, raw: &str, changed: &mut bool) -> Option<String> {
+    // A bare `*` or `/` is punctuation standing where a parameter would go. Putting it
+    // through the naming map asked what `*` is called in TypeScript, and the answer —
+    // "not a name this language can spell" — was a true sentence about a thing that is
+    // never written down.
+    if kind == ParamKind::Marker {
+        if out.language == Language::Python {
+            return Some(raw.to_string());
+        }
+        *changed = true;
+        return None;
+    }
+    let name = out.name(raw);
+    let language = out.language;
     match (kind, language) {
         (ParamKind::Normal, _) => Some(name.to_string()),
-        (ParamKind::Marker, Language::Python) => Some(name.to_string()),
-        (ParamKind::Marker, _) => {
-            *changed = true;
-            None
-        }
+        (ParamKind::Marker, _) => None,
         (ParamKind::VarArgs, Language::Python) => Some(format!("*{name}")),
         (ParamKind::VarArgs, Language::TypeScript | Language::Tsx) => Some(format!("...{name}")),
         (ParamKind::VarArgs, Language::Go) => Some(format!("{name} ...")),
@@ -443,6 +447,14 @@ pub fn write_in_context(
              these into"
         ),
     }
+    let unnameable: Vec<String> = out.unnameable.borrow().iter().cloned().collect();
+    for name in unnameable {
+        out.fidelity.notes.push(format!(
+            "`{name}` is not a name {language} can spell; it is written `{}`, and every \
+             use of it needs a real name",
+            sanitise(&name)
+        ));
+    }
     let escaped: Vec<String> = out.escaped.borrow().iter().cloned().collect();
     for name in escaped {
         out.fidelity.notes.push(format!(
@@ -474,6 +486,11 @@ struct Out {
     /// `db.users.find`, `NextResponse`, a library function. Re-casing those would
     /// rename somebody else's API, which is the one thing a translation must not do.
     names: BTreeMap<String, String>,
+    /// Names that are not identifiers at all in any of these languages.
+    ///
+    /// Reported rather than quietly reshaped, because the replacement is a name the
+    /// source never used and every call to it has to be found by hand.
+    unnameable: std::cell::RefCell<std::collections::BTreeSet<String>>,
     /// Names that had to be escaped because the target reserves them.
     ///
     /// Collected while writing and reported at the end. `select` is a name sqlmodel
@@ -514,6 +531,7 @@ impl Out {
             indent: 0,
             fidelity: Fidelity::default(),
             names: BTreeMap::new(),
+            unnameable: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
             pending: Vec::new(),
@@ -531,8 +549,17 @@ impl Out {
         self.legal(spelled)
     }
 
-    /// The same name, made writable where the target reserves it.
+    /// The same name, made writable where the target will not take it as written.
     fn legal(&self, spelled: String) -> String {
+        // A TypeScript member can be named by an expression — `[Symbol.dispose]()` —
+        // and no other language here has anything of the kind. Written through, it
+        // produced `pub fn [symbol.dispose](&self)`, which is not Rust. A qualified
+        // path is a different matter and must survive untouched: `std::fmt::Display`
+        // and `sync.Mutex` name real things.
+        if !is_writable_identifier(&spelled) {
+            self.unnameable.borrow_mut().insert(spelled.clone());
+            return sanitise(&spelled);
+        }
         if !reserved(self.language, &spelled) {
             return spelled;
         }
@@ -600,14 +627,27 @@ impl Out {
         };
     }
 
+    /// One line of output, at the current indent.
+    ///
+    /// Text with newlines in it becomes several lines, each indented. It arrives that
+    /// way more often than it looks: a `/* ... */` comment is a single node however
+    /// many lines it spans, and pushing it through whole indented the first line and
+    /// left the rest hanging in column one — with only the first carrying whatever
+    /// marker made it a comment.
     fn line(&mut self, text: &str) {
-        if !text.is_empty() {
-            for _ in 0..self.indent {
-                self.text.push_str("    ");
-            }
-            self.text.push_str(text);
+        if text.is_empty() {
+            self.text.push('\n');
+            return;
         }
-        self.text.push('\n');
+        for piece in text.split('\n') {
+            if !piece.is_empty() {
+                for _ in 0..self.indent {
+                    self.text.push_str("    ");
+                }
+                self.text.push_str(piece);
+            }
+            self.text.push('\n');
+        }
     }
 
     fn blank(&mut self) {
@@ -637,11 +677,23 @@ impl Out {
         self.text.clone()
     }
 
+    /// `text` as a comment — every line of it.
+    ///
+    /// A marker on the first line only is not a comment, it is one comment followed by
+    /// whatever the rest of the lines happen to parse as. Multi-line text reaches here
+    /// from every `/* ... */` in every source.
     fn comment(&self, text: &str) -> String {
-        match self.language {
-            Language::Python => format!("# {text}"),
-            _ => format!("// {text}"),
-        }
+        let marker = match self.language {
+            Language::Python => "#",
+            _ => "//",
+        };
+        text.split('\n')
+            .map(|line| match line.is_empty() {
+                true => marker.to_string(),
+                false => format!("{marker} {line}"),
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
@@ -796,7 +848,7 @@ fn rust(out: &mut Out, module: &Module) {
                     out.line(&format!("impl {type_name} {{"));
                     out.open();
                     for m in &r.methods {
-                        rust_function(out, m, true);
+                        rust_function(out, m, m.receiver_binding.is_some());
                     }
                     out.close();
                     out.line("}");
@@ -847,8 +899,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     }
     let mut foreign = false;
     for p in &f.params {
-        let Some(spelled) = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)
-        else {
+        let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
         };
         if p.kind != ParamKind::Normal {
@@ -1039,7 +1090,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => v.to_string(),
-        Expr::Str(v) => format!("{v:?}"),
+        Expr::Str(v) => quoted(Language::Rust, v),
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
@@ -1131,9 +1182,13 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 }
             }
             if args.is_empty() {
-                format!("{literal:?}.to_string()")
+                format!("{}.to_string()", quoted(Language::Rust, &literal))
             } else {
-                format!("format!({literal:?}, {})", args.join(", "))
+                format!(
+                    "format!({}, {})",
+                    quoted(Language::Rust, &literal),
+                    args.join(", ")
+                )
             }
         }
         Expr::Comprehension {
@@ -1230,7 +1285,12 @@ fn python(out: &mut Out, module: &Module) {
                 }
                 for m in &r.methods {
                     out.blank();
-                    python_function(out, m, true);
+                    // A method with no receiver is not an instance method, and Python
+                    // will pass it one anyway unless told otherwise.
+                    if m.receiver_binding.is_none() {
+                        out.line("@staticmethod");
+                    }
+                    python_function(out, m, m.receiver_binding.is_some());
                 }
                 out.close();
                 out.fidelity.records += 1;
@@ -1291,8 +1351,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
             .as_ref()
             .map(|d| format!(" = {}", python_expr(out, d)))
             .unwrap_or_default();
-        let Some(spelled) = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)
-        else {
+        let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
         };
         if p.kind != ParamKind::Normal {
@@ -1351,9 +1410,27 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     }
 }
 
+/// A line, preceded by anything an expression could not say where it stood.
+///
+/// Python has no inline comment: `#` runs to the end of the line, so a note written
+/// inside a call's parentheses swallows the closing one. The note used to go only to
+/// the fidelity report, which left a bare `None` sitting in the file where a value had
+/// been — true in the report and a lie in the code. It goes above the statement now,
+/// which is where Zig puts its own for exactly the same reason.
+fn python_line(out: &mut Out, text: &str) {
+    let pending = std::mem::take(&mut out.pending);
+    for note in pending {
+        for line in note.lines() {
+            let commented = out.comment(line);
+            out.line(&commented);
+        }
+    }
+    out.line(text);
+}
+
 fn python_block(out: &mut Out, body: &[Stmt]) {
     if body.is_empty() {
-        out.line("raise NotImplementedError");
+        python_line(out, "raise NotImplementedError");
         return;
     }
     let mut wrote = false;
@@ -1369,7 +1446,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     .as_ref()
                     .map(|v| format!(" {}", python_expr(out, v)))
                     .unwrap_or_default();
-                out.line(&format!("return{text}"));
+                python_line(out, &format!("return{text}"));
             }
             Stmt::Let {
                 name, ty, value, ..
@@ -1383,12 +1460,12 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     .map(|v| python_expr(out, v))
                     .unwrap_or_else(|| "None".to_string());
                 let bound = out.name(name);
-                out.line(&format!("{bound}{annotation} = {v}"));
+                python_line(out, &format!("{bound}{annotation} = {v}"));
             }
             Stmt::Assign { target, value } => {
                 let t = python_expr(out, target);
                 let v = python_expr(out, value);
-                out.line(&format!("{t} = {v}"));
+                python_line(out, &format!("{t} = {v}"));
             }
             Stmt::If {
                 condition,
@@ -1396,7 +1473,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 otherwise,
             } => {
                 let c = python_expr(out, condition);
-                out.line(&format!("if {c}:"));
+                python_line(out, &format!("if {c}:"));
                 out.open();
                 python_block(out, then);
                 out.close();
@@ -1404,14 +1481,14 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     // `else: if ...` is written `elif` when that is all it is.
                     if otherwise.len() == 1 {
                         if let Stmt::If { .. } = &otherwise[0] {
-                            out.line("else:");
+                            python_line(out, "else:");
                             out.open();
                             python_block(out, otherwise);
                             out.close();
                             continue;
                         }
                     }
-                    out.line("else:");
+                    python_line(out, "else:");
                     out.open();
                     python_block(out, otherwise);
                     out.close();
@@ -1419,7 +1496,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
             }
             Stmt::While { condition, body } => {
                 let c = python_expr(out, condition);
-                out.line(&format!("while {c}:"));
+                python_line(out, &format!("while {c}:"));
                 out.open();
                 python_block(out, body);
                 out.close();
@@ -1431,7 +1508,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
             } => {
                 let it = python_expr(out, iterable);
                 let bound = out.name(binding);
-                out.line(&format!("for {bound} in {it}:"));
+                python_line(out, &format!("for {bound} in {it}:"));
                 out.open();
                 python_block(out, body);
                 out.close();
@@ -1439,13 +1516,13 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
             Stmt::Expr(Expr::Null) => {}
             Stmt::Expr(e) => {
                 let text = python_expr(out, e);
-                out.line(&text);
+                python_line(out, &text);
             }
             Stmt::Break => {
-                out.line("break");
+                python_line(out, "break");
             }
             Stmt::Continue => {
-                out.line("continue");
+                python_line(out, "continue");
             }
             Stmt::Try {
                 body,
@@ -1453,7 +1530,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 finally,
                 ..
             } => {
-                out.line("try:");
+                python_line(out, "try:");
                 out.open();
                 python_block(out, body);
                 out.close();
@@ -1468,13 +1545,13 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                         .as_ref()
                         .map(|b| format!(" as {}", out.name(b)))
                         .unwrap_or_default();
-                    out.line(&format!("except {selector}{bound}:"));
+                    python_line(out, &format!("except {selector}{bound}:"));
                     out.open();
                     python_block(out, &clause.body);
                     out.close();
                 }
                 if !finally.is_empty() {
-                    out.line("finally:");
+                    python_line(out, "finally:");
                     out.open();
                     python_block(out, finally);
                     out.close();
@@ -1482,18 +1559,18 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
             }
             Stmt::Throw(value) => {
                 let rendered = python_expr(out, value);
-                out.line(&format!("raise {rendered}"));
+                python_line(out, &format!("raise {rendered}"));
             }
             Stmt::Comment(text) => {
                 let line = out.comment(text);
-                out.line(&line);
+                python_line(out, &line);
             }
             Stmt::Unsupported(u) => carry(out, u),
         }
     }
     // A body that is only carried-over comments still needs a statement to be Python.
     if !wrote {
-        out.line("raise NotImplementedError");
+        python_line(out, "raise NotImplementedError");
     }
 }
 
@@ -1518,7 +1595,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => if *v { "True" } else { "False" }.to_string(),
-        Expr::Str(v) => format!("{v:?}"),
+        Expr::Str(v) => quoted(Language::Python, v),
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
@@ -1576,21 +1653,52 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 .collect();
             format!("{{{}}}", rendered.join(", "))
         }
+        // An f-string quotes its text and leaves its expressions as code. Escaping the
+        // assembled body as one string put a backslash in front of every quote inside
+        // `{...}` — and `f"{x.replace(\"-\", \" \")}"` is not a string Python reads.
         Expr::Template(parts) => {
-            let mut body = String::new();
+            let mut rendered: Vec<(bool, String)> = Vec::new();
             for part in parts {
                 match part {
-                    TemplatePart::Text(text) => {
-                        body.push_str(&text.replace('{', "{{").replace('}', "}}"))
-                    }
+                    TemplatePart::Text(text) => rendered.push((false, text.clone())),
                     TemplatePart::Expr(e) => {
-                        body.push('{');
-                        body.push_str(&python_expr(out, e));
-                        body.push('}');
+                        let text = python_expr(out, e);
+                        rendered.push((true, text));
                     }
                 }
             }
-            format!("f{body:?}")
+            // Before 3.12 an f-string's expression may contain neither a backslash nor
+            // the quote that delimits the literal. Where one does, the same thing said
+            // with `+` and `str` is exact and reads in every version.
+            let expressible = rendered
+                .iter()
+                .all(|(is_expr, text)| !is_expr || !text.contains(['"', '\\']));
+            if expressible {
+                let mut body = String::new();
+                for (is_expr, text) in &rendered {
+                    match is_expr {
+                        true => {
+                            body.push('{');
+                            body.push_str(text);
+                            body.push('}');
+                        }
+                        false => body.push_str(
+                            &escaped(Language::Python, text)
+                                .replace('{', "{{")
+                                .replace('}', "}}"),
+                        ),
+                    }
+                }
+                return format!("f\"{body}\"");
+            }
+            rendered
+                .iter()
+                .map(|(is_expr, text)| match is_expr {
+                    true => format!("str({text})"),
+                    false => quoted(Language::Python, text),
+                })
+                .collect::<Vec<_>>()
+                .join(" + ")
         }
         Expr::Comprehension {
             element,
@@ -1609,11 +1717,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 python_expr(out, iterable)
             )
         }
+        // Python has no inline comment, so the note cannot stand where the value did.
+        // It is queued and written above the statement by `python_line`.
         Expr::Unsupported(u) => {
             out.carried(u);
-            // No inline comment: in Python a `#` runs to end of line, so a note inside
-            // a call's parentheses swallows the closing paren and the file will not
-            // parse. The note lives in the fidelity report, where it can be read.
+            out.pending.push(format!("{MARKER}: {}", u.source));
             "None".to_string()
         }
     }
@@ -1663,7 +1771,11 @@ fn go(out: &mut Out, module: &Module) {
                 out.fidelity.records += 1;
                 out.blank();
                 for m in &r.methods {
-                    go_function(out, m, Some(&name));
+                    go_function(
+                        out,
+                        m,
+                        m.receiver_binding.is_some().then_some(name.as_str()),
+                    );
                     out.blank();
                 }
             }
@@ -1724,7 +1836,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         .params
         .iter()
         .filter_map(|p| {
-            let spelled = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)?;
+            let spelled = spell_param(out, p.kind, &p.name, &mut changed)?;
             if p.kind != ParamKind::Normal {
                 return Some(spelled);
             }
@@ -1902,7 +2014,28 @@ fn go_type(ty: &Type) -> String {
         Type::List(inner) => format!("[]{}", go_type(inner)),
         Type::Map(k, v) => format!("map[{}]{}", go_type(k), go_type(v)),
         Type::Optional(inner) => format!("*{}", go_type(inner)),
-        Type::Named { name, args } => generic(name, args, "[", "]", ".", go_type),
+        Type::Named { name, args } => go_named(name, args),
+    }
+}
+
+/// A type carried across by name, with the one qualifier Go allows.
+///
+/// Go names a foreign type `package.Name` and has no third level: `crate.model.Symbol`
+/// is not a type there, it is a field of a field, and every signature mentioning one
+/// failed to parse. The last two segments are what a Go author would write after
+/// importing that package — which the header already lists — so the path is shortened
+/// rather than flattened, and the name itself is untouched.
+fn go_named(name: &str, args: &[Type]) -> String {
+    let full = generic(name, args, "[", "]", ".", go_type);
+    let (path, rest) = match full.split_once('[') {
+        Some((path, rest)) => (path, Some(rest)),
+        None => (full.as_str(), None),
+    };
+    let segments: Vec<&str> = path.split('.').collect();
+    let short = segments[segments.len().saturating_sub(2)..].join(".");
+    match rest {
+        Some(rest) => format!("{short}[{rest}"),
+        None => short,
     }
 }
 
@@ -1915,7 +2048,7 @@ fn go_zero(ty: &Type) -> String {
         Type::String => "\"\"".to_string(),
         Type::List(_) | Type::Map(_, _) | Type::Optional(_) => "nil".to_string(),
         Type::Unit => String::new(),
-        Type::Named { name, .. } => format!("{}{{}}", generic(name, &[], "[", "]", ".", go_type)),
+        Type::Named { name, .. } => format!("{}{{}}", go_named(name, &[])),
     }
 }
 
@@ -1924,7 +2057,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => v.to_string(),
-        Expr::Str(v) => format!("{v:?}"),
+        Expr::Str(v) => quoted(Language::Go, v),
         Expr::Null => "nil".to_string(),
         Expr::Name(n) => out.name(n),
         // Not re-cased: `reading.get(…)` names a real method on a value whose type
@@ -2025,9 +2158,13 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 }
             }
             if args.is_empty() {
-                format!("{literal:?}")
+                quoted(Language::Go, &literal)
             } else {
-                format!("fmt.Sprintf({literal:?}, {})", args.join(", "))
+                format!(
+                    "fmt.Sprintf({}, {})",
+                    quoted(Language::Go, &literal),
+                    args.join(", ")
+                )
             }
         }
         // Go has no comprehension and no map/filter on slices; writing a loop here
@@ -2061,7 +2198,7 @@ fn typescript(out: &mut Out, module: &Module) {
         match item {
             Item::Constant(c) => {
                 for line in &c.doc {
-                    out.line(&format!("/** {line} */"));
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
                 }
                 let annotation =
                     c.ty.as_ref()
@@ -2078,7 +2215,7 @@ fn typescript(out: &mut Out, module: &Module) {
             }
             Item::Record(r) => {
                 for line in &r.doc {
-                    out.line(&format!("/** {line} */"));
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
                 }
                 let export = if r.exported { "export " } else { "" };
                 // A record with no methods is an interface: it is data, and an
@@ -2089,7 +2226,7 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.open();
                     for f in &r.fields {
                         for line in &f.doc {
-                            out.line(&format!("/** {line} */"));
+                            out.line(&format!("/** {} */", block_comment_safe(line)));
                         }
                         let ty =
                             f.ty.as_ref()
@@ -2147,14 +2284,17 @@ fn typescript(out: &mut Out, module: &Module) {
     }
 }
 
-fn ts_function(out: &mut Out, f: &Function, method: bool) {
+/// `inside_class` is where it is written, which is not the same question as whether it
+/// takes a receiver — a class holds `static empty()` beside `label()`, and one `bool`
+/// answering both put `export function` inside a class body.
+fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
 
     for line in &f.doc {
-        out.line(&format!("/** {line} */"));
+        out.line(&format!("/** {} */", block_comment_safe(line)));
     }
     let mut foreign = false;
     let mut changed = false;
@@ -2162,7 +2302,7 @@ fn ts_function(out: &mut Out, f: &Function, method: bool) {
         .params
         .iter()
         .filter_map(|p| {
-            let spelled = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)?;
+            let spelled = spell_param(out, p.kind, &p.name, &mut changed)?;
             let annotation = match &p.ty {
                 Some(t) => {
                     if out.is_foreign(t) {
@@ -2205,8 +2345,12 @@ fn ts_function(out: &mut Out, f: &Function, method: bool) {
     };
     // `export` comes before `async`, and a method takes neither.
     let asynchrony = if f.is_async { "async " } else { "" };
-    let prefix = if method {
-        asynchrony.to_string()
+    let prefix = if inside_class {
+        let modifier = match f.receiver_binding.is_some() {
+            true => "",
+            false => "static ",
+        };
+        format!("{modifier}{asynchrony}")
     } else if f.exported {
         format!("export {asynchrony}function ")
     } else {
@@ -2420,7 +2564,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => v.to_string(),
-        Expr::Str(v) => format!("{v:?}"),
+        Expr::Str(v) => quoted(out.language, v),
         Expr::Null => "null".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
@@ -2617,7 +2761,7 @@ fn java(out: &mut Out, module: &Module) {
         match item {
             Item::Constant(c) => {
                 for line in &c.doc {
-                    out.line(&format!("/** {line} */"));
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
                 }
                 let ty =
                     c.ty.as_ref()
@@ -2643,7 +2787,7 @@ fn java(out: &mut Out, module: &Module) {
 
 fn java_record(out: &mut Out, record: &Record, public: bool) {
     for line in &record.doc {
-        out.line(&format!("/** {line} */"));
+        out.line(&format!("/** {} */", block_comment_safe(line)));
     }
     if !public && record.exported {
         let note = out.comment(
@@ -2673,7 +2817,7 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
         if index > 0 {
             out.blank();
         }
-        java_function(out, method, false);
+        java_function(out, method, method.receiver_binding.is_none());
     }
     out.close();
     out.line("}");
@@ -2687,7 +2831,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
 
     for line in &f.doc {
-        out.line(&format!("/** {line} */"));
+        out.line(&format!("/** {} */", block_comment_safe(line)));
     }
     if f.is_async {
         let note = out.comment(
@@ -2703,7 +2847,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
         .params
         .iter()
         .filter_map(|p| {
-            let spelled = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)?;
+            let spelled = spell_param(out, p.kind, &p.name, &mut changed)?;
             if p.kind != ParamKind::Normal {
                 return Some(spelled);
             }
@@ -2952,7 +3096,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
-        Expr::Str(v) => format!("{v:?}"),
+        Expr::Str(v) => quoted(Language::Java, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
         Expr::Name(n) => out.name(n),
@@ -3009,7 +3153,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = parts
                 .iter()
                 .map(|part| match part {
-                    TemplatePart::Text(text) => format!("{text:?}"),
+                    TemplatePart::Text(text) => quoted(Language::Java, text),
                     TemplatePart::Expr(e) => java_expr(out, e),
                 })
                 .collect();
@@ -3134,6 +3278,18 @@ fn zig(out: &mut Out, module: &Module) {
                 let visibility = if r.exported { "pub " } else { "" };
                 out.line(&format!("{visibility}const {name} = struct {{"));
                 out.open();
+                // `const Foo = struct {};` is valid Zig and the grammar this tool reads
+                // with cannot parse it, so the output would be refused by its own
+                // check. An empty `comptime` block does nothing, says so, and both
+                // Zig and the grammar accept it. Recorded in BUGS.md as upstream.
+                if r.fields.is_empty() && r.methods.is_empty() {
+                    let note = out.comment(
+                        "a struct with nothing in it; the empty comptime block stands \
+                         in for `struct {}`, which tree-sitter-zig cannot parse",
+                    );
+                    out.line(&note);
+                    out.line("comptime {}");
+                }
                 for f in &r.fields {
                     let ty =
                         f.ty.as_ref()
@@ -3144,7 +3300,11 @@ fn zig(out: &mut Out, module: &Module) {
                 }
                 for m in &r.methods {
                     out.blank();
-                    zig_function(out, m, Some(&name));
+                    zig_function(
+                        out,
+                        m,
+                        m.receiver_binding.is_some().then_some(name.as_str()),
+                    );
                 }
                 out.close();
                 out.line("};");
@@ -3189,8 +3349,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         params.push(format!("{}: {ty}", receiver_word(out.language)));
     }
     for p in &f.params {
-        let Some(spelled) = spell_param(out.language, p.kind, &out.name(&p.name), &mut changed)
-        else {
+        let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
         };
         if p.kind != ParamKind::Normal {
@@ -3524,7 +3683,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
-        Expr::Str(v) => format!("{v:?}"),
+        Expr::Str(v) => quoted(Language::Zig, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
         Expr::Name(n) => out.name(n),
@@ -3582,12 +3741,12 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             // A template with nothing in it but text is a string, and saying otherwise
             // would report a gap that is not there.
             if let Some(text) = literal_text(parts) {
-                return format!("{text:?}");
+                return quoted(Language::Zig, &text);
             }
             let rendered: Vec<String> = parts
                 .iter()
                 .map(|part| match part {
-                    TemplatePart::Text(text) => format!("{text:?}"),
+                    TemplatePart::Text(text) => quoted(Language::Zig, text),
                     TemplatePart::Expr(e) => zig_expr(out, e),
                 })
                 .collect();
@@ -3709,6 +3868,53 @@ fn generic(
     format!("{clean}{open}{}{close}", rendered.join(", "))
 }
 
+/// A string literal, spelled the way this target spells one.
+///
+/// The IR holds the string's **value**; putting escapes back on is the writer's job,
+/// and Rust's `{:?}` was doing it for all six. That is Rust's spelling: it writes
+/// `\u{1f600}` for anything it considers non-printable, which is a syntax error in
+/// Python, Java, TypeScript and Go. Only the four escapes every one of these languages
+/// agrees on are written unconditionally; anything else that cannot appear literally
+/// takes the target's own form.
+fn quoted(language: Language, value: &str) -> String {
+    format!("\"{}\"", escaped(language, value))
+}
+
+/// The inside of a string literal: the escapes, without the quotes around them.
+///
+/// Apart from [`quoted`] because an f-string quotes its *text* and leaves its
+/// expressions as code, so the two halves cannot be escaped together.
+fn escaped(language: Language, value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for c in value.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            // Every one of these languages takes UTF-8 in a string literal, so a
+            // printable character stands for itself whatever its code point.
+            c if !c.is_control() => out.push(c),
+            // Java has no `\xNN`, so the one form it does have is used for both.
+            c if language == Language::Java => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push_str(&format!("\\x{:02x}", c as u32)),
+        }
+    }
+    out
+}
+
+/// Text that can sit inside a `/* ... */` comment.
+///
+/// `*/` closes one, and a doc comment that quotes a glob — `app/**/route.ts` — carries
+/// that sequence in the middle of a sentence. Java and TypeScript both wrote it
+/// through, so the comment ended early and the rest of the sentence was parsed as
+/// code: three words, two template strings and an optional chain, none of which the
+/// author wrote.
+fn block_comment_safe(text: &str) -> String {
+    text.replace("*/", "* /")
+}
+
 /// A name that is not a type, turned into something that at least parses.
 fn sanitise(name: &str) -> String {
     name.chars()
@@ -3716,6 +3922,19 @@ fn sanitise(name: &str) -> String {
         .collect::<String>()
         .trim_matches('_')
         .to_string()
+}
+
+/// Is this a name a target can put where a name goes?
+///
+/// Generous on purpose: a qualified path is a name — `std::fmt::Display`, `sync.Mutex`
+/// — and shortening one would point a signature at something that does not exist. What
+/// this refuses is a name that is not made of name characters at all.
+fn is_writable_identifier(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '$' | '#'))
+        && !name.starts_with(|c: char| c.is_ascii_digit())
 }
 
 /// Can this be written as a bare object key?

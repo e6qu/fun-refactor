@@ -186,22 +186,45 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     })
 }
 
-/// Line and column of the first syntax error in a parse.
+/// Line and column of the most specific syntax error in a parse.
+///
+/// **Deepest, not first.** An error node can swallow the whole file — when the very
+/// first construct is wrong, tree-sitter's outermost `ERROR` starts at byte zero — and
+/// reporting that says "line 1, column 1" and prints the banner, which tells whoever
+/// reads the defect report nothing at all. The innermost error is where the parser
+/// actually gave up, and a `MISSING` node beats an `ERROR` at the same depth because
+/// it names what was expected rather than merely where.
 fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<(usize, usize)> {
     let mut cursor = parsed.root().walk();
-    let mut stack = vec![parsed.root()];
-    let mut earliest: Option<usize> = None;
-    while let Some(node) = stack.pop() {
+    let mut stack = vec![(parsed.root(), 0usize)];
+    // Depth, then "missing beats error", then earliest — in that order.
+    let mut best: Option<(usize, bool, usize)> = None;
+    while let Some((node, depth)) = stack.pop() {
         if node.is_error() || node.is_missing() {
-            earliest =
-                Some(earliest.map_or(node.start_byte(), |e: usize| e.min(node.start_byte())));
-            continue;
+            let candidate = (depth, node.is_missing(), node.start_byte());
+            let better = match best {
+                None => true,
+                Some((d, missing, at)) => {
+                    (candidate.0, candidate.1) > (d, missing)
+                        || ((candidate.0, candidate.1) == (d, missing) && candidate.2 < at)
+                }
+            };
+            if better {
+                best = Some(candidate);
+            }
         }
         for child in node.children(&mut cursor) {
-            stack.push(child);
+            stack.push((child, depth + 1));
         }
     }
-    let at = earliest?;
+    // A parse can report an error that this walk does not find: an empty Zig struct
+    // holds a zero-width missing identifier that `Node::children` does not yield, and
+    // the message came out with no position at all. `error_spans` walks with a cursor
+    // and does find it, so it is the fallback rather than a second opinion.
+    let at = match best {
+        Some((_, _, at)) => at,
+        None => parsed.error_spans().first().map(|span| span.start)?,
+    };
     let index = crate::span::LineIndex::new(source);
     let position = index.line_col(at, source);
     Some((position.line, position.col))
@@ -215,7 +238,9 @@ fn numbered(source: &str, around: Option<usize>) -> String {
     source
         .lines()
         .enumerate()
-        .filter(|(i, _)| *i + 1 >= line.saturating_sub(2) && *i < line + 1)
+        // A wider window before than after: the construct that broke it is usually the
+        // one *above* the line the parser gave up on.
+        .filter(|(i, _)| *i + 1 >= line.saturating_sub(8) && *i < line + 2)
         .map(|(i, text)| format!("  {:>4} {text}", i + 1))
         .collect::<Vec<_>>()
         .join("\n")

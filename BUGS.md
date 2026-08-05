@@ -67,7 +67,71 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   still index, since an error node is local to its subtree — what is lost are the
   facts inside that expression.
 
+- [ ] B133: `tree-sitter-zig` requires at least one member in a struct, so it cannot
+  parse `const Foo = struct {};` — which is ordinary Zig. The tool's own check would
+  therefore refuse to write a correct file, so an empty record is written with an empty
+  `comptime {}` block in it, under a comment saying why. That block does nothing, both
+  Zig and the grammar accept it, and the alternative was refusing to translate a type
+  with no fields at all. Upstream grammar work.
+
 ## Fixed
+
+- [x] B132: **a comment inside a parameter list was read as a parameter.** A comment is
+  an *extra* in every one of these grammars, so it can appear between any two nodes
+  anywhere; every reader reads a parameter list either positionally or through a
+  catch-all arm, and both read a comment as whatever they expected in that position. A
+  four-line comment between two parameters of `generic()` became four parameters named
+  after the sentence, in every target. Fixed at the choke point: `Cx::children` returns
+  the children that are part of the structure, and the one place that wants comments —
+  a statement block — asks for them by name.
+
+- [x] B131: **every string escape was doubled on every crossing.** The IR held the
+  source's *spelling* rather than the string's value, so a writer escaped the backslash
+  again on the way out and `"line\nline"` crossed as `"line\\nline"` — a literal
+  backslash and an `n` where there had been a newline. The output parsed, so nothing
+  caught it. The reader decodes escapes now and each writer puts its own back on;
+  `{:?}` was doing that job for all six, and it is Rust's spelling — it emits
+  `\u{...}`, which is a syntax error in Python, Java, TypeScript and Go.
+
+- [x] B130: **a method was written as a free function whose body reached through a
+  receiver nothing bound.** Rust and Go declare methods apart from their type; the IR
+  keeps them with the type, which is what lets one shape become the other — and the
+  Rust reader said exactly that in a comment while pushing them out as top-level
+  functions. Every writer then produced `def label(prefix)` whose body says `self.name`.
+  A method whose type is not in the file gets its receiver as an ordinary first
+  parameter, which is what Go and Zig write anyway.
+
+- [x] B129: **a method with no receiver was written as one with a receiver.** Rust's
+  `impl` holds `fn new() -> Self` beside `fn len(&self)`; one `bool` was answering both
+  "is it inside the type" and "does it take a receiver". Python lost `@staticmethod`
+  and TypeScript wrote `export function` inside a class body.
+
+- [x] B128: **a multi-line comment got its marker on the first line only.** A
+  `/* ... */` is one node however many lines it spans, so the rest of a JSDoc paragraph
+  arrived in the output as code, asterisks and all. Fixed in three places that are each
+  the only place for it: the reader strips the ` * ` leader from every line, a doc
+  comment is one entry per line, and `Out::line` indents each line it is given.
+
+- [x] B127: **a doc comment could end itself early.** `*/` closes a block comment, and a
+  doc comment quoting `app/**/route.ts` carries that sequence mid-sentence. Java and
+  TypeScript wrote it through, so the comment ended and the rest of the sentence was
+  parsed as code — three words, two template strings and an optional chain, none of
+  which the author wrote.
+
+- [x] B126: **`0usize` was carried into every target.** A Rust literal writes its width
+  into itself, which no other language here reads; the IR carries the type separately,
+  so the digits are what crosses. `r"\d+"` and `b"bytes"` were not read as strings at
+  all, which cost every regex in a file its value *and* its constant-ness.
+
+- [x] B125: **a Rust tuple struct silently lost its payload.** A record in the IR is a
+  named product and a tuple struct's field has no name, so reading one gave a record
+  with no fields and `Vec<SymbolId>` vanished without a word. Refused and carried
+  instead; `self.0` is refused for the same reason, since no target here has a field
+  with a number for a name.
+
+- [x] B124: **`let _ = f();` declared something with no name.** It binds nothing — it is
+  a call whose result is deliberately dropped, which every target can say — and reading
+  it as a binding wrote `const  = f();`.
 
 - [x] B123: **a TypeScript class member is public unless it says otherwise, and every
   one of them was read as private.** A free function and a class member have opposite
