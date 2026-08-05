@@ -286,21 +286,30 @@ fr openapi --yaml > after.yaml       # the FastAPI router it became
 diff before.yaml after.yaml
 ```
 
-Run over the pet store, thirteen operations go in and thirteen come out, with every
-URL, every method and every path parameter identical. **One thing does not survive**,
-and being able to see which is the whole point:
+Run over the pet store, thirteen operations go in and thirteen come out — every URL,
+every method, every path parameter and every query parameter identical. Nothing lost,
+nothing invented, and the test suite asserts it, so a translation that started dropping
+endpoints would fail the build.
+
+**That the two documents agree does not mean the contract is complete**, and the
+difference matters more than the agreement. `GET /pets` also reads a `limit`:
+
+```ts
+const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50")
+```
+
+`??` is a TypeScript operator this tool has no equivalent for, so the whole statement is
+carried into the output as a comment and `limit` reaches neither document. Both sides
+agree, and both are missing it — which the notes beside the baseline say in as many
+words:
 
 ```
-- GET /pets?species
-+ GET /pets
+app/api/pets/route.ts: 2 statement(s) could not be read; any query parameter
+read inside one of them is missing from this document
 ```
 
-`GET /pets` read `species` out of the query string. The translated handler still reads
-it from the request object rather than declaring it as a FastAPI parameter, so the
-router that came out the other side does not say it takes a query — and a caller
-sending `?species=cat` is outside a contract that claims to describe it. The endpoint
-answers, the tests pass, and the contract quietly got smaller. That is the failure this
-whole document exists to catch, and it is one line of diff.
+A gap that announces itself is a gap you can close. A gap that does not is what this
+document exists to prevent.
 
 What this cannot see, because it reads what is written rather than what will happen: a
 router mounted under a prefix, a route added at run time, a dependency that rejects the

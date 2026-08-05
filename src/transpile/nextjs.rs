@@ -688,6 +688,10 @@ const VERDICT: &str = "# fun-refactor: verdict\n\n";
 
 /// Write the FastAPI module.
 fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelity, Vec<String>)> {
+    // What each handler reads out of the URL. Read here as well as in `plan`, because
+    // the contract and the code have to agree about it: a parameter the document
+    // mentions and the router does not declare is the same failure as the reverse.
+    let query_keys = read_queries(module);
     // The handlers are the exported functions named after HTTP methods; everything
     // else in the file is a helper and is written as an ordinary function.
     let mut handlers = Vec::new();
@@ -780,6 +784,39 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
             .map(|name| format!("{name}: str"))
             .collect();
 
+        // The query parameters this handler reads out of the URL, declared.
+        //
+        // Next.js has no declaration for them, so a translation that left the handler
+        // reaching into the request produced a router that says it takes no query — and
+        // a caller sending `?species=cat` is then outside a contract that claims to
+        // describe it. `searchParams.get()` returns `string | null`, which is what
+        // `str | None = None` says, so the endpoint answers exactly the URLs it did.
+        let declared_queries: Vec<String> = query_keys
+            .iter()
+            .filter(|(m, _)| m.eq_ignore_ascii_case(&handler.name))
+            .map(|(_, key)| (key.clone(), super::snake_always(key)))
+            .filter(|(key, name)| {
+                // A key that is not a name — `page-size`, `filter[]` — cannot be
+                // declared, and inventing a spelling for it would answer a different
+                // URL. Those stay where they are and are reported.
+                let spellable = !name.is_empty()
+                    && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                    && !name.starts_with(|c: char| c.is_ascii_digit());
+                let free =
+                    !parameters.contains(name) && !handler.params.iter().any(|p| p.name == *name);
+                if !spellable {
+                    fidelity.notes.push(format!(
+                        "`{}` reads the query key `{key}`, which is not a name Python can \
+                         declare; that read is left as it was and the endpoint's contract \
+                         does not mention it",
+                        handler.name
+                    ));
+                }
+                spellable && free
+            })
+            .map(|(_, name)| name)
+            .collect();
+
         // A Next.js handler takes `(request, context)`. The two arguments fare
         // differently, and treating them alike was wrong: `NextRequest` **is**
         // Starlette's `Request` — same headers, same `await .json()` — so it is kept
@@ -790,6 +827,11 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         if let Some(param) = request {
             signature.push(format!("{}: Request", param.name));
             takes_request = true;
+        }
+        // Last, because they carry a default and Python will not have one before a
+        // parameter that does not.
+        for name in &declared_queries {
+            signature.push(format!("{name}: str | None = None"));
         }
         if signature.is_empty() {
             signature.push(String::new());
@@ -827,7 +869,18 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
                 )),
                 None => {
                     let supplied = supply_path_parameters(stmt.clone(), &dropped, &parameters);
-                    body.push(as_fastapi(supplied, &mut responses))
+                    let supplied = supply_query_parameters(supplied, &declared_queries);
+                    // `const species = req.…searchParams.get("species")` becomes
+                    // `species = species` once the parameter supplies it, and a binding
+                    // of a name to itself is a statement that does nothing.
+                    match binds_itself(&supplied) {
+                        Some(name) => fidelity.notes.push(format!(
+                            "`{}` read `{name}` out of the query string; FastAPI supplies \
+                             it as a parameter, so that line is not needed and was dropped",
+                            handler.name
+                        )),
+                        None => body.push(as_fastapi(supplied, &mut responses)),
+                    }
                 }
             }
         }
@@ -1205,6 +1258,174 @@ fn status_in(options: &Expr) -> Option<Expr> {
         };
         (named == "status").then(|| value.clone())
     })
+}
+
+/// A binding of a name to itself, which is a statement that does nothing.
+fn binds_itself(stmt: &Stmt) -> Option<String> {
+    let Stmt::Let {
+        name,
+        value: Some(Expr::Name(read)),
+        ..
+    } = stmt
+    else {
+        return None;
+    };
+    (name == read).then(|| name.clone())
+}
+
+/// Read every `req.nextUrl.searchParams.get("species")` as the parameter FastAPI
+/// supplies.
+///
+/// The same move as the path parameters, one level out: the value arrives by a
+/// different route and every use of it has to arrive with it. Leaving the read in place
+/// would be worse than not declaring the parameter at all — `req.nextUrl` is a Next.js
+/// object and Starlette's `Request` does not have it, so the line would not run.
+fn supply_query_parameters(stmt: Stmt, declared: &[String]) -> Stmt {
+    fn reaches_search_params(e: &Expr) -> bool {
+        match e {
+            Expr::Name(name) => name == "searchParams",
+            Expr::Field { of, name } => name == "searchParams" || reaches_search_params(of),
+            Expr::Call { callee, .. } => reaches_search_params(callee),
+            _ => false,
+        }
+    }
+
+    fn in_expr(e: Expr, declared: &[String]) -> Expr {
+        if let Expr::Call { callee, args } = &e {
+            if let Expr::Field { of, name } = callee.as_ref() {
+                if name == "get" && reaches_search_params(of) {
+                    if let Some(Expr::Str(key)) = args.first() {
+                        let supplied = super::snake_always(key);
+                        if declared.contains(&supplied) {
+                            return Expr::Name(supplied);
+                        }
+                    }
+                }
+            }
+        }
+        match e {
+            Expr::Field { of, name } => Expr::Field {
+                of: Box::new(in_expr(*of, declared)),
+                name,
+            },
+            Expr::Index { of, index } => Expr::Index {
+                of: Box::new(in_expr(*of, declared)),
+                index: Box::new(in_expr(*index, declared)),
+            },
+            Expr::Call { callee, args } => Expr::Call {
+                callee: Box::new(in_expr(*callee, declared)),
+                args: args.into_iter().map(|a| in_expr(a, declared)).collect(),
+            },
+            Expr::New { callee, args } => Expr::New {
+                callee: Box::new(in_expr(*callee, declared)),
+                args: args.into_iter().map(|a| in_expr(a, declared)).collect(),
+            },
+            Expr::Binary { op, left, right } => Expr::Binary {
+                op,
+                left: Box::new(in_expr(*left, declared)),
+                right: Box::new(in_expr(*right, declared)),
+            },
+            Expr::Unary { op, operand } => Expr::Unary {
+                op,
+                operand: Box::new(in_expr(*operand, declared)),
+            },
+            Expr::Await(inner) => Expr::Await(Box::new(in_expr(*inner, declared))),
+            Expr::Keyword { name, value } => Expr::Keyword {
+                name,
+                value: Box::new(in_expr(*value, declared)),
+            },
+            Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            } => Expr::Ternary {
+                condition: Box::new(in_expr(*condition, declared)),
+                then: Box::new(in_expr(*then, declared)),
+                otherwise: Box::new(in_expr(*otherwise, declared)),
+            },
+            Expr::ListLit(items) => {
+                Expr::ListLit(items.into_iter().map(|i| in_expr(i, declared)).collect())
+            }
+            Expr::MapLit(entries) => Expr::MapLit(
+                entries
+                    .into_iter()
+                    .map(|(k, v)| (in_expr(k, declared), in_expr(v, declared)))
+                    .collect(),
+            ),
+            other => other,
+        }
+    }
+
+    fn in_stmts(stmts: Vec<Stmt>, declared: &[String]) -> Vec<Stmt> {
+        stmts
+            .into_iter()
+            .map(|s| supply_query_parameters(s, declared))
+            .collect()
+    }
+
+    match stmt {
+        Stmt::Let {
+            name,
+            ty,
+            value,
+            mutable,
+        } => Stmt::Let {
+            name,
+            ty,
+            value: value.map(|v| in_expr(v, declared)),
+            mutable,
+        },
+        Stmt::Assign { target, value } => Stmt::Assign {
+            target: in_expr(target, declared),
+            value: in_expr(value, declared),
+        },
+        Stmt::Return(value) => Stmt::Return(value.map(|v| in_expr(v, declared))),
+        Stmt::Expr(e) => Stmt::Expr(in_expr(e, declared)),
+        Stmt::Throw(e) => Stmt::Throw(in_expr(e, declared)),
+        Stmt::If {
+            condition,
+            then,
+            otherwise,
+        } => Stmt::If {
+            condition: in_expr(condition, declared),
+            then: in_stmts(then, declared),
+            otherwise: in_stmts(otherwise, declared),
+        },
+        Stmt::While { condition, body } => Stmt::While {
+            condition: in_expr(condition, declared),
+            body: in_stmts(body, declared),
+        },
+        Stmt::ForEach {
+            binding,
+            iterable,
+            body,
+        } => Stmt::ForEach {
+            binding,
+            iterable: in_expr(iterable, declared),
+            body: in_stmts(body, declared),
+        },
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            source,
+            line,
+        } => Stmt::Try {
+            body: in_stmts(body, declared),
+            catches: catches
+                .into_iter()
+                .map(|c| crate::transpile::ir::Catch {
+                    binding: c.binding,
+                    ty: c.ty,
+                    body: in_stmts(c.body, declared),
+                })
+                .collect(),
+            finally: in_stmts(finally, declared),
+            source,
+            line,
+        },
+        other => other,
+    }
 }
 
 /// Read every `context.params.petId` as the parameter FastAPI already supplies.

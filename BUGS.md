@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B176: **a query parameter did not survive the crossing.** Next.js has no
+  declaration for one — a handler reads it out of the URL — so the translated router
+  said it took no query, and a caller sending `?species=cat` was outside a contract that
+  claimed to describe it. The parameter is declared now, `str | None = None`, which is
+  exactly what `searchParams.get()` returns; every read of it in the body becomes that
+  name; and the binding that was doing the reading is dropped, because a binding of a
+  name to itself is a statement that does nothing. The whole contract now survives, and
+  the build asserts it.
+
 - [x] B175: **the contract could only be derived from one side of the crossing.** The
   method says to diff the baseline against the finished service, and half of that check
   needs no server: a FastAPI router declares its contract on the decorators and in the

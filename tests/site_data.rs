@@ -1860,6 +1860,15 @@ fn contract_data() -> String {
         .filter(|o| !before.contains(o))
         .cloned()
         .collect();
+    // Not only the addressing half. The whole contract survives this crossing —
+    // including the query parameters, which neither framework declares — and asserting
+    // it here is what stops the page from going on claiming so after it stops being
+    // true. What the two documents *cannot* say is a separate matter, and is in the
+    // notes beside them.
+    assert!(
+        lost.is_empty() && gained.is_empty(),
+        "the contract must survive the crossing\n  lost:   {lost:?}\n  gained: {gained:?}"
+    );
     out.push_str(&format!(
         "\nexport const SURVIVED = {{\n  before: [{}],\n  after: [{}],\n  \
          lost: [{}],\n  gained: [{}],\n}};\n",
