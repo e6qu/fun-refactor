@@ -112,3 +112,78 @@ fn a_body_that_ends_in_a_statement_gains_no_return() {
     assert!(out.contains("return 1"), "{out}");
     assert!(out.contains("return 0"), "{out}");
 }
+
+#[test]
+fn dividing_two_integers_still_truncates_in_python() {
+    // Every other language here truncates when it divides two integers. Python's `/`
+    // gives a float and its `//` floors, so `half(7, 2)` came out as 3.5 where the
+    // source returned 3 — with the report calling the signature complete.
+    let source = "pub fn half(a: i64, b: i64) -> i64 {\n    return a / b;\n}\n";
+    let out = translated(source, Language::Python);
+    assert!(out.contains("return int(a / b)"), "{out}");
+}
+
+#[test]
+fn integer_division_sees_through_arithmetic() {
+    let source = "pub fn mid(a: i64, b: i64) -> i64 {\n    return (a + b) / 2;\n}\n";
+    let out = translated(source, Language::Python);
+    assert!(out.contains("return int((a + b) / 2)"), "{out}");
+}
+
+#[test]
+fn dividing_floats_is_left_alone() {
+    // `int()` around a float division would be a truncation the source never asked
+    // for, which is the same defect pointing the other way.
+    let source = "pub fn scale(x: f64) -> f64 {\n    return x / 2.0;\n}\n";
+    let out = translated(source, Language::Python);
+    assert!(out.contains("return x / 2.0"), "{out}");
+    assert!(!out.contains("int("), "{out}");
+}
+
+#[test]
+fn a_division_whose_operands_have_no_declared_type_is_left_alone() {
+    // Nothing is inferred. A binding the source never typed is not known to be an
+    // integer, and guessing would be the same mistake in the other direction.
+    let source = "def half(a, b):\n    return a / b\n";
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let path = tmp.path().join("a.py");
+    std::fs::write(&path, source).expect("the file");
+    let out = fun_refactor::transpile::plan(&path, Language::Python)
+        .map(|p| p.output)
+        .unwrap_or_else(|_| source.to_string());
+    assert!(!out.contains("int(a / b)"), "{out}");
+}
+
+#[test]
+fn a_remainder_between_integers_is_reported_rather_than_left_quiet() {
+    // The same disagreement as division, with no readable Python form: every other
+    // language here takes the sign from the dividend and Python from the divisor, so
+    // `-7 % 2` is -1 there and 1 here. Writing it exactly means `a - b * int(a / b)`,
+    // which nobody would read twice — so the operator stays and the report says where
+    // the two differ.
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let path = tmp.path().join("a.rs");
+    std::fs::write(
+        &path,
+        "pub fn r(a: i64, b: i64) -> i64 {\n    return a % b;\n}\n",
+    )
+    .expect("the file");
+    let plan = transpile::plan(&path, Language::Python).expect("a translation");
+    assert!(plan.output.contains("return a % b"), "{}", plan.output);
+    assert!(
+        plan.fidelity.notes.iter().any(|n| n.contains("sign")),
+        "no note about the sign: {:?}",
+        plan.fidelity.notes
+    );
+}
+
+#[test]
+fn a_remainder_between_floats_is_not_reported() {
+    // Float `%` agrees. A note here would be noise, and noise is how a real note gets
+    // missed.
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let path = tmp.path().join("a.rs");
+    std::fs::write(&path, "pub fn s(x: f64) -> f64 {\n    return x % 2.0;\n}\n").expect("the file");
+    let plan = transpile::plan(&path, Language::Python).expect("a translation");
+    assert!(plan.fidelity.notes.is_empty(), "{:?}", plan.fidelity.notes);
+}

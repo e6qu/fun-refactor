@@ -524,6 +524,13 @@ struct Out {
     /// whole-line comments above the statement, which is the only place in Zig a
     /// comment can go.
     pending: Vec<String>,
+    /// Names holding an integer in the body being written.
+    ///
+    /// Only Python needs it, and only for one operator. Rust, Go, Java and Zig divide
+    /// two integers by truncating; Python's `/` produces a float and its `//` floors,
+    /// so neither operator means what `a / b` meant. Knowing which names are integers
+    /// is the whole of what it takes to write the one form that does.
+    integer_names: std::collections::BTreeSet<String>,
     /// The same, for record fields, which are a separate namespace.
     ///
     /// Not folded into `names`: a Rust `Reading { sensor }` with an exported field
@@ -546,6 +553,7 @@ impl Out {
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
             pending: Vec::new(),
+            integer_names: std::collections::BTreeSet::new(),
             fields: BTreeMap::new(),
         }
     }
@@ -1416,6 +1424,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    out.integer_names = integer_bindings(f);
 
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
@@ -1680,6 +1689,56 @@ fn python_type(ty: &Type) -> String {
     }
 }
 
+/// The names holding an integer in this function: its parameters and the locals it
+/// declares a type for.
+///
+/// Nothing is inferred. A binding whose type the source never wrote down is not in
+/// here, and a division involving it is written the way it was — the tool does not
+/// know it is dividing integers, and guessing would be the same mistake in the other
+/// direction.
+fn integer_bindings(f: &Function) -> std::collections::BTreeSet<String> {
+    let mut names = std::collections::BTreeSet::new();
+    for p in &f.params {
+        if p.ty.as_ref().is_some_and(|t| *t == Type::Int) {
+            names.insert(p.name.clone());
+        }
+    }
+    let mut stack: Vec<&Stmt> = f.body.iter().collect();
+    while let Some(stmt) = stack.pop() {
+        if let Stmt::Let {
+            name,
+            ty: Some(Type::Int),
+            ..
+        } = stmt
+        {
+            names.insert(name.clone());
+        }
+    }
+    names
+}
+
+/// Does this expression hold an integer, as far as the source said so?
+fn holds_an_integer(out: &Out, e: &Expr) -> bool {
+    match e {
+        Expr::Int(_) => true,
+        Expr::Name(name) => out.integer_names.contains(name),
+        // Arithmetic on integers is an integer in every language here. Division is
+        // deliberately absent: in Python it is the one operation that is not.
+        Expr::Binary { op, left, right } => {
+            matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Rem
+            ) && holds_an_integer(out, left)
+                && holds_an_integer(out, right)
+        }
+        Expr::Unary {
+            op: UnaryOp::Neg,
+            operand,
+        } => holds_an_integer(out, operand),
+        _ => false,
+    }
+}
+
 fn python_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         // Python has to name the value twice, and naming a call twice calls it twice.
@@ -1743,6 +1802,40 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 (BinaryOp::Ne, true) => "is not",
                 (other, _) => other.python(),
             };
+            // Every other language here truncates when it divides two integers.
+            // Python's `/` gives a float and its `//` floors, so `7 / 2` and `-7 / 2`
+            // are 3.5 and -3.5 where the source meant 3 and -3. `int(a / b)` truncates
+            // toward zero, which is exactly what the source said — at float precision,
+            // which is every integer a program of this kind divides.
+            // `%` has the same disagreement and no readable Python form: every other
+            // language here takes the sign from the dividend, Python from the divisor,
+            // so `-7 % 2` is -1 there and 1 here. Writing it exactly means
+            // `a - b * int(a / b)`, which is arithmetic nobody would read twice — so
+            // the idiomatic operator is kept and the difference is reported instead of
+            // being left for someone to find with a negative number.
+            if *op == BinaryOp::Rem && holds_an_integer(out, left) && holds_an_integer(out, right) {
+                let rendered = format!(
+                    "{} % {}",
+                    binary_operand(python_expr(out, left), left, *op, false),
+                    binary_operand(python_expr(out, right), right, *op, true)
+                );
+                let note = format!(
+                    "`{rendered}` takes its sign from the divisor in Python and from the \
+                     dividend in the source language, so the two differ whenever the \
+                     operands have different signs"
+                );
+                if !out.fidelity.notes.contains(&note) {
+                    out.fidelity.notes.push(note);
+                }
+                return rendered;
+            }
+            if *op == BinaryOp::Div && holds_an_integer(out, left) && holds_an_integer(out, right) {
+                return format!(
+                    "int({} / {})",
+                    binary_operand(python_expr(out, left), left, *op, false),
+                    binary_operand(python_expr(out, right), right, *op, true)
+                );
+            }
             format!(
                 "{} {spelling} {}",
                 binary_operand(python_expr(out, left), left, *op, false),
