@@ -55,7 +55,7 @@ so its answer for a language is whatever the steps it runs answer.
 | organize imports | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | remove flag | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | ✓ | n/a | n/a | n/a | n/a |
 | move to file | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | ✓ |
-| config→code stitch | ✓ | ✓ | n/a | n/a | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a |
+| config→code stitch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a |
 | duplicate code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | dead code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | write as another language | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a |
@@ -168,7 +168,7 @@ framework or a language means adding data.
 
 Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
 backend, and every capability a language can meaningfully support is built:
-**260 of 368 capability × language pairs supported, 108 not applicable, none refused.**
+**263 of 368 capability × language pairs supported, 105 not applicable, none refused.**
 The matrix above is generated, and `fr capabilities` prints the reason behind every
 cell that is not a ✓.
 

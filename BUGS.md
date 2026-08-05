@@ -76,6 +76,35 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B190: **the number describing the matrix was not checked, and had drifted.** The
+  table is regenerated and asserted against the code; the sentence above it counting the
+  cells was prose, and said 260 supported where the rows it introduced counted 261.
+  PLAN.md was staler still, quoting a total from before six capabilities and a language
+  existed. Now asserted in all four places it is published, against the same computation
+  that produces the table.
+
+- [x] B189: **a shell function was told it needs a return type and modifiers.** The
+  fallback reason for an absent capability is chosen by language *class*, so every
+  imperative language gets the same sentence — which was written for Java. The same
+  defect was fixed once before, when the reasons had been written for markup and told
+  Java it was a stylesheet; a second imperative language landing on the same arm brought
+  it back. The reason-check test now carries a word-to-language table rather than one
+  list of markup words, so a sentence describing a different language fails the build.
+
+- [x] B188: **the capability row for `fr stitch` was a transcription of the accessor
+  table, and it had drifted from it.** `support()` documents that every arm asks the
+  refactoring's own predicate; this one listed the languages by hand. It now asks
+  `stitch::reads_environment`, which is the list.
+
+- [x] B187: **`fr stitch` could not see a Java or Zig program read its configuration.**
+  The accessor table was written for the first five languages and never revisited. A
+  Helm chart feeding a Java service therefore reported every variable as configuration
+  with no consumer — the exact finding the command exists to produce, produced
+  backwards. Zig needed more than a new prefix: `getEnvVarOwned` takes the allocator
+  first, and the reader assumed the name was the first argument, so it read `allocator`,
+  which the upper-case filter then dropped without a word. Accessors now carry how many
+  arguments stand before the name.
+
 - [x] B186: **a reference in an argument position could be mistaken for the call.** The
   hunt for a call walks up to eight parents from the reference, and once it stopped
   filtering on the recorded kind (B185) a type named inside somebody *else's* argument
