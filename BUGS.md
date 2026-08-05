@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B206: **`a / b` on two integers became float division in Python.** Rust, Go, Java
+  and Zig all truncate; Python's `/` produces a float and its `//` floors, so neither
+  operator means what the source meant. `half(7, 2)` returned 3 on one side and 3.5 on
+  the other, with the report calling the signature complete and the annotation still
+  saying `-> int`. Written as `int(a / b)` now, which truncates toward zero and is
+  exactly what the source said. Nothing is inferred: a binding whose type the source
+  never wrote down is not known to be an integer and its division is left as it was,
+  because guessing would be the same mistake pointing the other way.
+
 - [x] B205: **a Rust function's tail expression translated to nothing.**
   `pub fn f(a: i64, b: i64) -> i64 { a + b }` is the ordinary way to write one, and the
   tail is its result. Reading it as a plain statement dropped the return in every target

@@ -1665,6 +1665,34 @@ the signature had carried across perfectly. Only the body's own tail is read thi
 tail inside an `if` needs the whole of Rust's block-expression rule, and half of that
 rule is worth less than none of it.
 
+### The division that meant something else
+
+The same probe again, on the operator the six languages disagree about most quietly.
+
+```rust
+pub fn half(a: i64, b: i64) -> i64 { a / b }        // half(7, 2) == 3
+```
+
+```python
+def half(a: int, b: int) -> int: return a / b       # half(7, 2) == 3.5
+```
+
+Rust, Go, Java and Zig truncate when they divide two integers. Python's `/` produces a
+float and its `//` floors, so *neither* Python operator means what the source meant —
+`-7 / 2` is -3 truncated and -4 floored. The report called this one "1 complete", and
+the annotation it wrote still said `-> int`.
+
+`int(a / b)` truncates toward zero, which is exactly the source's arithmetic. The
+integers it applies to are the ones the source declared: parameters and locals with a
+written type, and the arithmetic built from them. A binding whose type nobody wrote down
+is not known to be an integer, and its division is left alone — guessing there would be
+the same mistake pointing the other way, and `int()` around a float division is a
+truncation the source never asked for.
+
+Python's `//` going the other way was already reported as a construct with no
+counterpart, which is what made the asymmetry visible: the tool refused the operation in
+one direction and performed it silently in the other.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
