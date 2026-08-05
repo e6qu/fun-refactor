@@ -1551,6 +1551,43 @@ The climb now stops below anything its own parent names as its body, which is th
 general form of "this container is not optional". A class with an empty body is still a
 class; `public class B` with no body is not a program.
 
+### The move that left its dependencies behind
+
+`fr move` over the same shape in five languages: a function that uses a constant
+declared beside it, moved to another file. TypeScript and Python wrote the import back.
+Rust and Zig wrote nothing, and said nothing:
+
+```rust
+// src/b.rs, after the move
+pub fn area(r: f64) -> f64 {
+    PI * r * r          // PI is in src/a.rs
+}
+```
+
+```
+$ cargo check
+error[E0425]: cannot find value `PI` in this scope
+help: consider importing one of these constants
+  |
+1 + use crate::a::PI;
+```
+
+rustc suggests exactly what the tool should have written. `fr move` printed a clean diff
+and a success line.
+
+The reason is the same one this sweep keeps finding. Three languages have their own move
+path — Rust for `use crate::…`, Go for packages, Zig for `@import` — and those paths look
+at what the source file **imported**. Only the generic path looks at what it
+**declared**, and the generic path is the one TypeScript and Python take. The doc comment
+above it says the cycle it can create "is legal in both languages": *both*.
+
+Rust now writes the `use`, and makes the item `pub` where it was not, because a private
+item is invisible from another module and the import alone would not compile — the same
+step the generic path already takes for TypeScript's `export`. Zig imports a module and
+qualifies rather than binding a name, so there is no import to write and the reference
+itself would have to change; that is reported rather than guessed at. A Go move inside
+one package is one scope and needs nothing, so it says nothing.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

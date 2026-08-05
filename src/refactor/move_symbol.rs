@@ -949,6 +949,7 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     }
 
     warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+    carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
 }
 
@@ -1357,6 +1358,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
             format!("move {} in", sym.name),
         );
         warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+        carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
         return Ok(plan);
     }
 
@@ -1475,6 +1477,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     }
 
     warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+    carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
 }
 
@@ -2244,6 +2247,7 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     }
 
     warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
+    carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
 }
 
@@ -2829,6 +2833,110 @@ fn warn_about_carried_imports(
             }
         }
     }
+}
+
+/// Names the source file *defines* that the moved code still uses.
+///
+/// The generic path writes an import pointing back for these. The per-language paths
+/// looked only at what the source file imported, never at what it declared — so a Rust
+/// function that used a `const` beside it landed in a file where that name means
+/// nothing, `cargo check` said `cannot find value PI in this scope`, and `fr move` said
+/// nothing at all.
+///
+/// Rust gets the import written, because the module path is already derived here for
+/// the move in the other direction. The rest get told, which is the least this can do
+/// and infinitely more than it did.
+fn carry_defined_dependencies(
+    index: &Index,
+    sym: &Symbol,
+    destination: &Path,
+    removal: Span,
+    source: &str,
+    plan: &mut MovePlan,
+) {
+    // A Go move inside one package keeps one scope: nothing has to be named again.
+    if sym.language == Language::Go && sym.file.parent() == destination.parent() {
+        return;
+    }
+    let Some(info) = index.file(&sym.file) else {
+        return;
+    };
+    let Ok(used) = names_used_in(sym.language, source, removal) else {
+        return;
+    };
+
+    let mut wanted: Vec<&Symbol> = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.id != sym.id && s.container.is_none() && used.contains(&s.name))
+        .collect();
+    wanted.sort_by(|a, b| a.name.cmp(&b.name));
+    wanted.dedup_by(|a, b| a.name == b.name);
+    if wanted.is_empty() {
+        return;
+    }
+    let names: Vec<String> = wanted.iter().map(|s| s.name.clone()).collect();
+
+    if sym.language == Language::Rust {
+        if let (Ok(from), Ok(_)) = (crate_module(&sym.file), crate_module(destination)) {
+            let joined = match names.len() {
+                1 => names[0].clone(),
+                _ => format!("{{{}}}", names.join(", ")),
+            };
+            let existing = crate::vfs::read_to_string(destination).unwrap_or_default();
+            let at = rust_use_insertion_point(&existing);
+            plan.edits.add(
+                destination.to_path_buf(),
+                Edit::new(
+                    Span::new(at, at),
+                    format!("use {}::{joined};\n", from.use_prefix()),
+                    format!("what {} needs where it lands", sym.name),
+                ),
+            );
+            // A private item is invisible from another module, so the `use` alone
+            // would not compile. The generic path exports for the same reason.
+            for symbol in &wanted {
+                if let Some(edit) = rust_pub_edit(&sym.file, symbol) {
+                    plan.edits.add(sym.file.clone(), edit);
+                }
+            }
+            return;
+        }
+    }
+
+    plan.warnings.push(format!(
+        "the moved code uses {} defined in {}, and no import naming {} from {} could be \
+         written; add it by hand or the moved code will not compile",
+        names.join(", "),
+        sym.file.display(),
+        if names.len() == 1 { "it" } else { "them" },
+        destination.display()
+    ));
+}
+
+/// Make a Rust item visible outside its module, if it is not already.
+///
+/// The same rewrite-the-first-word shape [`export_edit`] uses, and for the same reason:
+/// a zero-width insertion at the start of a file collides with the new `use`.
+fn rust_pub_edit(file: &Path, symbol: &Symbol) -> Option<Edit> {
+    let source = crate::vfs::read_to_string(file).ok()?;
+    let line_start = whole_lines(&source, symbol.full_span).start;
+    let rest = &source[line_start..];
+    let lead = rest.len() - rest.trim_start().len();
+    let start = line_start + lead;
+    let word_len = source[start..]
+        .find(|c: char| c.is_whitespace())
+        .unwrap_or(source.len() - start);
+    let word = &source[start..start + word_len];
+    if word == "pub" || word.starts_with("pub(") {
+        return None;
+    }
+    Some(Edit::new(
+        Span::new(start, start + word_len),
+        format!("pub {word}"),
+        format!("make {} visible from its new caller", symbol.name),
+    ))
 }
 
 /// Does `text` contain `word` as a whole identifier?
