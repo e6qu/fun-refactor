@@ -76,6 +76,19 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B201: **a move left behind what the moved code needed, in every language with its
+  own move path.** The generic path — TypeScript and Python — writes an import pointing
+  back at a name the source file *defines* and the moved code still uses. Rust, Zig and
+  Go have their own paths, and those looked only at what the source file *imported*, never
+  at what it declared. So a Rust function using a `const` beside it landed in a file
+  where that name means nothing: `cargo check` answered `cannot find value PI in this
+  scope` and suggested the exact `use` the tool should have written, and `fr move`
+  reported no warning at all. Rust now writes it, and makes the item `pub` where it was
+  not, since a private item is invisible from another module. Zig imports a module and
+  qualifies rather than binding a name, so there is no import to write and the reference
+  itself would have to change; that is reported rather than guessed at. A Go move inside
+  one package is one scope and needs nothing.
+
 - [x] B200: **deleting a lone Java field deleted the class around it.** The widening
   climbs while the symbol is the only child of its kind in its parent, on the grounds
   that a parent left with none of them has nothing left to be. That is true of a CSS rule
