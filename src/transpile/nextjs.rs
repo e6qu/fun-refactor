@@ -338,6 +338,7 @@ impl ThenOr for String {
 fn record_from_zod(name: &str, value: &Expr) -> Option<Record> {
     let fields = object_fields(value)?;
     Some(Record {
+        extends: None,
         doc: vec![format!("Derived from the zod schema `{name}`.")],
         // `postPatchSchema` describes a `PostPatch`.
         name: model_name(name),

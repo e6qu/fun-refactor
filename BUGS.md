@@ -76,6 +76,57 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B142: **a note was reported only when something else had gone wrong.** Not every
+  note is about a carried construct — a type the source never wrote down, a name the
+  target reserves, a base class a language without inheritance cannot keep — and the
+  report printed them only when `carried_verbatim > 0`. A translation that lost a
+  supertype and nothing else gave a clean bill.
+
+- [x] B141: **a base class was dropped without a word.** Three of these six languages
+  have inheritance and three do not, and the IR had no room for one at all, so
+  `class JsonPrimitive extends JsonElement` became a class that extends nothing. It is
+  a different type. Carried into Java, Python and TypeScript now, and reported for the
+  three that cannot say it.
+
+- [x] B140: **there was no conditional expression in the IR**, so `a > 0 ? 1 : 2` was
+  carried verbatim by all six writers — including the five languages that have one.
+  Every ordered pair among Python, TypeScript, Rust, Java and Zig translates it now; Go
+  is the only target without one, and turning an expression into an `if` statement
+  needs somewhere to put the result, which does not exist inside an argument list.
+
+- [x] B139: **`_` was put through the naming convention.** It is the word for "no name"
+  in four of these languages, and asking what the empty word is called in `camelCase`
+  returned the empty string — so `_ = x;` in a Zig file came out as ` = x;`. A rename
+  that produces nothing is not a rename.
+
+- [x] B138: **a Zig `comptime` parameter was read as an ordinary one.** `comptime T:
+  type` is how Zig writes generics: the parameter is a *type*, supplied where another
+  language writes `<T>`. Read as a value it produced
+  `func Lazy(comptime type, comptime type) type`, a signature that means something
+  else in every target. Refused and carried.
+
+- [x] B137: **a Zig destructuring kept the first name and dropped the rest.**
+  `const a, const b = pair;` binds two names and the IR binds one, so `b` vanished
+  without a word.
+
+- [x] B136: **Zig optionals and pointers were never read.** The grammar calls `?T` a
+  `nullable_type`, so the arm written for `optional_type` matched nothing and every
+  optional crossed as a foreign type spelled `?T`; a pointer had no arm at all, so
+  `*Analyser` became `Unwritable_Analyser`. A pointer is how Zig writes a reference,
+  and the languages without pointers still have the thing being pointed at.
+
+- [x] B135: **a Rust raw or byte string was not read as a string.** `r"\d+"` fell to
+  the catch-all, so every regex in a file lost its value *and* its constant-ness: a
+  `const` bound to something the reader did not understand stops looking like a
+  constant, and its name loses the convention that goes with one.
+
+- [x] B134: **a parse error with no position reported none at all.** The self-check
+  walks for the innermost error node; an empty Zig struct holds a zero-width missing
+  identifier that `Node::children` does not yield, so the message came out with no
+  line and no column. `error_spans` walks with a cursor and does find it, so it is the
+  fallback rather than a second opinion — two walks were deciding one thing and
+  disagreeing.
+
 - [x] B132: **a comment inside a parameter list was read as a parameter.** A comment is
   an *extra* in every one of these grammars, so it can appear between any two nodes
   anywhere; every reader reads a parameter list either positionally or through a

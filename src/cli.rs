@@ -1184,17 +1184,26 @@ fn cmd_translate(
             "  signatures: {} complete, {} mentioning a type this tool does not know",
             f.signatures_complete, f.signatures_with_foreign_types
         );
+        // Not every note is about a carried construct. A type the source never wrote
+        // down, a name the target reserves, a base class a language without
+        // inheritance cannot keep — those were computed honestly and then printed only
+        // when something *else* had gone wrong, so a translation that lost a supertype
+        // and nothing else reported a clean bill.
         if f.carried_verbatim > 0 {
             println!(
                 "  {} construct(s) had no counterpart and are in the output as comments:",
                 f.carried_verbatim
             );
-            for note in f.notes.iter().take(10) {
-                println!("    {note}");
-            }
-            if f.notes.len() > 10 {
-                println!("    and {} more", f.notes.len() - 10);
-            }
+        } else if !f.notes.is_empty() {
+            println!("  {} thing(s) the output cannot say:", f.notes.len());
+        }
+        for note in f.notes.iter().take(10) {
+            println!("    {note}");
+        }
+        if f.notes.len() > 10 {
+            println!("    and {} more", f.notes.len() - 10);
+        }
+        if f.carried_verbatim > 0 {
             println!(
                 "\n  This is a draft. It carries the signatures; the bodies it could not \n  \
                  translate are beside the code that replaces them."

@@ -312,6 +312,23 @@ fixture:
 
 None of these is exotic. All five are in the first file you would pick up.
 
+### What the IR has, and what it deliberately does not
+
+Two additions came out of reading real Java rather than running it.
+
+**The conditional expression** — `a ? b : c`, `b if a else c`, `if a { b } else { c }` —
+is one expression that chooses between two, and five of these six languages have it. It
+is a node rather than a branch because it *is* a value: reading it as an `if` would need
+somewhere to put the result, and there is no such place inside an argument list. Go is
+the exception and says so.
+
+**The base class.** Three of these languages inherit and three do not. It is carried
+into Java, Python and TypeScript, and *reported* for Rust, Go and Zig — because
+`class JsonPrimitive extends JsonElement` becoming a class that extends nothing is a
+different type, and a translation that says nothing about it is the failure this whole
+document is about. Only a single base: Python allows several, the other two do not, and
+picking one of them would be a guess.
+
 ### The receiver has six names
 
 `self`, `this`, or whatever the Go author called it. The receiver is the one binding

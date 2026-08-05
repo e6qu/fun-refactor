@@ -229,6 +229,11 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
             Expr::Keyword { value, .. } => bad(value),
+            Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            } => bad(condition) || bad(then) || bad(otherwise),
             Expr::ListLit(items) => items.iter().any(bad),
             Expr::MapLit(entries) => entries.iter().any(|(k, v)| bad(k) || bad(v)),
             Expr::Template(parts) => parts.iter().any(|part| match part {
@@ -461,6 +466,8 @@ mod rust {
             doc: doc_above(cx, node, &["///", "//"]),
             name: cx.field_text(node, "name").unwrap_or_default(),
             fields,
+            // Rust composes rather than inherits: a trait is a contract, not a base.
+            extends: None,
             exported: node
                 .children(&mut node.walk())
                 .any(|c| c.kind() == "visibility_modifier"),
@@ -677,6 +684,39 @@ mod rust {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            // `if a { b } else { c }` used as a value. Only where each branch is a
+            // block holding one expression and nothing else: anything longer is a
+            // statement, and there is nowhere inside an argument list to put one.
+            "if_expression" => {
+                fn branch<'t>(cx: &Cx, b: Node<'t>) -> Option<Node<'t>> {
+                    let inner = match b.kind() {
+                        "block" => cx.children(b),
+                        "else_clause" => {
+                            let block = cx.children(b).into_iter().next()?;
+                            cx.children(block)
+                        }
+                        _ => return None,
+                    };
+                    match inner.as_slice() {
+                        [only] if is_expression(only.kind()) => Some(*only),
+                        _ => None,
+                    }
+                }
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [condition, then, otherwise] => {
+                        match (branch(cx, *then), branch(cx, *otherwise)) {
+                            (Some(then), Some(otherwise)) => Expr::Ternary {
+                                condition: Box::new(expr(cx, *condition)),
+                                then: Box::new(expr(cx, then)),
+                                otherwise: Box::new(expr(cx, otherwise)),
+                            },
+                            _ => Expr::Unsupported(cx.unsupported(node)),
+                        }
+                    }
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
             "await_expression" => match node.named_child(0) {
                 Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
                 None => Expr::Unsupported(cx.unsupported(node)),
@@ -1047,6 +1087,14 @@ mod python {
             doc: docstring(cx, cx.field(node, "body")),
             name,
             fields,
+            // `class A(B):` — the bases are the class's argument list. Only a single
+            // one is carried: multiple inheritance has no counterpart in the two other
+            // languages that inherit at all, and picking one of them would be a guess.
+            extends: cx
+                .field(node, "superclasses")
+                .map(|list| cx.children(list))
+                .filter(|bases| bases.len() == 1)
+                .and_then(|bases| bases.first().map(|b| cx.text(*b))),
             exported: true,
             methods,
         }
@@ -1328,6 +1376,20 @@ mod python {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            // `b if a else c` — the value first, then the condition. The keywords are
+            // punctuation, so the three named children are in source order and the
+            // condition is the middle one.
+            "conditional_expression" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [then, condition, otherwise] => Expr::Ternary {
+                        condition: Box::new(expr(cx, *condition)),
+                        then: Box::new(expr(cx, *then)),
+                        otherwise: Box::new(expr(cx, *otherwise)),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
             "await" => match node.named_child(0) {
                 Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
                 None => Expr::Unsupported(cx.unsupported(node)),
@@ -1670,6 +1732,8 @@ mod go {
             doc: doc_above(cx, spec, &["//"]),
             exported: name.chars().next().is_some_and(|c| c.is_uppercase()),
             name,
+            // Go embeds rather than inherits.
+            extends: None,
             fields,
             methods: Vec::new(),
         })
@@ -1969,6 +2033,9 @@ mod java {
             doc: doc_above(cx, node, &["///", "//", "/**", "*"]),
             name,
             fields: Vec::new(),
+            extends: cx
+                .field_text(node, "superclass")
+                .map(|text| text.trim_start_matches("extends").trim().to_string()),
             exported: cx.text(node).starts_with("public") || is_public(cx, node),
             methods: Vec::new(),
         };
@@ -2334,6 +2401,19 @@ mod java {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            // `a ? b : c` — the operands are the named children and the `?` and `:`
+            // between them are punctuation.
+            "ternary_expression" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [condition, then, otherwise] => Expr::Ternary {
+                        condition: Box::new(expr(cx, *condition)),
+                        then: Box::new(expr(cx, *then)),
+                        otherwise: Box::new(expr(cx, *otherwise)),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
             "decimal_integer_literal" | "hex_integer_literal" | "octal_integer_literal" => {
                 Expr::Int(cx.text(node).trim_end_matches(['L', 'l']).to_string())
             }
@@ -2503,22 +2583,29 @@ mod zig {
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
+        // A method a record cannot keep still has to reach the reader, and a record has
+        // no room for one. It goes beside the type instead, as a carried comment.
+        let mut carried: Vec<Item> = Vec::new();
         for child in cx.children(root) {
             match child.kind() {
                 "comment" => {}
-                "function_declaration" => module.items.push(Item::Function(function(cx, child))),
-                "variable_declaration" => match declaration(cx, child) {
+                "function_declaration" => module.items.push(match function(cx, child) {
+                    Some(f) => Item::Function(f),
+                    None => Item::Unsupported(cx.unsupported(child)),
+                }),
+                "variable_declaration" => match declaration(cx, child, &mut carried) {
                     Some(item) => module.items.push(item),
                     None => module.items.push(Item::Unsupported(cx.unsupported(child))),
                 },
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        module.items.extend(carried);
         module
     }
 
     /// `const X = …;` at the top level: an import, a struct, or a constant.
-    fn declaration(cx: &Cx, node: Node<'_>) -> Option<Item> {
+    fn declaration(cx: &Cx, node: Node<'_>, carried: &mut Vec<Item>) -> Option<Item> {
         let parts = all(node);
         let name = parts
             .iter()
@@ -2536,7 +2623,9 @@ mod zig {
         }
 
         if value.kind() == "struct_declaration" {
-            return Some(Item::Record(record(cx, node, name, exported, value)));
+            return Some(Item::Record(record(
+                cx, node, name, exported, value, carried,
+            )));
         }
         // An enum or a union has no counterpart in most of the targets, and
         // flattening one into a record would lose which variant a value is.
@@ -2553,11 +2642,20 @@ mod zig {
         }))
     }
 
-    fn record(cx: &Cx, node: Node<'_>, name: String, exported: bool, body: Node<'_>) -> Record {
+    fn record(
+        cx: &Cx,
+        node: Node<'_>,
+        name: String,
+        exported: bool,
+        body: Node<'_>,
+        carried: &mut Vec<Item>,
+    ) -> Record {
         let mut record = Record {
             doc: doc_above(cx, node, &["///", "//"]),
             name,
             fields: Vec::new(),
+            // Zig has no inheritance at all.
+            extends: None,
             exported,
             methods: Vec::new(),
         };
@@ -2579,14 +2677,18 @@ mod zig {
                         exported,
                     });
                 }
-                "function_declaration" => record.methods.push(function(cx, member)),
+                "function_declaration" => match function(cx, member) {
+                    Some(f) => record.methods.push(f),
+                    None => carried.push(Item::Unsupported(cx.unsupported(member))),
+                },
                 _ => {}
             }
         }
         record
     }
 
-    fn function(cx: &Cx, node: Node<'_>) -> Function {
+    /// A function, unless its signature is a compile-time computation.
+    fn function(cx: &Cx, node: Node<'_>) -> Option<Function> {
         let children = cx.children(node);
         let name = children
             .iter()
@@ -2597,9 +2699,19 @@ mod zig {
         let mut params = Vec::new();
         let mut receiver = None;
         let mut receiver_name = None;
+        let mut comptime = false;
         if let Some(list) = children.iter().find(|c| c.kind() == "parameters") {
             for parameter in cx.children(*list) {
                 if parameter.kind() != "parameter" {
+                    continue;
+                }
+                // `comptime T: type` is Zig's generics: the parameter is a *type*,
+                // supplied where another language would write `<T>`. The IR has no
+                // generic parameters, and reading it as an ordinary one produced
+                // `func Lazy(comptime type, comptime type) type` — a signature that
+                // means something else in every target.
+                if cx.text(parameter).trim_start().starts_with("comptime") {
+                    comptime = true;
                     continue;
                 }
                 let parts = all(parameter);
@@ -2630,7 +2742,15 @@ mod zig {
             .filter(|c| c.kind() != "block")
             .map(|t| ty_of(cx, *t));
 
-        Function {
+        // A `comptime` parameter is a *type*, supplied where another language writes
+        // `<T>`. The IR has no generic parameters, and reading one as an ordinary
+        // parameter produced `func Lazy(comptime type, comptime type) type` — a
+        // signature that means something else in every target.
+        if comptime {
+            return None;
+        }
+
+        Some(Function {
             doc: doc_above(cx, node, &["///", "//"]),
             name,
             receiver,
@@ -2644,7 +2764,7 @@ mod zig {
                 .unwrap_or_default(),
             exported: cx.text(node).trim_start().starts_with("pub"),
             is_async: false,
-        }
+        })
     }
 
     fn ty_of(cx: &Cx, node: Node<'_>) -> Type {
@@ -2670,13 +2790,25 @@ mod zig {
                 }
                 Type::List(Box::new(element))
             }
-            "optional_type" => Type::Optional(Box::new(
+            // The grammar's name for `?T`. Reading it as `optional_type` — which is
+            // what it looks like it should be called — matched nothing, so every
+            // optional in every Zig file crossed as a foreign type spelled `?T`.
+            "nullable_type" => Type::Optional(Box::new(
                 cx.children(node)
                     .into_iter()
                     .next_back()
                     .map(|inner| ty_of(cx, inner))
                     .unwrap_or_else(|| Type::named("anytype")),
             )),
+            // A pointer is how Zig writes a reference, and the languages that have no
+            // pointers still have the thing being pointed at. The other readers do the
+            // same with Rust's `&T`.
+            "pointer_type" => cx
+                .children(node)
+                .into_iter()
+                .next_back()
+                .map(|inner| ty_of(cx, inner))
+                .unwrap_or_else(|| Type::named("anytype")),
             // `!T` is an error union: the error set is part of the type and none of the
             // targets has one, so the type is written through by name.
             "error_union_type" => Type::named(text.trim()),
@@ -2739,6 +2871,12 @@ mod zig {
                     || text.trim_start().starts_with("const ");
                 // The first *named* child: `var sum = 0` starts with the keyword,
                 // which is punctuation, and taking it declared a variable called `var`.
+                // `const a, const b = pair;` binds two names and the IR binds one.
+                // Reading the first and dropping the rest kept `const a = pair;` and
+                // lost `b` without a word.
+                if parts.iter().any(|c| c.kind() == ",") {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
                 let Some(target) = parts.iter().find(|c| c.is_named()).copied() else {
                     return Stmt::Unsupported(cx.unsupported(node));
                 };
@@ -2849,6 +2987,22 @@ mod zig {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            // `if (a) b else c` used as a value. A braced branch is a block, and a
+            // block is a statement — reading one as an expression would need somewhere
+            // to put the result.
+            "if_expression" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [condition, then, otherwise] if !is_body(*then) && !is_body(*otherwise) => {
+                        Expr::Ternary {
+                            condition: Box::new(expr(cx, *condition)),
+                            then: Box::new(expr(cx, *then)),
+                            otherwise: Box::new(expr(cx, *otherwise)),
+                        }
+                    }
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
             "integer" => Expr::Int(cx.text(node)),
             "float" => Expr::Float(cx.text(node)),
             "true" => Expr::Bool(true),
@@ -3047,6 +3201,25 @@ mod typescript {
         }
     }
 
+    /// The one type this class extends, if it declares one.
+    ///
+    /// `class A extends B implements C, D` puts all of them in one clause. Only
+    /// `extends` is a base; the rest are contracts, which the other languages spell
+    /// differently or not at all.
+    fn heritage(cx: &Cx, node: Node<'_>) -> Option<String> {
+        let body = cx.field(node, "body")?;
+        let clause = cx
+            .children(node)
+            .into_iter()
+            .take_while(|c| c.id() != body.id())
+            .find(|c| c.kind() == "class_heritage")?;
+        let extends = cx
+            .children(clause)
+            .into_iter()
+            .find(|c| c.kind() == "extends_clause")?;
+        cx.children(extends).first().map(|base| cx.text(*base))
+    }
+
     /// Is this class member reachable from outside the class?
     ///
     /// A TypeScript member is public unless it says otherwise, which is the opposite
@@ -3086,6 +3259,7 @@ mod typescript {
             doc: Vec::new(),
             name,
             fields,
+            extends: heritage(cx, node),
             exported: false,
             methods,
         }
@@ -3374,6 +3548,19 @@ mod typescript {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            // `a ? b : c` — the operands are the named children and the `?` and `:`
+            // between them are punctuation.
+            "ternary_expression" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [condition, then, otherwise] => Expr::Ternary {
+                        condition: Box::new(expr(cx, *condition)),
+                        then: Box::new(expr(cx, *then)),
+                        otherwise: Box::new(expr(cx, *otherwise)),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
             "await_expression" => match node.named_child(0) {
                 Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
                 None => Expr::Unsupported(cx.unsupported(node)),

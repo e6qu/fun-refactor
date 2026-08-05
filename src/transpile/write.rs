@@ -75,14 +75,19 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     let mut map = BTreeMap::new();
     let mut fields = BTreeMap::new();
     let into = |map: &mut BTreeMap<String, String>, name: &str, kind: Kind, exported: bool| {
-        if name.is_empty() {
+        // `_` is not a name, it is the word for "no name" — Rust, Go, Python and Zig
+        // all use it — and putting it through a convention asked what the empty word
+        // is called in `camelCase`. The answer was the empty string, so every `_ = x;`
+        // in a Zig file came out as ` = x;`.
+        if name.is_empty() || name.chars().all(|c| c == '_') {
             return;
         }
         let spelled = spell(language, name, kind, exported);
-        // Only where it differs, so lookups stay meaningful and the map stays small.
-        if spelled != name {
-            map.insert(name.to_string(), spelled);
+        // A rename that produces nothing is not a rename.
+        if spelled.is_empty() || spelled == name {
+            return;
         }
+        map.insert(name.to_string(), spelled);
     };
     let mut add = |name: &str, kind: Kind, exported: bool| into(&mut map, name, kind, exported);
 
@@ -822,6 +827,7 @@ fn rust(out: &mut Out, module: &Module) {
                 }
                 let visibility = if r.exported { "pub " } else { "" };
                 let type_name = out.name(&r.name);
+                inherited_base(out, r, false);
                 out.line(&format!("{visibility}struct {type_name} {{"));
                 out.open();
                 for f in &r.fields {
@@ -1087,6 +1093,17 @@ fn rust_type(ty: &Type) -> String {
 
 fn rust_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Rust's `if` is an expression already.
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => format!(
+            "if {} {{ {} }} else {{ {} }}",
+            rust_expr(out, condition),
+            rust_expr(out, then),
+            rust_expr(out, otherwise)
+        ),
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => v.to_string(),
@@ -1259,7 +1276,11 @@ fn python(out: &mut Out, module: &Module) {
                     out.line("@dataclass");
                 }
                 let type_name = out.name(&r.name);
-                out.line(&format!("class {type_name}:"));
+                // Python spells the base in parentheses after the name.
+                let base = inherited_base(out, r, true)
+                    .map(|base| format!("({base})"))
+                    .unwrap_or_default();
+                out.line(&format!("class {type_name}{base}:"));
                 out.open();
                 if !r.doc.is_empty() {
                     out.line("\"\"\"");
@@ -1592,6 +1613,18 @@ fn python_type(ty: &Type) -> String {
 
 fn python_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Python puts the condition in the middle, which is the only thing that
+        // differs.
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => format!(
+            "{} if {} else {}",
+            python_expr(out, then),
+            python_expr(out, condition),
+            python_expr(out, otherwise)
+        ),
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => if *v { "True" } else { "False" }.to_string(),
@@ -1756,6 +1789,7 @@ fn go(out: &mut Out, module: &Module) {
                 for line in &r.doc {
                     out.line(&format!("// {name} {line}"));
                 }
+                inherited_base(out, r, false);
                 out.line(&format!("type {name} struct {{"));
                 out.open();
                 for f in &r.fields {
@@ -2054,6 +2088,27 @@ fn go_zero(ty: &Type) -> String {
 
 fn go_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Go is the one language here with no conditional expression, and turning one
+        // into an `if` statement needs somewhere to put the result — which does not
+        // exist inside an argument list.
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => {
+            let source = format!(
+                "{} ? {} : {}",
+                go_expr(out, condition),
+                go_expr(out, then),
+                go_expr(out, otherwise)
+            );
+            out.carried(&Unsupported {
+                construct: "conditional expression".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => v.to_string(),
@@ -2222,7 +2277,10 @@ fn typescript(out: &mut Out, module: &Module) {
                 // interface is what TypeScript calls that.
                 if r.methods.is_empty() {
                     let type_name = out.name(&r.name);
-                    out.line(&format!("{export}interface {type_name} {{"));
+                    let base = inherited_base(out, r, true)
+                        .map(|base| format!(" extends {base}"))
+                        .unwrap_or_default();
+                    out.line(&format!("{export}interface {type_name}{base} {{"));
                     out.open();
                     for f in &r.fields {
                         for line in &f.doc {
@@ -2239,7 +2297,10 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.line("}");
                 } else {
                     let type_name = out.name(&r.name);
-                    out.line(&format!("{export}class {type_name} {{"));
+                    let base = inherited_base(out, r, true)
+                        .map(|base| format!(" extends {base}"))
+                        .unwrap_or_default();
+                    out.line(&format!("{export}class {type_name}{base} {{"));
                     out.open();
                     for f in &r.fields {
                         let ty =
@@ -2561,6 +2622,16 @@ fn ts_type(ty: &Type) -> String {
 
 fn ts_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => format!(
+            "{} ? {} : {}",
+            ts_expr(out, condition),
+            ts_expr(out, then),
+            ts_expr(out, otherwise)
+        ),
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Bool(v) => v.to_string(),
@@ -2798,7 +2869,10 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
     }
     let visibility = if public { "public " } else { "" };
     let name = out.name(&record.name);
-    out.line(&format!("{visibility}class {name} {{"));
+    let base = inherited_base(out, record, true)
+        .map(|base| format!(" extends {base}"))
+        .unwrap_or_default();
+    out.line(&format!("{visibility}class {name}{base} {{"));
     out.open();
     for field in &record.fields {
         let ty = field
@@ -3094,6 +3168,16 @@ fn java_inferred(value: &Expr) -> String {
 
 fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => format!(
+            "{} ? {} : {}",
+            java_expr(out, condition),
+            java_expr(out, then),
+            java_expr(out, otherwise)
+        ),
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Str(v) => quoted(Language::Java, v),
@@ -3276,6 +3360,7 @@ fn zig(out: &mut Out, module: &Module) {
                 }
                 let name = out.name(&r.name);
                 let visibility = if r.exported { "pub " } else { "" };
+                inherited_base(out, r, false);
                 out.line(&format!("{visibility}const {name} = struct {{"));
                 out.open();
                 // `const Foo = struct {};` is valid Zig and the grammar this tool reads
@@ -3681,6 +3766,17 @@ fn zig_carry(out: &mut Out, construct: &str, source: String) -> String {
 
 fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Zig's `if` is an expression, and takes the branches without braces.
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => format!(
+            "if ({}) {} else {}",
+            zig_expr(out, condition),
+            zig_expr(out, then),
+            zig_expr(out, otherwise)
+        ),
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
         Expr::Str(v) => quoted(Language::Zig, v),
@@ -3902,6 +3998,27 @@ fn escaped(language: Language, value: &str) -> String {
         }
     }
     out
+}
+
+/// The type this record extends, where the target can express one.
+///
+/// Three of these six languages have inheritance and three do not, so `inheritable`
+/// says which kind of target is asking. `None` comes back either because the source
+/// declared no base or because this language has none — and the second of those leaves
+/// a note, since dropping it silently made `class JsonPrimitive extends JsonElement`
+/// into a class that extends nothing. That is a different type, and the output said
+/// nothing about it.
+fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<String> {
+    let base = record.extends.clone()?;
+    if inheritable {
+        return Some(base);
+    }
+    out.fidelity.notes.push(format!(
+        "`{}` extends `{base}` in the source; {} has no inheritance, so whatever \
+         `{base}` contributed is not here",
+        record.name, out.language
+    ));
+    None
 }
 
 /// Text that can sit inside a `/* ... */` comment.

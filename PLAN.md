@@ -865,6 +865,44 @@ struct.
 The regression test is the sweep itself, in `tests/self_translation.rs`. It costs ten
 seconds and it is the only test here whose inputs nobody chose.
 
+### Real Java and real Zig, and the two things the IR did not have
+
+The sweep found nothing more in this repository because there is no Java or Zig in it:
+both readers were exercised only by fixtures somebody wrote to pass. Three files of
+google/gson and two of zigtools/zls, vendored and pinned, found five defects — every one
+of them in the Zig reader, and every one of them a thing no fixture would have thought
+to include:
+
+- **`?T` is a `nullable_type`**, which is not what it looks like it should be called.
+  The arm written for `optional_type` matched nothing, so every optional in every Zig
+  file crossed as a foreign type spelled `?T`. A pointer had no arm at all.
+- **`comptime T: type`** is Zig's generics — a parameter that is a type — and reading
+  it as a value produced `func Lazy(comptime type, comptime type) type`.
+- **`const a, const b = pair;`** kept `a` and dropped `b`.
+- **`_` as a parameter name** went through the naming convention, which asked what the
+  empty word is called in `camelCase` and got the empty string back.
+
+Then two things the IR simply did not have, both found by reading gson rather than by
+running it:
+
+**The conditional expression.** `a > 0 ? 1 : 2` was carried verbatim by all six writers,
+including the five languages that have one. `Expr::Ternary` now crosses every ordered
+pair among Python, TypeScript, Rust, Java and Zig; Go is the only target without one,
+and turning an expression into an `if` statement needs somewhere to put the result,
+which does not exist inside an argument list.
+
+**The base class.** `class JsonPrimitive extends JsonElement` became a class that
+extends nothing, which is a different type, and nothing in the output said so. Carried
+into the three targets that inherit and reported for the three that do not.
+
+The reporting had the matching hole: notes were printed only when `carried_verbatim > 0`,
+so a translation that lost a supertype and nothing else gave a clean bill. The tool had
+computed the honest answer and then declined to print it.
+
+`tests/corpus/PROVENANCE.md` now describes four projects instead of two, and
+`tests/vendor.rs` checks it the same way it checks the grammar manifest — a checksum
+nobody verifies is a claim rather than a fact.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

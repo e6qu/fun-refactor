@@ -119,6 +119,13 @@ pub struct Record {
     pub doc: Vec<String>,
     pub name: String,
     pub fields: Vec<Field>,
+    /// The type it inherits from, where the source has inheritance.
+    ///
+    /// Three of these six languages do and three do not, so this is carried where it
+    /// can be and *reported* where it cannot. Dropping it silently made
+    /// `class JsonPrimitive extends JsonElement` into a class that extends nothing —
+    /// which is a different type, and the output said nothing about it.
+    pub extends: Option<String>,
     pub exported: bool,
     /// Methods declared on it. Rust and Go declare them apart from the type; Python
     /// and TypeScript declare them inside. The IR keeps them with the type, which is
@@ -360,6 +367,18 @@ pub enum Expr {
     New {
         callee: Box<Expr>,
         args: Vec<Expr>,
+    },
+    /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
+    ///
+    /// One expression that chooses between two, and five of these six languages have
+    /// it — only Go does not, and Go says so rather than inventing a statement out of
+    /// an expression. It is a node rather than an [`Stmt::If`] because it *is* a value:
+    /// reading it as a branch would need somewhere to put the result, and there is no
+    /// such place inside an argument list.
+    Ternary {
+        condition: Box<Expr>,
+        then: Box<Expr>,
+        otherwise: Box<Expr>,
     },
     /// `[a, b, c]`
     ListLit(Vec<Expr>),

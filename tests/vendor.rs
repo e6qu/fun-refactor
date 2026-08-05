@@ -201,3 +201,111 @@ fn nothing_vendored_is_compiled_into_the_binary() {
         }
     }
 }
+
+// ------------------------------------------------------- the translation corpus
+
+/// `tests/corpus/` — real files from real projects, kept for the translation tests.
+///
+/// Described by `PROVENANCE.md` rather than a manifest, because it is a document a
+/// person reads. That makes it exactly as rot-prone as `MANIFEST.toml` and it needs
+/// the same check: a file that changes without its checksum changing is a file whose
+/// provenance is a claim rather than a fact.
+fn corpus_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("corpus")
+}
+
+/// Every `| name | sha256 | origin |` row in the provenance document.
+fn corpus_checksums() -> Vec<(String, String)> {
+    let text = std::fs::read_to_string(corpus_root().join("PROVENANCE.md"))
+        .expect("tests/corpus/PROVENANCE.md is readable");
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let cells: Vec<&str> = line.trim().trim_matches('|').split('|').collect();
+        if cells.len() < 3 {
+            continue;
+        }
+        let name = cells[0].trim().trim_matches('`');
+        let digest = cells[1].trim().trim_matches('`');
+        if digest.len() == 64 && digest.chars().all(|c| c.is_ascii_hexdigit()) {
+            out.push((name.to_string(), digest.to_string()));
+        }
+    }
+    out
+}
+
+fn corpus_files() -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    let mut pending = vec![corpus_root()];
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory)
+            .expect("the corpus is readable")
+            .flatten()
+        {
+            let path = entry.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|e| e != "md") {
+                found.push(path);
+            }
+        }
+    }
+    found.sort();
+    found
+}
+
+#[test]
+fn every_corpus_file_is_recorded_and_matches_its_checksum() {
+    let recorded = corpus_checksums();
+    assert!(
+        recorded.len() >= 11,
+        "the provenance document lists {} files",
+        recorded.len()
+    );
+    for file in corpus_files() {
+        let relative = file
+            .strip_prefix(corpus_root())
+            .expect("under the corpus")
+            .to_string_lossy()
+            .to_string();
+        let name = file
+            .file_name()
+            .expect("a name")
+            .to_string_lossy()
+            .to_string();
+        // A row names either the file or its path under the project directory, since
+        // the Next.js tree's shape is part of what is vendored.
+        let row = recorded
+            .iter()
+            .find(|(recorded, _)| *recorded == name || relative.ends_with(recorded.as_str()))
+            .unwrap_or_else(|| {
+                panic!("{relative} is vendored with no row in tests/corpus/PROVENANCE.md")
+            });
+        assert_eq!(
+            row.1,
+            sha256_of(&file),
+            "{relative} has changed since it was vendored, or its checksum was mistyped"
+        );
+    }
+}
+
+#[test]
+fn every_corpus_project_names_a_licence_that_permits_redistribution() {
+    let text = std::fs::read_to_string(corpus_root().join("PROVENANCE.md"))
+        .expect("tests/corpus/PROVENANCE.md is readable");
+    // One per `## name/` section, since a section is one upstream project.
+    let projects = text.matches("\n- Source: ").count();
+    let licences = text.matches("\n- License: ").count();
+    assert_eq!(
+        projects, licences,
+        "every vendored project needs a source and a licence"
+    );
+    assert!(projects >= 4, "found {projects} vendored projects");
+    for line in text.lines().filter(|l| l.starts_with("- License: ")) {
+        assert!(
+            line.contains("MIT") || line.contains("Apache-2.0") || line.contains("BSD"),
+            "a licence that may not permit redistribution: {line}"
+        );
+    }
+}
