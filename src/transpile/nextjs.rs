@@ -623,6 +623,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
                 body,
                 exported: false,
                 is_async: false,
+                is_constructor: false,
             })],
         };
         let (written, inner) = super::write_module_in(Language::Python, &one, module)?;

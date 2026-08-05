@@ -65,6 +65,10 @@ fn settle_methods(module: &mut Module) {
                 let owner = f.receiver.clone().expect("checked");
                 orphaned.push((owner, f));
             }
+            // A constructor has no receiver by definition: it makes the value rather
+            // than acting on one. Giving it its own type as a first parameter would be
+            // reading `Handle::new(files)` as `new(handle, files)`.
+            Item::Function(f) if f.is_constructor => kept.push(Item::Function(f)),
             Item::Function(mut f) if f.receiver.is_some() => {
                 let ty = f.receiver.clone().expect("checked");
                 let name = f.receiver_binding.clone().unwrap_or_else(|| "self".into());
@@ -91,6 +95,12 @@ fn settle_methods(module: &mut Module) {
                 if *owner == record.name {
                     record.methods.push(method.clone());
                 }
+            }
+            // Every method knows the type it belongs to, however it got here. A writer
+            // needs that to spell a constructor at all: three of these languages name
+            // one after its type and the other three name it by habit.
+            for method in record.methods.iter_mut() {
+                method.receiver = Some(record.name.clone());
             }
         }
     }
@@ -335,6 +345,40 @@ fn doc_above(cx: &Cx, node: Node<'_>, markers: &[&str]) -> Vec<String> {
     lines
 }
 
+/// Does this function make a value of `owner`, by that language's convention?
+///
+/// Rust, Go and Zig have no constructor: they have a habit — `Thing::new`, `NewThing`,
+/// `Thing.init` — and the habit is only a constructor when it also *returns the thing*.
+/// A `new` that returns something else is an ordinary function with a common name, and
+/// reading it as a constructor would move it somewhere it does not belong.
+fn constructs(
+    name: &str,
+    owner: &str,
+    returns: Option<&Type>,
+    has_receiver: bool,
+) -> Option<String> {
+    if has_receiver {
+        return None;
+    }
+    let expected = match name {
+        "new" | "init" => owner.to_string(),
+        other => match other.strip_prefix("New") {
+            Some(rest) if !rest.is_empty() => rest.to_string(),
+            _ => return None,
+        },
+    };
+    let mut ty = returns;
+    // `*Thing` and `Option<Thing>` are still ways of returning a Thing.
+    while let Some(Type::Optional(inner)) = ty {
+        ty = Some(inner.as_ref());
+    }
+    match ty {
+        Some(Type::Named { name, .. }) if *name == expected => Some(expected),
+        Some(Type::Named { name, .. }) if name == "Self" && !expected.is_empty() => Some(expected),
+        _ => None,
+    }
+}
+
 // ------------------------------------------------------------------------- Rust
 
 mod rust {
@@ -362,8 +406,16 @@ mod rust {
                 // Methods live in an `impl` block, apart from the type they belong to.
                 // The IR keeps them with the type, so they are attached here.
                 "impl_item" => {
+                    // `impl<'a> Ctx<'a>` is an impl on `Ctx`. Keeping the arguments made
+                    // the owner `Ctx<'a>`, which matches no record in the file — so the
+                    // methods of every generic type became free functions with a `self`
+                    // parameter bolted on.
                     let owner = cx
                         .field_text(child, "type")
+                        .map(|text| match text.split_once('<') {
+                            Some((head, _)) => head.trim().to_string(),
+                            None => text,
+                        })
                         .unwrap_or_else(|| "Self".to_string());
                     let trait_impl = cx.field(child, "trait").is_some();
                     if trait_impl {
@@ -375,11 +427,15 @@ mod rust {
                     if let Some(body) = cx.field(child, "body") {
                         for item in cx.children(body) {
                             if item.kind() == "function_item" {
-                                module.items.push(Item::Function(function(
-                                    cx,
-                                    item,
-                                    Some(owner.clone()),
-                                )));
+                                let mut f = function(cx, item, Some(owner.clone()));
+                                f.is_constructor = super::constructs(
+                                    &f.name,
+                                    &owner,
+                                    f.returns.as_ref(),
+                                    f.receiver_binding.is_some(),
+                                )
+                                .is_some();
+                                module.items.push(Item::Function(f));
                             }
                         }
                     }
@@ -442,6 +498,7 @@ mod rust {
                 .children(&mut node.walk())
                 .any(|c| c.kind() == "visibility_modifier"),
             is_async: cx.text(node).starts_with("async ") || cx.text(node).contains("async fn"),
+            is_constructor: false,
         }
     }
 
@@ -1004,6 +1061,7 @@ mod python {
                 .unwrap_or_default()
                 .starts_with('_'),
             is_async: cx.text(node).starts_with("async "),
+            is_constructor: cx.field_text(node, "name").as_deref() == Some("__init__"),
         }
     }
 
@@ -1660,9 +1718,18 @@ mod go {
                     text: cx.text(child),
                     line: cx.line(child),
                 }),
-                "function_declaration" => module
-                    .items
-                    .push(Item::Function(function(cx, child, None, None))),
+                "function_declaration" => {
+                    let mut f = function(cx, child, None, None);
+                    // Go's constructor is a naming habit: `NewThing` that returns one.
+                    // Naming the type it makes is what puts it back with that type — a
+                    // top-level function belongs to nothing, and `NewEdit` written as
+                    // Rust would have come out `new_edit` beside the `impl`.
+                    if let Some(owner) = super::constructs(&f.name, "", f.returns.as_ref(), false) {
+                        f.is_constructor = true;
+                        f.receiver = Some(owner);
+                    }
+                    module.items.push(Item::Function(f));
+                }
                 "method_declaration" => {
                     let owner = cx
                         .field(child, "receiver")
@@ -1765,6 +1832,7 @@ mod go {
                 .map(|b| block(cx, b))
                 .unwrap_or_default(),
             is_async: false,
+            is_constructor: false,
         }
     }
 
@@ -2171,13 +2239,11 @@ mod java {
                         });
                     }
                 }
-                "method_declaration" => record.methods.push(function(cx, member)),
-                // A constructor's body assigns the fields the parameters carry, which
-                // every target spells its own way and none spells like this.
-                // A constructor is not a method of the type: it is how the type is
-                // made, and every other target spells that differently or not at all.
-                "constructor_declaration" => {
-                    carried.push(Item::Unsupported(cx.unsupported(member)))
+                // A constructor is a method that makes the type rather than acting on
+                // one, and every target spells it its own way — so what carries is that
+                // it *is* one, not what it is called.
+                "method_declaration" | "constructor_declaration" => {
+                    record.methods.push(function(cx, member))
                 }
                 "comment" | "{" | "}" => {}
                 // A member this does not recognise is not a member that is not
@@ -2258,6 +2324,7 @@ mod java {
                 .unwrap_or_default(),
             exported: is_public(cx, node),
             is_async: false,
+            is_constructor: node.kind() == "constructor_declaration",
         }
     }
 
@@ -2761,7 +2828,16 @@ mod zig {
                     });
                 }
                 "function_declaration" => match function(cx, member) {
-                    Some(f) => record.methods.push(f),
+                    Some(mut f) => {
+                        f.is_constructor = super::constructs(
+                            &f.name,
+                            &record.name,
+                            f.returns.as_ref(),
+                            f.receiver_binding.is_some(),
+                        )
+                        .is_some();
+                        record.methods.push(f);
+                    }
                     None => carried.push(Item::Unsupported(cx.unsupported(member))),
                 },
                 // A member this does not recognise is not a member that is not
@@ -2851,6 +2927,7 @@ mod zig {
                 .unwrap_or_default(),
             exported: cx.text(node).trim_start().starts_with("pub"),
             is_async: false,
+            is_constructor: false,
         })
     }
 
@@ -3288,6 +3365,7 @@ mod typescript {
                 .unwrap_or_default(),
             exported: false,
             is_async,
+            is_constructor: cx.field_text(node, "name").as_deref() == Some("constructor"),
         }
     }
 

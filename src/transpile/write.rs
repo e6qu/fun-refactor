@@ -112,7 +112,13 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     }
 
     fn walk_function(f: &Function, add: &mut impl FnMut(&str, Kind, bool)) {
-        add(&f.name, Kind::Function, f.exported);
+        // A constructor's own name is never written — every target has its own word for
+        // one — so it must not claim a spelling. Java names it after the class, and
+        // letting it into the map meant every Java class came out named after its
+        // constructor: `class a` where the source said `class A`.
+        if !f.is_constructor {
+            add(&f.name, Kind::Function, f.exported);
+        }
         for param in &f.params {
             add(&param.name, Kind::Value, false);
         }
@@ -590,6 +596,19 @@ impl Out {
         }
     }
 
+    /// The name to write for this function: its own, or the target's word for a
+    /// constructor.
+    ///
+    /// A constructor's *name* is not information — it is the type's name in Java, a
+    /// fixed word in Python and TypeScript, and a habit in the other three. What the IR
+    /// carries is that it is one.
+    fn function_name(&self, f: &Function) -> String {
+        match (f.is_constructor, f.receiver.as_deref()) {
+            (true, Some(owner)) => self.legal(constructor_name(self.language, owner)),
+            _ => self.name(&f.name),
+        }
+    }
+
     /// This field name in the target's convention, or unchanged if it is not ours.
     ///
     /// A use site is `x.name` and nothing here knows the type of `x`, so this renames
@@ -853,7 +872,7 @@ fn rust(out: &mut Out, module: &Module) {
                     let type_name = out.name(&r.name);
                     out.line(&format!("impl {type_name} {{"));
                     out.open();
-                    for m in &r.methods {
+                    for m in &methods_of(out, r, false) {
                         rust_function(out, m, m.receiver_binding.is_some());
                     }
                     out.close();
@@ -938,7 +957,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let visibility = if f.exported { "pub " } else { "" };
     out.line(&format!(
         "{visibility}fn {}({}){returns} {{",
-        out.name(&f.name),
+        out.function_name(f),
         params.join(", ")
     ));
     out.open();
@@ -1304,7 +1323,7 @@ fn python(out: &mut Out, module: &Module) {
                 if r.fields.is_empty() && r.methods.is_empty() && r.doc.is_empty() {
                     out.line("pass");
                 }
-                for m in &r.methods {
+                for m in &methods_of(out, r, false) {
                     out.blank();
                     // A method with no receiver is not an instance method, and Python
                     // will pass it one anyway unless told otherwise.
@@ -1394,7 +1413,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     let prefix = if f.is_async { "async def" } else { "def" };
     out.line(&format!(
         "{prefix} {}({}){returns}:",
-        out.name(&f.name),
+        out.function_name(f),
         params.join(", ")
     ));
     out.open();
@@ -1804,7 +1823,7 @@ fn go(out: &mut Out, module: &Module) {
                 out.line("}");
                 out.fidelity.records += 1;
                 out.blank();
-                for m in &r.methods {
+                for m in &methods_of(out, r, false) {
                     go_function(
                         out,
                         m,
@@ -1853,7 +1872,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let bound = f.receiver_binding.clone();
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
 
-    let name = out.name(&f.name);
+    let name = out.function_name(f);
     for line in &f.doc {
         out.line(&format!("// {name} {line}"));
     }
@@ -2310,7 +2329,7 @@ fn typescript(out: &mut Out, module: &Module) {
                         let field_name = out.field(&f.name);
                         out.line(&format!("{field_name}: {ty};"));
                     }
-                    for m in &r.methods {
+                    for m in &methods_of(out, r, false) {
                         out.blank();
                         ts_function(out, m, true);
                     }
@@ -2419,7 +2438,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     };
     out.line(&format!(
         "{prefix}{}({}){returns} {{",
-        out.name(&f.name),
+        out.function_name(f),
         params.join(", ")
     ));
     out.open();
@@ -2887,7 +2906,7 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
     if !record.fields.is_empty() && !record.methods.is_empty() {
         out.blank();
     }
-    for (index, method) in record.methods.iter().enumerate() {
+    for (index, method) in methods_of(out, record, true).iter().enumerate() {
         if index > 0 {
             out.blank();
         }
@@ -2952,10 +2971,20 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     };
 
     let visibility = if f.exported { "public" } else { "private" };
-    let modifier = if is_static { " static" } else { "" };
+    // A constructor writes no return type at all. `void` would make it a method that
+    // happens to have the class's name — which compiles, and is not a constructor.
+    let returns = match f.is_constructor {
+        true => String::new(),
+        false => format!("{returns} "),
+    };
+    let modifier = if is_static && !f.is_constructor {
+        " static "
+    } else {
+        " "
+    };
     out.line(&format!(
-        "{visibility}{modifier} {returns} {}({}) {{",
-        out.name(&f.name),
+        "{visibility}{modifier}{returns}{}({}) {{",
+        out.function_name(f),
         params.join(", ")
     ));
     out.open();
@@ -3383,7 +3412,7 @@ fn zig(out: &mut Out, module: &Module) {
                     let field_name = out.field(&f.name);
                     out.line(&format!("{field_name}: {ty},"));
                 }
-                for m in &r.methods {
+                for m in &methods_of(out, r, false) {
                     out.blank();
                     zig_function(
                         out,
@@ -3471,7 +3500,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let visibility = if f.exported { "pub " } else { "" };
     out.line(&format!(
         "{visibility}fn {}({}) {returns} {{",
-        out.name(&f.name),
+        out.function_name(f),
         params.join(", ")
     ));
     out.open();
@@ -4019,6 +4048,87 @@ fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<S
         record.name, out.language
     ));
     None
+}
+
+/// What this target calls a function that makes a value of `owner`.
+///
+/// Three of these six languages have a constructor and three have a habit. Java names
+/// it after the class, Python calls it `__init__` and TypeScript calls it `constructor`;
+/// Rust writes `Thing::new`, Go writes `NewThing` and Zig writes `Thing.init`. Which of
+/// those a file gets is a fact about the target, which is why the IR carries *that it is
+/// one* rather than what it is called.
+fn constructor_name(language: Language, owner: &str) -> String {
+    match language {
+        Language::Python => "__init__".to_string(),
+        Language::TypeScript | Language::Tsx => "constructor".to_string(),
+        Language::Java => pascal(owner),
+        Language::Go => format!("New{}", pascal(owner)),
+        Language::Zig => "init".to_string(),
+        _ => "new".to_string(),
+    }
+}
+
+/// A record's methods, with only the first constructor left as one.
+///
+/// Java is the one target here that overloads constructors; everywhere else a type has
+/// exactly one. The rest keep the names their source gave them and are reported, since
+/// a caller of `Thing(a, b)` has to be told what to write instead.
+fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Function> {
+    let mut seen = false;
+    let mut methods = record.methods.clone();
+    for method in methods.iter_mut() {
+        if !method.is_constructor {
+            continue;
+        }
+        // Whether a constructor takes a receiver, and whether it says what it returns,
+        // is a fact about the target rather than about the source. Python's `__init__`
+        // takes `self` and returns nothing; Java's and TypeScript's take neither; and
+        // the three that spell it by habit take no receiver and return the type,
+        // because returning the type is the whole of what makes them one.
+        match out.language {
+            // A constructor here acts on a value that already exists, so it takes the
+            // receiver and says nothing about what it returns. A source whose
+            // constructor had none — Rust builds and returns instead — still needs one
+            // bound, or Python writes `@staticmethod def __init__(n)` and TypeScript
+            // writes `static constructor(n)`.
+            Language::Python | Language::Java | Language::TypeScript | Language::Tsx => {
+                if method.receiver_binding.is_none() {
+                    method.receiver_binding = Some(receiver_word(out.language).to_string());
+                }
+                method.returns = None;
+            }
+            // The other three have no constructor, only a habit: a plain function that
+            // *returns* the type, which is the whole of what makes it one. It has no
+            // receiver — and the source's body, which assigns through one, therefore has
+            // nowhere to run. Saying so is the honest answer; writing `self.n = n`
+            // inside a function that binds no `self` is not.
+            _ => {
+                if !method.body.is_empty() {
+                    out.fidelity.notes.push(format!(
+                        "`{}` has a constructor whose body assigns through a receiver; \
+                         {} builds a value and returns it instead, so that body has no \
+                         counterpart and is not here",
+                        record.name, out.language
+                    ));
+                }
+                method.receiver_binding = None;
+                method.body = Vec::new();
+                method.returns = Some(Type::named(record.name.clone()));
+            }
+        }
+        if seen && !overloads_allowed {
+            method.is_constructor = false;
+            out.fidelity.notes.push(format!(
+                "`{}` declares more than one constructor and {} allows one; this is \
+                 written as an ordinary function called `{}`",
+                record.name,
+                out.language,
+                out.name(&method.name)
+            ));
+        }
+        seen = true;
+    }
+    methods
 }
 
 /// Text that can sit inside a `/* ... */` comment.
