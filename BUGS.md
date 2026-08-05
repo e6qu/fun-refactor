@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B177: **`??` had no counterpart in the IR**, so every nullish coalescing in every
+  TypeScript file was carried verbatim — and in the pet store it took a whole `const`
+  statement with it, which is how a query parameter went missing from both sides of a
+  crossing that otherwise agreed perfectly. It asks whether a value is absent, which is
+  a question rather than an arithmetic operator: Zig spells it `orelse`, Rust reaches
+  for `Option::unwrap_or`, Java for a static method, Python has to name the value twice,
+  and Go cannot say it at all. The two that must name the value twice refuse when naming
+  it twice would call it twice.
+
 - [x] B176: **a query parameter did not survive the crossing.** Next.js has no
   declaration for one — a handler reads it out of the URL — so the translated router
   said it took no query, and a caller sending `?species=cat` was outside a contract that
