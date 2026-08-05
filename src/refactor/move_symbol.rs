@@ -242,12 +242,36 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     } else {
         exported(sym.language, &moved_text)
     };
+    // The imports the moved code needs go where imports go, not immediately above the
+    // code. Prepending them to the moved text put an `import` statement in the middle
+    // of the file — legal in Python and a syntax error in half the other targets, and
+    // wrong-looking in all of them.
+    if !carried.is_empty() {
+        let existing = crate::vfs::read_to_string(destination).unwrap_or_default();
+        let at = import_insertion_point_for(index, destination, &existing);
+        plan.edits.add(
+            destination.to_path_buf(),
+            Edit::new(
+                Span::new(at, at),
+                carried.clone(),
+                format!("what {} needs where it lands", sym.name),
+            ),
+        );
+    }
     append_to_destination(
         &mut plan.edits,
         destination,
-        &format!("{carried}{moved_text}"),
+        &moved_text,
         format!("move {} in", sym.name),
     );
+
+    // The destination may already have been importing it from here. It is local now,
+    // so that import points at a file which no longer defines the name — and the file
+    // fails on the line that used to make it work. Nothing was adding this import, so
+    // nothing was removing it either.
+    if let Some(edit) = drop_local_import(index, destination, &sym.file, &sym.name)? {
+        plan.edits.add(destination.to_path_buf(), edit);
+    }
 
     for file in &needs_import {
         let statement = import_statement(sym.language, file, destination, &sym.name)?;
@@ -265,6 +289,73 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     }
 
     Ok(plan)
+}
+
+/// Remove the destination's import of a name it is about to define itself.
+///
+/// Narrowed rather than deleted where the statement brings in more than one name: the
+/// others are still over there and still needed.
+fn drop_local_import(
+    index: &Index,
+    destination: &Path,
+    from: &Path,
+    name: &str,
+) -> Result<Option<Edit>> {
+    let Some(info) = index.file(destination) else {
+        return Ok(None);
+    };
+    let Ok(source) = crate::vfs::read_to_string(destination) else {
+        return Ok(None);
+    };
+    for import in import_statements(&info.imports) {
+        if !import.names.iter().any(|n| n.local == name) {
+            continue;
+        }
+        // Only the import that names the file the symbol is leaving. A same-named
+        // thing imported from somewhere else is somebody else's.
+        let points_here = repoint(&import.path, destination, from)
+            .map(|p| p == import.path)
+            .unwrap_or(false)
+            || import.path.ends_with(&stem(from));
+        if !points_here {
+            continue;
+        }
+        let kept: Vec<&crate::model::ImportedName> =
+            import.names.iter().filter(|n| n.local != name).collect();
+        let replacement = match kept.is_empty() {
+            true => String::new(),
+            false => {
+                let spelled: Vec<String> = kept
+                    .iter()
+                    .map(|n| n.span.text(&source).to_string())
+                    .collect();
+                match info.language {
+                    Language::Python => {
+                        format!("from {} import {}\n", import.path, spelled.join(", "))
+                    }
+                    _ => format!(
+                        "import {{ {} }} from '{}';\n",
+                        spelled.join(", "),
+                        import.path
+                    ),
+                }
+            }
+        };
+        let span = whole_lines(&source, import.span);
+        return Ok(Some(Edit::new(
+            span,
+            replacement,
+            format!("`{name}` is defined here now"),
+        )));
+    }
+    Ok(None)
+}
+
+/// A file's name without its extension, for matching a relative import against it.
+fn stem(file: &Path) -> String {
+    file.file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default()
 }
 
 /// Every identifier the moved region names.

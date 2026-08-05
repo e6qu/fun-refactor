@@ -217,9 +217,9 @@ export const CATALOG = [
     command: "fr move days_overdue src/rates.py",
     files: [
       { path: "src/account.py", before: "import datetime\n\n\ndef days_overdue(account):\n    return (datetime.date.today() - account.due_on).days\n\n\ndef overdue_charge(account):\n    return days_overdue(account) * account.daily_rate\n", after: "import datetime\nfrom .rates import days_overdue\n\n\n\n\ndef overdue_charge(account):\n    return days_overdue(account) * account.daily_rate\n" },
-      { path: "src/rates.py", before: "def daily_rate(account):\n    return account.balance * 0.0004\n", after: "def daily_rate(account):\n    return account.balance * 0.0004\n\nimport datetime\n\ndef days_overdue(account):\n    return (datetime.date.today() - account.due_on).days\n" },
+      { path: "src/rates.py", before: "def daily_rate(account):\n    return account.balance * 0.0004\n", after: "import datetime\n\ndef daily_rate(account):\n    return account.balance * 0.0004\n\ndef days_overdue(account):\n    return (datetime.date.today() - account.due_on).days\n" },
     ],
-    output: "--- a/src/account.py\n+++ b/src/account.py\n@@ -1,8 +1,7 @@\n import datetime\n+from .rates import days_overdue\n \n \n-def days_overdue(account):\n-    return (datetime.date.today() - account.due_on).days\n \n \n def overdue_charge(account):\n--- a/src/rates.py\n+++ b/src/rates.py\n@@ -1,2 +1,7 @@\n def daily_rate(account):\n     return account.balance * 0.0004\n+\n+import datetime\n+\n+def days_overdue(account):\n+    return (datetime.date.today() - account.due_on).days\n\nmoved days_overdue from src/account.py to src/rates.py (1 file(s) gained an import)\n\nNothing written. Re-run with --write to apply.",
+    output: "--- a/src/account.py\n+++ b/src/account.py\n@@ -1,8 +1,7 @@\n import datetime\n+from .rates import days_overdue\n \n \n-def days_overdue(account):\n-    return (datetime.date.today() - account.due_on).days\n \n \n def overdue_charge(account):\n--- a/src/rates.py\n+++ b/src/rates.py\n@@ -1,2 +1,7 @@\n+import datetime\n+\n def daily_rate(account):\n     return account.balance * 0.0004\n+\n+def days_overdue(account):\n+    return (datetime.date.today() - account.due_on).days\n\nmoved days_overdue from src/account.py to src/rates.py (1 file(s) gained an import)\n\nNothing written. Re-run with --write to apply.",
   },
   {
     id: "remove-dead-code",
