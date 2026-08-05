@@ -247,6 +247,18 @@ fn continues_into_another_if(clause: Node<'_>) -> bool {
         .any(|c| c.kind().starts_with("if_") || c.kind() == "if_expression")
 }
 
+/// Does this `if` bind what it tested?
+///
+/// Zig writes `if (maybe) |value| { … }`: the condition is an optional and the payload
+/// binds what was inside it. Negating that condition leaves a binding with nothing to
+/// bind — `if (!maybe) |value|` is not a program — and `!optional` is not a boolean
+/// there in the first place. The reader refuses the same shape for the same reason.
+fn binds_a_payload(node: Node<'_>) -> bool {
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.named_children(&mut cursor).collect();
+    children.iter().any(|child| child.kind() == "payload")
+}
+
 /// Swap an if/else's branches and negate its condition.
 fn invert_if(
     parsed: &Parsed,
@@ -256,6 +268,12 @@ fn invert_if(
 ) -> Result<(Span, String)> {
     let node =
         enclosing_if(parsed, offset).ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
+    if binds_a_payload(node) {
+        anyhow::bail!(
+            "this `if` binds what it tested; there is no condition here to negate, and \
+             the payload would have nothing to bind"
+        );
+    }
 
     let parts = if_parts(node)
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
@@ -318,8 +336,13 @@ fn de_morgan(
     offset: usize,
     language: Language,
 ) -> Result<(Span, String)> {
+    // tree-sitter-zig reads `!(a and b)` as an `error_union_type`: `!T` is an error
+    // union where a type is expected and a negation where a value is, and the grammar
+    // resolves it the first way. Inside a condition there is no type, so the node is a
+    // negation whatever it is called — and the checks below still have to agree, since
+    // an error union that really is one has no boolean operator to distribute over.
     let unary = enclosing_kind(parsed, offset, |k| {
-        k.contains("unary") || k.contains("not_operator")
+        k.contains("unary") || k.contains("not_operator") || k == "error_union_type"
     })
     .ok_or_else(|| anyhow::anyhow!("no negation at that position"))?;
 
@@ -383,6 +406,12 @@ fn guard_clause(
 ) -> Result<(Span, String)> {
     let node =
         enclosing_if(parsed, offset).ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
+    if binds_a_payload(node) {
+        anyhow::bail!(
+            "this `if` binds what it tested; there is no condition here to negate, and \
+             the payload would have nothing to bind"
+        );
+    }
 
     let parts = if_parts(node)
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
@@ -579,16 +608,39 @@ fn enclosing_kind<'a>(
 fn boolean_spelling(language: Language) -> (&'static str, &'static str, &'static str) {
     match language {
         Language::Python => ("not ", "and", "or"),
+        // Zig spells the two logical operators as words, as Python does, and negates
+        // with a sigil, as C does. Falling into the C arm made `a and b` invisible to
+        // every rule that looks for an operator — so inverting `if (a == 1 and b == 2)`
+        // flipped the first comparison and left the `and`, which is a different program.
+        Language::Zig => ("!", "and", "or"),
         // Shell negates a command with `! cmd`, so the sigil needs its space.
         Language::Bash => ("! ", "&&", "||"),
         _ => ("!", "&&", "||"),
     }
 }
 
+/// Where `needle` sits at the top level of `text`, outside every bracket.
+///
+/// The same scan `split_boolean` does, and for the same reason: `f(a == 1) == 2` has
+/// two `==` in it and only one of them is the comparison the condition makes.
+fn top_level_find(text: &str, needle: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut depth = 0usize;
+    for i in 0..bytes.len() {
+        match bytes[i] {
+            b'(' | b'[' | b'{' => depth += 1,
+            b')' | b']' | b'}' => depth = depth.saturating_sub(1),
+            _ if depth == 0 && text[i..].starts_with(needle) => return Some(i),
+            _ => {}
+        }
+    }
+    None
+}
+
 /// Negate an expression, simplifying rather than piling up operators.
 fn negate(expression: &str, language: Language) -> String {
     let trimmed = expression.trim();
-    let (not_token, _, _) = boolean_spelling(language);
+    let (not_token, and_op, or_op) = boolean_spelling(language);
 
     // A double negative cancels.
     if let Some(rest) = trimmed.strip_prefix(not_token) {
@@ -596,28 +648,38 @@ fn negate(expression: &str, language: Language) -> String {
         return strip_outer_parentheses(inner).to_string();
     }
 
-    // A comparison flips to its opposite rather than gaining a `!`.
-    for (from, to) in [
-        (" == ", " != "),
-        (" != ", " == "),
-        (" >= ", " < "),
-        (" <= ", " > "),
-        (" > ", " <= "),
-        (" < ", " >= "),
-    ] {
-        if trimmed.contains(from) && !trimmed.contains("&&") && !trimmed.contains("||") {
-            return trimmed.replacen(from, to, 1);
+    // A comparison flips to its opposite rather than gaining a `!` — but only when the
+    // comparison is the whole of the condition, and only at the top level.
+    //
+    // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`,
+    // which is a different program: the negation of an `and` is an `or` of the
+    // negations, and flipping one operand cannot say that. Where there is a boolean
+    // operator at the top level the negation goes round the outside — which De Morgan
+    // is there to distribute afterwards, if that is what the reader wants.
+    if split_boolean(trimmed, and_op, or_op).is_none() {
+        let mut flips: Vec<(&str, &str)> = vec![
+            (" == ", " != "),
+            (" != ", " == "),
+            (" >= ", " < "),
+            (" <= ", " > "),
+            (" > ", " <= "),
+            (" < ", " >= "),
+        ];
+        if language == Language::Python {
+            // Longest first, or ` is ` matches inside ` is not `.
+            flips.splice(
+                0..0,
+                [
+                    (" is not ", " is "),
+                    (" not in ", " in "),
+                    (" is ", " is not "),
+                    (" in ", " not in "),
+                ],
+            );
         }
-    }
-    if language == Language::Python {
-        for (from, to) in [(" is not ", " is "), (" not in ", " in ")] {
-            if trimmed.contains(from) {
-                return trimmed.replacen(from, to, 1);
-            }
-        }
-        for (from, to) in [(" is ", " is not "), (" in ", " not in ")] {
-            if trimmed.contains(from) && !trimmed.contains(" is not ") {
-                return trimmed.replacen(from, to, 1);
+        for (from, to) in flips {
+            if let Some(at) = top_level_find(trimmed, from) {
+                return format!("{}{to}{}", &trimmed[..at], &trimmed[at + from.len()..]);
             }
         }
     }

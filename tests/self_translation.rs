@@ -88,6 +88,14 @@ fn the_playgrounds_typescript_translates_into_something_that_parses() {
 }
 
 #[test]
+fn the_petstore_translates_into_something_that_parses() {
+    // A Next.js API tree is TypeScript before it is anything else, and this one is the
+    // most idiomatic in the repository: zod builder chains, shorthand properties,
+    // nullish coalescing, optional chaining, and a schema module every route imports.
+    every_target(&sources("tests/petstore", "ts"), "TypeScript", 8);
+}
+
+#[test]
 fn the_sample_go_translates_into_something_that_parses() {
     every_target(&sources("web/sample", "go"), "Go", 3);
 }

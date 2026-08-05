@@ -1208,6 +1208,44 @@ a shape rather than a colour. And the primary button's label is fixed rather tha
 following the paper, because the blue is light in one theme and dark in the other and a
 label that followed would vanish into one of them.
 
+### The rewrite that negated half a condition
+
+`invert-if` is its own inverse: swap the branches, negate the condition, do it again and
+you have what you started with. That is a property, so it can be probed — apply it twice
+at every conditional in the corpora and see which files come home. Five of forty-one did
+not.
+
+Behind them, one defect and one blind spot.
+
+**The negation was applied to the first comparison in the text.** `if a == 1 and b == 2`
+became `if a != 1 and b == 2`, and the branches swapped anyway. That is a different
+program: the negation of an `and` is an `or` of the negations, and flipping one operand
+cannot say it. The guard that was supposed to prevent this excluded `&&` and `||` — the
+C spellings — and knew nothing of the languages that spell them as words. The same rule
+also flipped the comparison inside `g(a == 1) == 2`, because it searched the text rather
+than the expression. Both are fixed by the same move: simplify only when the comparison
+is the whole of the condition *and* sits at the top level, and otherwise put the negation
+round the outside, which is what De Morgan is there to distribute afterwards.
+
+**Zig fell into the C arm of the boolean table.** It writes `and` and `or` as words, as
+Python does, and negates with a sigil, as C does — so it matched neither and every rule
+that looks for a boolean operator was blind to it. `!(a and b)` is also an
+`error_union_type` in that grammar, because `!T` is an error union where a type is
+expected and a negation where a value is: inside a condition there is no type, so the
+node is a negation whatever it is called.
+
+And one refusal that was missing. Zig writes `if (maybe) |value| { … }`, where the
+condition is an optional and the payload binds what was inside it; inverting gave
+`if (!maybe) |value|`, which is not a program. The *reader* had refused that shape for
+that reason since it was written. The rewrites had not — which is the same lesson as
+every other entry in this file, arriving from a different direction.
+
+After: forty-one probes, thirty applicable, and every one of them an involution.
+
+The pet store's TypeScript joined the translation and round-trip sweeps at the same
+time. It is the most idiomatic TypeScript in the repository — builder chains, shorthand
+properties, nullish coalescing, a shared schema module — and it passes both.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

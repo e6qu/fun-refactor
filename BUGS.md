@@ -76,6 +76,28 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B181: **an `if` that binds what it tested could be inverted.** Zig writes
+  `if (maybe) |value| { … }`: the condition is an optional and the payload binds what
+  was inside it. Inverting gave `if (!maybe) |value|`, which is not a program — the
+  binding has nothing to bind and `!optional` is not a boolean there. The reader had
+  refused the same shape for the same reason since it was written; the rewrites had not.
+
+- [x] B180: **Zig fell into the C arm of the boolean spelling table.** It writes `and`
+  and `or` as words, as Python does, and negates with a sigil, as C does — so it matched
+  neither and every rule that looks for a boolean operator was blind to it. `!(a and b)`
+  is also an `error_union_type` in that grammar, because `!T` is an error union where a
+  type is expected and a negation where a value is, so De Morgan could not find the
+  negation either.
+
+- [x] B179: **`invert-if` negated half a condition and swapped the branches anyway.**
+  `if a == 1 and b == 2` became `if a != 1 and b == 2` — a different program that
+  compiles, parses and answers differently. The guard excluded `&&` and `||` and knew
+  nothing of the languages that spell them as words, and the comparison it flipped was
+  the first one found in the text rather than the one the condition makes: `g(a == 1) ==
+  2` flipped the inner one. The negation is only simplified when the comparison is the
+  whole of the condition and sits at the top level; otherwise it goes round the outside,
+  which is what De Morgan is there to distribute afterwards.
+
 - [x] B178: **a shorthand object property refused the whole object.** `{ species }`
   means `{ species: species }` and is how every modern TypeScript file is written;
   reading it as something unrecognised refused the object, and refusing the object
