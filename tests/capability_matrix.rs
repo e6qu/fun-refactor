@@ -68,16 +68,38 @@ fn no_reason_describes_a_different_language() {
             let Some(reason) = capabilities::support(*capability, *language).reason() else {
                 continue;
             };
-            for other in ["stylesheet", "CSS custom property", "markup"] {
-                if !matches!(
-                    language,
-                    Language::Css | Language::Scss | Language::Html | Language::Xml
-                ) {
-                    assert!(
-                        !reason.contains(other),
-                        "{capability:?} for {language} says {other:?}: {reason}"
-                    );
-                }
+            // A word only some languages can be described with, and the ones that can.
+            // The first three caught Java; the rest were added when `extract function`
+            // told a reader that a **shell function** needs "a written return type and
+            // modifiers", because Bash inherited Java's reason from the same fallback.
+            for (word, truthful_of) in [
+                // Markup may name a stylesheet: that is where the value belongs instead.
+                (
+                    "stylesheet",
+                    &[Language::Css, Language::Scss, Language::Html, Language::Xml][..],
+                ),
+                (
+                    "CSS custom property",
+                    &[Language::Css, Language::Scss, Language::Html, Language::Xml][..],
+                ),
+                (
+                    "markup",
+                    &[Language::Html, Language::Xml, Language::Markdown][..],
+                ),
+                ("a method", &[Language::Java][..]),
+                ("modifiers", &[Language::Java][..]),
+                (
+                    "return type",
+                    &[Language::Java, Language::Rust, Language::Go, Language::Zig][..],
+                ),
+                ("package", &[Language::Java, Language::Go][..]),
+            ] {
+                assert!(
+                    !reason.contains(word) || truthful_of.contains(language),
+                    "{} for {language} says {word:?}, which describes {truthful_of:?} \
+                     rather than this language: {reason}",
+                    capability.as_str()
+                );
             }
         }
     }
@@ -158,6 +180,61 @@ fn config_languages_carry_their_share_of_the_mutations() {
                 capabilities::support(capability, language).is_yes(),
                 "{} should serve {language}",
                 capability.as_str()
+            );
+        }
+    }
+}
+
+#[test]
+fn the_published_totals_match_the_matrix() {
+    // The table is checked and the sentence describing it was not, so the sentence
+    // drifted: the README's rows counted 261 supported pairs while the line above them
+    // said 260, and PLAN.md was still quoting a total from before six capabilities and
+    // a language existed. A number nobody checks is a table that lies in prose.
+    let mut yes = 0usize;
+    let mut rest = 0usize;
+    for capability in Capability::ALL {
+        for language in Language::ALL {
+            match capabilities::support(*capability, *language) {
+                Support::Yes => yes += 1,
+                Support::NotApplicable { .. } | Support::Refused { .. } => rest += 1,
+            }
+        }
+    }
+    let total = yes + rest;
+
+    // Each claim as it is written, with the numbers left as placeholders. A phrasing
+    // that changes has to be changed here too, which is the point: the sentence and
+    // the count are one thing.
+    for (name, claims) in [
+        (
+            "README.md",
+            &["YES of TOTAL capability × language pairs supported, REST not applicable"][..],
+        ),
+        (
+            "docs/index.html",
+            &["YES of TOTAL capability × language pairs are supported; the other REST are marked"]
+                [..],
+        ),
+        (
+            "docs/why.html",
+            &["capability × language pairs marked \"refused\"; the other REST are not applicable"]
+                [..],
+        ),
+        ("PLAN.md", &["YES of TOTAL capability ×"][..]),
+    ] {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
+        let text = std::fs::read_to_string(&path).expect("the file is readable");
+        for claim in claims {
+            let needle = claim
+                .replace("YES", &yes.to_string())
+                .replace("TOTAL", &total.to_string())
+                .replace("REST", &rest.to_string());
+            assert!(
+                text.contains(&needle),
+                "{name} does not say `{needle}`. The matrix has {yes} supported and \
+                 {rest} not applicable out of {total} — regenerate the sentence as well \
+                 as the table, or update the phrasing here if it changed."
             );
         }
     }

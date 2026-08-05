@@ -262,18 +262,26 @@ pub fn support(capability: Capability, language: Language) -> Support {
         C::ExtractFunction => {
             if crate::refactor::extract::supports_extract_function(language) {
                 Support::Yes
-            } else if language == Language::Zig {
-                Support::Refused {
-                    because: "Zig requires a written type on every parameter and there is \
-                              no inference here, so nearly every selection would refuse",
-                }
             } else {
+                // The two imperative languages left do not get here for the same
+                // reason, and the shared one was Java's — so the table told the reader
+                // that a shell function needs a return type and modifiers.
                 absent(
                     language,
                     "this language has nothing callable to extract into",
-                    "a method here needs a written return type and modifiers, and \
-                     choosing them is a judgement about the code rather than a fact \
-                     about the selection",
+                    match language {
+                        Language::Bash => {
+                            "a value crosses into a shell function as a positional \
+                             parameter and comes back as text on stdout or a global, so \
+                             the named parameters and returned value this computes have \
+                             no form here"
+                        }
+                        _ => {
+                            "a method here needs a written return type and modifiers, \
+                              and choosing them is a judgement about the code rather \
+                              than a fact about the selection"
+                        }
+                    },
                 )
             }
         }
@@ -423,20 +431,20 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        C::Stitch => match language {
-            // A manifest declares the variables.
-            Language::Helm | Language::Yaml => Support::Yes,
-            // A program reads them.
-            Language::Python
-            | Language::Go
-            | Language::Rust
-            | Language::TypeScript
-            | Language::Tsx
-            | Language::Bash => Support::Yes,
-            _ => Support::NotApplicable {
-                because: "this language neither declares environment variables nor reads them",
-            },
-        },
+        C::Stitch => {
+            // A manifest declares the variables; a program reads them. The reading half
+            // asks the analysis rather than repeating its list, which is how this row
+            // came to claim that Java and Zig do not read the environment.
+            if matches!(language, Language::Helm | Language::Yaml)
+                || crate::analysis::stitch::reads_environment(language)
+            {
+                Support::Yes
+            } else {
+                Support::NotApplicable {
+                    because: "this language neither declares environment variables nor reads them",
+                }
+            }
+        }
     }
 }
 

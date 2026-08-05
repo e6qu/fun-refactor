@@ -344,9 +344,9 @@ fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
         let line_index = LineIndex::new(&source);
 
         for accessor in accessors {
-            for (offset, _) in source.match_indices(accessor) {
-                let rest = &source[offset + accessor.len()..];
-                let Some(name) = variable_name_after(rest) else {
+            for (offset, _) in source.match_indices(accessor.prefix) {
+                let rest = &source[offset + accessor.prefix.len()..];
+                let Some(name) = variable_name_after(rest, accessor.skip_arguments) else {
                     continue;
                 };
                 let line = line_index.line_col(offset, &source).line;
@@ -371,20 +371,95 @@ fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
     Ok(reads)
 }
 
-/// The accessor prefixes that introduce an environment variable name.
-fn accessors_for(language: Language) -> &'static [&'static str] {
-    match language {
-        Language::Python => &["os.environ.get(", "os.environ[", "os.getenv("],
-        Language::Go => &["os.Getenv(", "os.LookupEnv("],
-        Language::Rust => &["env::var(", "std::env::var(", "env::var_os("],
-        Language::TypeScript | Language::Tsx => &["process.env.", "process.env["],
-        Language::Bash => &["${", "$"],
-        _ => &[],
+/// One way a language names an environment variable.
+struct Accessor {
+    /// The text that introduces the read.
+    prefix: &'static str,
+    /// Arguments standing between the prefix and the name.
+    ///
+    /// Every accessor the first five languages use puts the name first, and the reader
+    /// was written to take it from there. Zig's does not: `getEnvVarOwned` is passed an
+    /// allocator before the name, so reading the first argument found `allocator`, which
+    /// is lower case, which the name filter dropped — a read that went missing without
+    /// saying so.
+    skip_arguments: usize,
+}
+
+const fn first(prefix: &'static str) -> Accessor {
+    Accessor {
+        prefix,
+        skip_arguments: 0,
     }
 }
 
-/// Read the variable name immediately following an accessor.
-fn variable_name_after(rest: &str) -> Option<String> {
+const fn past(prefix: &'static str, skip_arguments: usize) -> Accessor {
+    Accessor {
+        prefix,
+        skip_arguments,
+    }
+}
+
+const PYTHON: &[Accessor] = &[
+    first("os.environ.get("),
+    first("os.environ["),
+    first("os.getenv("),
+];
+const GO: &[Accessor] = &[first("os.Getenv("), first("os.LookupEnv(")];
+const RUST: &[Accessor] = &[
+    first("env::var("),
+    first("std::env::var("),
+    first("env::var_os("),
+];
+const JAVA: &[Accessor] = &[first("System.getenv("), first("System.getenv().get(")];
+const ZIG: &[Accessor] = &[
+    past("std.process.getEnvVarOwned(", 1),
+    past("std.process.hasEnvVar(", 1),
+    first("std.process.hasEnvVarConstant("),
+    first("std.posix.getenv("),
+    first("std.c.getenv("),
+];
+const TYPESCRIPT: &[Accessor] = &[first("process.env."), first("process.env[")];
+const BASH: &[Accessor] = &[first("${"), first("$")];
+
+/// The accessors that introduce an environment variable name.
+fn accessors_for(language: Language) -> &'static [Accessor] {
+    match language {
+        Language::Python => PYTHON,
+        Language::Go => GO,
+        Language::Rust => RUST,
+        Language::Java => JAVA,
+        Language::Zig => ZIG,
+        Language::TypeScript | Language::Tsx => TYPESCRIPT,
+        Language::Bash => BASH,
+        Language::Html
+        | Language::Css
+        | Language::Scss
+        | Language::Hcl
+        | Language::Yaml
+        | Language::Helm
+        | Language::Xml
+        | Language::Markdown => &[],
+    }
+}
+
+/// Does any program written in this language read the environment in a way stitch sees?
+pub fn reads_environment(language: Language) -> bool {
+    !accessors_for(language).is_empty()
+}
+
+/// Read the variable name following an accessor, past any arguments before it.
+fn variable_name_after(rest: &str, skip_arguments: usize) -> Option<String> {
+    let mut rest = rest;
+    for _ in 0..skip_arguments {
+        // Only a flat argument list is followed. A name reached past a nested call or a
+        // struct literal is not read rather than guessed at, on the same footing as a
+        // name computed at run time.
+        let comma = rest.find(',')?;
+        if rest[..comma].contains(['(', ')', '{', '}']) {
+            return None;
+        }
+        rest = &rest[comma + 1..];
+    }
     let trimmed = rest.trim_start();
     let quoted = trimmed.starts_with('"') || trimmed.starts_with('\'');
     let body = if quoted { &trimmed[1..] } else { trimmed };
@@ -578,12 +653,28 @@ mod tests {
     #[test]
     fn lower_case_names_are_not_treated_as_environment_variables() {
         assert_eq!(
-            variable_name_after("\"DATABASE_URL\")"),
+            variable_name_after("\"DATABASE_URL\")", 0),
             Some("DATABASE_URL".into())
         );
-        assert_eq!(variable_name_after("\"lower_case\")"), None);
-        assert_eq!(variable_name_after("path/to/thing"), None);
-        assert_eq!(variable_name_after("\"MIXED_case\")"), None);
+        assert_eq!(variable_name_after("\"lower_case\")", 0), None);
+        assert_eq!(variable_name_after("path/to/thing", 0), None);
+        assert_eq!(variable_name_after("\"MIXED_case\")", 0), None);
+    }
+
+    #[test]
+    fn a_name_behind_an_allocator_is_still_read() {
+        // Zig passes the allocator first, so the name is the second argument. Taking
+        // the first found `allocator`, which the upper-case filter then dropped.
+        assert_eq!(
+            variable_name_after("allocator, \"DATABASE_URL\")", 1),
+            Some("DATABASE_URL".into())
+        );
+        assert_eq!(
+            variable_name_after(" gpa.allocator(), \"PORT\")", 1),
+            None,
+            "an argument that is itself a call is not followed"
+        );
+        assert_eq!(variable_name_after("allocator)", 1), None);
     }
 
     #[test]

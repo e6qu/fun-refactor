@@ -339,8 +339,8 @@ written in advance would have looked for.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend, and every
-capability a language can meaningfully support is built: **231 of 315 capability ×
-language pairs supported, 84 not applicable, none refused.**
+capability a language can meaningfully support is built: **263 of 368 capability ×
+language pairs supported, 105 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, `fr capabilities` prints it with the reason
@@ -1321,6 +1321,50 @@ to eight parents, so a type named inside somebody *else's* argument list —
 arguments as though they belonged to `Pet`. The walk now requires the reference to sit
 before the argument list of the call it lands on, which is what "this reference names the
 thing being called" actually means.
+
+### The chart whose consumer was invisible
+
+The previous three defects all had one shape — a rule true of the languages it was
+written against — so the next sweep went looking for that shape directly rather than
+waiting for it to surface: every per-language table in the tool, checked against the
+languages that arrived after it was written.
+
+**`fr stitch` could not see a Java or Zig program read its configuration.** The accessor
+table knew `os.Getenv`, `os.environ`, `env::var`, `process.env` and `$FOO`. It did not
+know `System.getenv`, which is how every Java service on earth reads a variable. So a
+Helm chart feeding a Java service reported every variable as orphaned — configuration
+with no consumer, which is precisely the finding this command exists to produce, and
+here it was produced backwards. The worst kind of wrong answer: not a refusal, an
+assertion.
+
+Zig needed more than a prefix. Its accessor is
+`std.process.getEnvVarOwned(allocator, "DATABASE_URL")` — the allocator comes first, and
+the reader took the name from directly after the paren. So it read `allocator`, which is
+lower case, which the "environment variables are upper case" filter dropped. A miss
+inside a miss, and neither said anything. Accessors now carry how many arguments stand
+between them and the name.
+
+**And the capability row was a transcription.** `support()`'s own doc comment says every
+arm asks the refactoring's predicate and that nothing there is a transcription. The
+stitch arm listed six languages by hand, so the table said Java and Zig "neither declare
+environment variables nor read them" — a sentence that is simply false about both. It
+asks the analysis now.
+
+Two more fell out of looking at the table itself:
+
+**A shell function was told it needs a return type and modifiers.** The reason for an
+absent capability is picked by language *class*, so every imperative language gets one
+sentence, and that sentence was Java's. This exact defect was fixed once already — the
+reasons had been written when every unsupported language was markup, and told Java it
+was a stylesheet. A second imperative language landing on the same arm brought it
+straight back. The guard test now carries a word-to-language table instead of one list
+of markup words.
+
+**The number describing the matrix was not checked, and had drifted.** The rows are
+regenerated and asserted; the sentence above them counting the rows was prose. It said
+260 supported where its own table counted 261, and PLAN.md quoted a total from before
+six capabilities and a language existed. It is asserted now, in all four places it is
+published, against the computation that produces the table.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
