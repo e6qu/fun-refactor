@@ -96,6 +96,15 @@ pub enum Refusal {
         confidence: Confidence,
         detail: String,
     },
+    /// Something the tool cannot establish at all.
+    ///
+    /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and
+    /// is not strong enough to act on. These are the cases where there is nothing to be
+    /// weak about: a grammar that does not expose a call as a call, a shell script that
+    /// sources a path computed at run time. Reporting them as a confidence produced
+    /// "resolution is only 'exact'", which is a sentence that contradicts itself — and
+    /// leaves the reader looking for a resolution problem that is not there.
+    Unknowable { detail: String },
 }
 
 impl std::fmt::Display for Refusal {
@@ -124,6 +133,9 @@ impl std::fmt::Display for Refusal {
                 "resolution is only '{}' — {detail}. Refusing to rewrite what cannot be verified",
                 confidence.as_str()
             ),
+            Refusal::Unknowable { detail } => {
+                write!(f, "{detail}. Refusing to change what cannot be checked")
+            }
         }
     }
 }

@@ -1281,6 +1281,47 @@ of them.
 The property that *is* right for a move — every reference still resolves — holds over
 seventy moves in three languages, before and after.
 
+### The signature change that skipped every `new`
+
+Swapping two parameters twice should return the file to what it was. Seven swaps over the
+corpora, seven restored — and the involution held while the *refusals* said something was
+badly wrong. Java refused everywhere, with a message about resolution strength for
+references that had resolved exactly.
+
+**A Java call is not spelled "call".** The hunt for a call site matched on
+`kind().contains("call")` plus one named exception, under a comment saying SCSS's
+`include_statement` was "the one call form whose kind does not say call". True of the
+languages it was written against. Java says `method_invocation` for a call and
+`object_creation_expression` for a construction, so `fr signature` had never once
+rewritten a Java call site. The wrong message made it worse: it named a confidence, so
+the reader goes looking for a resolution problem that is not there. That refusal is now
+`Unknowable` — for the things the tool cannot establish at all, as against a resolution
+that exists and is too weak to act on.
+
+**Then the constructor, which was the serious one.** `new Thing(1, "x")` is recorded as a
+reference to the *type* — which it also is — and the loop skipped every reference whose
+recorded kind was not `Call`. So this happened, and nothing warned:
+
+```java
+-    B(int a, String b) { }
++    B(String b, int a) { }
+     static B make() { return new B(1, "x"); }   // untouched
+```
+
+A signature change is the refactoring with the least room for a partial result: the
+declaration and every call move together, or the code stops compiling. This is the same
+silently-wrong-answer class already fixed for `rename`, and the fix has the same shape —
+stop trusting a label when the thing itself is right there. The grammar decides whether a
+reference is a call. A mention that really is not one, the `C` in `static C make()`, has
+no arguments to change and is passed over.
+
+**Which immediately introduced its own bug, caught before it shipped.** The walk goes up
+to eight parents, so a type named inside somebody *else's* argument list —
+`register(Pet.class, 7)` — now found that enclosing call and would have reordered *its*
+arguments as though they belonged to `Pet`. The walk now requires the reference to sit
+before the argument list of the call it lands on, which is what "this reference names the
+thing being called" actually means.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
