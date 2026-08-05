@@ -887,14 +887,16 @@ fn a_decorator_that_changes_behaviour_is_not_read_as_a_plain_method() {
 
 #[test]
 fn a_class_member_that_is_not_understood_is_not_a_member_that_is_not_there() {
-    // Every reader ended its member loop with `_ => {}`.
-    let source =
-        "public class A {\n    public A(int n) { }\n    public int get() { return 1; }\n}\n";
+    // Every reader ended its member loop with `_ => {}`. A Java static initialiser runs
+    // once when the class is loaded, which nothing else here has — and being unable to
+    // say it is not a reason to pretend it was never written.
+    let source = "public class A {\n    static { System.loadLibrary(\"x\"); }\n    \
+                  public int get() { return 1; }\n}\n";
     let (output, fidelity) = translate(&[("A.java", source)], "A.java", Language::Python);
     assert!(fidelity.carried_verbatim > 0, "{output}");
     assert!(
-        output.contains("public A(int n)"),
-        "the constructor has to be in the output:\n{output}"
+        output.contains("System.loadLibrary"),
+        "the initialiser has to be in the output:\n{output}"
     );
 }
 
@@ -918,5 +920,71 @@ fn a_module_level_parameter_called_self_is_still_a_parameter() {
     assert!(
         output.contains("function deinit(self: Store, uri: string)"),
         "{output}"
+    );
+}
+
+#[test]
+fn a_constructor_is_spelled_the_way_each_target_spells_one() {
+    // Three of these six languages have a constructor and three have a habit. What
+    // carries is that it *is* one — the name is the type's in Java, a fixed word in
+    // Python and TypeScript, and `new`/`NewThing`/`init` in the other three.
+    let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
+    for (target, expected) in [
+        (Language::Python, "def __init__(self, n: int):"),
+        (Language::TypeScript, "constructor(n: number) {"),
+        (Language::Rust, "pub fn new(n: i64) -> Store {"),
+        (Language::Go, "func NewStore(n int) Store {"),
+        (Language::Zig, "pub fn init(n: i64) Store {"),
+    ] {
+        let (output, _) = translate(&[("Store.java", source)], "Store.java", target);
+        assert!(output.contains(expected), "{target}:\n{output}");
+    }
+}
+
+#[test]
+fn a_constructor_body_that_assigns_through_a_receiver_says_so() {
+    // Rust, Go and Zig build a value and return it; a body that assigns through a
+    // receiver has nowhere to run there, and writing `self.n = n` inside a function
+    // that binds no `self` would be worse than saying nothing was carried.
+    let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
+    for target in [Language::Rust, Language::Go, Language::Zig] {
+        let (output, fidelity) = translate(&[("Store.java", source)], "Store.java", target);
+        assert!(
+            fidelity
+                .notes
+                .iter()
+                .any(|note| note.contains("assigns through a receiver")),
+            "{target}:\n{output}\n{:?}",
+            fidelity.notes
+        );
+        assert!(!output.contains("self.n = n"), "{target}:\n{output}");
+    }
+}
+
+#[test]
+fn only_a_function_that_returns_the_type_is_read_as_making_one() {
+    // Rust, Go and Zig have no constructor, only a habit — and the habit is a
+    // constructor only when it also returns the thing. A `new` that returns something
+    // else is an ordinary function with a common name.
+    let source = "pub struct Store {\n    pub n: i64,\n}\n\n\
+                  impl Store {\n    pub fn new(n: i64) -> Store {\n        return 0;\n    }\n\n    \
+                  pub fn new_count(n: i64) -> i64 {\n        return n;\n    }\n}\n";
+    let (output, _) = translate(&[("s.rs", source)], "s.rs", Language::Python);
+    assert!(output.contains("def __init__(self, n: int):"), "{output}");
+    assert!(output.contains("def new_count(n: int) -> int:"), "{output}");
+}
+
+#[test]
+fn a_generic_impl_still_belongs_to_its_type() {
+    // `impl<'a> Ctx<'a>` is an impl on `Ctx`. Keeping the arguments made the owner
+    // `Ctx<'a>`, which matches no record in the file — so the methods of every generic
+    // type became free functions with a `self` parameter bolted on.
+    let source = "pub struct Ctx<'a> {\n    pub name: &'a str,\n}\n\n\
+                  impl<'a> Ctx<'a> {\n    pub fn label(&self) -> String {\n        \
+                  return self.name;\n    }\n}\n";
+    let (output, _) = translate(&[("c.rs", source)], "c.rs", Language::Python);
+    assert!(
+        output.contains("class Ctx:") && output.contains("    def label(self) -> str:"),
+        "the method belongs inside the class:\n{output}"
     );
 }

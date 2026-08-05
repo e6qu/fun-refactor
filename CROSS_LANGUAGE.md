@@ -346,6 +346,29 @@ different type, and a translation that says nothing about it is the failure this
 document is about. Only a single base: Python allows several, the other two do not, and
 picking one of them would be a guess.
 
+### The constructor has six spellings
+
+| | |
+| --- | --- |
+| Java | named after the class, no return type |
+| Python | `__init__`, takes `self` |
+| TypeScript | `constructor`, takes neither |
+| Rust | `Thing::new`, returns the type |
+| Go | `NewThing`, returns the type |
+| Zig | `Thing.init`, returns the type |
+
+The name is not what carries; what carries is that the function **makes a value of its
+type**. The last three have no constructor at all, only a habit — so one is read as a
+constructor there only when it *also returns the type*, because a `new` that returns
+something else is an ordinary function with a common name.
+
+The consequence worth knowing: **a constructor's body only travels where a receiver
+does.** The first three act on a value that already exists; the last three build one and
+return it, so a body that assigns through a receiver has nowhere to run. The tool says
+so rather than writing `self.n = n` inside a function that binds no `self`. And Java is
+the one target that overloads constructors — a second one written anywhere else keeps
+the name its source gave it, and the report says which name to call instead.
+
 ### The receiver has six names
 
 `self`, `this`, or whatever the Go author called it. The receiver is the one binding

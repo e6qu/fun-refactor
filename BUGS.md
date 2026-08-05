@@ -76,6 +76,22 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B150: **the methods of every generic Rust type became free functions.** An
+  `impl<'a> Ctx<'a>` was read as an impl on `Ctx<'a>`, which matches no record in the
+  file, so its methods never joined their type — and each one gained a `self` parameter
+  bolted on by the rule that binds an orphaned receiver.
+
+- [x] B149: **a constructor had no counterpart in the IR at all.** Three of these six
+  languages have one and three have a habit — `Thing::new`, `NewThing`, `Thing.init` —
+  and none of the six could carry it, so a Java constructor was a class member nothing
+  recognised. What carries is now that it *is* one; the name is the target's business.
+  The habit is read as a constructor only when the function also **returns the type**,
+  since a `new` that returns something else is an ordinary function with a common name.
+
+- [x] B148: **a constructor's own name claimed a spelling in the naming map.** Java
+  names it after the class, so every Java class translated came out named after its
+  constructor: `class a` where the source said `class A`.
+
 - [x] B147: **a Rust raw identifier grew an `r` every time it crossed.** `r#where` *is*
   the identifier `where` — the prefix is how Rust spells a name that collides with a
   keyword, and every writer here puts it on when it needs to. Leaving it on the way back

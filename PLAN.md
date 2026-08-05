@@ -935,6 +935,44 @@ Four defects on the first run, and one of them was a hole this tool had dug for 
 `transpile::read_file` is public now, because a round trip needs somewhere to stand: two
 files in different languages have nothing in common except what it returns.
 
+### The constructor, and what a name is worth
+
+Making the record member loops stop swallowing what they did not recognise made Java
+constructors visible for the first time — as carried comments, which is honest and
+useless. Three of these six languages have a constructor and three have a habit:
+`Thing::new`, `NewThing`, `Thing.init`. So the name is not what carries. What carries is
+that the function **makes a value of its type**, and each writer spells that its own way.
+
+The habit is only read as a constructor when the function *also returns the type*. A
+`new` that returns something else is an ordinary function with a common name, and moving
+it into a constructor's place would be moving it somewhere it does not belong.
+
+Three things followed:
+
+- **A constructor's own name must not claim a spelling.** Java names it after the class,
+  so letting it into the naming map meant every Java class came out named after its
+  constructor: `class a` where the source said `class A`.
+- **A constructor has no receiver**, so the rule that binds an orphaned receiver as a
+  first parameter must skip it — otherwise `Handle::new(files)` reads as
+  `new(handle, files)`.
+- **Its body only travels where a receiver does.** Python, Java and TypeScript act on a
+  value that already exists; Rust, Go and Zig build one and return it, so a body that
+  assigns through a receiver has nowhere to run. That is said, rather than written as
+  `self.n = n` inside a function that binds no `self`.
+
+The round trip needed two things said out loud, and both are true rather than
+convenient: a constructor's name is compared as `<constructor>` on both sides, because
+comparing `jsonarray` with `new` compares the two targets rather than the translation;
+and a constructor may swap names in either direction, because a Rust `new_handle` that
+returns a `Handle` is written `NewHandle` in Go — which is exactly how Go spells a
+constructor, so it comes back as `Handle::new`. What is never allowed to change is the
+parameters.
+
+Underneath all of it, one older defect the round trip finally surfaced: `impl<'a>
+Ctx<'a>` was read as an impl on `Ctx<'a>`, which matches no record in the file. **The
+methods of every generic Rust type had been coming out as free functions** with a `self`
+parameter bolted on.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

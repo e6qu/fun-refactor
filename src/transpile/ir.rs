@@ -83,6 +83,15 @@ pub struct Function {
     /// Reported rather than translated: a Rust `async fn` written as Python must say
     /// so, and a Go one cannot be written at all.
     pub is_async: bool,
+    /// Does this function make a value of its type?
+    ///
+    /// Three of these six languages have a constructor and three have a convention:
+    /// Java names it after the class, Python calls it `__init__`, TypeScript calls it
+    /// `constructor`, and Rust, Go and Zig write `new`, `NewThing` and `init` by habit.
+    /// Which of those a target writes is a fact about the target, so the *name* is not
+    /// what carries — this is. Without it a Java constructor was a class member nothing
+    /// recognised, and it was dropped.
+    pub is_constructor: bool,
 }
 
 #[derive(Debug, Clone)]

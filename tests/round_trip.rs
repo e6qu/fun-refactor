@@ -59,7 +59,14 @@ fn signature(f: &Function) -> (String, Vec<String>) {
         .filter(|p| p.kind == ParamKind::Normal)
         .map(|p| plain(&p.name))
         .collect();
-    (plain(&f.name), params)
+    // A constructor's name is not information: Java names it after the class, Python
+    // calls it `__init__`, and Rust, Go and Zig call it `new`, `NewThing` and `init` by
+    // habit. Comparing those would be comparing the two targets, not the translation.
+    let name = match f.is_constructor {
+        true => "<constructor>".to_string(),
+        false => plain(&f.name),
+    };
+    (name, params)
 }
 
 fn signatures(module: &Module) -> Vec<(String, Vec<String>)> {
@@ -121,8 +128,44 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             // `add(Character)`, and Zig writes a `deinit` in every struct in the file,
             // so looking one up by name compares two different functions and calls the
             // difference a defect.
-            let missing: Vec<_> = before.iter().filter(|s| !after.contains(s)).collect();
-            let gained: Vec<_> = after.iter().filter(|s| !before.contains(s)).collect();
+            let mut missing: Vec<_> = before.iter().filter(|s| !after.contains(s)).collect();
+            let mut gained: Vec<_> = after.iter().filter(|s| !before.contains(s)).collect();
+            // A constructor may change its name in either direction, because in three
+            // of these languages "constructor" *is* a naming convention. Java overloads
+            // them and nobody else does, so a second one written elsewhere keeps its
+            // source's name and the report says so; and a Rust `new_handle` that returns
+            // a `Handle` is written `NewHandle` in Go, which is exactly how Go spells a
+            // constructor — so it comes back as `Handle::new`. Both are the signature
+            // surviving under the target's own convention, which is the promise. What is
+            // never allowed is the parameters changing.
+            let swapped = |from: &[&(String, Vec<String>)],
+                           to: &mut Vec<&(String, Vec<String>)>| {
+                let mut matched = Vec::new();
+                for (name, params) in from {
+                    if name != "<constructor>" {
+                        continue;
+                    }
+                    if let Some(at) = to.iter().position(|(_, p)| p == params) {
+                        matched.push(params.clone());
+                        to.remove(at);
+                    }
+                }
+                matched
+            };
+            for params in swapped(&missing.clone(), &mut gained) {
+                let at = missing
+                    .iter()
+                    .position(|(n, p)| n == "<constructor>" && *p == params)
+                    .expect("just found");
+                missing.remove(at);
+            }
+            for params in swapped(&gained.clone(), &mut missing) {
+                let at = gained
+                    .iter()
+                    .position(|(n, p)| n == "<constructor>" && *p == params)
+                    .expect("just found");
+                gained.remove(at);
+            }
             assert!(
                 missing.is_empty() && gained.is_empty(),
                 "{} -> {to} -> {from} did not come back the same\n  lost:   {missing:?}\n  gained: {gained:?}",
