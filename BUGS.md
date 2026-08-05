@@ -76,6 +76,23 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B200: **deleting a lone Java field deleted the class around it.** The widening
+  climbs while the symbol is the only child of its kind in its parent, on the grounds
+  that a parent left with none of them has nothing left to be. That is true of a CSS rule
+  set whose last selector goes, which is what it was written for. It is false of a Java
+  class body, whose other members are methods — a *different* kind, so the test passed
+  and the climb went field → class_body → class_declaration. One unused constant took the
+  class and every method in it. The climb now stops below anything its own parent names
+  as its body, which is the general form of "this container is not optional".
+
+- [x] B199: **`fr remove-flag` never worked on a TypeScript file.** It deleted the flag's
+  own span, which there is the declarator inside the declaration: taking
+  `NEW_UI = true` out of `const NEW_UI = true;` leaves `const ;`. The edit guard caught
+  it every time — the file was never damaged, the command simply always failed, in a
+  language where four others succeeded. It removes the definition through the same two
+  steps `fr delete` takes now, because it is the same question. A side effect visible in
+  the published examples: the flag no longer leaves a blank line where it was.
+
 - [x] B198: **extracting a region that awaited produced code that does not compile.**
   The body kept its `await` in a function that is not async — `tsc` says `TS1308`,
   CPython says `SyntaxError: 'await' outside async function` — and the call site handed

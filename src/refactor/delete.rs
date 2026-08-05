@@ -628,7 +628,7 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 /// there is a sibling of the same kind, and take the symbol together with the
 /// separator joining it to that sibling. Never climb into the root, which would
 /// delete the file.
-fn widen_for_delete(
+pub(crate) fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,
     symbol: &crate::model::Symbol,
@@ -665,6 +665,18 @@ fn widen_for_delete(
         if parent.id() == root.id() {
             break;
         }
+        // A body is not optional. "No sibling of the same kind" is true of a Java class
+        // holding one field and four methods — the methods are a different kind — so the
+        // climb went field → class_body → class_declaration and deleting one constant
+        // took the whole class with it. Stop below anything its own parent names as its
+        // body, which is the general form of "this container has to be here".
+        let parent_is_a_body = parent
+            .parent()
+            .and_then(|grandparent| grandparent.child_by_field_name("body"))
+            .is_some_and(|body| body.id() == parent.id());
+        if parent_is_a_body {
+            break;
+        }
         node = parent;
     }
 
@@ -699,7 +711,7 @@ fn widen_for_delete(
     Span::new(begin, span.end)
 }
 
-fn deletion_span(source: &str, span: Span) -> Span {
+pub(crate) fn deletion_span(source: &str, span: Span) -> Span {
     if span.is_empty() || span.end > source.len() {
         return span;
     }

@@ -1510,6 +1510,47 @@ it — so that is what it does, verified by running `tsc` and `compile()` over t
 Rust writes `.await` as a postfix and has no keyword to move onto the definition, so
 there it refuses rather than emitting half of the change.
 
+### The flag that could not be removed, and the class that went with it
+
+`fr remove-flag` over the same program in five languages. Rust, Zig and Python did the
+work. TypeScript did not:
+
+```
+Error: edit rejected: c.ts parses cleanly now but would not after the change.
+       The file was left unchanged.
+```
+
+The flag's definition is deleted by its own span, and in TypeScript that is the
+*declarator* inside the declaration. Taking `NEW_UI = true` out of
+`const NEW_UI = true;` leaves `const ;`. The guard caught it every single time, so no
+TypeScript file was ever damaged — the command simply never worked on one, in a
+language where four others succeeded. `fr delete` has known how to widen a definition to
+the thing that holds it since it was written; the cascade had a comment saying "the
+definition goes with its whole line" above a line that did no such thing. It goes
+through the same two steps now.
+
+**Which promptly deleted a Java class.** Routing through the shared widening exposed
+what the shared widening does to Java:
+
+```java
+-public class B {
+-    static final boolean UNUSED = true;
+-
+-    static int f(int x) { return x; }
+-}
+```
+
+The climb continues while the symbol is the only child of its kind in its parent,
+because a parent left with none of them has nothing left to be. True of a CSS rule set
+whose last selector goes — which is what it was written for, and what it must keep
+doing. False of a Java class body, whose other members are *methods*: a different kind,
+so the test passed and the climb went field → class_body → class_declaration. `fr delete`
+had been doing this all along; the cascade only made it visible.
+
+The climb now stops below anything its own parent names as its body, which is the
+general form of "this container is not optional". A class with an empty body is still a
+class; `public class B` with no body is not a program.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

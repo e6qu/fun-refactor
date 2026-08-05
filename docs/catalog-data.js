@@ -329,9 +329,9 @@ export const CATALOG = [
     note: "The dead branch goes with the flag. This is the one move on the page that cascades: it keeps going until nothing else falls out.",
     command: "fr remove-flag NEW_CHECKOUT --value true",
     files: [
-      { path: "src/checkout.py", before: "NEW_CHECKOUT = True\n\n\ndef total(basket):\n    if NEW_CHECKOUT:\n        return sum(line.price for line in basket.lines)\n    else:\n        running = 0\n        for line in basket.lines:\n            running = running + line.price\n        return running\n", after: "\ndef total(basket):\n    return sum(line.price for line in basket.lines)\n" },
+      { path: "src/checkout.py", before: "NEW_CHECKOUT = True\n\n\ndef total(basket):\n    if NEW_CHECKOUT:\n        return sum(line.price for line in basket.lines)\n    else:\n        running = 0\n        for line in basket.lines:\n            running = running + line.price\n        return running\n", after: "def total(basket):\n    return sum(line.price for line in basket.lines)\n" },
     ],
-    output: "Cascade:\n  1. replaced uses of NEW_CHECKOUT with true (1 file(s))\n  2. collapsed conditionals whose test is now constant (1 file(s))\n\n--- a/src/checkout.py\n+++ b/src/checkout.py\n@@ -1,11 +1,3 @@\n-NEW_CHECKOUT = True\n-\n \n def total(basket):\n-    if NEW_CHECKOUT:\n-        return sum(line.price for line in basket.lines)\n-    else:\n-        running = 0\n-        for line in basket.lines:\n-            running = running + line.price\n-        return running\n+    return sum(line.price for line in basket.lines)\n\nremoved NEW_CHECKOUT as true in 2 round(s)\n\nNothing written. Re-run with --write to apply.",
+    output: "Cascade:\n  1. replaced uses of NEW_CHECKOUT with true (1 file(s))\n  2. collapsed conditionals whose test is now constant (1 file(s))\n\n--- a/src/checkout.py\n+++ b/src/checkout.py\n@@ -1,11 +1,2 @@\n-NEW_CHECKOUT = True\n-\n-\n def total(basket):\n-    if NEW_CHECKOUT:\n-        return sum(line.price for line in basket.lines)\n-    else:\n-        running = 0\n-        for line in basket.lines:\n-            running = running + line.price\n-        return running\n+    return sum(line.price for line in basket.lines)\n\nremoved NEW_CHECKOUT as true in 2 round(s)\n\nNothing written. Re-run with --write to apply.",
   },
   {
     id: "tdd-refactor-step",
