@@ -59,7 +59,7 @@ use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::Result;
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use tree_sitter::Node;
 
@@ -197,6 +197,19 @@ pub fn apply(
         .into());
     }
 
+    // Both are properties of the template, so they are decided once rather than per
+    // match site.
+    // Only where `( … )` groups a sub-expression. A CSS selector's parent is an
+    // `attribute_selector` or a `descendant_selector`, which look exactly like operator
+    // kinds by name and are nothing of the sort — bracketing there is not a grouping,
+    // it is a syntax error.
+    let groups = crate::refactor::inline::groups_with_parentheses(language);
+    let tight = match groups {
+        true => tightly_bound_metavariables(&parsers, language, template),
+        false => HashSet::new(),
+    };
+    let template_binds = groups && template_is_an_operator_expression(&parsers, language, template);
+
     let mut edits = EditSet::new();
     let mut matches = Vec::new();
 
@@ -210,7 +223,12 @@ pub fn apply(
         let parsed = parsers.parse(language, &source)?;
 
         for (span, bindings) in find_matches(&parsed, &source, &compiled) {
-            let replacement = substitute(template, &bindings);
+            let mut replacement = substitute(template, &bindings, &tight);
+            // The match sat where a call sat, and the replacement is an operator
+            // expression: whatever the call was an operand of will now bind into it.
+            if template_binds && matched_in_a_tight_place(&parsed, span) {
+                replacement = format!("({replacement})");
+            }
             // A rewrite that changes nothing is not a rewrite.
             if replacement == span.text(&source) {
                 continue;
@@ -231,6 +249,15 @@ pub fn apply(
         edits,
         matches,
     })
+}
+
+/// Does the matched span sit as an operand of something that binds?
+fn matched_in_a_tight_place(parsed: &Parsed, span: Span) -> bool {
+    parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+        .and_then(|node| node.parent())
+        .is_some_and(|parent| binds_its_operands(parent.kind()))
 }
 
 /// A compiled pattern: the fragment's node, the text it was parsed from, and whether
@@ -607,7 +634,131 @@ fn metavariable_names(text: &str) -> Vec<String> {
     names
 }
 
-fn substitute(template: &str, bindings: &HashMap<String, String>) -> String {
+/// Node kinds that bind their operands, so a captured expression dropped into one
+/// keeps its own shape only if it is bracketed.
+///
+/// The list is by substring because six grammars name the same thing six ways:
+/// `binary_expression`, `binary_operator`, `comparison_operator`, `boolean_operator`,
+/// `not_operator`, `unary_expression`, `field_expression`, `member_expression`.
+fn binds_its_operands(kind: &str) -> bool {
+    const TIGHT: &[&str] = &[
+        "binary",
+        "unary",
+        "boolean_operator",
+        "comparison",
+        "not_operator",
+        "field",
+        "member",
+        "selector",
+        "attribute",
+        "subscript",
+        "index",
+        "range",
+        "await",
+        "negated",
+    ];
+    TIGHT.iter().any(|tight| kind.contains(tight))
+}
+
+/// Metavariables the template places where an operator will bind them.
+///
+/// `double($X)` → `$X * 2` reads as "the captured expression, times two". Substituting
+/// the text of `x + 1` gives `x + 1 * 2`, which is `x + 2`. The same defect was fixed
+/// in `inline` twice; this is the third place a captured expression is dropped into a
+/// context it was not written for.
+fn tightly_bound_metavariables(
+    parsers: &Parsers,
+    language: Language,
+    template: &str,
+) -> HashSet<String> {
+    let mut tight = HashSet::new();
+    let encoded = encode_metavariables(template);
+    let Ok((parsed, source, offset, _)) = parse_fragment(parsers, language, &encoded, template)
+    else {
+        // An unparseable template is reported downstream by the reparse check. Adding
+        // no brackets is the same answer this gave before there were any.
+        return tight;
+    };
+    let Some(root) = fragment_root(&parsed, offset, encoded.len()) else {
+        return tight;
+    };
+
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if let Some(meta) = metavariable(node, &source) {
+            if node.parent().is_some_and(|p| binds_its_operands(p.kind())) {
+                tight.insert(meta.name);
+            }
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.named_children(&mut cursor));
+    }
+    tight
+}
+
+/// Does the template as a whole bind its operands, so the *match site's* context can
+/// reassociate it?
+///
+/// `double($X)` → `$X / 2` applied inside `2 * double(y)` gives `2 * y / 2`, which for
+/// integers is not `2 * (y / 2)`.
+fn template_is_an_operator_expression(
+    parsers: &Parsers,
+    language: Language,
+    template: &str,
+) -> bool {
+    let encoded = encode_metavariables(template);
+    let Ok((parsed, _, offset, _)) = parse_fragment(parsers, language, &encoded, template) else {
+        return false;
+    };
+    fragment_root(&parsed, offset, encoded.len())
+        .is_some_and(|root| binds_its_operands(root.kind()))
+}
+
+/// Is this text a single thing, needing no brackets wherever it lands?
+///
+/// A name, a literal, a call, an already-bracketed expression. Anything with an
+/// operator outside brackets is not.
+fn is_atomic(text: &str) -> bool {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+    let mut depth = 0i32;
+    let mut previous = ' ';
+    for character in trimmed.chars() {
+        match character {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth -= 1,
+            ' ' if depth == 0 => {
+                // A space at the top level means more than one thing: `x + 1`,
+                // `not ready`, `a as i64`.
+                return false;
+            }
+            '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '&' | '|' | '^' | '?'
+                if depth == 0 && previous != ' ' =>
+            {
+                return false;
+            }
+            _ => {}
+        }
+        previous = character;
+    }
+    true
+}
+
+/// Bracket a binding the template will bind more tightly than its source did.
+fn grouped(value: &str, needs_grouping: bool) -> String {
+    match needs_grouping && !is_atomic(value) {
+        true => format!("({value})"),
+        false => value.to_string(),
+    }
+}
+
+fn substitute(
+    template: &str,
+    bindings: &HashMap<String, String>,
+    tight: &HashSet<String>,
+) -> String {
     let mut out = String::with_capacity(template.len());
     let mut chars = template.char_indices().peekable();
 
@@ -632,7 +783,7 @@ fn substitute(template: &str, bindings: &HashMap<String, String>) -> String {
         let name = &rest[..len];
         match bindings.get(name) {
             Some(value) => {
-                out.push_str(value);
+                out.push_str(&grouped(value, tight.contains(name)));
                 for _ in 0..len {
                     chars.next();
                 }
@@ -792,7 +943,10 @@ mod tests {
     fn an_unbound_template_variable_is_left_visible() {
         // A typo in the template must show up in the diff, not vanish.
         let bindings = HashMap::from([("X".to_string(), "1".to_string())]);
-        assert_eq!(substitute("f($X, $TYPO)", &bindings), "f(1, $TYPO)");
+        assert_eq!(
+            substitute("f($X, $TYPO)", &bindings, &HashSet::new()),
+            "f(1, $TYPO)"
+        );
     }
 
     #[test]
@@ -800,13 +954,19 @@ mod tests {
         // Bash, SCSS and Helm all spell real things with `$`.
         assert_eq!(encode_metavariables("echo $$HOME $X"), "echo $HOME FrMetaX");
         let bindings = HashMap::from([("X".to_string(), "1".to_string())]);
-        assert_eq!(substitute("echo $$HOME $X", &bindings), "echo $HOME 1");
+        assert_eq!(
+            substitute("echo $$HOME $X", &bindings, &HashSet::new()),
+            "echo $HOME 1"
+        );
     }
 
     #[test]
     fn a_lone_sigil_is_left_alone() {
         assert_eq!(encode_metavariables("cost: $ 5"), "cost: $ 5");
-        assert_eq!(substitute("cost: $ 5", &HashMap::new()), "cost: $ 5");
+        assert_eq!(
+            substitute("cost: $ 5", &HashMap::new(), &HashSet::new()),
+            "cost: $ 5"
+        );
     }
 
     #[test]

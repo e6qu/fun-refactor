@@ -204,7 +204,7 @@ fn bound_value<'t>(node: tree_sitter::Node<'t>) -> Option<tree_sitter::Node<'t>>
 /// for an unrelated reason: it has no inferred declaration to extract into. Bash is the
 /// other way round, supporting the extraction while `( … )` there opens a subshell
 /// rather than grouping anything.
-fn groups_with_parentheses(language: Language) -> bool {
+pub(crate) fn groups_with_parentheses(language: Language) -> bool {
     matches!(
         language,
         Language::Rust

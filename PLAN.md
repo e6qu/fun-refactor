@@ -1588,6 +1588,39 @@ qualifies rather than binding a name, so there is no import to write and the ref
 itself would have to change; that is reported rather than guessed at. A Go move inside
 one package is one scope and needs nothing, so it says nothing.
 
+### The third place an expression moves house
+
+`fr restructure` rewrites a code shape everywhere it appears. Over six languages it
+rewrote `old_api($X)` into `new_api($X, None)` correctly in all of them. Then a template
+with an operator in it:
+
+```
+$ fr restructure --lang rust 'double($X)' '$X * 2'
+-    let a = double(x + 1);
++    let a = x + 1 * 2;
+```
+
+`x + 2`. And the other half, from the same run:
+
+```
+-    let b = 2 * double(y);
++    let b = 2 * y / 2;         # template `$X / 2`; correct is 2 * (y / 2)
+```
+
+Both are the defect fixed twice in `inline` — a captured expression dropped into a
+context it was not written for. This is the third place, and the one whose entire
+purpose is moving expressions between contexts. A capture the template will bind is
+bracketed now, and a replacement that binds is bracketed where it lands. Neither when
+the text is a single thing already, so `new_api($X, None)` stays clean.
+
+**And the fix immediately tried to bracket a CSS selector.** The node kinds that bind
+their operands are recognised by substring, because six grammars name the same thing six
+ways — `binary_expression`, `binary_operator`, `boolean_operator`, `comparison_operator`.
+CSS names a `descendant_selector` and an `attribute_selector`. Both matched, and
+`(.new-name)` is not a stylesheet. The reparse guard caught it, which is what it is for.
+Grouping now asks the same predicate `inline` asks, so there is one answer in the
+codebase to "does this language group with brackets" rather than two that can drift.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
