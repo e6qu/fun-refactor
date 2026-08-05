@@ -903,6 +903,38 @@ computed the honest answer and then declined to print it.
 `tests/vendor.rs` checks it the same way it checks the grammar manifest — a checksum
 nobody verifies is a claim rather than a fact.
 
+### The next bar up: did anything go missing?
+
+"The output parses" is the weakest objective check and it found nine defects. It cannot
+see the next class at all: a translation that drops a parameter, or invents one, or
+loses a function altogether, produces a file the target's grammar is perfectly happy
+with — and a fidelity report that says every signature carried across intact.
+
+The check is a round trip. Read the source into the IR, translate it, read the *result*
+back into the IR, and compare — the IR being the only place two files written in
+different languages can be compared at all. What is compared is deliberately narrow:
+**which functions exist, and what their parameters are called.** Types are where the
+legitimate differences live (Go writes `struct{}` for nothing at all; Zig writes a slice
+where TypeScript writes an array) and a check that argued about those would spend its
+life growing exceptions. A parameter appearing or vanishing is never legitimate.
+
+Four defects on the first run, and one of them was a hole this tool had dug for itself:
+
+- **A `@staticmethod` disappeared from its class.** The Python reader handled decorated
+  definitions at module level and not in a class body, so a decorated method fell to the
+  member loop's catch-all — including the `@staticmethod` that this tool's own Python
+  writer emits. Every associated function in a Zig file came back from Python missing.
+- **Every reader's member loop ended with `_ => {}`.** That is the same shape as the
+  comment-in-a-parameter-list defect: a catch-all that reads what it does not recognise
+  as nothing at all. Java constructors were the largest thing it had been swallowing.
+- **Python's `self` was stripped from free functions too**, which is a convention inside
+  a class and an ordinary name outside one.
+- **`r#where` grew an `r` every time it crossed.** The prefix is how Rust spells a name
+  that collides with a keyword, not part of the name.
+
+`transpile::read_file` is public now, because a round trip needs somewhere to stand: two
+files in different languages have nothing in common except what it returns.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

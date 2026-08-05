@@ -76,6 +76,34 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B147: **a Rust raw identifier grew an `r` every time it crossed.** `r#where` *is*
+  the identifier `where` — the prefix is how Rust spells a name that collides with a
+  keyword, and every writer here puts it on when it needs to. Leaving it on the way back
+  in meant a round trip produced `r#r#where`.
+
+- [x] B146: **Python's `self` was stripped from free functions too.** It is a convention
+  inside a class and an ordinary name outside one, so stripping it everywhere lost a
+  parameter from every module-level `def f(self, …)` — which is what every method of a
+  Zig file-struct becomes after a round trip through Python.
+
+- [x] B145: **a `@staticmethod` disappeared from its class.** The Python reader handled
+  decorated definitions at module level and not inside a class body, so a decorated
+  method fell to the member loop's catch-all. It was dropped and the report still said
+  every signature had carried across intact — including for the `@staticmethod` this
+  tool's own Python writer emits.
+
+- [x] B144: **every reader's record member loop ended with `_ => {}`.** A member that is
+  not understood is not a member that is not there; a record has no room for a construct
+  it cannot translate, so it is carried beside the type and counted. Java constructors
+  were the largest thing this had been swallowing.
+
+- [x] B143: **there was no round-trip check at all.** "The output parses" cannot see a
+  parameter that vanished or a function that did not come back — the file is still
+  perfectly good in the target's grammar. `tests/round_trip.rs` translates every real
+  source in the repository into every target, reads the result back, and compares which
+  functions exist and what their parameters are called. It found four of the five
+  defects above on its first run.
+
 - [x] B142: **a note was reported only when something else had gone wrong.** Not every
   note is about a carried construct — a type the source never wrote down, a name the
   target reserves, a base class a language without inheritance cannot keep — and the

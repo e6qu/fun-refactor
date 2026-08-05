@@ -855,3 +855,68 @@ fn a_note_is_reported_even_when_nothing_was_carried() {
     assert_eq!(fidelity.carried_verbatim, 0);
     assert!(!fidelity.notes.is_empty(), "{:?}", fidelity.notes);
 }
+
+#[test]
+fn a_decorated_method_is_still_a_method() {
+    // `@staticmethod` describes the shape of the binding, not its behaviour. Reading it
+    // as something unrecognised dropped the method — including the ones this tool's own
+    // Python writer emits, so a round trip lost every associated function in the file
+    // while the report said every signature had carried across intact.
+    let source =
+        "class A:\n    @staticmethod\n    def make(x: int) -> int:\n        return x\n\n    \
+                  def use(self) -> int:\n        return 1\n";
+    let (output, fidelity) = translate(&[("a.py", source)], "a.py", Language::TypeScript);
+    assert!(
+        output.contains("static make(x: number): number {"),
+        "{output}"
+    );
+    assert!(output.contains("use(): number {"), "{output}");
+    assert_eq!(fidelity.functions, 2, "{output}");
+}
+
+#[test]
+fn a_decorator_that_changes_behaviour_is_not_read_as_a_plain_method() {
+    // A route, a cache, a retry: reading one as an ordinary method would drop the part
+    // that mattered and say nothing.
+    let source =
+        "class A:\n    @app.route(\"/x\")\n    def handler(self) -> int:\n        return 1\n";
+    let (output, fidelity) = translate(&[("b.py", source)], "b.py", Language::TypeScript);
+    assert!(fidelity.carried_verbatim > 0, "{output}");
+    assert!(output.contains("@app.route"), "carried whole:\n{output}");
+}
+
+#[test]
+fn a_class_member_that_is_not_understood_is_not_a_member_that_is_not_there() {
+    // Every reader ended its member loop with `_ => {}`.
+    let source =
+        "public class A {\n    public A(int n) { }\n    public int get() { return 1; }\n}\n";
+    let (output, fidelity) = translate(&[("A.java", source)], "A.java", Language::Python);
+    assert!(fidelity.carried_verbatim > 0, "{output}");
+    assert!(
+        output.contains("public A(int n)"),
+        "the constructor has to be in the output:\n{output}"
+    );
+}
+
+#[test]
+fn a_rust_raw_identifier_is_the_name_without_the_escape() {
+    // `r#where` *is* the identifier `where`: the prefix is how Rust spells a name that
+    // collides with a keyword. Leaving it on the way back in made the name grow an `r`
+    // every time it crossed.
+    let source = "pub fn r#where(r#type: i64) -> i64 {\n    return r#type;\n}\n";
+    let (output, _) = translate(&[("w.rs", source)], "w.rs", Language::TypeScript);
+    assert!(output.contains("function where(type: number)"), "{output}");
+}
+
+#[test]
+fn a_module_level_parameter_called_self_is_still_a_parameter() {
+    // Python's `self` is a convention inside a class and an ordinary name outside one.
+    // Stripping it everywhere lost a parameter from every free function that had one —
+    // which is what a Zig file-struct becomes after a round trip through Python.
+    let source = "def deinit(self: Store, uri: str) -> None:\n    return None\n";
+    let (output, _) = translate(&[("s.py", source)], "s.py", Language::TypeScript);
+    assert!(
+        output.contains("function deinit(self: Store, uri: string)"),
+        "{output}"
+    );
+}

@@ -34,6 +34,30 @@ pub mod nextjs;
 mod read;
 mod write;
 
+/// What a file says, in the form no one language owns.
+///
+/// The first half of [`plan`], on its own. A caller that wants to *compare* two files
+/// written in different languages has nowhere else to stand: the only thing they have
+/// in common is what this returns.
+pub fn read_file(path: &Path) -> Result<ir::Module> {
+    let Some(language) = crate::lang::detect(path) else {
+        bail!("{} is not a language this build recognises", path.display());
+    };
+    if !supports(language) {
+        bail!("there is no reader for {language}");
+    }
+    let source = crate::vfs::read_to_string(path)?;
+    let parsed = Parsers::new().parse(language, &source)?;
+    if parsed.has_errors() {
+        bail!(
+            "{} does not parse cleanly as {language}, so anything read out of it would \
+             be a guess about broken code",
+            path.display()
+        );
+    }
+    read::read(language, &source, parsed.root())
+}
+
 /// Read a parsed file into the IR. Used by the framework-aware translations too.
 pub(crate) fn read_module(
     language: Language,
