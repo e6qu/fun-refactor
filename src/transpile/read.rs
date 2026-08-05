@@ -390,8 +390,21 @@ mod rust {
         module
     }
 
+    /// A Rust identifier without the escape that made it writable.
+    ///
+    /// `r#where` *is* the identifier `where`: the prefix is how Rust spells a name that
+    /// collides with a keyword, and it is not part of the name. Every writer here puts
+    /// the escape on when it needs to, so leaving it on the way back in made the name
+    /// grow an `r` each time it crossed.
+    fn plain(name: String) -> String {
+        match name.strip_prefix("r#") {
+            Some(rest) => rest.to_string(),
+            None => name,
+        }
+    }
+
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
-        let name = cx.field_text(node, "name").unwrap_or_default();
+        let name = plain(cx.field_text(node, "name").unwrap_or_default());
         let mut params = Vec::new();
         let mut receiver_name = None;
         if let Some(list) = cx.field(node, "parameters") {
@@ -400,7 +413,7 @@ mod rust {
                     // `&self` carries the receiver, which the IR records separately.
                     "self_parameter" => receiver_name = Some("self".to_string()),
                     "parameter" => params.push(Param {
-                        name: cx.field_text(p, "pattern").unwrap_or_default(),
+                        name: plain(cx.field_text(p, "pattern").unwrap_or_default()),
                         ty: cx.field(p, "type").map(|t| ty(cx, t)),
                         default: None,
                         kind: ParamKind::Normal,
@@ -454,7 +467,7 @@ mod rust {
                 }
                 fields.push(Field {
                     doc: doc_above(cx, f, &["///", "//"]),
-                    name: cx.field_text(f, "name").unwrap_or_default(),
+                    name: plain(cx.field_text(f, "name").unwrap_or_default()),
                     ty: cx.field(f, "type").map(|t| ty(cx, t)),
                     exported: f
                         .children(&mut f.walk())
@@ -464,7 +477,7 @@ mod rust {
         }
         Some(Record {
             doc: doc_above(cx, node, &["///", "//"]),
-            name: cx.field_text(node, "name").unwrap_or_default(),
+            name: plain(cx.field_text(node, "name").unwrap_or_default()),
             fields,
             // Rust composes rather than inherits: a trait is a contract, not a base.
             extends: None,
@@ -478,7 +491,7 @@ mod rust {
     fn constant(cx: &Cx, node: Node<'_>) -> Option<Constant> {
         Some(Constant {
             doc: doc_above(cx, node, &["///", "//"]),
-            name: cx.field_text(node, "name")?,
+            name: plain(cx.field_text(node, "name")?),
             ty: cx.field(node, "type").map(|t| ty(cx, t)),
             value: cx
                 .field(node, "value")
@@ -563,7 +576,7 @@ mod rust {
             }
             "return_expression" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
             "let_declaration" => {
-                let bound = cx.field_text(node, "pattern").unwrap_or_default();
+                let bound = plain(cx.field_text(node, "pattern").unwrap_or_default());
                 let value = cx.field(node, "value").map(|v| expr(cx, v));
                 // `let _ = f();` binds nothing. It is a call whose result is
                 // deliberately dropped, which every target here can say — and reading
@@ -640,7 +653,7 @@ mod rust {
                     .unwrap_or_default(),
             },
             "for_expression" => Stmt::ForEach {
-                binding: cx.field_text(node, "pattern").unwrap_or_default(),
+                binding: plain(cx.field_text(node, "pattern").unwrap_or_default()),
                 iterable: cx
                     .field(node, "value")
                     .map(|v| expr(cx, v))
@@ -731,9 +744,9 @@ mod rust {
             "string_literal" | "raw_string_literal" | "char_literal" => {
                 Expr::Str(super::unquote(&cx.text(node)))
             }
-            "identifier" | "self" => Expr::Name(cx.text(node)),
+            "identifier" | "self" => Expr::Name(plain(cx.text(node))),
             "field_expression" => {
-                let name = cx.field_text(node, "field").unwrap_or_default();
+                let name = plain(cx.field_text(node, "field").unwrap_or_default());
                 // `self.0` reaches into a tuple struct, and a tuple struct is a Rust
                 // idea: no other target here has a field with a number for a name, and
                 // writing `.0` into any of them produces something that is either a
@@ -819,6 +832,8 @@ mod python {
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
+        // A member a record cannot keep still has to reach the reader.
+        let mut carried: Vec<Item> = Vec::new();
         for child in cx.children(root) {
             match child.kind() {
                 "comment" => {}
@@ -831,7 +846,10 @@ mod python {
                 "function_definition" => {
                     module.items.push(Item::Function(function(cx, child, None)))
                 }
-                "class_definition" => module.items.push(Item::Record(record(cx, child))),
+                "class_definition" => {
+                    let record = record(cx, child, &mut carried);
+                    module.items.push(Item::Record(record));
+                }
                 // `@dataclass class User:` is the typed-Python idiom for a record, and
                 // the decorator used to make the whole class untranslatable.
                 "decorated_definition" => {
@@ -852,9 +870,9 @@ mod python {
                         .iter()
                         .all(|d| matches!(d.as_str(), "dataclass" | "dataclasses.dataclass"));
                     match (inner, structural) {
-                        (Some(node), true) if node.kind() == "class_definition" => {
-                            module.items.push(Item::Record(record(cx, node)))
-                        }
+                        (Some(node), true) if node.kind() == "class_definition" => module
+                            .items
+                            .push(Item::Record(record(cx, node, &mut carried))),
                         (Some(node), true) => {
                             module.items.push(Item::Function(function(cx, node, None)))
                         }
@@ -881,6 +899,7 @@ mod python {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        module.items.extend(carried);
         module
     }
 
@@ -915,7 +934,12 @@ mod python {
                     }),
                     "identifier" => {
                         let name = cx.text(p);
-                        if name == "self" || name == "cls" {
+                        // Only inside a class. A module-level `def f(self, uri)` is an
+                        // ordinary function whose first parameter happens to be called
+                        // `self`, and stripping it there lost a parameter — which is
+                        // exactly what a round trip through Python did to every method
+                        // of a Zig file-struct.
+                        if receiver.is_some() && (name == "self" || name == "cls") {
                             receiver_name = Some(name);
                             continue;
                         }
@@ -932,7 +956,7 @@ mod python {
                             .first()
                             .map(|n| cx.text(*n))
                             .unwrap_or_default();
-                        if name == "self" {
+                        if receiver.is_some() && name == "self" {
                             receiver_name = Some(name);
                             continue;
                         }
@@ -1059,7 +1083,7 @@ mod python {
         }
     }
 
-    fn record(cx: &Cx, node: Node<'_>) -> Record {
+    fn record(cx: &Cx, node: Node<'_>, carried: &mut Vec<Item>) -> Record {
         let name = cx.field_text(node, "name").unwrap_or_default();
         let mut fields = Vec::new();
         let mut methods = Vec::new();
@@ -1069,6 +1093,13 @@ mod python {
                     "function_definition" => {
                         methods.push(function(cx, item, Some(name.clone())));
                     }
+                    // `@staticmethod def f(x)` is still a method. Reading it as
+                    // something unrecognised dropped it — including the ones this
+                    // tool's own Python writer emits.
+                    "decorated_definition" => match decorated_method(cx, item, &name) {
+                        Some(method) => methods.push(method),
+                        None => carried.push(Item::Unsupported(cx.unsupported(item))),
+                    },
                     // A dataclass-style annotated field: `name: str`.
                     "expression_statement" => {
                         if let Some(inner) = cx.children(item).first() {
@@ -1079,7 +1110,13 @@ mod python {
                             }
                         }
                     }
-                    _ => {}
+                    "pass_statement" => {}
+                    // A member this does not recognise is not a member that is not there. Every one
+                    // of these readers had a `_ => {}` at the end of its member loop, which is how
+                    // a `@staticmethod` disappeared from a class and the report still said every
+                    // signature had carried across intact. A record has no room for a construct it
+                    // cannot translate, so it goes beside the type.
+                    _ => carried.push(Item::Unsupported(cx.unsupported(item))),
                 }
             }
         }
@@ -1098,6 +1135,36 @@ mod python {
             exported: true,
             methods,
         }
+    }
+
+    /// A decorated method, when the decorators only say what kind of method it is.
+    ///
+    /// `@staticmethod`, `@classmethod` and `@property` describe the *shape* of the
+    /// binding. A decorator that changes behaviour — a route, a cache, a retry — is not
+    /// a method this understands, and reading one as an ordinary method would drop the
+    /// part that mattered.
+    fn decorated_method(cx: &Cx, node: Node<'_>, owner: &str) -> Option<Function> {
+        const SHAPE: &[&str] = &[
+            "staticmethod",
+            "classmethod",
+            "property",
+            "abstractmethod",
+            "override",
+            "typing.override",
+            "abc.abstractmethod",
+        ];
+        let children = cx.children(node);
+        let structural = children
+            .iter()
+            .filter(|n| n.kind() == "decorator")
+            .all(|n| {
+                let text = cx.text(*n);
+                SHAPE.contains(&text.trim_start_matches('@').trim())
+            });
+        let inner = children
+            .into_iter()
+            .find(|n| n.kind() == "function_definition")?;
+        structural.then(|| function(cx, inner, Some(owner.to_string())))
     }
 
     fn annotated_field(cx: &Cx, node: Node<'_>) -> Option<Field> {
@@ -2000,6 +2067,8 @@ mod java {
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
+        // A member a record cannot keep still has to reach the reader.
+        let mut carried: Vec<Item> = Vec::new();
         for child in cx.children(root) {
             match child.kind() {
                 // The package clause names the compilation unit; it is not an import
@@ -2010,7 +2079,7 @@ mod java {
                     line: cx.line(child),
                 }),
                 "class_declaration" | "interface_declaration" | "record_declaration" => {
-                    let (record, constants) = type_declaration(cx, child);
+                    let (record, constants) = type_declaration(cx, child, &mut carried);
                     module
                         .items
                         .extend(constants.into_iter().map(Item::Constant));
@@ -2021,11 +2090,16 @@ mod java {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        module.items.extend(carried);
         module
     }
 
     /// A class, interface or record, plus the module constants hidden inside it.
-    fn type_declaration(cx: &Cx, node: Node<'_>) -> (Option<Record>, Vec<Constant>) {
+    fn type_declaration(
+        cx: &Cx,
+        node: Node<'_>,
+        carried: &mut Vec<Item>,
+    ) -> (Option<Record>, Vec<Constant>) {
         let Some(name) = cx.field_text(node, "name") else {
             return (None, Vec::new());
         };
@@ -2100,8 +2174,17 @@ mod java {
                 "method_declaration" => record.methods.push(function(cx, member)),
                 // A constructor's body assigns the fields the parameters carry, which
                 // every target spells its own way and none spells like this.
-                "constructor_declaration" | "comment" | "{" | "}" => {}
-                _ => {}
+                // A constructor is not a method of the type: it is how the type is
+                // made, and every other target spells that differently or not at all.
+                "constructor_declaration" => {
+                    carried.push(Item::Unsupported(cx.unsupported(member)))
+                }
+                "comment" | "{" | "}" => {}
+                // A member this does not recognise is not a member that is not
+                // there. Every reader here ended its member loop with `_ => {}`,
+                // which is how a `@staticmethod` disappeared from a class while the
+                // report said every signature had carried across intact.
+                _ => carried.push(Item::Unsupported(cx.unsupported(member))),
             }
         }
         (Some(record), constants)
@@ -2681,7 +2764,11 @@ mod zig {
                     Some(f) => record.methods.push(f),
                     None => carried.push(Item::Unsupported(cx.unsupported(member))),
                 },
-                _ => {}
+                // A member this does not recognise is not a member that is not
+                // there. Every reader here ended its member loop with `_ => {}`,
+                // which is how a `@staticmethod` disappeared from a class while the
+                // report said every signature had carried across intact.
+                _ => carried.push(Item::Unsupported(cx.unsupported(member))),
             }
         }
         record
@@ -3095,6 +3182,8 @@ mod typescript {
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
+        // A member a record cannot keep still has to reach the reader.
+        let mut carried: Vec<Item> = Vec::new();
         for child in cx.children(root) {
             let (node, exported) = match child.kind() {
                 "export_statement" => match cx.children(child).first() {
@@ -3116,7 +3205,7 @@ mod typescript {
                     module.items.push(Item::Function(f));
                 }
                 "class_declaration" | "interface_declaration" => {
-                    let mut r = record(cx, node);
+                    let mut r = record(cx, node, &mut carried);
                     r.exported = exported;
                     r.doc = doc_above(cx, child, &["///", "//", "/**", "*/", "*"]);
                     module.items.push(Item::Record(r));
@@ -3141,6 +3230,7 @@ mod typescript {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        module.items.extend(carried);
         module
     }
 
@@ -3233,7 +3323,7 @@ mod typescript {
         })
     }
 
-    fn record(cx: &Cx, node: Node<'_>) -> Record {
+    fn record(cx: &Cx, node: Node<'_>, carried: &mut Vec<Item>) -> Record {
         let name = cx.field_text(node, "name").unwrap_or_default();
         let mut fields = Vec::new();
         let mut methods = Vec::new();
@@ -3251,7 +3341,11 @@ mod typescript {
                         method.exported = is_visible(cx, member);
                         methods.push(method);
                     }
-                    _ => {}
+                    // A member this does not recognise is not a member that is not
+                    // there. Every reader here ended its member loop with `_ => {}`,
+                    // which is how a `@staticmethod` disappeared from a class while the
+                    // report said every signature had carried across intact.
+                    _ => carried.push(Item::Unsupported(cx.unsupported(member))),
                 }
             }
         }

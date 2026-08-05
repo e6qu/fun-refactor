@@ -289,6 +289,23 @@ Four things about the language shape the writer:
 spells an identifier that collides with one of its own words, and under it the name
 still says what the source said.
 
+### How much of this is checked
+
+Two properties, both over every real file in the repository and every vendored corpus,
+into every target:
+
+1. **The output parses as the language it claims to be.** The strongest check available
+   without six compilers. It found nine defects the first time it ran.
+2. **Every function comes back with the parameters it left with.** A round trip — read,
+   translate, read the result back, compare. Parsing cannot see a dropped parameter; the
+   file is still perfectly good in the target's grammar, and the fidelity report says
+   every signature carried across intact. This found four more.
+
+What the round trip compares is deliberately narrow: which functions exist and what
+their parameters are called. Types are where the legitimate differences live, and a
+check that argued about those would spend its life growing exceptions. A parameter
+appearing or vanishing is never legitimate.
+
 ### What real code has that a fixture does not
 
 The strongest check available without six compilers is that the output parses as the
