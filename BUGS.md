@@ -76,6 +76,22 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B192: **a type argument was read as a supertype.** The heritage reader took every
+  type name under an `extends`/`implements` clause, so `implements Holder<Pet>` filed the
+  class under `Pet`. A call that reached it by method name alone was then reported as
+  reaching it through a relationship somebody had declared — the same edge, presented on
+  evidence that did not exist. Found while adding Java, and the helper's doc comment had
+  claimed the opposite of what it did since it was written.
+
+- [x] B191: **class hierarchy analysis skipped Java.** `Family::of` mapped Rust, Go,
+  TypeScript and Python, and everything else fell into a `_ => None` documented as being
+  about Zig's comptime duck typing and Bash's lack of methods. Java has neither excuse:
+  it states its hierarchy in as many words, and it was the one language here whose
+  hierarchy went unread. A call through an interface reached no implementation, so
+  `fr callers` on an overriding method answered with nothing at all while the same code
+  in TypeScript answered correctly. Reading three vendored gson files now yields 80
+  hierarchy edges where it yielded none.
+
 - [x] B190: **the number describing the matrix was not checked, and had drifted.** The
   table is regenerated and asserted against the code; the sentence above it counting the
   cells was prose, and said 260 supported where the rows it introduced counted 261.

@@ -712,6 +712,7 @@ enum Family {
     Rust,
     Go,
     Ts,
+    Java,
     Python,
 }
 
@@ -719,13 +720,27 @@ impl Family {
     /// The family a language belongs to, or `None` when it has no type hierarchy to
     /// analyse. Zig dispatches through comptime duck typing and Bash has no methods
     /// at all; neither declares an implements-relationship anything could read.
+    ///
+    /// Java is not one of those, and used to fall into the same silent `_` as though
+    /// it were — so the one language here that states its hierarchy in as many words
+    /// was the one whose hierarchy went unread.
     fn of(language: Language) -> Option<Family> {
         match language {
             Language::Rust => Some(Family::Rust),
             Language::Go => Some(Family::Go),
             Language::TypeScript | Language::Tsx => Some(Family::Ts),
+            Language::Java => Some(Family::Java),
             Language::Python => Some(Family::Python),
-            _ => None,
+            Language::Zig
+            | Language::Bash
+            | Language::Html
+            | Language::Css
+            | Language::Scss
+            | Language::Hcl
+            | Language::Yaml
+            | Language::Helm
+            | Language::Xml
+            | Language::Markdown => None,
         }
     }
 }
@@ -927,6 +942,7 @@ impl Hierarchy {
                 Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
                 Family::Go => hierarchy.visit_go(node, &source, &mut sites),
                 Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
+                Family::Java => hierarchy.visit_java(node, &source, &mut sites),
                 Family::Python => hierarchy.visit_python(node, &source, &mut sites),
             };
             walk(parsed.root(), &mut visit);
@@ -976,7 +992,11 @@ impl Hierarchy {
                 // The declaring class is reached by its own name alone — that is the
                 // field-based heuristic and it is labelled as such. Its subclasses
                 // are reached by a declared relationship, which is stronger.
-                Family::Ts => {
+                // Java sits here for the same reason rather than a stronger one: it
+                // declares `implements` outright, but nothing in this tool infers the
+                // static type of a receiver, so reaching the declaring type is still
+                // the name-based step and is labelled as such.
+                Family::Ts | Family::Java => {
                     note(abstraction.clone(), HierarchyBasis::MethodName);
                     for subclass in self.subtypes(family, abstraction) {
                         note(subclass, HierarchyBasis::DeclaredSupertype);
@@ -1206,6 +1226,59 @@ impl Hierarchy {
         }
     }
 
+    // ------------------------------------------------------------------ Java
+    fn visit_java(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
+        match node.kind() {
+            "class_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "record_declaration" => {
+                let Some(name) = field_text(node, "name", source) else {
+                    return;
+                };
+                let key = (Family::Java, name);
+
+                for child in named_children(node) {
+                    match child.kind() {
+                        // `extends B`, `implements I, J`, `interface I extends J`.
+                        "superclass" | "super_interfaces" | "extends_interfaces" => {
+                            for supertype in java_supertypes(child, source) {
+                                self.add_supertype(key.clone(), supertype);
+                            }
+                        }
+                        "class_body" | "interface_body" | "enum_body" => {
+                            // Direct members only: a nested class is visited in its
+                            // own right, and its methods are not this type's. An
+                            // enum wraps them in one more level.
+                            for member in named_children(child) {
+                                let members = if member.kind() == "enum_body_declarations" {
+                                    named_children(member)
+                                } else {
+                                    vec![member]
+                                };
+                                for member in members {
+                                    if member.kind() != "method_declaration" {
+                                        continue;
+                                    }
+                                    if let Some(method) = field_text(member, "name", source) {
+                                        self.declare(key.clone(), method, arity(member));
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            // `s.area()` is the call that may dispatch. A bare `area()` is a call on
+            // `this`, which the index resolves without a hierarchy.
+            "method_invocation" if node.child_by_field_name("object").is_some() => {
+                push_site(node, "name", source, Family::Java, sites);
+            }
+            _ => {}
+        }
+    }
+
     // ---------------------------------------------------------------- Python
     fn visit_python(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
@@ -1318,11 +1391,12 @@ fn push_site(accessor: Node, field: &str, source: &str, family: Family, sites: &
     }
 }
 
-/// Type names mentioned in a type position, outermost first.
+/// Every type name mentioned in a type position, outermost first.
 ///
-/// `&mut Wrapper<T>` names `Wrapper`, `fmt::Display` names `Display`, and a Go
-/// receiver `(a *A)` names `A`: the generic argument, the module path and the binding
-/// are none of them type names, and only the grammar's `type_identifier` nodes are.
+/// `fmt::Display` names `Display` and a Go receiver `(a *A)` names `A`: the module
+/// path and the binding are not type names, and only the grammar's `type_identifier`
+/// nodes are. A generic argument *is* one — `Wrapper<T>` yields `Wrapper` then `T` —
+/// so a caller after the type being named takes the first and no more.
 fn type_identifiers(node: Node, source: &str) -> Vec<String> {
     let mut names = Vec::new();
     let mut visit = |child: Node| {
@@ -1332,6 +1406,31 @@ fn type_identifiers(node: Node, source: &str) -> Vec<String> {
     };
     walk(node, &mut visit);
     names
+}
+
+/// The types a Java `extends` or `implements` clause names.
+///
+/// One name per entry, and the outermost one: `implements Iterable<JsonElement>` names
+/// `Iterable`. Taking every `type_identifier` under the clause instead makes the type
+/// argument a supertype too — which put `JsonArray` under `JsonElement` for the wrong
+/// reason and would put a `Comparator<Foo>` under `Foo` for no reason at all.
+fn java_supertypes(clause: Node, source: &str) -> Vec<String> {
+    let entries: Vec<Node> = named_children(clause)
+        .into_iter()
+        .flat_map(|child| {
+            // `implements` and `interface … extends` wrap their names in a list;
+            // `extends B` names one type directly.
+            if child.kind() == "type_list" {
+                named_children(child)
+            } else {
+                vec![child]
+            }
+        })
+        .collect();
+    entries
+        .into_iter()
+        .filter_map(|entry| type_identifiers(entry, source).into_iter().next())
+        .collect()
 }
 
 /// Names in a TypeScript heritage clause: `extends B implements I, J`.

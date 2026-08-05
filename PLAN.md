@@ -1366,6 +1366,44 @@ regenerated and asserted; the sentence above them counting the rows was prose. I
 six capabilities and a language existed. It is asserted now, in all four places it is
 published, against the computation that produces the table.
 
+### The hierarchy the tool would not read
+
+The sweep continued through the per-language tables, and the next one was the shortest
+function with the largest consequence:
+
+```rust
+fn of(language: Language) -> Option<Family> {
+    match language {
+        Language::Rust => Some(Family::Rust),
+        Language::Go => Some(Family::Go),
+        Language::TypeScript | Language::Tsx => Some(Family::Ts),
+        Language::Python => Some(Family::Python),
+        _ => None,      // "Zig dispatches through comptime duck typing and Bash
+    }                   //  has no methods at all"
+}
+```
+
+Both of those are true, and Java is neither. It fell into the same `_` — so the one
+language here that states its hierarchy in as many words was the one whose hierarchy
+went unread. The same twelve lines of code, side by side:
+
+```
+$ fr callers shape.ts:2:33          $ fr callers Shape.java:6:19
+Circle::area                        Circle::area
+  total [field-based]
+```
+
+A call through an interface reached no implementation. Not a refusal — an empty answer
+to "who calls this?", which is the question `fr delete` is built on. Three vendored gson
+files now produce 80 hierarchy edges where they produced none.
+
+**And adding it turned up a defect in shared code.** The heritage reader took every type
+name under the clause, so `implements Holder<Pet>` filed the class under `Pet` as well.
+A call that reached the method by name alone was then reported as reaching it through a
+declared relationship. The edge is identical either way; the evidence for it is not, and
+presenting a guess as a declaration is the one thing this layer must not do. The helper's
+doc comment had claimed it excluded type arguments since the day it was written.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
