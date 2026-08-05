@@ -1145,12 +1145,27 @@ shows up as a line of diff:
     - GET /pets?species
     + GET /pets
 
-The translated handler still reads `species` off the request object rather than
-declaring it as a FastAPI parameter, so the router does not say it takes a query. The
-endpoint answers, the tests pass, and the contract quietly got smaller — which is the
-failure the whole exercise is about, caught in one line. The site data test asserts the
-addressing half is identical, so a translation that started dropping endpoints would
-fail the build rather than the page.
+The translated handler still read `species` off the request object rather than declaring
+it as a FastAPI parameter, so the router did not say it took a query.
+
+### Closing it
+
+The same move as the path parameters, one level out. A query parameter is declared
+`str | None = None` — which is exactly what `searchParams.get()` returns — every read of
+it in the body becomes that name, and the binding that was doing the reading is dropped,
+because a binding of a name to itself is a statement that does nothing. Leaving the read
+in place would have been worse than not declaring the parameter: `req.nextUrl` is a
+Next.js object and Starlette's `Request` does not have it, so the line would not run.
+
+Thirteen operations now go in and thirteen come out with **everything** identical, and
+the site data test asserts it rather than the page claiming it.
+
+What that does *not* mean is that the contract is complete, and the difference is the
+more important half. `GET /pets` also reads a `limit`, through `??` — a TypeScript
+operator this tool has no equivalent for — so the statement is carried as a comment and
+`limit` reaches neither document. Both sides agree, and both are missing it. The notes
+beside the baseline say so in as many words. A gap that announces itself is a gap you
+can close; a gap that does not is what the whole exercise is about.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,

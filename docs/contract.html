@@ -189,18 +189,41 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
       command answers the same question about the code the rewrite produced.
     </p>
     <p>
-      Thirteen operations went in and thirteen came out, with every URL, every method
-      and every path parameter identical. <strong>One thing did not survive</strong>,
-      and the point of the exercise is that you can see which:
+      Thirteen operations went in and thirteen came out — every URL, every method, every
+      path parameter and every query parameter identical. <strong>Nothing was lost and
+      nothing was invented.</strong>
     </p>
     <div id="survived"></div>
     <p style="margin-top:1rem">
-      <code>GET /pets</code> read <code>species</code> out of the query string. The
-      translated handler still reads it from the request object rather than declaring it
-      as a FastAPI parameter, so the router that came out the other side does not say it
-      takes a query — and a caller sending <code>?species=cat</code> is outside a
-      contract that claims to describe it. That is the whole failure mode in one line:
-      the endpoint answers, the tests pass, and the contract quietly got smaller.
+      That is the claim the build holds to: the site data test asserts the two documents
+      agree, so a translation that started dropping endpoints or reshaping paths would
+      fail the build rather than the page.
+    </p>
+
+    <h3>What it does <em>not</em> say</h3>
+    <p>
+      The two documents agreeing means the crossing was faithful. It does not mean the
+      contract is complete, and the difference matters more than anything else on this
+      page.
+    </p>
+    <p>
+      <code>GET /pets</code> also reads a <code>limit</code> out of the query string:
+    </p>
+<pre class="term-body"><code>const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50")</code></pre>
+    <p>
+      <code>??</code> is a TypeScript operator this tool has no equivalent for, so the
+      whole statement is carried into the output as a comment — and <code>limit</code>
+      never reaches either document. Both sides agree, and both are missing it.
+    </p>
+    <p>
+      The tool says so, in the notes beside the baseline:
+    </p>
+<pre class="term-body"><code>app/api/pets/route.ts: 2 statement(s) could not be read; any query
+parameter read inside one of them is missing from this document</code></pre>
+    <p>
+      A gap that announces itself is a gap you can close. A gap that does not is the
+      thing this whole document exists to prevent — the endpoint answers, the tests
+      pass, and the contract quietly got smaller.
     </p>
     <div id="crossed"></div>
   </div>
