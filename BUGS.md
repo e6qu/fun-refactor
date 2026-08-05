@@ -76,6 +76,24 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B203: **the grouping nearly went into CSS.** The node kinds that bind their
+  operands are recognised by substring, because six grammars name the same thing six
+  ways — and CSS names a `descendant_selector` and an `attribute_selector`, which read
+  as operator kinds and are nothing of the sort. Bracketing a selector is not a
+  grouping, it is a syntax error. Caught by the reparse guard before it shipped;
+  grouping is now asked of the same predicate `inline` asks, so there is one answer to
+  "does this language group with brackets" rather than two.
+
+- [x] B202: **`fr restructure` changed what the code computes.** A captured expression
+  is substituted as text, so `double($X)` → `$X * 2` turned `double(x + 1)` into
+  `x + 1 * 2`, which is `x + 2`. And the replacement itself is dropped where the match
+  was, so `2 * double(y)` with a template of `$X / 2` gave `2 * y / 2`, which for
+  integers is not `2 * (y / 2)`. Both halves are the defect already fixed twice in
+  `inline`; this is the third place an expression is moved into a context it was not
+  written for, and the one whose whole purpose is moving expressions. A capture the
+  template will bind is bracketed, and a replacement that binds is bracketed where it
+  lands — neither when the text is a single thing already.
+
 - [x] B201: **a move left behind what the moved code needed, in every language with its
   own move path.** The generic path — TypeScript and Python — writes an import pointing
   back at a name the source file *defines* and the moved code still uses. Rust, Zig and
