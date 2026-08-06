@@ -76,6 +76,17 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B219: **`fr impact` reported a bounded search as a complete answer.** The caller
+  walk stops at `--caller-depth`, which defaults to 3, and said nothing when it did — so
+  a five-deep call chain produced "l0 affects 4 site(s)" and a list of four, with two
+  functions it had never looked at. A definite count of an incomplete search, from the
+  command a person uses to decide whether a change is safe. `fr flow` has said "depth
+  limit reached; more may lie beyond" since it was written; the call-graph walk recorded
+  cycles "rather than silently pruning them" and did not record this. The frontier is
+  recorded on the same footing as a cycle now, and both `fr impact` and the call-graph
+  tree say what the bound excluded. Nothing is said when the walk finished, because a
+  note nobody needs is how a note somebody needs gets missed.
+
 - [x] B218: **every hop of a forward flow was printed twice.** The use and the binding
   it initialises are the same line, and both were pushed — so `parsed = int(cleaned)`
   appeared at one indent and again at the next, all the way down, and each duplicate
