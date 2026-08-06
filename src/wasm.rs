@@ -362,7 +362,7 @@ impl Workspace {
             Ok(id) => id,
             Err(e) => return fail(e),
         };
-        match crate::analysis::declared::of(&self.index, id) {
+        match crate::analysis::types::of(&self.index, id) {
             Ok(declared) => ok(&declared),
             Err(e) => fail(e.to_string()),
         }

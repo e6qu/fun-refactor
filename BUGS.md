@@ -76,6 +76,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B221: **`fr type` answered half the question.** It reported what a symbol was
+  declared with and stopped, so every unannotated binding came back identical whether the
+  source had lost track of the value or merely not written the type down. It now derives
+  a type from the six steps that follow from something stated — a literal, a class
+  constructed, a declared return type, another binding, a record's field — and names the
+  step and the evidence for each. A declaration still wins over a derivation, and the two
+  are reported apart. A call outside the workspace and an object literal both yield
+  nothing, deliberately: the chain stops where the evidence does, and answering `dict`
+  for a dictionary agrees with the code rather than describing it.
+
 - [x] B220: **the published site was checked by hand and by nothing else.**
   `cargo test --test site_data` asserts that every result shown on the site is what the
   tool produced; nothing asserted that a link goes somewhere, that an anchor names a

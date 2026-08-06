@@ -1984,6 +1984,43 @@ guardrails caught both of the things a new command tends to miss: `test_pyramid`
 a subcommand with no end-to-end test, and the capability matrix refused a command with a
 per-language answer that was not in the table.
 
+### Inference, with the evidence attached
+
+`fr type` reported what the source declared and stopped there. Now it also reports what
+*follows* from what the source declared — and never confuses the two.
+
+```
+$ fr type payments.py:13:1
+wallet  Money (from the class constructed here)
+  evidence: Money at payments.py:4:7
+```
+
+Six steps, each one short hop from something stated: a literal states its own type; a
+class that is constructed gives its name; a function that is called gives the return type
+it declares; a binding assigned from another binding carries that one's type; a field
+gives what its record declared. Every answer names the step and points at the evidence,
+so a reader can follow it or reject it. A chain is followed four links and no further —
+past that the answer stops being something anybody can check at a glance, which is the
+only kind this is willing to give.
+
+**A declaration always wins.** An annotation is a contract and an inference is a
+derivation; where both could apply the contract is the answer, and a disagreement between
+them is a defect in the code rather than a choice for this to make. `declared` stays
+`None` however much is worked out from elsewhere, because the gap between the two is the
+whole subject of annotating a codebase that has none.
+
+**And two things it deliberately does not answer.** A call to something outside the
+workspace yields nothing — the chain stops where the evidence does, and `Any` would be a
+different claim. An object literal yields nothing either, which is the sharper refusal:
+`{"amount": 100}` *is* a `dict`, and saying so is true and useless. A dictionary is where
+a type should have been, and a tool that answers `dict` has agreed with the code rather
+than described it.
+
+That last refusal is why this belongs to the types tutorial rather than beside it. At the
+first stage the panel will say `int (from the literal)` for the numbers and *nothing at
+all* for the dictionaries — and the reader can see, before a word of prose, exactly which
+values the program has lost track of.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
