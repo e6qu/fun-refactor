@@ -3898,8 +3898,22 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let mut params: Vec<String> = Vec::new();
     // A method takes its own type as an ordinary first parameter; there is no
     // receiver syntax to put it in.
+    //
+    // By pointer when the body assigns through it. A Zig value parameter is const, so
+    // `self: Counter` with `self.value = …` in the body is not a slow method — it is a
+    // file that does not compile, from a source that said `&mut self` and a report that
+    // said every signature carried across.
     if let Some(ty) = receiver {
-        params.push(format!("{}: {ty}", receiver_word(out.language)));
+        let word = receiver_word(out.language);
+        let through_a_pointer = zig_mutated(&f.body).contains(word)
+            || f.receiver_binding
+                .as_deref()
+                .is_some_and(|bound| zig_mutated(&f.body).contains(bound));
+        let ty = match through_a_pointer {
+            true => format!("*{ty}"),
+            false => ty.to_string(),
+        };
+        params.push(format!("{word}: {ty}"));
     }
     for p in &f.params {
         let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {

@@ -1775,6 +1775,35 @@ Zig as well: an import has to be written before the class that uses it, and a `L
 inside a string literal is not a use. `Objects.equals` is written out in full at its use
 site and needs nothing, which is why it is spelled that way.
 
+### The method that could not change its own object
+
+Records and methods were the last unswept part of translation. The probe was a counter
+— two fields, a constructor, one method that reads and one that writes — through all
+five targets.
+
+```zig
+pub fn bump(self: Counter) void {
+    self.value = self.value + self.step;    // does not compile
+}
+```
+
+Four of these languages hand a method a reference and let it assign through it. Zig
+hands it a value, and a value parameter there is **const**. The source said `&mut self`,
+the report said every signature carried across with its types intact, and the file the
+compiler was handed rejects that line outright.
+
+The receiver is a pointer when the body assigns through it and a value when it does not,
+recognised by whatever the source called it — `self` in Rust and Python, `this` in
+TypeScript. A pointer everywhere would also compile and would say something about the
+method that is not true. Go already took a pointer receiver for every method, which is
+safe, and is untouched.
+
+**What the same probe found and this does not fix:** a Rust struct literal —
+`Counter { value: 0, step }` — is not read at all, so every constructor body comes out
+as "not translated" in all five targets. That is a missing IR expression rather than a
+rule applied where it does not hold, and it is reported honestly at every site, so it
+belongs in a change of its own rather than smuggled into this one.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
