@@ -531,3 +531,218 @@ footer a { color: var(--ink-soft); }
    recognises the other. */
 .op-list li.del { background: color-mix(in srgb, #ff8389 18%, transparent); }
 .op-list li.add { background: color-mix(in srgb, #42be65 18%, transparent); }
+
+/* ------------------------------------------------------- the types tutorial
+ *
+ * A reading page with a panel that answers questions about what it is reading.
+ * The panel is fixed because the code it describes is long: scrolling to a symbol
+ * and then scrolling back to read about it would be the whole page's worth of work.
+ */
+
+.has-panel main {
+  margin-right: 25vw;
+}
+
+#panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 25vw;
+  height: 100vh;
+  overflow-y: auto;
+  border-left: 1px solid var(--rule);
+  background: var(--paper-raised);
+  padding: 5.5rem 1.5rem 2rem;
+  z-index: 5;
+}
+
+.panel-title {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  margin: 0 0 1rem;
+}
+
+.panel-hint {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.panel-name {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  color: var(--accent);
+  margin: 0 0 1rem;
+  word-break: break-word;
+}
+
+.panel-fields {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.panel-fields dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 1rem;
+}
+
+.panel-fields dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--mono);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.panel-type {
+  color: var(--exact);
+}
+
+/* A symbol you can ask about. It has to sit in the text without moving it, so no
+ * padding and no border — only a colour and an underline that appears on approach. */
+.sym {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.sym:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.sym.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.stage {
+  margin: 4rem 0;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.stage-head h2 {
+  margin-top: 0.25rem;
+}
+
+.kills {
+  border-left: 3px solid var(--exact);
+  padding-left: 1rem;
+  margin: 1.25rem 0;
+}
+
+.kills-label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--exact);
+  display: block;
+}
+
+.score {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.side-by-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.pane {
+  margin: 0;
+  border: 1px solid var(--rule);
+  background: var(--paper-raised);
+  overflow: hidden;
+}
+
+.pane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+.pane-head .tag {
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+
+.pane .code {
+  margin: 0;
+  padding: 0.9rem;
+  overflow-x: auto;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.scoreboard {
+  width: 100%;
+  font-size: 0.88rem;
+}
+
+.scoreboard .num {
+  text-align: right;
+  font-family: var(--mono);
+  width: 5.5rem;
+}
+
+.scoreboard .bar {
+  width: 40%;
+  padding: 0.4rem 0.75rem;
+}
+
+.scoreboard .bar span {
+  display: inline-block;
+  height: 0.6rem;
+  vertical-align: middle;
+}
+
+.bar-declared {
+  background: var(--exact);
+}
+
+.bar-inferred {
+  background: var(--weak);
+}
+
+.bar-unknown {
+  background: var(--rule);
+}
+
+/* One column, and the panel below rather than beside, once there is no room for two.
+ * A 25vw panel on a phone is a column of single words. */
+@media (max-width: 1100px) {
+  .has-panel main {
+    margin-right: 0;
+  }
+
+  #panel {
+    position: static;
+    width: auto;
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    padding: 2rem 1.5rem;
+  }
+
+  .side-by-side {
+    grid-template-columns: 1fr;
+  }
+}
