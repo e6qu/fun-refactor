@@ -81,7 +81,7 @@
         </tr>
         <tr>
           <td><code>path:l:c-l:c</code></td>
-          <td><code>fr extract</code>, which acts on a range rather than a symbol.</td>
+          <td><code>fr extract</code>, which acts on a range, not a symbol.</td>
           <td><code>fr extract a.go:8:5-8:19 count</code></td>
         </tr>
         <tr>
@@ -324,7 +324,7 @@
     <p>
       A refactoring preserves <em>behaviour</em>. A translation preserves a
       <em>signature</em>. Rewriting a service in another language has to preserve
-      something else again — the only thing anyone outside the repository can see: the
+      something else again: the only thing anyone outside the repository can see, the
       <strong>contract</strong>. A caller does not import your functions. It sends
       <code>PATCH /posts/42</code> and expects <code>204</code>.
     </p>
@@ -351,8 +351,7 @@
     <p>
       <code>app/api/posts/[postId]/route.ts</code> serves <code>/posts/{post_id}</code>,
       and <strong>nothing inside the file says so</strong>. No content-only translation
-      can recover that, however well it reads TypeScript. It is the one part of the job
-      that needs the tree rather than the text, and it is most of the value.
+      can recover that, however well it reads TypeScript. It is the one part of the job that needs the tree and not the text, and it is most of the value.
     </p>
     <p>
       <code>[...path]</code> is a catch-all — it matches across slashes, which FastAPI
@@ -476,7 +475,7 @@ async def delete(post_id: str, req: Request):
     <p>
       The playground answers to something other than a person too. A query parameter
       picks the rendering, and the two machine-readable ones never load the editor —
-      about seven kilobytes of JavaScript rather than four megabytes.
+      about seven kilobytes of JavaScript, not four megabytes.
     </p>
     <div class="scroll-x">
       <table>
@@ -509,8 +508,7 @@ async def delete(post_id: str, req: Request):
     </div>
     <p>
       The whole document body is the JSON, so <code>JSON.parse(document.body.textContent)</code>
-      is the contract. An unknown <code>render_as</code> is refused with the list of
-      valid ones rather than quietly treated as HTML.
+      is the contract. An unknown <code>render_as</code> is refused with the list of valid ones, instead of being quietly treated as HTML.
     </p>
   </div>
 </section>
@@ -565,7 +563,7 @@ size      3791 KiB
     <p style="margin-top:1rem">
       Set <code>FUN_REFACTOR_CACHE</code> to override the location. The directory name
       carries a schema version, so a release that changes what a fact <em>is</em> starts
-      a new namespace rather than reading old data with a new meaning.
+      a new namespace instead of reading old data with a new meaning.
     </p>
 
     <h3>The edit engine</h3>

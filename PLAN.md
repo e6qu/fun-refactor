@@ -2069,6 +2069,27 @@ what was captured. It relates two *values* rather than naming a state, and no ty
 either language can say "no larger than the number in that other object". Pretending
 otherwise would undo the point of the other seven.
 
+### A pass over the prose
+
+The site is about eight thousand words and one person wrote all of it, which shows.
+Measuring the habits found the tell: **"rather than" 25 times**, three per thousand
+words where ordinary prose manages a third of that, and enough em-dashes to make the
+punctuation itself a mannerism.
+
+The dashes turned out to be mostly earned. A pair of them around a list that contains
+commas is what the mark is for, and most of the site's uses are that. What was not
+earned was the *single* dash stapling two whole clauses together, which is a way of
+avoiding the decision between a full stop and a comma. Those are now the decision.
+
+Nine of the twenty-five "rather than"s are gone, replaced with what the sentence
+actually meant: "not", "and not", "instead of", or nothing at all. The construction is
+useful and it was doing the work of four other ones.
+
+A check for typos, doubled words and article errors across all nine pages found none. Of
+ninety-nine candidates every one was an artefact of stripping tags — `<code>x</code>,`
+reads as `x ,` once the markup is gone — which is worth recording so the next person to
+run it does not go looking.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

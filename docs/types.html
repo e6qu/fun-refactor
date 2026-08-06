@@ -38,9 +38,9 @@
     <p class="lede prose">
       A payments service with three providers, two verification flows and a lifecycle
       that must not run backwards. It starts with no types at all and ends where the
-      mistakes it used to make cannot be written down — and the last change is a
-      <em>deletion</em>, because the code that guarded against them has nothing left to
-      guard.
+      mistakes it used to make cannot be written down. The last change is a
+      <em>deletion</em>: by then the code that guarded against those mistakes has
+      nothing left to guard.
     </p>
     <p class="lede prose">
       Python and TypeScript, side by side at every stage, with the places they cannot
@@ -64,9 +64,9 @@
     <h2>What "unrepresentable" means here, and what it does not</h2>
     <p>
       Neither language enforces any of this at run time. Python's annotations do nothing
-      without a checker; TypeScript's are erased before a line executes. Unrepresentable
-      means <em>your checker rejects it</em> — plus one parse at the boundary, where
-      untrusted input becomes a domain value or is turned away.
+      without a checker, and TypeScript's are erased before a line executes.
+      Unrepresentable means two things together: your checker rejects it, and one parse
+      at the boundary turns untrusted input into a domain value or turns it away.
     </p>
     <p>
       That boundary is the whole idea, and it is not ours: Alexis King's
@@ -79,10 +79,10 @@
     <h3>The panel is the scoreboard</h3>
     <p>
       The tool answers a symbol's type from what the source declared, or from what
-      follows from it — a literal, a class constructed, a declared return type — and it
-      says which. At the first stage almost everything is <em>worked out</em> and a good
-      deal is not known at all. By the last, almost everything is <em>written down</em>.
-      Watching that number move is the tutorial.
+      follows from it: a literal, a class constructed, a declared return type. It always
+      says which of the two it is doing. At the first stage almost everything is
+      <em>worked out</em>, and a good deal is not known at all; by the last, almost
+      everything is <em>written down</em>. Watching that number move is the tutorial.
     </p>
     <div id="scoreboard"></div>
   </div>
@@ -101,7 +101,7 @@
       <thead><tr><th>Idea</th><th>Python 3.14</th><th>TypeScript 5</th></tr></thead>
       <tbody>
         <tr><td>A closed set of names</td><td><code>StrEnum</code> — a real object at run time, with members you can iterate</td><td>a union of string literals; <code>enum</code> exists and is best avoided</td></tr>
-        <tr><td>A name of its own for a string</td><td><code>NewType</code>, erased and free</td><td>a brand with <code>unique symbol</code>, which is a trick rather than a feature</td></tr>
+        <tr><td>A name of its own for a string</td><td><code>NewType</code>, erased and free</td><td>a brand with <code>unique symbol</code>, which is a trick and not a feature</td></tr>
         <tr><td>Immutability</td><td><code>@dataclass(frozen=True)</code> — enforced when it runs</td><td><code>readonly</code> — a note to the checker and nothing more</td></tr>
         <tr><td>A tagged union</td><td>a union of classes; <code>match</code> narrows by class</td><td>a discriminant field is required, and <code>switch</code> narrows on it</td></tr>
         <tr><td>Proving every case is handled</td><td><code>assert_never</code></td><td><code>const _: never = x</code></td></tr>
@@ -109,9 +109,9 @@
       </tbody>
     </table>
     <p>
-      The last row is the sharpest. TypeScript can stop you calling <code>new Money(-1)</code>;
-      Python cannot stop you calling <code>Money(-1, USD)</code> and only asks that you
-      do not. Both make the invalid value <em>hard to reach by accident</em>, which is
+      The last row is the sharpest. TypeScript can stop you calling
+      <code>new Money(-1)</code>. Python cannot stop you calling
+      <code>Money(-1, USD)</code>; it only asks that you do not. Both make the invalid value <em>hard to reach by accident</em>, which is
       what a refactoring can buy. Neither makes it impossible, and a page that told you
       otherwise would be selling something.
     </p>
