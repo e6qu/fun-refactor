@@ -39,6 +39,7 @@ pub enum Capability {
     DeadCode,
     Translate,
     Openapi,
+    DeclaredType,
 }
 
 impl Capability {
@@ -66,6 +67,7 @@ impl Capability {
         Capability::DeadCode,
         Capability::Translate,
         Capability::Openapi,
+        Capability::DeclaredType,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -93,6 +95,7 @@ impl Capability {
             Capability::DeadCode => "dead code",
             Capability::Translate => "write as another language",
             Capability::Openapi => "declared HTTP contract",
+            Capability::DeclaredType => "declared type",
         }
     }
 
@@ -122,6 +125,7 @@ impl Capability {
             Capability::DeadCode => "fr unused",
             Capability::Translate => "fr translate",
             Capability::Openapi => "fr openapi",
+            Capability::DeclaredType => "fr type",
         }
     }
 }
@@ -427,6 +431,30 @@ pub fn support(capability: Capability, language: Language) -> Support {
             } else {
                 Support::NotApplicable {
                     because: "this language is not parsed into comparable structure",
+                }
+            }
+        }
+
+        C::DeclaredType => {
+            // The question is "what did the source write down", so the answer is yes
+            // wherever a language has somewhere to write one. Bash has no type
+            // syntax at all; markup and configuration have values rather than
+            // declarations, and a key in a YAML file is not annotated with anything.
+            if matches!(
+                language,
+                Language::Rust
+                    | Language::Go
+                    | Language::Zig
+                    | Language::Java
+                    | Language::TypeScript
+                    | Language::Tsx
+                    | Language::Python
+            ) {
+                Support::Yes
+            } else {
+                Support::NotApplicable {
+                    because: "this language has nowhere to write a type down, so there \
+                              is nothing here for the source to have said",
                 }
             }
         }

@@ -352,6 +352,22 @@ impl Workspace {
         }
     }
 
+    /// The type the symbol at a position was declared with, as the source wrote it.
+    ///
+    /// Nothing is inferred: a binding with no annotation comes back with `declared`
+    /// null, which is an answer rather than a gap in one.
+    pub fn declared_type(&self, path: &str, line: usize, col: usize) -> String {
+        self.enter();
+        let id = match self.symbol_at(path, line, col) {
+            Ok(id) => id,
+            Err(e) => return fail(e),
+        };
+        match crate::analysis::declared::of(&self.index, id) {
+            Ok(declared) => ok(&declared),
+            Err(e) => fail(e.to_string()),
+        }
+    }
+
     /// Rename the symbol at a position. Returns the edits, and applies them.
     pub fn rename(&mut self, path: &str, line: usize, col: usize, new_name: &str) -> String {
         self.enter();

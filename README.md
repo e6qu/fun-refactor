@@ -60,6 +60,7 @@ so its answer for a language is whatever the steps it runs answer.
 | dead code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | write as another language | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a |
 | declared HTTP contract | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| declared type | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 **Nothing is merely unimplemented.** Every cell is either supported or carries an
 explanation of why the operation means nothing in that language — HTML has no binding
@@ -168,7 +169,7 @@ framework or a language means adding data.
 
 Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
 backend, and every capability a language can meaningfully support is built:
-**263 of 368 capability × language pairs supported, 105 not applicable, none refused.**
+**270 of 384 capability × language pairs supported, 114 not applicable, none refused.**
 The matrix above is generated, and `fr capabilities` prints the reason behind every
 cell that is not a ✓.
 

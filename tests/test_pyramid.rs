@@ -109,6 +109,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("parse", vec!["parse", "--stats"]),
         ("symbols", vec!["symbols"]),
         ("def", vec!["def", "svc/a.go:10:7"]),
+        ("type", vec!["type", "svc/a.go:6:6"]),
         ("refs", vec!["refs", "svc/a.go:6:6"]),
         ("implementations", vec!["implementations", "svc/a.go:6:6"]),
         ("usages", vec!["usages", "svc/a.go:6:6"]),

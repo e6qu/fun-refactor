@@ -111,6 +111,15 @@ enum Command {
         #[arg(long)]
         first: bool,
     },
+    /// Show the type a symbol was declared with, as the source wrote it.
+    ///
+    /// Nothing is inferred. A binding with no annotation is reported as having none,
+    /// because "no type here" and "int" are different answers and only one of them is
+    /// something the source said.
+    Type {
+        /// Position as `path:line:col`, or a bare symbol name.
+        target: String,
+    },
     /// Show the concrete implementations of an abstract declaration.
     Implementations {
         /// Position as `path:line:col`, or a bare symbol name.
@@ -455,6 +464,7 @@ pub fn run() -> Result<()> {
             stats,
         } => cmd_symbols(&cli, languages, name.as_deref(), kind.as_deref(), *stats),
         Command::Def { target, first } => cmd_def(&cli, target, *first),
+        Command::Type { target } => cmd_type(&cli, target),
         Command::Implementations { target } => cmd_implementations(&cli, target),
         Command::Usages {
             target,
@@ -2292,6 +2302,42 @@ fn cmd_symbols(
             );
         }
         println!("\n{} symbol(s)", selected.len());
+    }
+    Ok(())
+}
+
+fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
+    let index = build_index(cli, &[])?;
+    let symbol = resolve_target(cli, &index, target)?;
+    let declared = crate::analysis::declared::of(&index, symbol.id)?;
+
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&declared)?);
+        return Ok(());
+    }
+
+    println!("{}  {}", declared.name, declared.describe());
+    for (name, ty) in &declared.parameters {
+        match ty {
+            Some(ty) => println!("  {name}: {ty}"),
+            None => println!("  {name}: no type written down"),
+        }
+    }
+    if let Some(defined) = declared.defined_at.and_then(|id| index.symbol(id)) {
+        let source = crate::vfs::read_to_string(&defined.file).unwrap_or_default();
+        let at = crate::span::LineIndex::new(&source).line_col(defined.name_span.start, &source);
+        println!(
+            "\n{} is defined at {}:{}",
+            declared.describe(),
+            defined.file.display(),
+            at
+        );
+    }
+    if declared.declared.is_none() {
+        println!(
+            "\nThe source wrote no type here. That is the answer, not a gap in it — \n\
+             nothing above was inferred."
+        );
     }
     Ok(())
 }
