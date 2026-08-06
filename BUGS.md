@@ -76,6 +76,23 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B209: **the Zig output named a standard library it had never bound.** Comparing
+  two strings there is `std.mem.eql`, and nothing in the writer emitted
+  `const std = @import("std");` — so the fix for B208 produced a file that referred to
+  `std` out of nowhere. The binding is written when the module reaches for it and not
+  otherwise, decided from the IR rather than from the finished text, because it has to
+  be written before the code that uses it.
+
+- [x] B208: **comparing two strings meant something else in Java, and nothing at all in
+  Zig.** Every writer rendered `==` as `==`. Rust, Go, Python and TypeScript compare a
+  string's contents that way, and so did the source. Java compares *references*, so the
+  translation was quietly false for two equal strings that were built rather than
+  interned; Zig will not compile `==` on a `[]const u8` at all, so the output looked
+  like the other five and did not build. Written as `java.util.Objects.equals(a, b)` —
+  which answers for null on either side, where `a.equals(b)` throws — and
+  `std.mem.eql(u8, a, b)`. Integers keep `==` everywhere, and the four languages that
+  already agreed are untouched.
+
 - [x] B207: **`a %% b` on two integers meant something else in Python, silently.** The
   same disagreement as division, found by asking the same question of the next operator
   in the table: every other language here takes the remainder's sign from the dividend

@@ -524,13 +524,17 @@ struct Out {
     /// whole-line comments above the statement, which is the only place in Zig a
     /// comment can go.
     pending: Vec<String>,
-    /// Names holding an integer in the body being written.
+    /// The types of the names in the body being written, as the source declared them.
     ///
-    /// Only Python needs it, and only for one operator. Rust, Go, Java and Zig divide
-    /// two integers by truncating; Python's `/` produces a float and its `//` floors,
-    /// so neither operator means what `a / b` meant. Knowing which names are integers
-    /// is the whole of what it takes to write the one form that does.
-    integer_names: std::collections::BTreeSet<String>,
+    /// Three operators need it, all for the same reason: the six languages agree on
+    /// the spelling and disagree on the meaning. `/` truncates in four of them and
+    /// produces a float in Python; `%` takes its sign from the dividend in four and
+    /// from the divisor in Python; `==` compares contents in four, compares references
+    /// in Java, and does not compile at all on a Zig slice.
+    ///
+    /// Nothing is inferred. A name whose type the source never wrote down is not in
+    /// here, and the operator is written as it was.
+    binding_types: std::collections::BTreeMap<String, Type>,
     /// The same, for record fields, which are a separate namespace.
     ///
     /// Not folded into `names`: a Rust `Reading { sensor }` with an exported field
@@ -553,7 +557,7 @@ impl Out {
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
             pending: Vec::new(),
-            integer_names: std::collections::BTreeSet::new(),
+            binding_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
         }
     }
@@ -1424,7 +1428,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
-    out.integer_names = integer_bindings(f);
+    out.binding_types = declared_bindings(f);
 
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
@@ -1689,54 +1693,67 @@ fn python_type(ty: &Type) -> String {
     }
 }
 
-/// The names holding an integer in this function: its parameters and the locals it
-/// declares a type for.
+/// The types this function's names hold: its parameters, and the locals it declares a
+/// type for.
 ///
 /// Nothing is inferred. A binding whose type the source never wrote down is not in
-/// here, and a division involving it is written the way it was — the tool does not
-/// know it is dividing integers, and guessing would be the same mistake in the other
+/// here, and an operator involving it is written the way it was — the tool does not
+/// know what it is operating on, and guessing would be the same mistake in the other
 /// direction.
-fn integer_bindings(f: &Function) -> std::collections::BTreeSet<String> {
-    let mut names = std::collections::BTreeSet::new();
+fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
+    let mut types = std::collections::BTreeMap::new();
     for p in &f.params {
-        if p.ty.as_ref().is_some_and(|t| *t == Type::Int) {
-            names.insert(p.name.clone());
+        if let Some(ty) = &p.ty {
+            types.insert(p.name.clone(), ty.clone());
         }
     }
-    let mut stack: Vec<&Stmt> = f.body.iter().collect();
-    while let Some(stmt) = stack.pop() {
+    for stmt in &f.body {
         if let Stmt::Let {
-            name,
-            ty: Some(Type::Int),
-            ..
+            name, ty: Some(ty), ..
         } = stmt
         {
-            names.insert(name.clone());
+            types.insert(name.clone(), ty.clone());
         }
     }
-    names
+    types
 }
 
-/// Does this expression hold an integer, as far as the source said so?
-fn holds_an_integer(out: &Out, e: &Expr) -> bool {
+/// What this expression holds, as far as the source said so.
+fn static_type(out: &Out, e: &Expr) -> Option<Type> {
     match e {
-        Expr::Int(_) => true,
-        Expr::Name(name) => out.integer_names.contains(name),
-        // Arithmetic on integers is an integer in every language here. Division is
-        // deliberately absent: in Python it is the one operation that is not.
-        Expr::Binary { op, left, right } => {
-            matches!(
-                op,
-                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Rem
-            ) && holds_an_integer(out, left)
-                && holds_an_integer(out, right)
+        Expr::Int(_) => Some(Type::Int),
+        Expr::Float(_) => Some(Type::Float),
+        Expr::Str(_) => Some(Type::String),
+        Expr::Bool(_) => Some(Type::Bool),
+        Expr::Name(name) => out.binding_types.get(name).cloned(),
+        // Arithmetic keeps the type of its operands where both agree. Division is
+        // deliberately absent: in Python it is the one operation that does not.
+        Expr::Binary {
+            op: BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Rem,
+            left,
+            right,
+        } => {
+            let left = static_type(out, left)?;
+            (left == static_type(out, right)?).then_some(left)
         }
         Expr::Unary {
             op: UnaryOp::Neg,
             operand,
-        } => holds_an_integer(out, operand),
-        _ => false,
+        } => static_type(out, operand),
+        _ => None,
     }
+}
+
+fn holds_an_integer(out: &Out, e: &Expr) -> bool {
+    static_type(out, e) == Some(Type::Int)
+}
+
+/// Is either side of a comparison a string the source declared?
+///
+/// Either, not both: comparing a declared string with something whose type nobody
+/// wrote down is still a string comparison, and Java still gets it wrong.
+fn compares_strings(out: &Out, left: &Expr, right: &Expr) -> bool {
+    static_type(out, left) == Some(Type::String) || static_type(out, right) == Some(Type::String)
 }
 
 fn python_expr(out: &mut Out, e: &Expr) -> String {
@@ -3110,6 +3127,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    out.binding_types = declared_bindings(f);
 
     for line in &f.doc {
         out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -3441,12 +3459,33 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             let rendered = java_expr(out, value);
             format!("{rendered} instanceof {}", java_expr(out, ty))
         }
-        Expr::Binary { op, left, right } => format!(
-            "{} {} {}",
-            binary_operand(java_expr(out, left), left, *op, false),
-            op.c_like(),
-            binary_operand(java_expr(out, right), right, *op, true)
-        ),
+        Expr::Binary { op, left, right } => {
+            // `==` on a Java String compares references. Every other language here
+            // compares contents, and so did the source — so the translation of
+            // `a == b` was a different question with the same spelling, quietly false
+            // for two equal strings that were built rather than interned.
+            //
+            // `Objects.equals` rather than `a.equals(b)`: it answers for null on
+            // either side, which `a.equals(b)` throws on. Written out in full because
+            // this writer emits no imports.
+            if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && compares_strings(out, left, right) {
+                let call = format!(
+                    "java.util.Objects.equals({}, {})",
+                    java_expr(out, left),
+                    java_expr(out, right)
+                );
+                return match op {
+                    BinaryOp::Ne => format!("!{call}"),
+                    _ => call,
+                };
+            }
+            format!(
+                "{} {} {}",
+                binary_operand(java_expr(out, left), left, *op, false),
+                op.c_like(),
+                binary_operand(java_expr(out, right), right, *op, true)
+            )
+        }
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",
@@ -3553,6 +3592,14 @@ fn zig(out: &mut Out, module: &Module) {
         out.blank();
     }
 
+    // Zig reaches its standard library through a binding the file has to make. Nothing
+    // here emitted one, so `std.mem.eql` — the only way to compare two strings in this
+    // language — named something the file had never heard of.
+    if uses_the_standard_library(module) {
+        out.line("const std = @import(\"std\");");
+        out.blank();
+    }
+
     for item in &module.items {
         match item {
             Item::Import { text, line } => {
@@ -3642,11 +3689,68 @@ fn zig(out: &mut Out, module: &Module) {
     }
 }
 
+/// Will this module's Zig need `std`?
+///
+/// Asked of the IR rather than of the finished text, because the binding has to be
+/// written before the code that uses it. String equality is the only thing that
+/// reaches for `std` today; a second one belongs in this list beside it.
+fn uses_the_standard_library(module: &Module) -> bool {
+    fn in_expr(types: &std::collections::BTreeMap<String, Type>, e: &Expr) -> bool {
+        match e {
+            Expr::Binary { op, left, right } => {
+                (matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+                    && (declared_string(types, left) || declared_string(types, right)))
+                    || in_expr(types, left)
+                    || in_expr(types, right)
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) => in_expr(types, operand),
+            Expr::Call { args, .. } | Expr::New { args, .. } => {
+                args.iter().any(|a| in_expr(types, a))
+            }
+            _ => false,
+        }
+    }
+    fn declared_string(types: &std::collections::BTreeMap<String, Type>, e: &Expr) -> bool {
+        match e {
+            Expr::Str(_) => true,
+            Expr::Name(name) => types.get(name) == Some(&Type::String),
+            _ => false,
+        }
+    }
+    fn in_stmt(types: &std::collections::BTreeMap<String, Type>, s: &Stmt) -> bool {
+        match s {
+            Stmt::Expr(e) | Stmt::Return(Some(e)) => in_expr(types, e),
+            Stmt::Let { value: Some(e), .. } => in_expr(types, e),
+            Stmt::Assign { value, .. } => in_expr(types, value),
+            Stmt::If {
+                condition,
+                then,
+                otherwise,
+            } => {
+                in_expr(types, condition)
+                    || then.iter().any(|s| in_stmt(types, s))
+                    || otherwise.iter().any(|s| in_stmt(types, s))
+            }
+            _ => false,
+        }
+    }
+    fn in_function(f: &Function) -> bool {
+        let types = declared_bindings(f);
+        f.body.iter().any(|s| in_stmt(&types, s))
+    }
+    module.items.iter().any(|item| match item {
+        Item::Function(f) => in_function(f),
+        Item::Record(r) => r.methods.iter().any(in_function),
+        _ => false,
+    })
+}
+
 fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
     let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    out.binding_types = declared_bindings(f);
 
     for line in &f.doc {
         out.line(&format!("/// {line}"));
@@ -4046,12 +4150,28 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let target = zig_expr(out, callee);
             zig_carry(out, "new", format!("new {target}({})", rendered.join(", ")))
         }
-        Expr::Binary { op, left, right } => format!(
-            "{} {} {}",
-            binary_operand(zig_expr(out, left), left, *op, false),
-            zig_binary(*op),
-            binary_operand(zig_expr(out, right), right, *op, true)
-        ),
+        Expr::Binary { op, left, right } => {
+            // A Zig string is a `[]const u8`, and `==` on a slice is not a comparison
+            // the compiler will accept at all. The output looked like the other five
+            // and did not build.
+            if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && compares_strings(out, left, right) {
+                let call = format!(
+                    "std.mem.eql(u8, {}, {})",
+                    zig_expr(out, left),
+                    zig_expr(out, right)
+                );
+                return match op {
+                    BinaryOp::Ne => format!("!{call}"),
+                    _ => call,
+                };
+            }
+            format!(
+                "{} {} {}",
+                binary_operand(zig_expr(out, left), left, *op, false),
+                zig_binary(*op),
+                binary_operand(zig_expr(out, right), right, *op, true)
+            )
+        }
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",

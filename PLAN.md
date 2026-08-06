@@ -1701,6 +1701,47 @@ operator is kept and the difference is reported, with the expression quoted and 
 exact condition named. Float remainders agree and are not reported: a note nobody needs
 is how a note somebody needs gets missed.
 
+### The comparison that asked a different question
+
+Division and remainder were two operators the six languages spell the same and mean
+differently. Going through the rest of the table found a third, and it is the one a
+program uses most.
+
+```rust
+pub fn same(a: String, b: String) -> bool { a == b }
+```
+
+```java
+public static boolean same(String a, String b) { return a == b; }   // reference equality
+```
+
+```zig
+pub fn same(a: []const u8, b: []const u8) bool { return a == b; }   // does not compile
+```
+
+Rust, Go, Python and TypeScript compare a string's contents with `==`, and so did the
+source. Java compares references — quietly false for two equal strings that were built
+rather than interned, which is every string that came off a network or out of a
+database. Zig will not compile `==` on a slice at all, so that output looked exactly
+like the other five and did not build.
+
+`java.util.Objects.equals(a, b)` rather than `a.equals(b)`, because it answers for null
+on either side where the method throws, and written out in full because this writer
+emits no imports. `std.mem.eql(u8, a, b)` for Zig. Integers keep `==` everywhere, and
+the four languages that already agreed are untouched — a rewrite there would be a change
+with no defect behind it.
+
+**And the Zig fix named a library the file had never bound.** `std.mem.eql` needs
+`const std = @import("std");` and nothing emitted one, so the first version of the fix
+produced a file referring to `std` out of nowhere. The binding is written when the
+module reaches for it and not otherwise, decided from the IR rather than from the
+finished text, because it has to be written before the code that uses it.
+
+The type information all three of these need — division, remainder, equality — is the
+same: what the *source declared*, parameters and typed locals and the arithmetic built
+from them. Nothing is inferred, and a name nobody gave a type keeps the operator it
+was written with.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
