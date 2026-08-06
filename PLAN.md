@@ -2120,6 +2120,20 @@ stamp is on every page, because the page a reader happens to open is the one tha
 tell them — and the playground's own page, which Vite emits, is excluded by asking the
 build where its output goes rather than naming it here.
 
+### The threshold that was only mentioned when it found nothing
+
+Same question as `fr impact`, asked of `fr duplicates`: the search is bounded, and does
+the output say so?
+
+Half of it did. An empty answer reads "No duplication of 60 tokens or more", which
+states exactly what was looked for. A non-empty one read "3 duplicated block(s)" and
+stopped — and that is the answer somebody acts on. Somebody who runs it, gets three
+findings and fixes them has no reason to think there is a fourth just under the line.
+
+Both cases name the threshold now, and the footer says plainly that smaller copies exist
+in most codebases and are not counted. The bound is a choice; the reader should know it
+was made.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

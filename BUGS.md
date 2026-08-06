@@ -76,6 +76,12 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B223: **`fr duplicates` named its threshold only when it found nothing.** An empty
+  answer said "No duplication of 60 tokens or more", which states what was looked for; a
+  non-empty one said "3 duplicated block(s)" and stopped, which reads as all of them.
+  The non-empty answer is the one somebody acts on. Both now name the threshold, and the
+  footer says outright that smaller copies exist in most codebases and are not counted.
+
 - [x] B222: **the published site was three commits behind and said nothing.** Five Pages
   deploys in a row aborted with "Timeout reached" while the deployment sat in
   `deployment_queued`; the build succeeded every time and the artifact uploaded, so
