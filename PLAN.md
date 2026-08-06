@@ -1798,11 +1798,41 @@ TypeScript. A pointer everywhere would also compile and would say something abou
 method that is not true. Go already took a pointer receiver for every method, which is
 safe, and is untouched.
 
-**What the same probe found and this does not fix:** a Rust struct literal —
-`Counter { value: 0, step }` — is not read at all, so every constructor body comes out
-as "not translated" in all five targets. That is a missing IR expression rather than a
-rule applied where it does not hold, and it is reported honestly at every site, so it
-belongs in a change of its own rather than smuggled into this one.
+### The line every constructor is made of
+
+`Counter { value: 0, step }` is the one way Rust builds a record, and nothing read it.
+Every constructor body in every target came out as "not translated" — honestly reported
+and completely absent, which for a record is the whole of what it means.
+
+The IR gained a record literal with its fields still **named**. Four of these languages
+construct one that way and two do not, so a positional list assembled at read time would
+be in the source's declaration order — a fact about the source rather than about any
+constructor a caller will call.
+
+```
+Point(x=0, y=0)                 python
+Point{X: 0, Y: 0}               go
+Point{ .x = 0, .y = 0 }         zig
+```
+
+**Then the constructor, twice.** Rust, Go and Zig have no constructor, only a function
+that returns the type — and the writer cleared the body for all three under a rule about
+bodies that *assign through a receiver*, which a Rust constructor's does not. It already
+builds a value and returns it, which is exactly the shape those three want. The comment
+above the line even said "Rust builds and returns instead" while throwing that body
+away.
+
+The mirror case is the other three: an `__init__` that returns a value raises, and a
+Java constructor that returns one does not compile. Building and returning the record
+says precisely what assigning through the receiver says, so that is what it becomes —
+`self.value = 0`, `this.step = step`. All five targets translate the constructor now,
+and none of them reports it.
+
+**And the round-trip sweep caught the overreach before it shipped.**
+`StopReason::Conditional { … }` is a struct literal too, and builds a tagged union that
+no target here has; writing the path through produced Go that says
+`StopReason::Conditional{…}`. A literal whose type is a path is refused, as every
+struct literal was the day before.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
