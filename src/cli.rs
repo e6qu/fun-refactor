@@ -2309,7 +2309,7 @@ fn cmd_symbols(
 fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(cli, &index, target)?;
-    let declared = crate::analysis::declared::of(&index, symbol.id)?;
+    let declared = crate::analysis::types::of(&index, symbol.id)?;
 
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&declared)?);
@@ -2317,6 +2317,18 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
     }
 
     println!("{}  {}", declared.name, declared.describe());
+    if let Some(inferred) = &declared.inferred {
+        if let Some(from) = inferred.from.and_then(|id| index.symbol(id)) {
+            let source = crate::vfs::read_to_string(&from.file).unwrap_or_default();
+            let at = crate::span::LineIndex::new(&source).line_col(from.name_span.start, &source);
+            println!(
+                "  evidence: {} at {}:{}",
+                from.name,
+                from.file.display(),
+                at
+            );
+        }
+    }
     for (name, ty) in &declared.parameters {
         match ty {
             Some(ty) => println!("  {name}: {ty}"),
@@ -2333,11 +2345,16 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
             at
         );
     }
-    if declared.declared.is_none() {
-        println!(
-            "\nThe source wrote no type here. That is the answer, not a gap in it — \n\
-             nothing above was inferred."
-        );
+    match (&declared.declared, &declared.inferred) {
+        (None, None) => println!(
+            "\nThe source wrote no type here, and nothing follows from what it did \n\
+             write. That is the answer rather than a gap in one."
+        ),
+        (None, Some(_)) => println!(
+            "\nThe source wrote no type here. The above was worked out from the \n\
+             evidence named, and is a derivation rather than a contract."
+        ),
+        _ => {}
     }
     Ok(())
 }
