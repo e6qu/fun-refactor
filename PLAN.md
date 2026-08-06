@@ -1834,6 +1834,51 @@ no target here has; writing the path through produced Go that says
 `StopReason::Conditional{…}`. A literal whose type is a path is refused, as every
 struct literal was the day before.
 
+### The trace that went one hop and looked like four
+
+`fr flow back` and `fr flow fwd` ask the same question in opposite directions, so they
+can be checked against each other. Backwards, over a four-line Python chain:
+
+```
+doubled = parsed * 2
+  parsed = int(cleaned)
+    cleaned = raw.strip()
+      def load(raw):
+```
+
+Forwards, from `raw`:
+
+```
+def load(raw):
+  cleaned = raw.strip()
+    def load(raw):
+      value = load("7")
+        def use():
+```
+
+Four lines of output that look like a trace, and `parsed`, `doubled` and the return are
+nowhere in it. Having found the name a use assigns to, the search accepted any symbol
+whose `name_span` matched **or** whose `full_span` merely *contained* it, and took the
+first in declaration order. Every enclosing function's span contains everything and
+functions are declared first — so the value "flowed into" `load`, and the trace wandered
+off into the callers rather than continuing down the chain. An exact name is the answer
+where the grammar gives one; otherwise the *smallest* binding whose span holds it, and
+never a function.
+
+**Rust stopped at the first hop even then.** The walk outward gives up the moment it
+finds a node whose value contains the reference but which names nothing — and
+`cleaned as i64` is a `type_cast_expression` whose `value` is the reference, `raw.len()`
+a `field_expression` whose `value` is the receiver. Two levels short of the `let` that
+does name something, every time. It keeps walking now.
+
+**And every hop was printed twice.** The use and the binding it initialises are the same
+line, and both were pushed, so each hop appeared at one indent and again at the next —
+spending a level of depth on a line the reader had already seen. One level per hop now,
+which reaches twice as far before the limit.
+
+All four languages trace the whole chain, and the two directions are mirror images of
+each other again.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

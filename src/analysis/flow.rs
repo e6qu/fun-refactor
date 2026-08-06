@@ -14,7 +14,7 @@
 
 use crate::index::Index;
 use crate::lang::LanguageClass;
-use crate::model::{Confidence, ReferenceKind, SymbolId};
+use crate::model::{Confidence, ReferenceKind, SymbolId, SymbolKind};
 use crate::parse::Parsers;
 use crate::span::Span;
 use anyhow::Result;
@@ -284,7 +284,15 @@ pub fn forward(index: &Index, symbol_id: SymbolId, max_depth: usize) -> Result<F
         stops: Vec::new(),
     };
     let mut seen = HashSet::new();
-    walk_forward(index, symbol_id, 0, max_depth, &mut result, &mut seen)?;
+    walk_forward(
+        index,
+        symbol_id,
+        0,
+        max_depth,
+        &mut result,
+        &mut seen,
+        false,
+    )?;
     Ok(result)
 }
 
@@ -295,6 +303,11 @@ fn walk_forward(
     max_depth: usize,
     result: &mut FlowResult,
     seen: &mut HashSet<SymbolId>,
+    // Reached because a use of the previous value initialised this one, so the line
+    // this binding is on has already been printed as that use. Printing it again puts
+    // `parsed = int(cleaned)` twice, one indent apart, at every hop of the chain — and
+    // costs a level of depth for a line the reader has already seen.
+    already_shown: bool,
 ) -> Result<()> {
     if depth > max_depth {
         result.stops.push((depth, StopReason::DepthLimit));
@@ -307,15 +320,17 @@ fn walk_forward(
         return Ok(());
     };
 
-    let source = crate::vfs::read_to_string(&symbol.file)?;
-    result.steps.push(FlowStep {
-        symbol: Some(symbol_id),
-        text: line_text(&source, symbol.name_span.start),
-        file: symbol.file.clone(),
-        span: symbol.name_span,
-        depth,
-        confidence: Confidence::Exact,
-    });
+    if !already_shown {
+        let source = crate::vfs::read_to_string(&symbol.file)?;
+        result.steps.push(FlowStep {
+            symbol: Some(symbol_id),
+            text: line_text(&source, symbol.name_span.start),
+            file: symbol.file.clone(),
+            span: symbol.name_span,
+            depth,
+            confidence: Confidence::Exact,
+        });
+    }
 
     for reference in index.references_to(symbol_id) {
         let Ok(ref_source) = crate::vfs::read_to_string(&reference.file) else {
@@ -338,7 +353,7 @@ fn walk_forward(
         if let Some(target) =
             enclosing_assignment_target(index, &parsed, &reference.file, reference.span)
         {
-            walk_forward(index, target, depth + 2, max_depth, result, seen)?;
+            walk_forward(index, target, depth + 1, max_depth, result, seen, true)?;
         }
     }
 
@@ -406,17 +421,44 @@ fn enclosing_assignment_target(
         for field in ["value", "right"] {
             if let Some(value) = node.child_by_field_name(field) {
                 if Span::from(value).contains(span) {
-                    let target_span = node
+                    // A node can hold the value without naming anything: Rust's
+                    // `cleaned as i64` is a `type_cast_expression` whose `value` is the
+                    // reference, and `raw.len()` is a `field_expression` whose `value`
+                    // is the receiver. Giving up there gave up on the `let` two levels
+                    // out, so forward flow in Rust stopped at the first hop every time.
+                    let Some(target_span) = node
                         .child_by_field_name("name")
                         .or_else(|| node.child_by_field_name("left"))
                         .or_else(|| node.child_by_field_name("pattern"))
-                        .map(Span::from)?;
+                        .map(Span::from)
+                    else {
+                        continue;
+                    };
                     let info = index.file(file)?;
-                    return info
-                        .symbols
-                        .iter()
-                        .filter_map(|id| index.symbol(*id))
-                        .find(|s| s.name_span == target_span || s.full_span.contains(target_span))
+                    let candidates = || info.symbols.iter().filter_map(|id| index.symbol(*id));
+                    // The name the grammar pointed at, wherever it names a symbol
+                    // exactly.
+                    if let Some(exact) = candidates().find(|s| s.name_span == target_span) {
+                        return Some(exact.id);
+                    }
+                    // Otherwise the *smallest* binding whose span holds that name. Every
+                    // enclosing function's span holds it too, and taking the first match
+                    // in declaration order took the function — so `parsed = int(cleaned)`
+                    // said the value flowed into `load`, and forward flow stopped one hop
+                    // from where it started while looking like it had gone somewhere.
+                    return candidates()
+                        .filter(|s| {
+                            matches!(
+                                s.kind,
+                                SymbolKind::Variable
+                                    | SymbolKind::Constant
+                                    | SymbolKind::Parameter
+                                    | SymbolKind::Field
+                                    | SymbolKind::Key
+                            )
+                        })
+                        .filter(|s| s.full_span.contains(target_span))
+                        .min_by_key(|s| s.full_span.end - s.full_span.start)
                         .map(|s| s.id);
                 }
             }

@@ -76,6 +76,29 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B218: **every hop of a forward flow was printed twice.** The use and the binding
+  it initialises are the same line, and both were pushed — so `parsed = int(cleaned)`
+  appeared at one indent and again at the next, all the way down, and each duplicate
+  spent a level of depth on a line the reader had already seen. The chain now costs one
+  level per hop, which is also twice as far before the depth limit.
+
+- [x] B217: **forward flow stopped at the first hop in Rust.** The search for what a use
+  initialises walks outward looking for a node whose value contains the reference, and
+  gave up entirely the moment it found one that named nothing. Rust's `cleaned as i64`
+  is a `type_cast_expression` whose `value` is the reference, and `raw.len()` is a
+  `field_expression` whose `value` is the receiver — so it gave up on the `let` two
+  levels further out, every time. It keeps walking now.
+
+- [x] B216: **a value was reported as flowing into the function around it.** Having
+  found the name a use assigns to, the search accepted any symbol whose `name_span`
+  matched **or** whose `full_span` merely contained it, and took the first in
+  declaration order. Every enclosing function's span contains everything, and functions
+  are declared first — so `parsed = int(cleaned)` said the value flowed into `load`, and
+  `fr flow fwd` went one hop and then wandered off into the callers, looking for all the
+  world like it had traced something. An exact name is the answer where the grammar
+  gives one; otherwise it is the *smallest* binding whose span holds the name, and never
+  a function.
+
 - [x] B215: **a constructor body that builds and returns was thrown away for three
   targets.** Rust, Go and Zig have no constructor, only a function that returns the
   type, and the writer cleared the body for all three under a rule about bodies that
