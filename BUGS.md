@@ -76,6 +76,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B212: **a Zig method that changed its own object did not compile.** Four of these
+  languages hand a method a reference and let it assign through it. Zig hands it a
+  value, and a value parameter there is const — so `pub fn bump(self: Counter)` with
+  `self.value = …` in the body is not a slow method, it is a file the compiler rejects,
+  from a source that said `&mut self` and a report that said every signature carried
+  across with its types intact. The receiver is a pointer when the body assigns through
+  it and a value when it does not, recognised by whatever the source called it: `self`
+  in Rust and Python, `this` in TypeScript. Go already took a pointer receiver for every
+  method, which is safe, and is untouched.
+
 - [x] B211: **the Java output named types the file had never imported.** `List`, `Map`
   and `Optional` are the three names this writer reaches for that Java does not have in
   scope, and it emitted all three and imported none — so a signature the report called
