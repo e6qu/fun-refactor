@@ -76,6 +76,17 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B224: **the cache's own claim was tested for stability and not for meaning.** The
+  cache tells every reader that "editing a query file makes every stale entry unreachable
+  rather than wrong", and the only test of that asserted the fingerprint was the same
+  twice and sixteen characters long. A function that ignored the queries entirely and
+  hashed a constant would have passed it — and the claim would have been false in the
+  worst direction, returning confident answers computed by code that no longer exists.
+  The fingerprint is now recomputed over a set with one query altered, once per language,
+  and the answer has to differ each time; the language's name has to matter too, so two
+  languages swapping queries is a different set. Verified by removing the name from the
+  recipe and watching the test fail.
+
 - [x] B223: **`fr duplicates` named its threshold only when it found nothing.** An empty
   answer said "No duplication of 60 tokens or more", which states what was looked for; a
   non-empty one said "3 duplicated block(s)" and stopped, which reads as all of them.

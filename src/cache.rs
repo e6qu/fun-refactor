@@ -325,4 +325,59 @@ mod tests {
         assert_eq!(a, query_fingerprint());
         assert_eq!(a.len(), 16);
     }
+
+    #[test]
+    fn the_fingerprint_would_change_if_a_query_did() {
+        // The one above checks the fingerprint is *stable*. A function that ignored the
+        // queries entirely and hashed a constant would pass it, and the cache tells
+        // every reader that "editing a query file makes every stale entry unreachable
+        // rather than wrong" — which would then be false, and false in the direction
+        // that returns confident answers computed by code that no longer exists.
+        //
+        // The queries are compiled in, so this cannot edit one. What it can do is
+        // recompute the fingerprint the same way over a set with one query altered, and
+        // insist the answer differs.
+        fn over(pairs: &[(&str, &str)]) -> String {
+            let mut hasher = Sha256::new();
+            for (name, source) in pairs {
+                hasher.update(name.as_bytes());
+                hasher.update(source.as_bytes());
+            }
+            hasher
+                .finalize()
+                .iter()
+                .take(8)
+                .map(|b| format!("{b:02x}"))
+                .collect()
+        }
+
+        let real: Vec<(&str, &str)> = Language::ALL
+            .iter()
+            .filter_map(|l| crate::extract::query_source_for(*l).map(|s| (l.name(), s)))
+            .collect();
+        assert_eq!(over(&real), query_fingerprint(), "the recipe has drifted");
+        assert!(real.len() > 8, "only {} languages have queries", real.len());
+
+        // Change one query, and the name of the directory has to change with it.
+        for index in 0..real.len() {
+            let mut altered = real.clone();
+            altered[index].1 = "; a capture nobody wrote";
+            assert_ne!(
+                over(&altered),
+                query_fingerprint(),
+                "changing {}'s query leaves the cache key alone",
+                real[index].0
+            );
+        }
+
+        // And the language's name is in it, so two languages swapping queries is a
+        // different set even though the same bytes went in.
+        let mut swapped = real.clone();
+        swapped.swap(0, 1);
+        assert_ne!(
+            over(&swapped),
+            query_fingerprint(),
+            "the fingerprint does not depend on which language a query belongs to"
+        );
+    }
 }
