@@ -232,3 +232,30 @@ fn every_command_the_site_names_is_a_command() {
         unknown.iter().cloned().collect::<Vec<_>>().join("\n  ")
     );
 }
+
+#[test]
+fn every_page_says_what_it_was_built_from() {
+    // A failed deploy leaves the site silently stale: green tests, a finished-looking
+    // page, and several commits of drift with nothing saying so. Five deploys in a row
+    // aborted that way before anybody looked, and the only reason it came to light was
+    // somebody asking. The stamp is useful only if it is on every page, because the one
+    // a reader happens to open is the one that has to tell them.
+    let mut missing = Vec::new();
+    for (name, html) in pages() {
+        // The playground's page is emitted by Vite and is not ours to edit.
+        if built_by_the_frontend(&docs().join(&name)) {
+            continue;
+        }
+        if !html.contains("id=\"built\"") {
+            missing.push(format!("{name}: no build stamp in the footer"));
+        }
+        if !html.contains("built.js") {
+            missing.push(format!("{name}: does not load built.js"));
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "page(s) that cannot say what they were built from:\n  {}",
+        missing.join("\n  ")
+    );
+}

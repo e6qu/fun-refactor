@@ -2090,6 +2090,36 @@ ninety-nine candidates every one was an artefact of stripping tags — `<code>x<
 reads as `x ,` once the markup is gone — which is worth recording so the next person to
 run it does not go looking.
 
+### The site that was three commits behind and did not say so
+
+Asked to check the published site, and the types tutorial was not on it. A 404.
+
+Five Pages deploys in a row had failed, and every one of them the same way: the build
+was fine, the artifact uploaded, and then `deploy-pages` sat watching
+`deployment_queued` for ten minutes and aborted. Nothing about it was our code. The
+first four went unnoticed because everything a person looks at was green — the tests
+pass, the pull requests merge, and the site keeps serving the last version that made it
+through.
+
+That is the worst shape a failure can take, and it is the same shape this project keeps
+finding in its own commands: **an answer that looks complete because the part that
+failed is the part nobody can see.** `fr impact` printing a bound as a count,
+`fr stitch` calling live configuration orphaned, `fr flow fwd` tracing one hop and
+continuing into the callers. A stale site belongs in that list.
+
+Two changes. The deploy waits thirty minutes instead of ten, which is the immediate
+cause. And **every page now says what it was built from**, in the footer, written by the
+workflow at deploy time:
+
+```
+Built from c73314e on 2026-08-06.
+```
+
+A stale site can be recognised as one by looking at it. `site_integrity` asserts the
+stamp is on every page, because the page a reader happens to open is the one that has to
+tell them — and the playground's own page, which Vite emits, is excluded by asking the
+build where its output goes rather than naming it here.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

@@ -95,9 +95,30 @@ jobs:
           test -f playground/index.html || { echo "the playground did not build"; status=1; }
           exit $status
 
+      # So a stale site can be recognised as one. See docs/built.js.
+      - name: Stamp what this was built from
+        run: |
+          printf 'export const BUILT = { commit: "%s", at: "%s" };\n' \
+            "$(git rev-parse --short HEAD)" "$(date -u +%%Y-%%m-%%d)" > docs/built.js
+          cat >> docs/built.js <<'JS'
+
+          const target = document.getElementById("built");
+          if (target) {
+            target.textContent = `Built from ${BUILT.commit} on ${BUILT.at}.`;
+          }
+          JS
+          sed -i 's/^          //' docs/built.js
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+      # Thirty minutes rather than the default ten. Five deploys in a row aborted with
+      # "Timeout reached" while the deployment sat in `deployment_queued` — the build
+      # was fine every time and the site simply went stale, which is the worst shape a
+      # failure can take: green tests, a published site three commits behind, and
+      # nothing saying so.
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000

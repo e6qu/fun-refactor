@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B222: **the published site was three commits behind and said nothing.** Five Pages
+  deploys in a row aborted with "Timeout reached" while the deployment sat in
+  `deployment_queued`; the build succeeded every time and the artifact uploaded, so
+  everything a person looks at stayed green while the site served an older version. The
+  types tutorial was a 404 for half a day. The deploy now waits thirty minutes instead
+  of ten, and every page states the commit it was built from in its footer, so a stale
+  site can be recognised by looking at it. `site_integrity` asserts the stamp is present
+  on every page.
+
 - [x] B221: **`fr type` answered half the question.** It reported what a symbol was
   declared with and stopped, so every unannotated binding came back identical whether the
   source had lost track of the value or merely not written the type down. It now derives
