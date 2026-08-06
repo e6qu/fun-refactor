@@ -4165,6 +4165,28 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                     _ => call,
                 };
             }
+            // Joining two slices in Zig means allocating, and the allocator is a
+            // parameter this function does not have — inventing one changes the
+            // signature every caller was written against. `a + b` on two slices is not
+            // something the compiler accepts, so it went out looking like the other
+            // four targets and not building.
+            if *op == BinaryOp::Add && compares_strings(out, left, right) {
+                let source = format!("{} + {}", zig_expr(out, left), zig_expr(out, right));
+                out.carried(&Unsupported {
+                    construct: "joining two strings, which needs an allocator here".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                // Zig has no block comment, so a marker beside the value would
+                // swallow the rest of the line. `@compileError` is a value anywhere
+                // one is expected, it says why in the compiler's own output, and it
+                // cannot be mistaken for code that works — which returning an empty
+                // slice quietly could.
+                return format!(
+                    "@compileError(\"{MARKER}: joining two strings needs an allocator: {}\")",
+                    source.replace('"', "'")
+                );
+            }
             format!(
                 "{} {} {}",
                 binary_operand(zig_expr(out, left), left, *op, false),

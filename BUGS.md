@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B210: **joining two strings produced Zig that does not compile.** Java, Go, Python
+  and TypeScript all concatenate with `+`, and so did the source; Zig has no `+` for
+  slices, because joining them means allocating and the allocator is a parameter the
+  function does not have. Inventing one would change the signature every caller was
+  written against, so the operation is refused rather than guessed at — as an
+  `@compileError` naming the reason, which is a value anywhere one is expected and
+  cannot be mistaken for code that works, where an empty slice quietly could. Zig has no
+  block comment, so a marker beside the value would have swallowed the rest of the line.
+
 - [x] B209: **the Zig output named a standard library it had never bound.** Comparing
   two strings there is `std.mem.eql`, and nothing in the writer emitted
   `const std = @import("std");` — so the fix for B208 produced a file that referred to
