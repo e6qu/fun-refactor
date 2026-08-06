@@ -76,6 +76,17 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B211: **the Java output named types the file had never imported.** `List`, `Map`
+  and `Optional` are the three names this writer reaches for that Java does not have in
+  scope, and it emitted all three and imported none — so a signature the report called
+  "carried across with its types intact", which it was, named a type the file had never
+  heard of. The published translation example on the site was one of them. Read from the
+  IR rather than the finished text, because an import has to be written before the class
+  that uses it and because a `List` inside a string literal is not a use. This is the
+  same defect as B209, one language over: the fix for that one was found by asking
+  whether the Zig output bound the `std` it reached for, and nobody asked Java the same
+  question.
+
 - [x] B210: **joining two strings produced Zig that does not compile.** Java, Go, Python
   and TypeScript all concatenate with `+`, and so did the source; Zig has no `+` for
   slices, because joining them means allocating and the allocator is a parameter the

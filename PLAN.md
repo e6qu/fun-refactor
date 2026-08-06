@@ -1752,6 +1752,29 @@ it cannot be mistaken for code that works — which returning an empty slice qui
 could. Zig has no block comment, so the usual marker beside the value would have
 swallowed the rest of the line; the reparse guard said so on the first attempt.
 
+### The import nobody asked the other writer about
+
+Fixing the Zig output so it bound the `std` it reached for raised an obvious question
+that had not been asked: does the Java output import what *it* names?
+
+```java
+// Every signature carried across with its types intact.
+
+public final class S {
+    public static int total(List<Integer> items) {     // List is not in scope
+```
+
+`List`, `Map` and `Optional` are the three names this writer reaches for that Java does
+not have in scope, and it emitted all three and imported none. The report was telling
+the truth — the signature really was carried across with its types intact — and the file
+still did not compile. The published translation example on the site was one of these,
+naming all three.
+
+Read from the IR rather than from the finished text, for the two reasons that applied to
+Zig as well: an import has to be written before the class that uses it, and a `List`
+inside a string literal is not a use. `Objects.equals` is written out in full at its use
+site and needs nothing, which is why it is spelled that way.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
