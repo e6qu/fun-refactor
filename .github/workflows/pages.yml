@@ -24,18 +24,15 @@ permissions:
   pages: write
   id-token: write
 
-# One deploy at a time, and never cancel one in flight: a half-published site is
-# worse than a slightly stale one.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  # The build holds no environment, so it starts the moment the push lands. This used
+  # to be one job with the environment on it, which meant the whole thing — toolchain,
+  # wasm, npm, Vite — sat in `waiting` behind the environment's rules before it had
+  # checked anything out, and then held that environment for the fifteen minutes it
+  # took to build. Deployments queued behind each other and timed out. GitHub documents
+  # the split for exactly this reason.
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -98,26 +95,41 @@ jobs:
       # So a stale site can be recognised as one. See docs/built.js.
       - name: Stamp what this was built from
         run: |
-          printf 'export const BUILT = { commit: "%s", at: "%s" };\n' \
-            "$(git rev-parse --short HEAD)" "$(date -u +%%Y-%%m-%%d)" > docs/built.js
-          cat >> docs/built.js <<'JS'
-
-          const target = document.getElementById("built");
-          if (target) {
-            target.textContent = `Built from ${BUILT.commit} on ${BUILT.at}.`;
-          }
-          JS
-          sed -i 's/^          //' docs/built.js
+          {
+            printf 'export const BUILT = { commit: "%s", at: "%s" };\n\n' \
+              "$(git rev-parse --short HEAD)" "$(date -u +%Y-%m-%d)"
+            printf 'const target = document.getElementById("built");\n'
+            printf 'if (target) {\n'
+            printf '  target.textContent = `Built from ${BUILT.commit} on ${BUILT.at}.`;\n'
+            printf '}\n'
+          } > docs/built.js
+          cat docs/built.js
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
-      # Thirty minutes rather than the default ten. Five deploys in a row aborted with
-      # "Timeout reached" while the deployment sat in `deployment_queued` — the build
-      # was fine every time and the site simply went stale, which is the worst shape a
-      # failure can take: green tests, a published site three commits behind, and
-      # nothing saying so.
+
+  # The only job that touches the environment, and the only thing in it. Nothing here
+  # can be slow enough to matter, so a protection rule delays a publish and not a build.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # One publish at a time, and never cancel one in flight: a half-published site is
+    # worse than a slightly stale one. On the *job* rather than the workflow, because
+    # serialising the whole workflow serialised the build too — and a run wedged in
+    # `waiting` then blocked every push behind it, which is how one stuck deployment
+    # became a site that could not be updated at all.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Thirty minutes rather than the default ten. Six deploys in a row aborted with
+      # "Timeout reached" while the deployment sat queued behind a build that was
+      # holding the same environment.
       - id: deployment
         uses: actions/deploy-pages@v4
         with:
