@@ -24,12 +24,6 @@ permissions:
   pages: write
   id-token: write
 
-# One deploy at a time, and never cancel one in flight: a half-published site is
-# worse than a slightly stale one.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
   # The build holds no environment, so it starts the moment the push lands. This used
   # to be one job with the environment on it, which meant the whole thing — toolchain,
@@ -121,6 +115,14 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # One publish at a time, and never cancel one in flight: a half-published site is
+    # worse than a slightly stale one. On the *job* rather than the workflow, because
+    # serialising the whole workflow serialised the build too — and a run wedged in
+    # `waiting` then blocked every push behind it, which is how one stuck deployment
+    # became a site that could not be updated at all.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
