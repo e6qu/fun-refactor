@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B220: **the published site was checked by hand and by nothing else.**
+  `cargo test --test site_data` asserts that every result shown on the site is what the
+  tool produced; nothing asserted that a link goes somewhere, that an anchor names a
+  heading that exists, that an `id` is unique, or that a command the prose tells a reader
+  to type is a command. A full browser pass over the deployed site found no defect — and
+  found that finding one would have depended on somebody looking. Now four checks over
+  the `docs/` tree, offline, with the command list asked of the parser rather than
+  written down beside it.
+
 - [x] B219: **`fr impact` reported a bounded search as a complete answer.** The caller
   walk stops at `--caller-depth`, which defaults to 3, and said nothing when it did — so
   a five-deep call chain produced "l0 affects 4 site(s)" and a list of four, with two

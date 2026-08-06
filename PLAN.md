@@ -1906,6 +1906,33 @@ call-graph tree say what the bound excluded.
 Nothing is said when the walk finished, because a note nobody needs is how a note
 somebody needs gets missed — the same rule the `%` note follows.
 
+### The site, driven rather than read
+
+A full pass over the published site in a browser: every page loaded, every link followed,
+the playground run against both a real GitHub repository and the bundled sample.
+
+Nothing was broken. Nine pages return 200; no console errors on any of them; every
+internal link resolves and all fourteen external ones answer; no duplicate `id`, no
+anchor naming a heading that is not there. Every `<div id>` the data files fill is
+filled — twenty-four catalogue entries, four contract panes, the recipe pairs, the
+translation cases. The published capability totals match what the binary computes today,
+which is the test added earlier still holding. Every `fr <command>` and `--flag` the
+prose tells a reader to type exists. The playground loaded `psf/requests` over the
+network and the sixteen-language sample from the bundle, and answered `Callers` and
+`Where this value goes` correctly out of the WASM build deployed this morning.
+
+**So the finding is that there was nothing to find, and that this was checked by hand.**
+`cargo test --test site_data` already asserts that every *result* on the site is what the
+tool produced. Nothing asserted the rest: that a link goes somewhere, that an anchor
+names a heading that exists, that a command the prose says to run is a command. Those
+are the parts that rot quietly, because a dead link looks exactly like a live one until
+somebody clicks it — and the checks are four short functions over `docs/`, with no
+network, so they run wherever the rest of the suite does.
+
+The command list is asked of the parser rather than written down beside it, so it cannot
+drift from the thing it describes. Each check was confirmed to fail when the defect it
+names is introduced.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
