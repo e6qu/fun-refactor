@@ -2021,6 +2021,54 @@ first stage the panel will say `int (from the literal)` for the numbers and *not
 all* for the dictionaries — and the reader can see, before a word of prose, exactly which
 values the program has lost track of.
 
+### Making it unrepresentable
+
+A tutorial page, at `docs/types.html` and "Types" in the nav. A payments service with
+three providers, two verification flows and a lifecycle that must not run backwards,
+taken from no types at all to a shape where its old mistakes cannot be written down.
+Python and TypeScript side by side at every stage.
+
+Eight stages, each named by the bug class it kills rather than the feature it adds:
+
+```
+0  the code as found            —
+1  annotate what is already true nothing yet: this is the stage people stop at
+2  name the primitives           a customer id where a payment id belongs
+3  close the string sets         a typo'd status; a provider's words leaking inward
+4  group what travels together   a dictionary missing a key
+5  make the invalid unconstructible  a negative amount; dollars added to euros
+6  make the state machine a type refunding before capture; capturing to an
+                                 unverified vendor; a failure with a capture time
+7  delete what can no longer happen  the defences themselves
+```
+
+Stage 6 puts the types in and **leaves the old checks standing**, because that is what
+happens; stage 7 removes the ones that can no longer fire. The deletion is the proof.
+Not that a type was added — that the code which existed only to guard against the
+impossible is gone and nothing broke.
+
+**The panel is the scoreboard.** Every symbol in every stage is clickable, and the panel
+shows what the tool answers: the type, whether that was written down or worked out and
+on what evidence, where the type is defined, what calls it. At stage 0 it reads
+`int (from the literal)` beside the numbers and *nothing at all* beside the
+dictionaries. By stage 6, clicking `capture` reads
+`(payment: Authorized, vendor: PayoutEnabledVendor) -> Captured`. A reader can watch the
+program stop guessing.
+
+None of the panel is written by hand: `tests/types_data.rs` runs the same index
+`fr type`, `fr def` and `fr callers` use over each stage and records the answers, and a
+test asserts the progression — a stage that stopped knowing more than the one before it
+fails the build. What the stages declare rose 0 → 11 → 12 → 23 → 29 → 42 values in
+Python across the eight.
+
+**Two honesties the page leads with rather than buries.** Neither language enforces any
+of this at run time — Python's annotations do nothing without a checker and
+TypeScript's are erased — so "unrepresentable" means the checker rejects it, plus one
+parse at the boundary. And one check survives to the last stage: a refund may not exceed
+what was captured. It relates two *values* rather than naming a state, and no type in
+either language can say "no larger than the number in that other object". Pretending
+otherwise would undo the point of the other seven.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

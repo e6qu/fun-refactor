@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Making it unrepresentable — fun-refactor</title>
+<meta name="description" content="From magic strings and dictionaries to domain types and a state machine, in Python and TypeScript side by side. Eight stages, each named by the bug class it kills. Click any symbol to see what the tool knows about it.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="has-panel">
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="catalog.html">Catalogue</a>
+      <a href="recipes.html">Recipes</a>
+      <a href="translate.html">Translate</a>
+      <a href="contract.html">Contract</a>
+      <a href="types.html" aria-current="page">Types</a>
+      <a href="playground/">Playground</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">Weak types to strong ones</p>
+    <h1 class="prose">Eight changes, each one deleting a kind of bug rather than a bug</h1>
+    <p class="lede prose">
+      A payments service with three providers, two verification flows and a lifecycle
+      that must not run backwards. It starts with no types at all and ends where the
+      mistakes it used to make cannot be written down — and the last change is a
+      <em>deletion</em>, because the code that guarded against them has nothing left to
+      guard.
+    </p>
+    <p class="lede prose">
+      Python and TypeScript, side by side at every stage, with the places they cannot
+      follow each other called out. <strong>Click any symbol</strong> and the panel says
+      what the tool knows about it: its type, whether that was written down or worked
+      out, where it is defined, what calls it.
+    </p>
+
+    <p class="note prose" style="margin-top:1.5rem">
+      <span class="recorded">Generated</span> &nbsp;Every answer in the panel was
+      produced by running <code>fr</code> over the code beside it, captured by
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;types_data</code>. The stages live in
+      <code>tests/types_tutorial</code> and a test asserts the progression, so a stage
+      that stopped knowing more than the one before it would fail the build.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>What "unrepresentable" means here, and what it does not</h2>
+    <p>
+      Neither language enforces any of this at run time. Python's annotations do nothing
+      without a checker; TypeScript's are erased before a line executes. Unrepresentable
+      means <em>your checker rejects it</em> — plus one parse at the boundary, where
+      untrusted input becomes a domain value or is turned away.
+    </p>
+    <p>
+      That boundary is the whole idea, and it is not ours: Alexis King's
+      <em>Parse, Don't Validate</em> is the short version, Yaron Minsky's "make illegal
+      states unrepresentable" the older phrase, and Scott Wlaschin's
+      <em>Domain Modeling Made Functional</em> the worked one. What follows is those
+      arguments applied to code that already exists, one refactoring at a time — most of
+      them named in Fowler's catalogue under <em>Primitive Obsession</em>.
+    </p>
+    <h3>The panel is the scoreboard</h3>
+    <p>
+      The tool answers a symbol's type from what the source declared, or from what
+      follows from it — a literal, a class constructed, a declared return type — and it
+      says which. At the first stage almost everything is <em>worked out</em> and a good
+      deal is not known at all. By the last, almost everything is <em>written down</em>.
+      Watching that number move is the tutorial.
+    </p>
+    <div id="scoreboard"></div>
+  </div>
+</section>
+
+<section id="stages">
+  <div class="shell">
+    <div id="tutorial"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>Where the two languages stop agreeing</h2>
+    <table>
+      <thead><tr><th>Idea</th><th>Python 3.14</th><th>TypeScript 5</th></tr></thead>
+      <tbody>
+        <tr><td>A closed set of names</td><td><code>StrEnum</code> — a real object at run time, with members you can iterate</td><td>a union of string literals; <code>enum</code> exists and is best avoided</td></tr>
+        <tr><td>A name of its own for a string</td><td><code>NewType</code>, erased and free</td><td>a brand with <code>unique symbol</code>, which is a trick rather than a feature</td></tr>
+        <tr><td>Immutability</td><td><code>@dataclass(frozen=True)</code> — enforced when it runs</td><td><code>readonly</code> — a note to the checker and nothing more</td></tr>
+        <tr><td>A tagged union</td><td>a union of classes; <code>match</code> narrows by class</td><td>a discriminant field is required, and <code>switch</code> narrows on it</td></tr>
+        <tr><td>Proving every case is handled</td><td><code>assert_never</code></td><td><code>const _: never = x</code></td></tr>
+        <tr><td>A private constructor</td><td>convention — <code>Money.of</code> is where you look, not where you must go</td><td><code>private constructor</code>, enforced by the checker</td></tr>
+      </tbody>
+    </table>
+    <p>
+      The last row is the sharpest. TypeScript can stop you calling <code>new Money(-1)</code>;
+      Python cannot stop you calling <code>Money(-1, USD)</code> and only asks that you
+      do not. Both make the invalid value <em>hard to reach by accident</em>, which is
+      what a refactoring can buy. Neither makes it impossible, and a page that told you
+      otherwise would be selling something.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose wide">
+    <h2>What stayed a run-time check, and why</h2>
+    <p>
+      One check survives to the last stage: a refund may not exceed what was captured.
+      It relates two <em>values</em> rather than naming a state, and no type here can say
+      "no larger than the number in that other object". Languages that can say it exist;
+      these two cannot.
+    </p>
+    <p>
+      That is the honest edge of the technique. Everything above it — the states, the
+      identifiers, the currencies, the verifications — went from a check somebody had to
+      remember to a shape the checker enforces. This one did not, and pretending
+      otherwise would undo the point of the other seven.
+    </p>
+    <div class="btn-row">
+      <a class="btn" href="https://github.com/e6qu/fun-refactor/tree/main/tests/types_tutorial">The eight stages</a>
+      <a class="btn ghost" href="catalog.html">The refactorings behind them</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.
+    </div>
+  </div>
+</footer>
+
+<aside id="panel" aria-live="polite">
+  <div class="panel-inner">
+    <p class="panel-title">SYMBOL</p>
+    <div id="panel-body">
+      <p class="panel-hint">
+        Click a name in any of the code below. This panel shows what the tool answers
+        for it — the same answers <code>fr type</code>, <code>fr def</code> and
+        <code>fr callers</code> print at a terminal.
+      </p>
+    </div>
+  </div>
+</aside>
+
+<script type="module" src="theme.js"></script>
+<script type="module" src="types.js"></script>
+</body>
+</html>
