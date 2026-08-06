@@ -2989,6 +2989,19 @@ fn java(out: &mut Out, module: &Module) {
         out.blank();
     }
 
+    // `List`, `Map` and `Optional` are the three names this writer reaches for that
+    // Java does not have in scope. It emitted them and never emitted an import, so a
+    // signature the report called "carried across with its types intact" named a type
+    // the file had never heard of. `Objects` is written out in full at its use site
+    // and needs nothing here.
+    let needed = java_utilities(module);
+    if !needed.is_empty() {
+        for name in &needed {
+            out.line(&format!("import java.util.{name};"));
+        }
+        out.blank();
+    }
+
     for item in &module.items {
         if let Item::Import { text, line } = item {
             out.fidelity.imports_listed += 1;
@@ -3361,6 +3374,123 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         Stmt::Continue => out.line("continue;"),
         Stmt::Unsupported(u) => carry(out, u),
     }
+}
+
+/// The `java.util` types this module's Java will name.
+///
+/// Read from the IR rather than from the finished text, because an import has to be
+/// written before the class that uses it — and because a `List` inside a string
+/// literal is not a use.
+fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
+    let mut needed = std::collections::BTreeSet::new();
+
+    fn in_type(ty: &Type, needed: &mut std::collections::BTreeSet<&'static str>) {
+        match ty {
+            Type::List(inner) => {
+                needed.insert("List");
+                in_type(inner, needed);
+            }
+            Type::Map(k, v) => {
+                needed.insert("Map");
+                in_type(k, needed);
+                in_type(v, needed);
+            }
+            Type::Optional(inner) => {
+                needed.insert("Optional");
+                in_type(inner, needed);
+            }
+            Type::Named { args, .. } => args.iter().for_each(|a| in_type(a, needed)),
+            _ => {}
+        }
+    }
+    fn in_expr(e: &Expr, needed: &mut std::collections::BTreeSet<&'static str>) {
+        match e {
+            // `List.of(…)` and `Map.of(…)` are how this writer spells a literal.
+            Expr::ListLit(items) => {
+                needed.insert("List");
+                items.iter().for_each(|i| in_expr(i, needed));
+            }
+            Expr::MapLit(entries) => {
+                needed.insert("Map");
+                entries.iter().for_each(|(k, v)| {
+                    in_expr(k, needed);
+                    in_expr(v, needed);
+                });
+            }
+            Expr::Binary { left, right, .. } => {
+                in_expr(left, needed);
+                in_expr(right, needed);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) => in_expr(operand, needed),
+            Expr::Call { args, .. } | Expr::New { args, .. } => {
+                args.iter().for_each(|a| in_expr(a, needed))
+            }
+            _ => {}
+        }
+    }
+    fn in_stmt(s: &Stmt, needed: &mut std::collections::BTreeSet<&'static str>) {
+        match s {
+            Stmt::Let { ty, value, .. } => {
+                if let Some(ty) = ty {
+                    in_type(ty, needed);
+                }
+                if let Some(value) = value {
+                    in_expr(value, needed);
+                }
+            }
+            Stmt::Expr(e) | Stmt::Return(Some(e)) => in_expr(e, needed),
+            Stmt::Assign { value, .. } => in_expr(value, needed),
+            Stmt::If {
+                condition,
+                then,
+                otherwise,
+            } => {
+                in_expr(condition, needed);
+                then.iter().for_each(|s| in_stmt(s, needed));
+                otherwise.iter().for_each(|s| in_stmt(s, needed));
+            }
+            Stmt::While { condition, body } => {
+                in_expr(condition, needed);
+                body.iter().for_each(|s| in_stmt(s, needed));
+            }
+            Stmt::ForEach { iterable, body, .. } => {
+                in_expr(iterable, needed);
+                body.iter().for_each(|s| in_stmt(s, needed));
+            }
+            _ => {}
+        }
+    }
+    fn in_function(f: &Function, needed: &mut std::collections::BTreeSet<&'static str>) {
+        f.params
+            .iter()
+            .filter_map(|p| p.ty.as_ref())
+            .for_each(|t| in_type(t, needed));
+        if let Some(ty) = &f.returns {
+            in_type(ty, needed);
+        }
+        f.body.iter().for_each(|s| in_stmt(s, needed));
+    }
+
+    for item in &module.items {
+        match item {
+            Item::Function(f) => in_function(f, &mut needed),
+            Item::Record(r) => {
+                r.fields
+                    .iter()
+                    .filter_map(|f| f.ty.as_ref())
+                    .for_each(|t| in_type(t, &mut needed));
+                r.methods.iter().for_each(|m| in_function(m, &mut needed));
+            }
+            Item::Constant(c) => {
+                if let Some(ty) = &c.ty {
+                    in_type(ty, &mut needed);
+                }
+                in_expr(&c.value, &mut needed);
+            }
+            _ => {}
+        }
+    }
+    needed
 }
 
 fn java_type(ty: &Type) -> String {
