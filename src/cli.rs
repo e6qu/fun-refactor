@@ -37,6 +37,19 @@ struct Cli {
     command: Command,
 }
 
+/// Every subcommand's name, asked of the parser rather than written down again.
+///
+/// The site tells a reader what to type, and a command that was renamed leaves prose
+/// that reads perfectly and does not run. A list maintained beside the parser would be
+/// one more thing to keep in step; this one cannot disagree with it.
+pub fn command_names() -> Vec<String> {
+    use clap::CommandFactory;
+    Cli::command()
+        .get_subcommands()
+        .map(|c| c.get_name().to_string())
+        .collect()
+}
+
 #[derive(Subcommand)]
 enum Command {
     /// Show what this tool can do, per language.

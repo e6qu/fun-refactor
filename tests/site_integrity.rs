@@ -1,0 +1,234 @@
+//! The published site, checked against itself and against the binary.
+//!
+//! `cargo test --test site_data` already asserts that every result shown on the site is
+//! what the tool produced. Nothing asserted the rest of it: that a link goes somewhere,
+//! that an anchor names a heading that exists, that a command the prose tells a reader
+//! to run is a command. Those are the parts that rot silently, because a dead link
+//! looks exactly like a live one until somebody clicks it.
+//!
+//! Everything here reads the `docs/` tree from disk. No network: a test that needs one
+//! fails for reasons that have nothing to do with the change in front of it.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+
+fn docs() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("docs")
+}
+
+fn pages() -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut stack = vec![docs()];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).expect("the docs directory is readable") {
+            let path = entry.expect("a directory entry").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "html") {
+                let name = path
+                    .strip_prefix(docs())
+                    .expect("under docs/")
+                    .display()
+                    .to_string();
+                out.push((name, std::fs::read_to_string(&path).expect("a page")));
+            }
+        }
+    }
+    out.sort();
+    assert!(out.len() >= 8, "found only {} pages", out.len());
+    out
+}
+
+/// Every `href`/`src` in a page, in source order.
+fn references(html: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for attribute in ["href=\"", "src=\""] {
+        let mut rest = html;
+        while let Some(at) = rest.find(attribute) {
+            rest = &rest[at + attribute.len()..];
+            if let Some(end) = rest.find('"') {
+                out.push(rest[..end].to_string());
+                rest = &rest[end..];
+            }
+        }
+    }
+    out
+}
+
+fn ids(html: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = html;
+    while let Some(at) = rest.find("id=\"") {
+        rest = &rest[at + 4..];
+        if let Some(end) = rest.find('"') {
+            out.push(rest[..end].to_string());
+            rest = &rest[end..];
+        }
+    }
+    out
+}
+
+/// Is this path something the frontend build writes rather than something in the tree?
+///
+/// The playground is emitted by Vite and is not committed, so on a clean checkout every
+/// link to it points at a directory that is not there — while being perfectly live on
+/// the published site. Read from the build's own `outDir` rather than written down
+/// here: a hardcoded exception is a second place to remember, and this test exists
+/// because second places to remember are how a site rots.
+fn built_by_the_frontend(path: &Path) -> bool {
+    let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("web/vite.config.ts");
+    let Ok(text) = std::fs::read_to_string(&config) else {
+        return false;
+    };
+    let Some(at) = text.find("outDir:") else {
+        return false;
+    };
+    let rest = &text[at + "outDir:".len()..];
+    let Some(open) = rest.find('"') else {
+        return false;
+    };
+    let Some(close) = rest[open + 1..].find('"') else {
+        return false;
+    };
+    let out_dir = &rest[open + 1..open + 1 + close];
+    // The path is written relative to `web/`.
+    let built = config
+        .parent()
+        .expect("web/")
+        .join(out_dir)
+        .components()
+        .fold(PathBuf::new(), |mut acc, component| {
+            match component {
+                std::path::Component::ParentDir => {
+                    acc.pop();
+                }
+                other => acc.push(other),
+            }
+            acc
+        });
+    path.starts_with(&built)
+}
+
+#[test]
+fn every_internal_link_goes_somewhere() {
+    let mut broken = Vec::new();
+    for (name, html) in pages() {
+        for reference in references(&html) {
+            if reference.starts_with('#')
+                || reference.starts_with("data:")
+                || reference.starts_with("mailto:")
+                || reference.starts_with("http")
+                || reference.is_empty()
+            {
+                continue;
+            }
+            let target = reference.split(['#', '?']).next().unwrap_or("");
+            if target.is_empty() {
+                continue;
+            }
+            let base = docs().join(&name);
+            let resolved = base.parent().expect("a parent").join(target);
+            let exists = resolved.exists()
+                || resolved.join("index.html").exists()
+                || built_by_the_frontend(&resolved);
+            if !exists {
+                broken.push(format!("{name} -> {reference}"));
+            }
+        }
+    }
+    assert!(
+        broken.is_empty(),
+        "dead link(s):\n  {}",
+        broken.join("\n  ")
+    );
+}
+
+#[test]
+fn every_anchor_names_something_on_the_page() {
+    // A table of contents pointing at a heading that was renamed scrolls nowhere, and
+    // looks exactly like one that works.
+    let mut broken = Vec::new();
+    for (name, html) in pages() {
+        let present: BTreeSet<String> = ids(&html).into_iter().collect();
+        for reference in references(&html) {
+            if let Some(anchor) = reference.strip_prefix('#') {
+                if !anchor.is_empty() && !present.contains(anchor) {
+                    broken.push(format!("{name} -> #{anchor}"));
+                }
+            }
+        }
+    }
+    assert!(
+        broken.is_empty(),
+        "anchor(s) naming nothing:\n  {}",
+        broken.join("\n  ")
+    );
+}
+
+#[test]
+fn no_page_declares_the_same_id_twice() {
+    // Two elements with one id means every `#anchor` and `getElementById` picks one of
+    // them, and which one is a fact about source order rather than about intent.
+    let mut duplicated = Vec::new();
+    for (name, html) in pages() {
+        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+        for id in ids(&html) {
+            *counts.entry(id).or_default() += 1;
+        }
+        for (id, count) in counts.into_iter().filter(|(_, c)| *c > 1) {
+            duplicated.push(format!("{name}: `{id}` appears {count} times"));
+        }
+    }
+    assert!(
+        duplicated.is_empty(),
+        "duplicate id(s):\n  {}",
+        duplicated.join("\n  ")
+    );
+}
+
+/// Plain text, with the tags taken out.
+fn prose(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut inside = false;
+    for character in html.chars() {
+        match character {
+            '<' => inside = true,
+            '>' => {
+                inside = false;
+                out.push(' ');
+            }
+            _ if !inside => out.push(character),
+            _ => {}
+        }
+    }
+    out.replace("&gt;", ">").replace("&lt;", "<")
+}
+
+#[test]
+fn every_command_the_site_names_is_a_command() {
+    // The site tells a reader what to type. A command that was renamed leaves prose
+    // that reads perfectly and does not run.
+    let names = fun_refactor::cli::command_names();
+    let known: BTreeSet<&str> = names.iter().map(String::as_str).collect();
+    let mut unknown = BTreeSet::new();
+    for (name, html) in pages() {
+        let text = prose(&html);
+        for (at, _) in text.match_indices("fr ") {
+            let rest = &text[at + 3..];
+            let word: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_lowercase() || *c == '-')
+                .collect();
+            // `fr` also appears mid-sentence in prose; only a word that looks like a
+            // subcommand is a claim about one.
+            if word.len() > 2 && !known.contains(word.as_str()) {
+                unknown.insert(format!("{name}: `fr {word}`"));
+            }
+        }
+    }
+    assert!(
+        unknown.is_empty(),
+        "the site names command(s) the binary does not have:\n  {}",
+        unknown.iter().cloned().collect::<Vec<_>>().join("\n  ")
+    );
+}
