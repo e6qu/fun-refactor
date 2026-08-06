@@ -237,6 +237,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::Unary { operand, .. } => bad(operand),
             Expr::Await(inner) => bad(inner),
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
+            Expr::RecordLit { fields, .. } => fields.iter().any(|(_, value)| bad(value)),
             Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
             Expr::Keyword { value, .. } => bad(value),
             Expr::Coalesce { value, fallback } => bad(value) || bad(fallback),
@@ -898,6 +899,47 @@ mod rust {
                     .map(|a| cx.children(a).iter().map(|n| expr(cx, *n)).collect())
                     .unwrap_or_default(),
             ),
+            // `Counter { value: 0, step }` — the one way Rust builds a record, and the
+            // line every constructor is made of. Nothing read it, so every constructor
+            // body in every target came out as "not translated".
+            "struct_expression" => {
+                let ty = cx
+                    .field(node, "name")
+                    .map(|n| cx.text(n))
+                    .unwrap_or_default();
+                // `StopReason::Conditional { … }` builds an enum variant, not a record.
+                // No target here has a tagged union to build one in, and writing the
+                // path through produced Go that says `StopReason::Conditional{…}`,
+                // which Go does not parse.
+                if ty.contains("::") {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                let mut fields = Vec::new();
+                if let Some(body) = cx.field(node, "body") {
+                    for initialiser in cx.children(body) {
+                        match initialiser.kind() {
+                            "field_initializer" => {
+                                let name = cx.field_text(initialiser, "field").unwrap_or_default();
+                                let value = cx
+                                    .field(initialiser, "value")
+                                    .map(|v| expr(cx, v))
+                                    .unwrap_or(Expr::Null);
+                                fields.push((name, value));
+                            }
+                            // `Counter { step }` is `step: step`, the shorthand every
+                            // Rust file is written in.
+                            "shorthand_field_initializer" | "shorthand_field_identifier" => {
+                                let name = cx.text(initialiser);
+                                fields.push((name.clone(), Expr::Name(name)));
+                            }
+                            // `..other` carries fields this cannot name, so the record
+                            // it would build is not the one the source wrote.
+                            _ => return Expr::Unsupported(cx.unsupported(node)),
+                        }
+                    }
+                }
+                Expr::RecordLit { ty, fields }
+            }
             "binary_expression" => {
                 match super::binary_op(&cx.field_text(node, "operator").unwrap_or_default()) {
                     Some(op) => Expr::Binary {

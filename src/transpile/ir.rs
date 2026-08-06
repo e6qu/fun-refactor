@@ -377,6 +377,18 @@ pub enum Expr {
         callee: Box<Expr>,
         args: Vec<Expr>,
     },
+    /// `Counter { value: 0, step }` — a record built by naming its fields.
+    ///
+    /// Distinct from [`Expr::New`], which passes arguments in an order the callee
+    /// decides. Four of these languages construct a record this way and two do not, so
+    /// the fields have to stay named for as long as it takes to find out which target
+    /// is being written — a positional list assembled here would be in the source's
+    /// declaration order, which is a fact about the source and not about the
+    /// constructor anyone will call.
+    RecordLit {
+        ty: String,
+        fields: Vec<(String, Expr)>,
+    },
     /// `a ?? b`, `a orelse b` — the value unless it is absent, and then the fallback.
     ///
     /// Its own node rather than a [`BinaryOp`], because it is not an operator on values

@@ -1167,6 +1167,13 @@ fn unary_operand(text: String, operand: &Expr) -> String {
 
 fn rust_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        Expr::RecordLit { ty, fields } => {
+            let rendered: Vec<String> = fields
+                .iter()
+                .map(|(name, value)| format!("{}: {}", out.field(name), rust_expr(out, value)))
+                .collect();
+            format!("{} {{ {} }}", out.name(ty), rendered.join(", "))
+        }
         // `Option::unwrap_or`, which is what a Rust reader expects and what the IR's
         // `Optional` becomes.
         Expr::Coalesce { value, fallback } => format!(
@@ -1758,6 +1765,14 @@ fn compares_strings(out: &Out, left: &Expr, right: &Expr) -> bool {
 
 fn python_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // A dataclass takes its fields as keyword arguments, in any order.
+        Expr::RecordLit { ty, fields } => {
+            let rendered: Vec<String> = fields
+                .iter()
+                .map(|(name, value)| format!("{}={}", out.field(name), python_expr(out, value)))
+                .collect();
+            format!("{}({})", out.name(ty), rendered.join(", "))
+        }
         // Python has to name the value twice, and naming a call twice calls it twice.
         Expr::Coalesce { value, fallback } => match nameable(value) {
             true => format!(
@@ -2293,6 +2308,14 @@ fn go_zero(ty: &Type) -> String {
 
 fn go_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Go names its fields in a literal, in any order, like the source did.
+        Expr::RecordLit { ty, fields } => {
+            let rendered: Vec<String> = fields
+                .iter()
+                .map(|(name, value)| format!("{}: {}", out.field(name), go_expr(out, value)))
+                .collect();
+            format!("{}{{{}}}", out.name(ty), rendered.join(", "))
+        }
         // Go has nothing for this: not an operator, not a standard function. Writing
         // the `if` it would take needs somewhere to put the result, which does not
         // exist inside an argument list.
@@ -2839,6 +2862,26 @@ fn ts_type(ty: &Type) -> String {
 
 fn ts_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // TypeScript and Java build a record by calling a constructor, which takes its
+        // arguments in an order the class decides. This writer emits a class with
+        // fields and no constructor, so there is no order to put them in — and one
+        // assembled from the source's declaration order would be a fact about the
+        // source rather than about anything a caller will call.
+        Expr::RecordLit { ty, fields } => {
+            let rendered: Vec<String> = fields
+                .iter()
+                .map(|(name, value)| format!("{}: {}", out.field(name), ts_expr(out, value)))
+                .collect();
+            let source = format!("{} {{ {} }}", out.name(ty), rendered.join(", "));
+            out.carried(&Unsupported {
+                construct: "building a record by naming its fields, which needs a \
+                            constructor here"
+                    .into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
         Expr::Coalesce { value, fallback } => {
             format!("{} ?? {}", ts_expr(out, value), ts_expr(out, fallback))
         }
@@ -3533,6 +3576,21 @@ fn java_inferred(value: &Expr) -> String {
 
 fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        Expr::RecordLit { ty, fields } => {
+            let rendered: Vec<String> = fields
+                .iter()
+                .map(|(name, value)| format!("{}: {}", out.field(name), java_expr(out, value)))
+                .collect();
+            let source = format!("{} {{ {} }}", out.name(ty), rendered.join(", "));
+            out.carried(&Unsupported {
+                construct: "building a record by naming its fields, which needs a \
+                            constructor here"
+                    .into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
         // Java spells it as a static call, and has to name the value twice to do it.
         Expr::Coalesce { value, fallback } => match nameable(value) {
             true => format!(
@@ -4248,6 +4306,14 @@ fn zig_carry(out: &mut Out, construct: &str, source: String) -> String {
 
 fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Zig names its fields with a leading dot, in any order.
+        Expr::RecordLit { ty, fields } => {
+            let rendered: Vec<String> = fields
+                .iter()
+                .map(|(name, value)| format!(".{} = {}", out.field(name), zig_expr(out, value)))
+                .collect();
+            format!("{}{{ {} }}", out.name(ty), rendered.join(", "))
+        }
         // Zig has the operator, and means exactly this by it.
         Expr::Coalesce { value, fallback } => format!(
             "{} orelse {}",
@@ -4570,6 +4636,34 @@ fn constructor_name(language: Language, owner: &str) -> String {
 /// Java is the one target here that overloads constructors; everywhere else a type has
 /// exactly one. The rest keep the names their source gave them and are reported, since
 /// a caller of `Thing(a, b)` has to be told what to write instead.
+/// A constructor body that builds and returns its own record, rewritten as the field
+/// assignments a receiver-taking constructor makes.
+///
+/// Only a body that is exactly that. A constructor which computes something first is
+/// not this shape, and turning it into one would be a guess about what the rest of it
+/// was for.
+fn receiver_assignments(method: &Function, record: &str) -> Option<Vec<Stmt>> {
+    let [Stmt::Return(Some(Expr::RecordLit { ty, fields }))] = method.body.as_slice() else {
+        return None;
+    };
+    if ty != record {
+        return None;
+    }
+    let receiver = method.receiver_binding.clone()?;
+    Some(
+        fields
+            .iter()
+            .map(|(name, value)| Stmt::Assign {
+                target: Expr::Field {
+                    of: Box::new(Expr::Name(receiver.clone())),
+                    name: name.clone(),
+                },
+                value: value.clone(),
+            })
+            .collect(),
+    )
+}
+
 fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Function> {
     let mut seen = false;
     let mut methods = record.methods.clone();
@@ -4593,14 +4687,29 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
                     method.receiver_binding = Some(receiver_word(out.language).to_string());
                 }
                 method.returns = None;
+                // A source that builds and returns its record — `Counter { value: 0,
+                // step }` — says the same thing a constructor here says by assigning
+                // through the receiver. Left as a return it is not a translation: an
+                // `__init__` that returns a value raises, and a Java constructor that
+                // returns one does not compile.
+                if let Some(assignments) = receiver_assignments(method, &record.name) {
+                    method.body = assignments;
+                }
             }
             // The other three have no constructor, only a habit: a plain function that
             // *returns* the type, which is the whole of what makes it one. It has no
-            // receiver — and the source's body, which assigns through one, therefore has
-            // nowhere to run. Saying so is the honest answer; writing `self.n = n`
-            // inside a function that binds no `self` is not.
+            // receiver, so a body that assigns through one has nowhere to run — writing
+            // `self.n = n` inside a function that binds no `self` would not be a
+            // translation.
+            //
+            // A body that does not assign through a receiver has somewhere to run: it
+            // already builds a value and returns it, which is the shape these three
+            // want. Throwing it away was a rule about receiver-assigning constructors
+            // applied to every constructor, and it discarded the one line a Rust
+            // constructor is made of.
             _ => {
-                if !method.body.is_empty() {
+                let assigns_through_a_receiver = method.receiver_binding.is_some();
+                if !method.body.is_empty() && assigns_through_a_receiver {
                     out.fidelity.notes.push(format!(
                         "`{}` has a constructor whose body assigns through a receiver; \
                          {} builds a value and returns it instead, so that body has no \
@@ -4608,8 +4717,10 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
                         record.name, out.language
                     ));
                 }
+                if assigns_through_a_receiver {
+                    method.body = Vec::new();
+                }
                 method.receiver_binding = None;
-                method.body = Vec::new();
                 method.returns = Some(Type::named(record.name.clone()));
             }
         }

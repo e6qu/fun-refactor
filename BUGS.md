@@ -76,6 +76,32 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B215: **a constructor body that builds and returns was thrown away for three
+  targets.** Rust, Go and Zig have no constructor, only a function that returns the
+  type, and the writer cleared the body for all three under a rule about bodies that
+  *assign through a receiver* — which a Rust constructor's does not. Its body already
+  builds a value and returns it, which is the shape those three want. Kept now when the
+  source's constructor took no receiver, and cleared with the same note as before when
+  it took one. The mirror case is also handled: a body that builds and returns becomes
+  field assignments for Python, Java and TypeScript, because an `__init__` that returns
+  a value raises and a Java constructor that returns one does not compile.
+
+- [x] B214: **an enum variant was read as a record.** `StopReason::Conditional { … }`
+  builds a tagged union, which no target here has, and writing the path through produced
+  Go that says `StopReason::Conditional{…}`. Caught by the round-trip sweep over the
+  tool's own source before it shipped; a struct literal whose type is a path is refused
+  as it was before B213.
+
+- [x] B213: **a Rust struct literal was not read at all.** `Counter { value: 0, step }`
+  is the one way Rust builds a record and the line every constructor is made of, and
+  nothing read it — so every constructor body came out as "not translated" in all five
+  targets. The IR gained a record literal with its fields still named, because four of
+  these languages construct one that way and two do not, and a positional list assembled
+  at read time would be in the source's declaration order — a fact about the source
+  rather than about any constructor a caller will call. Written exactly by Rust, Python,
+  Go and Zig; turned into field assignments inside a constructor for Java and
+  TypeScript, and reported elsewhere for those two.
+
 - [x] B212: **a Zig method that changed its own object did not compile.** Four of these
   languages hand a method a reference and let it assign through it. Zig hands it a
   value, and a value parameter there is const — so `pub fn bump(self: Counter)` with
