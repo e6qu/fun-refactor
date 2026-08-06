@@ -86,7 +86,7 @@
       <li>
         <strong>Derive the contract from the tree, before touching anything.</strong>
         <code>fr openapi --yaml &gt; contract.yaml</code>. This is the baseline, and it
-        is the step most teams have skipped — which is why the rewrite that follows has
+        is the step most teams have skipped, which is why the rewrite that follows has
         nothing to be wrong about.
       </li>
       <li>
@@ -156,8 +156,8 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
     <p>
       Derived from the tree, before the rewrite. Paths, methods and path parameters are
       exact, because they come from where the files sit. Schemas are as good as what the
-      source declared. Responses are <code>default</code> only — which status an
-      endpoint returns is a fact about its code rather than its declaration, and writing
+      source declared. Responses are <code>default</code> only. Which status an
+      endpoint returns is a fact about its code, not about its declaration, and writing
       <code>200</code> for everything would put fiction into the file you are about to
       diff against.
     </p>
@@ -198,7 +198,7 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
     <p style="margin-top:1rem">
       That is the claim the build holds to: the site data test asserts the two documents
       agree, so a translation that started dropping endpoints or reshaping paths would
-      fail the build rather than the page.
+      fail the build and not merely the page.
     </p>
 
     <h3>What it does <em>not</em> say</h3>
@@ -210,7 +210,7 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
     <p>
       So the baseline says what it could not read. A statement the tool carries whole is
       a statement it did not look inside, and a query parameter read in there is missing
-      from the document — which is why that note exists and why it counts. It is in the
+      from the document. That is why the note exists, and why it counts. It is in the
       <em>What it does not settle</em> pane above, and the count is the number to watch.
       A gap that announces itself is a gap you can close; a gap that does not is the
       thing this whole document exists to prevent.
@@ -226,7 +226,7 @@ const pets = await db.pet.findMany({
   …
 })</code></pre>
     <p>
-      <code>??</code> asks whether a value is absent, which is a question rather than an
+      <code>??</code> asks whether a value is absent, which is a question and not an
       arithmetic operator: Zig spells it <code>orelse</code>, Rust reaches for
       <code>Option::unwrap_or</code>, Java for a static method, Python has to name the
       value twice, and Go cannot say it at all. And <code>{ species }</code> is the
