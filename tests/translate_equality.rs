@@ -86,3 +86,47 @@ fn the_languages_that_already_agreed_are_untouched() {
         assert!(out.contains(expected), "{target}:\n{out}");
     }
 }
+
+#[test]
+fn zig_refuses_to_join_two_strings_rather_than_pretending() {
+    // Joining two slices in Zig means allocating, and the allocator is a parameter the
+    // function does not have — inventing one changes the signature every caller was
+    // written against. `a + b` on two slices is not something the compiler accepts, so
+    // it went out looking like the other four targets and not building.
+    //
+    // `@compileError` is a value anywhere one is expected, it says why in the
+    // compiler's own output, and it cannot be mistaken for code that works — which
+    // returning an empty slice quietly could. Zig has no block comment, so a marker
+    // beside the value would swallow the rest of the line.
+    let out = translated(
+        "pub fn join(a: String, b: String) -> String {\n    return a + b;\n}\n",
+        Language::Zig,
+    );
+    assert!(out.contains("@compileError("), "{out}");
+    assert!(out.contains("allocator"), "{out}");
+}
+
+#[test]
+fn zig_still_adds_two_numbers() {
+    let out = translated(
+        "pub fn add(a: i64, b: i64) -> i64 {\n    return a + b;\n}\n",
+        Language::Zig,
+    );
+    assert!(out.contains("return a + b;"), "{out}");
+    assert!(!out.contains("@compileError"), "{out}");
+}
+
+#[test]
+fn the_languages_that_join_strings_with_plus_are_untouched() {
+    // Java, Go, Python and TypeScript all concatenate with `+`. Only Zig does not.
+    let source = "pub fn join(a: String, b: String) -> String {\n    return a + b;\n}\n";
+    for target in [
+        Language::Java,
+        Language::Go,
+        Language::Python,
+        Language::TypeScript,
+    ] {
+        let out = translated(source, target);
+        assert!(out.contains("return a + b"), "{target}:\n{out}");
+    }
+}

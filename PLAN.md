@@ -1742,6 +1742,16 @@ same: what the *source declared*, parameters and typed locals and the arithmetic
 from them. Nothing is inferred, and a name nobody gave a type keeps the operator it
 was written with.
 
+**The fourth operator that map answers for is `+`.** Java, Go, Python and TypeScript
+all join two strings with it, and so did the source. Zig has no `+` for slices at all,
+because joining them means allocating and the allocator is a parameter the function does
+not have — inventing one changes the signature every caller was written against. So the
+operation is refused rather than guessed at, as an `@compileError` naming the reason.
+That is a value anywhere one is expected, it says why in the compiler's own output, and
+it cannot be mistaken for code that works — which returning an empty slice quietly
+could. Zig has no block comment, so the usual marker beside the value would have
+swallowed the rest of the line; the reparse guard said so on the first attempt.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
