@@ -339,8 +339,8 @@ written in advance would have looked for.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend, and every
-capability a language can meaningfully support is built: **263 of 368 capability ×
-language pairs supported, 105 not applicable, none refused.**
+capability a language can meaningfully support is built: **270 of 384 capability ×
+language pairs supported, 114 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, `fr capabilities` prints it with the reason
@@ -1943,7 +1943,48 @@ exception is a second place to remember, and second places to remember are what 
 test exists to catch. Verified in a fresh clone, where it now passes and still fails on a
 genuinely dead link.
 
+### `fr type`: what the source wrote down
+
+The first piece of the types tutorial, and a command worth having on its own. It answers
+one question — what type was this symbol *declared* with — and refuses to answer a
+different one.
+
+```
+$ fr type payments.py:16:1
+total  no type written down
+
+The source wrote no type here. That is the answer, not a gap in it —
+nothing above was inferred.
+```
+
+Nothing is inferred, and that is the whole of its usefulness here. `x = 5` has no
+declared type; answering `int` would be a different claim from the one the source made,
+and a tool that quietly fills the gap in cannot show the gap closing. A page about
+adding annotations needs a tool that can tell the difference between an annotation and a
+good guess.
+
+A callable reports the **signature**, because that is what a caller has to satisfy, with
+a marker where a parameter was left untyped:
+
+```
+$ fr type capture
+capture  (amount: Money, note: ?) -> Money
+```
+
+Where the type names something in the workspace, its definition is reported too. **In
+its own language**: the first version of this searched every symbol in the tree and sent
+a TypeScript binding to a Python class, because both were called `Money` and the Python
+one was indexed first. Two types that share a spelling are two types. Several candidates
+in one language is ambiguous and nothing is reported rather than picked — a definition
+the reader is sent to is a claim, and a coin toss is not one.
+
+Rust, Go, Zig, Java, TypeScript and Python have somewhere to write a type down and are
+supported; Bash, markup and configuration do not, and say so. The repository's own
+guardrails caught both of the things a new command tends to miss: `test_pyramid` refused
+a subcommand with no end-to-end test, and the capability matrix refused a command with a
+per-language answer that was not in the table.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
-`entrypoints`, `capabilities`, `cache`, `openapi`.
+`entrypoints`, `capabilities`, `cache`, `openapi`, `type`.

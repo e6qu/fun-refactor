@@ -48,6 +48,7 @@ fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
         "fr entrypoints",
         "fr stitch",
         "fr impact",
+        "fr type",
     ] {
         assert!(
             commands.iter().any(|c| c.starts_with(expected)),
