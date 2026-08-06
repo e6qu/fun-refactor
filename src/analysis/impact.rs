@@ -56,6 +56,13 @@ impl ImpactKind {
 pub struct Impact {
     pub symbol: SymbolId,
     pub items: Vec<Impacted>,
+    /// How many callers the depth limit stopped short of.
+    ///
+    /// A bound nobody is told about reads as a complete answer, and this is the command
+    /// a person uses to decide whether a change is safe. A five-deep call chain traced
+    /// three levels reported "affects 4 site(s)" and said nothing about the two it had
+    /// not looked at.
+    pub callers_beyond_the_depth_limit: usize,
 }
 
 impl Impact {
@@ -149,6 +156,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     }
 
     // Transitive callers, when the symbol is callable.
+    let mut callers_beyond_the_depth_limit = 0;
     if caller_depth > 0 && sym.kind.is_callable() {
         let graph = CallGraph::build(index);
         let trace = graph.trace(
@@ -156,6 +164,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
             crate::analysis::call_graph::Direction2::Callers,
             caller_depth,
         );
+        callers_beyond_the_depth_limit = trace.unexplored.len();
         for node in trace.nodes.iter().filter(|n| n.depth > 0) {
             let Some(caller) = index.symbol(node.symbol) else {
                 continue;
@@ -196,7 +205,11 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     items.sort_by(|a, b| (a.kind, &a.file, a.line, a.col).cmp(&(b.kind, &b.file, b.line, b.col)));
     items.dedup();
 
-    Ok(Impact { symbol, items })
+    Ok(Impact {
+        symbol,
+        items,
+        callers_beyond_the_depth_limit,
+    })
 }
 
 /// Render a human-readable report.
@@ -229,6 +242,15 @@ pub fn format_report(index: &Index, impact: &Impact) -> String {
         if certain.len() > 40 {
             out.push_str(&format!("  … and {} more\n", certain.len() - 40));
         }
+    }
+
+    if impact.callers_beyond_the_depth_limit > 0 {
+        out.push_str(&format!(
+            "\nThis is what the search reached, not everything there is: the caller \
+             depth stopped it at {} function(s) that are themselves called from \
+             elsewhere. Raise --caller-depth to see further.\n",
+            impact.callers_beyond_the_depth_limit
+        ));
     }
 
     let review = impact.needs_review();

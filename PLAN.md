@@ -1879,6 +1879,33 @@ which reaches twice as far before the limit.
 All four languages trace the whole chain, and the two directions are mirror images of
 each other again.
 
+### The count that was a bound
+
+`fr impact` walks backwards through callers to answer "what could a change to this
+break?". The walk stops at `--caller-depth`, which defaults to 3. Over a five-deep
+chain:
+
+```
+$ fr impact b.py:1:5
+l0 affects 4 site(s) across 1 file(s) and 1 language(s)
+
+Would definitely change (4):
+  …
+```
+
+Six sites; it found four and said four, as a fact. Two functions further up the chain
+were never looked at and never mentioned. This is the command whose whole purpose is
+telling you what you have not thought of.
+
+The tool already knows how to say this. `fr flow` reports "depth limit reached; more may
+lie beyond". The call-graph walk records cycles with a comment saying they are "reported
+rather than silently pruned" — and dropped the depth frontier on the floor three lines
+below it. The frontier is recorded the same way now, and both `fr impact` and the
+call-graph tree say what the bound excluded.
+
+Nothing is said when the walk finished, because a note nobody needs is how a note
+somebody needs gets missed — the same rule the `%` note follows.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

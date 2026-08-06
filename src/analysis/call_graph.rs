@@ -457,6 +457,7 @@ impl CallGraph {
         let mut nodes = Vec::new();
         let mut queue = VecDeque::new();
         let mut cycles = Vec::new();
+        let mut unexplored = Vec::new();
 
         queue.push_back((start, 0usize, None));
         visited.insert(start);
@@ -467,13 +468,20 @@ impl CallGraph {
                 depth,
                 caller: via,
             });
-            if depth >= max_depth {
-                continue;
-            }
             let next = match direction {
                 Direction2::Callers => self.callers(id),
                 Direction2::Callees => self.callees(id),
             };
+            if depth >= max_depth {
+                // A node the walk stopped at that still had edges is coverage this
+                // answer does not have. Recorded on the same footing as a cycle, and
+                // for the same reason: a bound nobody is told about reads as a
+                // complete answer.
+                if !next.is_empty() {
+                    unexplored.push(id);
+                }
+                continue;
+            }
             for (other, edge) in next {
                 if visited.insert(other) {
                     queue.push_back((other, depth + 1, Some((id, edge.confidence))));
@@ -485,11 +493,14 @@ impl CallGraph {
 
         cycles.sort();
         cycles.dedup();
+        unexplored.sort();
+        unexplored.dedup();
         TraceResult {
             start,
             direction,
             nodes,
             cycles,
+            unexplored,
         }
     }
 
@@ -651,6 +662,12 @@ pub struct TraceResult {
     pub nodes: Vec<TraceNode>,
     /// Edges that closed a cycle; reported rather than silently pruned.
     pub cycles: Vec<(SymbolId, SymbolId)>,
+    /// Nodes the depth limit stopped at that still had edges beyond them.
+    ///
+    /// The walk is bounded and the bound is a choice, so what it excluded is part of
+    /// the answer. Without this a five-deep chain traced three levels reported "affects
+    /// 4 site(s)" — a definite count of an incomplete search.
+    pub unexplored: Vec<SymbolId>,
 }
 
 impl TraceResult {
@@ -672,6 +689,13 @@ impl TraceResult {
         }
         if !self.cycles.is_empty() {
             out.push_str(&format!("\n{} cycle(s) detected\n", self.cycles.len()));
+        }
+        if !self.unexplored.is_empty() {
+            out.push_str(&format!(
+                "\nthe depth limit stopped the walk at {} node(s) that had more beyond \
+                 them; raise it to see further\n",
+                self.unexplored.len()
+            ));
         }
         out
     }
