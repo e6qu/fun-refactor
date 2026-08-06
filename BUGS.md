@@ -83,7 +83,11 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   to type is a command. A full browser pass over the deployed site found no defect — and
   found that finding one would have depended on somebody looking. Now four checks over
   the `docs/` tree, offline, with the command list asked of the parser rather than
-  written down beside it.
+  written down beside it. The first version of the link check failed in CI and was right
+  to: every page links to `playground/`, which Vite emits and which is not committed, so
+  it is present locally and on the published site and absent from a clean checkout. A
+  link into the frontend's build output is live by construction, and which directory that
+  is comes from the build's own `outDir` rather than a name written down again.
 
 - [x] B219: **`fr impact` reported a bounded search as a complete answer.** The caller
   walk stops at `--caller-depth`, which defaults to 3, and said nothing when it did — so

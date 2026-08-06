@@ -1933,6 +1933,16 @@ The command list is asked of the parser rather than written down beside it, so i
 drift from the thing it describes. Each check was confirmed to fail when the defect it
 names is introduced.
 
+**And the first version failed in CI, correctly.** Every page links to `playground/`,
+which Vite emits into `docs/playground` and which is not committed — so it is there on
+my machine, there on the published site, and absent from a clean checkout. The check was
+right that the directory was missing and wrong about what that meant. A link into the
+frontend's build output is live by construction, and *which* directory that is comes from
+the build's own `outDir` rather than a name written down again here: a hardcoded
+exception is a second place to remember, and second places to remember are what this
+test exists to catch. Verified in a fresh clone, where it now passes and still fails on a
+genuinely dead link.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

@@ -68,6 +68,47 @@ fn ids(html: &str) -> Vec<String> {
     out
 }
 
+/// Is this path something the frontend build writes rather than something in the tree?
+///
+/// The playground is emitted by Vite and is not committed, so on a clean checkout every
+/// link to it points at a directory that is not there — while being perfectly live on
+/// the published site. Read from the build's own `outDir` rather than written down
+/// here: a hardcoded exception is a second place to remember, and this test exists
+/// because second places to remember are how a site rots.
+fn built_by_the_frontend(path: &Path) -> bool {
+    let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("web/vite.config.ts");
+    let Ok(text) = std::fs::read_to_string(&config) else {
+        return false;
+    };
+    let Some(at) = text.find("outDir:") else {
+        return false;
+    };
+    let rest = &text[at + "outDir:".len()..];
+    let Some(open) = rest.find('"') else {
+        return false;
+    };
+    let Some(close) = rest[open + 1..].find('"') else {
+        return false;
+    };
+    let out_dir = &rest[open + 1..open + 1 + close];
+    // The path is written relative to `web/`.
+    let built = config
+        .parent()
+        .expect("web/")
+        .join(out_dir)
+        .components()
+        .fold(PathBuf::new(), |mut acc, component| {
+            match component {
+                std::path::Component::ParentDir => {
+                    acc.pop();
+                }
+                other => acc.push(other),
+            }
+            acc
+        });
+    path.starts_with(&built)
+}
+
 #[test]
 fn every_internal_link_goes_somewhere() {
     let mut broken = Vec::new();
@@ -87,7 +128,9 @@ fn every_internal_link_goes_somewhere() {
             }
             let base = docs().join(&name);
             let resolved = base.parent().expect("a parent").join(target);
-            let exists = resolved.exists() || resolved.join("index.html").exists();
+            let exists = resolved.exists()
+                || resolved.join("index.html").exists()
+                || built_by_the_frontend(&resolved);
             if !exists {
                 broken.push(format!("{name} -> {reference}"));
             }
