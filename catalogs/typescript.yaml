@@ -49,3 +49,15 @@
   matches:
     name_suffix: Handler
     exported: true
+
+# A Next.js server action: an exported function the framework makes reachable over the
+# network, called by nothing in the source. The same case as Java's `@RestController` and
+# pytest's fixtures — and unlike Next.js's other conventions it is not a filename, so no
+# `file_name` rule can find it. `components/cart/actions.ts` is an ordinary name.
+- id: ts-nextjs-server-action
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    file_directive: use server
+    exported: true

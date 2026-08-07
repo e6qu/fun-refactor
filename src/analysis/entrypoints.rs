@@ -158,6 +158,15 @@ pub struct Matcher {
     /// `cli()` reported no entry point whatsoever.
     #[serde(default)]
     pub called_from_main_guard: Option<bool>,
+    /// A directive at the top of the file, or at the top of the symbol's own body.
+    ///
+    /// `"use server"` marks a Next.js server action: an exported function the framework
+    /// makes reachable over the network, called by nothing in the source. It is the same
+    /// case as Java's `@RestController` and pytest's fixtures, and unlike Next.js's other
+    /// conventions it is not a filename — `components/cart/actions.ts` is an ordinary
+    /// name, so no `file_name` rule can find it.
+    #[serde(default)]
+    pub file_directive: Option<String>,
 }
 
 /// A detected entry point.
@@ -318,7 +327,8 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
         || m.file_suffix.is_some()
         || m.file_prefix.is_some()
         || m.annotated_with.is_some()
-        || m.called_from_main_guard.is_some();
+        || m.called_from_main_guard.is_some()
+        || m.file_directive.is_some();
     if !has_condition {
         return false;
     }
@@ -370,6 +380,11 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
     }
     if let Some(wanted) = m.called_from_main_guard {
         if called_from_main_guard(symbol) != wanted {
+            return false;
+        }
+    }
+    if let Some(directive) = &m.file_directive {
+        if !under_directive(symbol, directive) {
             return false;
         }
     }
@@ -517,6 +532,41 @@ fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
         stack.extend(node.named_children(&mut cursor));
     }
     names
+}
+
+/// Is this symbol under a directive — at the top of its file, or of its own body?
+///
+/// Both forms are real. `"use server"` at the top of a file makes every export in it a
+/// server action; the same string at the top of one function body marks only that one.
+/// Quoted either way, and the first statement either way, which is what keeps a mention
+/// of the words in a comment or a string from counting.
+fn under_directive(symbol: &Symbol, directive: &str) -> bool {
+    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
+        return false;
+    };
+    let quoted = |line: &str| {
+        let trimmed = line.trim().trim_end_matches(';').trim();
+        trimmed == format!("\"{directive}\"") || trimmed == format!("'{directive}'")
+    };
+    // At the top of the file, past any leading comments and blank lines.
+    let leading = source
+        .lines()
+        .find(|line| {
+            let t = line.trim();
+            !t.is_empty() && !t.starts_with("//") && !t.starts_with("/*") && !t.starts_with('*')
+        })
+        .unwrap_or_default();
+    if quoted(leading) {
+        return true;
+    }
+    // Or at the top of this symbol's own body.
+    let start = symbol.full_span.start.min(source.len());
+    let end = symbol.full_span.end.min(source.len());
+    source[start..end]
+        .lines()
+        .skip(1)
+        .find(|line| !line.trim().is_empty())
+        .is_some_and(quoted)
 }
 
 /// Does this fragment name the annotation, whatever punctuation surrounds it?

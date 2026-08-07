@@ -2348,6 +2348,42 @@ noticed and the entry retired. And a grammar that starts reading one of these *w
 an error node while still building the wrong tree would be worse than the error — a wrong
 answer with nothing to say it is one.
 
+### An application, not a library
+
+The three repositories so far were a tool, a framework and a formatter — clean codebases
+that call their own functions. An application is where a framework calls them instead,
+and that is a different question. So: `vercel/commerce`, a real Next.js App Router shop.
+
+`fr openapi` reads its one API route correctly, `POST /revalidate`, which is the contract
+page's claim tested against something nobody wrote for it.
+
+**The interesting part was the API surface that has no URL.** Modern Next.js moved it
+from route files to *server actions*: an exported function in a file beginning
+`"use server"`, which the framework makes reachable over the network. Nothing in the
+source calls it.
+
+```
+$ fr unused
+function  addItem     exported  components/cart/actions.ts
+function  removeItem  exported  components/cart/actions.ts
+```
+
+Five live network endpoints, reported as having no detected use. It is precisely the case
+the catalogue already handles for Java's `@RestController` and pytest's fixtures — and it
+was missed because every other Next.js rule matches a **filename**. `page.tsx`,
+`layout.tsx`, `route.ts` are conventions you can pattern-match; a server action lives in a
+file called whatever you like, and here it is `components/cart/actions.ts`.
+
+Catalogs gained `file_directive`, which reads the first statement of a file *or* of a
+function body, because both spellings are real: at the top of a file it marks every
+export, at the top of one body it marks only that one. A mention of the words in a
+comment is neither.
+
+This is the second predicate in the catalogue that is not a property of a name — the
+first was Python's `__main__` guard. Both arrived the same way: a framework convention
+that a name rule cannot see, found by running the tool on code written for the framework
+rather than for the tool.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
