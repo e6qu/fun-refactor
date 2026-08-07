@@ -111,11 +111,14 @@ enum Command {
         #[arg(long)]
         first: bool,
     },
-    /// Show the type a symbol was declared with, as the source wrote it.
+    /// Show a symbol's type: what the source declared, or what follows from what it did.
     ///
-    /// Nothing is inferred. A binding with no annotation is reported as having none,
-    /// because "no type here" and "int" are different answers and only one of them is
-    /// something the source said.
+    /// The two are reported separately and never merged, because "the source said `int`"
+    /// and "this holds an `int`" are different answers. A declared type is a contract. An
+    /// inferred one is a derivation, shown with the evidence it was drawn from — a
+    /// literal, a constructor call, the binding it was assigned from — so a reader can
+    /// judge it. Where neither is available the answer is that there is no type written
+    /// down, which is also different from both.
     Type {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
