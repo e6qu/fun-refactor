@@ -609,6 +609,21 @@ mod tests {
             .filter(|w| w.kind == WarningKind::TextualOccurrence)
             .collect();
         assert_eq!(textual.len(), 1, "got {textual:?}");
+
+        // *Which* one, which is the whole question here. Counting alone passes if the
+        // sweep matched `helperful` and missed the bare `helper` — the behaviour this
+        // test is named for, exactly backwards, with the same number of findings.
+        let found = textual[0];
+        let column = src
+            .lines()
+            .nth(found.line - 1)
+            .map(|line| &line[found.col - 1..])
+            .unwrap_or_default();
+        assert!(
+            column.starts_with("helper is"),
+            "the textual sweep matched `{}` instead of the standalone word",
+            column.split_whitespace().next().unwrap_or("")
+        );
     }
 
     #[test]

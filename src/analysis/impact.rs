@@ -343,6 +343,16 @@ mod tests {
             .collect();
         assert_eq!(cross.len(), 2, "got {cross:?}");
 
+        // And which two. The count alone is satisfied by any pair — including the CSS
+        // definition itself mislabelled, with the TSX missed entirely, which is the
+        // failure this query exists to make impossible.
+        let mut from: Vec<&str> = cross
+            .iter()
+            .filter_map(|i| i.file.file_name().and_then(|n| n.to_str()))
+            .collect();
+        from.sort();
+        assert_eq!(from, ["App.tsx", "index.html"], "got {cross:?}");
+
         // Three languages in one answer.
         assert!(
             impact.languages().len() >= 2,
