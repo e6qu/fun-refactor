@@ -28,24 +28,16 @@ jobs:
       # build is minutes rather than seconds.
       - uses: Swatinem/rust-cache@v2
 
-      - name: Formatting
-        run: cargo fmt --all --check
-
-      - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: Tests
-        run: cargo test --all-targets
-
-      # The browser API is a different feature set and used to be checked only by the
-      # playground job, which needs a wasm toolchain and takes four times as long. A
-      # struct field missed at one of six call sites in `src/wasm.rs` passed clippy and
-      # the whole test suite, because neither compiles that file. It does now.
-      - name: Clippy, with the browser API compiled in
-        run: cargo clippy --all-targets --features wasm -- -D warnings
-
-      - name: Tests, with the browser API compiled in
-        run: cargo test --all-targets --features wasm
+      # Formatting, clippy and the tests, on the default feature set and again with
+      # the browser API compiled in — the latter because it is a feature set neither
+      # default clippy nor the default test run touches, and a struct field missed at
+      # one of six call sites in `src/wasm.rs` once passed both.
+      #
+      # The commands live in the script so that running it locally and passing here
+      # mean the same thing. Listing them twice let a branch be green on a laptop and
+      # rejected on push, which is how this arrangement was arrived at.
+      - name: Check
+        run: ./tools/check.sh
 
   # The site's playground is a WebAssembly build plus a Vite bundle, and it is
   # published by a workflow that only runs on main. Without this, a pull request goes

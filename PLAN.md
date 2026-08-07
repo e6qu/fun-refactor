@@ -2474,6 +2474,20 @@ reported its handler as having no detected use. That is the same shape as the
 enum-variant struct literals in B214 — output that is not valid input — and again what
 was missing was any check that the two ends agree.
 
+### One definition of passing
+
+The branch above was pushed green and rejected: `cargo fmt --all --check` is one of the
+`check` job's steps and was not one of the commands run locally. Nothing was wrong with
+either set of commands — the problem was that there were two sets. The workflow listed
+formatting, clippy and the tests as separate steps, and no single command ran them, so
+"I checked it" meant whichever subset came to mind.
+
+`tools/check.sh` holds them and the workflow calls the script, which makes drift
+impossible rather than unlikely. It includes the wasm feature set, which neither default
+clippy nor the default test run compiles — the same reason those two steps were added to
+CI in the first place, after a struct field missed at one of six call sites in
+`src/wasm.rs` passed both.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

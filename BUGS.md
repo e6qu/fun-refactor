@@ -110,6 +110,14 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B241: **passing locally and passing in CI meant different things.** The `check` job
+  listed formatting, clippy and the tests as separate steps, and there was no single
+  command that ran them. A local pass over a subset — clippy and the tests but not
+  `cargo fmt --all --check` — reported green for a branch CI then rejected, which is
+  exactly what happened to the change above. `tools/check.sh` holds the commands and the
+  workflow calls it, so the two cannot drift; the wasm feature set, which neither default
+  clippy nor the default test run compiles, is part of it.
+
 - [x] B240: **entry-point detection read every file once per rule.** Three of the matcher's
   predicates need the file's text, and each asked for it independently, so the whole file
   was read and allocated once for every rule in the catalogue that reached it. It went

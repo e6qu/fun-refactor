@@ -145,6 +145,10 @@ exactly — including inside an extracted expression.
 cargo install --path .
 ```
 
+`./tools/check.sh` runs everything CI runs — formatting, clippy and the tests, on the
+default feature set and again with the browser API compiled in. CI calls the same
+script, so passing locally and passing there mean the same thing.
+
 ## Third-party material
 
 `vendor/` holds the upstream tree-sitter query files the rules in `queries/` were
