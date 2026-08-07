@@ -2533,6 +2533,53 @@ and losing it would have cost far more than the overclaim was worth. What it doe
 60 of black's 881 exact edges, 67 of vuejs/core's 2384, 586 of helm's 4727. Those are now
 reported for review rather than rewritten unasked, which is what the tiers are for.
 
+### The fix that did not reach its own twin
+
+The obvious question about the above is whether stronger typing would have made it
+impossible, and asking it found that the fix was incomplete.
+
+`resolve_one` returned `(Option<SymbolId>, Confidence)`. The tier is a claim about *how*
+an answer was reached, but the type only stores it alongside the answer, so twenty-eight
+branches each attach one by hand and nothing connects a tier to the evidence for it. Two
+of those branches held the same belief — one definition of a name means "there is nothing
+to be wrong about" — and only one of them had been corrected. With the call written inside
+the declaring class, the step above still resolved `client.total()` by lexical scope and
+still rewrote it:
+
+```
+$ fr rename total sum          # after the previous fix
+-        return client.total()
++        return client.sum()
+```
+
+Both branches were right that uniqueness is evidence, and wrong about what it is evidence
+*for*. It is evidence about a name. A member access is a question about a receiver, and
+the workspace does not contain every type — a `boto3` client and an `aws-sdk` instance
+have members this tool has never seen.
+
+So the rule moved out of the branches. `resolve_one` now resolves and then caps what the
+answer may claim; `resolve_by_evidence` holds the twenty-eight branches and no longer
+decides. Three receivers stay known — `this`/`self`, a module path, an import binding —
+because each names something the source declared. Any future branch returning `Exact` for
+a member access is capped whether or not its author thought about receivers, which is the
+difference between a rule and a habit.
+
+This is less "parse, don't validate" — nothing here is a boundary parsing untrusted input
+— than the neighbouring idea: a value that cannot be constructed unless the thing it
+claims is true. The codebase already has one done properly. `EdgeOrigin::Hierarchy(basis)`
+carries its justification *inside* the variant, so a dispatch edge cannot exist without a
+basis and a resolved edge cannot carry one; there is no pairing to get wrong. `Confidence`
+is the opposite shape, one label reachable from twenty-eight unrelated derivations, and
+the cap is the cheapest thing that restores the property without rewriting all of them.
+
+The same pair permits `(None, Exact)` — "I cannot say what this refers to, and I am
+certain" — which is what the `resolved.is_some() && confidence.is_safe_to_rewrite()` in
+`call_graph` is defending against. No branch produces it. That is now asserted over whole
+workspaces instead of by reading the branches, because reading the branches is what missed
+the receiver overclaim twice.
+
+### The list of commands
+
 The smallest finding of the three was the closing list of commands below, which named 28
 of 32: `usages`, `implementations`, `recipe` and `translate` had all shipped without
 reaching it. A summary line is never wrong about what it says, only about what it leaves

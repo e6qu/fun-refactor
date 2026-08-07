@@ -110,6 +110,26 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B245: **the same overclaim, one branch up — and B243's fix did not reach it.** Step 1
+  settles a name by lexical scope, and let itself settle a *member* access too whenever
+  only one member in the workspace had that name, reasoning in its comment that there is
+  then "nothing to be wrong about". There is: the workspace does not contain every type.
+  With the call written inside the declaring class, `client.total()` on an unannotated
+  parameter was still `exact` and still rewritten after B243. The two branches held the
+  same belief and fixing one left the other, which is what a rule kept at its use sites
+  does — there are twenty-eight places in the resolver pairing a symbol with a tier, and
+  each is a chance to disagree with the others. The rule now lives in one place:
+  `resolve_one` resolves, then caps what the answer may claim, and the branches below it
+  no longer decide. Three receivers stay known — `this`/`self`, a module path, and an
+  import binding — because each names something the source declared. A further 26 of
+  black's exact edges and 77 of vuejs/core's move to field-based, on top of B243's.
+
+  The related illegal state, `(None, Exact)` — "I cannot say what this is, and I am
+  certain" — is representable in the same pair and is what `call_graph.rs`'s
+  `resolved.is_some() && confidence.is_safe_to_rewrite()` is guarding against. No branch
+  produces it. That is now asserted over whole workspaces rather than by reading the
+  branches, since reading the branches is what missed the receiver overclaim twice.
+
 - [x] B243: **a member access claimed to know a receiver it had never seen.** A single
   definition of a name in a file resolved any use of that name to it, at `Exact` — and
   that rule did not exclude member accesses. So one class declaring `total` made
