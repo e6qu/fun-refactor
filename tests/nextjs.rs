@@ -443,3 +443,43 @@ fn the_baseline_never_invents_a_response() {
         baseline.notes
     );
 }
+
+/// The tool's own output, read back by the tool.
+///
+/// A translated route is a FastAPI module whose handlers the framework calls and the
+/// source never does. Before the catalogue knew what `@router.get` meant, every handler
+/// this command emitted came back from `fr unused` as having no detected use — output
+/// that was not valid input, with nothing checking that the two ends agreed.
+#[test]
+fn every_handler_this_command_emits_is_an_entry_point() {
+    use fun_refactor::analysis::entrypoints::{Catalog, EntryKind};
+    use fun_refactor::index::Index;
+    use fun_refactor::scan::ScanOptions;
+
+    let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
+    let source = root.join("app/api/users/[id]/route.ts");
+    let plan = nextjs::plan(&source).expect("a route translates");
+
+    // Only the emitted module: the TypeScript it came from would answer for itself.
+    let out = workspace(&[]);
+    std::fs::write(out.1.join("users_id.py"), &plan.output).expect("the translation");
+
+    let index = Index::build(&out.1, &ScanOptions::default()).expect("an index");
+    let routes: Vec<_> = Catalog::builtin()
+        .expect("the built-in catalogs")
+        .detect(&index)
+        .into_iter()
+        .filter(|e| e.kind == EntryKind::HttpRoute)
+        .filter_map(|e| index.symbol(e.symbol).map(|s| s.name.clone()))
+        .collect();
+
+    for method in &plan.methods {
+        let name = method.to_lowercase();
+        assert!(
+            routes.contains(&name),
+            "this command emitted `{name}` under a route decorator and the catalogue \
+             does not see it as an entry point, so `fr unused` calls it dead:\n{}",
+            plan.output
+        );
+    }
+}

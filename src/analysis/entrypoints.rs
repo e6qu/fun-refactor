@@ -167,6 +167,15 @@ pub struct Matcher {
     /// name, so no `file_name` rule can find it.
     #[serde(default)]
     pub file_directive: Option<String>,
+    /// The annotation's first string argument must start with this.
+    ///
+    /// A decorator's name is not unique across libraries: `@patch` is `unittest.mock`'s
+    /// far more often than it is FastAPI's. What separates them is what the decorator
+    /// names — a URL path or a module — so a route rule asks for the path.
+    ///
+    /// Only meaningful alongside `annotated_with`, and rejected without it.
+    #[serde(default)]
+    pub annotation_argument_prefix: Option<String>,
 }
 
 /// A detected entry point.
@@ -199,6 +208,25 @@ const BUILTIN: &[(&str, &str)] = &[
     ("markup", include_str!("../../catalogs/markup.yaml")),
 ];
 
+/// Reject a rule that cannot mean what it says.
+///
+/// `deny_unknown_fields` catches a misspelled key; this catches a well-spelled one in a
+/// combination that has no meaning. Such a rule would parse, load, and match nothing —
+/// which reads exactly like a framework that is covered and simply absent.
+fn check_rules(rules: &[Rule]) -> Result<()> {
+    for rule in rules {
+        if rule.matches.annotation_argument_prefix.is_some()
+            && rule.matches.annotated_with.is_none()
+        {
+            anyhow::bail!(
+                "rule '{}' asks for an annotation argument without naming the annotation",
+                rule.id
+            );
+        }
+    }
+    Ok(())
+}
+
 impl Catalog {
     /// Load the built-in catalogs.
     pub fn builtin() -> Result<Self> {
@@ -206,6 +234,7 @@ impl Catalog {
         for (name, yaml) in BUILTIN {
             let parsed: Vec<Rule> = serde_yaml::from_str(yaml)
                 .with_context(|| format!("parsing built-in catalog '{name}'"))?;
+            check_rules(&parsed).with_context(|| format!("built-in catalog '{name}'"))?;
             rules.extend(parsed);
         }
         Ok(Catalog { rules })
@@ -223,6 +252,7 @@ impl Catalog {
             let text = crate::vfs::read_to_string(&path)?;
             let parsed: Vec<Rule> = serde_yaml::from_str(&text)
                 .with_context(|| format!("parsing catalog {}", path.display()))?;
+            check_rules(&parsed).with_context(|| format!("catalog {}", path.display()))?;
             added += parsed.len();
             self.rules.extend(parsed);
         }
@@ -232,9 +262,22 @@ impl Catalog {
     /// Find every entry point in an index.
     pub fn detect(&self, index: &Index) -> Vec<Entrypoint> {
         let mut found = Vec::new();
+        // One read per symbol rather than one per rule. Three of the predicates below
+        // need the file's text, and asking each of them separately read the whole file
+        // once for every rule in the catalogue — on `vuejs/core`, 34,611 symbols against
+        // the rules that apply to TypeScript, which doubled the time this command takes.
+        // The index groups a file's symbols together, so remembering the last one is
+        // enough; a file that cannot be read is retried rather than remembered.
+        let mut cached: Option<(std::path::PathBuf, String)> = None;
         for symbol in &index.symbols {
+            if cached.as_ref().is_none_or(|(path, _)| path != &symbol.file) {
+                cached = crate::vfs::read_to_string(&symbol.file)
+                    .ok()
+                    .map(|text| (symbol.file.clone(), text));
+            }
+            let source = cached.as_ref().map(|(_, text)| text.as_str());
             for rule in &self.rules {
-                if rule_applies(rule, symbol) {
+                if rule_applies(rule, symbol, source) {
                     found.push(Entrypoint {
                         symbol: symbol.id,
                         kind: rule.kind,
@@ -301,7 +344,7 @@ impl Entrypoints {
     }
 }
 
-fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
+fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
     if !rule
         .languages
         .iter()
@@ -374,17 +417,22 @@ fn rule_applies(rule: &Rule, symbol: &Symbol) -> bool {
         }
     }
     if let Some(annotation) = &m.annotated_with {
-        if !annotated_with(symbol, annotation) {
+        let Some(written) = source.and_then(|text| annotation_in(text, symbol, annotation)) else {
             return false;
+        };
+        if let Some(prefix) = &m.annotation_argument_prefix {
+            if !annotation_argument_starts_with(&written, prefix) {
+                return false;
+            }
         }
     }
     if let Some(wanted) = m.called_from_main_guard {
-        if called_from_main_guard(symbol) != wanted {
+        if source.is_some_and(|text| called_from_main_guard(text, symbol)) != wanted {
             return false;
         }
     }
     if let Some(directive) = &m.file_directive {
-        if !under_directive(symbol, directive) {
+        if !source.is_some_and(|text| under_directive(text, symbol, directive)) {
             return false;
         }
     }
@@ -430,38 +478,85 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// Public because a recipe's `annotated-with=` predicate is the same question, and the
 /// point of reusing the matcher is that the two cannot drift apart.
 pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
-    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
-        return false;
-    };
+    annotation_on(symbol, name).is_some()
+}
 
+/// The annotation's own text, so a caller can ask about its arguments as well as its
+/// name. [`annotated_with`] is this question with the answer thrown away.
+pub fn annotation_on(symbol: &Symbol, name: &str) -> Option<String> {
+    annotation_in(
+        &crate::vfs::read_to_string(&symbol.file).ok()?,
+        symbol,
+        name,
+    )
+}
+
+/// [`annotation_on`] against source already in hand, so a caller checking many rules
+/// against one symbol reads its file once.
+fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
     // Inside the declaration: everything from its start up to the name it declares.
     let start = symbol.full_span.start.min(source.len());
     let up_to_name = symbol.name_span.start.clamp(start, source.len());
-    if source[start..up_to_name]
+    if let Some(piece) = source[start..up_to_name]
         .split('@')
         .skip(1)
-        .any(|piece| names_the_annotation(piece, name))
+        .find(|piece| names_the_annotation(piece, name))
     {
-        return true;
+        return Some(piece.to_string());
     }
 
+    // What sits before the symbol on its own line is part of the declaration, not a line
+    // before it: `export class C` and `pub async fn f` put a modifier there, and reading
+    // it as a preceding line ended the run before it reached the annotation above. So the
+    // search starts at the beginning of the declaration's line.
+    //
+    // Unless that text opens or closes something, in which case the symbol is nested in
+    // whatever the annotation above actually annotates, and does not carry it: the
+    // `payload` in `@KafkaListener void consume(String payload)` is not a queue consumer,
+    // and the `inner` in `fn outer() { fn inner()` is not `outer`'s `#[test]`.
+    let before = &source[..start];
+    let partial = before.rsplit_once('\n').map_or(before, |(_, tail)| tail);
+    if partial.contains(['{', ';', '}', '(']) {
+        return None;
+    }
+    let before = &before[..before.len() - partial.len()];
+
     // Above it: the unbroken run of annotation and comment lines before it.
-    for line in source[..start].lines().rev() {
+    for line in before.lines().rev() {
         let line = line.trim();
         if line.is_empty()
             || line.starts_with("//")
             || line.starts_with('#')
             || line.starts_with('@')
         {
-            if names_the_annotation(line.trim_start_matches(['#', '[', '@']), name) {
-                return true;
+            let bare = line.trim_start_matches(['#', '[', '@']);
+            if names_the_annotation(bare, name) {
+                return Some(bare.to_string());
             }
             continue;
         }
         // Anything else ends the run of annotations.
         break;
     }
-    false
+    None
+}
+
+/// Does this annotation's first string argument start with `prefix`?
+///
+/// A decorator's *name* is not unique across libraries. `@patch` is `unittest.mock`'s
+/// far more often than it is FastAPI's, and matching the name alone tagged twenty-two
+/// of `psf/black`'s test methods as remotely reachable HTTP routes. What separates the
+/// two is the argument: a route decorator names a URL path, and a mock names a module.
+///
+/// A path held in a constant — `@app.get(PETS)` — is not matched. That is a real gap
+/// rather than a hidden one: the rule asks for something it can read, and says so.
+fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
+    let Some((_, args)) = annotation.split_once('(') else {
+        return false;
+    };
+    args.trim_start()
+        .strip_prefix(['"', '\''])
+        .is_some_and(|literal| literal.starts_with(prefix))
 }
 
 /// Is this symbol called from its module's `if __name__ == "__main__":` block?
@@ -475,18 +570,15 @@ pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
 /// Direct calls only: `cli()` inside the guard, not a call made by something the guard
 /// calls. The second is reachability, which the call graph answers, and folding it in
 /// here would tag half a program as an entry point.
-fn called_from_main_guard(symbol: &Symbol) -> bool {
+fn called_from_main_guard(source: &str, symbol: &Symbol) -> bool {
     if symbol.language != Language::Python || symbol.container.is_some() {
         return false;
     }
-    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
-        return false;
-    };
     // Cheap first: no guard in the file means no parse.
     if !source.contains("__main__") {
         return false;
     }
-    let Ok(parsed) = crate::parse::Parsers::new().parse(Language::Python, &source) else {
+    let Ok(parsed) = crate::parse::Parsers::new().parse(Language::Python, source) else {
         return false;
     };
 
@@ -506,7 +598,7 @@ fn called_from_main_guard(symbol: &Symbol) -> bool {
         let Some(body) = statement.child_by_field_name("consequence") else {
             continue;
         };
-        called |= calls_by_name(body, &source).contains(&symbol.name);
+        called |= calls_by_name(body, source).contains(&symbol.name);
     }
     called
 }
@@ -540,10 +632,7 @@ fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
 /// server action; the same string at the top of one function body marks only that one.
 /// Quoted either way, and the first statement either way, which is what keeps a mention
 /// of the words in a comment or a string from counting.
-fn under_directive(symbol: &Symbol, directive: &str) -> bool {
-    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
-        return false;
-    };
+fn under_directive(source: &str, symbol: &Symbol, directive: &str) -> bool {
     let quoted = |line: &str| {
         let trimmed = line.trim().trim_end_matches(';').trim();
         trimmed == format!("\"{directive}\"") || trimmed == format!("'{directive}'")
@@ -573,17 +662,21 @@ fn under_directive(symbol: &Symbol, directive: &str) -> bool {
 ///
 /// `#[tokio::test]`, `@pytest.mark.asyncio` and `@org.junit.jupiter.api.Test` all end
 /// in the bare name, so the qualification is dropped and the arguments with it.
+///
+/// The arguments go first and the qualifier second, because the arguments may contain
+/// dots of their own: `@GetMapping(Routes.PETS)` and `@app.route("/v1.0/status")` name
+/// `GetMapping` and `route`, not `PETS` and `0/status")`.
 fn names_the_annotation(fragment: &str, name: &str) -> bool {
-    let bare = fragment
+    // Whitespace ends the name as surely as a bracket does: inside a Java declaration
+    // the annotation is followed by a newline and the modifiers, not by a delimiter.
+    fragment
         .trim()
         .trim_start_matches(['#', '[', '@'])
+        .split(|c: char| c.is_whitespace() || c == '(' || c == '<')
+        .next()
+        .unwrap_or_default()
         .trim_end_matches([']', ')'])
         .rsplit(['.', ':'])
-        .next()
-        .unwrap_or_default();
-    // Whitespace ends it as surely as a bracket does: inside a Java declaration the
-    // annotation is followed by a newline and the modifiers, not by a delimiter.
-    bare.split(|c: char| c.is_whitespace() || c == '(' || c == '<')
         .next()
         .unwrap_or_default()
         == name
@@ -716,7 +809,7 @@ mod tests {
         };
         let (_tmp, index) = workspace(&[("a.rs", "fn whatever() {}\n")]);
         let symbol = &index.symbols[0];
-        assert!(!rule_applies(&rule, symbol));
+        assert!(!rule_applies(&rule, symbol, Some("fn whatever() {}\n")));
     }
 
     #[test]

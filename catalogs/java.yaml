@@ -88,3 +88,101 @@
   languages: [java]
   matches:
     annotated_with: Override
+
+# Spring's method-level mappings. `@RequestMapping` above already covers the general
+# form, but modern code writes the specific one, and those were reaching nothing.
+- id: java-spring-get-mapping
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: GetMapping
+
+- id: java-spring-post-mapping
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: PostMapping
+
+- id: java-spring-put-mapping
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: PutMapping
+
+- id: java-spring-patch-mapping
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: PatchMapping
+
+- id: java-spring-delete-mapping
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: DeleteMapping
+
+# Reached when a request fails rather than when one arrives, but still reached by
+# a remote caller and still never called from the source.
+- id: java-spring-exception-handler
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: ExceptionHandler
+
+# The container calls these on a timer.
+- id: java-spring-scheduled
+  kind: scheduled-job
+  threat_model: local
+  languages: [java]
+  matches:
+    annotated_with: Scheduled
+
+# Broker and event-bus consumers.
+- id: java-spring-event-listener
+  kind: queue-consumer
+  threat_model: local
+  languages: [java]
+  matches:
+    annotated_with: EventListener
+
+- id: java-kafka-listener
+  kind: queue-consumer
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: KafkaListener
+
+- id: java-rabbit-listener
+  kind: queue-consumer
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: RabbitListener
+
+- id: java-jms-listener
+  kind: queue-consumer
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: JmsListener
+
+# Lifecycle callbacks: the container calls them around construction and shutdown.
+- id: java-post-construct
+  kind: exported-api
+  threat_model: none
+  languages: [java]
+  matches:
+    annotated_with: PostConstruct
+
+- id: java-pre-destroy
+  kind: exported-api
+  threat_model: none
+  languages: [java]
+  matches:
+    annotated_with: PreDestroy

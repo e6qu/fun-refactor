@@ -2384,6 +2384,110 @@ first was Python's `__main__` guard. Both arrived the same way: a framework conv
 that a name rule cannot see, found by running the tool on code written for the framework
 rather than for the tool.
 
+### Asking the same question of every framework at once
+
+Two findings in a row had come from a repository happening to use a convention the
+catalogue missed. That is a slow way to find them, so the next pass asked the question
+directly instead: for each framework the catalogues claim to cover, what does the
+framework call that the source never does, and can a name rule see it?
+
+The first answer was embarrassing. This project has a page devoted to porting Next.js
+routes to FastAPI, and a FastAPI route handler was dead code:
+
+```
+$ fr unused
+function  list_pets   exported  api.py
+function  create_pet  exported  api.py
+function  send_email  exported  celery_tasks.py
+```
+
+Flask, Celery, Django signal receivers and eight Spring callbacks answered the same way.
+Java showed why it had gone unnoticed: the catalogue covered `@RestController` and
+`@RequestMapping`, so from the class down the coverage looked complete, and the
+method-level `@GetMapping` family that modern code actually writes reached nothing.
+
+Flask hid it differently, by accident. `@app.route("/health")` above `def health` spells
+the symbol's own name in a string literal, and `fr unused` deliberately skips those — so
+the handler is covered by a coincidence of naming. Rename the route to `/status` and it
+dies. A rule that only works when the path repeats the function name is not a rule.
+
+NestJS, actix-web and Rocket answered the same way when the question was put to the
+TypeScript and Rust catalogues, and actix's handlers were hidden by the same coincidence
+as Flask's: `#[get("/health")]` above `fn health` spells the name in a string literal.
+
+Fixing the rules exposed three defects underneath them. `@ExceptionHandler(RuntimeException.class)`
+still matched nothing, because the annotation's name was read by stripping the qualifier
+first and cutting the argument list off second — so the last dotted piece of an *argument*
+became the name, and it read `class`. The user-visible form of this is worse than the
+Spring one: `@app.route("/v1.0/status")` matched nothing while `@app.route("/status")`
+matched, meaning a version number in a URL was enough to turn a live handler into dead
+code. Cutting the arguments off first and the qualifier second fixes both, and the
+spellings the original ordering existed for — `#[tokio::test]`, `@org.junit.jupiter.api.Test`
+— are now pinned by a test rather than assumed.
+
+The second was narrower to state and wider in effect. The search for an annotation above
+a symbol walked back through whole lines, and for `export class C` the line before the
+declaration is `export` — not an annotation, so the walk stopped there. `export class` is
+how TypeScript writes almost every class, so `annotated_with` did not work on exported
+classes at all: a bare `class C` matched its decorator and `export class C` did not. What
+precedes a symbol on its own line is part of its declaration, not a line before it, so the
+walk starts at the beginning of the declaration's line. Unless that text opens or closes
+something, in which case the symbol is nested inside whatever the annotation above
+annotates and does not carry it: `fn outer() { fn inner()` must not let `inner` inherit
+`outer`'s `#[test]`, and the `payload` in `@KafkaListener void consume(String payload)`
+is not itself a queue consumer. The second of those was a false positive the fix
+introduced, and the eighty-one test binaries passed with it in place — the fixtures from
+the morning's probes caught it. Re-running those after every change, not only at the end,
+is the cheaper half of the discipline.
+
+Fixing the rules also made an old cost visible. Three of the matcher's predicates need the
+file's text and each asked for it separately, so a file was read and allocated once per
+rule that reached it — invisible while no `annotated_with` rule applied to TypeScript, and
+plain once the NestJS rules did: `fr entrypoints` on `vuejs/core` took 17.3s against an
+8.3s index, 3.9s of it in the kernel. Reading once per symbol brings it to 9.4s with 0.25s
+system time, faster than before the rules existed. A miss re-reads, so the cache cannot
+change an answer.
+
+The third was the rules being wrong rather than missing. `@app.patch` looked like an
+ordinary addition and tagged twenty-two of `psf/black`'s test methods as remotely
+reachable HTTP routes, plus one `self` parameter, because `@patch` belongs to
+`unittest.mock` far more often than to FastAPI. No amount of matching harder on the name
+separates them: `@mock.patch` is as qualified as `@app.patch`. What separates them is
+what the decorator *names* — a URL path or a module — so matchers gained
+`annotation_argument_prefix` and the route rules ask for `/`. Black's twenty-two go and
+its two real `@app.get("/path/")` handlers stay. A path held in a constant is not matched,
+and the catalogue says so instead of leaving it to be discovered.
+
+That predicate needed a guard of its own. A rule asking for an argument without naming
+the annotation would parse, load and match nothing, which reads exactly like a framework
+that is covered and simply absent — so the catalogue rejects it at load.
+`deny_unknown_fields` already catches a misspelled key; this catches a well-spelled one
+in a combination that has no meaning.
+
+Rules across all four catalogues, and `queue-consumer`, `websocket` and `scheduled-job`
+got their first: three `EntryKind` variants that were declared, matched on, and printed
+by name, but that no catalogue could ever emit.
+
+The sharpest version of the finding is the round trip. `fr translate <route> fastapi`
+emits `@router.get(...)` handlers, so the tool's own output, read back by the tool,
+reported its handler as having no detected use. That is the same shape as the
+enum-variant struct literals in B214 — output that is not valid input — and again what
+was missing was any check that the two ends agree.
+
+### One definition of passing
+
+The branch above was pushed green and rejected: `cargo fmt --all --check` is one of the
+`check` job's steps and was not one of the commands run locally. Nothing was wrong with
+either set of commands — the problem was that there were two sets. The workflow listed
+formatting, clippy and the tests as separate steps, and no single command ran them, so
+"I checked it" meant whichever subset came to mind.
+
+`tools/check.sh` holds them and the workflow calls the script, which makes drift
+impossible rather than unlikely. It includes the wasm feature set, which neither default
+clippy nor the default test run compiles — the same reason those two steps were added to
+CI in the first place, after a struct field missed at one of six call sites in
+`src/wasm.rs` passed both.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

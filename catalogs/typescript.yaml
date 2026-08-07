@@ -61,3 +61,78 @@
   matches:
     file_directive: use server
     exported: true
+
+# NestJS spells its routes the way Spring does, with a decorator on the method. The
+# controller class is exported and so was already covered; its methods were not, and
+# the methods are what serve the requests.
+- id: ts-nest-controller
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Controller
+
+- id: ts-nest-get
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Get
+
+- id: ts-nest-post
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Post
+
+- id: ts-nest-put
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Put
+
+- id: ts-nest-patch
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Patch
+
+- id: ts-nest-delete
+  kind: http-route
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Delete
+
+# A gateway method is reached over a socket, a pattern handler over a broker, and a
+# scheduled method on a timer. None of the three is called from the source.
+- id: ts-nest-subscribe-message
+  kind: websocket
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: SubscribeMessage
+
+- id: ts-nest-message-pattern
+  kind: queue-consumer
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: MessagePattern
+
+- id: ts-nest-event-pattern
+  kind: queue-consumer
+  threat_model: remote
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: EventPattern
+
+- id: ts-nest-cron
+  kind: scheduled-job
+  threat_model: local
+  languages: [typescript, tsx]
+  matches:
+    annotated_with: Cron
