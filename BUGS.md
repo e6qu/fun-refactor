@@ -110,6 +110,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B235: **a Next.js server action was dead code.** `"use server"` marks an exported
+  function the framework makes reachable over the network, called by nothing in the
+  source — the same case as Java's `@RestController` and pytest's fixtures, both of which
+  the catalogue already covers. It was missed because every other Next.js rule matches a
+  *filename*: `page.tsx`, `layout.tsx`, `route.ts`. A server action lives in a file called
+  whatever you like, and in `vercel/commerce` it is `components/cart/actions.ts` — five
+  live network endpoints, all reported as having no detected use. Catalogs gained
+  `file_directive`, which reads the first statement of a file or of a function body, so
+  both spellings are covered and a mention of the words in a comment is not.
+
 - [x] B230: **a parse failure said how many and never where.** `fr parse` named the file
   and the number of error nodes and stopped, so the one thing a reader wants from
   "this file did not parse" — which part — was the one thing missing. The spans were
