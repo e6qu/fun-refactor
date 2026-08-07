@@ -751,11 +751,31 @@ mod tests {
 
     #[test]
     fn coverage_gaps_are_reportable() {
+        // This used to assert that each gap's *name* was a non-empty string, which is
+        // true of every `&'static str` in the enum and would have passed had the
+        // function returned nothing, everything, or the wrong languages entirely. The
+        // report tells a reader which languages have no entry-point rules, and the only
+        // way that is worth printing is if it agrees with which languages have none.
         let catalog = Catalog::builtin().unwrap();
         let gaps = languages_without_rules(&catalog);
-        // Whatever the gaps are, they must be enumerable rather than hidden.
-        for lang in &gaps {
-            assert!(!lang.is_empty());
+
+        for language in Language::ALL {
+            let named = gaps.contains(&language.name());
+            let has_rules = has_rules_for(&catalog, *language);
+            assert_ne!(
+                named,
+                has_rules,
+                "{language} is {} the gap list and {} rules",
+                if named { "in" } else { "not in" },
+                if has_rules { "has" } else { "has no" }
+            );
         }
+        // And it is a real report rather than an empty one: some language has no rules
+        // and some language does, or the agreement above is vacuous.
+        assert!(!gaps.is_empty(), "no gaps at all, so nothing was compared");
+        assert!(
+            gaps.len() < Language::ALL.len(),
+            "every language is a gap, so the catalog is not being read"
+        );
     }
 }

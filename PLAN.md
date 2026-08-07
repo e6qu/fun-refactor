@@ -2159,6 +2159,30 @@ it fail.
 same length is noticed, because entries are keyed by content and not by size or mtime.
 That is the failure this kind of cache usually has, and this one does not.
 
+### Looking for more tests that check the wrong thing
+
+The cache fingerprint turned up a shape worth hunting on purpose: a test that pins a
+property's *stability* without ever checking it is the right property. Eleven candidates
+in the suite, found by asking which tests assert nothing but shape — is-ok, is-some,
+non-empty, a length. Nine were fine. Two were not, and the second is the sharper kind.
+
+**`coverage_gaps_are_reportable`** asserted that each gap's name was a non-empty string.
+Every `&'static str` in the language enum is non-empty, so it would have passed had the
+function returned nothing, everything, or entirely the wrong languages. The report tells
+a reader which languages have no entry-point rules; it is worth printing only if it
+agrees with which languages have none. It is compared against `has_rules_for` in both
+directions now, and refuses a list that is empty or complete, because either makes the
+comparison vacuous.
+
+**`usages_group_by_file_in_path_order`** asserted that more than one group came back.
+The name is the property and the test never looked at it. The grouping is a `BTreeMap`,
+so the order held by construction — which is exactly why nobody noticed: swapping it for
+a `HashMap`, the obvious thing to do to a map that looks like it only needs lookup, would
+have broken documented behaviour with every test still green.
+
+A test whose name states more than its assertions is worse than a missing test. A
+missing test is a gap somebody can see.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

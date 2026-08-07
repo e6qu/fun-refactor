@@ -76,6 +76,22 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B226: **a test named for path order never checked the order.**
+  `usages_group_by_file_in_path_order` asserted that more than one group came back and
+  stopped there. The grouping is a `BTreeMap`, so the order held by construction — and
+  swapping it for a `HashMap`, which is the obvious thing somebody does to a map that
+  looks like it only needs lookup, would have broken the documented behaviour with every
+  test still green. The order is asserted now.
+
+- [x] B225: **the entry-point coverage report was checked for having names in it.**
+  `coverage_gaps_are_reportable` asserted that each gap's name was a non-empty string,
+  which is true of every `&'static str` in the enum: it would have passed had the
+  function returned nothing, everything, or the wrong languages. What the report says is
+  which languages have no rules, and it is worth printing only if it agrees with which
+  languages have none — so it is compared against `has_rules_for` in both directions, and
+  refuses a list that is empty or complete, since either makes the comparison vacuous.
+  Verified by gutting the function and watching the test fail.
+
 - [x] B224: **the cache's own claim was tested for stability and not for meaning.** The
   cache tells every reader that "editing a query file makes every stale entry unreachable
   rather than wrong", and the only test of that asserted the fingerprint was the same

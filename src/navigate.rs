@@ -486,5 +486,17 @@ impl Shape for Square {
         let found = usages_of(&index, shared);
         let grouped = found.by_file();
         assert!(grouped.len() >= 2, "got {grouped:?}");
+
+        // The name of this test says "in path order" and for a long time it checked
+        // only that there was more than one group. A function returning them in
+        // whatever order the hash map felt like would have passed — and the order is
+        // the whole reason a caller groups rather than reading the flat list.
+        let paths: Vec<&std::path::Path> = grouped.keys().map(|path| path.as_path()).collect();
+        let mut sorted = paths.clone();
+        sorted.sort();
+        assert_eq!(
+            paths, sorted,
+            "usages came back out of path order: {paths:?}"
+        );
     }
 }
