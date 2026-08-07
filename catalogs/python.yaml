@@ -88,3 +88,103 @@
   languages: [python]
   matches:
     name: tearDownClass
+
+# The web frameworks. Each of these decorates a function the framework will call and the
+# source will not, which is the same case as Java's `@RestController` and Next.js's
+# server actions. `annotated_with` matches the bare name, so `@app.get`, `@router.get`
+# and `@api.get` are one rule.
+#
+# Found by asking the question the Next.js server action raised — what does each
+# framework call that the source does not? — of the framework this project has a whole
+# page about. FastAPI handlers were being reported as dead code.
+#
+# Each route rule requires the path the decorator names, because the name alone is not
+# unique across libraries: `@patch` is `unittest.mock`'s far more often than FastAPI's,
+# and matching on the name tagged twenty-two of `psf/black`'s test methods as remotely
+# reachable HTTP routes. A path held in a constant — `@app.get(PETS)` — is not matched.
+- id: python-fastapi-get
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: get
+    annotation_argument_prefix: "/"
+
+- id: python-fastapi-post
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: post
+    annotation_argument_prefix: "/"
+
+- id: python-fastapi-put
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: put
+    annotation_argument_prefix: "/"
+
+- id: python-fastapi-patch
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: patch
+    annotation_argument_prefix: "/"
+
+- id: python-fastapi-delete
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: delete
+    annotation_argument_prefix: "/"
+
+# FastAPI's generic form, and Flask's only form.
+- id: python-route
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: route
+    annotation_argument_prefix: "/"
+
+- id: python-api-route
+  kind: http-route
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: api_route
+    annotation_argument_prefix: "/"
+
+- id: python-websocket
+  kind: websocket
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: websocket
+
+# A queue consumer: Celery calls it, nothing in the source does.
+- id: python-celery-task
+  kind: queue-consumer
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: task
+
+- id: python-celery-shared-task
+  kind: queue-consumer
+  threat_model: remote
+  languages: [python]
+  matches:
+    annotated_with: shared_task
+
+# Django connects the receiver to a signal; nothing in the source calls it.
+- id: python-django-receiver
+  kind: queue-consumer
+  threat_model: local
+  languages: [python]
+  matches:
+    annotated_with: receiver

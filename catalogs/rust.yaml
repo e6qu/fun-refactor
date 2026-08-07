@@ -50,3 +50,52 @@
   matches:
     path_contains: lib.rs
     exported: true
+
+# actix-web and Rocket both put the method on the handler as an attribute. `rust-public-api`
+# covers a handler that happens to be `pub` in `lib.rs`; most handlers are neither.
+#
+# These were saved only by coincidence before: `#[get("/health")]` above `fn health` spells
+# the symbol's own name in a string literal, and `fr unused` skips those. Rename the route
+# to `/up` and the handler reads as dead.
+- id: rust-route-get
+  kind: http-route
+  threat_model: remote
+  languages: [rust]
+  matches:
+    annotated_with: get
+
+- id: rust-route-post
+  kind: http-route
+  threat_model: remote
+  languages: [rust]
+  matches:
+    annotated_with: post
+
+- id: rust-route-put
+  kind: http-route
+  threat_model: remote
+  languages: [rust]
+  matches:
+    annotated_with: put
+
+- id: rust-route-patch
+  kind: http-route
+  threat_model: remote
+  languages: [rust]
+  matches:
+    annotated_with: patch
+
+- id: rust-route-delete
+  kind: http-route
+  threat_model: remote
+  languages: [rust]
+  matches:
+    annotated_with: delete
+
+# The JavaScript side calls it; no Rust caller exists anywhere in the crate.
+- id: rust-wasm-bindgen
+  kind: exported-api
+  threat_model: none
+  languages: [rust]
+  matches:
+    annotated_with: wasm_bindgen

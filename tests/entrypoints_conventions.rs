@@ -175,3 +175,254 @@ fn the_words_in_a_comment_are_not_a_directive() {
         "a comment was read as a directive: {found:?}"
     );
 }
+
+/// A web framework calls its route handlers; the source never does. This project has a
+/// whole page about FastAPI, and a FastAPI handler was being reported as dead code.
+#[test]
+fn a_route_handler_is_an_entry_point() {
+    let found = entry_kinds(&[
+        (
+            "api.py",
+            "from fastapi import APIRouter\n\nrouter = APIRouter()\n\n\n\
+             @router.get(\"/pets\")\nasync def list_pets():\n    return []\n\n\n\
+             @router.post(\"/pets\")\nasync def create_pet(body):\n    return body\n",
+        ),
+        (
+            "web.py",
+            "from flask import Flask\n\napp = Flask(__name__)\n\n\n\
+             @app.route(\"/status\")\ndef health():\n    return \"ok\"\n",
+        ),
+    ]);
+    for name in ["list_pets", "create_pet", "health"] {
+        assert!(
+            found.contains(&(name.to_string(), EntryKind::HttpRoute)),
+            "{name} is reached by a request, not by a call: {found:?}"
+        );
+    }
+}
+
+/// The broker calls the consumer and the scheduler calls the job. Neither appears in a
+/// call graph built from the source alone.
+#[test]
+fn a_consumer_and_a_scheduled_job_are_entry_points() {
+    let found = entry_kinds(&[
+        (
+            "tasks.py",
+            "from celery import Celery\n\napp = Celery()\n\n\n\
+             @app.task\ndef send_email(to):\n    return to\n",
+        ),
+        (
+            "Jobs.java",
+            "package app;\n\npublic class Jobs {\n    \
+             @Scheduled(cron = \"0 0 * * * *\")\n    public void rotateKeys() {\n    }\n\n    \
+             @KafkaListener(topics = \"orders\")\n    public void consume(String payload) {\n    }\n}\n",
+        ),
+    ]);
+    assert!(
+        found.contains(&("send_email".to_string(), EntryKind::QueueConsumer)),
+        "got {found:?}"
+    );
+    assert!(
+        found.contains(&("consume".to_string(), EntryKind::QueueConsumer)),
+        "got {found:?}"
+    );
+    assert!(
+        found.contains(&("rotateKeys".to_string(), EntryKind::ScheduledJob)),
+        "got {found:?}"
+    );
+}
+
+/// The annotation's arguments may contain dots of their own. Stripping the qualifier
+/// before cutting the arguments off read the last dotted piece of an *argument* as the
+/// annotation's name, so a version number in a route path — `/v1.0/status` — quietly
+/// turned a live handler into dead code.
+#[test]
+fn a_dot_in_the_arguments_does_not_hide_the_annotation() {
+    let found = entry_kinds(&[
+        (
+            "w.py",
+            "from flask import Flask\n\napp = Flask(__name__)\n\n\n\
+             @app.route(\"/v1.0/status\")\ndef ping():\n    return \"ok\"\n",
+        ),
+        (
+            "C.java",
+            "package app;\n\npublic class C {\n    \
+             @GetMapping(Routes.PETS)\n    public String listPets() {\n        return \"\";\n    }\n\n    \
+             @ExceptionHandler(RuntimeException.class)\n    public String onFailure(RuntimeException e) {\n        return \"\";\n    }\n}\n",
+        ),
+    ]);
+    for name in ["ping", "listPets", "onFailure"] {
+        assert!(
+            found.contains(&(name.to_string(), EntryKind::HttpRoute)),
+            "a dot in the arguments hid {name}: {found:?}"
+        );
+    }
+}
+
+/// Qualified and bare spellings of the same annotation mean the same thing, and the
+/// bracket forms differ by language.
+#[test]
+fn the_annotation_is_found_however_it_is_spelled() {
+    let found = entry_kinds(&[
+        (
+            "T.java",
+            "package app;\n\npublic class T {\n    \
+             @org.junit.jupiter.api.Test\n    public void qualified() {\n    }\n}\n",
+        ),
+        ("lib.rs", "#[tokio::test]\nfn spawns() {\n}\n"),
+    ]);
+    for name in ["qualified", "spawns"] {
+        assert!(
+            found.contains(&(name.to_string(), EntryKind::Test)),
+            "got {found:?}"
+        );
+    }
+}
+
+/// `export class` is how TypeScript writes almost every class, and the word `export`
+/// sits between the decorator and the declaration. Reading it as a preceding line ended
+/// the run of annotations before it reached the decorator, so a NestJS controller — the
+/// class the whole framework is organised around — matched nothing.
+#[test]
+fn a_modifier_between_the_annotation_and_the_declaration_is_not_a_line_before_it() {
+    let found = entry_kinds(&[
+        ("a.ts", "@Controller('pets')\nexport class Pets {\n}\n"),
+        ("b.ts", "@Controller\nexport default class Vendors {\n}\n"),
+        ("c.ts", "@Controller('x')\nclass Bare {\n}\n"),
+        ("D.java", "package app;\n\n@RestController\npublic class D {\n}\n"),
+    ]);
+    for name in ["Pets", "Vendors", "Bare", "D"] {
+        assert!(
+            found.contains(&(name.to_string(), EntryKind::HttpRoute)),
+            "got {found:?}"
+        );
+    }
+}
+
+/// The other side of that: what precedes the symbol on its line may be a real statement
+/// rather than a modifier, and then an annotation above belongs to the statement.
+#[test]
+fn a_nested_declaration_does_not_inherit_the_annotation() {
+    let found = entry_kinds(&[("lib.rs", "#[test]\nfn outer() { fn inner() {} }\n")]);
+    assert!(
+        found.contains(&("outer".to_string(), EntryKind::Test)),
+        "got {found:?}"
+    );
+    assert!(
+        !found.iter().any(|(name, _)| name == "inner"),
+        "`inner` is not the test; `outer` is: {found:?}"
+    );
+}
+
+/// NestJS puts the method on the handler the way Spring does, and the handlers are what
+/// serve the requests.
+#[test]
+fn a_nest_handler_is_an_entry_point() {
+    let found = entry_kinds(&[(
+        "pets.controller.ts",
+        "import { Controller, Get, Post } from '@nestjs/common';\n\n\
+         @Controller('pets')\nexport class PetsController {\n  \
+         @Get()\n  findAll(): string[] {\n    return [];\n  }\n\n  \
+         @Post()\n  create(body: object): object {\n    return body;\n  }\n}\n",
+    )]);
+    for name in ["findAll", "create"] {
+        assert!(
+            found.contains(&(name.to_string(), EntryKind::HttpRoute)),
+            "got {found:?}"
+        );
+    }
+}
+
+/// actix-web and Rocket put the method on the handler as an attribute. These were
+/// covered only by coincidence: `#[get("/health")]` above `fn health` spells the
+/// symbol's own name in a string literal, which `fr unused` skips. The route path is
+/// not required to repeat the function name.
+#[test]
+fn a_rust_route_attribute_is_an_entry_point() {
+    let found = entry_kinds(&[(
+        "lib.rs",
+        "#[actix_web::get(\"/up\")]\nasync fn health() -> &'static str {\n    \"ok\"\n}\n",
+    )]);
+    assert!(
+        found.contains(&("health".to_string(), EntryKind::HttpRoute)),
+        "got {found:?}"
+    );
+}
+
+/// A decorator's name is not unique across libraries. `@patch` is `unittest.mock`'s far
+/// more often than it is FastAPI's, and matching the name alone tagged twenty-two of
+/// `psf/black`'s test methods as remotely reachable HTTP routes — including, once, a
+/// `self` parameter. A route decorator names a URL path; a mock names a module.
+#[test]
+fn a_route_rule_requires_the_path_and_not_just_the_name() {
+    let found = entry_kinds(&[(
+        "test_release.py",
+        "from unittest.mock import patch\n\n\n\
+         @patch(\"black.release.git\")\ndef test_current_version(mocked):\n    pass\n\n\n\
+         @app.patch(\"/pets/{id}\")\nasync def edit_pet(id):\n    return id\n",
+    )]);
+    assert!(
+        found.contains(&("edit_pet".to_string(), EntryKind::HttpRoute)),
+        "got {found:?}"
+    );
+    assert!(
+        !found.contains(&("test_current_version".to_string(), EntryKind::HttpRoute)),
+        "`unittest.mock.patch` is not an HTTP route: {found:?}"
+    );
+}
+
+/// A rule asking for an annotation's argument without naming the annotation matches
+/// nothing, which reads exactly like a framework that is covered and simply absent.
+#[test]
+fn a_rule_that_cannot_mean_anything_is_rejected_when_it_loads() {
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        dir.path().join("broken.yaml"),
+        "- id: nonsense\n  kind: http-route\n  languages: [python]\n  \
+         matches:\n    annotation_argument_prefix: \"/\"\n",
+    )
+    .expect("the catalog");
+
+    let mut catalog = Catalog::builtin().expect("the built-in catalogs");
+    let err = catalog
+        .load_dir(dir.path())
+        .expect_err("a rule with no annotation to read the argument of");
+    assert!(
+        format!("{err:#}").contains("without naming the annotation"),
+        "the error should say what is wrong with the rule: {err:#}"
+    );
+}
+
+/// A parameter of an annotated method is not itself an entry point.
+///
+/// It sits inside the declaration's argument list, so the walk up to the annotation
+/// passes through the method's own text. `@KafkaListener` marks `consume` as a queue
+/// consumer; `payload` is what the queue hands it.
+#[test]
+fn a_parameter_does_not_carry_its_method_s_annotation() {
+    let found = entry_kinds(&[
+        (
+            "Jobs.java",
+            "package app;\n\npublic class Jobs {\n    \
+             @KafkaListener(topics = \"orders\")\n    public void consume(String payload) {\n    }\n\n    \
+             @ExceptionHandler(RuntimeException.class)\n    public String onFailure(RuntimeException e) {\n        return \"\";\n    }\n}\n",
+        ),
+        (
+            "signals.py",
+            "from django.dispatch import receiver\n\n\n\
+             @receiver(post_save)\ndef audit(sender, **kwargs):\n    pass\n",
+        ),
+    ]);
+    for name in ["consume", "onFailure", "audit"] {
+        assert!(
+            found.iter().any(|(found_name, _)| found_name == name),
+            "{name} is the entry point: {found:?}"
+        );
+    }
+    for parameter in ["payload", "e", "sender", "kwargs"] {
+        assert!(
+            !found.iter().any(|(name, _)| name == parameter),
+            "`{parameter}` is an argument the framework passes, not an entry point: {found:?}"
+        );
+    }
+}

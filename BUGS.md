@@ -110,6 +110,80 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B240: **entry-point detection read every file once per rule.** Three of the matcher's
+  predicates need the file's text, and each asked for it independently, so the whole file
+  was read and allocated once for every rule in the catalogue that reached it. It went
+  unnoticed while no `annotated_with` rule applied to TypeScript; adding the NestJS rules
+  made `fr entrypoints` on `vuejs/core` take 17.3s against an 8.3s index, with 3.9s of it
+  in the kernel. Reading once per symbol — the index groups a file's symbols together, so
+  remembering the last one suffices — brings it to 9.4s with 0.25s system time, which is
+  faster than before the rules were added. The cache cannot change an answer: a miss
+  re-reads.
+
+- [x] B239: **a decorator's name is not unique across libraries.** Adding a rule for
+  FastAPI's `@app.patch` tagged twenty-two of `psf/black`'s test methods as remotely
+  reachable HTTP routes, and one of its `self` parameters, because `@patch` is
+  `unittest.mock`'s far more often than it is FastAPI's. Matching harder on the name
+  cannot separate them — `@mock.patch` is as qualified as `@app.patch`. What separates
+  them is what the decorator *names*: a route names a URL path, a mock names a module.
+  Matchers gained `annotation_argument_prefix`, and the Python route rules ask for `/`.
+  Black's twenty-two false positives go and its two real `@app.get("/path/")` handlers
+  stay. A path held in a constant — `@app.get(PETS)` — is not matched, which the
+  catalogue says rather than hides. Asking for the argument without naming the
+  annotation is now rejected when the catalogue loads: `deny_unknown_fields` catches a
+  misspelled key, and this catches a well-spelled one in a combination that has no
+  meaning, which would otherwise parse, load and match nothing — indistinguishable from
+  a framework that is covered and simply absent.
+
+- [x] B238: **a modifier between the annotation and the declaration ended the run.** The
+  search for an annotation above a symbol walked back through whole lines, so for
+  `export class C` the line before the declaration was `export`, which is not an
+  annotation and stopped the walk before it reached the decorator. `export class` is how
+  TypeScript writes almost every class, so `annotated_with` did not work on exported
+  classes at all — a NestJS `@Controller`, the class the framework is organised around,
+  matched nothing while a bare `class C` matched. What precedes a symbol on its own line
+  is part of the declaration, not a line before it, so the walk now starts at the
+  beginning of the declaration's line — unless that text opens or closes something, in
+  which case the symbol is nested inside whatever the annotation above annotates and does
+  not carry it. Both halves are load-bearing and both are pinned: `fn outer() { fn inner()`
+  must not let `inner` inherit `outer`'s `#[test]`, and the `payload` in
+  `@KafkaListener void consume(String payload)` is not itself a queue consumer. That
+  second one was a false positive this fix introduced, which the full suite passed over
+  and re-running the fixtures caught.
+
+- [x] B237: **a dot in an annotation's arguments hid the annotation.** The name was read
+  by stripping the qualifier first and cutting the argument list off second, so the last
+  dotted piece of an *argument* became the name: `@ExceptionHandler(RuntimeException.class)`
+  read as `class` and `@GetMapping(Routes.PETS)` as `PETS`. The visible symptom was a
+  version number in a route path — `@app.route("/v1.0/status")` matched nothing while
+  `@app.route("/status")` matched — so a live handler turned into dead code on a detail of
+  its URL. Cutting the arguments off first and stripping the qualifier second fixes both;
+  the qualified and bracketed spellings this ordering was written for (`#[tokio::test]`,
+  `@org.junit.jupiter.api.Test`) still hold, and are now pinned by a test.
+
+- [x] B236: **route handlers, queue consumers and scheduled jobs were dead code.** Asking
+  the question B235 raised — what does each framework call that the source never does? —
+  of every framework the catalogues claim, rather than waiting for a repository to surface
+  it. FastAPI and Flask route handlers, Celery tasks, Django signal receivers, Spring's
+  `@Scheduled`, `@EventListener`, `@KafkaListener`, `@PostConstruct` and the method-level
+  `@GetMapping` family all reported no detected use, as did NestJS controllers and their
+  handlers, and actix-web and Rocket route attributes. Two things made it hard to see. Java
+  covered `@RestController` and `@RequestMapping` but not the specific mappings modern
+  code actually writes, so the coverage looked complete from the class down. And a Flask
+  handler is often saved by accident: `@app.route("/health")` above `def health` spells the
+  name in a string literal, which `fr unused` deliberately skips — rename the route to
+  `/status` and the handler dies — and actix-web's `#[get("/health")]` above `fn health`
+  was covered by exactly the same coincidence. Rules added across `python.yaml`,
+  `java.yaml`, `typescript.yaml` and `rust.yaml`, which also gives `queue-consumer`,
+  `websocket` and `scheduled-job` their first rules: three `EntryKind` variants that were
+  declared, matched on and printed by name, but that nothing could previously emit.
+
+  Worth recording where this one was found. This project has a page devoted to porting
+  Next.js routes to FastAPI, and `fr translate <route> fastapi` emits `@router.get(...)`
+  handlers — so the tool's own output, fed back into the tool, reported its handler as
+  having no detected use. The same shape as the enum-variant struct literals in B214: the
+  output was not valid input, and nothing checked.
+
 - [x] B235: **a Next.js server action was dead code.** `"use server"` marks an exported
   function the framework makes reachable over the network, called by nothing in the
   source — the same case as Java's `@RestController` and pytest's fixtures, both of which
