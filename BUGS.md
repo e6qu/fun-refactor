@@ -76,6 +76,19 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B229: **a Go type implemented an interface it does not implement.** The hierarchy
+  pass compared a method's *name and arity*, under a comment saying a covered method set
+  "is the whole of what implementing an interface means there" — which is true of Go and
+  was not true of the code. `Run() string` therefore satisfied an interface asking for
+  `Run() error`, and in helm/helm that produced 5,936 dispatch edges between types that
+  do not implement each other, 29% of the layer. Signatures are compared where both are
+  legible, and the arity answer stands where either is not, because a dropped edge here
+  becomes a live method reported as dead code. Package qualifiers are dropped first:
+  `kube.ResourceList` from outside a package and `ResourceList` from inside are the same
+  type, and comparing them as written refused seven implementations helm plainly has —
+  a fault introduced by the first version of this fix and caught by measuring dead code
+  before and after rather than by trusting the edge count to have gone the right way.
+
 - [x] B228: **the tool printed names it would not accept.** Every listing gives a
   qualified name — `Box::size`, `HookEvent::String` — and `resolve_target` matched on the
   bare name only, so the spelling the tool shows you everywhere was the one spelling that

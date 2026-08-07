@@ -798,6 +798,15 @@ pub struct Hierarchy {
     /// Methods an abstraction declares, name to arity: a Rust trait, a Go interface,
     /// a TypeScript interface or class, a Python class.
     declares: HashMap<TypeKey, BTreeMap<String, usize>>,
+    /// The same methods, name to the *types* in their signature, where those could be
+    /// read. Go decides implementation by signature and not by name and count, and
+    /// matching on the count alone said a `Run() string` implements an interface that
+    /// asks for `Run() error`.
+    ///
+    /// Separate from `declares` because it is a refinement and not a replacement: a
+    /// signature nobody could read leaves the arity answer standing, so a method this
+    /// cannot parse widens the answer instead of narrowing it to nothing.
+    signatures: HashMap<TypeKey, BTreeMap<String, String>>,
     /// Which abstractions declare a given method name — the reverse of `declares`,
     /// so a call site asks about its own name instead of walking every type.
     declarers: HashMap<(Family, String), BTreeSet<String>>,
@@ -915,7 +924,7 @@ impl Hierarchy {
                 // workspace, which is true and useless. Say nothing rather than
                 // everything.
                 if !required.is_empty() {
-                    names.extend(self.go_implementors(required));
+                    names.extend(self.go_implementors(&(family, name.clone())));
                 }
             }
         }
@@ -995,9 +1004,9 @@ impl Hierarchy {
             None => return Vec::new(),
         };
         for abstraction in declaring {
-            let Some(declared) = self.declares.get(&(family, abstraction.clone())) else {
+            if !self.declares.contains_key(&(family, abstraction.clone())) {
                 continue;
-            };
+            }
             match family {
                 // The trait itself keeps its declaration (and any default body)
                 // live; `impl Trait for T` supplies the rest.
@@ -1009,7 +1018,7 @@ impl Hierarchy {
                 }
                 Family::Go => {
                     note(abstraction.clone(), HierarchyBasis::InterfaceMethodSet);
-                    for implementor in self.go_implementors(declared) {
+                    for implementor in self.go_implementors(&(family, abstraction.clone())) {
                         note(implementor, HierarchyBasis::InterfaceMethodSet);
                     }
                 }
@@ -1071,16 +1080,34 @@ impl Hierarchy {
     /// parameters are what the syntax shows, and two same-named methods of the same
     /// arity but different signatures are indistinguishable here. That widens the
     /// candidate set; it never narrows it.
-    fn go_implementors(&self, required: &BTreeMap<String, usize>) -> BTreeSet<String> {
+    fn go_implementors(&self, interface: &TypeKey) -> BTreeSet<String> {
+        let Some(required) = self.declares.get(interface) else {
+            return BTreeSet::new();
+        };
+        let wanted = self.signatures.get(interface);
         let mut found = BTreeSet::new();
         for ((family, name), methods) in &self.method_sets {
             if *family != Family::Go {
                 continue;
             }
-            if required
-                .iter()
-                .all(|(method, arity)| methods.get(method) == Some(arity))
-            {
+            let covers = required.iter().all(|(method, arity)| {
+                if methods.get(method) != Some(arity) {
+                    return false;
+                }
+                // Go decides this by signature. Where both sides are legible, they have
+                // to agree; where either is not, the arity answer stands, because a
+                // dropped edge here becomes a live method reported as dead code.
+                match (
+                    wanted.and_then(|w| w.get(method)),
+                    self.signatures
+                        .get(&(Family::Go, name.clone()))
+                        .and_then(|s| s.get(method)),
+                ) {
+                    (Some(a), Some(b)) => a == b,
+                    _ => true,
+                }
+            });
+            if covers {
                 found.insert(name.clone());
             }
         }
@@ -1172,6 +1199,12 @@ impl Hierarchy {
                         continue;
                     }
                     if let Some(method) = field_text(member, "name", source) {
+                        if let Some(signature) = go_signature(member, source) {
+                            self.signatures
+                                .entry(key.clone())
+                                .or_default()
+                                .insert(method.clone(), signature);
+                        }
                         self.declare(key.clone(), method, arity(member));
                     }
                 }
@@ -1186,6 +1219,12 @@ impl Hierarchy {
                 let Some(owner) = type_identifiers(receiver, source).into_iter().next() else {
                     return;
                 };
+                if let Some(signature) = go_signature(node, source) {
+                    self.signatures
+                        .entry((Family::Go, owner.clone()))
+                        .or_default()
+                        .insert(method.clone(), signature);
+                }
                 self.method_sets
                     .entry((Family::Go, owner))
                     .or_default()
@@ -1455,6 +1494,68 @@ fn java_supertypes(clause: Node, source: &str) -> Vec<String> {
         .into_iter()
         .filter_map(|entry| type_identifiers(entry, source).into_iter().next())
         .collect()
+}
+
+/// The types in a Go signature, as `(A, B) -> C`.
+///
+/// Types only: a parameter's *name* is not part of whether one signature satisfies
+/// another, and comparing `ctx context.Context` with `c context.Context` would refuse an
+/// implementation Go accepts. Returns `None` where the shape cannot be read, which
+/// leaves the arity answer standing rather than narrowing to nothing.
+fn go_signature(node: Node<'_>, source: &str) -> Option<String> {
+    /// A type with its package qualifier dropped and its whitespace squeezed out.
+    ///
+    /// `kube.ResourceList` and `ResourceList` are the same type written from outside and
+    /// from inside the package, and comparing them as text refused
+    /// `PrintingKubeClient` as an implementation of an interface it plainly satisfies.
+    /// Two same-named types in different packages now match where they did not before,
+    /// which is the direction to be wrong in: a spurious dispatch candidate is labelled
+    /// as one, and a missing edge is a live method reported as dead.
+    fn unqualified(written: &str) -> String {
+        let mut out = String::with_capacity(written.len());
+        let mut run = String::new();
+        for character in written.chars() {
+            if character.is_alphanumeric() || character == '_' || character == '.' {
+                run.push(character);
+                continue;
+            }
+            if !run.is_empty() {
+                out.push_str(run.rsplit('.').next().unwrap_or(&run));
+                run.clear();
+            }
+            if !character.is_whitespace() {
+                out.push(character);
+            }
+        }
+        if !run.is_empty() {
+            out.push_str(run.rsplit('.').next().unwrap_or(&run));
+        }
+        out
+    }
+
+    fn types_in(list: Node<'_>, source: &str) -> String {
+        let mut out = Vec::new();
+        for parameter in named_children(list) {
+            if parameter.kind().contains("comment") {
+                continue;
+            }
+            let written = match parameter.child_by_field_name("type") {
+                Some(ty) => text(ty, source),
+                // A bare type with no name is the whole parameter.
+                None => text(parameter, source),
+            };
+            out.push(unqualified(written));
+        }
+        out.join(",")
+    }
+
+    let parameters = node.child_by_field_name("parameters")?;
+    let returns = match node.child_by_field_name("result") {
+        Some(result) if result.kind().contains("parameter_list") => types_in(result, source),
+        Some(result) => unqualified(text(result, source)),
+        None => String::new(),
+    };
+    Some(format!("({}) -> {returns}", types_in(parameters, source)))
 }
 
 /// Names in a TypeScript heritage clause: `extends B implements I, J`.
