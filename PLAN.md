@@ -2183,6 +2183,31 @@ have broken documented behaviour with every test still green.
 A test whose name states more than its assertions is worse than a missing test. A
 missing test is a gap somebody can see.
 
+### Counting what came back without looking at it
+
+The same question again, one turn of the screw tighter. There are 194 places in the
+suite that assert a length against a number, and almost all are followed by an assertion
+about the contents — which is exactly right. Fourteen were not: a count, and nothing
+anywhere in the test that names a single thing it expected to find.
+
+Three of the fourteen mattered.
+
+**`textual_sweep_respects_word_boundaries`** found one occurrence and did not ask which
+one, in a test whose entire subject is telling `helper` from `helperful`. The fixture
+happens to produce a different count when the boundary check is removed, so it was not
+useless — but it was relying on that, and the thing it is named for went unexamined.
+It names the occurrence now.
+
+**`cross_language_references_are_labelled_as_such`** found two and did not ask which two.
+The CSS definition itself mislabelled, with the TSX missed entirely, is two — and that is
+the failure the whole cross-language query exists to prevent.
+
+**`unreadable_files_are_skipped_and_reported`** counted one skip without asking which
+file or why. A skip that says neither is a count, and a count is not a report.
+
+The remaining eleven are fine: `the_result_still_parses` counting zero parse errors is
+the property, and so is a cycle test asserting the walk terminated.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

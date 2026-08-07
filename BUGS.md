@@ -76,6 +76,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B227: **three tests counted what came back and never looked at it.**
+  `textual_sweep_respects_word_boundaries` found one occurrence and did not check which,
+  in a test whose entire subject is telling `helper` from `helperful`.
+  `cross_language_references_are_labelled_as_such` found two and did not check they were
+  the HTML and the TSX, so the CSS definition mislabelled with the TSX missed would have
+  satisfied it. `unreadable_files_are_skipped_and_reported` counted one skip without
+  asking which file or why, and a skip that says neither is a count rather than a report.
+  All three now name what they expect.
+
 - [x] B226: **a test named for path order never checked the order.**
   `usages_group_by_file_in_path_order` asserted that more than one group came back and
   stopped there. The grouping is a `BTreeMap`, so the order held by construction — and

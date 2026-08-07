@@ -1107,6 +1107,11 @@ mod tests {
         let index = Index::build_from_scan(&scanned).unwrap();
         assert_eq!(index.file_count(), 0);
         assert_eq!(index.skipped.len(), 1, "skip must be visible");
+        // Visible means a reader can act on it: which file, and why. A skip that says
+        // neither is a count, and a count is not a report.
+        let (skipped, reason) = &index.skipped[0];
+        assert_eq!(skipped, &path);
+        assert!(!reason.is_empty(), "the skip gives no reason");
     }
 
     #[test]
