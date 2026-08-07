@@ -67,6 +67,21 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   still index, since an error node is local to its subtree — what is lost are the
   facts inside that expression.
 
+- [ ] B234: `tree-sitter-python` cannot read a type parameter default —
+  `type A[T = int] = float`, PEP 696, Python 3.13. A type alias without one reads
+  cleanly. Found in `psf/black`'s test data. Upstream grammar work.
+
+- [ ] B233: `tree-sitter-python` cannot read a starred *literal* in an unparenthesised
+  tuple. `g = 1, *[2]` is ordinary Python, and so are the `*(2,)`, `*{2}` and `*"ab"`
+  forms; a starred *name* or *call* in the same position reads fine, and so does the
+  whole thing in brackets. Found in `psf/black`'s `expression.py`, where the line is
+  `g = 1, *"ten"`. Upstream grammar work.
+
+  Both are pinned by `tests/known_grammar_gaps.rs`, from both sides: the failing form
+  and the neighbouring forms that work. A grammar upgrade that fixes one should retire
+  its entry, and one that starts reading it *without* an error node while building the
+  wrong tree would be worse than the error it replaced.
+
 - [ ] B232: `tree-sitter-typescript` cannot read a property called `in` when another
   member precedes it. `interface G { in?: string }` is fine and so is
   `interface G { in: string }`, but this is not:

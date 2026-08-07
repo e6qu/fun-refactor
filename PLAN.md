@@ -2315,6 +2315,39 @@ but `in` following another member is taken for the `in` operator. It appears in
 against the grammar rather than worked around, and both are now findable by anybody who
 runs `fr parse`, which they were not this morning.
 
+### The third repository, and the language with the least to go on
+
+`psf/black`, 342 Python files. Python was the last of the six not exercised at scale,
+and the one where the resolution tiers should be under most strain, because it states
+the least.
+
+They are. Where `vuejs/core` resolved 72% of its call edges and helm 27%, black leans on
+the weaker tiers throughout: 881 exact against 825 field-based and 255 name-only. That is
+the shape the design predicts — the tool labels every answer with the rule that produced
+it, and in Python most of them are rules that could be wrong.
+
+Seven files did not parse, and this time the positions were there to read, because #75
+put them there. Five are black's own deliberately-invalid fixtures, including a file of
+Python-2-era code using `async` as an identifier. Two were not, and CPython was the judge:
+
+```python
+g = 1, *"ten"            # cpython: fine.  fr: error node
+type A[T = int] = float  # cpython: fine.  fr: error node
+lazy import json         # cpython: SyntaxError too — correctly refused
+```
+
+The first narrows further than it looks. A starred **name** or **call** in a bare tuple
+reads fine, and the whole thing in brackets reads fine; it is a starred *literal* —
+`*[2]`, `*(2,)`, `*{2}`, `*"ab"` — that the grammar cannot follow. The second is PEP 696,
+Python 3.13.
+
+Both are upstream, and both are now pinned from both sides in
+`tests/known_grammar_gaps.rs`: the form that fails, and the neighbouring forms that
+work. Two reasons pointing opposite ways. A grammar upgrade that fixes one should be
+noticed and the entry retired. And a grammar that starts reading one of these *without*
+an error node while still building the wrong tree would be worse than the error — a wrong
+answer with nothing to say it is one.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
