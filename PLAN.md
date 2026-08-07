@@ -2208,6 +2208,40 @@ file or why. A skip that says neither is a count, and a count is not a report.
 The remaining eleven are fine: `the_result_still_parses` counting zero parse errors is
 the property, and so is a cycle test asserting the walk terminated.
 
+### Running it on something it had never seen
+
+Every probe so far has been a fixture written for the occasion or one of four small
+vendored corpora. So: a shallow clone of `helm/helm`, 1,406 files across Go, Helm,
+YAML, Bash and Markdown, none of it chosen by us.
+
+It holds up. The scan is instant, `parse --stats` takes two seconds and reports thirteen
+errors — all of them helm's deliberately-broken template fixtures, which the site already
+documents. Symbols, entry points, the call graph, stitch and duplicates each take ten to
+thirteen seconds over the whole tree and none of them fell over: 34,670 symbols, 4,508
+entry points, 31 configuration-to-code chains.
+
+**What the scale exposed was not a wrong answer but an unusable one.** Looking into the
+call graph meant naming a method, and helm has twenty called `String`:
+
+```
+$ fr callers String
+'String' is defined 20 times; specify a position as path:line:col
+
+$ fr callers HookEvent::String
+no symbol named 'HookEvent::String'
+```
+
+The second is the name `fr symbols` had just printed. The tool shows qualified names in
+every listing it produces and matched on the bare name only, so its own output was not
+valid input — and the alternative it offered was a line and column somebody had to go and
+find. On a three-file fixture that is a wrinkle; on a real repository it is the
+difference between asking a question and giving up.
+
+A qualified name is tried first now. Where one is still ambiguous — two helm packages
+both declare `HookEvent` — the files are named. And the message for an ambiguous bare
+name lists the qualified names that would select each candidate, so the next step is to
+copy a line rather than to go and look one up.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
