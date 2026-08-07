@@ -76,3 +76,36 @@ fn raising_the_depth_finds_what_the_note_promised() {
         cut.items.len()
     );
 }
+
+// ------------------------------------------------- the same question of duplicates
+
+#[test]
+fn duplicates_names_the_threshold_it_searched_with() {
+    // The empty answer already said "No duplication of 60 tokens or more". The
+    // non-empty one said "3 duplicated block(s)" and stopped, which reads as all of
+    // them — and the non-empty one is the answer somebody acts on.
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        tmp.path().join("a.py"),
+        "def first(order):\n    total = 0\n    for line in order.lines:\n        \
+         total = total + line.price\n    return total\n\n\
+         def second(basket):\n    amount = 0\n    for row in basket.lines:\n        \
+         amount = amount + row.price\n    return amount\n",
+    )
+    .expect("the file");
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["duplicates", "--min-tokens", "20", "-C"])
+        .arg(tmp.path())
+        .output()
+        .expect("running fr");
+    let text = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        text.contains("20 tokens or more"),
+        "the threshold is not in the answer:\n{text}"
+    );
+    assert!(
+        text.contains("--min-tokens decides where the"),
+        "nothing says smaller copies were not counted:\n{text}"
+    );
+}

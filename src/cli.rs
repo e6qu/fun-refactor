@@ -964,15 +964,21 @@ fn cmd_duplicates(
 
     if !classes.is_empty() {
         let redundant: usize = classes.iter().map(|c| c.redundant_tokens()).sum();
+        // The threshold belongs here as much as it does in the empty case. Finding
+        // nothing "of 60 tokens or more" says what was looked for; finding three and
+        // saying only "3 duplicated block(s)" reads as all of them.
         println!(
-            "\n{} duplicated block(s), {redundant} redundant token(s)",
+            "\n{} duplicated block(s) of {min_tokens} tokens or more, {redundant} \
+             redundant token(s)",
             classes.len()
         );
         println!(
             "Structure is compared, not text, so a copy with renamed variables still \n\
              matches; pass --exact to require the names too. Only the largest block of \n\
              each duplication is listed — the statements inside it are duplicated as \n\
-             well, and saying so again would bury the finding."
+             well, and saying so again would bury the finding. Smaller copies exist in \n\
+             most codebases and are not counted here; --min-tokens decides where the \n\
+             line is."
         );
     }
 

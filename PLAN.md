@@ -2120,6 +2120,45 @@ stamp is on every page, because the page a reader happens to open is the one tha
 tell them — and the playground's own page, which Vite emits, is excluded by asking the
 build where its output goes rather than naming it here.
 
+### The threshold that was only mentioned when it found nothing
+
+Same question as `fr impact`, asked of `fr duplicates`: the search is bounded, and does
+the output say so?
+
+Half of it did. An empty answer reads "No duplication of 60 tokens or more", which
+states exactly what was looked for. A non-empty one read "3 duplicated block(s)" and
+stopped — and that is the answer somebody acts on. Somebody who runs it, gets three
+findings and fixes them has no reason to think there is a fourth just under the line.
+
+Both cases name the threshold now, and the footer says plainly that smaller copies exist
+in most codebases and are not counted. The bound is a choice; the reader should know it
+was made.
+
+### A test that checked the answer was steady, not that it was an answer
+
+The cache prints this, unprompted, whenever anybody asks about it:
+
+> Entries are keyed by file content and by the query set, so editing a query file makes
+> every stale entry unreachable rather than wrong.
+
+The test behind that claim asserted the fingerprint was the same when called twice, and
+sixteen characters long. Both true of `fn query_fingerprint() -> String { "constant".into() }`,
+which would make the sentence a lie in the worst available direction: confident answers,
+computed by a version of the code that no longer exists, indistinguishable from fresh
+ones.
+
+The queries are compiled in, so a test cannot edit one. It can recompute the fingerprint
+the same way over a set with a single query altered, once per language, and insist the
+answer differs each time — and insist that the language's *name* matters too, so two
+languages swapping queries is a different set even though the same bytes went in.
+
+Confirmed the guard bites by taking the language name back out of the recipe and watching
+it fail.
+
+**And the same probe found nothing wrong with the cache itself.** A file edited to the
+same length is noticed, because entries are keyed by content and not by size or mtime.
+That is the failure this kind of cache usually has, and this one does not.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
