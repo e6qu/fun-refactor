@@ -289,7 +289,10 @@ fn a_modifier_between_the_annotation_and_the_declaration_is_not_a_line_before_it
         ("a.ts", "@Controller('pets')\nexport class Pets {\n}\n"),
         ("b.ts", "@Controller\nexport default class Vendors {\n}\n"),
         ("c.ts", "@Controller('x')\nclass Bare {\n}\n"),
-        ("D.java", "package app;\n\n@RestController\npublic class D {\n}\n"),
+        (
+            "D.java",
+            "package app;\n\n@RestController\npublic class D {\n}\n",
+        ),
     ]);
     for name in ["Pets", "Vendors", "Bare", "D"] {
         assert!(

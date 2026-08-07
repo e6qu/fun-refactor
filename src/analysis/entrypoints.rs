@@ -484,13 +484,16 @@ pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
 /// The annotation's own text, so a caller can ask about its arguments as well as its
 /// name. [`annotated_with`] is this question with the answer thrown away.
 pub fn annotation_on(symbol: &Symbol, name: &str) -> Option<String> {
-    annotation_in(&crate::vfs::read_to_string(&symbol.file).ok()?, symbol, name)
+    annotation_in(
+        &crate::vfs::read_to_string(&symbol.file).ok()?,
+        symbol,
+        name,
+    )
 }
 
 /// [`annotation_on`] against source already in hand, so a caller checking many rules
 /// against one symbol reads its file once.
 fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
-
     // Inside the declaration: everything from its start up to the name it declares.
     let start = symbol.full_span.start.min(source.len());
     let up_to_name = symbol.name_span.start.clamp(start, source.len());
