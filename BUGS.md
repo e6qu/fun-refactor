@@ -110,6 +110,34 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B243: **a member access claimed to know a receiver it had never seen.** A single
+  definition of a name in a file resolved any use of that name to it, at `Exact` — and
+  that rule did not exclude member accesses. So one class declaring `total` made
+  `client.total()` exact for any `client` whatever, and since only the top two tiers are
+  rewritten, `fr rename total sum` silently turned a call on a boto3 client into
+  `client.sum()`. `Confidence::FieldBased` is defined as "matched by member name without
+  knowing the receiver's type — plausible but unproven; refactorings must not silently
+  rewrite these", which is this case exactly: the tier already existed and was not being
+  used. Uniqueness is evidence about a *name*; a member access is a question about a
+  *receiver*, and nothing at that layer knows one. Calls through `self` and `this` are
+  unaffected — lexical scope settles those a step earlier, and they are the large and
+  legitimate category. It costs 60 of black's 881 exact edges and 67 of vuejs/core's
+  2384; those are now reported for review instead of rewritten unasked.
+
+- [x] B244: **the list of commands named 28 of 32.** `usages`, `implementations`,
+  `recipe` and `translate` had all shipped without reaching PLAN.md's closing list. A
+  summary line is never wrong about what it says, only about what it leaves out, so a
+  test now compares it against the binary's own list of commands — the mirror of the
+  existing check that every command the site names still exists.
+
+- [x] B242: **`fr type --help` said the command does not do what the command does.** The
+  help read "Nothing is inferred. A binding with no annotation is reported as having
+  none", which was true when it was written and stopped being true when inference landed
+  — the command's own output says "The source wrote no type here. The above was worked
+  out from the evidence named". A reader consulting `--help` would conclude the tool
+  cannot do the thing it had just done. The text now describes both answers and why they
+  are kept apart.
+
 - [x] B241: **passing locally and passing in CI meant different things.** The `check` job
   listed formatting, clippy and the tests as separate steps, and there was no single
   command that ran them. A local pass over a subset — clippy and the tests but not

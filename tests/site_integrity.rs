@@ -285,3 +285,34 @@ fn a_parse_failure_says_where_it_is() {
         "the failure names no line: {text}"
     );
 }
+
+#[test]
+fn the_plan_s_closing_list_names_every_command() {
+    // The other direction from the test above: not "does this named command exist" but
+    // "is any command missing from the list that claims to enumerate them". `usages`,
+    // `implementations`, `recipe` and `translate` had all been shipped and none of them
+    // reached the list, which is the failure mode a summary line invites — it is never
+    // wrong about what it says, only about what it leaves out.
+    let plan =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("PLAN.md"))
+            .expect("PLAN.md");
+    let listed: BTreeSet<String> = plan
+        .rsplit_once("\nCommands:")
+        .expect("PLAN.md ends with the list of commands")
+        .1
+        .split('`')
+        .skip(1)
+        .step_by(2)
+        .map(str::to_string)
+        .collect();
+
+    let missing: Vec<String> = fun_refactor::cli::command_names()
+        .into_iter()
+        .filter(|name| !listed.contains(name))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "PLAN.md's closing list does not name: {}",
+        missing.join(", ")
+    );
+}

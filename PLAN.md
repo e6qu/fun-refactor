@@ -2488,7 +2488,59 @@ clippy nor the default test run compiles — the same reason those two steps wer
 CI in the first place, after a struct field missed at one of six call sites in
 `src/wasm.rs` passed both.
 
-Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
-`signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
-`rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
-`entrypoints`, `capabilities`, `cache`, `openapi`, `type`.
+### Asking the newest command what it does
+
+`fr type` was written for the tutorial and had only ever been run against fixtures, so
+the next probe pointed it at ordinary code. The first thing wrong was its own help:
+
+```
+$ fr type --help
+Nothing is inferred. A binding with no annotation is reported as having none.
+
+$ fr type fee
+fee  Money (from the class constructed here)
+The source wrote no type here. The above was worked out from the evidence named.
+```
+
+True when written, false once inference landed, and nothing connects the two. A reader
+consulting `--help` would conclude the tool cannot do what it had just done.
+
+Following the confidence tiers out of that probe found something worse. A single
+definition of a name in a file resolved any use of that name to it, at `Exact` — and the
+rule did not exclude member accesses:
+
+```
+$ fr rename total sum
+-    client.total()
++    client.sum()
+```
+
+`client` is a boto3 client. It has nothing to do with the `Cart` in that file that
+happens to declare `total`. Only the top two tiers are rewritten, so this was not a
+misleading report — it was an edit, made without asking, to a call on an object the tool
+had never seen.
+
+The tier for it already existed and was documented as this exact case: `FieldBased` is
+"matched by field/member name without knowing the receiver's type — plausible but
+unproven; refactorings must not silently rewrite these". Uniqueness is evidence about a
+*name*; a member access is a question about a *receiver*, and nothing at that layer knows
+one. The step below it says "either" for the same reason, and its comment reasons the
+point through for the ambiguous case — the unique case was never given the same reading.
+
+Calls through `self` and `this` keep their `Exact`, because lexical scope settles those a
+step earlier and the receiver's type genuinely is known there. That is the large category,
+and losing it would have cost far more than the overclaim was worth. What it does cost:
+60 of black's 881 exact edges, 67 of vuejs/core's 2384, 586 of helm's 4727. Those are now
+reported for review rather than rewritten unasked, which is what the tiers are for.
+
+The smallest finding of the three was the closing list of commands below, which named 28
+of 32: `usages`, `implementations`, `recipe` and `translate` had all shipped without
+reaching it. A summary line is never wrong about what it says, only about what it leaves
+out, so there is now a test comparing it against the binary's own list of commands — the
+mirror of the one that checks every command the site names still exists.
+
+Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
+`rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
+`imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,
+`callees`, `graph`, `flow`, `impact`, `stitch`, `entrypoints`, `capabilities`, `cache`,
+`openapi`, `type`.

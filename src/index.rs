@@ -543,7 +543,14 @@ impl Index {
 
         // 2. Any other definition in the same file (e.g. a function defined below its
         //    use, or a sibling scope for languages that hoist).
-        if in_file.len() == 1 {
+        //
+        //    Not for a member access. Being the only `total` in the file says nothing
+        //    about what `client` in `client.total()` is, and claiming `exact` there let
+        //    `fr rename` rewrite a call on a boto3 client because a class in the same
+        //    file happened to declare a method of that name. Uniqueness is evidence
+        //    about the name; a member access is a question about the receiver, which
+        //    nothing here knows. Step 5 answers it at the tier that means exactly this.
+        if in_file.len() == 1 && !member_access {
             return (Some(in_file[0].id), Confidence::Exact);
         }
         if in_file.len() > 1 && !member_access {
