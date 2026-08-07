@@ -259,3 +259,29 @@ fn every_page_says_what_it_was_built_from() {
         missing.join("\n  ")
     );
 }
+
+#[test]
+fn a_parse_failure_says_where_it_is() {
+    // "2 error node(s)" and a filename is a report nobody can act on: the whole value of
+    // knowing a file did not parse is being able to go and look at the part that did
+    // not. Found on vuejs/core, where four files failed and the report gave no position
+    // for any of them.
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        tmp.path().join("a.rs"),
+        "fn ok() {}\n\nfn broken( { let x = ; }\n",
+    )
+    .expect("the file");
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["parse", "-C"])
+        .arg(tmp.path())
+        .output()
+        .expect("running fr");
+    let text = String::from_utf8_lossy(&output.stdout);
+    assert!(text.contains("error node(s)"), "{text}");
+    assert!(
+        text.contains("a.rs:3:"),
+        "the failure names no line: {text}"
+    );
+}

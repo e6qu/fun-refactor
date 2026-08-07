@@ -67,6 +67,25 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   still index, since an error node is local to its subtree — what is lost are the
   facts inside that expression.
 
+- [ ] B232: `tree-sitter-typescript` cannot read a property called `in` when another
+  member precedes it. `interface G { in?: string }` is fine and so is
+  `interface G { in: string }`, but this is not:
+
+  ```ts
+  interface G {
+    a?: string
+    in?: string      // error node
+  }
+  ```
+
+  The grammar takes `in` after a preceding member as the `in` operator. Found in
+  `vuejs/core`'s SVG attribute types, where the SVG `in` and `in2` filter attributes sit
+  in a long list of properties. Upstream grammar work.
+
+- [ ] B231: `tree-sitter-typescript` cannot read an import type —
+  `import("@babel/types").Statement[]` in a type position. Valid TypeScript and common in
+  generated declarations; found in `vuejs/core`'s compiler-sfc. Upstream grammar work.
+
 - [ ] B133: `tree-sitter-zig` requires at least one member in a struct, so it cannot
   parse `const Foo = struct {};` — which is ordinary Zig. The tool's own check would
   therefore refuse to write a correct file, so an empty record is written with an empty
@@ -75,6 +94,13 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B230: **a parse failure said how many and never where.** `fr parse` named the file
+  and the number of error nodes and stopped, so the one thing a reader wants from
+  "this file did not parse" — which part — was the one thing missing. The spans were
+  already computed; only the printing dropped them. Every position is reported now, up to
+  four per file, because a file with two hundred error nodes is one the grammar cannot
+  read at all and listing them would say so two hundred times.
 
 - [x] B229: **a Go type implemented an interface it does not implement.** The hierarchy
   pass compared a method's *name and arity*, under a comment saying a covered method set
