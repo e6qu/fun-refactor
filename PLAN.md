@@ -2242,6 +2242,43 @@ both declare `HookEvent` — the files are named. And the message for an ambiguo
 name lists the qualified names that would select each candidate, so the next step is to
 copy a line rather than to go and look one up.
 
+### The interface that was not an interface
+
+Following up the number the helm run left behind: 73% of its call-graph edges came from
+Go's structural interface inference, 6.4 for every function in the tree. Honest
+over-approximation, or over-linking?
+
+Over-linking. Every method named `Run` received 478 dispatch edges; one test function
+claimed 443 outgoing ones. And the mechanism was not what the comment said it was:
+
+```go
+type Runner interface { Run() error }
+
+func (s Server) Run() error  { return nil }   // implements Runner
+func (r Report) Run() string { return "" }    // does not
+```
+
+`fr callees start` listed both. The pass compared a method's **name and arity** and never
+its signature, under a comment reading "a method set that covers an interface's, which is
+the whole of what implementing an interface means there" — true of Go, and not true of
+the code beneath it. In helm that was 5,936 edges between types that do not implement
+each other, 29% of the layer.
+
+Signatures are compared now, and only where both are legible: a signature this cannot
+read leaves the arity answer standing, because a dropped edge here becomes a live method
+reported as dead code.
+
+**Which is exactly what the first version of the fix did.** Comparing the signatures as
+written refused `PrintingKubeClient` as an implementation of an interface it plainly
+satisfies, because the interface says `ResourceList` from inside its own package and the
+implementation says `kube.ResourceList` from outside. Seven live methods, reported dead.
+Package qualifiers are dropped before the comparison now, which makes two same-named
+types in different packages match — the direction to be wrong in, since a spurious
+candidate is labelled as one and a missing edge is not labelled at all.
+
+The fault was found by measuring dead code before and after, not by watching the edge
+count fall. It fell either way.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,
