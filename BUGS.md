@@ -76,6 +76,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B228: **the tool printed names it would not accept.** Every listing gives a
+  qualified name — `Box::size`, `HookEvent::String` — and `resolve_target` matched on the
+  bare name only, so the spelling the tool shows you everywhere was the one spelling that
+  came back "no symbol named". It mattered at scale: in helm, `String` is twenty methods,
+  and the only route through was a line and column somebody had to go and look up. A
+  qualified name is tried first now, and where one is still ambiguous — two packages both
+  declaring `HookEvent` — the files are named. The message for an ambiguous *bare* name
+  lists the qualified names that would select each candidate, so the fix is to copy a
+  line instead of going to find a line number.
+
 - [x] B227: **three tests counted what came back and never looked at it.**
   `textual_sweep_respects_word_boundaries` found one occurrence and did not check which,
   in a test whose entire subject is telling `helper` from `helperful`.

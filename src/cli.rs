@@ -2095,6 +2095,34 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         });
     }
 
+    // A qualified name — `Box::size`, the spelling every listing prints — before a bare
+    // one. The tool printed these everywhere and then refused them as input, so the
+    // obvious way to name one of twenty `String` methods was the one way that did not
+    // work, and the only alternative offered was a line and column somebody had to go
+    // and look up.
+    let matches = match target.contains("::") {
+        true => index
+            .symbols
+            .iter()
+            .filter(|s| s.qualified_name() == target)
+            .collect::<Vec<_>>(),
+        false => Vec::new(),
+    };
+    if matches.len() == 1 {
+        return Ok(matches[0]);
+    }
+    if matches.len() > 1 {
+        let mut listing = String::new();
+        for symbol in &matches {
+            listing.push_str(&format!("\n  {} in {}", target, symbol.file.display()));
+        }
+        anyhow::bail!(
+            "'{target}' is declared in {} files; specify a position as \
+             path:line:col{listing}",
+            matches.len()
+        );
+    }
+
     let matches = index.find_symbols(target, None);
     match matches.len() {
         0 => anyhow::bail!("no symbol named '{target}'"),
@@ -2105,16 +2133,19 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         _ => {
             // Ambiguity is reported, never resolved by guessing.
             let mut listing = String::new();
+            // Each candidate is listed by the name that would select it, so the fix is
+            // to copy a line rather than to go and find a line number.
             for symbol in &matches {
                 listing.push_str(&format!(
                     "\n  {} ({}) in {}",
-                    symbol.name,
+                    symbol.qualified_name(),
                     symbol.kind.as_str(),
                     symbol.file.display()
                 ));
             }
             anyhow::bail!(
-                "'{target}' is defined {} times; specify a position as path:line:col{listing}",
+                "'{target}' is defined {} times; name one of these, or give a position \
+                 as path:line:col{listing}",
                 matches.len()
             )
         }
