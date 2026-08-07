@@ -2279,6 +2279,42 @@ candidate is labelled as one and a missing edge is not labelled at all.
 The fault was found by measuring dead code before and after, not by watching the edge
 count fall. It fell either way.
 
+### A second large repository, in another language
+
+helm is Go and Helm, and both finds from it were Go-specific. So: `vuejs/core`, 547
+files, mostly TypeScript.
+
+The shape of the answer is the opposite of helm's, and in the right direction. 72% of
+call edges are **resolved** against 27% dispatch candidates, where helm was 27/73 — because
+TypeScript states its imports and Go does not, so 4,283 edges resolve
+`import-qualified` with nowhere for a guess to enter.
+
+Four files did not parse, and finding out why exposed something first:
+
+**`fr parse` said how many and never where.** A filename and "2 error node(s)", and the
+one thing a reader wants from "this file did not parse" — which part — was the one thing
+missing. The spans were already computed; the printing dropped them. Every position is
+reported now, up to four per file, since a file with two hundred error nodes is one the
+grammar cannot read at all and listing them would say so two hundred times.
+
+With positions, the four resolve into two upstream grammar gaps, both minimised to three
+lines:
+
+```ts
+type A = { ast?: import("@babel/types").Statement[] }   // import type: not read
+
+interface G {
+  a?: string
+  in?: string                                           // `in` after a member: not read
+}
+```
+
+The second is the more interesting: `in?: string` alone parses, and `in: string` parses,
+but `in` following another member is taken for the `in` operator. It appears in
+`vuejs/core` because SVG has filter attributes called `in` and `in2`. Both are recorded
+against the grammar rather than worked around, and both are now findable by anybody who
+runs `fr parse`, which they were not this morning.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `rename`, `extract`, `inline`,
 `signature`, `move`, `delete`, `unused`, `duplicates`, `imports`, `restructure`,
 `rewrite`, `remove-flag`, `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`,

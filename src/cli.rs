@@ -2722,7 +2722,10 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
     }
 
     let mut per_language: BTreeMap<&'static str, Tally> = BTreeMap::new();
-    let mut failures: Vec<(PathBuf, usize)> = Vec::new();
+    // The count and where. A file named with "2 error node(s)" and no position is a
+    // report somebody cannot act on: the whole value of knowing a file did not parse is
+    // being able to go and look at the part that did not.
+    let mut failures: Vec<(PathBuf, Vec<LineCol>)> = Vec::new();
 
     for file in &result.files {
         let tally = per_language.entry(file.language.name()).or_default();
@@ -2734,11 +2737,16 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
             continue;
         };
         let parsed = parsers.parse(file.language, &source)?;
-        let errors = parsed.error_spans().len();
-        if errors > 0 {
+        let spans = parsed.error_spans();
+        if !spans.is_empty() {
             tally.with_errors += 1;
-            tally.error_nodes += errors;
-            failures.push((file.path.clone(), errors));
+            tally.error_nodes += spans.len();
+            let lines = LineIndex::new(&source);
+            let at = spans
+                .iter()
+                .map(|span| lines.line_col(span.start, &source))
+                .collect();
+            failures.push((file.path.clone(), at));
         }
     }
 
@@ -2759,7 +2767,16 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
         if !stats {
             payload["files_with_errors"] = serde_json::json!(failures
                 .iter()
-                .map(|(p, n)| serde_json::json!({ "path": p, "error_nodes": n }))
+                .map(|(p, at)| {
+                    serde_json::json!({
+                        "path": p,
+                        "error_nodes": at.len(),
+                        "at": at
+                            .iter()
+                            .map(|pos| serde_json::json!({ "line": pos.line, "col": pos.col }))
+                            .collect::<Vec<_>>(),
+                    })
+                })
                 .collect::<Vec<_>>());
         }
         println!("{}", serde_json::to_string_pretty(&payload)?);
@@ -2779,8 +2796,21 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
 
     if !stats && !failures.is_empty() {
         println!("\nFiles with parse errors:");
-        for (path, count) in &failures {
-            println!("  {} ({} error node(s))", path.display(), count);
+        for (path, at) in &failures {
+            // Every position, up to a handful. A file with two hundred error nodes is
+            // one the grammar cannot read at all, and listing them would say that two
+            // hundred times.
+            let shown: Vec<String> = at.iter().take(4).map(|pos| pos.to_string()).collect();
+            let more = match at.len() > shown.len() {
+                true => format!(", and {} more", at.len() - shown.len()),
+                false => String::new(),
+            };
+            println!(
+                "  {}:{}{more}  ({} error node(s))",
+                path.display(),
+                shown.join(", "),
+                at.len()
+            );
         }
     }
     report_skipped(&result);
