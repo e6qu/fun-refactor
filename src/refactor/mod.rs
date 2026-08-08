@@ -43,7 +43,7 @@ pub(crate) fn is_statement_container(kind: &str) -> bool {
 
 /// Something a refactoring found but deliberately did not act on.
 ///
-/// Warnings are the honest half of the output: they say what the tool saw, why it
+/// Warnings say what the tool saw, why it
 /// declined, and where a human should look.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Warning {

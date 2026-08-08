@@ -1256,7 +1256,7 @@ fn cmd_translate(
         );
         // Not every note is about a carried construct. A type the source never wrote
         // down, a name the target reserves, a base class a language without
-        // inheritance cannot keep — those were computed honestly and then printed only
+        // inheritance cannot keep — those were computed and then printed only
         // when something *else* had gone wrong, so a translation that lost a supertype
         // and nothing else reported a clean bill.
         if f.carried_verbatim > 0 {
@@ -1904,7 +1904,7 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     println!("unresolved calls  {}", graph.unresolved.len());
 
     // A call site the dispatch scan and the index disagree about is reported, since
-    // an edge placed on the wrong offset would be worse than a missing one.
+    // an edge on the wrong offset misreports; a missing one does not.
     if !graph.hierarchy_gaps.is_empty() {
         println!(
             "\n{} call site(s) the hierarchy scan could not line up with the index:",

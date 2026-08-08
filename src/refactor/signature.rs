@@ -231,7 +231,6 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         )?,
     }
 
-    // Now every call site.
     let mut call_sites = 0;
     for reference in &references {
         let call_source = crate::vfs::read_to_string(&reference.file)?;

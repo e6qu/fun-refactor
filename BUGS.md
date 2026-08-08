@@ -5,10 +5,19 @@ stage.
 
 Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
-Every open entry below is a *characterised limitation* rather than breakage: the
-behaviour is reported to the user, and no operation silently does the wrong thing.
+Open entries are characterised limitations — the behaviour is reported and no operation
+silently does the wrong thing — with one exception, B258, which is uncharacterised.
 
 ## Open
+
+- [ ] B258: **`a_rust_number_leaves_its_width_behind` failed once and has not repeated.**
+  During one `cargo test --all-targets`, the Java writer emitted Rust's `0usize` /
+  `1i32` suffixes, which that test exists to catch. It has since passed 5/5 runs in
+  isolation and 3/3 full runs, on the same commit. Ruled out: `tests/transpile.rs` never
+  activates a VFS handle, so a stale one cannot be the cause; the fact cache writes to a
+  temporary file and renames, so a concurrent reader cannot see a partial entry.
+  Mechanism unknown. Recorded rather than dismissed because the test would have caught a
+  real defect and did, once.
 
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
   resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface

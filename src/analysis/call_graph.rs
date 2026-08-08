@@ -329,7 +329,7 @@ impl CallGraph {
                 }
 
                 // Nothing in the hierarchy to point at: the index's own weak answer,
-                // if it had one, is better than no edge and is kept with the
+                // if it had one, is kept with the
                 // confidence it earned.
                 if candidates == 0 {
                     self.add_resolved_site(
@@ -586,7 +586,7 @@ impl CallGraph {
     }
 
     /// Counts by what produced each edge: resolution, or one kind of hierarchy
-    /// evidence. A graph must never quietly grow candidates.
+    /// evidence, so candidates never enter the graph unmarked.
     pub fn origin_breakdown(&self) -> BTreeMap<&'static str, usize> {
         let mut counts: BTreeMap<&'static str, usize> = BTreeMap::new();
         for edge in self.graph.edge_references() {

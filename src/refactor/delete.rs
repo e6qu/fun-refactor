@@ -136,7 +136,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         }
     }
 
-    // Everything found but deliberately not acted on.
+    // Found and not acted on.
     let mut warnings = Vec::new();
     for (file, span, confidence) in weak {
         let (line, col) = sources.line_col(&file, span.start);
@@ -585,21 +585,17 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
 /// Every identifier-shaped word inside a string literal anywhere in the workspace.
 ///
-/// A name that a resolver never sees but a string spells out is the signature of
-/// reflection and of handler tables, and neither leaves anything else behind. Words are
-/// taken both whole and split on `-`, so a CSS `class="btn-primary"` answers for
-/// `btn-primary` and for `btn`. Files that cannot be read or parsed contribute nothing
-/// and are skipped: this widens the unused list rather than narrowing it, and the
-/// caller is already told about parse errors by [`plan`].
+/// Reflection and handler tables leave a name in a string and nothing else. This takes
+/// words whole and split on `-`, so CSS `class="btn-primary"` answers for `btn-primary`
+/// and for `btn`. Files it cannot read or parse contribute nothing, which widens the
+/// unused list rather than narrowing it; [`plan`] reports parse errors separately.
 /// Names used where more than one definition could answer to them.
 ///
-/// `cfg.recordRelease(r)` resolves to neither of the two `recordRelease` methods in
-/// helm, because choosing would need the type of `cfg`. Both are live as far as this
-/// can tell, and a dead-code list that invites deleting one of them is worse than one
-/// that admits what it does not know.
+/// `cfg.recordRelease(r)` resolves to neither of helm's two `recordRelease` methods,
+/// since choosing needs the type of `cfg`. Both stay live.
 ///
-/// This is the fallback for names no declared hierarchy covers. Where one does, the
-/// caller keeps that answer instead — it is the more precise of the two.
+/// The fallback for names no declared hierarchy covers; where one does, the caller keeps
+/// that more precise answer.
 fn ambiguously_used_names(index: &Index) -> HashSet<String> {
     index
         .references

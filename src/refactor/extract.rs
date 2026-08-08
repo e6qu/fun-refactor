@@ -486,7 +486,7 @@ mod tests {
 
     #[test]
     fn the_result_still_parses() {
-        // The strongest guarantee: an extraction must never break the file.
+        // An extraction must not break the file.
         let src = "fn f() {\n    let total = price * quantity + 10;\n}\n";
         let (tmp, index) = workspace(&[("a.rs", src)]);
         let path = tmp.path().join("a.rs");

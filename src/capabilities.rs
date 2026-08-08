@@ -180,7 +180,7 @@ const NO_SUBSTITUTION: &str =
 /// false at once: `extract variable` told a reader that **Java** "has no binding form:
 /// a reusable value here is a CSS custom property", and `entry points` told them that
 /// Java "is a stylesheet". A reason that is untrue about the language it is given for
-/// is worse than no reason at all, because the whole point of this table is that the
+/// is worse than no reason: the table exists so that the
 /// empty cells explain themselves.
 ///
 /// `structural` is why the operation is *meaningless* — the right answer for a

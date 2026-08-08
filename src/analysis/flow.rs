@@ -40,7 +40,7 @@ pub enum StopReason {
     UnresolvedCall(String),
     /// The name did not resolve to any definition.
     Unresolved(String),
-    /// Resolution was too weak to follow honestly.
+    /// Resolution was too weak to follow.
     TooWeak(Confidence),
     /// The depth limit was reached; more may lie beyond.
     DepthLimit,
@@ -98,7 +98,7 @@ impl FlowResult {
         self.steps.is_empty()
     }
 
-    /// The weakest link in the chain — the honest confidence of the whole answer.
+    /// The weakest link in the chain, which is the confidence of the whole answer.
     pub fn weakest_confidence(&self) -> Option<Confidence> {
         self.steps.iter().map(|s| s.confidence).max()
     }

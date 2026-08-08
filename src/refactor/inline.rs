@@ -314,7 +314,7 @@ fn meaning_of(
 ///
 /// Substituting an expression moves every name in it to wherever the variable was
 /// used, and a name that resolves to a different binding there is a silent change of
-/// behaviour — the one thing this must not do.
+/// behaviour.
 ///
 /// Asked of the lexical scopes the index already records. It used to be asked of
 /// whichever reference with the same name happened to come first within two hundred
@@ -1688,20 +1688,19 @@ fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 /// Inline a shell variable: substitute its value at every `$name` / `${name}` and
 /// delete the assignment.
 ///
-/// Three things make this refusable where other languages' inlining is not.
+/// Three shapes refuse here that other languages' inlining accepts:
 ///
-/// * Shell has no block scope, so a second assignment anywhere in the file changes
-///   the value every use after it sees; one substitution cannot be right for both.
-/// * An `export`ed variable is read by every child process this script starts, and
-///   nothing in this workspace can prove none of them wants it.
-/// * `'$name'` inside single quotes is not a use at all — the shell performs no
-///   expansion there — so deleting the assignment would leave text that looks like a
-///   use and no longer is. That is reported rather than quietly ignored.
+/// * Shell has no block scope, so a second assignment anywhere in the file changes what
+///   every later use sees; one substitution cannot serve both.
+/// * Every child process this script starts reads an `export`ed variable, and nothing
+///   in the workspace shows whether one wants it.
+/// * `'$name'` inside single quotes is not a use — the shell expands nothing there — so
+///   deleting the assignment would leave text that looks like a use. Reported.
 ///
 /// Quoting decides the substitution, mirroring the extraction: a use inside double
-/// quotes takes a quoted value's *contents*, and an unquoted use takes a quoted value
-/// only when its contents are a single plain word — otherwise the value would be
-/// word-split and glob-expanded where `$name` never was.
+/// quotes takes a quoted value's contents; an unquoted use takes a quoted value only
+/// when its contents are a single plain word, since otherwise the shell would word-split
+/// and glob-expand it where `$name` never was.
 fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)

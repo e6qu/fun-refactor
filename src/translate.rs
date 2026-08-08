@@ -80,7 +80,7 @@ pub fn why_nothing(from: Language) -> String {
         // This used to say "nothing here can do it, so nothing here pretends to",
         // which was true when it was written and became false the day the transpiler
         // landed: Rust, Go, Python and TypeScript translate into one another. A message
-        // that denies a capability the tool has is worse than no message, because the
+        // that denies a capability the tool has misinforms, because the
         // reader believes it and stops looking.
         let supported: Vec<String> = crate::transpile::SUPPORTED
             .iter()

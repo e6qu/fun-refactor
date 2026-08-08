@@ -423,7 +423,7 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
     for span in spans {
         // Scalar filler is only right where a *value* is expected. An action alone on
         // its line is structural and must vanish; an action in key position must stay
-        // visibly wrong, because a plausible-looking fake key would be worse than a
+        // visibly wrong, because a plausible-looking fake key hides more than a
         // parse error — the tool would report a key nobody wrote.
         let filler = if line_is_only_actions(source, spans, *span) || starts_the_line(source, *span)
         {
