@@ -149,6 +149,17 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
   command names, both of which pass on a file that does not parse. It now parses every
   page with the tool's own parser, verified to fail when an ampersand is unescaped.
 
+- [x] B272: **the same gap one node deeper: a type named by its path.** `impl inner::Deep`
+  puts a `scoped_type_identifier` where the container patterns want a bare name, and
+  `impl<T> other::Wrapped<T>` wraps that in a `generic_type` again, so B270's fix did not
+  reach either. Four patterns cover the remaining combinations. This does not occur in
+  this repository — every `impl a::B for C` here has a bare type and already worked — so
+  it was found by asking what other shapes the node can take rather than by a run.
+
+  Checked and correct without changes: generics in Java, TypeScript, Go and Python
+  (`Box<T>`, `Holder<T>`, `Stack[T any]`, `Generic[T]`), and nested types in Java,
+  TypeScript and Python. Rust was alone in both.
+
 - [x] B270: **a method of a generic type was not a method of anything.** The Rust
   container patterns matched `type: (type_identifier)`, and `impl Ctx<'_>` or
   `impl<T> Generic<T>` puts a `generic_type` there, so neither matched and the methods
