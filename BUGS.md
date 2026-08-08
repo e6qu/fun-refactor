@@ -110,6 +110,58 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B256: **an HTML attribute value is a string, and the rule that spares names spelled
+  in strings could not see one.** `is_string_kind` matched node kinds with "string" in
+  the name, and the HTML grammar calls an attribute value an `attribute_value`. That is
+  where a template names the code behind it — `th:text="${owner.address}"`,
+  `v-on:click="submitOrder"`, `class="table-striped"` — so the whole Thymeleaf, Vue and
+  Angular way of referring to code was invisible to the one correction meant to catch
+  exactly that. Eighty of `spring-petclinic`'s CSS classes were reported dead while its
+  templates used them by name.
+
+- [x] B255: **a container of an entry point was reported as dead.** JUnit constructs a
+  test class in order to run the `@Test` methods inside it, and nothing names the class —
+  `spring-petclinic` reported eleven. The rule asks the containment chain rather than the
+  language, so a Rust `mod tests` and a Python class of pytest cases are the same
+  sentence: if anything inside it is an entry point, something outside the workspace
+  reaches in to get there. A dead method beside a live test is still reported.
+
+- [x] B254: **a JavaBean accessor is reached by its property, never by its name.**
+  `Owner::getAddress` was reported dead while the template says `${owner.address}` and
+  the tests say `param("address", …)`. In Java the convention is a specification rather
+  than a habit — template engines, JSON mappers and Spring's own binder all reach a
+  getter by the property — so an accessor whose property is named where the method is
+  not is spared, and says so. `gettysburg` is not an accessor for `tysburg`: the rule
+  requires an uppercase letter after the prefix.
+
+- [x] B253: **three more Spring conventions, found by an application rather than by
+  imagining them.** `@InitBinder`, `@ModelAttribute` and `@Configuration` are called by
+  the container and never from the source, the same as the eight callbacks B236 added.
+  Those came from asking what Spring might call; these came from running the tool over
+  `spring-petclinic`, which is the argument for doing both rather than either.
+
+- [x] B252: **a package clause was reported as dead code, once per file.** Java classes in
+  one package never write the package's name and nothing can import Go's `main`, so
+  "nothing uses this" is true of every package declaration and says nothing about any of
+  them — `spring-petclinic` reported all forty-nine of its. Removing one is a syntax
+  error, not a refactoring. Rust's `mod helper;` wears the same symbol kind and means
+  something else entirely: a child module nothing references is a real finding, so the
+  exclusion asks the language rather than the kind.
+
+  Together with the four above, `spring-petclinic`'s code findings go from 35 to 3, and
+  the three that remain are explicable: a constructor Spring calls, a testcontainers
+  `@Container` field, and a nested `@TestConfiguration` class.
+
+- [x] B257: **a long `fr unused` answer did not say what it was mostly made of.**
+  `spring-petclinic` answers with 3,554 findings, of which 3,439 are in one vendored
+  stylesheet. True, and useless as read: the methods somebody came for are somewhere in
+  the scroll and the count alone does not say so. A long answer now names its top kinds,
+  and the file holding it when one file holds more than half. `vuejs/core` immediately
+  turns out to be 1,640 keys in `pnpm-lock.yaml`. Nothing is hidden — deciding a lockfile
+  is not worth analysing would be inventing policy; saying where the answer comes from is
+  not.
+
+
 - [x] B251: **a recipe's misspelled predicate value blamed the repository.** `kind=functoin`
   matched nothing and the step failed with "matched nothing. That is not success" — true,
   and unhelpful: nothing in the workspace was wrong. The predicate's *name* has been

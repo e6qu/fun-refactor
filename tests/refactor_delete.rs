@@ -666,3 +666,174 @@ fn refs_on_one_declaration_finds_every_use_of_the_class() {
         "both declarations of one class must report the same uses, got {counts:?}"
     );
 }
+
+/// A package clause is not dead code, because it is not code that can die.
+///
+/// Java classes in one package never write the package's name and nothing can import
+/// Go's `main`, so "nothing uses this" is true of every package declaration and says
+/// nothing about any of them. `spring-petclinic` reported all forty-nine of its, one per
+/// file. Removing one is a syntax error, not a refactoring.
+#[test]
+fn a_package_clause_is_not_reported_as_unused() {
+    let (_tmp, index) = workspace(&[
+        (
+            "A.java",
+            "package app;\n\npublic class A {\n    public static void main(String[] a) {\n        new B();\n    }\n}\n",
+        ),
+        ("B.java", "package app;\n\npublic class B {\n}\n"),
+        ("main.go", "package main\n\nfunc main() {}\n"),
+    ]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let modules: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.kind == fun_refactor::model::SymbolKind::Module)
+        .map(|s| format!("{} in {}", s.name, s.file.display()))
+        .collect();
+    assert!(modules.is_empty(), "package clauses reported: {modules:?}");
+}
+
+/// The other side: Rust's `mod` wears the same symbol kind and means something else.
+/// It declares a child module, and one nothing references is a real finding.
+#[test]
+fn an_unreferenced_rust_module_is_still_reported() {
+    let (_tmp, index) = workspace(&[("a.rs", "mod helper;\n\nfn main() {}\n")]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let found: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.kind == fun_refactor::model::SymbolKind::Module)
+        .map(|s| s.name.clone())
+        .collect();
+    assert_eq!(found, vec!["helper".to_string()], "a `mod` can be dead");
+}
+
+/// A class whose methods are entry points is reached, whatever calls them.
+///
+/// JUnit constructs a test class in order to run the `@Test` methods in it, and the
+/// class itself is named nowhere — `spring-petclinic` reported eleven of them. The rule
+/// asks the containment chain rather than the language, so a Rust `mod tests` and a
+/// Python class of pytest cases are covered by the same sentence.
+#[test]
+fn a_container_of_an_entry_point_is_not_dead() {
+    let (_tmp, index) = workspace(&[(
+        "OwnerTests.java",
+        "package app;\n\nclass OwnerTests {\n    @Test\n    void findsAnOwner() {\n    }\n\n    \
+         void helper() {\n    }\n}\n",
+    )]);
+
+    let test_method = only_symbol(&index, "findsAnOwner");
+    let unused = delete::find_unused(&index, &Entrypoints::exactly(&[test_method]));
+    let names: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+
+    assert!(
+        !names.contains(&"OwnerTests".to_string()),
+        "the class holding the test is reached: {names:?}"
+    );
+    assert!(
+        names.contains(&"helper".to_string()),
+        "a method beside the test is still judged on its own: {names:?}"
+    );
+}
+
+/// A JavaBean accessor is reached by its property, never by its name.
+///
+/// `${owner.address}` in a template reaches `Owner::getAddress`. The property was in the
+/// string index already; only the question was missing. Java only — there the convention
+/// is a specification that template engines, JSON mappers and Spring's binder all follow.
+#[test]
+fn a_bean_accessor_named_only_by_its_property_is_spared() {
+    let (_tmp, index) = workspace(&[
+        (
+            "Owner.java",
+            "package app;\n\npublic class Owner {\n    private String address;\n\n    \
+             public String getAddress() {\n        return this.address;\n    }\n\n    \
+             public String getSecret() {\n        return \"\";\n    }\n}\n",
+        ),
+        (
+            "list.html",
+            "<html><body><td th:text=\"${owner.address}\"></td></body></html>\n",
+        ),
+    ]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let names: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+
+    assert!(
+        !names.contains(&"getAddress".to_string()),
+        "the template names its property: {names:?}"
+    );
+    assert!(
+        names.contains(&"getSecret".to_string()),
+        "an accessor nothing names either way is still a finding: {names:?}"
+    );
+}
+
+/// `gettysburg` is not an accessor for `tysburg`.
+#[test]
+fn a_name_merely_starting_with_get_is_not_an_accessor() {
+    let (_tmp, index) = workspace(&[
+        (
+            "A.java",
+            "package app;\n\npublic class A {\n    public String gettysburg() {\n        \
+             return \"\";\n    }\n}\n",
+        ),
+        ("notes.md", "# tysburg\n\nProse mentioning tysburg.\n"),
+    ]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let names: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+    assert!(
+        names.contains(&"gettysburg".to_string()),
+        "the property rule needs an uppercase letter after the prefix: {names:?}"
+    );
+}
+
+/// An attribute value is a string the HTML grammar happens not to call one.
+///
+/// It is also where a template names the code behind it, so the rule meant to catch
+/// exactly that — "spared because its name is spelled in a string" — could not see the
+/// whole Thymeleaf, Vue and Angular way of referring to code.
+#[test]
+fn a_name_in_a_template_attribute_counts_as_named() {
+    let (_tmp, index) = workspace(&[
+        (
+            "app.ts",
+            "export function submitOrder() {\n  return 1;\n}\n\n\
+             export function neverMentioned() {\n  return 2;\n}\n",
+        ),
+        (
+            "page.html",
+            "<html><body><button v-on:click=\"submitOrder\">Go</button></body></html>\n",
+        ),
+    ]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let names: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+    assert!(
+        !names.contains(&"submitOrder".to_string()),
+        "the template names it: {names:?}"
+    );
+    assert!(
+        names.contains(&"neverMentioned".to_string()),
+        "and one nothing names is still a finding: {names:?}"
+    );
+}

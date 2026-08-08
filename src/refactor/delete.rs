@@ -218,6 +218,17 @@ pub enum SparedReason {
     /// declaring the same function twice under opposite build tags. Every candidate
     /// stays live.
     AmbiguousMemberCall,
+    /// It names where the file lives rather than something in it: Java's `package app;`,
+    /// Go's `package main`. Nothing ever references one, so "unused" is true of all of
+    /// them and says nothing.
+    NamesTheFilesPlace,
+    /// A JavaBean accessor whose *property* is named somewhere the method is not: a
+    /// template writing `${owner.address}` reaches `getAddress`, and every Java template
+    /// engine, JSON mapper and data binder works that way.
+    ReachedByItsProperty,
+    /// Something inside it is an entry point, so something outside the workspace reaches
+    /// in: a JUnit test class, a Rust `mod tests`, a Python class of pytest cases.
+    HoldsAnEntryPoint,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -250,6 +261,21 @@ impl UnusedReport {
             SparedReason::DeclaredUnused => {
                 "its name begins with an underscore, which says the author meant it to \
                  go unused"
+                    .to_string()
+            }
+            SparedReason::HoldsAnEntryPoint => {
+                "something inside it is an entry point, so whatever calls that reaches \
+                 this to get there"
+                    .to_string()
+            }
+            SparedReason::ReachedByItsProperty => {
+                "its property is named elsewhere — a template or a mapper reaches a \
+                 JavaBean accessor by the property, never by the method"
+                    .to_string()
+            }
+            SparedReason::NamesTheFilesPlace => {
+                "it names where the file lives rather than something in it; nothing \
+                 references a package clause and removing one is a syntax error"
                     .to_string()
             }
             SparedReason::DynamicDispatch { from, basis } => {
@@ -300,6 +326,53 @@ impl UnusedReport {
 /// each candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
+}
+
+/// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose
+/// `address` and `active`.
+///
+/// Java only, because there the convention is a specification rather than a habit:
+/// template engines, JSON mappers and Spring's own data binding all reach a getter by
+/// the property name and never write the method's. `spring-petclinic` called
+/// `Owner::getAddress` dead while its template says `${owner.address}` and its tests say
+/// `param("address", …)`. Both name the property; neither names the method.
+fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
+    if symbol.language != crate::lang::Language::Java {
+        return None;
+    }
+    if !matches!(symbol.kind, SymbolKind::Method) {
+        return None;
+    }
+    let rest = symbol
+        .name
+        .strip_prefix("get")
+        .or_else(|| symbol.name.strip_prefix("set"))
+        .or_else(|| symbol.name.strip_prefix("is"))?;
+    let mut chars = rest.chars();
+    let first = chars.next()?;
+    // `getX` exposes `x`; `gettysburg` exposes nothing.
+    first
+        .is_uppercase()
+        .then(|| first.to_lowercase().collect::<String>() + chars.as_str())
+}
+
+/// Does this symbol name where the file lives, rather than something in it?
+///
+/// Java's `package app;` and Go's `package main` are file headers. Nothing references
+/// them by name — Java classes in one package never write it, and nothing can import
+/// `main` — so "nothing uses this" is true of every one of them and means nothing.
+/// Removing one is a syntax error, not a refactoring. `spring-petclinic` reported all
+/// forty-nine of its package declarations, one per file.
+///
+/// Rust's `mod helper;` is a different construct wearing the same symbol kind: it
+/// declares a child module, and one nothing references is a real finding. So this asks
+/// the language, not the kind.
+fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
+    symbol.kind == SymbolKind::Module
+        && matches!(
+            symbol.language,
+            crate::lang::Language::Java | crate::lang::Language::Go
+        )
 }
 
 /// Did the author declare this unused by naming it so?
@@ -388,6 +461,23 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     }
 
     let named_in_a_string = names_in_string_literals(index);
+
+    // A class whose methods are entry points is reached, whatever calls them. JUnit
+    // constructs a test class to run the `@Test` methods inside it, and the class itself
+    // is named nowhere — `spring-petclinic` reported eleven of them. The same holds for a
+    // Rust `mod tests` and a Python class of pytest cases, so this asks the containment
+    // chain rather than the language: if anything inside it is an entry point, something
+    // outside the workspace reaches in.
+    let mut holds_an_entrypoint: HashSet<SymbolId> = HashSet::new();
+    for entry in entrypoints {
+        let mut at = index.symbol(*entry).and_then(|s| s.container);
+        while let Some(id) = at {
+            if !holds_an_entrypoint.insert(id) {
+                break;
+            }
+            at = index.symbol(id).and_then(|s| s.container);
+        }
+    }
     // Names the hierarchy analysis has already ruled on. Where it has, its answer
     // stands: it knows `Ledger.Area(scale)` cannot satisfy `Shape.Area()` because the
     // arities differ, and a name-only fallback would undo that.
@@ -427,6 +517,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         };
         let orphaned = !reached && !referenced.contains(&symbol.id);
         if orphaned || dead_cycles.contains(&symbol.id) {
+            if names_where_the_file_lives(symbol) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::NamesTheFilesPlace));
+                continue;
+            }
             if declared_unused(symbol) {
                 report
                     .spared
@@ -438,6 +534,20 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
                     .spared
                     .push((symbol.id, SparedReason::AmbiguousMemberCall));
                 continue;
+            }
+            if holds_an_entrypoint.contains(&symbol.id) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::HoldsAnEntryPoint));
+                continue;
+            }
+            if let Some(property) = bean_property(symbol) {
+                if named_in_a_string.contains(&property) {
+                    report
+                        .spared
+                        .push((symbol.id, SparedReason::ReachedByItsProperty));
+                    continue;
+                }
             }
             if !named_in_a_string.contains(&symbol.name) {
                 report.unused.push(symbol.id);
@@ -806,7 +916,12 @@ fn textual_occurrences(
 
 /// Does this node kind hold a string literal?
 fn is_string_kind(kind: &str) -> bool {
-    kind.contains("string") || kind.contains("char_literal")
+    // An attribute value is a string that the HTML grammar happens not to call one, and
+    // it is where a template names the code behind it: `th:text="${owner.address}"`
+    // reaches `Owner::getAddress`, `v-on:click="submit"` reaches `submit`. Reading only
+    // nodes with "string" in their name meant the whole Thymeleaf, Vue and Angular way of
+    // referring to code was invisible to the one rule meant to catch exactly that.
+    kind.contains("string") || kind.contains("char_literal") || kind.contains("attribute_value")
 }
 
 /// Spans of string literals, comments and Helm template actions.

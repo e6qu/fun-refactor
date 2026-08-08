@@ -1069,6 +1069,38 @@ fn cmd_unused(
             unused.len()
         );
     }
+
+    // What a long answer is mostly made of. `spring-petclinic` reports 3,554, of which
+    // 3,395 are CSS selectors in one vendored stylesheet — true, and useless as read,
+    // because the fourteen methods a person came for are somewhere in the scroll. The
+    // count alone does not say that; a reader should not have to pipe it through `sort`
+    // to find out what they are looking at.
+    if unused.len() >= 50 {
+        let mut by_kind: BTreeMap<&str, usize> = BTreeMap::new();
+        let mut by_file: BTreeMap<&std::path::Path, usize> = BTreeMap::new();
+        for symbol in unused.iter().filter_map(|id| index.symbol(*id)) {
+            *by_kind.entry(symbol.kind.as_str()).or_default() += 1;
+            *by_file.entry(symbol.file.as_path()).or_default() += 1;
+        }
+        let mut kinds: Vec<_> = by_kind.into_iter().collect();
+        kinds.sort_by_key(|(name, count)| (std::cmp::Reverse(*count), *name));
+        println!(
+            "  {}",
+            kinds
+                .iter()
+                .take(5)
+                .map(|(kind, count)| format!("{count} {kind}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        if let Some((path, count)) = by_file.iter().max_by_key(|(path, count)| (**count, *path)) {
+            // Only when one file dominates: otherwise the answer is spread out and
+            // naming its largest single file says nothing.
+            if *count * 2 > unused.len() {
+                println!("  {count} of them in {}", path.display());
+            }
+        }
+    }
     println!(
         "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
          candidates, so a method reached only through a trait object, an interface \n\

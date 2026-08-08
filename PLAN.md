@@ -514,6 +514,52 @@ positions in one run's index, unstable and useless to a reader, with `defined_at
 like a line number. The text rendering resolved them all along; only the machine-readable
 half did not.
 
+### A real Java application
+
+Java is Tier A with twelve catalogue rules and had only ever met fixtures, because there
+is no Java in this repository. `spring-petclinic` — the canonical Spring app, 49 files —
+answered with 3,554 findings, of which 35 were code. Five defects were in the way of
+seeing the three that mattered.
+
+A **package clause** is not code that can die. Java classes in one package never write
+its name and nothing can import Go's `main`, so "nothing uses this" is true of every
+package declaration and says nothing about any of them; petclinic reported all
+forty-nine, one per file. Removing one is a syntax error. Rust's `mod helper;` wears the
+same symbol kind and means the opposite — a child module nothing references is a real
+finding — so the exclusion asks the language, not the kind.
+
+A **container of an entry point** is reached. JUnit constructs a test class to run the
+`@Test` methods in it and nothing names the class. That one is not Java's: the rule walks
+the containment chain, so a Rust `mod tests` and a Python class of pytest cases are
+covered by the same sentence.
+
+A **JavaBean accessor** is reached by its property and never by its name. `getAddress`
+was dead while the template said `${owner.address}` and the tests said `param("address",
+…)`. In Java that convention is a specification, not a habit — templates, JSON mappers
+and Spring's binder all use it.
+
+Chasing that one found a wider defect. An **HTML attribute value is a string** that the
+grammar happens not to call one, and the rule that spares names spelled in strings
+matched node kinds containing "string". So `th:text="${owner.address}"`,
+`v-on:click="submitOrder"` and `class="table-striped"` were all invisible to the one
+correction meant to catch exactly this, and eighty of petclinic's CSS classes were
+reported dead while its templates used them.
+
+And **three more Spring conventions** — `@InitBinder`, `@ModelAttribute`,
+`@Configuration` — join the eight the earlier sweep added. Those came from asking what
+Spring might call; these came from running the tool at it. The lesson is that the two
+methods find different things and neither replaces the other.
+
+Code findings: 35 → 3, and the three left are explicable — a constructor Spring calls, a
+testcontainers field, a nested `@TestConfiguration`.
+
+The last one is about the answer rather than the analysis. 3,554 findings with 3,439 of
+them in one vendored stylesheet is true and useless as read, and the count alone does not
+say so. A long answer now names its top kinds and, when one file holds more than half of
+it, that file. `vuejs/core` turns out to be 1,640 keys in `pnpm-lock.yaml`. Nothing is
+hidden by it: deciding a lockfile is not worth analysing would be inventing policy, and
+saying where the answer comes from is not.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,

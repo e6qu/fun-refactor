@@ -279,3 +279,38 @@ fn the_capability_matrix_is_printable_and_totals_add_up() {
         "supported + n/a + refused should be the whole matrix: {tail}"
     );
 }
+
+#[test]
+fn a_long_unused_report_says_what_it_is_mostly_made_of() {
+    // `spring-petclinic` answers this with 3,554 findings, of which 3,395 are CSS
+    // selectors in one vendored stylesheet. True, and useless as read: the fourteen
+    // methods somebody came for are somewhere in the scroll, and the count alone does
+    // not say so. Below fifty findings the list is its own summary and this stays quiet.
+    let mut css = String::new();
+    for i in 0..80 {
+        css.push_str(&format!(".unused-{i} {{ color: red; }}\n"));
+    }
+    let ws = Workspace::new(&[
+        ("vendor/bundle.css", &css),
+        ("keep/a.go", &go_helper("alpha")),
+    ]);
+
+    let (out, ok) = ws.run(&["unused"]);
+    assert!(ok, "{out}");
+    assert!(
+        out.contains("80 selector"),
+        "the breakdown should name what dominates:\n{out}"
+    );
+    assert!(
+        out.contains("of them in") && out.contains("bundle.css"),
+        "one file holding most of the answer should be named:\n{out}"
+    );
+
+    // Spread out, and short: no breakdown at all.
+    let (small, ok) = ws.run(&["unused", "--language", "go"]);
+    assert!(ok, "{small}");
+    assert!(
+        !small.contains("of them in"),
+        "a short answer needs no summary of itself:\n{small}"
+    );
+}
