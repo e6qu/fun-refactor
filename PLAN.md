@@ -571,6 +571,23 @@ reference half is a one-line query change; the symbol half is not, because `var`
 would have to come from `extract.rs` and would change every HCL qualified name and the
 cache schema with it.
 
+### Zig at scale
+
+29 files of Zig's own standard library — `http`, `json`, `fmt`. One parse failure, and it
+is B133: `const T = struct {};`, which `tree-sitter-zig` cannot read. The gap was already
+recorded from a fixture; the standard library uses it.
+
+`fr entrypoints` found 12 tests where the corpus has 495. Zig writes a test as
+`test "any prose you like" { … }` and the query makes the description the symbol's name,
+so `name_prefix: test` matched the twelve whose description begins with "test". The other
+483 read as dead code, and so did everything only they called. Matchers gained
+`declaration_keyword`, the third predicate that is not a property of a name after
+Python's `__main__` guard and Next.js's `"use server"`. Entry points 12 → 472, dead-code
+findings 643 → 204, and 538 → 99 with `--internal`.
+
+Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
+`exported`, so `--internal` already separates them — 105 of the 643.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,

@@ -15,9 +15,12 @@
     file_name: build.zig
     name: build
 
+# Zig writes a test as `test "any prose you like" { … }`, so the symbol's name is the
+# description and no name rule can find one. Asking for `name_prefix: test` matched the
+# 12 tests in Zig's own standard library whose description begins with "test", out of
+# 495.
 - id: zig-test
   kind: test
   languages: [zig]
   matches:
-    name_prefix: test
-    symbol_kind: function
+    declaration_keyword: test

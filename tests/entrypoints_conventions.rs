@@ -555,3 +555,37 @@ fn a_kind_or_an_export_is_a_condition_by_itself() {
         .collect();
     assert_eq!(found, vec!["handler".to_string()], "a kind is a condition");
 }
+
+/// A Zig test is a construct, not a name.
+///
+/// `test "any prose you like" { … }` makes the description the symbol's name, so a rule
+/// asking for `name_prefix: test` matches only the tests whose description happens to
+/// begin with "test" — 12 of the 495 in Zig's own standard library. The other 483 were
+/// reported as dead code, and so was anything only they called.
+#[test]
+fn a_zig_test_block_is_an_entry_point_whatever_it_is_called() {
+    let found = entry_kinds(&[(
+        "a.zig",
+        "const std = @import(\"std\");\n\n\
+         fn helper() i32 {\n    return 7;\n}\n\n\
+         test \"helper returns seven\" {\n    \
+         try std.testing.expectEqual(@as(i32, 7), helper());\n}\n",
+    )]);
+    assert!(
+        found.contains(&("helper returns seven".to_string(), EntryKind::Test)),
+        "got {found:?}"
+    );
+}
+
+/// The keyword has to end where the declaration says it does.
+#[test]
+fn a_declaration_merely_starting_with_the_keyword_does_not_match() {
+    let found = entry_kinds(&[(
+        "b.zig",
+        "const testing = @import(\"std\").testing;\n\nfn tested() void {}\n",
+    )]);
+    assert!(
+        !found.iter().any(|(_, kind)| *kind == EntryKind::Test),
+        "`testing` and `tested` are not test blocks: {found:?}"
+    );
+}

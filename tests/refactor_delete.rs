@@ -868,3 +868,35 @@ fn an_unaddressable_hcl_block_is_not_reported() {
         );
     }
 }
+
+/// A Zig test block, and what only it calls, are not dead.
+#[test]
+fn a_zig_test_block_and_what_it_calls_are_reached() {
+    let (_tmp, index) = workspace(&[(
+        "a.zig",
+        "const std = @import(\"std\");\n\n\
+         fn helper() i32 {\n    return 7;\n}\n\n\
+         fn nothing_calls_this() i32 {\n    return 1;\n}\n\n\
+         test \"helper returns seven\" {\n    \
+         try std.testing.expectEqual(@as(i32, 7), helper());\n}\n",
+    )]);
+    let entrypoints = Entrypoints::detect(&index).expect("the built-in catalogs");
+
+    let names: Vec<_> = delete::find_unused(&index, &entrypoints)
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+    assert!(
+        !names.contains(&"helper returns seven".to_string()),
+        "the test is an entry point: {names:?}"
+    );
+    assert!(
+        !names.contains(&"helper".to_string()),
+        "the test calls it: {names:?}"
+    );
+    assert!(
+        names.contains(&"nothing_calls_this".to_string()),
+        "and a function no test calls is still a finding: {names:?}"
+    );
+}

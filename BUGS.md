@@ -133,13 +133,28 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
   generated declarations; found in `vuejs/core`'s compiler-sfc. Upstream grammar work.
 
 - [ ] B133: `tree-sitter-zig` requires at least one member in a struct, so it cannot
-  parse `const Foo = struct {};` — which is ordinary Zig. The tool's own check would
+  parse `const Foo = struct {};` — which is ordinary Zig, and is the only parse failure
+  across 29 files of Zig's own standard library (`json/static_test.zig:465`). The tool's own check would
   therefore refuse to write a correct file, so an empty record is written with an empty
   `comptime {}` block in it, under a comment saying why. That block does nothing, both
   Zig and the grammar accept it, and the alternative was refusing to translate a type
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B264: **`zig-test` matched a test's description, not the construct.** Zig writes a
+  test as `test "any prose you like" { … }`, and the query makes that description the
+  symbol's name — so `name_prefix: test` matched the tests whose description happens to
+  begin with "test": 12 of the 495 in Zig's own standard library. The other 483 were
+  reported as dead code, along with everything only they called. Matchers gained
+  `declaration_keyword`, which reads the declaration's opening keyword and requires it to
+  end there, so `const testing = …` does not match. Entry points 12 → 472; dead-code
+  findings over that corpus 643 → 204, and 538 → 99 with `--internal`. The other five
+  repositories are unchanged.
+
+  This is the third catalogue predicate that is not a property of a name, after Python's
+  `__main__` guard and Next.js's `"use server"`.
+
 
 - [x] B262: **`fr unused` reported HCL blocks Terraform gives no address to.**
   `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
