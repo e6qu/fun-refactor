@@ -34,12 +34,12 @@
 
 <section>
   <div class="shell">
-    <p class="eyebrow">The case</p>
-    <h1 class="prose">A tool that refuses is worth more<br>than one that guesses.</h1>
+    <p class="eyebrow">Design</p>
+    <h1 class="prose">Every answer carries<br>how it was reached.</h1>
     <p class="lede prose">
-      Everyone has done the rename that looked clean and broke something on a branch
-      nobody was watching. The problem is not that tools make mistakes. It is that
-      they do not tell you where they were unsure.
+      A refactoring tool that resolves a reference wrongly edits the wrong code, and the
+      result usually compiles. This one attaches the resolution rule to every answer and
+      rewrites only the two strongest tiers.
     </p>
   </div>
 </section>
@@ -48,20 +48,20 @@
   <div class="shell">
     <div class="grid two">
       <div class="card">
-        <h3>What you have now</h3>
+        <h3>The alternatives</h3>
         <p>
-          <strong>Find-and-replace</strong> works on every language and understands
-          none of them. It renames the string in the comment, the substring inside
-          another identifier, and the unrelated field on a different type.
+          <strong>Find-and-replace</strong> covers every language and parses none. It
+          renames the string in a comment, a substring inside another identifier, and
+          the same-named field on an unrelated type.
         </p>
         <p>
-          <strong>A language server</strong> understands one language exactly, and
-          stops at its edge. Your Helm chart, your Terraform module and your stylesheet
-          are outside it, and so is the file that failed to compile this morning.
+          <strong>A language server</strong> covers one language and stops at its edge:
+          not Helm charts, Terraform modules or stylesheets, and not a file that does
+          not currently compile.
         </p>
       </div>
       <div class="card">
-        <h3>What this does instead</h3>
+        <h3>This tool</h3>
         <p>
           One index across sixteen languages, built from syntax rather than from types.
           Each reference is resolved by a specific rule — the scope chain, an import,
@@ -69,9 +69,9 @@
           answer.
         </p>
         <p>
-          What it can prove, it rewrites. What it cannot, it lists: the weakly
-          resolved sites, the name in a string, the file that would not parse. You get
-          a diff and a to-do list, and you know which is which.
+          It rewrites the references it resolved exactly or through an import, and
+          lists the rest: weakly resolved sites, names appearing in strings, files that
+          did not parse. Output is a diff plus that list.
         </p>
       </div>
     </div>
@@ -80,12 +80,10 @@
 
 <section>
   <div class="shell prose wide">
-    <h2>The bugs that argue for this</h2>
+    <h2>Defects found by running it on real repositories</h2>
     <p>
-      Every one of these was in this tool, found by running it over real repositories,
-      and each is the kind that a test suite written from imagination does not catch.
-      They are on this page because they are the argument: a refactoring tool has one
-      job, and the failure mode that matters is the silent one.
+      Each of these was in this tool, produced output that parsed, and was found by
+      running it over an existing codebase rather than a fixture.
     </p>
 
     <h3>A guard clause that moved code out from under its guard</h3>
@@ -120,8 +118,8 @@
       sites it could not see as merely "unresolved".
     </p>
     <p class="note">
-      That last one is the honest failure mode working as designed: incomplete, and
-      saying so, rather than confidently broken. It was still a bug, and it is fixed.
+      That last one reported the gap rather than rewriting wrongly. It was still a
+      bug, and it is fixed.
     </p>
   </div>
 </section>

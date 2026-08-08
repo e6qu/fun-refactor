@@ -549,7 +549,7 @@ async def delete(post_id: str, req: Request):
       combined with a fingerprint of the query set that produced them. Change the file
       and the key changes; change a query and every key changes. There is no
       invalidation logic to get wrong, because there is nothing to invalidate — a stale
-      entry is simply never looked up.
+      entry is never looked up.
     </p>
     <div class="term" style="max-width:44rem">
       <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
