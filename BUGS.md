@@ -119,6 +119,16 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B261: **two capability predicates returned `true` for every language, behind
+  branches that could not run.** `delete::reports_unused` and `duplicates::supported`
+  both ignored their `language` argument and answered `true`. Each caller in
+  `capabilities.rs` tested it and had an `else` arm building a `Support::NotApplicable`
+  with a refusal message — "nothing in this language declares a name that something else
+  could fail to use" — that nothing could ever print. The matrix read as computed per
+  language where it was constant. Both predicates and both branches are gone; the two
+  cells state `Support::Yes` with the reason in a comment. `fr capabilities` still
+  reports 270 supported.
+
 - [x] B260: **three commands took two or three bare booleans in a row.**
   `cmd_extract(&cli, range, name, *function, *all, *write)` passes three, and the clap
   field names differ from the parameter names, so any two could swap and compile. Each

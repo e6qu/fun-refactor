@@ -410,32 +410,17 @@ pub fn support(capability: Capability, language: Language) -> Support {
             Some(because) => Support::NotApplicable { because },
         },
 
-        // Reachability needs somewhere to start and edges to follow, which the
-        // imperative languages have. A configuration language has neither, but the
-        // question still means something there — a values key or a CSS class nothing
-        // references — and is answered by the same reference index.
-        C::DeadCode => {
-            if crate::refactor::delete::reports_unused(language) {
-                Support::Yes
-            } else {
-                Support::NotApplicable {
-                    because: "nothing in this language declares a name that something \
-                              else could fail to use",
-                }
-            }
-        }
+        // Every language here declares names something else can reference — a function,
+        // a values key, a CSS class, a Markdown heading — and one reference index
+        // answers the question for all of them. What varies is how much evidence there
+        // is, which the report states per finding. This used to consult a predicate that
+        // returned `true` for every language, behind an `else` branch that produced a
+        // refusal message nothing could print.
+        C::DeadCode => Support::Yes,
 
         // Every language here is parsed into a tree of named nodes, and comparing
         // those is the whole of the analysis. There is nothing to be unable to do.
-        C::Duplicates => {
-            if crate::analysis::duplicates::supported(language) {
-                Support::Yes
-            } else {
-                Support::NotApplicable {
-                    because: "this language is not parsed into comparable structure",
-                }
-            }
-        }
+        C::Duplicates => Support::Yes,
 
         C::DeclaredType => {
             // The question is "what did the source write down", so the answer is yes
