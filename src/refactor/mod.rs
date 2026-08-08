@@ -96,6 +96,12 @@ pub enum Refusal {
         confidence: Confidence,
         detail: String,
     },
+    /// Two definitions answer to one name, so no call site can be attributed to either.
+    ///
+    /// Not a [`Refusal::NameCollision`]: nothing is being introduced, and both
+    /// definitions were there before. Bash resolves this at run time by whichever
+    /// definition ran last, which no static reading can predict.
+    AmbiguousDefinition { name: String, file: PathBuf },
     /// Something the tool cannot establish at all.
     ///
     /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and
@@ -112,7 +118,14 @@ impl std::fmt::Display for Refusal {
         match self {
             Refusal::NameCollision { existing, file } => write!(
                 f,
-                "'{existing}' is already defined in {}; renaming would shadow or collide with it",
+                "'{existing}' is already defined in {}; introducing that name here would \
+                 shadow or collide with it",
+                file.display()
+            ),
+            Refusal::AmbiguousDefinition { name, file } => write!(
+                f,
+                "'{name}' is also defined in {}; a call names one of the two and nothing \
+                 here says which, so the call sites cannot be updated",
                 file.display()
             ),
             Refusal::NameCaptured { name, file } => write!(

@@ -142,6 +142,31 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B267: **a remedy was offered where it would not work.** Every indeterminate-argument
+  refusal ended with "quote it to make it one argument", which is true of an unquoted
+  `$x` and false of `$@` — quoting that gives one word per parameter, the same problem
+  again, as the function's own comment says. The advice now travels with the problem that
+  earns it, so `$@` gets none and a glob gets "quote it to stop the shell expanding it".
+
+- [x] B266: **an argument the shell decides at run time was reported as weak resolution.**
+  `f $x two` refused with "resolution is only 'name-only'", but the call resolved; what
+  is unknown is how many words `$x` becomes. `Refusal::Unknowable` exists for exactly
+  this and its doc comment names the symptom — "resolution is only 'exact'", a sentence
+  that contradicts itself — so the fix was already written down and this site had not
+  been changed. Two clauses composed by two functions also garbled the sentence: the
+  remedy landed mid-sentence, leaving "so the position of everything after it is only
+  known at run time" attached to the fix rather than the problem.
+
+- [x] B265: **a signature change refused by talking about renaming.** Two bash functions
+  of one name make every call site ambiguous, which is a reason to refuse — but it raised
+  `Refusal::NameCollision`, whose message is "'f' is already defined in …; renaming would
+  shadow or collide with it". Nothing is renamed and nothing is introduced; both
+  definitions were there. `Refusal::AmbiguousDefinition` says what is actually wrong, and
+  `NameCollision`'s own wording no longer says "renaming" either, since `extract` and
+  `fr signature add` raise it while introducing a name rather than changing one. An
+  existing test asserted the old wording, so it had pinned a message that was wrong.
+
+
 - [x] B264: **`zig-test` matched a test's description, not the construct.** Zig writes a
   test as `test "any prose you like" { … }`, and the query makes that description the
   symbol's name — so `name_prefix: test` matched the tests whose description happens to

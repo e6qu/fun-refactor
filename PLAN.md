@@ -588,6 +588,22 @@ findings 643 → 204, and 538 → 99 with `--internal`.
 Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
 `exported`, so `--internal` already separates them — 105 of the 643.
 
+### Bash at scale
+
+`nvm`, 5,655 lines across five scripts, parses clean. `fr signature` moved a positional
+parameter of `nvm_tree_contains_path` and renumbered the body and all three call sites
+correctly, which is the operation with the most shell-specific machinery behind it.
+
+Three defects, all in what the refusals say rather than in what they refuse. A signature
+change on a function with a twin in another file refused by raising the refusal `rename`
+and `extract` use, so it said "renaming would shadow or collide with it" to somebody who
+had asked to move a parameter. An argument whose word count the shell decides at run time
+refused as "resolution is only 'name-only'" — `Refusal::Unknowable` exists for that and
+its doc comment names the symptom, so the fix had been written down and this site had not
+been changed. And the remedy "quote it to make it one argument" was appended to every one
+of those refusals, including `$@`, where quoting gives one word per parameter and the
+same problem again.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,

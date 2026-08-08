@@ -694,8 +694,8 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
             && s.kind == SymbolKind::Function
             && s.language == Language::Bash
     }) {
-        return Err(Refusal::NameCollision {
-            existing: sym.name.clone(),
+        return Err(Refusal::AmbiguousDefinition {
+            name: sym.name.clone(),
             file: twin.file.clone(),
         }
         .into());
@@ -1171,14 +1171,19 @@ fn shell_check_positions(
     };
     for span in call.arguments.iter().take(required) {
         if let Some(reason) = shell_argument_is_indeterminate(parsed, source, *span) {
-            return Err(Refusal::TooWeak {
-                confidence: Confidence::NameOnly,
+            // Not a resolution that is too weak — the call resolved. The shell decides
+            // how many words this argument becomes when it runs, and no reading of the
+            // text can say. `Refusal::Unknowable` exists for exactly this, and saying
+            // "resolution is only 'name-only'" sent the reader after a resolution
+            // problem that is not there.
+            return Err(Refusal::Unknowable {
                 detail: format!(
                     "the call to `{}` at {} passes {}, so the position of everything \
-                     after it is only known at run time",
+                     after it is only known at run time{}",
                     sym.name,
                     location(file, span.start),
-                    reason
+                    reason.0,
+                    reason.1.map(|r| format!(" — {r}")).unwrap_or_default()
                 ),
             }
             .into());
@@ -1187,8 +1192,13 @@ fn shell_check_positions(
     Ok(())
 }
 
-/// Why an argument cannot be treated as exactly one positional parameter.
-fn shell_argument_is_indeterminate(parsed: &Parsed, source: &str, span: Span) -> Option<String> {
+/// Why an argument cannot be treated as exactly one positional parameter, and what to
+/// do about it where there is anything to do.
+fn shell_argument_is_indeterminate(
+    parsed: &Parsed,
+    source: &str,
+    span: Span,
+) -> Option<(String, Option<&'static str>)> {
     let node = parsed
         .root()
         .descendant_for_byte_range(span.start, span.end)?;
@@ -1196,7 +1206,13 @@ fn shell_argument_is_indeterminate(parsed: &Parsed, source: &str, span: Span) ->
 }
 
 /// Recursive form of [`shell_argument_is_indeterminate`], over an already-found node.
-fn shell_word_problem(node: Node<'_>, source: &str) -> Option<String> {
+/// What is wrong with this argument word, and what the author could do about it.
+///
+/// The remedy travels with the problem because it does not apply to all of them:
+/// quoting an expansion makes it one argument, and quoting `$@` makes it one word per
+/// parameter, which is the same problem again. Appending the advice at the call site
+/// told an author to quote a `$@` that was already quoted.
+fn shell_word_problem(node: Node<'_>, source: &str) -> Option<(String, Option<&'static str>)> {
     let text = Span::from(node).text(source);
     // `$@` expands to one word per parameter wherever it appears, quoted or not, and
     // unquoted `$*` splits on IFS.
@@ -1204,15 +1220,19 @@ fn shell_word_problem(node: Node<'_>, source: &str) -> Option<String> {
         if inner.kind() == "special_variable_name" {
             let name = Span::from(inner).text(source);
             if name == "@" || name == "*" {
-                return Some(format!(
-                    "`${name}`, which stands for the whole parameter list"
+                return Some((
+                    format!("`${name}`, which stands for the whole parameter list"),
+                    None,
                 ));
             }
         }
     }
     match node.kind() {
         "word" => text.contains(['*', '?', '[', '{']).then(|| {
-            format!("`{text}`, a glob or brace expansion that can become any number of words")
+            (
+                format!("`{text}`, a glob or brace expansion that can become any number of words"),
+                Some("quote it to stop the shell expanding it"),
+            )
         }),
         "string" | "raw_string" | "ansi_c_string" | "translated_string" | "number" => None,
         "concatenation" => {
@@ -1222,16 +1242,18 @@ fn shell_word_problem(node: Node<'_>, source: &str) -> Option<String> {
                 .into_iter()
                 .find_map(|child| shell_word_problem(child, source))
         }
-        other => Some(format!(
-            "`{text}`, {} the shell splits into words at run time; quote it to make it \
-             one argument",
-            match other {
-                "simple_expansion" | "expansion" => "an unquoted expansion",
-                "command_substitution" => "an unquoted command substitution",
-                "process_substitution" => "a process substitution",
-                "arithmetic_expansion" => "an unquoted arithmetic expansion",
-                _ => "a word",
-            }
+        other => Some((
+            format!(
+                "`{text}`, {} the shell splits into words at run time",
+                match other {
+                    "simple_expansion" | "expansion" => "an unquoted expansion",
+                    "command_substitution" => "an unquoted command substitution",
+                    "process_substitution" => "a process substitution",
+                    "arithmetic_expansion" => "an unquoted arithmetic expansion",
+                    _ => "a word",
+                }
+            ),
+            Some("quote it to make it one argument"),
         )),
     }
 }
