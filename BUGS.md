@@ -110,6 +110,16 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B251: **a recipe's misspelled predicate value blamed the repository.** `kind=functoin`
+  matched nothing and the step failed with "matched nothing. That is not success" — true,
+  and unhelpful: nothing in the workspace was wrong. The predicate's *name* has been
+  checked with a suggestion and the full vocabulary all along, for exactly this reason;
+  its value was not. `kind` is now checked by parsing the value into `SymbolKind`, so the
+  vocabulary comes from the type rather than a list kept beside it, and serde's error
+  names the alternatives — which reads correctly only because B247 made those spellings
+  the same as the ones the tool prints. `lang` gets the same treatment via
+  `Language::from_name`, with the "did you mean" the predicate names already had.
+
 - [x] B250: **a rule that said nothing matched nothing, quietly — and three conditions
   did not count as conditions.** The guard against an empty matcher was a list of
   `is_some()` checks that had drifted from the fields that exist: `symbol_kind`,

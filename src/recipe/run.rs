@@ -781,6 +781,40 @@ fn select(
                 PREDICATES.join(", ")
             );
         }
+        // `kind` and `lang` take a value from a closed set, and a misspelled one used to
+        // be answered by the codebase rather than by the recipe: `kind=functoin` matched
+        // nothing, and the step failed saying it had matched nothing, which blames the
+        // repository for a typo in the file. The predicate's own name is checked above
+        // for exactly this reason; its value deserves the same.
+        //
+        // `kind` is checked by parsing it, so the vocabulary comes from the type rather
+        // than from a list kept beside it, and serde's own error names the alternatives.
+        if let Predicate::Equals { field, value } = predicate {
+            match field.as_str() {
+                "kind" => {
+                    if let Err(e) = serde_json::from_value::<SymbolKind>(serde_json::Value::String(
+                        value.clone(),
+                    )) {
+                        bail!("line {}: {e}", step.line);
+                    }
+                }
+                "lang" if Language::from_name(value).is_none() => {
+                    let known: Vec<&str> = Language::ALL.iter().map(|l| l.name()).collect();
+                    let closest = known.iter().min_by_key(|name| distance(name, value));
+                    bail!(
+                        "line {}: `{value}` is not a language{}. This build answers: {}.",
+                        step.line,
+                        match closest {
+                            Some(name) if distance(name, value) <= 3 =>
+                                format!(" — did you mean `{name}`?"),
+                            _ => String::new(),
+                        },
+                        known.join(", ")
+                    );
+                }
+                _ => {}
+            }
+        }
     }
 
     // `imports` and `rewrite` act on files; everything else acts on symbols.
