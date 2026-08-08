@@ -1,23 +1,14 @@
 //! Copy-paste detection: the same code, written twice.
 //!
-//! Duplication is the refactoring signal that needs no judgement about intent — two
-//! places that say the same thing will drift apart, and one of them will be fixed
-//! without the other. Finding it is what turns "extract a function" from a style
-//! preference into a specific piece of work with two call sites already waiting.
+//! The comparison is structural rather than textual: a subtree's hash comes from the
+//! node kinds it contains, so a copy whose variables were renamed still matches the
+//! original, and a textual search would not find it. [`Options::exact`] narrows to
+//! copies that also agree on every identifier and literal.
 //!
-//! The comparison is structural rather than textual. A subtree's hash is built from
-//! the node kinds it contains, so a copy whose variables were renamed still matches
-//! the original: that is the copy most worth finding, because a textual search will
-//! never turn it up. [`Options::exact`] narrows it to copies that also agree on every
-//! identifier and literal, which is the stricter question of "is this the same code"
-//! rather than "is this the same shape".
-//!
-//! Two rules keep the output readable. A clone must be at least
-//! [`Options::min_tokens`] tokens, because every language has small shapes that
-//! repeat everywhere and reporting them says nothing. And only *maximal* clones are
-//! reported: when a whole function is duplicated, its body, its statements and its
-//! expressions are duplicated too, and listing all of them buries the one finding
-//! that matters.
+//! Two rules bound the output. A clone must be at least [`Options::min_tokens`] tokens,
+//! since every language has small shapes that repeat everywhere. And only maximal
+//! clones are reported: a duplicated function also duplicates its body, its statements
+//! and its expressions, and listing all of them buries the finding.
 
 use crate::index::Index;
 use crate::lang::Language;

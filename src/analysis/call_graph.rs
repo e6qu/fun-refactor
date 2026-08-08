@@ -1,21 +1,17 @@
 //! Call graph construction over the resolved index.
 //!
-//! The API shape (callers / callees / trace / DOT export) follows funveil's call
-//! graph, but the resolution underneath is different in the way that matters: funveil
-//! matched callee names as strings in a single flat namespace, so a `parse` in one
-//! file and a `parse` in another became one node. Here every edge comes from a
-//! resolved reference and carries the [`Confidence`] of that resolution, so callers
-//! can distinguish a proven call from a plausible one.
+//! The API shape (callers / callees / trace / DOT export) follows funveil's call graph.
+//! The resolution differs: funveil matched callee names as strings in one flat
+//! namespace, merging a `parse` in one file with a `parse` in another. Here every edge
+//! comes from a resolved reference and carries that resolution's [`Confidence`].
 //!
-//! On top of that sits a second layer: **class hierarchy analysis** ([`Hierarchy`]).
-//! A call through a `dyn Trait`, an interface value or a base-class reference names
-//! no single definition, and resolution correctly refuses to invent one — but the
-//! workspace does say which types implement the abstraction, and every one of their
-//! implementations is a possible callee. Those edges are added with
-//! [`Confidence::FieldBased`] and an [`EdgeOrigin::Hierarchy`] tag, so nothing
-//! downstream can mistake a candidate for a proven call: they are dashed in DOT,
-//! counted separately by [`CallGraph::origin_breakdown`], and a symbol kept off the
-//! unused list by one of them can be told exactly why.
+//! A second layer sits on top: class hierarchy analysis ([`Hierarchy`]). A call through
+//! a `dyn Trait`, an interface value or a base-class reference names no single
+//! definition, but the workspace says which types implement the abstraction, and each
+//! implementation is a possible callee. Those edges carry [`Confidence::FieldBased`] and
+//! an [`EdgeOrigin::Hierarchy`] tag: dashed in DOT, counted separately by
+//! [`CallGraph::origin_breakdown`], and named as the reason a symbol stayed off the
+//! unused list.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -333,7 +329,7 @@ impl CallGraph {
                 }
 
                 // Nothing in the hierarchy to point at: the index's own weak answer,
-                // if it had one, is better than no edge and is kept with the
+                // if it had one, is kept with the
                 // confidence it earned.
                 if candidates == 0 {
                     self.add_resolved_site(
@@ -590,7 +586,7 @@ impl CallGraph {
     }
 
     /// Counts by what produced each edge: resolution, or one kind of hierarchy
-    /// evidence. A graph must never quietly grow candidates.
+    /// evidence, so candidates never enter the graph unmarked.
     pub fn origin_breakdown(&self) -> BTreeMap<&'static str, usize> {
         let mut counts: BTreeMap<&'static str, usize> = BTreeMap::new();
         for edge in self.graph.edge_references() {

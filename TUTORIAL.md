@@ -351,7 +351,7 @@ declaration Name: my-alpine  (pkg/cmd/testdata/testcharts/alpine/values.yaml:1)
   template-action {{.Values.Name}}  (…/templates/alpine-pod.yaml:17) [name-only]
 ```
 
-The **Stopped at** section is the honest half. A values key can always be overridden
+The **Stopped at** section records what it could not resolve. A values key can always be overridden
 by `-f` and `--set`, and the tool cannot know your `helm install` invocation — so
 tell it, and the answer sharpens:
 

@@ -183,27 +183,23 @@ fn bound_value<'t>(node: tree_sitter::Node<'t>) -> Option<tree_sitter::Node<'t>>
 
 /// The value as it must read at a use site.
 ///
-/// `b = a + 1; return b * 2` inlined to `return a + 1 * 2`, which is `a + 2`. A
-/// refactoring that changes the answer is the one thing this tool must never do, and it
-/// was doing it in every language with an expression grammar.
+/// `b = a + 1; return b * 2` inlined to `return a + 1 * 2` computes `a + 2`. Every
+/// language with an expression grammar had this.
 ///
-/// The rule errs toward a parenthesis. A pair around an expression never changes what it
-/// means, while deciding precedence properly means a table of operators per grammar —
-/// and a table like that is wrong somewhere, silently, in exactly this way. What is left
-/// bare is the set of things no surrounding operator can split: a name, a literal, a
-/// call, a field, an index, and anything already wrapped.
+/// The rule errs toward a parenthesis: a pair around an expression never changes its
+/// meaning, whereas deciding precedence properly needs a per-grammar operator table
+/// that would be wrong somewhere, silently. Left bare: the things no surrounding
+/// operator can split — a name, a literal, a call, a field, an index, and anything
+/// already wrapped.
 ///
-/// Languages without an expression grammar are left alone entirely. A YAML value is not
-/// an expression and `(true)` is not the same scalar as `true`.
+/// Languages without an expression grammar are untouched. A YAML value is not an
+/// expression, and `(true)` is not the same scalar as `true`.
 /// Does this language group a sub-expression by writing it in parentheses?
 ///
-/// The question [`substitution`] needs, asked directly. It used to ask whether the
-/// language supported extract-variable, which is a different question with a mostly
-/// overlapping answer — and the overlap is where the wrong ones live. Java groups with
-/// parentheses like every other C-shaped language here and is missing from that list
-/// for an unrelated reason: it has no inferred declaration to extract into. Bash is the
-/// other way round, supporting the extraction while `( … )` there opens a subshell
-/// rather than grouping anything.
+/// [`substitution`] used to ask whether the language supported extract-variable, whose
+/// answer only mostly overlaps. Java groups with parentheses like every C-shaped
+/// language here but is absent from that list, having no inferred declaration to
+/// extract into. Bash supports the extraction, but `( … )` there opens a subshell.
 pub(crate) fn groups_with_parentheses(language: Language) -> bool {
     matches!(
         language,
@@ -318,7 +314,7 @@ fn meaning_of(
 ///
 /// Substituting an expression moves every name in it to wherever the variable was
 /// used, and a name that resolves to a different binding there is a silent change of
-/// behaviour — the one thing this must not do.
+/// behaviour.
 ///
 /// Asked of the lexical scopes the index already records. It used to be asked of
 /// whichever reference with the same name happened to come first within two hundred
@@ -1692,20 +1688,19 @@ fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 /// Inline a shell variable: substitute its value at every `$name` / `${name}` and
 /// delete the assignment.
 ///
-/// Three things make this refusable where other languages' inlining is not.
+/// Three shapes refuse here that other languages' inlining accepts:
 ///
-/// * Shell has no block scope, so a second assignment anywhere in the file changes
-///   the value every use after it sees; one substitution cannot be right for both.
-/// * An `export`ed variable is read by every child process this script starts, and
-///   nothing in this workspace can prove none of them wants it.
-/// * `'$name'` inside single quotes is not a use at all — the shell performs no
-///   expansion there — so deleting the assignment would leave text that looks like a
-///   use and no longer is. That is reported rather than quietly ignored.
+/// * Shell has no block scope, so a second assignment anywhere in the file changes what
+///   every later use sees; one substitution cannot serve both.
+/// * Every child process this script starts reads an `export`ed variable, and nothing
+///   in the workspace shows whether one wants it.
+/// * `'$name'` inside single quotes is not a use — the shell expands nothing there — so
+///   deleting the assignment would leave text that looks like a use. Reported.
 ///
 /// Quoting decides the substitution, mirroring the extraction: a use inside double
-/// quotes takes a quoted value's *contents*, and an unquoted use takes a quoted value
-/// only when its contents are a single plain word — otherwise the value would be
-/// word-split and glob-expanded where `$name` never was.
+/// quotes takes a quoted value's contents; an unquoted use takes a quoted value only
+/// when its contents are a single plain word, since otherwise the shell would word-split
+/// and glob-expand it where `$name` never was.
 fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)

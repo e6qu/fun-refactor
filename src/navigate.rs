@@ -1,7 +1,7 @@
 //! Navigation: go to definition, go to usages, go to implementations.
 //!
 //! These are the three questions an editor asks, and the reason they are one module
-//! is that the honest answer to each is a *set*, not a single site. A trait method has
+//! is that each answer is a *set*, not a single site. A trait method has
 //! as many definitions as it has implementations. A CSS class is declared by every
 //! rule that names it. A Terraform local is one definition read from many files.
 //!

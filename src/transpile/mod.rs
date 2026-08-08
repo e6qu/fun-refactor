@@ -3,31 +3,26 @@
 //! Source → [`ir`] → source. One reader and one writer per language rather than a
 //! translator per pair: six languages is thirty ordered pairs and twelve files.
 //!
-//! # What it promises
+//! # Scope
 //!
-//! **The signature is the contract.** Every parameter, in order, with its type and the
-//! return type, carried exactly — only the spelling changes, to the target's
-//! convention. Where a type has no counterpart it is written through by name and
-//! *counted*, because silently substituting a type is how a signature stops meaning
-//! what it said.
+//! The signature is the contract: every parameter in order, with its type and the
+//! return type, carried across with only the spelling changed to the target's
+//! convention. A type with no counterpart goes through by name and is counted, so a
+//! substitution never passes silently.
 //!
-//! Declarations, records and the parts of a body that mean the same thing in every
-//! language — a return, a binding, a branch, a loop over a collection, a call — are
-//! translated. The output is idiomatic: a record becomes a Rust `struct` with an
-//! `impl`, a Python `@dataclass`, a Go `struct` with methods beside it, a TypeScript
-//! `interface` or `class` depending on whether it has behaviour.
+//! Also translated: declarations, records, and the parts of a body that mean the same
+//! thing in every language — a return, a binding, a branch, a loop over a collection, a
+//! call. A record becomes a Rust `struct` with an `impl`, a Python `@dataclass`, a Go
+//! `struct` with methods beside it, or a TypeScript `interface` or `class` depending on
+//! whether it has behaviour.
 //!
-//! # What it does not promise
+//! # Limits
 //!
-//! It is not a compiler and the result is a **draft**. Ownership, goroutines,
-//! decorators, generators, comprehensions, pattern matching and error propagation have
-//! no general translation, and a guess would be worse than a gap. Every one of them is
-//! carried into the output verbatim, inside a comment, under a marker — so the result
-//! is a file you finish rather than one you have to diff against the original to
-//! discover what went missing.
+//! The result is a draft. Ownership, goroutines, decorators, generators,
+//! comprehensions, pattern matching and error propagation have no general translation,
+//! so each goes into the output verbatim, inside a comment, under a marker.
 //!
-//! Every translation returns a [`Fidelity`] saying exactly how much of it is real.
-//! Read it before trusting the file.
+//! Every translation returns a [`Fidelity`] recording how much of it is real.
 
 pub mod ir;
 pub mod nextjs;

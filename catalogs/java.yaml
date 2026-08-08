@@ -186,3 +186,53 @@
   languages: [java]
   matches:
     annotated_with: PreDestroy
+
+# Found by running the tool over `spring-petclinic` rather than by listing what Spring
+# might call. The deliberate sweep got the callbacks above; a real application named
+# three more, which is the argument for doing both.
+#
+# `@InitBinder` and `@ModelAttribute` are called by the MVC machinery around a request:
+# one to configure binding, the other to put something in the model before the handler
+# runs. Neither is ever called from the source.
+- id: java-spring-init-binder
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: InitBinder
+
+- id: java-spring-model-attribute
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: ModelAttribute
+
+# The container instantiates these and reads what they declare.
+- id: java-spring-configuration
+  kind: exported-api
+  threat_model: none
+  languages: [java]
+  matches:
+    annotated_with: Configuration
+
+- id: java-spring-repository
+  kind: exported-api
+  threat_model: none
+  languages: [java]
+  matches:
+    annotated_with: Repository
+
+- id: java-spring-controller-advice
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: ControllerAdvice
+
+- id: java-spring-rest-controller-advice
+  kind: http-route
+  threat_model: remote
+  languages: [java]
+  matches:
+    annotated_with: RestControllerAdvice

@@ -5,31 +5,28 @@
 //! structural rather than textual, so `$A + $B` matches an addition however it is
 //! spaced, and never matches inside a string or comment.
 //!
-//! This is the escape hatch for the long tail of the refactoring catalog — the
-//! transformations nobody ships as a built-in. It is deliberately syntactic: it has
-//! no idea what a name means, so it is checked by the same reparse validation as
-//! every other edit and never claims more than it knows.
+//! Syntactic only: it carries no name resolution or type information, and the reparse
+//! validation every edit goes through is the only check on the result.
 //!
 //! # How a fragment is parsed
 //!
 //! A pattern is a *fragment*, not a file: `old_api($X)` is not a valid Rust item and
-//! `var.$X` is not a valid Terraform file. Three steps make one parse anyway:
+//! `var.$X` is not a valid Terraform file. Three steps parse one anyway:
 //!
-//! 1. `$NAME` is encoded as the ordinary identifier `FrMetaNAME`, which is a legal
-//!    name in every supported grammar. `$$NAME` escapes the sigil and stands for a
-//!    literal `$NAME`, which is what Bash, SCSS and Helm sources actually contain.
-//! 2. The encoded fragment is tried inside each of a short list of per-language
-//!    [`fragment_wrappers`], in order, until one parses without errors *and* yields a
-//!    node starting exactly at the fragment. A fragment can be several shapes in the
-//!    same language — a CSS pattern may be a whole rule, a declaration or a selector —
-//!    and the wrapper that parses identifies which shape was meant.
-//! 3. That node is matched structurally against every node of every target file.
+//! 1. Encode `$NAME` as the ordinary identifier `FrMetaNAME`, legal in every supported
+//!    grammar. `$$NAME` escapes the sigil and stands for a literal `$NAME`, which is
+//!    what Bash, SCSS and Helm sources contain.
+//! 2. Try the encoded fragment inside each of the per-language [`fragment_wrappers`] in
+//!    order, until one parses without errors *and* yields a node starting exactly at the
+//!    fragment. One fragment can be several shapes in the same language — a CSS pattern
+//!    may be a rule, a declaration or a selector — and the wrapper that parses picks one.
+//! 3. Match that node structurally against every node of every target file.
 //!
-//! A wrapper may contribute trailing punctuation the fragment did not write: the CSS
+//! A wrapper can contribute trailing punctuation the fragment did not write: the CSS
 //! declaration wrapper adds the `;` that makes `color: $X` a declaration, and
-//! tree-sitter puts that `;` inside the declaration node. When that happens the match
-//! is trimmed back to the end of the matched node's last named child, so rewriting
-//! `color: red;` replaces `color: red` and leaves the terminator alone.
+//! tree-sitter puts that `;` inside the declaration node. The match then trims back to
+//! the end of the matched node's last named child, so rewriting `color: red;` replaces
+//! `color: red` and leaves the terminator alone.
 //!
 //! # Per-language notes
 //!
@@ -45,11 +42,11 @@
 //! - **CSS/SCSS**: a rule, a declaration or a selector, in that order of preference.
 //! - **HTML/XML**: an element. An XML attribute value is one token *including* its
 //!   quotes (tree-sitter-xml never makes a node for the text between them), so a
-//!   metavariable standing for a whole quoted leaf is recognised and binds the
-//!   target's text without its quotes.
+//!   metavariable standing for a whole quoted leaf binds the target's text without
+//!   its quotes.
 //! - **Markdown**: a block (`## $TITLE`) or an inline (`[$TEXT](old/url)`). The
-//!   grammar folds a heading's padding into its content node, so metavariable text is
-//!   compared and bound trimmed.
+//!   grammar folds a heading's padding into its content node, so matching compares and
+//!   binds metavariable text trimmed.
 
 use super::Refusal;
 use crate::edit::{Edit, EditSet};

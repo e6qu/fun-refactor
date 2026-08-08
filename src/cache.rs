@@ -178,7 +178,7 @@ impl Cache {
 ///
 /// `FUN_REFACTOR_CACHE` overrides everything, which is what tests use. Otherwise the
 /// usual per-user cache location, never the workspace itself — a refactoring tool has
-/// no business writing into the repository it is reading.
+/// must not write into the repository it is reading.
 fn cache_root() -> Option<PathBuf> {
     if let Some(explicit) = std::env::var_os("FUN_REFACTOR_CACHE") {
         return Some(PathBuf::from(explicit));

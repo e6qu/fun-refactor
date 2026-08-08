@@ -201,7 +201,7 @@ Two more things the prototype argued for:
   later. Refusing keywords in value position turns that into
   `name= needs a value; found the step keyword 'imports'`.
 - **`where` and modifiers should be order-independent.** The prototype rejected
-  `delete on-refusal allow where unused`, which is a rule nobody will remember and
+  `delete on-refusal allow where unused`, an unmemorable rule that
   which buys nothing.
 
 `schema 1` is the first statement in the file and is mandatory. It is what makes the
@@ -333,7 +333,7 @@ you opt into.
 
 ## Output
 
-The report is the point, not a side effect. Human by default, `--json` for a machine.
+Every run produces a report. Human by default, `--json` for a machine.
 For each step: what was selected and by which predicate, what changed, what was
 refused and why, and what `expect` found.
 

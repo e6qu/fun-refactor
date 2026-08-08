@@ -1,14 +1,11 @@
 //! Next.js API routes as FastAPI endpoints.
 //!
-//! # What corresponds, and what does not
+//! # What corresponds
 //!
-//! A React component and a FastAPI endpoint do different jobs. One renders UI in a
-//! browser; the other answers HTTP on a server. There is no translation between them
-//! and this refuses to pretend otherwise — a `.tsx` file full of JSX is declined with
-//! the reason.
+//! A React component renders UI in a browser and a FastAPI endpoint answers HTTP, so
+//! this declines a `.tsx` file full of JSX and gives the reason.
 //!
-//! A **Next.js API route** and a FastAPI endpoint do the same job, and the
-//! correspondence is exact enough to be mechanical:
+//! A Next.js API route and a FastAPI endpoint correspond exactly:
 //!
 //! | Next.js | FastAPI |
 //! | --- | --- |
@@ -20,19 +17,17 @@
 //!
 //! # The path comes from the file
 //!
-//! This is the part no content-only translation could do: a Next.js route's URL is its
-//! position on disk. `app/api/users/[id]/route.ts` is `/users/{id}` and nothing inside
-//! the file says so. The translation therefore reads the path as well as the text,
-//! which is why it lives here rather than in the general reader.
+//! A Next.js route's URL is its position on disk: `app/api/users/[id]/route.ts` is
+//! `/users/{id}`, and nothing inside the file says so. This translation reads the path
+//! as well as the text, so it lives here rather than in the general reader.
 //!
 //! # What it still cannot do
 //!
-//! The handler *bodies* are TypeScript, and translating them is the ordinary
-//! translation with the ordinary limits: `NextResponse.json(...)`, `await
-//! request.json()` and every database call have no Python counterpart and are carried
-//! into the output as comments. What you get is a correct FastAPI skeleton — routes,
-//! methods, path parameters, models — with the logic beside it to port by hand. That
-//! is the mechanical, error-prone half done.
+//! The handler bodies are TypeScript, translated by the ordinary reader with the
+//! ordinary limits: `NextResponse.json(...)`, `await request.json()` and database calls
+//! have no Python counterpart and land in the output as comments. The result is a
+//! FastAPI skeleton — routes, methods, path parameters, models — with the logic beside
+//! it to port by hand.
 
 use super::ir::*;
 use crate::lang::Language;

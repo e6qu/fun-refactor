@@ -23,7 +23,7 @@ or Helm. Meanwhile *cross-language* references — a CSS class named in a JSX pr
 Helm values key read in a template, a Terraform variable threaded through modules —
 are invisible to every one of them, because each sees a single language.
 
-That gap is the whole point of this tool. See [RESEARCH.md](RESEARCH.md) for the
+This tool targets that gap. See [RESEARCH.md](RESEARCH.md) for the
 survey the design is based on, with sources.
 
 ## Languages

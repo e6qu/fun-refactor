@@ -1,20 +1,17 @@
 //! Writing the IR out as a language.
 //!
-//! Each writer is idiomatic for its target rather than a transliteration: a record
-//! becomes a Rust `struct` with an `impl` block, a Python `@dataclass`, a Go `struct`
-//! with methods beside it, a TypeScript `class`. Naming follows the target's
-//! convention — `snake_case` in Rust and Python, `camelCase` in TypeScript,
-//! `PascalCase` for exported Go — because a file that reads as a foreign language
-//! wearing a costume is not a file anyone will keep.
+//! Each writer targets idiom rather than transliteration: a record becomes a Rust
+//! `struct` with an `impl` block, a Python `@dataclass`, a Go `struct` with methods
+//! beside it, a TypeScript `class`. Naming follows the target's convention —
+//! `snake_case` in Rust and Python, `camelCase` in TypeScript, `PascalCase` for
+//! exported Go.
 //!
-//! **The signature is the contract.** Parameter names, their order, their types and
-//! the return type are carried exactly; only the spelling changes. Where a type has no
-//! counterpart it is written through by name and counted in the fidelity report,
-//! because silently substituting a type is how a signature stops meaning what it said.
+//! The signature is the contract: parameter names, order, types and return type cross
+//! exactly, with only the spelling changed. A type with no counterpart goes through by
+//! name and counts in the fidelity report, so no substitution passes silently.
 //!
-//! Anything the reader could not translate is emitted as a comment holding the
-//! original source, under a marker. The result is a file you finish, not one you have
-//! to diff to discover what is missing.
+//! Whatever the reader could not translate becomes a comment holding the original
+//! source, under a marker.
 
 use super::ir::*;
 use crate::lang::Language;

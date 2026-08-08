@@ -5,10 +5,19 @@ stage.
 
 Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
-Every open entry below is a *characterised limitation* rather than breakage: the
-behaviour is reported to the user, and no operation silently does the wrong thing.
+Open entries are characterised limitations — the behaviour is reported and no operation
+silently does the wrong thing — with one exception, B258, which is uncharacterised.
 
 ## Open
+
+- [ ] B258: **`a_rust_number_leaves_its_width_behind` failed once and has not repeated.**
+  During one `cargo test --all-targets`, the Java writer emitted Rust's `0usize` /
+  `1i32` suffixes, which that test exists to catch. It has since passed 5/5 runs in
+  isolation and 3/3 full runs, on the same commit. Ruled out: `tests/transpile.rs` never
+  activates a VFS handle, so a stale one cannot be the cause; the fact cache writes to a
+  temporary file and renames, so a concurrent reader cannot see a partial entry.
+  Mechanism unknown. Recorded rather than dismissed because the test would have caught a
+  real defect and did, once.
 
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
   resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
@@ -110,6 +119,48 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B256: **`fr unused` did not treat an HTML attribute value as a string.**
+  `is_string_kind` matched node kinds containing "string"; the HTML grammar names an
+  attribute value `attribute_value`. Templates name code there — `th:text="${owner.address}"`,
+  `v-on:click="submitOrder"`, `class="table-striped"` — so the correction that spares
+  names spelled in strings missed all of them. spring-petclinic: 80 CSS classes reported
+  dead while its templates used them.
+
+- [x] B255: **`fr unused` reported containers of entry points.** JUnit constructs a test
+  class to run its `@Test` methods; nothing names the class. spring-petclinic: 11
+  reported. The check walks the containment chain rather than testing the language, so it
+  covers Rust `mod tests` and Python classes of pytest cases too. A dead method beside a
+  live test still reports.
+
+- [x] B254: **`fr unused` reported JavaBean accessors reached by their property.**
+  `Owner::getAddress` reported dead; the template writes `${owner.address}`, the tests
+  write `param("address", …)`, nothing writes `getAddress`. Java templates, JSON mappers
+  and Spring's binder all reach a getter by the property name. An accessor whose property
+  is named where the method is not is now spared, with the reason. The rule requires an
+  uppercase letter after the prefix, so `gettysburg` is not an accessor for `tysburg`.
+
+- [x] B253: **three Spring conventions missing from the catalogue.** `@InitBinder`,
+  `@ModelAttribute` and `@Configuration`: the container calls them, the source does not,
+  same as the eight callbacks B236 added. B236 came from enumerating what Spring calls;
+  these came from running the tool over spring-petclinic.
+
+- [x] B252: **`fr unused` reported every package clause, one per file.** Java classes in
+  one package never write the package name, and nothing imports Go's `main`, so no
+  package declaration ever has a reference. spring-petclinic: all 49 reported. Removing
+  one is a syntax error. Rust's `mod helper;` shares the symbol kind and differs: a child
+  module nothing references is a finding, so the exclusion tests the language, not the
+  kind.
+
+  B252-B256 together take spring-petclinic's code findings from 35 to 3: a constructor
+  Spring calls, a testcontainers `@Container` field, a nested `@TestConfiguration`.
+
+- [x] B257: **`fr unused` printed a count without a breakdown.** spring-petclinic: 3,554
+  findings, 3,439 of them in one vendored stylesheet, with nothing in the output saying
+  so. An answer of 50 or more now lists its top five kinds, plus the file holding the
+  findings when one file holds over half. vuejs/core: 1,640 keys in `pnpm-lock.yaml`.
+  Nothing is excluded from the analysis.
+
+
 - [x] B251: **a recipe's misspelled predicate value blamed the repository.** `kind=functoin`
   matched nothing and the step failed with "matched nothing. That is not success" — true,
   and unhelpful: nothing in the workspace was wrong. The predicate's *name* has been
@@ -120,18 +171,15 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   the same as the ones the tool prints. `lang` gets the same treatment via
   `Language::from_name`, with the "did you mean" the predicate names already had.
 
-- [x] B250: **a rule that said nothing matched nothing, quietly — and three conditions
-  did not count as conditions.** The guard against an empty matcher was a list of
-  `is_some()` checks that had drifted from the fields that exist: `symbol_kind`,
-  `exported` and `top_level` were missing, so a rule whose only condition was one of
-  those counted as saying nothing and therefore matched nothing. The guard's own comment
-  said an empty matcher "is never what a catalog author means", and then returned false —
-  silently doing the opposite of the dangerous thing is still silent. It is one method on
-  `Matcher` now, which destructures the struct so that adding a field fails to compile
-  rather than being left out of the answer, and it is asked in two places: the loader
-  refuses such a catalogue with the rule's name, and `rule_applies` keeps the old
-  behaviour as a backstop for a `Catalog` assembled directly rather than loaded. Two
-  layers, one predicate, so they cannot disagree.
+- [x] B250: **three matcher conditions did not count as conditions, and an empty matcher
+  matched nothing without saying so.** The empty-matcher guard listed `is_some()` checks
+  that had drifted from the fields that exist; `symbol_kind`, `exported` and `top_level`
+  were absent, so a rule using only one of those counted as empty and matched nothing.
+  The guard returned false rather than reporting. Now one method on `Matcher`
+  destructures the struct, so a new field fails to compile instead of being omitted.
+  Two callers: the loader refuses such a catalogue and names the rule; `rule_applies`
+  keeps returning false as a backstop for a `Catalog` assembled directly rather than
+  loaded.
 
 - [x] B249: **`fr type --json` answered with numbers nobody can use.** It serialized the
   analysis struct directly, so `"symbol": 1` and `"defined_at": 0` were `SymbolId`s —
@@ -140,15 +188,14 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   qualified name and a place, and the text rendering of this one resolved them all along;
   only the machine-readable half did not. Both now say the same thing.
 
-- [x] B248: **`as_str` meant two different things, and that is how B247 hid.** On
-  `SymbolKind`, `Confidence`, `EntryKind` and `HierarchyBasis` it returns an identifier —
-  a token that goes into JSON, into a catalogue, into a person's fingers. On `Capability`,
-  `Basis` and `DefinitionRole` it returns prose for a reader: "call graph", "from the
-  literal", "also declared here". Nothing distinguished them, so there was no way to know
-  which ones had to agree with their serde spelling. The prose three are `label()` and
-  `describe()` now, and the identifier ones are covered by a round-trip test that reads
-  the spellings out of the exhaustive `as_str` match rather than from a list — a list
-  would be one more thing to forget when a variant is added.
+- [x] B248: **`as_str` named two different things.** On `SymbolKind`, `Confidence`,
+  `EntryKind` and `HierarchyBasis` it returns an identifier: a token that goes into JSON,
+  into a catalogue, into a command line. On `Capability`, `Basis` and `DefinitionRole` it
+  returns display text — "call graph", "from the literal", "also declared here". Nothing
+  separated the two, so nothing said which had to match their serde spelling; B247 is the
+  consequence. The display three are now `label()` and `describe()`. A round-trip test
+  covers the identifier ones, reading the spellings out of the exhaustive `as_str` match
+  so a new variant needs no list updated.
 
 - [x] B247: **the tool's JSON could not be read back into the tool's own types.**
   `SymbolKind` derives serde with `rename_all = "snake_case"` and has a hand-written
@@ -296,11 +343,9 @@ behaviour is reported to the user, and no operation silently does the wrong thin
   `websocket` and `scheduled-job` their first rules: three `EntryKind` variants that were
   declared, matched on and printed by name, but that nothing could previously emit.
 
-  Worth recording where this one was found. This project has a page devoted to porting
-  Next.js routes to FastAPI, and `fr translate <route> fastapi` emits `@router.get(...)`
-  handlers — so the tool's own output, fed back into the tool, reported its handler as
-  having no detected use. The same shape as the enum-variant struct literals in B214: the
-  output was not valid input, and nothing checked.
+  `fr translate <route> fastapi` emits `@router.get(...)` handlers, so the tool's own
+  output fed back in reported its handler as having no detected use — the same shape as
+  the enum-variant struct literals in B214.
 
 - [x] B235: **a Next.js server action was dead code.** `"use server"` marks an exported
   function the framework makes reachable over the network, called by nothing in the

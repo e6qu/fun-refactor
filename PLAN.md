@@ -358,31 +358,31 @@ builtin (upstream).
 
 ### How the defects were found
 
-Fixtures test what somebody thought to write down, and they pass. Everything below came
-from one of five moves instead, each of which found things the fixtures could not:
+Fixtures test what somebody thought to write down, and they passed. Five other methods
+produced the findings below:
 
-- **Run it on its own source.** The repository is 30,000 lines of Rust in the languages
-  the tool claims to handle. Translating it round-trip found nine defects in one pass.
-- **Run it on somebody else's.** Four real repositories, chosen to differ: a Go tool, a
-  TypeScript framework, a Python formatter, a Next.js application.
+- **Run it on its own source.** 30,000 lines of Rust, in languages the tool handles. One
+  round-trip translation pass found nine defects.
+- **Run it on somebody else's.** Five repositories, chosen to differ: a Go tool, a
+  TypeScript framework, a Python formatter, a Next.js application, a Spring application.
 - **Sweep one operation across every language it claims.** Six writers doing the same
-  thing six ways is where a rule true of the language it was written against shows up.
-- **Feed the output back in.** Anything the tool emits should be something it can read.
-- **Ask whether the test checks what its name claims.** Several did not.
+  thing six ways exposes a rule true only of the language it was written against.
+- **Feed the output back in.** Anything the tool emits, it should be able to read.
+- **Ask whether a test checks what its name claims.** Several did not.
 
-Five shapes recur often enough to be worth naming, and each has caught more than one
-defect since:
+Five recurring shapes, each of which has caught more than one defect:
 
 1. *A rule true of the languages it was written against, applied to one that arrived
    later* — Java constructors, Go interfaces, Zig's six spellings of a receiver.
 2. *Where does the search stop, and does the output say so?* — `fr impact`'s depth bound,
-   `fr duplicates`' threshold, both silent until asked.
+   `fr duplicates`' threshold, `fr unused`'s composition.
 3. *Does the test check what its name claims?* — one asserted a cache fingerprint was
-   *steady*, not that it was *right*; several counted results without looking at them.
+   steady rather than correct; several counted results without inspecting them.
 4. *The tool's own output is not valid input* — enum-variant struct literals it could not
-   re-read, FastAPI handlers it emitted and then called dead code.
+   re-read, FastAPI handlers it emitted and then reported dead, `SymbolKind` JSON it
+   could not deserialize.
 5. *A framework calls it and the source never does* — Python's `__main__` guard, pytest
-   fixtures, Next.js server actions, and eventually every framework the catalogues claim.
+   fixtures, Next.js server actions, eleven Spring annotations, JUnit test classes.
 
 ### Real repositories
 
@@ -513,6 +513,44 @@ And `fr type --json` was answering with `"symbol": 1` and `"defined_at": 0` — 
 positions in one run's index, unstable and useless to a reader, with `defined_at` looking
 like a line number. The text rendering resolved them all along; only the machine-readable
 half did not.
+
+### A real Java application
+
+Java is Tier A with twelve catalogue rules and had only met fixtures; this repository
+contains no Java. `spring-petclinic`, 49 files, answered with 3,554 findings, 35 of them
+code. Five defects sat in front of the three that remained.
+
+**Package clauses.** Java classes in one package never write its name and nothing imports
+Go's `main`, so no package declaration has a reference. Petclinic reported all 49, one per
+file. Removing one is a syntax error. Rust's `mod helper;` shares the symbol kind and
+differs — a child module nothing references is a finding — so the exclusion tests the
+language, not the kind.
+
+**Containers of entry points.** JUnit constructs a test class to run its `@Test` methods;
+nothing names the class. The check walks the containment chain rather than testing the
+language, so it also covers Rust `mod tests` and Python classes of pytest cases.
+
+**JavaBean accessors.** `getAddress` reported dead while the template writes
+`${owner.address}` and the tests write `param("address", …)`. Java templates, JSON mappers
+and Spring's binder reach a getter by the property name.
+
+**HTML attribute values.** `is_string_kind` matched node kinds containing "string", and
+the HTML grammar names an attribute value `attribute_value`. So `th:text="${owner.address}"`,
+`v-on:click="submitOrder"` and `class="table-striped"` were invisible to the correction
+that spares names spelled in strings, and 80 of petclinic's CSS classes reported dead
+while its templates used them.
+
+**Three Spring annotations** — `@InitBinder`, `@ModelAttribute`, `@Configuration` —
+joining the eight from the earlier sweep. That sweep enumerated what Spring calls; these
+came from running the tool at an application.
+
+Code findings: 35 → 3 — a constructor Spring calls, a testcontainers field, a nested
+`@TestConfiguration`.
+
+`fr unused` also printed 3,554 with no breakdown, 3,439 of them in one vendored
+stylesheet. An answer of 50 or more now lists its top five kinds, plus the file holding
+them when one file holds over half. vuejs/core: 1,640 keys in `pnpm-lock.yaml`. Nothing
+is excluded from the analysis.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,

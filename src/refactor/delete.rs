@@ -136,7 +136,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         }
     }
 
-    // Everything found but deliberately not acted on.
+    // Found and not acted on.
     let mut warnings = Vec::new();
     for (file, span, confidence) in weak {
         let (line, col) = sources.line_col(&file, span.start);
@@ -218,6 +218,17 @@ pub enum SparedReason {
     /// declaring the same function twice under opposite build tags. Every candidate
     /// stays live.
     AmbiguousMemberCall,
+    /// It names where the file lives rather than something in it: Java's `package app;`,
+    /// Go's `package main`. Nothing ever references one, so "unused" is true of all of
+    /// them and says nothing.
+    NamesTheFilesPlace,
+    /// A JavaBean accessor whose *property* is named somewhere the method is not: a
+    /// template writing `${owner.address}` reaches `getAddress`, and every Java template
+    /// engine, JSON mapper and data binder works that way.
+    ReachedByItsProperty,
+    /// Something inside it is an entry point, so something outside the workspace reaches
+    /// in: a JUnit test class, a Rust `mod tests`, a Python class of pytest cases.
+    HoldsAnEntryPoint,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -252,6 +263,21 @@ impl UnusedReport {
                  go unused"
                     .to_string()
             }
+            SparedReason::HoldsAnEntryPoint => {
+                "something inside it is an entry point, so whatever calls that reaches \
+                 this to get there"
+                    .to_string()
+            }
+            SparedReason::ReachedByItsProperty => {
+                "its property is named elsewhere — a template or a mapper reaches a \
+                 JavaBean accessor by the property, never by the method"
+                    .to_string()
+            }
+            SparedReason::NamesTheFilesPlace => {
+                "it names where the file lives rather than something in it; nothing \
+                 references a package clause and removing one is a syntax error"
+                    .to_string()
+            }
             SparedReason::DynamicDispatch { from, basis } => {
                 let caller = index
                     .symbol(*from)
@@ -269,37 +295,82 @@ impl UnusedReport {
 
 /// Symbols nothing references and nothing reachable from `entrypoints` reaches.
 ///
-/// This is what powers dead-CSS-selector, unused-Terraform-variable,
-/// unused-`values.yaml`-key and unused-function reports: a symbol qualifies when no
-/// resolved reference targets it (references from inside its own definition do not
-/// count, so dead recursive code is still found) and the call graph cannot reach it
-/// from any given entry point.
+/// Backs the dead-CSS-selector, unused-Terraform-variable, unused-`values.yaml`-key and
+/// unused-function reports. A symbol qualifies when no resolved reference targets it —
+/// references from inside its own definition do not count, so dead recursive code still
+/// qualifies — and the call graph cannot reach it from any entry point.
 ///
-/// Three corrections are applied on top of that, because the raw answer is wrong in
-/// both directions:
+/// Five corrections apply on top, because the raw answer errs in both directions:
 ///
-/// * A symbol whose name appears in a **string literal** anywhere in the workspace is
-///   left off the list. Reflection, a handler table keyed by name, a route string, a
-///   template — every one of them reaches code through a name no resolver follows, and
-///   the string is the only trace they leave.
-/// * A **cycle** of symbols that reference only each other is reported as dead when no
-///   member is reachable from an entry point and nothing outside the cycle references
-///   any member. Mutual recursion otherwise hides a whole dead component, because every
-///   member does have an incoming reference.
-/// * A method **dynamic dispatch can reach** is left off. A call through a `dyn Trait`,
-///   an interface value or a base-class reference names no single definition, but the
-///   workspace does say which types implement the abstraction, and class hierarchy
-///   analysis ([`CallGraph`]) puts an edge on each of them. Those edges are unproven by
-///   construction and marked so; sparing a live method is the point of them.
+/// * Off the list: a symbol whose name appears in a **string literal** anywhere in the
+///   workspace. Reflection, a name-keyed handler table, a route string and a template
+///   all reach code through a name no resolver follows, leaving only the string.
+/// * On it: a **cycle** of symbols referencing only each other, when no member is
+///   reachable from an entry point and nothing outside the cycle references any member.
+///   Otherwise mutual recursion hides a whole dead component, since every member has an
+///   incoming reference.
+/// * Off: a method **dynamic dispatch can reach**. A call through a `dyn Trait`, an
+///   interface value or a base-class reference names no single definition, but the
+///   workspace says which types implement the abstraction and [`CallGraph`] puts an
+///   edge on each. Those edges are unproven and marked so.
+/// * Off: a **package clause**, which names where the file lives (see
+///   [`names_where_the_file_lives`]).
+/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose
+///   property is named where the method is not.
 ///
-/// **The result is still a candidate list, not a delete list.** What remains is not
-/// closable by guessing: a function held in a map or a struct field and called through
-/// it, and a name assembled at runtime from pieces, name no callee any analysis can
-/// read, and a symbol used only from a file that failed to parse is invisible for a
-/// different reason. [`find_unused_report`] says which correction spared what. Feed
-/// each candidate to [`plan`] before acting.
+/// The result is a candidate list, not a delete list. Still invisible: a function held
+/// in a map or struct field and called through it, a name assembled at runtime, and any
+/// use inside a file that failed to parse. [`find_unused_report`] says which correction
+/// spared what. Feed each candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
+}
+
+/// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose
+/// `address` and `active`.
+///
+/// Java only, because there the convention is a specification rather than a habit:
+/// template engines, JSON mappers and Spring's own data binding all reach a getter by
+/// the property name and never write the method's. `spring-petclinic` called
+/// `Owner::getAddress` dead while its template says `${owner.address}` and its tests say
+/// `param("address", …)`. Both name the property; neither names the method.
+fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
+    if symbol.language != crate::lang::Language::Java {
+        return None;
+    }
+    if !matches!(symbol.kind, SymbolKind::Method) {
+        return None;
+    }
+    let rest = symbol
+        .name
+        .strip_prefix("get")
+        .or_else(|| symbol.name.strip_prefix("set"))
+        .or_else(|| symbol.name.strip_prefix("is"))?;
+    let mut chars = rest.chars();
+    let first = chars.next()?;
+    // `getX` exposes `x`; `gettysburg` exposes nothing.
+    first
+        .is_uppercase()
+        .then(|| first.to_lowercase().collect::<String>() + chars.as_str())
+}
+
+/// Does this symbol name where the file lives, rather than something in it?
+///
+/// Java's `package app;` and Go's `package main` are file headers. Nothing references
+/// them by name — Java classes in one package never write it, and nothing can import
+/// `main` — so "nothing uses this" is true of every one of them and means nothing.
+/// Removing one is a syntax error, not a refactoring. `spring-petclinic` reported all
+/// forty-nine of its package declarations, one per file.
+///
+/// Rust's `mod helper;` is a different construct wearing the same symbol kind: it
+/// declares a child module, and one nothing references is a real finding. So this asks
+/// the language, not the kind.
+fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
+    symbol.kind == SymbolKind::Module
+        && matches!(
+            symbol.language,
+            crate::lang::Language::Java | crate::lang::Language::Go
+        )
 }
 
 /// Did the author declare this unused by naming it so?
@@ -388,6 +459,23 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     }
 
     let named_in_a_string = names_in_string_literals(index);
+
+    // A class whose methods are entry points is reached, whatever calls them. JUnit
+    // constructs a test class to run the `@Test` methods inside it, and the class itself
+    // is named nowhere — `spring-petclinic` reported eleven of them. The same holds for a
+    // Rust `mod tests` and a Python class of pytest cases, so this asks the containment
+    // chain rather than the language: if anything inside it is an entry point, something
+    // outside the workspace reaches in.
+    let mut holds_an_entrypoint: HashSet<SymbolId> = HashSet::new();
+    for entry in entrypoints {
+        let mut at = index.symbol(*entry).and_then(|s| s.container);
+        while let Some(id) = at {
+            if !holds_an_entrypoint.insert(id) {
+                break;
+            }
+            at = index.symbol(id).and_then(|s| s.container);
+        }
+    }
     // Names the hierarchy analysis has already ruled on. Where it has, its answer
     // stands: it knows `Ledger.Area(scale)` cannot satisfy `Shape.Area()` because the
     // arities differ, and a name-only fallback would undo that.
@@ -427,6 +515,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         };
         let orphaned = !reached && !referenced.contains(&symbol.id);
         if orphaned || dead_cycles.contains(&symbol.id) {
+            if names_where_the_file_lives(symbol) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::NamesTheFilesPlace));
+                continue;
+            }
             if declared_unused(symbol) {
                 report
                     .spared
@@ -438,6 +532,20 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
                     .spared
                     .push((symbol.id, SparedReason::AmbiguousMemberCall));
                 continue;
+            }
+            if holds_an_entrypoint.contains(&symbol.id) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::HoldsAnEntryPoint));
+                continue;
+            }
+            if let Some(property) = bean_property(symbol) {
+                if named_in_a_string.contains(&property) {
+                    report
+                        .spared
+                        .push((symbol.id, SparedReason::ReachedByItsProperty));
+                    continue;
+                }
             }
             if !named_in_a_string.contains(&symbol.name) {
                 report.unused.push(symbol.id);
@@ -477,21 +585,17 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
 /// Every identifier-shaped word inside a string literal anywhere in the workspace.
 ///
-/// A name that a resolver never sees but a string spells out is the signature of
-/// reflection and of handler tables, and neither leaves anything else behind. Words are
-/// taken both whole and split on `-`, so a CSS `class="btn-primary"` answers for
-/// `btn-primary` and for `btn`. Files that cannot be read or parsed contribute nothing
-/// and are skipped: this widens the unused list rather than narrowing it, and the
-/// caller is already told about parse errors by [`plan`].
+/// Reflection and handler tables leave a name in a string and nothing else. This takes
+/// words whole and split on `-`, so CSS `class="btn-primary"` answers for `btn-primary`
+/// and for `btn`. Files it cannot read or parse contribute nothing, which widens the
+/// unused list rather than narrowing it; [`plan`] reports parse errors separately.
 /// Names used where more than one definition could answer to them.
 ///
-/// `cfg.recordRelease(r)` resolves to neither of the two `recordRelease` methods in
-/// helm, because choosing would need the type of `cfg`. Both are live as far as this
-/// can tell, and a dead-code list that invites deleting one of them is worse than one
-/// that admits what it does not know.
+/// `cfg.recordRelease(r)` resolves to neither of helm's two `recordRelease` methods,
+/// since choosing needs the type of `cfg`. Both stay live.
 ///
-/// This is the fallback for names no declared hierarchy covers. Where one does, the
-/// caller keeps that answer instead — it is the more precise of the two.
+/// The fallback for names no declared hierarchy covers; where one does, the caller keeps
+/// that more precise answer.
 fn ambiguously_used_names(index: &Index) -> HashSet<String> {
     index
         .references
@@ -610,24 +714,22 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 
 /// The bytes a delete should actually remove.
 ///
-/// When the definition is the only thing on its lines, the whole lines go, indentation
-/// and trailing newline included. A blank line immediately after is swallowed too, but
-/// only when the definition was already preceded by a blank line or the start of the
-/// file — otherwise that blank line is a separator belonging to the code that stays.
+/// When the definition is alone on its lines, the whole lines go, indentation and
+/// trailing newline included. A blank line immediately after goes too, but only when a
+/// blank line or the start of the file already preceded the definition; otherwise that
+/// blank line separates the code that stays.
 /// Widen a symbol's span to the construct that cannot survive without it.
 ///
-/// The span the index keeps is the span a *rename* rewrites, which is rarely the span
-/// a delete can remove. `export const defaultLimits = {…}` declares a symbol whose
-/// span is the declarator; removing exactly that leaves `export const ;`, and the
-/// engine's reparse check rejected the whole delete — so `fr unused` named the
-/// constant and `fr delete` could not remove it. A CSS class had the same shape and
-/// had been fixed for CSS alone.
+/// The index keeps the span a *rename* rewrites, which is rarely the span a delete can
+/// remove. `export const defaultLimits = {…}` has the declarator as its span; removing
+/// exactly that leaves `export const ;`, which the engine's reparse check rejects — so
+/// `fr unused` named the constant and `fr delete` refused it. A CSS class has the same
+/// shape.
 ///
-/// Both are one rule. Climb while the symbol is the *only* child of its kind in its
-/// parent: a parent left with none of them has nothing left to be. Stop as soon as
-/// there is a sibling of the same kind, and take the symbol together with the
-/// separator joining it to that sibling. Never climb into the root, which would
-/// delete the file.
+/// One rule for both: climb while the symbol is the only child of its kind in its
+/// parent, since a parent left with none has nothing left to be. Stop at the first
+/// sibling of the same kind and take the symbol plus the separator joining them. Never
+/// climb into the root.
 pub(crate) fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,
@@ -806,7 +908,12 @@ fn textual_occurrences(
 
 /// Does this node kind hold a string literal?
 fn is_string_kind(kind: &str) -> bool {
-    kind.contains("string") || kind.contains("char_literal")
+    // An attribute value is a string that the HTML grammar happens not to call one, and
+    // it is where a template names the code behind it: `th:text="${owner.address}"`
+    // reaches `Owner::getAddress`, `v-on:click="submit"` reaches `submit`. Reading only
+    // nodes with "string" in their name meant the whole Thymeleaf, Vue and Angular way of
+    // referring to code was invisible to the one rule meant to catch exactly that.
+    kind.contains("string") || kind.contains("char_literal") || kind.contains("attribute_value")
 }
 
 /// Spans of string literals, comments and Helm template actions.

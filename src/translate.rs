@@ -1,37 +1,22 @@
 //! Rewriting a file as another language.
 //!
-//! # What this is not
+//! Not a source-to-source translator: this tool parses to syntax trees and splices byte
+//! ranges, with no type system and no semantic model. It refuses every pair of
+//! imperative languages by name, with the reason. (`src/transpile` is the separate,
+//! IR-based path for those.)
 //!
-//! It is not a source-to-source translator. This tool parses to syntax trees and
-//! splices byte ranges; it has no type system, no semantic model and no notion of
-//! runtime behaviour. Rust to Python is a research problem, and a button claiming to
-//! do it would be the least honest thing in this codebase. Every pair of imperative
-//! languages is refused, by name, with the reason.
+//! Some languages contain others: SCSS is a superset of CSS, TSX is TypeScript with
+//! JSX, a Helm template is YAML with actions, XHTML is both HTML and XML. For a file
+//! using no feature the target lacks, converting between those is a rename plus two
+//! checks:
 //!
-//! # What it is
+//! 1. The pair appears in [`targets`], a declared relationship between the two
+//!    grammars. Without it an empty file would "convert" to anything.
+//! 2. The text parses cleanly under the target grammar. SCSS using nesting does not
+//!    parse as CSS, and the refusal says where.
 //!
-//! Some languages *contain* others. SCSS is a superset of CSS, TSX is TypeScript with
-//! JSX, a Helm template is YAML with actions in it, and XHTML is both HTML and XML.
-//! Between those, "rewrite this file as that language" is a real and common
-//! migration — turning a stylesheet into a Sass entry point, turning a manifest into
-//! a chart template — and for a file that uses no feature the target lacks it is a
-//! rename plus a proof.
-//!
-//! # The proof
-//!
-//! Two things have to hold, and both are checked:
-//!
-//! 1. The pair must be in [`targets`] — a declared relationship between the two
-//!    grammars, not a guess. Without this, an empty file "converts" to anything and a
-//!    short shell script might parse as something absurd.
-//! 2. The text must parse **cleanly under the target grammar**. The grammar is the
-//!    oracle: SCSS that uses nesting will not parse as CSS, and the refusal can say
-//!    where. A superset conversion still gets checked, because a claim nobody
-//!    verified is how this tool would start being wrong.
-//!
-//! The result is written beside the original, under the same stem and the target's
-//! extension. The original is left alone: a conversion that deletes its input is not
-//! reversible by reading the diff, and the diff is the artifact here as everywhere.
+//! The result goes beside the original, same stem, target's extension. The original
+//! stays: a conversion that deletes its input cannot be reversed from the diff.
 
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
@@ -95,7 +80,7 @@ pub fn why_nothing(from: Language) -> String {
         // This used to say "nothing here can do it, so nothing here pretends to",
         // which was true when it was written and became false the day the transpiler
         // landed: Rust, Go, Python and TypeScript translate into one another. A message
-        // that denies a capability the tool has is worse than no message, because the
+        // that denies a capability the tool has misinforms, because the
         // reader believes it and stops looking.
         let supported: Vec<String> = crate::transpile::SUPPORTED
             .iter()

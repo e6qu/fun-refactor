@@ -4,24 +4,20 @@
 //! one writer rather than a pair for every language already here. Six languages is
 //! thirty ordered pairs and twelve files.
 //!
-//! # What is deliberately in it
+//! # In it
 //!
-//! Declarations, and the parts of a body that mean the same thing everywhere: a
-//! return, a binding, a branch, a loop over a collection, a call. Those carry across
-//! because every one of these languages has them and they agree about what they do.
+//! Declarations, and the parts of a body every one of these languages has and agrees
+//! about: a return, a binding, a branch, a loop over a collection, a call.
 //!
-//! # What is deliberately not
+//! # Not in it
 //!
-//! Everything whose meaning is the language: ownership, goroutines, decorators,
-//! generators, comprehensions, pattern matching, error propagation. There is no
-//! honest general translation of `?` into Python or of a channel into TypeScript, and
-//! a guess would be worse than a gap.
+//! Constructs whose meaning is the language: ownership, goroutines, decorators,
+//! generators, comprehensions, pattern matching, error propagation. `?` has no general
+//! translation into Python, nor a channel into TypeScript.
 //!
-//! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], which carry **the
-//! original text**. The writer emits them as a comment beside a marker, so the result
-//! is a file you finish rather than a file you have to diff against the original to
-//! discover what was dropped. Nothing is ever silently omitted; the count of what was
-//! carried this way is the headline of the report.
+//! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], carrying the original
+//! text. The writer emits each as a comment beside a marker, and the report leads with
+//! how many crossed that way.
 
 use std::fmt;
 

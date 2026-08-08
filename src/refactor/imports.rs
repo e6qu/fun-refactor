@@ -1,22 +1,18 @@
 //! Organize imports: drop the ones nothing names, sort the rest.
 //!
-//! Both halves are deliberately timid.
-//!
-//! *Removal* is driven by the index's own records: an import statement goes only when
-//! no reference outside an import statement names anything it binds. A glob import
-//! binds names nobody can enumerate, and a side-effect import binds nothing at all, so
-//! neither is ever removed — they are reported instead.
+//! *Removal* follows the index's records: an import goes only when no reference outside
+//! an import statement names anything it binds. A glob import binds names nobody can
+//! enumerate and a side-effect import binds nothing, so this reports both rather than
+//! removing them.
 //!
 //! Name-based liveness is exact for a value or type that must be spelled where it is
-//! used, and blind to everything a language brings into scope invisibly. Every such
-//! form this tool knows about is listed in `hold_back_reason`, and each one keeps the
-//! import and says why: removing a live import silently breaks a build, whereas keeping
-//! a dead one merely leaves a line of noise.
+//! used, and blind to whatever a language brings into scope invisibly. `hold_back_reason`
+//! lists every such form this tool knows, keeps the import, and says why. Removing a live
+//! import breaks a build; keeping a dead one leaves a line.
 //!
-//! *Sorting* never regenerates import syntax. Each statement's original bytes are
-//! reordered as-is, within one contiguous run of import lines. A blank line, a comment
-//! or any other statement ends the run, because import grouping is a decision a
-//! programmer made and this refactoring has no business overruling it.
+//! *Sorting* never regenerates import syntax. It reorders each statement's original
+//! bytes within one contiguous run of import lines. A blank line, a comment or any other
+//! statement ends the run, leaving the programmer's grouping intact.
 
 use super::{Refusal, Warning, WarningKind};
 use crate::edit::{full_line_span, Edit, EditSet};
