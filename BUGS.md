@@ -142,6 +142,37 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B269: **`Refusal::Unsupported`'s `language` field held a language in five of fifteen
+  cases.** The variant is `{operation} is not supported for {language}` and has nowhere to
+  say *why*, so ten sites wrote the reason into the language:
+  `format!("{lang} — {why}")`, `format!("rust — {} is not under a `src/` directory…")`,
+  and one that named no language at all — "a variable is not a flag". A field called
+  `language`, typed `String`, that usually holds a paragraph.
+
+  It takes a `because` now, and `language` is the `Language` enum, so a sentence there
+  does not compile. Fifteen sites, each of which already had both pieces and was
+  concatenating them. The messages improve as a side effect: "move to file is not
+  supported for java: a public type must live in a file named after it…" reads in the
+  order a reader needs, where before the reason sat between the subject and the verb.
+
+
+- [x] B268: **five more refusals reported a resolution that had not happened.** B266 fixed
+  one site; sweeping every `Refusal::TooWeak` found five others of the same shape, each
+  identifiable by what it filled the field with. A site reporting a real reference writes
+  `confidence: reference.confidence`; these five wrote `Confidence::NameOnly` because no
+  reference existed to ask. Their own text says so — "sources a path that is not a
+  literal, so what is in scope there cannot be known", "a call site inside a syntax error
+  is invisible to the index" — and the wrapper prefixed each with "resolution is only
+  'name-only'". `Refusal::Unknowable`'s doc comment names "a shell script that sources a
+  path computed at run time" as its example, which is two of these five verbatim.
+
+  `TooWeak` now takes a `ResolvedConfidence`, whose field is private to `model` and which
+  only `Reference::resolved_confidence` produces, so the variant cannot be built without
+  a reference to take a confidence from. Verified the compiler refuses:
+  `ResolvedConfidence(Confidence::NameOnly)` outside `model` is
+  "private tuple struct constructor". `signature.rs` no longer names `Confidence` at all.
+
+
 - [x] B267: **a remedy was offered where it would not work.** Every indeterminate-argument
   refusal ended with "quote it to make it one argument", which is true of an unquoted
   `$x` and false of `$@` — quoting that gives one word per parameter, the same problem

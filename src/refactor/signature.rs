@@ -24,7 +24,7 @@ use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Confidence, Reference, ReferenceKind, Symbol, SymbolId, SymbolKind};
+use crate::model::{Reference, ReferenceKind, Symbol, SymbolId, SymbolKind};
 use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
@@ -181,7 +181,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         .collect();
     if let Some(first) = weak.first() {
         return Err(Refusal::TooWeak {
-            confidence: first.confidence,
+            confidence: first.resolved_confidence(),
             detail: format!(
                 "{} of {} call site(s) did not resolve conclusively; updating only some \
                  would leave the code uncompilable",
@@ -260,7 +260,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         // is exactly the partial update this refactoring exists to avoid.
         if call.has_error() {
             return Err(Refusal::TooWeak {
-                confidence: reference.confidence,
+                confidence: reference.resolved_confidence(),
                 detail: format!(
                     "the call to `{}` at {} does not parse cleanly, so its argument list \
                      cannot be rewritten with certainty",
@@ -522,8 +522,7 @@ fn reject_hidden_call_sites(index: &Index, sym: &Symbol) -> Result<()> {
     let Some(first) = hidden.first() else {
         return Ok(());
     };
-    Err(Refusal::TooWeak {
-        confidence: Confidence::NameOnly,
+    Err(Refusal::Unknowable {
         detail: format!(
             "{} file(s) naming `{}` do not parse cleanly, starting with {}; a call site \
              inside a syntax error is invisible to the index, so the call surface cannot \
@@ -1005,8 +1004,7 @@ fn shell_call_files<'a>(
     let mut out: BTreeMap<PathBuf, Vec<&Reference>> = BTreeMap::new();
     for (file, references) in by_file {
         if file != sym.file && opaque.contains(&file) {
-            return Err(Refusal::TooWeak {
-                confidence: Confidence::NameOnly,
+            return Err(Refusal::Unknowable {
                 detail: format!(
                     "{} calls `{}` and also sources a path that is not a literal, so what \
                      is in scope there cannot be known",
@@ -1457,9 +1455,10 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
         Change::Move { .. } => {
             return Err(Refusal::Unsupported {
                 operation: "reordering module variables".to_string(),
-                language: "Terraform, whose module arguments are named rather than \
-                           positional: moving a `variable` block changes nothing at any \
-                           call site"
+                language: Language::Hcl,
+                because: "a Terraform module's arguments are named rather than \
+                          positional, so moving a `variable` block changes nothing at any \
+                          call site"
                     .to_string(),
             }
             .into());
@@ -1810,8 +1809,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
                 .iter()
                 .any(|c| c.file == *path && c.span == import.span)
             {
-                return Err(Refusal::TooWeak {
-                    confidence: Confidence::NameOnly,
+                return Err(Refusal::Unknowable {
                     detail: format!(
                         "a `module` block at {} sources {} but is not a top-level block, so \
                          its arguments cannot be rewritten",
@@ -1825,8 +1823,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
     }
 
     if !opaque.is_empty() {
-        return Err(Refusal::TooWeak {
-            confidence: Confidence::NameOnly,
+        return Err(Refusal::Unknowable {
             detail: format!(
                 "{} `module` block(s) do not name a literal source, so they cannot be shown \
                  not to call {}: {}",

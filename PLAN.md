@@ -588,6 +588,26 @@ findings 643 → 204, and 538 → 99 with `--internal`.
 Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
 `exported`, so `--internal` already separates them — 105 of the 643.
 
+### Sweeping the refusals
+
+The Bash run found three defects in what refusals say rather than in what they refuse, so
+the next pass took that as the question and asked it of every `Refusal::TooWeak`. The
+sites divide by what they put in the confidence field: one reporting a real reference
+writes `reference.confidence`, and five wrote `Confidence::NameOnly` because there was no
+reference to ask. All five say "cannot be known" or "cannot be shown" in their own text
+and were then prefixed with "resolution is only 'name-only'".
+
+`TooWeak` now takes a `ResolvedConfidence`, whose field is private to `model` and which
+only `Reference::resolved_confidence` produces. The variant cannot be built without a
+reference to take a confidence from — checked by trying, which the compiler refuses as a
+private constructor. `signature.rs` stopped naming `Confidence` at all.
+
+The same question of `Refusal::Unsupported`, whose shape is
+`{operation} is not supported for {language}`, found the reverse problem: with nowhere to
+say why, ten of its fifteen sites wrote the reason into the `language` field, and one
+wrote "a variable is not a flag", which names no language. Adding `because` and typing
+`language` as `Language` makes a sentence there a compile error.
+
 ### Bash at scale
 
 `nvm`, 5,655 lines across five scripts, parses clean. `fr signature` moved a positional

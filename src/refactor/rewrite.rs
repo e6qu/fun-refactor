@@ -97,7 +97,8 @@ pub fn apply(index: &Index, file: &Path, offset: usize, rewrite: Rewrite) -> Res
     if !supported(language) {
         return Err(Refusal::Unsupported {
             operation: rewrite.as_str().to_string(),
-            language: language.to_string(),
+            language,
+            because: String::new(),
         }
         .into());
     }

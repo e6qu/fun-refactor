@@ -161,6 +161,23 @@ impl Confidence {
     }
 }
 
+/// The confidence of a reference that exists, which only a reference can produce.
+///
+/// [`crate::refactor::Refusal::TooWeak`] means "this resolved, and not strongly enough
+/// to act on". Five sites raised it where nothing had resolved at all, filling the field
+/// with `Confidence::NameOnly` — so a shell script that sources a computed path was
+/// refused with "resolution is only 'name-only'", sending the reader after a resolution
+/// problem that was not there. Taking this rather than a bare [`Confidence`] means the
+/// variant cannot be built without a reference to take it from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResolvedConfidence(Confidence);
+
+impl ResolvedConfidence {
+    pub fn get(self) -> Confidence {
+        self.0
+    }
+}
+
 /// Identifies a symbol within a workspace index.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SymbolId(pub u32);
@@ -242,6 +259,13 @@ pub struct Reference {
     /// `super::render(…)` look like a method call on a value called `super`.
     #[serde(default)]
     pub receiver_is_path: bool,
+}
+
+impl Reference {
+    /// This reference's confidence, in the form a refusal requires.
+    pub fn resolved_confidence(&self) -> ResolvedConfidence {
+        ResolvedConfidence(self.confidence)
+    }
 }
 
 /// What syntactic role a reference plays.
