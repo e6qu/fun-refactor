@@ -1,21 +1,16 @@
 //! What is known about a symbol's type: what the source declared, and what follows
 //! from what the source declared.
 //!
-//! Two answers, kept apart on purpose. **Declared** is what somebody wrote down.
-//! **Inferred** is what this worked out, and every inferred answer carries the evidence
-//! that produced it — the literal, the class that was constructed, the return type of
-//! the function that was called. A reader can follow it or reject it.
+//! Two answers, kept apart. **Declared** is what somebody wrote down. **Inferred** is
+//! what this module worked out, carrying the evidence that produced it: the literal, the
+//! class constructed, the return type of the function called.
 //!
-//! Nothing is guessed. Where the chain runs into something outside the workspace — a
-//! call to a library function, an object literal with no name — the answer is that
-//! nothing is known, which is different from `Any` and different from a shrug. This is
-//! a tool whose whole claim is that it says what it could not establish, and a type it
-//! invented would be the one place it stopped doing that.
+//! Where the chain reaches outside the workspace — a library call, an unnamed object
+//! literal — the answer is that nothing is known, distinct from `Any`.
 //!
-//! What counts as "the type" differs by what the symbol is. A binding has one. A
-//! callable has a *signature*, which is what a caller has to satisfy, so that is what is
-//! reported for one — with the parameter types the source wrote and a marker where it
-//! wrote none.
+//! What counts as the type depends on the symbol. A binding has one. A callable has a
+//! signature, so that is what this reports for one: the parameter types the source
+//! wrote, and a marker where it wrote none.
 
 use crate::index::Index;
 use crate::lang::Language;

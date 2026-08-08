@@ -1,27 +1,24 @@
 //! Change a function's signature and every call site.
 //!
-//! LSP has no request for this — gopls approximates it with parameter-move code
-//! actions — so a CLI is free to offer the operation directly. That freedom does not
-//! extend to guessing: a call site that did not resolve conclusively is reported and
-//! the whole operation refuses, because a half-updated signature does not compile.
+//! LSP has no request for this; gopls approximates it with parameter-move code actions.
+//! A call site that did not resolve conclusively is reported and the whole operation
+//! refuses: a half-updated signature does not compile.
 //!
 //! Three languages spell "signature" differently:
 //!
 //!   * SCSS. `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a
-//!     call, so the ordinary machinery below handles both once it knows that an
-//!     `include_statement` is a call. What SCSS adds is a declaration that can start
-//!     with no parentheses at all, and a grammar whose gaps can hide a call site —
-//!     see [`open_a_parameter_list`] and [`reject_hidden_call_sites`].
+//!     call, so the machinery below handles both once it treats an `include_statement`
+//!     as a call. SCSS adds a declaration that can start with no parentheses, and a
+//!     grammar whose gaps hide call sites — see [`open_a_parameter_list`] and
+//!     [`reject_hidden_call_sites`].
 //!   * Terraform. A module is a directory; its parameters are the `variable "x" {}`
 //!     blocks declared in it, and its call sites are `module "m" { source = "./dir" }`
 //!     blocks pointing at that directory. Arguments there are named rather than
-//!     positional, so a change addresses a position in the variables' document order
-//!     and rewrites the *named* argument at every call site. That is different enough
-//!     to get its own path: [`terraform_module`].
-//!   * Bash. A shell function declares nothing at all, so there is no parameter list
-//!     to edit — but there is still a signature: the positional parameters `$1 $2 …`
-//!     the body reads, and the words every call site passes. Changing it renumbers the
-//!     one and rewrites the other: [`shell_function`].
+//!     positional, so a change addresses a position in the variables' document order and
+//!     rewrites the named argument at each call site: [`terraform_module`].
+//!   * Bash. A shell function declares no parameter list, but still has a signature: the
+//!     positional parameters `$1 $2 …` the body reads, and the words every call site
+//!     passes. A change renumbers one and rewrites the other: [`shell_function`].
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
@@ -642,28 +639,26 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
 
 // -------------------------------------------------------- Bash functions
 //
-// `greet() { … }` declares no parameters. What a caller can observe is still a
-// signature, though: the positional parameters `$1`, `$2`, … the body reads, and the
-// words each call site passes. Changing it is therefore two rewrites that have to
-// agree — renumber the body, and reorder the call sites — and both halves have to be
-// provable before either is written.
+// `greet() { … }` declares no parameters, but a caller still observes a signature: the
+// positional parameters `$1`, `$2`, … the body reads, and the words each call site
+// passes. A change is two rewrites that must agree — renumber the body, reorder the
+// call sites — and both must be provable before either is written.
 //
 // Shell semantics put several shapes out of reach:
 //
-//   * `$@`, `$*` and `shift` consume the parameter list wholesale. Nothing that
-//     renumbers individual references can follow them, so a body using one refuses.
-//   * An unquoted expansion or a glob is one *word* in the syntax and any number of
+//   * `$@`, `$*` and `shift` consume the parameter list wholesale. Renumbering
+//     individual references cannot follow them, so a body using one refuses.
+//   * An unquoted expansion or a glob is one word in the syntax and any number of
 //     arguments at run time, so nothing after it has a knowable position. Only the
-//     positions a change actually touches need to be determinate, so `f a "$@"` can
-//     still lose its first argument while `f $x b` cannot.
-//   * `$12` is not parameter 12: the shell reads `$` plus digits as `${1}` followed by
-//     the literal `2`. tree-sitter reports one two-digit name, so a multi-digit
-//     unbraced reference refuses rather than being renumbered on the grammar's word.
+//     positions a change touches must be determinate: `f a "$@"` can lose its first
+//     argument, `f $x b` cannot.
+//   * `$12` is not parameter 12 — the shell reads `${1}` followed by a literal `2`.
+//     tree-sitter reports one two-digit name, so a multi-digit unbraced reference
+//     refuses.
 //
-// Which call sites exist is a second problem. Bash resolves a command name at run
-// time against whatever `source` has already run, so the index resolves only
-// same-file calls. The call surface is reconstructed here from the `source` graph,
-// and a caller that cannot be tied to the definition is reported rather than edited.
+// Bash resolves a command name at run time against whatever `source` has already run,
+// so the index resolves only same-file calls. This rebuilds the call surface from the
+// `source` graph and reports a caller it cannot tie to the definition.
 
 /// A positional parameter reference inside a function body.
 #[derive(Debug, Clone, Copy)]

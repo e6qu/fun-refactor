@@ -1,44 +1,38 @@
 //! Move a top-level definition to another file, updating whatever that language's own
 //! resolution rules require.
 //!
-//! There is no single answer to "what does a move have to update", so there is no
-//! single implementation. Each language gets the treatment its own name resolution
-//! demands, and refuses where the answer cannot be computed rather than guessing
-//! (PLAN.md D8):
+//! What a move must update differs per language, so each language has its own
+//! implementation, refusing where it cannot compute the answer (PLAN.md D8):
 //!
-//! - **TypeScript / Python** — resolution is by relative path, so the move rewrites
-//!   every referencing file with an import derived from the two paths.
+//! - **TypeScript / Python** — resolution by relative path: the move rewrites every
+//!   referencing file with an import derived from the two paths.
 //! - **Rust** — resolution is by module path. The destination's module path is derived
 //!   from its location under `src/`, checked for reachability through `mod`
-//!   declarations, and `use crate::<module>::<name>;` is rewritten or inserted. Where
-//!   the module structure cannot be derived, the move refuses and names what was
-//!   ambiguous.
+//!   declarations, and `use crate::<module>::<name>;` rewritten or inserted. Where the
+//!   module structure does not follow, the move refuses and names the ambiguity.
 //! - **Go** — a package *is* a directory, so a move inside one needs no updates at all.
 //!   Across packages the symbol must be exported and an import path must be derivable
 //!   from `go.mod`.
 //! - **HCL / Terraform** — a module *is* a directory, so every address survives a move
 //!   between `.tf` files in the same directory and nothing else changes. Across
 //!   directories the module changes and every address breaks, so that is refused.
-//! - **CSS** — a class is named globally, so no reference changes exist to make. What
-//!   can break is reachability: if the destination is not `@import`ed from where the
-//!   rule was, the styles silently stop applying, which is warned about rather than
-//!   refused.
+//! - **CSS** — a class is named globally, so no reference changes. Reachability can
+//!   break: if nothing `@import`s the destination from where the rule was, the styles
+//!   stop applying. The move warns rather than refuses.
 //! - **Markdown** — a section is a heading and everything under it up to the next
-//!   heading of the same or higher level. In-repo links to the anchors that left are
-//!   repointed at the new document.
+//!   heading of the same or higher level. In-repo links to the anchors that left
+//!   repoint at the new document.
 //! - **Zig** — a file is a namespace reached through `const other = @import("other.zig")`,
-//!   so a moved declaration is named `other.thing` afterwards. The move writes the
-//!   `@import` where one is missing and qualifies the uses that were bare.
-//! - **Bash** — there is no import that binds a name, only `source`, which splices a
-//!   whole script in. A moved function therefore needs every surviving caller to
-//!   source its new home.
-//! - **YAML / Helm** — a values key is addressed by its path, and the path of a
-//!   top-level key does not mention the file it lives in. Moving one between values
-//!   files changes no reference at all; what it can change is whether the file is
-//!   loaded, which is warned about.
+//!   so a moved declaration becomes `other.thing`. The move writes the `@import` where
+//!   one is missing and qualifies the bare uses.
+//! - **Bash** — no import binds a name, only `source`, which splices a whole script
+//!   in. Every surviving caller of a moved function must source its new home.
+//! - **YAML / Helm** — a values key's path does not mention its file, so moving a
+//!   top-level key between values files changes no reference. It can change whether
+//!   the file is loaded, which the move warns about.
 //!
-//! HTML and XML stay refused: an element has no name that another document imports,
-//! so there is no reference for a move to repoint and no reachability to preserve.
+//! HTML and XML refuse: no other document imports an element's name, so there is no
+//! reference to repoint and no reachability to preserve.
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};

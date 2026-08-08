@@ -1,12 +1,11 @@
 //! Go template actions in Helm charts, parsed rather than pattern-matched.
 //!
 //! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file
-//! to the YAML grammar, so the YAML tree is well-formed and every byte offset still
-//! indexes the original source — but everything written *inside* an action is then
-//! invisible to the YAML queries. This module is the other half of that trade: it
-//! reads the spans `Parsed::template_actions` records and turns each one into a
-//! structured [`Action`], so `.Values` references, control flow and named templates
-//! are facts rather than substrings.
+//! to the YAML grammar, keeping the YAML tree well-formed and every byte offset
+//! indexing the original source — at the cost of hiding everything inside an action
+//! from the YAML queries. This module reads the spans `Parsed::template_actions`
+//! records and turns each into a structured [`Action`], so `.Values` references,
+//! control flow and named templates parse rather than pattern-match.
 //!
 //! What it models, following `text/template`:
 //!
@@ -14,34 +13,30 @@
 //!   `{{ include "c.name" . }}` both name their operands; the lexer sees tokens, so
 //!   a `.Values` path inside a function argument reads the same as a bare one.
 //! - **Control actions**: `if`/`else if`/`else`/`end`, `range`, `with`, `define`,
-//!   `block`, `template`. Openers and their `end` are matched into [`Region`]s, so
-//!   "this key exists only when `.Values.resources` is set" is expressible instead
-//!   of flagging the whole file as render-dependent.
+//!   `block`, `template`. Each opener pairs with its `end` into a [`Region`], which
+//!   expresses "this key exists only when `.Values.resources` is set" instead of
+//!   marking the whole file render-dependent.
 //! - **Trim markers**: `{{- ` and ` -}}`, using Go's own rule that the hyphen counts
 //!   only when a space character sits between it and the content.
 //! - **Built-in objects**: `.Release`, `.Chart`, `.Capabilities`, `.Files`,
-//!   `.Template` and `.Subcharts` are distinguished from `.Values`, because looking
-//!   for `.Release.Name` in a values file would be looking for a key that cannot
-//!   exist.
+//!   `.Template` and `.Subcharts`, kept apart from `.Values` — `.Release.Name` names
+//!   no key a values file can hold.
 //!
-//! What it does not model is stated rather than guessed: `.field` under a `range`
-//! is a field of the element, not a values path, and the dot inside a `define` is
-//! whatever the caller passed. Both resolve to [`RefRoot::Context`] and no values
-//! path is invented for them. A `with` *does* rebind the dot to exactly one value,
-//! so that one is resolved ([`Template::values_path_of`]).
+//! What it does not model, it reports. `.field` under a `range` is a field of the
+//! element, and the dot inside a `define` is whatever the caller passed: both resolve
+//! to [`RefRoot::Context`] with no values path. A `with` rebinds the dot to exactly
+//! one value, which does resolve ([`Template::values_path_of`]).
 //!
-//! `index .Values "a-b"` is resolved too, because it is how a chart reaches a key
-//! whose name is not a valid identifier. Only literal string arguments resolve: a
-//! computed key (`index .Values $k`) or a nested call names no key we can know, and
-//! says so through [`Action::problems`] instead of inventing one.
+//! `index .Values "a-b"` resolves, since that is how a chart reaches a key whose name
+//! is not an identifier. Only literal string arguments resolve; a computed key
+//! (`index .Values $k`) or a nested call reports through [`Action::problems`].
 //!
 //! # The command line
 //!
-//! A chart's values are not decided by the chart alone: `-f` files and `--set`
-//! assignments outrank everything in it, and neither is visible to a workspace
-//! scan. [`SetValue`] parses Helm's own `--set` syntax so a caller who knows the
-//! invocation can supply it; [`crate::analysis::provenance::ValuesInputs`] is where
-//! that input meets the precedence order.
+//! `-f` files and `--set` assignments outrank everything in the chart, and a workspace
+//! scan sees neither. [`SetValue`] parses Helm's `--set` syntax so a caller that knows
+//! the invocation can supply it;
+//! [`crate::analysis::provenance::ValuesInputs`] applies it in precedence order.
 
 use crate::parse::Parsed;
 use crate::span::Span;

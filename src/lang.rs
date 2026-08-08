@@ -272,22 +272,18 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
 
 /// Which language boundaries a reference may resolve across.
 ///
-/// Resolution matches candidates by name across the whole workspace, and until this
-/// existed it did so without asking what language they were written in. A Rust
-/// `out.push(…)` therefore resolved to a Zig `Ring.push` — at `import-qualified`,
-/// a tier the tool *rewrites* — so renaming the Zig method silently turned a
-/// `Vec::push` call in Rust into `out.pushReading(…)`. Two files, two languages, no
-/// relationship whatsoever, and a diff that looked ordinary.
+/// Resolution matches candidates by name across the whole workspace. Without this it
+/// ignored language: a Rust `out.push(…)` resolved to a Zig `Ring.push` at
+/// `import-qualified`, a tier the tool rewrites, so renaming the Zig method turned a
+/// `Vec::push` call in Rust into `out.pushReading(…)`.
 ///
-/// A cross-language edge is only real where the two languages have a mechanism for
-/// naming each other's declarations. Those mechanisms are enumerated here rather than
-/// inferred, because the cost of a wrong one is an edit that compiles somewhere else
-/// and breaks here.
+/// A cross-language edge is real only where the two languages have a mechanism for
+/// naming each other's declarations. This enumerates those mechanisms rather than
+/// inferring them: a wrong one produces an edit that compiles elsewhere and breaks here.
 ///
-/// What is deliberately absent: any pair of imperative languages. Rust cannot name a
-/// Zig method, Go cannot name a Python function, and where an FFI does connect them
-/// the binding is declared in a build file this tool does not read. Reporting those
-/// as unresolved is the honest answer.
+/// Absent: every pair of imperative languages. Rust cannot name a Zig method, Go cannot
+/// name a Python function, and an FFI that connects them declares the binding in a build
+/// file this tool does not read. Those resolve to nothing.
 pub fn may_resolve_across(from: Language, to: Language, t: crate::model::SymbolKind) -> bool {
     use crate::model::SymbolKind as K;
     use Language::*;

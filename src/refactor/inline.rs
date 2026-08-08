@@ -183,27 +183,23 @@ fn bound_value<'t>(node: tree_sitter::Node<'t>) -> Option<tree_sitter::Node<'t>>
 
 /// The value as it must read at a use site.
 ///
-/// `b = a + 1; return b * 2` inlined to `return a + 1 * 2`, which is `a + 2`. A
-/// refactoring that changes the answer is the one thing this tool must never do, and it
-/// was doing it in every language with an expression grammar.
+/// `b = a + 1; return b * 2` inlined to `return a + 1 * 2` computes `a + 2`. Every
+/// language with an expression grammar had this.
 ///
-/// The rule errs toward a parenthesis. A pair around an expression never changes what it
-/// means, while deciding precedence properly means a table of operators per grammar —
-/// and a table like that is wrong somewhere, silently, in exactly this way. What is left
-/// bare is the set of things no surrounding operator can split: a name, a literal, a
-/// call, a field, an index, and anything already wrapped.
+/// The rule errs toward a parenthesis: a pair around an expression never changes its
+/// meaning, whereas deciding precedence properly needs a per-grammar operator table
+/// that would be wrong somewhere, silently. Left bare: the things no surrounding
+/// operator can split — a name, a literal, a call, a field, an index, and anything
+/// already wrapped.
 ///
-/// Languages without an expression grammar are left alone entirely. A YAML value is not
-/// an expression and `(true)` is not the same scalar as `true`.
+/// Languages without an expression grammar are untouched. A YAML value is not an
+/// expression, and `(true)` is not the same scalar as `true`.
 /// Does this language group a sub-expression by writing it in parentheses?
 ///
-/// The question [`substitution`] needs, asked directly. It used to ask whether the
-/// language supported extract-variable, which is a different question with a mostly
-/// overlapping answer — and the overlap is where the wrong ones live. Java groups with
-/// parentheses like every other C-shaped language here and is missing from that list
-/// for an unrelated reason: it has no inferred declaration to extract into. Bash is the
-/// other way round, supporting the extraction while `( … )` there opens a subshell
-/// rather than grouping anything.
+/// [`substitution`] used to ask whether the language supported extract-variable, whose
+/// answer only mostly overlaps. Java groups with parentheses like every C-shaped
+/// language here but is absent from that list, having no inferred declaration to
+/// extract into. Bash supports the extraction, but `( … )` there opens a subshell.
 pub(crate) fn groups_with_parentheses(language: Language) -> bool {
     matches!(
         language,

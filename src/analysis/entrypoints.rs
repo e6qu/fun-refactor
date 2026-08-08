@@ -537,22 +537,19 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// Does the catalog have any rule that could fire for this language?
 /// Is `symbol` annotated with `name` — `#[name]`, `#[path::name]` or `@name`?
 ///
-/// Read from the bytes above the definition rather than from a captured fact,
-/// because an attribute is not part of the symbol in any grammar here and adding it
-/// to every language's queries would be a larger change than this earns. Only the
-/// lines immediately above are considered, so a `#[test]` four declarations up does
-/// not leak onto this one.
+/// Reads the bytes above the definition rather than a captured fact: no grammar here
+/// makes an attribute part of the symbol. Only the lines immediately above count, so a
+/// `#[test]` four declarations up does not leak onto this one.
 /// Is an annotation with this name written on the symbol?
 ///
-/// Two shapes, because the languages disagree about where an annotation lives. Rust
-/// and Python put it on its own line *above* the definition, so the search walks
-/// backwards through the run of `#[…]` and `@…` lines. Java puts it **inside** the
-/// declaration, in the `modifiers` node — `@Test public void f()` — so it is within the
-/// symbol's own span and a backwards search from the start of that span never sees it.
-/// Reading only above it made every `@Test` method in the language look like dead code.
+/// Two shapes. Rust and Python put an annotation on its own line above the definition,
+/// so the search walks back through the run of `#[…]` and `@…` lines. Java puts it
+/// inside the declaration, in the `modifiers` node — `@Test public void f()` — within
+/// the symbol's own span, where a backwards search from that span's start never reaches
+/// it.
 ///
-/// Public because a recipe's `annotated-with=` predicate is the same question, and the
-/// point of reusing the matcher is that the two cannot drift apart.
+/// Public so a recipe's `annotated-with=` predicate shares it rather than reimplementing
+/// it.
 pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
     annotation_on(symbol, name).is_some()
 }

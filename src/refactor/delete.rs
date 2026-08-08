@@ -295,35 +295,33 @@ impl UnusedReport {
 
 /// Symbols nothing references and nothing reachable from `entrypoints` reaches.
 ///
-/// This is what powers dead-CSS-selector, unused-Terraform-variable,
-/// unused-`values.yaml`-key and unused-function reports: a symbol qualifies when no
-/// resolved reference targets it (references from inside its own definition do not
-/// count, so dead recursive code is still found) and the call graph cannot reach it
-/// from any given entry point.
+/// Backs the dead-CSS-selector, unused-Terraform-variable, unused-`values.yaml`-key and
+/// unused-function reports. A symbol qualifies when no resolved reference targets it —
+/// references from inside its own definition do not count, so dead recursive code still
+/// qualifies — and the call graph cannot reach it from any entry point.
 ///
-/// Three corrections are applied on top of that, because the raw answer is wrong in
-/// both directions:
+/// Five corrections apply on top, because the raw answer errs in both directions:
 ///
-/// * A symbol whose name appears in a **string literal** anywhere in the workspace is
-///   left off the list. Reflection, a handler table keyed by name, a route string, a
-///   template — every one of them reaches code through a name no resolver follows, and
-///   the string is the only trace they leave.
-/// * A **cycle** of symbols that reference only each other is reported as dead when no
-///   member is reachable from an entry point and nothing outside the cycle references
-///   any member. Mutual recursion otherwise hides a whole dead component, because every
-///   member does have an incoming reference.
-/// * A method **dynamic dispatch can reach** is left off. A call through a `dyn Trait`,
-///   an interface value or a base-class reference names no single definition, but the
-///   workspace does say which types implement the abstraction, and class hierarchy
-///   analysis ([`CallGraph`]) puts an edge on each of them. Those edges are unproven by
-///   construction and marked so; sparing a live method is the point of them.
+/// * Off the list: a symbol whose name appears in a **string literal** anywhere in the
+///   workspace. Reflection, a name-keyed handler table, a route string and a template
+///   all reach code through a name no resolver follows, leaving only the string.
+/// * On it: a **cycle** of symbols referencing only each other, when no member is
+///   reachable from an entry point and nothing outside the cycle references any member.
+///   Otherwise mutual recursion hides a whole dead component, since every member has an
+///   incoming reference.
+/// * Off: a method **dynamic dispatch can reach**. A call through a `dyn Trait`, an
+///   interface value or a base-class reference names no single definition, but the
+///   workspace says which types implement the abstraction and [`CallGraph`] puts an
+///   edge on each. Those edges are unproven and marked so.
+/// * Off: a **package clause**, which names where the file lives (see
+///   [`names_where_the_file_lives`]).
+/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose
+///   property is named where the method is not.
 ///
-/// **The result is still a candidate list, not a delete list.** What remains is not
-/// closable by guessing: a function held in a map or a struct field and called through
-/// it, and a name assembled at runtime from pieces, name no callee any analysis can
-/// read, and a symbol used only from a file that failed to parse is invisible for a
-/// different reason. [`find_unused_report`] says which correction spared what. Feed
-/// each candidate to [`plan`] before acting.
+/// The result is a candidate list, not a delete list. Still invisible: a function held
+/// in a map or struct field and called through it, a name assembled at runtime, and any
+/// use inside a file that failed to parse. [`find_unused_report`] says which correction
+/// spared what. Feed each candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
 }
@@ -720,24 +718,22 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 
 /// The bytes a delete should actually remove.
 ///
-/// When the definition is the only thing on its lines, the whole lines go, indentation
-/// and trailing newline included. A blank line immediately after is swallowed too, but
-/// only when the definition was already preceded by a blank line or the start of the
-/// file — otherwise that blank line is a separator belonging to the code that stays.
+/// When the definition is alone on its lines, the whole lines go, indentation and
+/// trailing newline included. A blank line immediately after goes too, but only when a
+/// blank line or the start of the file already preceded the definition; otherwise that
+/// blank line separates the code that stays.
 /// Widen a symbol's span to the construct that cannot survive without it.
 ///
-/// The span the index keeps is the span a *rename* rewrites, which is rarely the span
-/// a delete can remove. `export const defaultLimits = {…}` declares a symbol whose
-/// span is the declarator; removing exactly that leaves `export const ;`, and the
-/// engine's reparse check rejected the whole delete — so `fr unused` named the
-/// constant and `fr delete` could not remove it. A CSS class had the same shape and
-/// had been fixed for CSS alone.
+/// The index keeps the span a *rename* rewrites, which is rarely the span a delete can
+/// remove. `export const defaultLimits = {…}` has the declarator as its span; removing
+/// exactly that leaves `export const ;`, which the engine's reparse check rejects — so
+/// `fr unused` named the constant and `fr delete` refused it. A CSS class has the same
+/// shape.
 ///
-/// Both are one rule. Climb while the symbol is the *only* child of its kind in its
-/// parent: a parent left with none of them has nothing left to be. Stop as soon as
-/// there is a sibling of the same kind, and take the symbol together with the
-/// separator joining it to that sibling. Never climb into the root, which would
-/// delete the file.
+/// One rule for both: climb while the symbol is the only child of its kind in its
+/// parent, since a parent left with none has nothing left to be. Stop at the first
+/// sibling of the same kind and take the symbol plus the separator joining them. Never
+/// climb into the root.
 pub(crate) fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,

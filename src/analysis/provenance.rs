@@ -1,49 +1,42 @@
 //! Config-language value provenance: where a configured value comes from, and
 //! what consumes it.
 //!
-//! # What this is, and why it is not [`super::flow`]
+//! # Not [`super::flow`]
 //!
-//! Imperative languages need dataflow: values move through assignments, calls and
-//! branches, and the analysis is an approximation of an execution. Configuration
-//! languages do not execute — they *evaluate*, by substitution and override, under
-//! a model each language specifies exactly:
+//! Imperative dataflow approximates an execution. Config languages evaluate instead,
+//! by substitution and override, under a model each one specifies:
 //!
-//! - **Terraform**: `var.x`, `local.y` and `module.m.out` form a true substitution
-//!   DAG. Checkov builds the same graph but substitutes values in place, which
-//!   destroys the hop chain; here every hop is retained with its own file, line and
-//!   expression text, and nothing is ever rewritten.
+//! - **Terraform**: `var.x`, `local.y` and `module.m.out` form a substitution DAG.
+//!   Every hop keeps its own file, line and expression text; nothing is rewritten.
+//!   (Checkov builds the same graph but substitutes in place, losing the hop chain.)
 //! - **Helm**: a values key has a defined override order — subchart defaults, then
-//!   each enclosing parent chart, then user-supplied `-f` files in command-line
-//!   order, then `--set`. Every competing source visible in the workspace is
-//!   reported with its precedence, the winner is marked, and the losers stay
-//!   visible. The last two levels are not in the workspace at all, they are in the
-//!   invocation — so a caller who knows it supplies it as [`ValuesInputs`], and the
-//!   same order then decides outright what it otherwise leaves open.
-//! - **CSS**: the cascade *is* a spec'd provenance algorithm (origin → layer →
-//!   specificity → source order). Losing declarations are reported, struck through
-//!   rather than discarded, which is the DevTools model.
-//! - **YAML**: an alias takes its value from its anchor. Anchors are discarded after
-//!   composition, so this has to be read off the CST — which is what the index does.
+//!   each enclosing parent chart, then `-f` files in command-line order, then
+//!   `--set`. Every competing source in the workspace is reported with its
+//!   precedence, the winner marked, the losers kept. The last two levels live in the
+//!   invocation rather than the workspace, so a caller that knows them supplies them
+//!   as [`ValuesInputs`] and the same order then decides outright.
+//! - **CSS**: the cascade is a specified algorithm (origin → layer → specificity →
+//!   source order). Losing declarations are reported struck through, as DevTools does.
+//! - **YAML**: an alias takes its value from its anchor. Composition discards anchors,
+//!   so the index reads them off the CST.
 //!
 //! # Where it stops
 //!
-//! Everything this cannot determine is a [`StopReason`], never a guess:
+//! Anything undetermined becomes a [`StopReason`] rather than a guess:
 //!
 //! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`
 //!   — outside the code entirely ([`StopReason::ExternalInput`]);
-//! - a Helm value read inside a `{{ ... }}` action is masked before parsing
-//!   (`src/parse.rs`), so the action is read back by [`crate::helm`] rather than by
-//!   the YAML queries: the `.Values` paths it names are resolved, and what remains
-//!   for the template engine — which branch renders, what the release supplies —
-//!   is reported as [`StopReason::RenderDependent`] and [`StopReason::Conditional`];
+//! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`]
+//!   reads it back rather than the YAML queries: the `.Values` paths it names resolve,
+//!   and what the template engine decides — which branch renders, what the release
+//!   supplies — becomes [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
 //! - a resource attribute is computed by a provider at apply time
 //!   ([`StopReason::ComputedAtApply`]);
-//! - competing sources whose relative order is not visible in the workspace — two
-//!   `-f` files, two `@layer`s, two stylesheets — are all listed and the winner is
-//!   left undecided ([`StopReason::PrecedenceUndetermined`]);
-//! - a Helm competition decided by the inputs a caller supplied is decided *given
-//!   those inputs*, and says which one decided it and which channel it was never
-//!   told about ([`StopReason::DecidedGivenInputs`]).
+//! - competing sources whose relative order the workspace does not show — two `-f`
+//!   files, two `@layer`s, two stylesheets — all appear, winner undecided
+//!   ([`StopReason::PrecedenceUndetermined`]);
+//! - a Helm competition that caller-supplied inputs decide names which input decided
+//!   it and which channel it was never told about ([`StopReason::DecidedGivenInputs`]).
 
 use crate::helm;
 use crate::index::Index;

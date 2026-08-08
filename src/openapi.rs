@@ -3,32 +3,25 @@
 //! # Why this exists
 //!
 //! A rewrite from one framework to another has to preserve the **contract** — the URLs,
-//! the methods, the path parameters and the shapes — and nothing else in this tool can
-//! check that it did. `fr translate <route> fastapi` preserves what it can see and
-//! reports the rest, which is not the same as a check: the failure it cannot catch is a
-//! contract that quietly got *smaller*, and a smaller contract looks exactly like a
-//! correct one.
+//! the methods, the path parameters and the shapes. `fr translate <route> fastapi`
+//! preserves what it can see and reports the rest, which is not a check: it cannot
+//! catch a contract that got smaller, and a smaller contract looks like a correct one.
 //!
-//! A check needs two documents to diff. FastAPI produces one from the finished service
-//! (`/openapi.json`); this produces the other from the Next.js tree, **before** the
-//! rewrite. Diff them and every difference is a defect until argued otherwise.
+//! A check needs two documents to diff. FastAPI emits one from the finished service
+//! (`/openapi.json`); this emits the other from the Next.js tree, before the rewrite.
 //!
-//! # What it is honest about
+//! # Precision
 //!
-//! This is derived from what a Next.js route *declares*, and Next.js declares less than
-//! FastAPI does. Specifically:
+//! Derived from what a Next.js route declares, which is less than FastAPI declares:
 //!
-//! - **Paths, methods and path parameters** are exact. They come from the tree, which
-//!   is where a Next.js route's URL lives.
-//! - **Schemas** are as good as the declaration: an exported `interface` or a zod
-//!   schema. A body validated by hand appears nowhere and cannot.
-//! - **Responses** are `default` only. Which status an endpoint returns is a fact about
-//!   its code, not its declaration, and inventing `200` for everything would be writing
-//!   fiction into the file you are about to diff against.
+//! - **Paths, methods and path parameters**: exact, read from the tree.
+//! - **Schemas**: as good as the declaration — an exported `interface` or a zod schema.
+//!   A body validated by hand appears nowhere.
+//! - **Responses**: `default` only. Which status an endpoint returns is a fact about its
+//!   code rather than its declaration.
 //!
-//! Everything the document could not determine is in [`Baseline::notes`] rather than
-//! guessed at, because a baseline that quietly invents an entry is worse than no
-//! baseline: the diff comes out clean and the contract still shrank.
+//! Anything undetermined goes in [`Baseline::notes`]. An invented entry would make the
+//! diff come out clean while the contract shrank.
 
 use crate::transpile::ir::Type;
 use crate::transpile::nextjs::{self, Model};
