@@ -18,6 +18,14 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 /// Bumped when [`FileFacts`] changes shape in a way old entries cannot satisfy.
 const SCHEMA_VERSION: u32 = 3;
 
+/// Hits and misses since this cache was opened. Two `usize`s a caller could read in
+/// either order as a pair.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CacheStats {
+    pub hits: usize,
+    pub misses: usize,
+}
+
 /// A content-addressed store of per-file facts.
 pub struct Cache {
     root: PathBuf,
@@ -136,11 +144,11 @@ impl Cache {
         let _ = tmp.persist(&path);
     }
 
-    pub fn stats(&self) -> (usize, usize) {
-        (
-            self.hits.load(Ordering::Relaxed),
-            self.misses.load(Ordering::Relaxed),
-        )
+    pub fn stats(&self) -> CacheStats {
+        CacheStats {
+            hits: self.hits.load(Ordering::Relaxed),
+            misses: self.misses.load(Ordering::Relaxed),
+        }
     }
 
     pub fn location(&self) -> &Path {
@@ -303,7 +311,7 @@ mod tests {
         cache.put(&key, &facts_for("a.rs", "alpha"));
         cache.get(&key, Path::new("a.rs"));
 
-        let (hits, _) = cache.stats();
+        let hits = cache.stats().hits;
         assert_eq!(hits, 1);
     }
 

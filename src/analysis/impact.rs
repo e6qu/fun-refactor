@@ -10,7 +10,7 @@ use crate::analysis::call_graph::CallGraph;
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::{Confidence, SymbolId};
-use crate::span::{LineIndex, Span};
+use crate::span::{LineCol, LineIndex, Span};
 use anyhow::Result;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -125,18 +125,17 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
 
     let mut items = Vec::new();
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
-    let mut locate = |file: &PathBuf, offset: usize| -> (usize, usize) {
+    let mut locate = |file: &PathBuf, offset: usize| -> LineCol {
         let source = sources
             .entry(file.clone())
             .or_insert_with(|| crate::vfs::read_to_string(file).unwrap_or_default());
-        let pos = LineIndex::new(source).line_col(offset, source);
-        (pos.line, pos.col)
+        LineIndex::new(source).line_col(offset, source)
     };
 
     // Every definition site of the entity, and every reference to it.
     for id in index.definition_group(symbol) {
         for reference in index.references_to(id) {
-            let (line, col) = locate(&reference.file, reference.span.start);
+            let at = locate(&reference.file, reference.span.start);
             // A reference from another language is the interesting case.
             let kind = if reference.language != sym.language {
                 ImpactKind::CrossLanguage
@@ -146,8 +145,8 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
             items.push(Impacted {
                 file: reference.file.clone(),
                 language: reference.language,
-                line,
-                col,
+                line: at.line,
+                col: at.col,
                 kind,
                 confidence: reference.confidence,
                 detail: format!("{} of {}", kind.as_str(), sym.name),
@@ -169,12 +168,12 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
             let Some(caller) = index.symbol(node.symbol) else {
                 continue;
             };
-            let (line, col) = locate(&caller.file, caller.name_span.start);
+            let at = locate(&caller.file, caller.name_span.start);
             items.push(Impacted {
                 file: caller.file.clone(),
                 language: caller.language,
-                line,
-                col,
+                line: at.line,
+                col: at.col,
                 kind: ImpactKind::Caller,
                 confidence: node.caller.map(|(_, c)| c).unwrap_or(Confidence::Exact),
                 detail: format!(
@@ -189,12 +188,12 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     // Same-named occurrences that did not resolve here.
     for reference in index.unresolved_matching(symbol) {
         if reference.target.is_none() {
-            let (line, col) = locate(&reference.file, reference.span.start);
+            let at = locate(&reference.file, reference.span.start);
             items.push(Impacted {
                 file: reference.file.clone(),
                 language: reference.language,
-                line,
-                col,
+                line: at.line,
+                col: at.col,
                 kind: ImpactKind::Textual,
                 confidence: reference.confidence,
                 detail: format!("unresolved occurrence of {}", sym.name),

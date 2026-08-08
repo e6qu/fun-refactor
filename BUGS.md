@@ -119,6 +119,23 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B260: **three commands took two or three bare booleans in a row.**
+  `cmd_extract(&cli, range, name, *function, *all, *write)` passes three, and the clap
+  field names differ from the parameter names, so any two could swap and compile. Each
+  now has a type: `Extract::{Variable, Function}`, `Occurrences::{First, All}`,
+  `Inline::{Variable, Call}`, and `FlagValue(bool)` for the value a removed flag is fixed
+  at, which sits beside `write` in `cmd_remove_flag`. No two parameters of any of the
+  three share a type now. The other 23 functions taking `write: bool` keep it: `write` is
+  their only boolean, so nothing can swap with it.
+
+- [x] B259: **line and column travelled as a bare `(usize, usize)` in six places.**
+  `LineIndex::line_col` returns `LineCol`, and six helpers took that value apart and
+  returned the pair — `delete.rs` built a `LineCol` and immediately destructured it. A
+  caller reading the two in the wrong order gets a position that looks plausible and
+  points somewhere else. All six return `LineCol` now. `Cache::stats` returned hits and
+  misses the same way and returns `CacheStats`.
+
+
 - [x] B256: **`fr unused` did not treat an HTML attribute value as a string.**
   `is_string_kind` matched node kinds containing "string"; the HTML grammar names an
   attribute value `attribute_value`. Templates name code there — `th:text="${owner.address}"`,

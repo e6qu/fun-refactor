@@ -17,7 +17,7 @@ use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
 use crate::model::{Confidence, SymbolId, SymbolKind};
 use crate::parse::{Parsed, Parsers};
-use crate::span::{LineIndex, Span};
+use crate::span::{LineCol, LineIndex, Span};
 use anyhow::Result;
 use petgraph::graph::{DiGraph, NodeIndex};
 use std::collections::{HashMap, HashSet};
@@ -102,8 +102,8 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
             blocking.len()
         );
         for (file, span) in &blocking {
-            let (line, col) = sources.line_col(file, span.start);
-            message.push_str(&format!("\n  {}:{line}:{col}", file.display()));
+            let at = sources.line_col(file, span.start);
+            message.push_str(&format!("\n  {}:{at}", file.display()));
         }
         message.push_str("\nRemove or repoint these uses first; nothing was changed.");
         anyhow::bail!("{message}");
@@ -139,12 +139,12 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     // Found and not acted on.
     let mut warnings = Vec::new();
     for (file, span, confidence) in weak {
-        let (line, col) = sources.line_col(&file, span.start);
+        let at = sources.line_col(&file, span.start);
         warnings.push(Warning {
             kind: WarningKind::WeaklyResolved,
             file,
-            line,
-            col,
+            line: at.line,
+            col: at.col,
             detail: format!(
                 "reference resolved only as '{}'; it may or may not be a use of '{}'",
                 confidence.as_str(),
@@ -158,12 +158,12 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         if reference.target.is_some() || seen.contains(&(reference.file.clone(), reference.span)) {
             continue;
         }
-        let (line, col) = sources.line_col(&reference.file, reference.span.start);
+        let at = sources.line_col(&reference.file, reference.span.start);
         warnings.push(Warning {
             kind: WarningKind::WeaklyResolved,
             file: reference.file.clone(),
-            line,
-            col,
+            line: at.line,
+            col: at.col,
             detail: format!("unresolved occurrence of '{}'; left in place", target.name),
         });
     }
@@ -986,13 +986,10 @@ impl Sources {
             .as_deref()
     }
 
-    fn line_col(&mut self, path: &Path, offset: usize) -> (usize, usize) {
+    fn line_col(&mut self, path: &Path, offset: usize) -> LineCol {
         match self.get(path) {
-            Some(source) => {
-                let pos = LineIndex::new(source).line_col(offset, source);
-                (pos.line, pos.col)
-            }
-            None => (0, 0),
+            Some(source) => LineIndex::new(source).line_col(offset, source),
+            None => LineCol { line: 0, col: 0 },
         }
     }
 }
