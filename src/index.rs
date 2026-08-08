@@ -307,7 +307,55 @@ impl Index {
         }
     }
 
+    /// Resolve a reference, and cap what the answer is allowed to claim.
+    ///
+    /// [`Confidence::Exact`] means "safe to edit" and [`Confidence::FieldBased`] means
+    /// "matched by member name without knowing the receiver's type". Which of those a
+    /// member access on an ordinary value deserves is not a per-branch judgement: it is
+    /// the definition of the tier, and it holds however the branch below arrived at an
+    /// answer.
+    ///
+    /// It is enforced here rather than in the branches because there are twenty-eight
+    /// places pairing a symbol with a tier, and each one was an opportunity to disagree.
+    /// Two of them did, with the same reasoning — one definition of the name means
+    /// "there is nothing to be wrong about" — and it is wrong the same way both times:
+    /// the workspace does not contain every type. A `boto3` client and an `aws-sdk`
+    /// instance both have members this tool has never seen, and `fr rename` edited calls
+    /// on them. Fixing the first branch left the second, which is what a rule living at
+    /// its use sites does.
     fn resolve_one(
+        &self,
+        reference: &Reference,
+        path: &Path,
+        info: &FileInfo,
+        by_name: &HashMap<&str, Vec<SymbolId>>,
+    ) -> (Option<SymbolId>, Confidence) {
+        let (target, confidence) = self.resolve_by_evidence(reference, path, info, by_name);
+
+        // Only a member access asks a question about a receiver.
+        let Some(receiver) = reference
+            .receiver
+            .as_deref()
+            .filter(|_| matches!(reference.kind, ReferenceKind::Field | ReferenceKind::Call))
+        else {
+            return (target, confidence);
+        };
+
+        // Three receivers whose type is not a guess: the enclosing instance, a module
+        // path, and an import binding — all three name something the source declared.
+        // Anything else is a value this tool has not typed.
+        let known = matches!(receiver, "this" | "self")
+            || reference.receiver_is_path
+            || self.import_binding(info, receiver).is_some();
+
+        // Weaker of the two: the tiers are ordered strongest first.
+        match known {
+            true => (target, confidence),
+            false => (target, confidence.max(Confidence::FieldBased)),
+        }
+    }
+
+    fn resolve_by_evidence(
         &self,
         reference: &Reference,
         path: &Path,
@@ -544,13 +592,11 @@ impl Index {
         // 2. Any other definition in the same file (e.g. a function defined below its
         //    use, or a sibling scope for languages that hoist).
         //
-        //    Not for a member access. Being the only `total` in the file says nothing
-        //    about what `client` in `client.total()` is, and claiming `exact` there let
-        //    `fr rename` rewrite a call on a boto3 client because a class in the same
-        //    file happened to declare a method of that name. Uniqueness is evidence
-        //    about the name; a member access is a question about the receiver, which
-        //    nothing here knows. Step 5 answers it at the tier that means exactly this.
-        if in_file.len() == 1 && !member_access {
+        //
+        //    Naming a plausible target for a member access is useful — it is the tier
+        //    that says how much to trust it, and `resolve_one` caps that for every
+        //    branch at once rather than each branch remembering to.
+        if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
         if in_file.len() > 1 && !member_access {
