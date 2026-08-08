@@ -505,3 +505,53 @@ fn a_rule_can_apply_to_every_language() {
     assert!(found.contains(&"python"), "got {found:?}");
     assert!(found.contains(&"go"), "got {found:?}");
 }
+
+/// A rule that says nothing matched nothing, quietly.
+///
+/// The comment on the old check said an empty matcher "is never what a catalog author
+/// means" and then returned false, which is also not what they meant — silently doing
+/// the opposite of the dangerous thing is still silent. And the list of what counted as
+/// a condition had drifted from the fields that exist: `symbol_kind`, `exported` and
+/// `top_level` were not on it, so a rule whose only condition was one of those counted
+/// as saying nothing and matched nothing.
+#[test]
+fn a_rule_that_names_no_condition_is_rejected_when_it_loads() {
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        dir.path().join("rules.yaml"),
+        "- id: says-nothing\n  kind: http-route\n  languages: [python]\n  matches: {}\n",
+    )
+    .expect("the catalog");
+
+    let err = Catalog::builtin()
+        .expect("the built-in catalogs")
+        .load_dir(dir.path())
+        .expect_err("a matcher with no conditions");
+    assert!(format!("{err:#}").contains("names no condition"), "{err:#}");
+}
+
+/// The conditions that were missing from that list work on their own.
+#[test]
+fn a_kind_or_an_export_is_a_condition_by_itself() {
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        dir.path().join("rules.yaml"),
+        "- id: any-function\n  kind: exported-api\n  languages: [python]\n  \
+         matches:\n    symbol_kind: function\n",
+    )
+    .expect("the catalog");
+    let mut catalog = Catalog::builtin().expect("the built-in catalogs");
+    catalog.load_dir(dir.path()).expect("the rule loads");
+
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(tmp.path().join("a.py"), "def handler():\n    return 1\n").expect("the file");
+    let index =
+        fun_refactor::index::Index::build(tmp.path(), &ScanOptions::default()).expect("an index");
+    let found: Vec<_> = catalog
+        .detect(&index)
+        .into_iter()
+        .filter(|e| e.rule == "any-function")
+        .filter_map(|e| index.symbol(e.symbol).map(|s| s.name.clone()))
+        .collect();
+    assert_eq!(found, vec!["handler".to_string()], "a kind is a condition");
+}

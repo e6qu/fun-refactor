@@ -110,6 +110,19 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B250: **a rule that said nothing matched nothing, quietly — and three conditions
+  did not count as conditions.** The guard against an empty matcher was a list of
+  `is_some()` checks that had drifted from the fields that exist: `symbol_kind`,
+  `exported` and `top_level` were missing, so a rule whose only condition was one of
+  those counted as saying nothing and therefore matched nothing. The guard's own comment
+  said an empty matcher "is never what a catalog author means", and then returned false —
+  silently doing the opposite of the dangerous thing is still silent. It is one method on
+  `Matcher` now, which destructures the struct so that adding a field fails to compile
+  rather than being left out of the answer, and it is asked in two places: the loader
+  refuses such a catalogue with the rule's name, and `rule_applies` keeps the old
+  behaviour as a backstop for a `Catalog` assembled directly rather than loaded. Two
+  layers, one predicate, so they cannot disagree.
+
 - [x] B249: **`fr type --json` answered with numbers nobody can use.** It serialized the
   analysis struct directly, so `"symbol": 1` and `"defined_at": 0` were `SymbolId`s —
   positions in one run's index, meaningless to whoever reads the output, and unstable
