@@ -142,6 +142,19 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B273: **`fr unused` named a symbol and would not say where it was.** The next command
+  after it is `fr delete`, and a name does not name a symbol: in `helm/helm`, 34 of the
+  first 40 candidates are defined twice, so `fr delete <name>` answers "defined 2 times;
+  name one of these, or give a position" — which the list had no way to give. `--json`
+  carried name, file, kind, language and exported, and no position, so a script could not
+  construct one either. Both renderings report `file:line:col` now; 12 of 12 sampled
+  candidates go straight through to `fr delete`, where 6 of 40 did before. `fr
+  entrypoints` had the same shape and the same fix.
+
+  The invariant itself held throughout: nothing `fr unused` reported was refused by
+  `fr delete`. Only the handover was missing.
+
+
 - [x] B271: **the published site shipped HTML the tool cannot parse.** Two raw `&&` in
   `docs/demo.html` — an unterminated entity reference, which browsers recover from and
   `fr parse` reports. It was the only parse error in this workspace, found by running the
