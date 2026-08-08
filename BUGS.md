@@ -142,6 +142,30 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B276: **`fr duplicates` crashed on a multi-byte character.**
+  `fr duplicates --language python` over `psf/black` panicked: "end byte index 691 is not
+  a char boundary; it is inside '𨉟'". `LineIndex::line_col` slices the line by a byte
+  offset the caller computed, and `span.end - 1` — the last byte a region covers — lands
+  inside the character whenever the region ends with a multi-byte one. `line_col` clamps
+  to a boundary now, which also covers `full_line_span` and so `fr delete`,
+  `fr imports` and `fr move`, all of which reach it by the same arithmetic. Black's 135
+  duplicate groups report where the command used to die.
+
+- [x] B275: **`fr duplicates --json` reported a language spelling no other command uses.**
+  It serializes its result struct, so `Language`'s derived serde names applied — `"Go"`
+  where every other command prints `Language::name()`, `"go"`. A consumer filtering on
+  `language == "go"` got nothing from this one command, and `Language::from_name` could
+  not read it back. B247 was this defect on `SymbolKind`; the test written for it asked
+  whether `from_name(name())` round-trips, which it always did, and never asked serde.
+  The test does now, and the cache schema is bumped because facts carry a language.
+
+- [x] B274: **`fr duplicates` gave lines and no columns.** `fr extract` takes
+  `path:line:col-line:col`, so the range had to be finished by opening the file and
+  measuring the line — the work the report existed to save. Instances carry `start_col`
+  and `end_col` now, and a range built straight from the JSON reaches `fr extract`'s own
+  refusals rather than a parse error.
+
+
 - [x] B273: **`fr unused` named a symbol and would not say where it was.** The next command
   after it is `fr delete`, and a name does not name a symbol: in `helm/helm`, 34 of the
   first 40 candidates are defined twice, so `fr delete <name>` answers "defined 2 times;
