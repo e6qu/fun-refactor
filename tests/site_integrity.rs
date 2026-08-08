@@ -316,3 +316,26 @@ fn the_plan_s_closing_list_names_every_command() {
         missing.join(", ")
     );
 }
+
+#[test]
+fn every_published_page_parses() {
+    // The site is HTML this tool claims to read, and it shipped two raw `&&` in text —
+    // an unterminated entity reference, which browsers recover from and the tool's own
+    // parser reports. Nothing checked: the tests here follow links and check command
+    // names, which both pass on a file that does not parse.
+    let parsers = fun_refactor::parse::Parsers::new();
+    let mut broken = Vec::new();
+    for (name, html) in pages() {
+        let parsed = parsers
+            .parse(fun_refactor::lang::Language::Html, &html)
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        if parsed.has_errors() {
+            broken.push(name);
+        }
+    }
+    assert!(
+        broken.is_empty(),
+        "page(s) the tool cannot parse: {}",
+        broken.join(", ")
+    );
+}

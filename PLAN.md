@@ -588,6 +588,21 @@ findings 643 → 204, and 538 → 99 with `--internal`.
 Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
 `exported`, so `--internal` already separates them — 105 of the 643.
 
+### Running it on itself again
+
+Two findings. The workspace had one parse error and it was in the published site:
+`docs/demo.html` ships two raw `&&` in text, an unterminated entity reference that
+browsers recover from. `site_integrity` follows links and checks command names, both of
+which pass on a file that does not parse, so it now parses every page with the tool's own
+parser.
+
+The second is larger. Rust's container patterns matched `type: (type_identifier)`, and
+`impl Ctx<'_>` and `impl<T> Generic<T>` put a `generic_type` there — so the methods inside
+had no container: `run` rather than `Ctx::run`, kind `function` rather than `method`. A
+`self.hcl_backward(…)` then had no member to resolve to, and 43 of `provenance.rs`'s own
+methods read as dead code. Internal dead-code findings for this repository go from 92 to
+49, and what is left is fields and parameters rather than phantom functions.
+
 ### Sweeping the refusals
 
 The Bash run found three defects in what refusals say rather than in what they refuse, so
