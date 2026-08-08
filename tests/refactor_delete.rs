@@ -837,3 +837,66 @@ fn a_name_in_a_template_attribute_counts_as_named() {
         "and one nothing names is still a finding: {names:?}"
     );
 }
+
+/// An HCL block Terraform gives no address to.
+///
+/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
+/// `content {}` carry no label, so nothing can reference one and every single one
+/// answers "nothing uses this". terraform-aws-vpc reported 46, all of that shape.
+/// A labelled block takes its name from a string label, so the quote before the name
+/// is the test — no list of block types to keep up with Terraform.
+#[test]
+fn an_unaddressable_hcl_block_is_not_reported() {
+    let (_tmp, index) = workspace(&[(
+        "main.tf",
+        "terraform {\n  required_providers {\n    aws = {\n      source = \"hashicorp/aws\"\n    }\n  }\n}\n\n\
+         resource \"aws_vpc\" \"this\" {\n  cidr_block = \"10.0.0.0/16\"\n\n  \
+         lifecycle {\n    create_before_destroy = true\n  }\n}\n\n\
+         output \"id\" {\n  value = aws_vpc.this.id\n}\n",
+    )]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let names: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.qualified_name())
+        .collect();
+    for unaddressable in ["terraform", "required_providers", "aws_vpc::lifecycle"] {
+        assert!(
+            !names.contains(&unaddressable.to_string()),
+            "{unaddressable} has no address, so nothing can reference it: {names:?}"
+        );
+    }
+}
+
+/// A Zig test block, and what only it calls, are not dead.
+#[test]
+fn a_zig_test_block_and_what_it_calls_are_reached() {
+    let (_tmp, index) = workspace(&[(
+        "a.zig",
+        "const std = @import(\"std\");\n\n\
+         fn helper() i32 {\n    return 7;\n}\n\n\
+         fn nothing_calls_this() i32 {\n    return 1;\n}\n\n\
+         test \"helper returns seven\" {\n    \
+         try std.testing.expectEqual(@as(i32, 7), helper());\n}\n",
+    )]);
+    let entrypoints = Entrypoints::detect(&index).expect("the built-in catalogs");
+
+    let names: Vec<_> = delete::find_unused(&index, &entrypoints)
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.name.clone())
+        .collect();
+    assert!(
+        !names.contains(&"helper returns seven".to_string()),
+        "the test is an entry point: {names:?}"
+    );
+    assert!(
+        !names.contains(&"helper".to_string()),
+        "the test calls it: {names:?}"
+    );
+    assert!(
+        names.contains(&"nothing_calls_this".to_string()),
+        "and a function no test calls is still a finding: {names:?}"
+    );
+}

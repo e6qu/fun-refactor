@@ -552,6 +552,58 @@ stylesheet. An answer of 50 or more now lists its top five kinds, plus the file 
 them when one file holds over half. vuejs/core: 1,640 keys in `pnpm-lock.yaml`. Nothing
 is excluded from the analysis.
 
+### Terraform at scale
+
+`terraform-aws-vpc`, 77 `.tf` files, parsed without an error. `fr unused` answered 369,
+of which 46 were HCL blocks and every one was `terraform {}`, `required_providers {}`,
+`lifecycle {}` or a `dynamic` block's `content {}`. None of those carries a label, so
+Terraform gives none of them an address and nothing can reference one. A labelled block
+takes its name from a string label, so the quote before the name settles it. 369 → 323,
+the remainder Markdown headings.
+
+The run also found B263, which is not fixed. `var.x` and `local.x` are separate
+namespaces; the index records both declarations as `SymbolKind::Variable` with no
+qualifier. Where a variable and a local share a name — 18 of 81 in that repository —
+`fr refs` on the variable returns the local's reference as well as its own, and `fr refs`
+on the local returns none. Both drop to `field-based`, so nothing is rewritten. The
+reference half is a one-line query change; the symbol half is not, because `var` and
+`local` appear in no declaration and a query cannot synthesise a name, so the qualifier
+would have to come from `extract.rs` and would change every HCL qualified name and the
+cache schema with it.
+
+### Zig at scale
+
+29 files of Zig's own standard library — `http`, `json`, `fmt`. One parse failure, and it
+is B133: `const T = struct {};`, which `tree-sitter-zig` cannot read. The gap was already
+recorded from a fixture; the standard library uses it.
+
+`fr entrypoints` found 12 tests where the corpus has 495. Zig writes a test as
+`test "any prose you like" { … }` and the query makes the description the symbol's name,
+so `name_prefix: test` matched the twelve whose description begins with "test". The other
+483 read as dead code, and so did everything only they called. Matchers gained
+`declaration_keyword`, the third predicate that is not a property of a name after
+Python's `__main__` guard and Next.js's `"use server"`. Entry points 12 → 472, dead-code
+findings 643 → 204, and 538 → 99 with `--internal`.
+
+Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
+`exported`, so `--internal` already separates them — 105 of the 643.
+
+### Bash at scale
+
+`nvm`, 5,655 lines across five scripts, parses clean. `fr signature` moved a positional
+parameter of `nvm_tree_contains_path` and renumbered the body and all three call sites
+correctly, which is the operation with the most shell-specific machinery behind it.
+
+Three defects, all in what the refusals say rather than in what they refuse. A signature
+change on a function with a twin in another file refused by raising the refusal `rename`
+and `extract` use, so it said "renaming would shadow or collide with it" to somebody who
+had asked to move a parameter. An argument whose word count the shell decides at run time
+refused as "resolution is only 'name-only'" — `Refusal::Unknowable` exists for that and
+its doc comment names the symptom, so the fix had been written down and this site had not
+been changed. And the remedy "quote it to make it one argument" was appended to every one
+of those refusals, including `$@`, where quoting gives one word per parameter and the
+same problem again.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,

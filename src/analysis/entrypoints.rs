@@ -204,6 +204,15 @@ pub struct Matcher {
     /// name, so no `file_name` rule can find it.
     #[serde(default)]
     pub file_directive: Option<String>,
+    /// The declaration begins with this keyword.
+    ///
+    /// Zig writes a test as `test "any prose you like" { … }`, so the name a rule could
+    /// match on is the description. `zig-test` asked for `name_prefix: test` and found
+    /// 12 of the 495 test blocks in Zig's standard library — the ones whose description
+    /// happens to begin with "test". The other 483 read as dead code, and so did
+    /// anything only they called.
+    #[serde(default)]
+    pub declaration_keyword: Option<String>,
     /// The annotation's first string argument must start with this.
     ///
     /// A decorator's name is not unique across libraries: `@patch` is `unittest.mock`'s
@@ -238,6 +247,7 @@ impl Matcher {
             annotated_with,
             called_from_main_guard,
             file_directive,
+            declaration_keyword,
             annotation_argument_prefix,
         } = self;
         file_prefix.is_some()
@@ -253,6 +263,7 @@ impl Matcher {
             || annotated_with.is_some()
             || called_from_main_guard.is_some()
             || file_directive.is_some()
+            || declaration_keyword.is_some()
             // Not on its own: it qualifies `annotated_with`, and `check_rules` rejects
             // it without one.
             || (annotation_argument_prefix.is_some() && annotated_with.is_some())
@@ -507,6 +518,11 @@ fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
             return false;
         }
     }
+    if let Some(keyword) = &m.declaration_keyword {
+        if !source.is_some_and(|text| declaration_begins_with(text, symbol, keyword)) {
+            return false;
+        }
+    }
     if let Some(directive) = &m.file_directive {
         if !source.is_some_and(|text| under_directive(text, symbol, directive)) {
             return false;
@@ -630,6 +646,21 @@ fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
     args.trim_start()
         .strip_prefix(['"', '\''])
         .is_some_and(|literal| literal.starts_with(prefix))
+}
+
+/// Does the symbol's own declaration open with this keyword?
+///
+/// The keyword must be followed by something that cannot continue an identifier, so
+/// `test` does not match a declaration of `testing`.
+fn declaration_begins_with(source: &str, symbol: &Symbol, keyword: &str) -> bool {
+    let start = symbol.full_span.start.min(source.len());
+    let Some(rest) = source[start..].strip_prefix(keyword) else {
+        return false;
+    };
+    !rest
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_alphanumeric() || c == '_')
 }
 
 /// Is this symbol called from its module's `if __name__ == "__main__":` block?

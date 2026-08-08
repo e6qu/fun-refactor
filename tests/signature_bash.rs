@@ -52,6 +52,14 @@ impl Workspace {
 }
 
 /// The one symbol with this name, failing loudly if it is ambiguous.
+/// The one named `name` declared in `file`, for a workspace that has two.
+fn symbol_id_in(index: &Index, name: &str, file: &str) -> SymbolId {
+    let found = index.find_symbols(name, None);
+    let matching: Vec<_> = found.iter().filter(|s| s.file.ends_with(file)).collect();
+    assert_eq!(matching.len(), 1, "expected one '{name}' in {file}");
+    matching[0].id
+}
+
 fn symbol_id(index: &Index, name: &str) -> SymbolId {
     let found = index.find_symbols(name, None);
     assert_eq!(
@@ -642,7 +650,11 @@ fn refuses_when_two_functions_share_the_name() {
     let index = ws.index();
     let id = index.find_symbols("f", Some(&ws.path("a.sh")))[0].id;
     let message = refusal(signature::change(&index, id, Change::Remove(0)));
-    assert!(message.contains("already defined in"), "got: {message}");
+    // "already defined in … renaming would shadow or collide with it" was the wording
+    // here, borrowed from the refusal `rename` and `extract` raise when a new name would
+    // collide. Nothing is introduced and nothing is renamed: both definitions were there.
+    assert!(message.contains("also defined in"), "got: {message}");
+    assert!(!message.contains("renaming"), "got: {message}");
 }
 
 #[test]
@@ -789,4 +801,86 @@ fn the_summary_names_the_positional_parameter() {
         "got: {summary}"
     );
     assert!(summary.contains("1 call site(s)"), "got: {summary}");
+}
+
+/// A refusal names the operation the caller asked for.
+///
+/// Two shell functions of one name make every call site ambiguous, which is a reason to
+/// refuse a signature change — but it reused the refusal `rename` and `extract` raise
+/// when a *new* name would collide, so the message said "renaming would shadow or
+/// collide with it" to somebody who had asked to move a parameter. Nothing is being
+/// renamed and nothing is being introduced; two definitions were already there.
+#[test]
+fn two_definitions_of_one_name_refuse_without_mentioning_renaming() {
+    let ws = Workspace::new(&[
+        ("a.sh", "f() {\n  echo \"$1 $2\"\n}\nf one two\n"),
+        ("b.sh", "f() {\n  echo other\n}\n"),
+    ]);
+    let index = ws.index();
+    let message = error(signature::change(
+        &index,
+        symbol_id_in(&index, "f", "a.sh"),
+        Change::Move { from: 0, to: 1 },
+    ));
+    assert!(
+        message.contains("also defined in") && message.contains("cannot be updated"),
+        "got: {message}"
+    );
+    assert!(
+        !message.contains("renaming"),
+        "nothing here renames anything: {message}"
+    );
+}
+
+/// The advice has to be true of the thing it is advising about.
+///
+/// An unquoted `$x` becomes one argument when quoted; `"$@"` becomes one word per
+/// parameter, which is the same problem again. The remedy was appended to every one of
+/// these refusals, so a `$@` came back with "quote it to make it one argument".
+#[test]
+fn the_remedy_is_offered_only_where_it_would_work() {
+    let quotable = Workspace::new(&[("a.sh", "f() {\n  echo \"$1 $2\"\n}\nf $x two\n")]);
+    let index = quotable.index();
+    let message = error(signature::change(
+        &index,
+        symbol_id(&index, "f"),
+        Change::Move { from: 0, to: 1 },
+    ));
+    assert!(
+        message.contains("quote it to make it one argument"),
+        "an unquoted expansion has a remedy: {message}"
+    );
+
+    let not_quotable = Workspace::new(&[(
+        "a.sh",
+        "f() {\n  echo \"$1 $2\"\n}\ng() {\n  f \"$@\" two\n}\n",
+    )]);
+    let index = not_quotable.index();
+    let message = error(signature::change(
+        &index,
+        symbol_id(&index, "f"),
+        Change::Move { from: 0, to: 1 },
+    ));
+    assert!(
+        !message.contains("quote it"),
+        "quoting `$@` does not make it one argument: {message}"
+    );
+}
+
+/// A resolution that exists and a fact the shell decides at run time are different
+/// refusals. Reporting the second as a confidence produced "resolution is only
+/// 'name-only'", which sends the reader after a resolution problem that is not there.
+#[test]
+fn an_indeterminate_argument_is_not_reported_as_weak_resolution() {
+    let ws = Workspace::new(&[("a.sh", "f() {\n  echo \"$1 $2\"\n}\nf $x two\n")]);
+    let index = ws.index();
+    let message = error(signature::change(
+        &index,
+        symbol_id(&index, "f"),
+        Change::Move { from: 0, to: 1 },
+    ));
+    assert!(
+        !message.contains("resolution is only"),
+        "the call resolved; the shell decides the word count: {message}"
+    );
 }

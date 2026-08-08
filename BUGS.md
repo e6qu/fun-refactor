@@ -10,6 +10,28 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Open
 
+- [ ] B263: **a Terraform input variable and a local sharing a name are one symbol.**
+  `var.x` and `local.x` are separate namespaces, and the index records both declarations
+  as `SymbolKind::Variable` with no qualifier, so nothing tells them apart. With
+  `variable "thing"` and `locals { thing = … }` in one file, `fr refs` on the variable
+  returns two references — `var.thing`, which is its, and `local.thing`, which is not —
+  and `fr refs` on the local returns none. Both drop to `field-based`, so `fr rename`
+  rewrites the declaration and leaves every use for review; nothing is corrupted, and
+  nothing is usable either. `fr symbols` prints the two declarations identically, so the
+  ambiguity error's advice to "name one of these" cannot be followed. Without a name
+  collision both resolve `exact` and correctly.
+
+  In `terraform-aws-vpc`, 18 of 81 locals share a name with a variable.
+
+  The reference side is one line: the query captures the namespace as `@_ns` and
+  discards it, next to a `data.TYPE.NAME` pattern that captures its type as
+  `@reference.type`. The symbol side is not: `var` and `local` appear nowhere in a
+  declaration, and a query cannot synthesise a name, so the qualifier would have to be
+  assigned in `extract.rs` by language and kind — which changes every HCL qualified name
+  and so the cache schema. Exporting the namespace alone changes nothing, which I
+  checked before recording this.
+
+
 - [ ] B258: **`a_rust_number_leaves_its_width_behind` failed once and has not repeated.**
   During one `cargo test --all-targets`, the Java writer emitted Rust's `0usize` /
   `1i32` suffixes, which that test exists to catch. It has since passed 5/5 runs in
@@ -111,13 +133,63 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
   generated declarations; found in `vuejs/core`'s compiler-sfc. Upstream grammar work.
 
 - [ ] B133: `tree-sitter-zig` requires at least one member in a struct, so it cannot
-  parse `const Foo = struct {};` — which is ordinary Zig. The tool's own check would
+  parse `const Foo = struct {};` — which is ordinary Zig, and is the only parse failure
+  across 29 files of Zig's own standard library (`json/static_test.zig:465`). The tool's own check would
   therefore refuse to write a correct file, so an empty record is written with an empty
   `comptime {}` block in it, under a comment saying why. That block does nothing, both
   Zig and the grammar accept it, and the alternative was refusing to translate a type
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B267: **a remedy was offered where it would not work.** Every indeterminate-argument
+  refusal ended with "quote it to make it one argument", which is true of an unquoted
+  `$x` and false of `$@` — quoting that gives one word per parameter, the same problem
+  again, as the function's own comment says. The advice now travels with the problem that
+  earns it, so `$@` gets none and a glob gets "quote it to stop the shell expanding it".
+
+- [x] B266: **an argument the shell decides at run time was reported as weak resolution.**
+  `f $x two` refused with "resolution is only 'name-only'", but the call resolved; what
+  is unknown is how many words `$x` becomes. `Refusal::Unknowable` exists for exactly
+  this and its doc comment names the symptom — "resolution is only 'exact'", a sentence
+  that contradicts itself — so the fix was already written down and this site had not
+  been changed. Two clauses composed by two functions also garbled the sentence: the
+  remedy landed mid-sentence, leaving "so the position of everything after it is only
+  known at run time" attached to the fix rather than the problem.
+
+- [x] B265: **a signature change refused by talking about renaming.** Two bash functions
+  of one name make every call site ambiguous, which is a reason to refuse — but it raised
+  `Refusal::NameCollision`, whose message is "'f' is already defined in …; renaming would
+  shadow or collide with it". Nothing is renamed and nothing is introduced; both
+  definitions were there. `Refusal::AmbiguousDefinition` says what is actually wrong, and
+  `NameCollision`'s own wording no longer says "renaming" either, since `extract` and
+  `fr signature add` raise it while introducing a name rather than changing one. An
+  existing test asserted the old wording, so it had pinned a message that was wrong.
+
+
+- [x] B264: **`zig-test` matched a test's description, not the construct.** Zig writes a
+  test as `test "any prose you like" { … }`, and the query makes that description the
+  symbol's name — so `name_prefix: test` matched the tests whose description happens to
+  begin with "test": 12 of the 495 in Zig's own standard library. The other 483 were
+  reported as dead code, along with everything only they called. Matchers gained
+  `declaration_keyword`, which reads the declaration's opening keyword and requires it to
+  end there, so `const testing = …` does not match. Entry points 12 → 472; dead-code
+  findings over that corpus 643 → 204, and 538 → 99 with `--internal`. The other five
+  repositories are unchanged.
+
+  This is the third catalogue predicate that is not a property of a name, after Python's
+  `__main__` guard and Next.js's `"use server"`.
+
+
+- [x] B262: **`fr unused` reported HCL blocks Terraform gives no address to.**
+  `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
+  `content {}` carry no label, so nothing in the language can reference one and every one
+  of them answers "nothing uses this". `terraform-aws-vpc` reported 46, all of those four
+  shapes, out of 46 block findings. A labelled block takes its name from a string label
+  and an unlabelled one from the block-type keyword, so the quote before the name settles
+  it — no list of block types to keep up with as Terraform adds them. The repository's
+  answer drops from 369 to 323, and what remains is Markdown headings.
+
 
 - [x] B261: **two capability predicates returned `true` for every language, behind
   branches that could not run.** `delete::reports_unused` and `duplicates::supported`
