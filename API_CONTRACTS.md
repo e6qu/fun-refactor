@@ -16,7 +16,7 @@ contract rewrite the HTTP contract                 the language, the framework,
 That last row is the useful one and the least served by tooling. A caller does not
 import your functions. It sends `PATCH /posts/42` with a JSON body and expects `204`.
 Everything a refactoring tool normally protects — call sites, imports, symbol
-resolution — is irrelevant, and the one thing that matters is not in the type system of
+resolution — is irrelevant, and what matters is not in the type system of
 either language.
 
 ## What an HTTP contract is made of
@@ -33,7 +33,7 @@ Six things, and they do not all travel together:
 | **Status codes** | `204`, `403`, `422` | the returned object |
 
 The first three are *addressing* and the last three are *shape*. This tool carries the
-addressing half exactly and the shape half only partly, and the whole point of this
+addressing half exactly and the shape half only partly, and the purpose of this
 document is to say which is which — because a rewrite that gets addressing right and
 shape wrong looks finished.
 
@@ -178,7 +178,7 @@ Paths, methods and path parameters are exact, because they come from the tree. S
 are as good as what was declared. **Responses are `default` only** — which status an
 endpoint returns is a fact about its code rather than its declaration, and writing
 `200` for everything would be putting fiction into the file you are about to diff
-against, which is worse than an empty entry.
+against; an empty entry does not.
 
 Everything it could not settle is printed beside the document rather than guessed at,
 because a baseline that quietly invents an entry is the worst possible outcome: the
@@ -243,7 +243,7 @@ and each one is a different kind of reading:
   says so: a query parameter inside a statement this tool carried verbatim is missing,
   and a missing one that nothing mentions is the failure this whole document is about.
 
-### The one thing that moves
+### What changes
 
 A Next.js handler receives `(request, context)` and digs the path parameter out of
 `context.params.petId`. FastAPI passes it as an argument. So the value arrives by a

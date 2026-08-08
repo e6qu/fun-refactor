@@ -150,7 +150,7 @@ $ fr duplicates --language rust --min-tokens 120
 ```
 
 The comparison is structural, so copies whose identifiers differ still match — which
-is the point, since a textual search finds none of these.
+matters here, since a textual search finds none of these.
 
 Zig, on the language server's test suite:
 
@@ -356,7 +356,7 @@ what is missing says more about a tool than the list of what it has.
 |---|---|
 | **Extract interface / trait** | Needs to decide which members belong to the abstraction, which is a design decision rather than a mechanical one. The mechanical part — finding every implementor — already exists as `fr implementations`. |
 | **Pull up / push down a member** | Needs the type hierarchy *and* the type of every receiver at every call site, to know which sites still resolve after the move. Hierarchy analysis exists; receiver types do not. |
-| **Introduce parameter object** | Mechanically an `fr signature` change plus a new type, but choosing which parameters group together is the whole point of doing it. A version that took an explicit list would be honest and is the likeliest of these to be built. |
+| **Introduce parameter object** | Mechanically an `fr signature` change plus a new type, but choosing which parameters group together is the substance of it. A version taking an explicit list is the likeliest of these to be built. |
 | **Change a return type** | The edit is easy; finding every caller that must adapt needs the type of each call's context, which syntax does not give. |
 | **Convert callback to promise / async** | Requires understanding control flow, not just shape. Each language spells it differently enough that it is really eight refactorings. |
 | **Encapsulate a field** | Needs to distinguish reads from writes at every use site, which is dataflow rather than resolution. `fr flow` has the machinery; the refactoring does not exist yet. |

@@ -207,7 +207,7 @@ recall on JS with no types — the single highest-leverage trick.
 | Zig | name + `@import` resolution; comptime sites flagged unresolved | zls has no callHierarchy — trivially best-in-class opportunity |
 | Bash | function-name-in-command-position + static `source` resolution | bash-language-server has no callHierarchy either |
 
-Every `CALLS` edge carries its resolution-confidence tag (the honest version of Sourcegraph's
+Every `CALLS` edge carries its resolution-confidence tag (compare Sourcegraph's
 precise vs search-based split). LSP callHierarchy stays an optional precision backend, not the
 core: whole-program extraction is O(2 requests/function), which is why Sourcegraph abandoned
 LSP for compiler-based SCIP indexers.
