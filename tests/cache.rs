@@ -83,10 +83,10 @@ fn the_second_pass_is_all_hits() {
     let cache = Cache::open_at(cache_dir.path()).unwrap();
 
     Index::build_with_cache(&scanned, Some(&cache)).unwrap();
-    let (hits_after_first, _) = cache.stats();
+    let hits_after_first = cache.stats().hits;
 
     Index::build_with_cache(&scanned, Some(&cache)).unwrap();
-    let (hits_after_second, _) = cache.stats();
+    let hits_after_second = cache.stats().hits;
 
     assert_eq!(hits_after_first, 0, "the first pass cannot hit anything");
     assert_eq!(
@@ -109,9 +109,9 @@ fn editing_a_file_invalidates_only_that_entry() {
     std::fs::write(tmp.path().join("a.rs"), "pub fn renamed() {}\n").unwrap();
     let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
 
-    let (before_hits, _) = cache.stats();
+    let before_hits = cache.stats().hits;
     let index = Index::build_with_cache(&scanned, Some(&cache)).unwrap();
-    let (after_hits, _) = cache.stats();
+    let after_hits = cache.stats().hits;
 
     // Every file but the edited one is still a hit.
     assert_eq!(after_hits - before_hits, scanned.files.len() - 1);
@@ -156,9 +156,9 @@ fn two_files_with_identical_content_share_one_entry() {
     // Files are extracted in parallel, so within one run both may finish before
     // either writes; the shared entry pays off from the next run onwards.
     Index::build_with_cache(&scanned, Some(&cache)).unwrap();
-    let (before, _) = cache.stats();
+    let before = cache.stats().hits;
     let index = Index::build_with_cache(&scanned, Some(&cache)).unwrap();
-    let (after, _) = cache.stats();
+    let after = cache.stats().hits;
     assert_eq!(after - before, 2, "both files served from one entry");
 
     // Each file must still own its own symbol, pointing at its own path.

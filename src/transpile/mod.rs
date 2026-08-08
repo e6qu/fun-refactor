@@ -175,12 +175,12 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     let written = parsers.parse(to, &output)?;
     if written.has_errors() {
         let at = first_error(&written, &output)
-            .map(|(line, column)| format!(" — first at line {line}, column {column}"))
+            .map(|at| format!(" — first at line {}, column {}", at.line, at.col))
             .unwrap_or_default();
         bail!(
             "the {to} this produced does not parse{at}. That is a defect in the \
              translator rather than in your file; the output is not written.\n\n{}",
-            numbered(&output, first_error(&written, &output).map(|(l, _)| l))
+            numbered(&output, first_error(&written, &output).map(|at| at.line))
         );
     }
 
@@ -213,7 +213,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
 /// reads the defect report nothing at all. The innermost error is where the parser
 /// actually gave up, and a `MISSING` node beats an `ERROR` at the same depth because
 /// it names what was expected rather than merely where.
-fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<(usize, usize)> {
+fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![(parsed.root(), 0usize)];
     // Depth, then "missing beats error", then earliest — in that order.
@@ -245,8 +245,7 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<(usize, us
         None => parsed.error_spans().first().map(|span| span.start)?,
     };
     let index = crate::span::LineIndex::new(source);
-    let position = index.line_col(at, source);
-    Some((position.line, position.col))
+    Some(index.line_col(at, source))
 }
 
 /// A few lines around the failure, so a defect report carries its own evidence.

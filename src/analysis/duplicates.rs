@@ -291,12 +291,6 @@ fn mix(accumulated: u64, next: u64) -> u64 {
 
 /// Is duplicate detection meaningful for this language?
 ///
-/// Every language here is parsed into a tree of named nodes, which is all the
-/// comparison needs. There is no language in the set this cannot be asked about.
-pub fn supported(_language: Language) -> bool {
-    true
-}
-
 /// Files the report skipped because they do not parse.
 pub fn unparsed(index: &Index, options: &Options) -> Vec<PathBuf> {
     index

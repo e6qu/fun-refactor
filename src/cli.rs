@@ -501,19 +501,42 @@ pub fn run() -> Result<()> {
             function,
             all,
             write,
-        } => cmd_extract(&cli, range, name, *function, *all, *write),
+        } => cmd_extract(
+            &cli,
+            range,
+            name,
+            match *function {
+                true => Extract::Function,
+                false => Extract::Variable,
+            },
+            match *all {
+                true => Occurrences::All,
+                false => Occurrences::First,
+            },
+            *write,
+        ),
         Command::Inline {
             target,
             call,
             write,
-        } => cmd_inline(&cli, target, *call, *write),
+        } => cmd_inline(
+            &cli,
+            target,
+            match *call {
+                true => Inline::Call,
+                false => Inline::Variable,
+            },
+            *write,
+        ),
         Command::Openapi { out, yaml } => cmd_openapi(&cli, out.as_deref(), *yaml),
         Command::Recipe {
             file,
             write,
             catalogs,
         } => cmd_recipe(&cli, file, *write, catalogs),
-        Command::RemoveFlag { flag, value, write } => cmd_remove_flag(&cli, flag, *value, *write),
+        Command::RemoveFlag { flag, value, write } => {
+            cmd_remove_flag(&cli, flag, FlagValue(*value), *write)
+        }
         Command::Rewrite {
             target,
             rewrite,
@@ -668,12 +691,41 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
     Ok(())
 }
 
+/// What `fr extract` pulls out.
+///
+/// An enum rather than a `bool`, because the call site passed three booleans in a row —
+/// `cmd_extract(&cli, range, name, *function, *all, *write)` — where any two could swap
+/// and still compile. Each of the three now has a type of its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Extract {
+    Variable,
+    Function,
+}
+
+/// How many occurrences `fr extract` replaces.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Occurrences {
+    First,
+    All,
+}
+
+/// What `fr inline` replaces.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Inline {
+    Variable,
+    Call,
+}
+
+/// The value a removed flag is fixed at, distinct from the `write` beside it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FlagValue(bool);
+
 fn cmd_extract(
     cli: &Cli,
     range: &str,
     name: &str,
-    as_function: bool,
-    all: bool,
+    extract: Extract,
+    occurrences: Occurrences,
     write: bool,
 ) -> Result<()> {
     let (path, start, end) = crate::span::parse_range(range)?;
@@ -692,7 +744,7 @@ fn cmd_extract(
 
     let index = build_index(cli, &[])?;
 
-    if as_function {
+    if extract == Extract::Function {
         let plan = crate::refactor::extract::function(&index, &path, span, name)?;
         let params: Vec<&str> = plan.parameters.iter().map(|p| p.name.as_str()).collect();
         let summary = format!(
@@ -709,7 +761,13 @@ fn cmd_extract(
         return present(cli, &plan.edits, &summary, write);
     }
 
-    let plan = crate::refactor::extract::variable(&index, &path, span, name, all)?;
+    let plan = crate::refactor::extract::variable(
+        &index,
+        &path,
+        span,
+        name,
+        occurrences == Occurrences::All,
+    )?;
     let summary = format!(
         "extracted `{}` into {} ({} occurrence(s) replaced)",
         plan.expression.trim(),
@@ -719,10 +777,10 @@ fn cmd_extract(
     present(cli, &plan.edits, &summary, write)
 }
 
-fn cmd_inline(cli: &Cli, target: &str, as_call: bool, write: bool) -> Result<()> {
+fn cmd_inline(cli: &Cli, target: &str, inline: Inline, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
 
-    if as_call {
+    if inline == Inline::Call {
         // A call has no symbol of its own, so this form needs a position.
         let pos = parse_position(target).ok_or_else(|| {
             anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
@@ -1515,12 +1573,12 @@ fn print_recipe_report(report: &crate::recipe::Report) {
     println!();
 }
 
-fn cmd_remove_flag(cli: &Cli, flag: &str, value: bool, write: bool) -> Result<()> {
+fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Result<()> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    let plan = crate::refactor::cascade::remove_flag(&root, flag, value)?;
+    let plan = crate::refactor::cascade::remove_flag(&root, flag, value.0)?;
 
     if plan.is_empty() {
-        println!("Removing {flag} as {value} changes nothing.");
+        println!("Removing {flag} as {} changes nothing.", value.0);
         return Ok(());
     }
 
@@ -2202,7 +2260,8 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
     let index = Index::build_with_cache(&scanned, cache.as_ref())?;
 
     if let Some(cache) = &cache {
-        let (hits, misses) = cache.stats();
+        let stats = cache.stats();
+        let (hits, misses) = (stats.hits, stats.misses);
         tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
     }
     Ok(index)
@@ -2643,25 +2702,24 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
 
     // Line/column lookups need each file's text; read once per file.
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
-    let mut locate = |file: &PathBuf, offset: usize| -> (usize, usize) {
+    let mut locate = |file: &PathBuf, offset: usize| -> crate::span::LineCol {
         let source = sources
             .entry(file.clone())
             .or_insert_with(|| crate::vfs::read_to_string(file).unwrap_or_default());
-        let pos = LineIndex::new(source).line_col(offset, source);
-        (pos.line, pos.col)
+        LineIndex::new(source).line_col(offset, source)
     };
 
     if cli.json {
         let render =
             |list: &[&crate::model::Reference],
-             locate: &mut dyn FnMut(&PathBuf, usize) -> (usize, usize)| {
+             locate: &mut dyn FnMut(&PathBuf, usize) -> crate::span::LineCol| {
                 list.iter()
                     .map(|r| {
-                        let (line, col) = locate(&r.file, r.span.start);
+                        let at = locate(&r.file, r.span.start);
                         serde_json::json!({
                             "file": r.file,
-                            "line": line,
-                            "col": col,
+                            "line": at.line,
+                            "col": at.col,
                             "kind": format!("{:?}", r.kind).to_lowercase(),
                             "confidence": r.confidence.as_str(),
                         })
@@ -2683,12 +2741,12 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
 
     println!("{} reference(s) to {}", refs.len(), symbol.qualified_name());
     for r in &refs {
-        let (line, col) = locate(&r.file, r.span.start);
+        let at = locate(&r.file, r.span.start);
         println!(
             "  {}:{}:{}  [{}]",
             r.file.display(),
-            line,
-            col,
+            at.line,
+            at.col,
             r.confidence.as_str()
         );
     }
@@ -2699,12 +2757,12 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
             weak.len()
         );
         for r in &weak {
-            let (line, col) = locate(&r.file, r.span.start);
+            let at = locate(&r.file, r.span.start);
             println!(
                 "  {}:{}:{}  [{}]",
                 r.file.display(),
-                line,
-                col,
+                at.line,
+                at.col,
                 r.confidence.as_str()
             );
         }

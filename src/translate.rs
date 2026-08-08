@@ -177,7 +177,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
     let parsed = parsers.parse(to, &source)?;
     if parsed.has_errors() {
         let where_ = first_error(&parsed, &source)
-            .map(|(line, col)| format!(" — first at line {line}, column {col}"))
+            .map(|at| format!(" — first at line {}, column {}", at.line, at.col))
             .unwrap_or_default();
         bail!(
             "this file uses {from} the {to} grammar does not accept{where_}. Rewriting it \
@@ -208,7 +208,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
 }
 
 /// Line and column of the first syntax error, for a refusal that points at something.
-fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<(usize, usize)> {
+fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![parsed.root()];
     let mut earliest: Option<usize> = None;
@@ -224,6 +224,5 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<(usize, us
     }
     let at = earliest?;
     let index = crate::span::LineIndex::new(source);
-    let position = index.line_col(at, source);
-    Some((position.line, position.col))
+    Some(index.line_col(at, source))
 }
