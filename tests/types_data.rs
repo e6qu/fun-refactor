@@ -130,7 +130,7 @@ fn marks(index: &Index, file: &Path, source: &str) -> Vec<Marked> {
         let answer = types::of(index, *id).expect("a type answer");
         let (ty, origin) = match (&answer.declared, &answer.inferred) {
             (Some(ty), _) => (ty.clone(), "the source wrote it".to_string()),
-            (None, Some(inferred)) => (inferred.ty.clone(), inferred.basis.as_str().to_string()),
+            (None, Some(inferred)) => (inferred.ty.clone(), inferred.basis.describe().to_string()),
             (None, None) => (
                 "not known".to_string(),
                 "the source wrote nothing, and nothing follows from what it did".to_string(),

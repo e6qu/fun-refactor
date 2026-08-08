@@ -11,7 +11,7 @@
 
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Symbol, SymbolId};
+use crate::model::{Symbol, SymbolId, SymbolKind};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -78,6 +78,46 @@ pub enum ThreatModel {
     None,
 }
 
+/// A language a rule applies to, or every language the tool knows.
+///
+/// A plain `String` here meant `languages: [pyhton]` parsed, loaded, and matched nothing.
+/// Nothing was wrong with the YAML and nothing was wrong with the rule: it simply never
+/// fired, which is indistinguishable from a language that has no rules. Parsing the name
+/// into the language it denotes moves that from a silent Tuesday to a message at load.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppliesTo {
+    /// `*` — every language.
+    Any,
+    Language(Language),
+}
+
+impl AppliesTo {
+    pub fn covers(self, language: Language) -> bool {
+        match self {
+            AppliesTo::Any => true,
+            AppliesTo::Language(one) => one == language,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AppliesTo {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let written = String::deserialize(deserializer)?;
+        if written == "*" {
+            return Ok(AppliesTo::Any);
+        }
+        Language::from_name(&written)
+            .map(AppliesTo::Language)
+            .ok_or_else(|| {
+                let known: Vec<&str> = Language::ALL.iter().map(|l| l.name()).collect();
+                serde::de::Error::custom(format!(
+                    "unknown language `{written}`; expected `*` or one of {}",
+                    known.join(", ")
+                ))
+            })
+    }
+}
+
 /// One rule from a catalog.
 ///
 /// Unknown fields are rejected: a typo in a catalog would otherwise be ignored,
@@ -91,20 +131,13 @@ pub struct Rule {
     #[serde(default = "default_threat")]
     pub threat_model: ThreatModel,
     /// Languages this rule applies to.
-    pub languages: Vec<String>,
+    pub languages: Vec<AppliesTo>,
     #[serde(default)]
     pub matches: Matcher,
-    /// `manual` for hand-written rules, `generated` for derived ones.
-    #[serde(default = "default_provenance")]
-    pub provenance: String,
 }
 
 fn default_threat() -> ThreatModel {
     ThreatModel::None
-}
-
-fn default_provenance() -> String {
-    "manual".to_string()
 }
 
 /// Conditions a symbol must meet. All present conditions must hold.
@@ -124,8 +157,12 @@ pub struct Matcher {
     #[serde(default)]
     pub name_suffix: Option<String>,
     /// Symbol kind, e.g. function, block, key.
+    ///
+    /// The kind's own type, not its name. `symbol_kind: functoin` used to parse, load and
+    /// match nothing, which reads exactly like a rule that is present and simply never
+    /// true — the same failure `deny_unknown_fields` catches for a misspelled key.
     #[serde(default)]
-    pub symbol_kind: Option<String>,
+    pub symbol_kind: Option<SymbolKind>,
     /// The file name must equal this.
     #[serde(default)]
     pub file_name: Option<String>,
@@ -345,11 +382,7 @@ impl Entrypoints {
 }
 
 fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
-    if !rule
-        .languages
-        .iter()
-        .any(|l| l == symbol.language.name() || l == "*")
-    {
+    if !rule.languages.iter().any(|l| l.covers(symbol.language)) {
         return false;
     }
 
@@ -391,8 +424,8 @@ fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
             return false;
         }
     }
-    if let Some(kind) = &m.symbol_kind {
-        if symbol.kind.as_str() != kind {
+    if let Some(kind) = m.symbol_kind {
+        if symbol.kind != kind {
             return false;
         }
     }
@@ -686,7 +719,7 @@ pub fn has_rules_for(catalog: &Catalog, language: Language) -> bool {
     catalog
         .rules
         .iter()
-        .any(|r| r.languages.iter().any(|l| l == language.name() || l == "*"))
+        .any(|r| r.languages.iter().any(|l| l.covers(language)))
 }
 
 /// Languages with no entry-point rules at all, so gaps in coverage are visible.
@@ -697,7 +730,7 @@ pub fn languages_without_rules(catalog: &Catalog) -> Vec<&'static str> {
             !catalog
                 .rules
                 .iter()
-                .any(|r| r.languages.iter().any(|l| l == lang.name() || l == "*"))
+                .any(|r| r.languages.iter().any(|l| l.covers(**lang)))
         })
         .map(|lang| lang.name())
         .collect()
@@ -803,9 +836,8 @@ mod tests {
             id: "bad".into(),
             kind: EntryKind::CliMain,
             threat_model: ThreatModel::None,
-            languages: vec!["rust".into()],
+            languages: vec![AppliesTo::Language(Language::Rust)],
             matches: Matcher::default(),
-            provenance: "manual".into(),
         };
         let (_tmp, index) = workspace(&[("a.rs", "fn whatever() {}\n")]);
         let symbol = &index.symbols[0];

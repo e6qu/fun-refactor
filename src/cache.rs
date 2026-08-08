@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 /// Bumped when [`FileFacts`] changes shape in a way old entries cannot satisfy.
-const SCHEMA_VERSION: u32 = 2;
+const SCHEMA_VERSION: u32 = 3;
 
 /// A content-addressed store of per-file facts.
 pub struct Cache {

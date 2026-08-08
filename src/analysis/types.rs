@@ -47,7 +47,10 @@ pub enum Basis {
 }
 
 impl Basis {
-    pub fn as_str(&self) -> &'static str {
+    /// Prose for a reader, not an identifier. Named apart from the `as_str` that
+    /// several enums here use for their stable spelling, because conflating the two is
+    /// how `SymbolKind` came to print `"type"` in JSON and refuse to read it back.
+    pub fn describe(&self) -> &'static str {
         match self {
             Basis::Literal => "from the literal",
             Basis::Construction => "from the class constructed here",
@@ -105,7 +108,7 @@ impl Declared {
     pub fn describe(&self) -> String {
         match (&self.declared, &self.inferred) {
             (Some(ty), _) => ty.clone(),
-            (None, Some(inferred)) => format!("{} ({})", inferred.ty, inferred.basis.as_str()),
+            (None, Some(inferred)) => format!("{} ({})", inferred.ty, inferred.basis.describe()),
             (None, None) => "no type written down".to_string(),
         }
     }

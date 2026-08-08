@@ -110,6 +110,45 @@ behaviour is reported to the user, and no operation silently does the wrong thin
 
 ## Fixed
 
+- [x] B249: **`fr type --json` answered with numbers nobody can use.** It serialized the
+  analysis struct directly, so `"symbol": 1` and `"defined_at": 0` were `SymbolId`s —
+  positions in one run's index, meaningless to whoever reads the output, and unstable
+  between runs. `defined_at` read like a line number. Every other command answers with a
+  qualified name and a place, and the text rendering of this one resolved them all along;
+  only the machine-readable half did not. Both now say the same thing.
+
+- [x] B248: **`as_str` meant two different things, and that is how B247 hid.** On
+  `SymbolKind`, `Confidence`, `EntryKind` and `HierarchyBasis` it returns an identifier —
+  a token that goes into JSON, into a catalogue, into a person's fingers. On `Capability`,
+  `Basis` and `DefinitionRole` it returns prose for a reader: "call graph", "from the
+  literal", "also declared here". Nothing distinguished them, so there was no way to know
+  which ones had to agree with their serde spelling. The prose three are `label()` and
+  `describe()` now, and the identifier ones are covered by a round-trip test that reads
+  the spellings out of the exhaustive `as_str` match rather than from a list — a list
+  would be one more thing to forget when a variant is added.
+
+- [x] B247: **the tool's JSON could not be read back into the tool's own types.**
+  `SymbolKind` derives serde with `rename_all = "snake_case"` and has a hand-written
+  `as_str` that the output actually uses, and three of twenty-one variants disagreed:
+  `as_str` gave `type`, `link-def` and `element-id` where serde expected `type_alias`,
+  `link_def` and `element_id`. So `fr symbols --json` emitted `"kind": "type"` and
+  deserializing it failed. Nothing was checking, because nothing had reason to think two
+  spellings existed. Three per-variant renames, and the cache schema is bumped because
+  cached facts carry the old spelling.
+
+- [x] B246: **a misspelled value in a catalogue loaded and matched nothing.**
+  `deny_unknown_fields` rejects a misspelled *key*; a misspelled *value* was accepted,
+  because `symbol_kind` was a `String` and `languages` a `Vec<String>` compared against
+  the real enums by name. `symbol_kind: functoin` and `languages: [pyhton]` both parsed,
+  loaded and never fired — indistinguishable from a rule that is present and simply never
+  true, which is the failure mode the `annotation_argument_prefix` check was added for one
+  PR earlier. Both are parsed into the type they denote now, so the error arrives at load
+  with the line, the column and the values that would have worked. `*` keeps meaning every
+  language, as `AppliesTo::Any` rather than a magic string.
+
+  `Rule.provenance` went with them: a `String` field defaulting to `"manual"`, set by no
+  catalogue and read by nothing — a distinction the type promised and the code never made.
+
 - [x] B245: **the same overclaim, one branch up — and B243's fix did not reach it.** Step 1
   settles a name by lexical scope, and let itself settle a *member* access too whenever
   only one member in the workspace had that name, reasoning in its comment that there is

@@ -70,7 +70,9 @@ impl Capability {
         Capability::DeclaredType,
     ];
 
-    pub fn as_str(&self) -> &'static str {
+    /// The name a person reads in the table, not an identifier: it has spaces and
+    /// slashes in it. See the note on `Basis::describe`.
+    pub fn label(&self) -> &'static str {
         match self {
             Capability::Symbols => "symbols/def/refs",
             Capability::Rename => "rename",
@@ -489,7 +491,7 @@ pub fn matrix() -> Vec<Row> {
     Capability::ALL
         .iter()
         .map(|capability| Row {
-            capability: capability.as_str(),
+            capability: capability.label(),
             command: capability.command(),
             languages: Language::ALL
                 .iter()
@@ -550,7 +552,7 @@ mod tests {
                     assert!(
                         support.reason().is_some_and(|r| !r.is_empty()),
                         "{} × {language} refuses without saying why",
-                        capability.as_str()
+                        capability.label()
                     );
                 }
             }
@@ -571,7 +573,7 @@ mod tests {
                 assert!(
                     support(capability, *language).is_yes(),
                     "{} should serve {language}",
-                    capability.as_str()
+                    capability.label()
                 );
             }
         }
@@ -613,9 +615,9 @@ mod tests {
         );
         for capability in Capability::ALL {
             assert!(
-                table.contains(capability.as_str()),
+                table.contains(capability.label()),
                 "missing {}",
-                capability.as_str()
+                capability.label()
             );
         }
     }

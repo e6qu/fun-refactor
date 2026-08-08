@@ -429,3 +429,79 @@ fn a_parameter_does_not_carry_its_method_s_annotation() {
         );
     }
 }
+
+/// A catalogue's enum-valued fields are enums.
+///
+/// `deny_unknown_fields` rejects a misspelled key. A misspelled *value* was accepted:
+/// `symbol_kind: functoin` and `languages: [pyhton]` both parsed, loaded, and matched
+/// nothing — indistinguishable from a rule that is present and simply never true. Both
+/// are parsed into the type they denote now, so the mistake is a message at load.
+#[test]
+fn a_misspelled_value_in_a_catalogue_is_rejected_when_it_loads() {
+    let cases = [
+        (
+            "symbol_kind",
+            "- id: typo\n  kind: http-route\n  languages: [python]\n  \
+             matches:\n    name_suffix: handler\n    symbol_kind: functoin\n",
+            "functoin",
+        ),
+        (
+            "languages",
+            "- id: typo\n  kind: http-route\n  languages: [pyhton]\n  \
+             matches:\n    name_suffix: handler\n",
+            "pyhton",
+        ),
+        (
+            "kind",
+            "- id: typo\n  kind: htp-route\n  languages: [python]\n  \
+             matches:\n    name_suffix: handler\n",
+            "htp-route",
+        ),
+    ];
+
+    for (field, yaml, typo) in cases {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        std::fs::write(dir.path().join("rules.yaml"), yaml).expect("the catalog");
+        let err = Catalog::builtin()
+            .expect("the built-in catalogs")
+            .load_dir(dir.path())
+            .expect_err(&format!("`{typo}` is not a {field}"));
+        let message = format!("{err:#}");
+        assert!(
+            message.contains(typo),
+            "the error should name the typo `{typo}`: {message}"
+        );
+    }
+}
+
+/// `*` is the one value that is not a language, and it still means every language.
+#[test]
+fn a_rule_can_apply_to_every_language() {
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        dir.path().join("rules.yaml"),
+        "- id: anywhere\n  kind: exported-api\n  languages: [\"*\"]\n  \
+         matches:\n    name_suffix: _handler\n",
+    )
+    .expect("the catalog");
+    let mut catalog = Catalog::builtin().expect("the built-in catalogs");
+    catalog.load_dir(dir.path()).expect("a wildcard rule loads");
+
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(tmp.path().join("a.py"), "def my_handler():\n    return 1\n").expect("py");
+    std::fs::write(
+        tmp.path().join("a.go"),
+        "package main\n\nfunc my_handler() int {\n\treturn 1\n}\n",
+    )
+    .expect("go");
+    let index =
+        fun_refactor::index::Index::build(tmp.path(), &ScanOptions::default()).expect("an index");
+    let found: Vec<_> = catalog
+        .detect(&index)
+        .into_iter()
+        .filter(|e| e.rule == "anywhere")
+        .filter_map(|e| index.symbol(e.symbol).map(|s| s.language.name()))
+        .collect();
+    assert!(found.contains(&"python"), "got {found:?}");
+    assert!(found.contains(&"go"), "got {found:?}");
+}
