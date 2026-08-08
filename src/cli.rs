@@ -2201,7 +2201,7 @@ fn cmd_capabilities(
         .collect();
 
     if rows.is_empty() {
-        let known: Vec<_> = Capability::ALL.iter().map(|c| c.as_str()).collect();
+        let known: Vec<_> = Capability::ALL.iter().map(|c| c.label()).collect();
         anyhow::bail!("unknown capability. Known: {}", known.join(", "));
     }
 
@@ -2352,7 +2352,37 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
     let declared = crate::analysis::types::of(&index, symbol.id)?;
 
     if cli.json {
-        println!("{}", serde_json::to_string_pretty(&declared)?);
+        // Resolved, not raw. Serializing the analysis directly emitted `"symbol": 1` and
+        // `"defined_at": 0` — `SymbolId`s, which are positions in this run's index and
+        // mean nothing to a reader of the output. `defined_at` read like a line number.
+        // Every other command answers with a qualified name and a place; so does this.
+        let place = |id: crate::model::SymbolId| {
+            index.symbol(id).map(|s| {
+                let source = crate::vfs::read_to_string(&s.file).unwrap_or_default();
+                let at = crate::span::LineIndex::new(&source).line_col(s.name_span.start, &source);
+                serde_json::json!({
+                    "symbol": s.qualified_name(),
+                    "file": s.file,
+                    "line": at.line,
+                    "col": at.col,
+                })
+            })
+        };
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "symbol": symbol.qualified_name(),
+                "name": declared.name,
+                "declared": declared.declared,
+                "inferred": declared.inferred.as_ref().map(|i| serde_json::json!({
+                    "type": i.ty,
+                    "basis": i.basis.describe(),
+                    "evidence": i.from.and_then(place),
+                })),
+                "parameters": declared.parameters,
+                "defined_at": declared.defined_at.and_then(place),
+            }))?
+        );
         return Ok(());
     }
 
@@ -2416,7 +2446,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
                     "name": d.name,
                     "qualified_name": d.qualified_name,
                     "kind": d.kind.as_str(),
-                    "role": d.role.as_str(),
+                    "role": d.role.label(),
                     "file": d.location.file,
                     "line": d.location.line,
                     "col": d.location.col,
@@ -2433,7 +2463,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
         }
         println!(
             "{:<18} {:<12} {}:{}:{}",
-            definition.role.as_str(),
+            definition.role.label(),
             definition.kind.as_str(),
             definition.location.file.display(),
             definition.location.line,

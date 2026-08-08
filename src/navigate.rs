@@ -56,7 +56,8 @@ pub enum DefinitionRole {
 }
 
 impl DefinitionRole {
-    pub fn as_str(&self) -> &'static str {
+    /// Prose for a reader. See the note on `Basis::describe`.
+    pub fn label(&self) -> &'static str {
         match self {
             DefinitionRole::Primary => "definition",
             DefinitionRole::SameEntity => "also declared here",

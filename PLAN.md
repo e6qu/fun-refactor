@@ -481,6 +481,39 @@ never had the problem, because it carries its justification inside the variant.
 Costs, measured across three repositories: black's exact edges 881 → 795, vuejs/core's
 2384 → 2240, helm's 4727 → 4133. Those are reported for review now instead of rewritten.
 
+**Where else a type could have said it.** Asking that question of the rest of the codebase
+found four more, all the same family: a value that is *checked* somewhere instead of being
+*unrepresentable*.
+
+A catalogue's `symbol_kind` was a `String` and its `languages` a `Vec<String>`, compared
+against the real enums by name. `deny_unknown_fields` rejects a misspelled key; nothing
+rejected a misspelled value, so `symbol_kind: functoin` and `languages: [pyhton]` parsed,
+loaded and never fired — a rule that is present and never true, which reads exactly like a
+framework that is covered and absent. Parsing them into the types they denote turns both
+into a message at load with the line, the column and the values that would have worked.
+`Rule.provenance` went too: a field defaulting to `"manual"`, written by no catalogue and
+read by nothing.
+
+Underneath that was a real defect. `SymbolKind` has a serde derive *and* a hand-written
+`as_str`, and three of twenty-one variants disagreed — `as_str` said `type`, `link-def`,
+`element-id` where serde wanted `type_alias`, `link_def`, `element_id`. The output uses
+`as_str`, so `fr symbols --json` emitted `"kind": "type"` and the tool could not read its
+own JSON back. Shape number four again, in a place nothing had thought to look.
+
+It hid because `as_str` meant two different things. On `SymbolKind`, `Confidence` and
+`EntryKind` it is an identifier — it goes into JSON, into a catalogue, into a person's
+fingers, and has to match the serde spelling exactly. On `Capability`, `Basis` and
+`DefinitionRole` it is prose for a reader: "call graph", "from the literal", "also
+declared here". Those three are `label()` and `describe()` now, and the identifier ones
+have a round-trip test that reads its cases out of the exhaustive `as_str` match instead
+of a list — the compiler already forces a new variant into that match, so a new variant is
+covered the day it is added rather than the day somebody remembers.
+
+And `fr type --json` was answering with `"symbol": 1` and `"defined_at": 0` — `SymbolId`s,
+positions in one run's index, unstable and useless to a reader, with `defined_at` looking
+like a line number. The text rendering resolved them all along; only the machine-readable
+half did not.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,

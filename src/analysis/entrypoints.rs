@@ -11,7 +11,7 @@
 
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Symbol, SymbolId};
+use crate::model::{Symbol, SymbolId, SymbolKind};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -78,6 +78,46 @@ pub enum ThreatModel {
     None,
 }
 
+/// A language a rule applies to, or every language the tool knows.
+///
+/// A plain `String` here meant `languages: [pyhton]` parsed, loaded, and matched nothing.
+/// Nothing was wrong with the YAML and nothing was wrong with the rule: it simply never
+/// fired, which is indistinguishable from a language that has no rules. Parsing the name
+/// into the language it denotes moves that from a silent Tuesday to a message at load.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppliesTo {
+    /// `*` — every language.
+    Any,
+    Language(Language),
+}
+
+impl AppliesTo {
+    pub fn covers(self, language: Language) -> bool {
+        match self {
+            AppliesTo::Any => true,
+            AppliesTo::Language(one) => one == language,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AppliesTo {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let written = String::deserialize(deserializer)?;
+        if written == "*" {
+            return Ok(AppliesTo::Any);
+        }
+        Language::from_name(&written)
+            .map(AppliesTo::Language)
+            .ok_or_else(|| {
+                let known: Vec<&str> = Language::ALL.iter().map(|l| l.name()).collect();
+                serde::de::Error::custom(format!(
+                    "unknown language `{written}`; expected `*` or one of {}",
+                    known.join(", ")
+                ))
+            })
+    }
+}
+
 /// One rule from a catalog.
 ///
 /// Unknown fields are rejected: a typo in a catalog would otherwise be ignored,
@@ -91,20 +131,13 @@ pub struct Rule {
     #[serde(default = "default_threat")]
     pub threat_model: ThreatModel,
     /// Languages this rule applies to.
-    pub languages: Vec<String>,
+    pub languages: Vec<AppliesTo>,
     #[serde(default)]
     pub matches: Matcher,
-    /// `manual` for hand-written rules, `generated` for derived ones.
-    #[serde(default = "default_provenance")]
-    pub provenance: String,
 }
 
 fn default_threat() -> ThreatModel {
     ThreatModel::None
-}
-
-fn default_provenance() -> String {
-    "manual".to_string()
 }
 
 /// Conditions a symbol must meet. All present conditions must hold.
@@ -124,8 +157,12 @@ pub struct Matcher {
     #[serde(default)]
     pub name_suffix: Option<String>,
     /// Symbol kind, e.g. function, block, key.
+    ///
+    /// The kind's own type, not its name. `symbol_kind: functoin` used to parse, load and
+    /// match nothing, which reads exactly like a rule that is present and simply never
+    /// true — the same failure `deny_unknown_fields` catches for a misspelled key.
     #[serde(default)]
-    pub symbol_kind: Option<String>,
+    pub symbol_kind: Option<SymbolKind>,
     /// The file name must equal this.
     #[serde(default)]
     pub file_name: Option<String>,
@@ -178,6 +215,50 @@ pub struct Matcher {
     pub annotation_argument_prefix: Option<String>,
 }
 
+impl Matcher {
+    /// Does this matcher say anything at all?
+    ///
+    /// Destructured rather than tested field by field, so that adding a condition to
+    /// `Matcher` fails to compile here instead of being quietly left out of the answer.
+    /// Three had been: a rule whose only condition was `symbol_kind`, `exported` or
+    /// `top_level` counted as saying nothing, and a rule that says nothing matched
+    /// nothing — silently, and in a way that reads like a rule that is simply never true.
+    pub fn names_a_condition(&self) -> bool {
+        let Matcher {
+            file_prefix,
+            name,
+            name_prefix,
+            name_suffix,
+            symbol_kind,
+            file_name,
+            path_contains,
+            file_suffix,
+            exported,
+            top_level,
+            annotated_with,
+            called_from_main_guard,
+            file_directive,
+            annotation_argument_prefix,
+        } = self;
+        file_prefix.is_some()
+            || name.is_some()
+            || name_prefix.is_some()
+            || name_suffix.is_some()
+            || symbol_kind.is_some()
+            || file_name.is_some()
+            || path_contains.is_some()
+            || file_suffix.is_some()
+            || exported.is_some()
+            || top_level.is_some()
+            || annotated_with.is_some()
+            || called_from_main_guard.is_some()
+            || file_directive.is_some()
+            // Not on its own: it qualifies `annotated_with`, and `check_rules` rejects
+            // it without one.
+            || (annotation_argument_prefix.is_some() && annotated_with.is_some())
+    }
+}
+
 /// A detected entry point.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entrypoint {
@@ -215,11 +296,19 @@ const BUILTIN: &[(&str, &str)] = &[
 /// which reads exactly like a framework that is covered and simply absent.
 fn check_rules(rules: &[Rule]) -> Result<()> {
     for rule in rules {
+        // Most specific first: a rule with only `annotation_argument_prefix` also names
+        // no condition, and being told which field is wrong beats being told the rule is.
         if rule.matches.annotation_argument_prefix.is_some()
             && rule.matches.annotated_with.is_none()
         {
             anyhow::bail!(
                 "rule '{}' asks for an annotation argument without naming the annotation",
+                rule.id
+            );
+        }
+        if !rule.matches.names_a_condition() {
+            anyhow::bail!(
+                "rule '{}' names no condition, so it would match nothing at all",
                 rule.id
             );
         }
@@ -345,36 +434,23 @@ impl Entrypoints {
 }
 
 fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
-    if !rule
-        .languages
-        .iter()
-        .any(|l| l == symbol.language.name() || l == "*")
-    {
+    if !rule.languages.iter().any(|l| l.covers(symbol.language)) {
         return false;
     }
 
     let m = &rule.matches;
+    // A matcher with no conditions would tag every symbol in the language. `check_rules`
+    // rejects one when a catalogue loads, which is where the useful message belongs; this
+    // is the backstop for a `Catalog` assembled directly rather than loaded. Both ask the
+    // same method, so they cannot come to different conclusions.
+    if !m.names_a_condition() {
+        return false;
+    }
     let file_name = symbol
         .file
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or_default();
-
-    // An empty matcher would tag every symbol in the language, which is never what
-    // a catalog author means.
-    let has_condition = m.name.is_some()
-        || m.name_prefix.is_some()
-        || m.name_suffix.is_some()
-        || m.file_name.is_some()
-        || m.path_contains.is_some()
-        || m.file_suffix.is_some()
-        || m.file_prefix.is_some()
-        || m.annotated_with.is_some()
-        || m.called_from_main_guard.is_some()
-        || m.file_directive.is_some();
-    if !has_condition {
-        return false;
-    }
 
     if let Some(name) = &m.name {
         if &symbol.name != name {
@@ -391,8 +467,8 @@ fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
             return false;
         }
     }
-    if let Some(kind) = &m.symbol_kind {
-        if symbol.kind.as_str() != kind {
+    if let Some(kind) = m.symbol_kind {
+        if symbol.kind != kind {
             return false;
         }
     }
@@ -686,7 +762,7 @@ pub fn has_rules_for(catalog: &Catalog, language: Language) -> bool {
     catalog
         .rules
         .iter()
-        .any(|r| r.languages.iter().any(|l| l == language.name() || l == "*"))
+        .any(|r| r.languages.iter().any(|l| l.covers(language)))
 }
 
 /// Languages with no entry-point rules at all, so gaps in coverage are visible.
@@ -697,7 +773,7 @@ pub fn languages_without_rules(catalog: &Catalog) -> Vec<&'static str> {
             !catalog
                 .rules
                 .iter()
-                .any(|r| r.languages.iter().any(|l| l == lang.name() || l == "*"))
+                .any(|r| r.languages.iter().any(|l| l.covers(**lang)))
         })
         .map(|lang| lang.name())
         .collect()
@@ -798,14 +874,15 @@ mod tests {
     #[test]
     fn an_empty_matcher_never_matches_everything() {
         // A rule with no conditions would tag every symbol; that is always a
-        // catalog authoring mistake, so it must match nothing.
+        // catalog authoring mistake. A loaded catalogue is refused outright, which is
+        // where the author gets told; this is the backstop for a `Catalog` assembled
+        // directly, as here, where there is nobody to tell.
         let rule = Rule {
             id: "bad".into(),
             kind: EntryKind::CliMain,
             threat_model: ThreatModel::None,
-            languages: vec!["rust".into()],
+            languages: vec![AppliesTo::Language(Language::Rust)],
             matches: Matcher::default(),
-            provenance: "manual".into(),
         };
         let (_tmp, index) = workspace(&[("a.rs", "fn whatever() {}\n")]);
         let symbol = &index.symbols[0];

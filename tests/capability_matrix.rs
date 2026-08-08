@@ -99,7 +99,7 @@ fn no_reason_describes_a_different_language() {
                     !reason.contains(word) || truthful_of.contains(language),
                     "{} for {language} says {word:?}, which describes {truthful_of:?} \
                      rather than this language: {reason}",
-                    capability.as_str()
+                    capability.label()
                 );
             }
         }
@@ -112,7 +112,7 @@ fn every_supported_cell_names_a_real_command() {
         assert!(
             capability.command().starts_with("fr "),
             "{} does not name a command",
-            capability.as_str()
+            capability.label()
         );
     }
 }
@@ -129,7 +129,7 @@ fn nothing_is_merely_unimplemented() {
     for capability in Capability::ALL {
         for language in Language::ALL {
             if let Support::Refused { because } = capabilities::support(*capability, *language) {
-                refused.push(format!("{} x {language}: {because}", capability.as_str()));
+                refused.push(format!("{} x {language}: {because}", capability.label()));
             }
         }
     }
@@ -149,7 +149,7 @@ fn every_unsupported_cell_explains_itself() {
                 assert!(
                     because.len() > 20,
                     "{} x {language} dismisses itself too briefly: {because:?}",
-                    capability.as_str()
+                    capability.label()
                 );
             }
         }
@@ -180,7 +180,7 @@ fn config_languages_carry_their_share_of_the_mutations() {
             assert!(
                 capabilities::support(capability, language).is_yes(),
                 "{} should serve {language}",
-                capability.as_str()
+                capability.label()
             );
         }
     }

@@ -510,3 +510,45 @@ fn a_refusal_stops_the_run_and_writes_nothing() {
         "a stopped run must leave the workspace exactly as it found it"
     );
 }
+
+/// A misspelled predicate *value* blamed the repository.
+///
+/// `kind=functoin` matched nothing, and the step failed saying it had matched nothing —
+/// "That is not success" — which is true and unhelpful: nothing in the workspace was
+/// wrong. The predicate's own name has been checked with a suggestion all along, and
+/// its value now is too. The kind vocabulary comes from parsing the value into
+/// `SymbolKind`, so it cannot drift from the kinds that exist.
+#[test]
+fn a_misspelled_predicate_value_names_itself() {
+    let cases = [
+        ("delete where kind=functoin", "functoin", "unknown variant"),
+        (
+            "delete where lang=pyhton",
+            "pyhton",
+            "did you mean `python`",
+        ),
+    ];
+
+    for (step, typo, expected) in cases {
+        let (tmp, sources) = workspace(&[("a.py", "def legacy():\n    return 1\n")]);
+        let source = format!("schema 1\n\nrecipe t {{\n  description \"x\"\n  {step}\n}}\n");
+        let file = recipe::parse(&source).expect("the recipe parses");
+        let err = recipe::run(
+            &file.recipes[0],
+            sources,
+            &Options {
+                root: tmp.path(),
+                catalogs: &[],
+            },
+        )
+        .expect_err("a value that is not one of the values");
+        fun_refactor::vfs::use_filesystem();
+
+        let message = format!("{err:#}");
+        assert!(message.contains(typo), "should quote `{typo}`: {message}");
+        assert!(
+            message.contains(expected),
+            "should say what would have worked: {message}"
+        );
+    }
+}

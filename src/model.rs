@@ -12,6 +12,12 @@ use std::path::PathBuf;
 ///
 /// Imperative and config kinds share one enum so the index, rename and reference
 /// machinery stay uniform across languages.
+///
+/// [`SymbolKind::as_str`] is this kind's identifier: it is what `--json` emits, what a
+/// catalogue's `symbol_kind:` matches, and what the tables a person reads print. The
+/// serde spelling has to be the same string, and for three variants it was not — the
+/// tool emitted `"kind": "type"` and could not read it back, which is a round trip
+/// nothing was checking. Three renames below, and a test over every variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SymbolKind {
@@ -23,6 +29,7 @@ pub enum SymbolKind {
     Trait,
     Interface,
     Enum,
+    #[serde(rename = "type")]
     TypeAlias,
     Constant,
     Variable,
@@ -43,8 +50,10 @@ pub enum SymbolKind {
     /// Markdown heading.
     Heading,
     /// Markdown link reference definition.
+    #[serde(rename = "link-def")]
     LinkDef,
     /// XML/HTML element id.
+    #[serde(rename = "element-id")]
     ElementId,
 }
 

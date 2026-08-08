@@ -287,3 +287,55 @@ subtotal: int = Money()
     assert_eq!(found.declared.as_deref(), Some("int"));
     assert_eq!(found.inferred, None);
 }
+
+/// `--json` answers with names and places, like every other command.
+///
+/// It used to serialize the analysis struct directly, so it emitted `"symbol": 1` and
+/// `"defined_at": 0` — `SymbolId`s, which are positions in one run's index and mean
+/// nothing to whoever reads the output. `defined_at` read like a line number. The text
+/// rendering resolved them all along; only the machine-readable half did not.
+#[test]
+fn the_json_names_what_it_points_at() {
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        tmp.path().join("a.py"),
+        "class Money:\n    def __init__(self, cents):\n        self.cents = cents\n\n\n\
+         def charge():\n    fee = Money(250)\n    return fee\n",
+    )
+    .expect("the file");
+
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args([
+            "-C",
+            tmp.path().to_str().expect("utf-8"),
+            "type",
+            "fee",
+            "--json",
+        ])
+        .output()
+        .expect("fr type");
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let json: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("valid JSON on stdout");
+    assert_eq!(json["symbol"], "fee");
+    let evidence = &json["inferred"]["evidence"];
+    assert_eq!(evidence["symbol"], "Money", "{json:#}");
+    assert_eq!(evidence["line"], 1, "{json:#}");
+    assert!(
+        evidence["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("a.py")),
+        "{json:#}"
+    );
+    for pointer in ["/symbol", "/inferred/evidence/symbol"] {
+        assert!(
+            json.pointer(pointer).is_some_and(|v| v.is_string()),
+            "{pointer} should name a symbol, not index one: {json:#}"
+        );
+    }
+}
