@@ -588,6 +588,24 @@ findings 643 → 204, and 538 → 99 with `--internal`.
 Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
 `exported`, so `--internal` already separates them — 105 of the 643.
 
+### SCSS at scale
+
+`twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: **73 of 99 files fail to
+parse**. B11 already recorded SCSS grammar gaps from `grafana/grafana`, where they cost 5
+of 8 stylesheets, so this is the same limitation measured somewhere it can be measured
+properly.
+
+One form accounts for 51 of the 73: interpolation in a declaration value, `color: #{$v}`.
+Interpolation in a selector and in a property name both parse, which is why it was not
+obvious. The rest, in order: empty parentheses (24 files), `@if` with `and` or `or` (10),
+map literals (7), `!default` (6).
+
+The entry also claimed `@content` inside a mixin was among the gaps. It parses — bare,
+nested, and with arguments — so the claim was either wrong when written or fixed upstream
+since, and nothing re-checked it in between. `tests/known_grammar_gaps.rs` had no SCSS
+cases at all, which is how it rotted; it has nine failing forms and nine working ones now,
+so a grammar upgrade that fixes one is a test failure pointing at the entry to retire.
+
 ### Two commands that have to agree
 
 `fr unused` names candidates and `fr delete` acts on them, so feeding the first to the

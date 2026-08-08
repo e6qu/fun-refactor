@@ -81,13 +81,29 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
   stylesheet selector to link `styles.x` to.
 
 - [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse, each surfaced as a parse
-  error rather than mis-handled. Found by hand: empty parentheses on a declaration
-  (`@mixin m()`), empty parentheses on a call (`@include m();`), and a namespaced
-  include after `@use 'x' as t` (`@include t.m(…)`). Found by running over
-  grafana/grafana, where they cost 5 of 8 stylesheets: **`@content`** inside a mixin,
-  and **map literals** (`$m: (a: 1, b: 2)`). The last two are ordinary Sass, so SCSS
-  coverage is materially worse than the three hand-found cases suggested. Fixing any
-  of them is upstream grammar work.
+  error rather than mis-handled. Measured over `twbs/bootstrap`'s stylesheets, which is
+  the canonical SCSS codebase: **73 of 99 files fail**.
+
+  In order of how much they cost there:
+
+  * **Interpolation in a declaration value** — `color: #{$v}`, `--x: #{$v}`. 52 files use
+    it and 51 of them fail, so this one form is most of the 73. Interpolation in a
+    selector (`.a-#{$x}`) and in a property *name* (`--#{$p}x`) both parse.
+  * **Empty parentheses**, on a declaration (`@mixin m()`) or a call (`@include m();`) —
+    24 files.
+  * **`@if` with `and` or `or`** — `@if $a == 1 and $b == 2`. `@if` with a bare
+    comparison parses. 10 files.
+  * **Map literals** — `$m: (a: 1, b: 2)`, nested or not. 7 files.
+  * **`!default`** — `$x: 1rem !default`, on every configurable variable in a Sass
+    library. 6 files.
+  * **`@use 'x' as t`**, and so the namespaced `@include t.m(…)` that follows it. None in
+    bootstrap; found by hand.
+
+  Fixing any of them is upstream grammar work.
+
+  Corrected: this entry previously said `@content` inside a mixin was among them, from
+  the grafana run. It parses — bare, nested, and with arguments — so the claim was either
+  wrong when written or fixed upstream since, and nothing had re-checked it.
 
 - [ ] B15: `tree-sitter-go` parses `new(…)` as the builtin, which takes a *type*, so
   a call to a user-defined function named `new` fails — `new("-10s")` and
