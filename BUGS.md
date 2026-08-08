@@ -142,6 +142,25 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B271: **the published site shipped HTML the tool cannot parse.** Two raw `&&` in
+  `docs/demo.html` — an unterminated entity reference, which browsers recover from and
+  `fr parse` reports. It was the only parse error in this workspace, found by running the
+  tool over its own repository. Nothing checked: `site_integrity` follows links and checks
+  command names, both of which pass on a file that does not parse. It now parses every
+  page with the tool's own parser, verified to fail when an ampersand is unescaped.
+
+- [x] B270: **a method of a generic type was not a method of anything.** The Rust
+  container patterns matched `type: (type_identifier)`, and `impl Ctx<'_>` or
+  `impl<T> Generic<T>` puts a `generic_type` there, so neither matched and the methods
+  inside got no container: `run` rather than `Ctx::run`, kind `function` rather than
+  `method`. Consequences beyond the name — `self.hcl_backward(…)` had no member to
+  resolve to, so 43 of `provenance.rs`'s own methods read as dead code; two unrelated
+  types with a `run` were one indistinguishable pair in `fr symbols`; and hierarchy
+  dispatch could not see them. Two patterns added for the generic form, one of them
+  covering `impl Trait for Generic<T>`. This repository's internal dead-code count goes
+  from 92 to 49, and the 49 are fields and parameters rather than phantom functions.
+
+
 - [x] B269: **`Refusal::Unsupported`'s `language` field held a language in five of fifteen
   cases.** The variant is `{operation} is not supported for {language}` and has nowhere to
   say *why*, so ten sites wrote the reason into the language:

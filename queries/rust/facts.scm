@@ -21,6 +21,21 @@
   trait: (type_identifier)
   type: (type_identifier) @container.name) @container
 
+; `impl Ctx<'_>`, `impl<T> Generic<T>`, `impl Display for Wrapper<T>`. The type node is
+; a `generic_type` wrapping the name, so the two patterns above do not match it and the
+; methods inside got no container at all — they became plain functions named `run`
+; rather than `Ctx::run`. `provenance.rs` has one of these and 43 of its methods read as
+; dead code, because a `self.hcl_backward(…)` cannot resolve to a symbol that is not a
+; member of anything.
+(impl_item
+  type: (generic_type
+    type: (type_identifier) @container.name)) @container
+
+(impl_item
+  trait: (_)
+  type: (generic_type
+    type: (type_identifier) @container.name)) @container
+
 (trait_item
   name: (type_identifier) @container.name) @container
 
