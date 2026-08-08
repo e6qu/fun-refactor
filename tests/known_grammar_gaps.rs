@@ -97,3 +97,79 @@ fn typescript_cannot_read_a_property_called_in_after_another() {
         "`in` as the only member should read cleanly"
     );
 }
+
+/// The SCSS forms behind B11, in the order they cost files in `twbs/bootstrap`.
+///
+/// 73 of its 99 stylesheets fail, and one form accounts for 51 of them.
+#[test]
+fn scss_cannot_read_these_forms() {
+    let cases = [
+        (
+            "interpolation in a declaration value",
+            ".a { color: #{$v}; }",
+        ),
+        (
+            "interpolation in a custom property value",
+            ".a { --x: #{$v}; }",
+        ),
+        (
+            "empty parentheses on a declaration",
+            "@mixin m() { color: red; }",
+        ),
+        (
+            "empty parentheses on a call",
+            "@mixin m { color: red; }\n.a { @include m(); }",
+        ),
+        (
+            "`and` in an `@if`",
+            "@if $a == 1 and $b == 2 { .a { color: red; } }",
+        ),
+        ("a map literal", "$m: (a: 1, b: 2);"),
+        ("a nested map literal", "$m: (a: (b: 1));"),
+        ("`!default`", "$x: 1rem !default;"),
+        ("`@use ... as`", "@use \"x\" as t;"),
+    ];
+    for (what, source) in cases {
+        assert!(
+            error_nodes(Language::Scss, source) > 0,
+            "{what} now parses — retire it from B11: {source}"
+        );
+    }
+}
+
+/// And the forms it can, which B11 claimed one of.
+///
+/// The entry said `@content` inside a mixin was among the gaps, from a run over
+/// `grafana/grafana`. It parses — bare, nested, and with arguments — so the claim was
+/// either wrong when written or fixed upstream since, and nothing re-checked it. These
+/// are here so that a regression is a failure rather than a quietly wider limitation.
+#[test]
+fn scss_can_read_these_forms() {
+    let cases = [
+        ("`@content` bare", "@mixin m { @content; }"),
+        ("`@content` nested", "@mixin m { .a { @content; } }"),
+        (
+            "`@content` with arguments",
+            "@mixin m($x) { @content($x); }",
+        ),
+        ("interpolation in a selector", ".a-#{$x} { color: red; }"),
+        ("interpolation in a property name", ".a { --#{$p}x: 1px; }"),
+        (
+            "`@each` over two variables",
+            "@each $k, $v in $m { .a { color: $k; } }",
+        ),
+        (
+            "a bare comparison in an `@if`",
+            "@if $a == 1 { .a { color: red; } }",
+        ),
+        ("`@function`", "@function f($x) { @return $x; }"),
+        ("`!important`", ".a { color: red !important; }"),
+    ];
+    for (what, source) in cases {
+        assert_eq!(
+            error_nodes(Language::Scss, source),
+            0,
+            "{what} stopped parsing: {source}"
+        );
+    }
+}
