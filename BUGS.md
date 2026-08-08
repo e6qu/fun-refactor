@@ -10,6 +10,28 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Open
 
+- [ ] B263: **a Terraform input variable and a local sharing a name are one symbol.**
+  `var.x` and `local.x` are separate namespaces, and the index records both declarations
+  as `SymbolKind::Variable` with no qualifier, so nothing tells them apart. With
+  `variable "thing"` and `locals { thing = … }` in one file, `fr refs` on the variable
+  returns two references — `var.thing`, which is its, and `local.thing`, which is not —
+  and `fr refs` on the local returns none. Both drop to `field-based`, so `fr rename`
+  rewrites the declaration and leaves every use for review; nothing is corrupted, and
+  nothing is usable either. `fr symbols` prints the two declarations identically, so the
+  ambiguity error's advice to "name one of these" cannot be followed. Without a name
+  collision both resolve `exact` and correctly.
+
+  In `terraform-aws-vpc`, 18 of 81 locals share a name with a variable.
+
+  The reference side is one line: the query captures the namespace as `@_ns` and
+  discards it, next to a `data.TYPE.NAME` pattern that captures its type as
+  `@reference.type`. The symbol side is not: `var` and `local` appear nowhere in a
+  declaration, and a query cannot synthesise a name, so the qualifier would have to be
+  assigned in `extract.rs` by language and kind — which changes every HCL qualified name
+  and so the cache schema. Exporting the namespace alone changes nothing, which I
+  checked before recording this.
+
+
 - [ ] B258: **`a_rust_number_leaves_its_width_behind` failed once and has not repeated.**
   During one `cargo test --all-targets`, the Java writer emitted Rust's `0usize` /
   `1i32` suffixes, which that test exists to catch. It has since passed 5/5 runs in
@@ -118,6 +140,16 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B262: **`fr unused` reported HCL blocks Terraform gives no address to.**
+  `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
+  `content {}` carry no label, so nothing in the language can reference one and every one
+  of them answers "nothing uses this". `terraform-aws-vpc` reported 46, all of those four
+  shapes, out of 46 block findings. A labelled block takes its name from a string label
+  and an unlabelled one from the block-type keyword, so the quote before the name settles
+  it — no list of block types to keep up with as Terraform adds them. The repository's
+  answer drops from 369 to 323, and what remains is Markdown headings.
+
 
 - [x] B261: **two capability predicates returned `true` for every language, behind
   branches that could not run.** `delete::reports_unused` and `duplicates::supported`

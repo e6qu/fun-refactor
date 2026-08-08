@@ -229,6 +229,9 @@ pub enum SparedReason {
     /// Something inside it is an entry point, so something outside the workspace reaches
     /// in: a JUnit test class, a Rust `mod tests`, a Python class of pytest cases.
     HoldsAnEntryPoint,
+    /// The language gives it no address: an HCL block with no labels, such as
+    /// `terraform {}` or `lifecycle {}`.
+    NoAddressToReferenceIt,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -262,6 +265,9 @@ impl UnusedReport {
                 "its name begins with an underscore, which says the author meant it to \
                  go unused"
                     .to_string()
+            }
+            SparedReason::NoAddressToReferenceIt => {
+                "the language gives this block no address, so nothing can reference it".to_string()
             }
             SparedReason::HoldsAnEntryPoint => {
                 "something inside it is an entry point, so whatever calls that reaches \
@@ -352,6 +358,28 @@ fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
     first
         .is_uppercase()
         .then(|| first.to_lowercase().collect::<String>() + chars.as_str())
+}
+
+/// An HCL block Terraform gives no address to.
+///
+/// `resource "aws_vpc" "this"` is addressable as `aws_vpc.this` and `output "id"` as an
+/// output; `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic`
+/// block's `content {}` are not addressable at all, so nothing can reference one and
+/// "nothing uses this" is true of every one of them. terraform-aws-vpc reported 46, all
+/// of them one of those four.
+///
+/// A labelled block takes its name from a string label; a block with no labels takes it
+/// from the block-type keyword. So the quote before the name is the whole test, and it
+/// reads the declaration rather than a list of block types that would drift as Terraform
+/// adds them.
+fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
+    if symbol.language != crate::lang::Language::Hcl || symbol.kind != SymbolKind::Block {
+        return false;
+    }
+    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
+        return false;
+    };
+    !source[..symbol.name_span.start.min(source.len())].ends_with('"')
 }
 
 /// Does this symbol name where the file lives, rather than something in it?
@@ -504,6 +532,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         };
         let orphaned = !reached && !referenced.contains(&symbol.id);
         if orphaned || dead_cycles.contains(&symbol.id) {
+            if hcl_block_with_no_address(symbol) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::NoAddressToReferenceIt));
+                continue;
+            }
             if names_where_the_file_lives(symbol) {
                 report
                     .spared

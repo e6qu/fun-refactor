@@ -837,3 +837,34 @@ fn a_name_in_a_template_attribute_counts_as_named() {
         "and one nothing names is still a finding: {names:?}"
     );
 }
+
+/// An HCL block Terraform gives no address to.
+///
+/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
+/// `content {}` carry no label, so nothing can reference one and every single one
+/// answers "nothing uses this". terraform-aws-vpc reported 46, all of that shape.
+/// A labelled block takes its name from a string label, so the quote before the name
+/// is the test — no list of block types to keep up with Terraform.
+#[test]
+fn an_unaddressable_hcl_block_is_not_reported() {
+    let (_tmp, index) = workspace(&[(
+        "main.tf",
+        "terraform {\n  required_providers {\n    aws = {\n      source = \"hashicorp/aws\"\n    }\n  }\n}\n\n\
+         resource \"aws_vpc\" \"this\" {\n  cidr_block = \"10.0.0.0/16\"\n\n  \
+         lifecycle {\n    create_before_destroy = true\n  }\n}\n\n\
+         output \"id\" {\n  value = aws_vpc.this.id\n}\n",
+    )]);
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    let names: Vec<_> = unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| s.qualified_name())
+        .collect();
+    for unaddressable in ["terraform", "required_providers", "aws_vpc::lifecycle"] {
+        assert!(
+            !names.contains(&unaddressable.to_string()),
+            "{unaddressable} has no address, so nothing can reference it: {names:?}"
+        );
+    }
+}

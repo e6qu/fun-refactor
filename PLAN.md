@@ -552,6 +552,25 @@ stylesheet. An answer of 50 or more now lists its top five kinds, plus the file 
 them when one file holds over half. vuejs/core: 1,640 keys in `pnpm-lock.yaml`. Nothing
 is excluded from the analysis.
 
+### Terraform at scale
+
+`terraform-aws-vpc`, 77 `.tf` files, parsed without an error. `fr unused` answered 369,
+of which 46 were HCL blocks and every one was `terraform {}`, `required_providers {}`,
+`lifecycle {}` or a `dynamic` block's `content {}`. None of those carries a label, so
+Terraform gives none of them an address and nothing can reference one. A labelled block
+takes its name from a string label, so the quote before the name settles it. 369 → 323,
+the remainder Markdown headings.
+
+The run also found B263, which is not fixed. `var.x` and `local.x` are separate
+namespaces; the index records both declarations as `SymbolKind::Variable` with no
+qualifier. Where a variable and a local share a name — 18 of 81 in that repository —
+`fr refs` on the variable returns the local's reference as well as its own, and `fr refs`
+on the local returns none. Both drop to `field-based`, so nothing is rewritten. The
+reference half is a one-line query change; the symbol half is not, because `var` and
+`local` appear in no declaration and a query cannot synthesise a name, so the qualifier
+would have to come from `extract.rs` and would change every HCL qualified name and the
+cache schema with it.
+
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,
