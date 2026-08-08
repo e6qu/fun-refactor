@@ -602,6 +602,12 @@ only `Reference::resolved_confidence` produces. The variant cannot be built with
 reference to take a confidence from — checked by trying, which the compiler refuses as a
 private constructor. `signature.rs` stopped naming `Confidence` at all.
 
+The same question of `Refusal::Unsupported`, whose shape is
+`{operation} is not supported for {language}`, found the reverse problem: with nowhere to
+say why, ten of its fifteen sites wrote the reason into the `language` field, and one
+wrote "a variable is not a flag", which names no language. Adding `because` and typing
+`language` as `Language` makes a sentence there a compile error.
+
 ### Bash at scale
 
 `nvm`, 5,655 lines across five scripts, parses clean. `fr signature` moved a positional

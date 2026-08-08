@@ -261,7 +261,8 @@ fn substitute_flag(
     {
         return Err(Refusal::Unsupported {
             operation: "remove flag".into(),
-            language: format!("a {} is not a flag", definition.kind.as_str()),
+            language: definition.language,
+            because: format!("a {} is not a flag", definition.kind.as_str()),
         }
         .into());
     }

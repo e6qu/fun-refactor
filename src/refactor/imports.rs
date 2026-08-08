@@ -429,7 +429,8 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     if let Some(reason) = why_not_organizable(info.language) {
         return Err(Refusal::Unsupported {
             operation: "organize imports".into(),
-            language: format!("{}: {reason}", info.language.name()),
+            language: info.language,
+            because: reason.to_string(),
         }
         .into());
     }

@@ -139,7 +139,8 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
     if let Some(why) = why_not_move(sym.language) {
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: format!("{} — {why}", sym.language),
+            language: sym.language,
+            because: why.to_string(),
         }
         .into());
     }
@@ -163,9 +164,10 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         // tree that does not compile.
         Language::Java => Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: "java — a public type must live in a file named after it and \
-                       imports name packages rather than paths, so moving one is a \
-                       rename of the file and its package, not a move of a definition"
+            language: Language::Java,
+            because: "a public type must live in a file named after it and imports name \
+                      packages rather than paths, so moving one is a rename of the file \
+                      and its package, not a move of a definition"
                 .into(),
         }
         .into()),
@@ -174,11 +176,11 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         // no reference a move could repoint and no reachability it could preserve.
         other @ (Language::Html | Language::Xml) => Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: format!(
-                "{other} — an element has no name that another document imports, so \
-                 moving one between files changes what each document *is* rather than \
-                 where a definition lives"
-            ),
+            language: other,
+            because: "an element has no name that another document imports, so moving \
+                      one between files changes what each document *is* rather than \
+                      where a definition lives"
+                .into(),
         }
         .into()),
     }
@@ -840,9 +842,10 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     if from_module.src != to_module.src {
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: format!(
-                "rust — {} and {} are under different crate roots ({} and {}); a move \
-                 between crates needs a dependency edge this tool cannot add",
+            language: Language::Rust,
+            because: format!(
+                "{} and {} are under different crate roots ({} and {}); a move between \
+                 crates needs a dependency edge this tool cannot add",
                 sym.file.display(),
                 destination.display(),
                 from_module.src.display(),
@@ -962,9 +965,10 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
     let Some(src) = src else {
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: format!(
-                "rust — {} is not under a `src/` directory, so its module path cannot \
-                 be derived from its location",
+            language: Language::Rust,
+            because: format!(
+                "{} is not under a `src/` directory, so its module path cannot be \
+                 derived from its location",
                 file.display()
             ),
         }
@@ -974,9 +978,10 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
     if !crate::vfs::exists(src.join("lib.rs")) && !crate::vfs::exists(src.join("main.rs")) {
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: format!(
-                "rust — {} has neither lib.rs nor main.rs, so there is no crate root to \
-                 anchor a `use crate::…` path to",
+            language: Language::Rust,
+            because: format!(
+                "{} has neither lib.rs nor main.rs, so there is no crate root to anchor \
+                 a `use crate::…` path to",
                 src.display()
             ),
         }
@@ -1550,10 +1555,11 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     if source_dir != destination.parent() {
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
-            language: format!(
-                "hcl — Terraform's module is the directory, so moving '{}' from {} to {} \
-                 changes its module. Every address that names it, and its state address, \
-                 would break; `moved` blocks or `terraform state mv` are the tools for that",
+            language: Language::Hcl,
+            because: format!(
+                "Terraform's module is the directory, so moving '{}' from {} to {} changes \
+                 its module. Every address that names it, and its state address, would \
+                 break; `moved` blocks or `terraform state mv` are the tools for that",
                 sym.name,
                 sym.file.display(),
                 destination.display()
@@ -2137,11 +2143,12 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
                 let Some(path) = zig_import_path(file, destination) else {
                     return Err(Refusal::Unsupported {
                         operation: "move to file".into(),
-                        language: format!(
-                            "zig — {} would have to reach {} through a relative path that \
-                             climbs above its own directory. Zig refuses an `@import` that \
-                             leaves the module root, and where that root is cannot be read \
-                             off the two paths, so no import can be written for it",
+                        language: Language::Zig,
+                        because: format!(
+                            "{} would have to reach {} through a relative path that climbs \
+                             above its own directory. Zig refuses an `@import` that leaves \
+                             the module root, and where that root is cannot be read off the \
+                             two paths, so no import can be written for it",
                             file.display(),
                             destination.display()
                         ),

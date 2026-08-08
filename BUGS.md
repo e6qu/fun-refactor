@@ -142,6 +142,20 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B269: **`Refusal::Unsupported`'s `language` field held a language in five of fifteen
+  cases.** The variant is `{operation} is not supported for {language}` and has nowhere to
+  say *why*, so ten sites wrote the reason into the language:
+  `format!("{lang} — {why}")`, `format!("rust — {} is not under a `src/` directory…")`,
+  and one that named no language at all — "a variable is not a flag". A field called
+  `language`, typed `String`, that usually holds a paragraph.
+
+  It takes a `because` now, and `language` is the `Language` enum, so a sentence there
+  does not compile. Fifteen sites, each of which already had both pieces and was
+  concatenating them. The messages improve as a side effect: "move to file is not
+  supported for java: a public type must live in a file named after it…" reads in the
+  order a reader needs, where before the reason sat between the subject and the verb.
+
+
 - [x] B268: **five more refusals reported a resolution that had not happened.** B266 fixed
   one site; sweeping every `Refusal::TooWeak` found five others of the same shape, each
   identifiable by what it filled the field with. A site reporting a real reference writes

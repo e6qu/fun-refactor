@@ -1455,9 +1455,10 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
         Change::Move { .. } => {
             return Err(Refusal::Unsupported {
                 operation: "reordering module variables".to_string(),
-                language: "Terraform, whose module arguments are named rather than \
-                           positional: moving a `variable` block changes nothing at any \
-                           call site"
+                language: Language::Hcl,
+                because: "a Terraform module's arguments are named rather than \
+                          positional, so moving a `variable` block changes nothing at any \
+                          call site"
                     .to_string(),
             }
             .into());

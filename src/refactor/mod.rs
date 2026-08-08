@@ -89,7 +89,17 @@ pub enum Refusal {
     /// The requested name is not a valid identifier for the language.
     InvalidName { name: String, reason: String },
     /// The operation is not implemented for this language.
-    Unsupported { operation: String, language: String },
+    /// The operation has no meaning in this language.
+    ///
+    /// `because` exists so that `language` can be the language. Without it, ten of the
+    /// fifteen sites raising this wrote `format!("{lang} — {reason}")` into a field named
+    /// `language`, and one wrote "a variable is not a flag", which is not a language at
+    /// all. The field's name and type had stopped being true.
+    Unsupported {
+        operation: String,
+        language: crate::lang::Language,
+        because: String,
+    },
     /// Resolution was too weak to act on safely.
     TooWeak {
         confidence: crate::model::ResolvedConfidence,
@@ -139,7 +149,15 @@ impl std::fmt::Display for Refusal {
             Refusal::Unsupported {
                 operation,
                 language,
-            } => write!(f, "{operation} is not supported for {language}"),
+                because,
+            } => match because.is_empty() {
+                true => write!(f, "{operation} is not supported for {}", language.name()),
+                false => write!(
+                    f,
+                    "{operation} is not supported for {}: {because}",
+                    language.name()
+                ),
+            },
             Refusal::TooWeak { confidence, detail } => write!(
                 f,
                 "resolution is only '{}' — {detail}. Refusing to rewrite what cannot be verified",

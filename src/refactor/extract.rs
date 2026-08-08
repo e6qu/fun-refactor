@@ -69,7 +69,8 @@ pub fn variable(
     if !supports_imperative_extract(language) {
         return Err(Refusal::Unsupported {
             operation: "extract variable".into(),
-            language: language.to_string(),
+            language,
+            because: String::new(),
         }
         .into());
     }
@@ -581,7 +582,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     if !supports_imperative_extract_function(language) {
         return Err(Refusal::Unsupported {
             operation: "extract function".into(),
-            language: language.to_string(),
+            language,
+            because: String::new(),
         }
         .into());
     }

@@ -126,11 +126,11 @@ pub fn apply(
     // silently matching nothing.
     if language == Language::Helm && pattern.contains("{{") {
         return Err(Refusal::Unsupported {
-            operation: "a pattern containing a '{{ ... }}' template action (those bytes are \
-                        masked to whitespace before the YAML parse, so they carry no structure \
-                        to match)"
+            operation: "a pattern containing a '{{ ... }}' template action".to_string(),
+            language,
+            because: "those bytes are masked to whitespace before the YAML parse, so they \
+                      carry no structure to match"
                 .to_string(),
-            language: language.to_string(),
         }
         .into());
     }
