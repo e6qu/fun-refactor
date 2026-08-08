@@ -335,3 +335,54 @@ fn the_boundaries_that_are_real_still_resolve() {
         "a .tsx file imports from a .ts file constantly"
     );
 }
+
+/// B14: a class named inside a helper call or a template literal is reported, not lost.
+///
+/// Only a plain string attribute value is captured, so `cx("btn", …)` and
+/// `` `btn ${size}` `` do not resolve to the CSS selector. Resolving them means teaching
+/// the queries which call arguments are class lists, which is a per-library convention
+/// (`clsx`, `cx`, `classnames`, `cva`) rather than a language rule.
+///
+/// What this pins is the part that makes the gap survivable: a rename rewrites what it
+/// resolved and reports every occurrence it did not, so the result is incomplete rather
+/// than silently wrong. It is here so that a change making it silent is a failure, and so
+/// that resolving these one day fails a test naming the entry to retire.
+#[test]
+fn a_class_in_a_tsx_helper_call_is_reported_rather_than_rewritten() {
+    let (_tmp, index) = workspace(&[
+        ("styles.css", ".btn { color: red; }\n.on { color: blue; }\n"),
+        (
+            "src/App.tsx",
+            "export const App = ({ active, size }: { active: boolean; size: string }) => (\n  \
+             <>\n    <div className=\"btn\" />\n    \
+             <div className={cx(\"btn\", active && \"on\")} />\n    \
+             <div className={`btn ${size}`} />\n  </>\n);\n",
+        ),
+    ]);
+
+    let selector = index
+        .find_symbols("btn", None)
+        .into_iter()
+        .find(|s| s.kind == SymbolKind::Selector)
+        .expect("the CSS class is a symbol")
+        .id;
+    let plan = rename::plan(&index, selector, "primary").expect("the rename plans");
+
+    let resolved = plan
+        .edits
+        .paths()
+        .filter_map(|p| plan.edits.edits_for(p).map(|e| e.len()))
+        .sum::<usize>();
+    assert_eq!(resolved, 2, "the declaration and the plain attribute");
+
+    let reported: Vec<_> = plan
+        .warnings
+        .iter()
+        .filter(|w| w.file.extension().is_some_and(|e| e == "tsx"))
+        .collect();
+    assert_eq!(
+        reported.len(),
+        2,
+        "the helper call and the template literal are each reported: {reported:#?}"
+    );
+}

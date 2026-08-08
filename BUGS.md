@@ -8,6 +8,11 @@ Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 Open entries are characterised limitations — the behaviour is reported and no operation
 silently does the wrong thing — with one exception, B258, which is uncharacterised.
 
+Every open entry that asserts something checkable is pinned by a test, so a claim that
+stops being true fails a build rather than sitting here. B11 said `@content` was a gap
+after it had stopped being one, and nothing noticed; the entries verified since are
+B11, B14, B15, B133 and B263.
+
 ## Open
 
 - [ ] B263: **a Terraform input variable and a local sharing a name are one symbol.**
