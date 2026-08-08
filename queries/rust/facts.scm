@@ -36,6 +36,30 @@
   type: (generic_type
     type: (type_identifier) @container.name)) @container
 
+; `impl inner::Deep` and `impl inner::Deep<'_>`. The same gap one node deeper: a path
+; puts a `scoped_type_identifier` where the patterns above want a bare name, so the
+; methods became functions again. Rust code that spells a type by its path rather than
+; importing it is the case.
+(impl_item
+  type: (scoped_type_identifier
+    name: (type_identifier) @container.name)) @container
+
+(impl_item
+  trait: (_)
+  type: (scoped_type_identifier
+    name: (type_identifier) @container.name)) @container
+
+(impl_item
+  type: (generic_type
+    type: (scoped_type_identifier
+      name: (type_identifier) @container.name))) @container
+
+(impl_item
+  trait: (_)
+  type: (generic_type
+    type: (scoped_type_identifier
+      name: (type_identifier) @container.name))) @container
+
 (trait_item
   name: (type_identifier) @container.name) @container
 

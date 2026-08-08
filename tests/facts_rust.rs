@@ -64,3 +64,30 @@ fn an_impl_on_a_generic_type_still_names_its_methods() {
             .collect::<Vec<_>>()
     );
 }
+
+/// The same gap one node deeper: a type named by its path rather than imported.
+///
+/// `impl inner::Deep` puts a `scoped_type_identifier` where the patterns want a bare
+/// name, and `impl<T> other::Wrapped<T>` wraps that in a `generic_type` again.
+#[test]
+fn an_impl_on_a_path_type_still_names_its_methods() {
+    let f = facts(
+        "pub mod inner { pub struct Deep; }\n\
+         impl inner::Deep {\n    fn scoped(&self) {}\n}\n\n\
+         pub mod other { pub struct Wrapped<T> { pub v: T } }\n\
+         impl<T> other::Wrapped<T> {\n    fn unwrap_it(self) -> T { self.v }\n}\n",
+    );
+    let names = qualified(&f);
+    for expected in ["Deep::scoped", "Wrapped::unwrap_it"] {
+        assert!(
+            names.contains(&expected.to_string()),
+            "expected {expected} among {names:?}"
+        );
+    }
+    assert!(
+        !f.symbols
+            .iter()
+            .any(|s| s.kind == SymbolKind::Function && s.container.is_none()),
+        "no method should come out a free function: {names:?}"
+    );
+}
