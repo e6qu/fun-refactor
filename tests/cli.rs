@@ -314,3 +314,48 @@ fn a_long_unused_report_says_what_it_is_mostly_made_of() {
         "a short answer needs no summary of itself:\n{small}"
     );
 }
+
+#[test]
+fn what_unused_reports_can_be_given_to_delete() {
+    // The next command after `fr unused` is `fr delete`, and a name is not enough to
+    // name a symbol with: in `helm/helm`, 34 of the first 40 candidates are defined
+    // twice, so `fr delete <name>` answered "defined 2 times; give a position" — which
+    // the list had no way to provide. It reports `file:line:col` now, in both renderings.
+    let ws = Workspace::new(&[
+        ("a/one.go", "package a\n\nfunc Shared() int {\n\treturn 1\n}\n"),
+        (
+            "b/two.go",
+            "package b\n\nfunc Shared() int {\n\treturn 2\n}\n\nfunc Used() int {\n\treturn Shared()\n}\n",
+        ),
+    ]);
+
+    let (json, ok) = ws.run(&["unused", "--json"]);
+    assert!(ok, "{json}");
+    let listed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+    let dead = listed
+        .as_array()
+        .expect("a list")
+        .iter()
+        .find(|s| {
+            s["name"] == "Shared" && s["file"].as_str().is_some_and(|f| f.contains("a/one.go"))
+        })
+        .unwrap_or_else(|| panic!("the unreferenced `Shared` should be listed: {json}"));
+
+    let target = format!(
+        "{}:{}:{}",
+        dead["file"].as_str().expect("a file"),
+        dead["line"].as_u64().expect("a line"),
+        dead["col"].as_u64().expect("a column")
+    );
+    let (out, ok) = ws.run(&["delete", &target]);
+    assert!(ok, "the position `fr unused` gave should delete:\n{out}");
+    assert!(out.contains("deleted Shared"), "got:\n{out}");
+
+    // And the human rendering carries the same position.
+    let (text, ok) = ws.run(&["unused"]);
+    assert!(ok, "{text}");
+    assert!(
+        text.contains("one.go:3:6"),
+        "the list should say where:\n{text}"
+    );
+}

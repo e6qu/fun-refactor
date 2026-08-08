@@ -102,3 +102,24 @@ fn every_language_name_parses_back() {
         );
     }
 }
+
+/// And its serde spelling is that same identifier.
+///
+/// This test used to ask only whether `from_name(name())` round-trips, which it did all
+/// along. The gap was serde: commands that build their JSON by hand call `name()` and
+/// print `"go"`, while `fr duplicates` serializes its result struct and printed `"Go"` —
+/// a spelling no other command emits and `from_name` cannot read.
+#[test]
+fn every_language_survives_the_round_trip() {
+    for language in Language::ALL {
+        let printed = language.name();
+        let read: Language = serde_json::from_str(&format!("\"{printed}\""))
+            .unwrap_or_else(|e| panic!("the tool writes `{printed}` and cannot read it: {e}"));
+        assert_eq!(read, *language);
+        assert_eq!(
+            serde_json::to_string(language).expect("serializes"),
+            format!("\"{printed}\""),
+            "serde and name() must agree for {language:?}"
+        );
+    }
+}

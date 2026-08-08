@@ -24,9 +24,14 @@ use tree_sitter::Node;
 pub struct Clone {
     pub file: PathBuf,
     pub span: Span,
-    /// First and last line it covers, 1-based and inclusive, for display.
+    /// First and last line it covers, 1-based and inclusive.
     pub start_line: usize,
     pub end_line: usize,
+    /// The columns to go with them, so this is a range `fr extract` accepts. Without
+    /// them a caller had to open the file and measure the line itself, which is the one
+    /// thing it came here to avoid.
+    pub start_col: usize,
+    pub end_col: usize,
 }
 
 /// A set of places that all say the same thing.
@@ -178,13 +183,17 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
             let (path, _, source) = &files[candidate.file_index];
             covered[candidate.file_index].push(candidate.span);
             let lines = LineIndex::new(source);
+            let from = lines.line_col(candidate.span.start, source);
+            // The end is exclusive, so the last covered byte is one before it; the
+            // column reported is one past that, which is what a range wants.
+            let to = lines.line_col(candidate.span.end.saturating_sub(1), source);
             class.instances.push(Clone {
                 file: path.clone(),
                 span: candidate.span,
-                start_line: lines.line_col(candidate.span.start, source).line,
-                end_line: lines
-                    .line_col(candidate.span.end.saturating_sub(1), source)
-                    .line,
+                start_line: from.line,
+                end_line: to.line,
+                start_col: from.col,
+                end_col: to.col + 1,
             });
         }
         class.instances.sort_by(|a, b| {

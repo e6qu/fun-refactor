@@ -130,7 +130,14 @@ impl LineIndex {
         let line_start = self.line_starts[line];
         // Clamp to the line's end so a trailing newline does not report a column
         // past the last visible character.
-        let col_end = offset.min(self.line_end(line));
+        let mut col_end = offset.min(self.line_end(line));
+        // And to a character boundary. Callers arrive here with offsets they computed —
+        // `span.end - 1` to name the last covered byte, for one — and one of those lands
+        // inside a multi-byte character whenever the region ends with one. Slicing there
+        // panicked: `fr duplicates --language python` over `psf/black` died on a '𨉟'.
+        while col_end > line_start && !source.is_char_boundary(col_end) {
+            col_end -= 1;
+        }
         let col = source[line_start..col_end].chars().count() + 1;
         LineCol {
             line: line + 1,
@@ -235,6 +242,22 @@ mod tests {
         let pos = index.line_col(offset, source);
         assert_eq!(pos, LineCol { line: 2, col: 5 });
         assert_eq!(index.offset(pos, source), Some(offset));
+    }
+
+    #[test]
+    fn line_col_survives_an_offset_inside_a_character() {
+        // Callers compute offsets: `span.end - 1` names the last byte a region covers,
+        // and that is inside the character whenever the region ends with a multi-byte
+        // one. Slicing there panicked — `fr duplicates --language python` over
+        // `psf/black` died on a '𨉟', four bytes wide — and `full_line_span` reaches
+        // here the same way, so `fr delete` and `fr imports` could do the same.
+        let source = "x = \"𨉟\"\n";
+        let index = LineIndex::new(source);
+        let end = source.find('\n').expect("a newline");
+        for offset in (end - 4)..=end {
+            let pos = index.line_col(offset, source);
+            assert_eq!(pos.line, 1, "offset {offset} is on line 1");
+        }
     }
 
     #[test]

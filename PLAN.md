@@ -588,6 +588,16 @@ findings 643 → 204, and 538 → 99 with `--internal`.
 Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub` sets
 `exported`, so `--internal` already separates them — 105 of the 643.
 
+### Two commands that have to agree
+
+`fr unused` names candidates and `fr delete` acts on them, so feeding the first to the
+second is a check on both. Over `helm/helm`: no refusals, which is the invariant holding —
+and 34 of the first 40 candidates could not be passed to `fr delete` at all, because the
+name is defined twice and the list had no way to say which one it meant. `--json` carried
+no position either, so a script could not construct one. Both renderings say
+`file:line:col` now, and 12 of 12 sampled candidates go straight through. `fr entrypoints`
+had the same shape.
+
 ### Running it on itself again
 
 Two findings. The workspace had one parse error and it was in the published site:

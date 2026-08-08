@@ -14,7 +14,13 @@ use std::fmt;
 use std::path::Path;
 
 /// A source language, at the granularity that matters for parsing and refactoring.
+/// `name()` is this language's identifier — it appears in `--json`, in a catalogue's
+/// `languages:` list, and after `--language` on a command line. The serde spelling has to
+/// be the same string: without this attribute it was the variant name, so
+/// `fr duplicates --json` reported `"Go"` where every other command reported `"go"`, and
+/// `Language::from_name` could not read it back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Language {
     Rust,
     Go,

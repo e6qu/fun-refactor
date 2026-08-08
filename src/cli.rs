@@ -1088,15 +1088,30 @@ fn cmd_unused(
         .filter(|id| index.symbol(*id).is_some_and(keep))
         .collect();
 
+    // The position, because the next command a reader runs is `fr delete`, and a name is
+    // not enough to name a symbol with: 34 of the first 40 candidates in `helm/helm` are
+    // defined twice, so `fr delete <name>` answers "defined 2 times; give a position".
+    // The list said which symbol it meant and had no way to say it.
+    let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+    let mut locate = |symbol: &crate::model::Symbol| {
+        let source = sources
+            .entry(symbol.file.clone())
+            .or_insert_with(|| crate::vfs::read_to_string(&symbol.file).unwrap_or_default());
+        LineIndex::new(source).line_col(symbol.name_span.start, source)
+    };
+
     if cli.json {
         let payload: Vec<_> = unused
             .iter()
             .filter_map(|id| index.symbol(*id))
             .map(|s| {
+                let at = locate(s);
                 serde_json::json!({
                     "name": s.qualified_name(),
                     "kind": s.kind.as_str(),
                     "file": s.file,
+                    "line": at.line,
+                    "col": at.col,
                     "language": s.language.name(),
                     "exported": s.exported,
                 })
@@ -1111,8 +1126,9 @@ fn cmd_unused(
         if symbol.exported {
             exported_count += 1;
         }
+        let at = locate(symbol);
         println!(
-            "{:<12} {:<34} {:<9} {}",
+            "{:<12} {:<34} {:<9} {}:{at}",
             symbol.kind.as_str(),
             symbol.qualified_name(),
             if symbol.exported { "exported" } else { "" },
@@ -2030,13 +2046,22 @@ fn cmd_entrypoints(
     }
 
     if cli.json {
+        // Same reason as `fr unused`: a name alone does not name a symbol, and anything
+        // reading this wants somewhere to go.
+        let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
         let payload: Vec<_> = selected
             .iter()
             .filter_map(|e| {
                 index.symbol(e.symbol).map(|s| {
+                    let source = sources
+                        .entry(s.file.clone())
+                        .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
+                    let at = LineIndex::new(source).line_col(s.name_span.start, source);
                     serde_json::json!({
                         "name": s.qualified_name(),
                         "file": s.file,
+                        "line": at.line,
+                        "col": at.col,
                         "language": s.language.name(),
                         "kind": e.kind.as_str(),
                         "rule": e.rule,
