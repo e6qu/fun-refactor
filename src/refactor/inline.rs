@@ -92,7 +92,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     for reference in &references {
         if !reference.confidence.is_safe_to_rewrite() {
             return Err(Refusal::TooWeak {
-                confidence: reference.confidence,
+                confidence: reference.resolved_confidence(),
                 detail: format!(
                     "a use of '{}' at {}:{} did not resolve conclusively",
                     sym.name,
@@ -571,7 +571,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     }
     if !reference.confidence.is_safe_to_rewrite() {
         return Err(Refusal::TooWeak {
-            confidence: reference.confidence,
+            confidence: reference.resolved_confidence(),
             detail: format!(
                 "the callee of '{}' was not resolved conclusively",
                 reference.name
@@ -1112,7 +1112,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     for reference in &references {
         if !reference.confidence.is_safe_to_rewrite() {
             return Err(Refusal::TooWeak {
-                confidence: reference.confidence,
+                confidence: reference.resolved_confidence(),
                 detail: format!(
                     "a use of local.{} at {}:{} did not resolve conclusively — the \
                      module declares more than one thing by that name",
@@ -1790,7 +1790,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     for reference in &references {
         if !reference.confidence.is_safe_to_rewrite() {
             return Err(Refusal::TooWeak {
-                confidence: reference.confidence,
+                confidence: reference.resolved_confidence(),
                 detail: format!(
                     "a use of `{}` at {}:{} did not resolve conclusively",
                     sym.name,

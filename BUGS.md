@@ -142,6 +142,23 @@ silently does the wrong thing — with one exception, B258, which is uncharacter
 
 ## Fixed
 
+- [x] B268: **five more refusals reported a resolution that had not happened.** B266 fixed
+  one site; sweeping every `Refusal::TooWeak` found five others of the same shape, each
+  identifiable by what it filled the field with. A site reporting a real reference writes
+  `confidence: reference.confidence`; these five wrote `Confidence::NameOnly` because no
+  reference existed to ask. Their own text says so — "sources a path that is not a
+  literal, so what is in scope there cannot be known", "a call site inside a syntax error
+  is invisible to the index" — and the wrapper prefixed each with "resolution is only
+  'name-only'". `Refusal::Unknowable`'s doc comment names "a shell script that sources a
+  path computed at run time" as its example, which is two of these five verbatim.
+
+  `TooWeak` now takes a `ResolvedConfidence`, whose field is private to `model` and which
+  only `Reference::resolved_confidence` produces, so the variant cannot be built without
+  a reference to take a confidence from. Verified the compiler refuses:
+  `ResolvedConfidence(Confidence::NameOnly)` outside `model` is
+  "private tuple struct constructor". `signature.rs` no longer names `Confidence` at all.
+
+
 - [x] B267: **a remedy was offered where it would not work.** Every indeterminate-argument
   refusal ended with "quote it to make it one argument", which is true of an unquoted
   `$x` and false of `$@` — quoting that gives one word per parameter, the same problem

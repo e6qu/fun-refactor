@@ -2446,8 +2446,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         // A caller that computes what it sources could already have the function in
         // scope, or not; nothing in the text says which.
         if opaque.contains(file) {
-            return Err(Refusal::TooWeak {
-                confidence: crate::model::Confidence::NameOnly,
+            return Err(Refusal::Unknowable {
                 detail: format!(
                     "{} runs `{}` and sources a path that is not a literal, so what is \
                      already in its scope cannot be known",

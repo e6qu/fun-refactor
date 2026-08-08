@@ -16,7 +16,6 @@ pub mod restructure;
 pub mod rewrite;
 pub mod signature;
 
-use crate::model::Confidence;
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -93,7 +92,7 @@ pub enum Refusal {
     Unsupported { operation: String, language: String },
     /// Resolution was too weak to act on safely.
     TooWeak {
-        confidence: Confidence,
+        confidence: crate::model::ResolvedConfidence,
         detail: String,
     },
     /// Two definitions answer to one name, so no call site can be attributed to either.
@@ -144,7 +143,7 @@ impl std::fmt::Display for Refusal {
             Refusal::TooWeak { confidence, detail } => write!(
                 f,
                 "resolution is only '{}' — {detail}. Refusing to rewrite what cannot be verified",
-                confidence.as_str()
+                confidence.get().as_str()
             ),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
