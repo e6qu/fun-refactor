@@ -634,6 +634,24 @@ is needed: those answer whole-workspace questions, and narrowing with `-C` inste
 a different answer — 30 dead symbols rather than 28, because references from outside the
 narrowed root are gone.
 
+### A language nobody had named
+
+`fr unused` reported a CSS class as dead while a `.js` file two directories away named
+it in a string. Not a resolution bug: `.js`, `.mjs`, `.cjs` and `.jsx` mapped to no
+language, so those files were never scanned. An unmapped extension looks exactly like a
+PNG, so nothing said so.
+
+The grammar was already there — TypeScript is a superset of JavaScript, and the 19
+`.js`/`.mjs` files in this repository parse with no errors. Naming the extensions took
+one line; the choice worth recording is not adding `Language::JavaScript` beside it.
+Twelve `matches!(lang, TypeScript | Tsx)` arms exist across eight files, and each would
+have become a place to forget the new variant (B282).
+
+The same sweep found the inverse: `.sass` is named by the table and cannot be parsed,
+because Sass's indented syntax is not SCSS (B283). That one stays as it is — the failure
+is visible in `fr parse`, and removing the mapping would make those files disappear the
+way the `.js` ones did.
+
 ### Fragments nobody could resolve
 
 `fr unused` on this repository lists dozens of Markdown headings, which is what a
