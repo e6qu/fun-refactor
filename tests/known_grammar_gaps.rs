@@ -98,20 +98,15 @@ fn typescript_cannot_read_a_property_called_in_after_another() {
     );
 }
 
-/// The SCSS forms behind B11, in the order they cost files in `twbs/bootstrap`.
+/// The SCSS forms behind B11, and what each one costs in `twbs/bootstrap`.
 ///
-/// 73 of its 99 stylesheets fail, and one form accounts for 51 of them.
+/// Interpolation in a declaration value is not here: `Parsers::parse` masks it, which
+/// is what tests/scss_interpolation.rs covers. The grammar still cannot read it. The
+/// rest produce error nodes that stay inside the construct, so the file around them
+/// still yields facts — masking them too was measured and recovered nothing.
 #[test]
 fn scss_cannot_read_these_forms() {
     let cases = [
-        (
-            "interpolation in a declaration value",
-            ".a { color: #{$v}; }",
-        ),
-        (
-            "interpolation in a custom property value",
-            ".a { --x: #{$v}; }",
-        ),
         (
             "empty parentheses on a declaration",
             "@mixin m() { color: red; }",
@@ -128,6 +123,20 @@ fn scss_cannot_read_these_forms() {
         ("a nested map literal", "$m: (a: (b: 1));"),
         ("`!default`", "$x: 1rem !default;"),
         ("`@use ... as`", "@use \"x\" as t;"),
+        // Not in B11 until this test found it: nesting a rule under an explicit
+        // combinator. 10 of the 99 files write it.
+        (
+            "a nested rule opening with `>`",
+            ".a {\n  > .b { color: red; }\n}",
+        ),
+        (
+            "a nested rule opening with `+`",
+            ".a {\n  + .b { color: red; }\n}",
+        ),
+        (
+            "a nested selector list opening with `>`",
+            ".a {\n  > .b, > .c { color: red; }\n}",
+        ),
     ];
     for (what, source) in cases {
         assert!(

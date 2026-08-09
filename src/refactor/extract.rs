@@ -1438,7 +1438,7 @@ fn yaml_anchor(
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
-    if let Some(action) = parsed.template_actions.iter().find(|a| a.overlaps(span)) {
+    if let Some(action) = parsed.masked_spans.iter().find(|a| a.overlaps(span)) {
         anyhow::bail!(
             "the selection at bytes {span} overlaps the template action `{}`. Helm \
              `{{{{ ... }}}}` actions are masked out before the YAML parse, so nothing \
@@ -1478,7 +1478,7 @@ fn yaml_anchor(
 
     if let Some(clash) = occurrences
         .iter()
-        .find(|s| parsed.template_actions.iter().any(|a| a.overlaps(**s)))
+        .find(|s| parsed.masked_spans.iter().any(|a| a.overlaps(**s)))
     {
         anyhow::bail!(
             "an occurrence at bytes {clash} overlaps a masked Helm template action; \

@@ -313,7 +313,7 @@ fn helm_template_parses_and_extracts_its_structure() {
         parsed.error_spans()
     );
     assert_eq!(
-        parsed.template_actions.len(),
+        parsed.masked_spans.len(),
         8,
         "every {{{{ }}}} action should be recorded"
     );
@@ -401,7 +401,7 @@ fn a_template_action_yields_no_yaml_facts_of_its_own() {
     let parsed = Parsers::new()
         .parse(Language::Helm, HELM_DEPLOYMENT)
         .unwrap();
-    for action in &parsed.template_actions {
+    for action in &parsed.masked_spans {
         for s in &f.symbols {
             assert!(
                 s.name_span.end <= action.start || s.name_span.start >= action.end,
@@ -435,7 +435,7 @@ fn the_values_a_template_reads_are_the_only_facts_inside_an_action() {
             "a values path is string-keyed, like a CSS class: {r:?}"
         );
         let inside = parsed
-            .template_actions
+            .masked_spans
             .iter()
             .any(|a| r.span.start >= a.start && r.span.end <= a.end);
         assert!(inside, "reference {:?} is not inside any action", r.name);

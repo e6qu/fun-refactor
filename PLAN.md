@@ -641,10 +641,19 @@ parse**. B11 already recorded SCSS grammar gaps from `grafana/grafana`, where th
 of 8 stylesheets, so this is the same limitation measured somewhere it can be measured
 properly.
 
-One form accounts for 51 of the 73: interpolation in a declaration value, `color: #{$v}`.
-Interpolation in a selector and in a property name both parse, which is why it was not
-obvious. The rest, in order: empty parentheses (24 files), `@if` with `and` or `or` (10),
-map literals (7), `!default` (6).
+One form is worth masking, and not for the reason the counts suggested. Interpolation in
+a declaration value (`color: #{$v}`) co-occurs with 51 of the 73 failures, but masking it
+alone fixes 14 files — most of those 51 hit other forms too, so the count measured
+co-occurrence rather than cost. What makes it the one worth handling is where its error
+node goes: not the declaration but the rest of the file, so `_accordion.scss` reported one
+error span of 0..5050. Masking it, with the variables and calls inside the braces read
+back afterwards, took symbols from 1916 to 2826 and references from 3839 to 6277 with no
+file losing a reference (B280).
+
+Masking the other forms was measured and rejected in the same run: they fix 23 more files'
+error counts and recover no facts at all, since their errors stay inside the construct.
+The sweep also turned up a form the entry never had — a nested rule opening with a
+combinator, `.a { > .b { … } }`, 10 files.
 
 The entry also claimed `@content` inside a mixin was among the gaps. It parses — bare,
 nested, and with arguments — so the claim was either wrong when written or fixed upstream

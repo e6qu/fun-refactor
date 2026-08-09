@@ -3,7 +3,7 @@
 //! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file
 //! to the YAML grammar, keeping the YAML tree well-formed and every byte offset
 //! indexing the original source — at the cost of hiding everything inside an action
-//! from the YAML queries. This module reads the spans `Parsed::template_actions`
+//! from the YAML queries. This module reads the spans `Parsed::masked_spans`
 //! records and turns each into a structured [`Action`], so `.Values` references,
 //! control flow and named templates parse rather than pattern-match.
 //!
@@ -392,7 +392,7 @@ pub fn parse(source: &str, actions: &[Span]) -> Template {
 impl Template {
     /// Parse straight from a [`Parsed`] Helm file.
     pub fn of(source: &str, parsed: &Parsed) -> Template {
-        Template::new(source, &parsed.template_actions)
+        Template::new(source, &parsed.masked_spans)
     }
 
     fn new(source: &str, spans: &[Span]) -> Template {

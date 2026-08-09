@@ -944,7 +944,7 @@ fn is_string_kind(kind: &str) -> bool {
 
 /// Spans of string literals, comments and Helm template actions.
 fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
-    let mut spans: Vec<Span> = parsed.template_actions.clone();
+    let mut spans: Vec<Span> = parsed.masked_spans.clone();
     spans.extend(spans_of(parsed, |kind| {
         is_string_kind(kind) || kind.contains("comment")
     }));

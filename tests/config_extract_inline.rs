@@ -644,7 +644,7 @@ fn helm_files_are_detected_as_helm() {
 }
 
 #[test]
-fn helm_extract_anchors_a_scalar_outside_the_template_actions() {
+fn helm_extract_anchors_a_scalar_outside_the_masked_spans() {
     let ws = helm_workspace();
     let path = ws.path("chart/templates/deploy.yaml");
     let start = HELM_DEPLOYMENT.find("nginx:1.25").unwrap();

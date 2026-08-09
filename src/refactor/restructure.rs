@@ -497,7 +497,7 @@ fn find_matches(
         let mut bindings = HashMap::new();
         if matches_node(node, source, pattern.root, pattern.source, &mut bindings) {
             let span = match_span(node, pattern.trim_trailing);
-            if !touches_template_action(&parsed.template_actions, span) {
+            if !touches_template_action(&parsed.masked_spans, span) {
                 results.push((span, bindings));
                 // Do not rewrite inside something already being rewritten: nested
                 // edits would overlap and be rejected.
