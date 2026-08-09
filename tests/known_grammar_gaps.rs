@@ -214,3 +214,60 @@ fn zig_cannot_read_a_struct_with_no_members() {
         "a struct with a member still parses"
     );
 }
+
+/// Helm masking: what the YAML grammar is given where an action stood.
+///
+/// Masking replaces `{{ … }}` with bytes of identical length so every offset in the tree
+/// still indexes the original file. Which bytes matters, and a run of spaces is not
+/// always legal YAML. Each case below cost files in `bitnami/charts`, where 48 of 92
+/// stylesheets failed to parse before these; 4 still do, all of them the key-position
+/// case the masking leaves visibly wrong on purpose.
+#[test]
+fn helm_masking_produces_parseable_yaml() {
+    let cases = [
+        // An action supplying the block indented under it: the value must end up empty,
+        // not a scalar, or the deeper mapping has nothing to attach to.
+        (
+            "an action supplying a block",
+            "metadata:\n  labels: {{- include \"common.labels.standard\" . | nindent 4 }}\n    app: node\n",
+        ),
+        // The first line of a block scalar: YAML rejects a leading empty line indented
+        // further than the content, and a masked action is as wide as the action was.
+        (
+            "an action on a block scalar's first line",
+            "data:\n  redis.conf: |-\n    {{- $password := include \"redis.password\" . }}\n    user default on nopass\n",
+        ),
+        // The same, for a block scalar opened by a sequence item.
+        (
+            "a block scalar opened by a sequence item",
+            "args:\n  - |\n    {{- if .Values.enabled }}\n    echo hello\n",
+        ),
+        // An action running over a newline: only the line it starts on takes the scalar
+        // filler, or the continuation lands at column zero and ends the block.
+        (
+            "an action spanning two lines",
+            "data:\n  script: |-\n    NAMES=\"{{\n    $fullname := include \"common.names.fullname\" . -}}\"\n",
+        ),
+        // A template comment is opaque, `{{` and all.
+        (
+            "a template comment containing an action",
+            "data:\n  c: |-\n    {{- /* #j={{ $j }} */}}\n    text\n",
+        ),
+    ];
+    for (what, source) in cases {
+        assert_eq!(
+            error_nodes(Language::Helm, source),
+            0,
+            "{what} should parse:\n{source}"
+        );
+    }
+}
+
+/// And the one the masking leaves wrong on purpose.
+///
+/// A key supplied by a template is reported rather than invented, because a
+/// plausible-looking fake key hides more than a parse error does.
+#[test]
+fn helm_leaves_a_templated_key_visibly_wrong() {
+    assert!(error_nodes(Language::Helm, "params:\n  {{ $key }}:\n    - a\n") > 0);
+}

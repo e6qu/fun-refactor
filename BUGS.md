@@ -163,6 +163,33 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B278: **Helm masking produced YAML that does not parse, four ways.** Masking replaces
+  `{{ … }}` with bytes of identical length so every offset still indexes the original
+  file. Which bytes matters, and a run of spaces or of scalar characters is not always
+  legal YAML. Across three `bitnami/charts` charts, **48 of 92 files failed to parse**;
+  4 do now, all of them the key-position case the masking leaves visibly wrong on purpose.
+
+  * An action **supplying the block indented under it** —
+    `labels: {{- include … | nindent 4 }}` — took the scalar filler, leaving
+    `labels: xxxx` above a deeper mapping, which has nothing to attach to. The filler is
+    chosen by the indentation of the next line with content on it.
+  * An action on the **first line of a block scalar** masked to a run of spaces as wide
+    as the action, and YAML rejects a leading empty line indented further than the
+    content. A `#` there is ordinary block content at the indentation the block wants.
+    Only there: elsewhere a `#` at a lower indentation would end the scalar, which is
+    what `health-configmap.yaml` writes deliberately, and I broke it that way before
+    narrowing the rule.
+  * The same, for a block scalar opened by a **sequence item** (`- |`) rather than a key.
+  * An action **spanning two lines** gave the scalar filler to its continuation, which
+    lands at column zero and ends the block. Only the line the action starts on takes it.
+  * A **template comment** is opaque: `{{- /* #j={{ $j }} */}}` is one action, and
+    stopping at the first `}}` left ` */}}` as text the grammar then had to interpret.
+
+  Each case is pinned in `tests/known_grammar_gaps.rs`, along with the key-position case
+  that still fails. Verified against the before-and-after failure sets rather than the
+  counts, so a file that started failing would show up even while the total fell.
+
+
 - [x] B277: **the language filter had two names.** Five commands took `--lang` and two
   took `--language`, for the same filter, with nothing to say which was which. It cost
   two mistyped invocations while writing tests during this sweep, which is how it was

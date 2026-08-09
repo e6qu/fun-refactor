@@ -379,6 +379,28 @@ fn find_template_actions(source: &str) -> Vec<Span> {
         if bytes[i] == b'{' && bytes[i + 1] == b'{' {
             let start = i;
             i += 2;
+
+            // A comment's body is opaque: `{{- /* #j={{ $j }} */}}` is one action, and
+            // stopping at the first `}}` left ` */}}` behind as text the YAML grammar
+            // then had to make sense of.
+            let after_dash = i + usize::from(bytes.get(i) == Some(&b'-'));
+            let body = source[after_dash.min(source.len())..].trim_start();
+            if body.starts_with("/*") {
+                let opened = after_dash + (source[after_dash..].len() - body.len());
+                match source[opened..].find("*/") {
+                    Some(at) => {
+                        i = opened + at + 2;
+                        while i < bytes.len() && bytes[i] != b'}' {
+                            i += 1;
+                        }
+                        i = (i + 2).min(bytes.len());
+                    }
+                    None => i = bytes.len(),
+                }
+                spans.push(Span::new(start, i));
+                continue;
+            }
+
             let mut quote: Option<u8> = None;
             while i < bytes.len() {
                 let b = bytes[i];
@@ -425,17 +447,45 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
         // its line is structural and must vanish; an action in key position must stay
         // visibly wrong, because a plausible-looking fake key hides more than a
         // parse error — the tool would report a key nobody wrote.
-        let filler = if line_is_only_actions(source, spans, *span) || starts_the_line(source, *span)
+        let filler = if line_is_only_actions(source, spans, *span)
+            || starts_the_line(source, *span)
+            || supplies_the_block_below(source, spans, *span)
         {
             b' '
         } else {
             // A plain-scalar character, so the surrounding text still parses as a value.
             b'x'
         };
+        // The scalar filler belongs to the line the action starts on. An action that
+        // runs over a newline continues on lines of its own, and a scalar character at
+        // the start of one of those is content the surrounding structure did not ask
+        // for — inside a block scalar it lands at column zero and ends the block.
+        // `SERVICE_NAMES="{{` with its body on the next line does exactly that.
+        let mut seen_newline = false;
         for b in &mut out[span.start..span.end] {
-            if *b != b'\n' {
-                *b = filler;
+            match *b == b'\n' {
+                true => seen_newline = true,
+                false => *b = if seen_newline { b' ' } else { filler },
             }
+        }
+
+        // Spaces are wrong in one place: the first line of a block scalar. YAML rejects
+        // a *leading* empty line indented further than the content, and a masked action
+        // is a whitespace run as long as the action was, so
+        //
+        //     redis.conf: |-
+        //       {{- $password := include "redis.password" . }}
+        //       user default on …
+        //
+        // became forty-nine spaces above content indented two. A `#` there is ordinary
+        // block-scalar content at the indentation the block wants.
+        //
+        // Only there. An action-only line anywhere else is legal as spaces, and a `#`
+        // at a lower indentation than the block would *end* the scalar — which is what
+        // `health-configmap.yaml` does with `{{- if … }}` written at column zero inside
+        // an indented script.
+        if filler == b' ' && starts_the_line(source, *span) && opens_a_block_scalar(source, *span) {
+            out[span.start] = b'#';
         }
     }
     // Masking only ever replaces bytes with ASCII, so UTF-8 stays valid.
@@ -459,6 +509,61 @@ fn line_is_only_actions(source: &str, spans: &[Span], span: Span) -> bool {
 
     (line_start..line_end)
         .all(|i| bytes[i].is_ascii_whitespace() || spans.iter().any(|s| s.contains_offset(i)))
+}
+
+/// Is this span on the first line after a block scalar's header?
+///
+/// `key: |-`, `key: >`, and the `+`/`-` chomping variants. Only there does a
+/// whitespace-only line have to be no wider than the content that follows it.
+fn opens_a_block_scalar(source: &str, span: Span) -> bool {
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let Some(previous) = source[..line_start.saturating_sub(1)].rsplit('\n').next() else {
+        return false;
+    };
+    // The indicator is the last thing on the line, whether the block belongs to a key
+    // (`redis.conf: |-`) or to a sequence item (`- |`).
+    matches!(
+        previous.split_whitespace().next_back(),
+        Some("|") | Some("|-") | Some("|+") | Some(">") | Some(">-") | Some(">+")
+    )
+}
+
+/// Does this action stand where a *block* goes rather than a scalar?
+///
+/// `labels: {{- include "common.labels.standard" . | nindent 4 }}` with lines indented
+/// under it renders to a nested mapping, so filling it with a scalar leaves
+/// `labels: xxxx` above a deeper mapping — which no YAML parser accepts, and which cost
+/// 48 of 92 files across three `bitnami/charts` charts. Every failure there was this.
+///
+/// The following line's indentation is what distinguishes the two. Where the action
+/// supplies the block, the value must be empty for the block below to attach to the key.
+fn supplies_the_block_below(source: &str, spans: &[Span], span: Span) -> bool {
+    let indent_of = |line: &str| line.len() - line.trim_start().len();
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let here = indent_of(&source[line_start..span.start]);
+
+    let mut at = source[span.end..]
+        .find('\n')
+        .map(|i| span.end + i + 1)
+        .unwrap_or(source.len());
+    while at < source.len() {
+        let end = source[at..]
+            .find('\n')
+            .map(|i| at + i)
+            .unwrap_or(source.len());
+        let line = &source[at..end];
+        // A line that is only actions masks to blanks, so it settles nothing.
+        let blank = line.trim().is_empty()
+            || (at..end).all(|i| {
+                source.as_bytes()[i].is_ascii_whitespace()
+                    || spans.iter().any(|s| s.contains_offset(i))
+            });
+        if !blank {
+            return indent_of(line) > here;
+        }
+        at = end + 1;
+    }
+    false
 }
 
 #[cfg(test)]

@@ -612,6 +612,25 @@ that spans languages, where a CSS class named from HTML and TSX gives the invers
 get wrong, and the test is verified to fail when the reverse rename is given a different
 name.
 
+### Helm charts at scale
+
+Three `bitnami/charts` charts, 92 YAML files: 48 failed to parse. The masking replaced
+every `{{ … }}` with same-length `x` bytes, which is a scalar everywhere — including the
+positions where YAML needs whitespace, a comment, or nothing at all. Five distinct cases,
+fixed as B278: an action supplying the block indented under its key, the continuation
+lines of a multi-line action, the first line of a block scalar, an action at column zero
+inside an indented block scalar, and a `{{/* … */}}` template comment containing `}}`.
+After the fix, 4 fail. All four put an action in key position, where the mask stays
+visibly wrong rather than inventing a plausible key.
+
+Also swept the CLI surface after the `--lang` finding, and the other two candidates are
+defensible rather than defects. `impact` calls its walk `--caller-depth` where `callers`
+calls it `--depth`, because `impact` also reports references that the depth does not
+bound. `--path` exists on `unused` and `duplicates` and nowhere else, which is where it
+is needed: those answer whole-workspace questions, and narrowing with `-C` instead gives
+a different answer — 30 dead symbols rather than 28, because references from outside the
+narrowed root are gone.
+
 ### SCSS at scale
 
 `twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: **73 of 99 files fail to
