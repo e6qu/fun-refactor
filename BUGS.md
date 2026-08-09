@@ -190,6 +190,35 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B288: **`fr move` refused every move in this workspace, over a doc comment.** The
+  check for `#[path]` module redirection searched each file's text for `#[path`, and
+  `src/analysis/entrypoints.rs` documents an unrelated function with
+
+      /// Is `symbol` annotated with `name` — `#[name]`, `#[path::name]` or `@name`?
+
+  One match anywhere under `src/` refuses every cross-file move, so the answer was
+  workspace-wide and named a file that carries no such attribute. Read from the tree now,
+  and only `#[path = …]` counts — not `#[path::name]` in prose, and not `#[pathological]`.
+  Over a sample of 64 candidates in this repository: 0 moves possible before, 11 after,
+  with the other 53 refused for reasons that are actually true of them.
+
+- [x] B289: **`fr move` wrote `use crate::…` into files that are not in the crate.** An
+  integration test, an example and a benchmark are each their own crate and reach the
+  library by its package name. The import statement was built once from
+  `CrateModule::use_prefix`, whose own documentation says it names the module "from
+  anywhere in the crate", and then used for every consumer — so moving `scan` in this
+  repository rewrote `tests/anchor_links.rs` to `use crate::cache::scan;`, naming a
+  module of the test binary. Those files no longer compile.
+
+  The prefix is worked out per consumer now: `crate::` inside the crate's `src/`, and the
+  package name from Cargo.toml outside it. When the package name cannot be read, no
+  import is written and the file is named in a warning, rather than writing `crate::` and
+  hoping.
+
+  Found by applying each planned move to a copy of the workspace and counting resolved
+  references: every consumer outside `src/` lost the two or three that the broken import
+  had bound.
+
 - [x] B287: **`fr imports` moved an import out from under its `#[cfg]`.** Sorting
   reorders whole lines within a run of imports, and an attribute occupies its own line.
   Left where it was, it lands on whichever import sorts into its place. Run over this

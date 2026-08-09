@@ -634,6 +634,23 @@ is needed: those answer whole-workspace questions, and narrowing with `-C` inste
 a different answer — 30 dead symbols rather than 28, because references from outside the
 narrowed root are gone.
 
+### What a refusal is hiding
+
+`fr move` over a sample of this repository refused all 64 candidates, which is the kind
+of result that looks like caution and is worth reading anyway. Two of the reasons were
+about the symbol; the rest named `src/analysis/entrypoints.rs` and a `#[path]` attribute
+it does not have. The file documents `#[path::name]` in a doc comment, the check searched
+the text, and one match anywhere under `src/` refuses every cross-file move in the
+workspace (B288).
+
+Reading the attribute from the tree turned 0 possible moves into 11 — and the eleven then
+exposed the second defect, which no refusal could have. Applying each move to a copy of
+the workspace and counting resolved references showed every consumer outside `src/`
+losing a few: the import written into `tests/` and `examples/` was `use crate::…`, and
+those files are each their own crate (B289).
+
+A refusal is not a safe default when it is wrong about why.
+
 ### The output has to be valid input
 
 `fr imports --write` over a clean copy of this repository, then asking what changed.
