@@ -257,11 +257,15 @@ fn other_assignment(
     name: &str,
 ) -> Option<usize> {
     let sym = index.symbol(symbol)?;
-    // Another definition of the same name in the same file is a rebinding.
+    // A later definition of the same name *in the same scope* is a rebinding. In a
+    // different scope it is a different variable that happens to share a name, which is
+    // most of them: 6,166 of this repository's 9,147 locals share a name with another
+    // local in the same file, and refusing on all of them refused nearly every inline
+    // anyone would want.
     let rebound = index
         .find_symbols(name, Some(&sym.file))
         .into_iter()
-        .find(|s| s.id != symbol && s.full_span.start > sym.full_span.end)
+        .find(|s| s.id != symbol && s.scope == sym.scope && s.full_span.start > sym.full_span.end)
         .map(|s| s.name_span.start);
     if rebound.is_some() {
         return rebound;
@@ -1004,14 +1008,19 @@ fn block_removal_span(source: &str, inner: Span) -> Span {
 
 /// The span to delete for a construct sharing its line with other code: itself, plus
 /// the whitespace directly before it so no double space is left behind.
+///
+/// A construct need not fit on one line. An HCL local holding a multi-line object
+/// begins on the line its name is on and ends several lines below, so the line before
+/// it and the line after it are two different lines — reading both from `inner.start`
+/// asked for `source[end..start]` and panicked.
 fn tight_removal_span(source: &str, inner: Span) -> Span {
-    let line = full_line_span(source, inner.start);
-    if source[line.start..inner.start].trim().is_empty()
-        && source[inner.end.min(source.len())..line.end.min(source.len())]
-            .trim()
-            .is_empty()
+    let end = inner.end.min(source.len());
+    let first = full_line_span(source, inner.start);
+    let last = full_line_span(source, end);
+    if source[first.start..inner.start].trim().is_empty()
+        && source[end..last.end.max(end)].trim().is_empty()
     {
-        return line;
+        return Span::new(first.start, last.end.max(end));
     }
     let mut start = inner.start;
     while start > 0 && matches!(source.as_bytes()[start - 1], b' ' | b'\t') {

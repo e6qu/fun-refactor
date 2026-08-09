@@ -15,6 +15,15 @@ B11, B14, B15, B133 and B263.
 
 ## Open
 
+- [ ] B286: `fr inline` parenthesises by what the value is, not by where it goes, so
+  `let scaled = base` with `base = w * 2 + h * 3` inlines to `let scaled = (w * 2 + h * 3)`.
+  The parentheses are needed when the use site sits inside a tighter-binding expression —
+  `(w + h) * 2` is the whole point — and merely noisy when it does not, which makes
+  `fr extract` followed by `fr inline` not quite an inverse. Left alone deliberately: the
+  check would have to be per-use-site and per-language, and the failure modes are not
+  symmetric. An extra bracket is noise; a missing one silently changes what the code
+  computes.
+
 - [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
   has two syntaxes — the braced one in `.scss` files and the older whitespace-significant
   one in `.sass` files — and `tree-sitter-scss` implements the first. So a `.sass` file
@@ -180,6 +189,31 @@ B11, B14, B15, B133 and B263.
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B284: **`fr inline` refused on any name reused elsewhere in the file.** The
+  rebinding check asked whether another symbol of that name appeared later in the same
+  file and stopped there, so two functions each declaring `let s` counted as one variable
+  assigned twice. Reusing a local name across functions is the common case: 6,166 of this
+  repository's 9,147 locals share a name with another local in the same file.
+
+  Over those locals, before and after: inlinable **3,001 → 7,399**, refused as a
+  rebinding **4,940 → 487**. The remaining 487 are same-scope rebindings, which still
+  refuse — in Rust because a second `let` shadows, and in Python and shell because the
+  language has no second binding and both uses read one symbol whose value changed.
+
+  `Symbol` already carried the scope it was declared in, so the check compares those.
+
+- [x] B285: **`fr inline` panicked on a declaration longer than one line.**
+  `tight_removal_span` read the text before the construct and the text after it from the
+  same line — the one containing `inner.start`. An HCL local holding a multi-line object
+  ends several lines below, so the slice was `source[end..start]`:
+
+      byte range starts at 617 but ends at 564
+
+  `web/sample/infra/main.tf`, shipped in this repository as playground sample data, is
+  such a file, and the sweep over every local found it. It reads the first line from
+  `inner.start` and the last from `inner.end` now, which is the same span whenever the
+  construct is one line.
 
 - [x] B282: **JavaScript files were not source files.** `.js`, `.mjs`, `.cjs` and `.jsx`
   mapped to no language, so they were not scanned, not parsed and not in the index — and
