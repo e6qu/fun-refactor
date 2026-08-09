@@ -634,6 +634,22 @@ is needed: those answer whole-workspace questions, and narrowing with `-C` inste
 a different answer — 30 dead symbols rather than 28, because references from outside the
 narrowed root are gone.
 
+### Sweeping a command over its own repository
+
+`fr inline` on every local in this workspace, 9,147 of them, rather than on an example.
+Two things fell out that no single case would have shown.
+
+It refused 4,940 of them as rebindings. The check asked whether the name appeared again
+later in the same file and never asked in which scope, so two functions that each declare
+`let s` read as one variable assigned twice — and 6,166 of the 9,147 locals share a name
+with another local in their file. Scoped, the answer goes to 487 refusals, all of them
+real (B284).
+
+And one panicked. `tight_removal_span` read the line before the construct and the line
+after it from the same offset, which is only the same line when the construct fits on
+one; an HCL local holding a multi-line object asked for `source[end..start]`. The file
+was `web/sample/infra/main.tf`, shipped in this repository (B285).
+
 ### A language nobody had named
 
 `fr unused` reported a CSS class as dead while a `.js` file two directories away named
