@@ -634,6 +634,21 @@ is needed: those answer whole-workspace questions, and narrowing with `-C` inste
 a different answer — 30 dead symbols rather than 28, because references from outside the
 narrowed root are gone.
 
+### The output has to be valid input
+
+`fr imports --write` over a clean copy of this repository, then asking what changed.
+Idempotence held — 44 files changed on the first pass, none on the second — but three
+files came back with an attribute guarding a different import than before. Sorting moves
+whole lines, an attribute sits on its own line, and nothing tied the two together, so
+`#[cfg(feature = "cli")]` kept its position while the `use` beneath it sorted away
+(B287).
+
+Nothing catches this downstream. The edit engine rejects an edit that introduces a parse
+error, and this one introduces none: the file still parses, it just no longer compiles
+under either setting of the feature. The check that would have caught it is the one this
+sweep ran — apply the tool to a real tree and ask whether the result still means what it
+meant.
+
 ### Sweeping a command over its own repository
 
 `fr inline` on every local in this workspace, 9,147 of them, rather than on an example.

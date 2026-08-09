@@ -12,7 +12,8 @@
 //!
 //! *Sorting* never regenerates import syntax. It reorders each statement's original
 //! bytes within one contiguous run of import lines. A blank line, a comment or any other
-//! statement ends the run, leaving the programmer's grouping intact.
+//! statement ends the run, leaving the programmer's grouping intact. An attribute is not
+//! one of those: `#[cfg(…)]` above a `use` is part of that import and moves with it.
 
 use super::{Refusal, Warning, WarningKind};
 use crate::edit::{full_line_span, Edit, EditSet};
@@ -448,7 +449,8 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     let line_index = LineIndex::new(&source);
     let mut warnings = Vec::new();
 
-    let mut statements = statements(info.imports.iter(), &source, info.language);
+    let parsed = Parsers::new().parse(info.language, &source)?;
+    let mut statements = statements(info.imports.iter(), &source, info.language, &parsed);
     // A Go import binds the imported package's package clause. When that package is in
     // the scan its real name is a fact rather than a guess, so record it as a binding
     // and stop treating the path as the last word on the subject.
@@ -488,7 +490,6 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         live.insert(reference.name.as_str());
     }
 
-    let parsed = Parsers::new().parse(info.language, &source)?;
     let invisible = InvisibleUses::collect(info.language, &parsed, &source);
 
     let mut removed = Vec::new();
@@ -707,11 +708,20 @@ fn statements<'a>(
     imports: impl Iterator<Item = &'a Import>,
     source: &str,
     language: Language,
+    parsed: &Parsed,
 ) -> Vec<Statement> {
     let mut grouped: BTreeMap<Span, Vec<&Import>> = BTreeMap::new();
     for import in imports {
         grouped.entry(import.span).or_default().push(import);
     }
+
+    let mut attributes: Vec<Span> = Vec::new();
+    for_each_node(parsed.root(), |node| {
+        if node.kind().contains("attribute") {
+            attributes.push(Span::from(node));
+        }
+    });
+    attributes.sort_by_key(|s| s.end);
 
     grouped
         .into_iter()
@@ -720,10 +730,13 @@ fn statements<'a>(
             let first = full_line_span(source, span.start);
             let last = full_line_span(source, span.end - 1);
             let lines = Span::new(first.start, last.end.max(first.end).max(span.end));
+            let lines = with_attributes(source, lines, &attributes);
             // A statement owns its line if nothing but its own introducing keyword
             // sits before it. Go records `import "os"` as the spec alone, so without
             // this the keyword looks like unrelated code and ends the block.
-            let before = source[lines.start..span.start].trim();
+            // From the statement's own line, not from the attributes above it: an
+            // attribute is part of this import, so it does not make the line shared.
+            let before = source[first.start..span.start].trim();
             let line_exclusive = (before.is_empty() || is_import_keyword(before, language))
                 && source[span.end..lines.end].trim().is_empty();
 
@@ -802,6 +815,32 @@ pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String>
 ///
 /// A blank line, a comment or any other statement between two imports leaves a gap in
 /// the line coverage, which ends the run.
+/// A statement's lines, extended over the attributes written above it.
+///
+/// An attribute is part of the item, not a neighbour of it: `#[cfg(feature = "cli")]`
+/// above a `use` decides whether that import exists. Sorting moves whole lines, so an
+/// attribute left where it was lands on whichever import sorts into its place. This
+/// crate's own `src/index.rs` came out of `fr imports` with `use anyhow::…` behind the
+/// `cfg` and `use crate::scan::…` unconditional, which compiles under neither setting of
+/// the feature.
+///
+/// Read from the tree rather than by looking for `#[`, so a multi-line attribute is one
+/// span and a `#[` inside a string is not an attribute at all.
+fn with_attributes(source: &str, lines: Span, attributes: &[Span]) -> Span {
+    let mut start = lines.start;
+    loop {
+        let attached = attributes.iter().rev().find(|attribute| {
+            attribute.end <= start && source[attribute.end..start].trim().is_empty()
+        });
+        match attached {
+            Some(attribute) if attribute.start < start => {
+                start = full_line_span(source, attribute.start).start;
+            }
+            _ => return Span::new(start, lines.end),
+        }
+    }
+}
+
 fn blocks(statements: &[Statement]) -> Vec<std::ops::Range<usize>> {
     let mut out = Vec::new();
     let mut start = 0;
