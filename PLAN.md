@@ -599,10 +599,18 @@ diff lines and produced eleven suspects; all eleven were the sort step moving a 
 a removal. Comparing the imported-name sets before and after is the check that answers the
 question asked.
 
-The round-trip attempt found something else: `fr symbols` takes `--lang` and `fr unused`
-takes `--language`, for the same filter. Five commands to two, with nothing to say which
-is which. `--lang` is the name now, `--language` an alias so nothing already written
-breaks.
+The round-trip attempt found something else on the way: `fr symbols` takes `--lang` and
+`fr unused` takes `--language`, for the same filter. Five commands to two, with nothing to
+say which is which. `--lang` is the name now, `--language` an alias so nothing already
+written breaks.
+
+The property itself holds. Fourteen uniquely-named Go callables in `helm/helm`, renamed to
+a placeholder and back: all fourteen left the tree byte-identical, including the files the
+rename decided not to touch. A larger run was cut off by a time limit rather than by a
+failure, so fourteen is what was checked. `tests/rename_inverse.rs` pins it on a workspace
+that spans languages, where a CSS class named from HTML and TSX gives the inverse more to
+get wrong, and the test is verified to fail when the reverse rename is given a different
+name.
 
 ### SCSS at scale
 
