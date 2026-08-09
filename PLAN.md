@@ -634,6 +634,21 @@ is needed: those answer whole-workspace questions, and narrowing with `-C` inste
 a different answer — 30 dead symbols rather than 28, because references from outside the
 narrowed root are gone.
 
+### Fragments nobody could resolve
+
+`fr unused` on this repository lists dozens of Markdown headings, which is what a
+workspace looks like when no link resolves to a heading at all. Both query files said
+the engine strips the `#` when it resolves a fragment; resolution opens with a verbatim
+lookup of the reference name and returns on a miss, and `#beta` is nobody's name, so the
+branch that strips it had never run. A documented design, written in two places, dead in
+the one place that mattered (B281).
+
+The rename was the expensive half: `# Beta` became `# Zeta` and `[jump](#beta)` stayed,
+reported as one site changed with no warning. Fixing resolution alone would not have
+fixed that — a heading is referenced by its slug, so the rename has to write
+`three-big-words` where the heading became `Three Big Words`, and the span it writes over
+must exclude the `#`.
+
 ### SCSS at scale
 
 `twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: **73 of 99 files fail to

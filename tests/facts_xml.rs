@@ -76,13 +76,13 @@ fn idref_and_ref_attributes_reference_element_ids() {
 }
 
 #[test]
-fn fragment_hrefs_reference_ids_but_cross_document_ones_do_not() {
-    let src = "<root><a href=\"#x\"/><b href=\"other.xml#x\"/><c href=\"http://e/\"/></root>\n";
+fn a_fragment_href_references_an_id_here_or_in_another_document() {
+    let src = "<root><a href=\"#x\"/><b href=\"other.xml#x\"/><c href=\"http://e/p#x\"/></root>\n";
     let f = facts(src);
-    assert_eq!(refs(&f), ["#x"]);
-    // Quotes are trimmed; the `#` stays, since it is part of the fragment syntax
-    // rather than padding. Anchor resolution strips it.
-    assert_eq!(f.references[0].span.text(src), "#x");
+    // Quotes are trimmed and the span is narrowed to the fragment, which is what
+    // resolution matches against an id. The absolute URL names another document.
+    assert_eq!(refs(&f), ["x", "x"]);
+    assert_eq!(f.references[0].span.text(src), "x");
 }
 
 #[test]
@@ -170,7 +170,7 @@ fn a_realistic_document_parses_and_extracts() {
 
     let mut r = refs(&f);
     r.sort();
-    assert_eq!(r, ["#cat", "b1", "dc:title", "dc:title"]);
+    assert_eq!(r, ["b1", "cat", "dc:title", "dc:title"]);
 }
 
 #[test]

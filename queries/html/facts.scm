@@ -69,17 +69,16 @@
   (attribute_value) @reference.string
   (#match? @_attr "^(?i)(for|form|list|headers|aria-labelledby|aria-describedby|aria-controls|aria-owns)$"))
 
-; `href="#sec"` — an in-document anchor. The `#` is part of the captured span
-; because the grammar gives no node for the fragment alone; stripping it is the
-; engine's job when it resolves the reference to an id. Fragment-bearing hrefs
-; that also name a file (`other.html#sec`) are deliberately not matched: that is
-; a cross-document link, and the fragment is not resolvable here.
+; `href="#sec"` and `href="other.html#sec"` — a link to an element id. The grammar
+; gives no node for the fragment alone, so the extractor narrows the captured span to
+; it; an absolute URL is left alone there, since its fragment names another site's
+; element.
 (attribute
   (attribute_name) @_attr
   (quoted_attribute_value
     (attribute_value) @reference.string)
   (#match? @_attr "^(?i)href$")
-  (#match? @reference.string "^#."))
+  (#match? @reference.string "#."))
 
 ; ---------------------------------------------------------------- imports
 ; `<link href="theme.css">` — the CSS file this document depends on. This is the

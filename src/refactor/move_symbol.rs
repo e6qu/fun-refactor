@@ -38,7 +38,7 @@ use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Symbol, SymbolId, SymbolKind};
+use crate::model::{anchor_slug as slug, Symbol, SymbolId, SymbolKind};
 use crate::span::{LineIndex, Span};
 use anyhow::{bail, Result};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -1866,12 +1866,15 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
         );
     };
 
-    if let Some(info) = index.file(&sym.file) {
-        for reference in info.references.iter().map(|i| &index.references[*i]) {
-            let Some(anchor) = reference.name.strip_prefix('#') else {
+    // Read the destinations from the text rather than from the index: a resolved
+    // reference spans the fragment alone, and repointing one means rewriting the whole
+    // destination. The cross-document pass below reads them the same way.
+    if let Ok(text) = crate::vfs::read_to_string(&sym.file) {
+        for span in link_destinations(&text) {
+            let Some(anchor) = span.text(&text).strip_prefix('#') else {
                 continue;
             };
-            if removal.contains(reference.span) {
+            if removal.contains(span) {
                 // It travels with the section. If its target stayed behind, the link
                 // breaks in the other direction, which is the reader's to fix.
                 if staying_slugs.contains(anchor) {
@@ -1890,7 +1893,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
             plan.edits.add(
                 sym.file.clone(),
                 Edit::new(
-                    reference.span,
+                    span,
                     format!("{link}#{anchor}"),
                     format!("#{anchor} lives in {} now", destination.display()),
                 ),
@@ -1982,19 +1985,6 @@ fn heading_level(source: &str, heading: &Symbol) -> usize {
         Some(true) => 1,
         _ => 2,
     }
-}
-
-/// GitHub's heading anchor: lowercased, punctuation dropped, spaces hyphenated.
-fn slug(heading: &str) -> String {
-    let mut out = String::with_capacity(heading.len());
-    for ch in heading.trim().chars() {
-        if ch.is_alphanumeric() {
-            out.extend(ch.to_lowercase());
-        } else if ch == ' ' || ch == '-' || ch == '_' {
-            out.push(if ch == '_' { '_' } else { '-' });
-        }
-    }
-    out
 }
 
 /// Every `link_destination` in a Markdown document.

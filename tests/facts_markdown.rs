@@ -146,7 +146,7 @@ fn reference_images_use_link_definitions_too() {
 }
 
 #[test]
-fn inline_links_to_anchors_are_references_and_keep_the_hash() {
+fn an_inline_link_names_the_anchor_without_its_hash() {
     let src = "# Title One\n\nJump to [it](#title-one).\n";
     let f = facts(src);
     assert_eq!(names(&f, SymbolKind::Heading), ["Title One"]);
@@ -154,26 +154,31 @@ fn inline_links_to_anchors_are_references_and_keep_the_hash() {
     let anchor = f
         .references
         .iter()
-        .find(|r| r.name.starts_with('#'))
+        .find(|r| r.name == "title-one")
         .expect("anchor reference");
-    // KNOWN GAP: `link_destination` is one node, so the `#` is in the span.
-    assert_eq!(anchor.name, "#title-one");
-    assert_eq!(anchor.span.text(src), "#title-one");
+    // `link_destination` is one node, so the extractor narrows the span to the
+    // fragment. Named `#title-one`, it matched no symbol and resolution never
+    // reached the code that was supposed to strip it.
+    assert_eq!(anchor.span.text(src), "title-one");
     assert_eq!(anchor.kind, ReferenceKind::StringRef);
 }
 
 #[test]
-fn external_and_relative_link_destinations_are_not_anchor_references() {
-    let src = "[a](http://example.com) [b](./other.md) [c](other.md#frag)\n";
-    let f = facts(src);
-    assert!(refs(&f).is_empty(), "got {:?}", refs(&f));
+fn a_destination_names_something_only_when_a_fragment_says_which() {
+    // A bare document is not a symbol in it, and an absolute URL's fragment belongs to
+    // another document's headings.
+    let src = "[a](http://example.com) [b](./other.md) [c](https://e.com/p#frag)\n";
+    assert!(refs(&facts(src)).is_empty(), "got {:?}", refs(&facts(src)));
+
+    // A fragment on a workspace-relative path names a heading in that file.
+    assert_eq!(refs(&facts("[c](other.md#frag)\n")), ["frag"]);
 }
 
 #[test]
 fn anchor_links_inside_lists_are_found_too() {
     let src = "# Sec\n\n- item [a](#sec)\n- item [b](#sec)\n";
     let f = facts(src);
-    assert_eq!(refs(&f), ["#sec", "#sec"]);
+    assert_eq!(refs(&f), ["sec", "sec"]);
 }
 
 #[test]
@@ -247,19 +252,18 @@ fn a_realistic_document_parses_and_extracts() {
 
     let mut r = refs(&f);
     r.sort();
-    assert_eq!(r, ["#installation", "bash", "ref"]);
+    assert_eq!(r, ["bash", "installation", "ref"]);
 
     // The anchor and the heading it points at differ by slugging: the heading is
-    // `Installation`, the link `#installation`. Reconciling the two is the index's
-    // job, and it needs the name to be the title alone.
+    // `Installation`, the link `installation`. Reconciling the two is the index's job,
+    // through `model::anchor_slug`, and it needs the name to be the title alone.
     let heading = f.symbols.iter().find(|s| s.name == "Installation").unwrap();
     assert_eq!(
-        heading.name.to_lowercase(),
+        fun_refactor::model::anchor_slug(&heading.name),
         f.references
             .iter()
-            .find(|r| r.name.starts_with('#'))
+            .find(|r| r.name == "installation")
             .unwrap()
             .name
-            .trim_start_matches('#')
     );
 }

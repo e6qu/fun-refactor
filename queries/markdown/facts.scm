@@ -16,8 +16,8 @@
 ; What a Markdown rename touches: a heading and every `#slug` link that points at
 ; it, and a link reference definition and every `[text][label]` that uses it.
 ;
-; KNOWN GAP — an anchor destination keeps its `#`. `[x](#intro)` yields the
-; reference name `#intro`, because `link_destination` is one node.
+; `link_destination` is one node, so the extractor narrows a fragment-bearing one to
+; the fragment: `[x](#intro)` and `[x](guide.md#intro)` both name `intro`.
 ;
 ; NOT AVAILABLE — footnotes. This grammar has no footnote rule either: `[^fn]: text`
 ; parses as a paragraph whose inline content is the shortcut link `[^fn]`. Both the
@@ -74,11 +74,13 @@
 (shortcut_link
   (link_text) @reference.string)
 
-; `[text](#anchor)` — an in-document link to a heading anchor. A destination that
-; names a file is a cross-document link and is not matched.
+; `[text](#anchor)` and `[text](guide.md#anchor)` — a link to a heading anchor. The
+; destination is one node, so the extractor narrows the span to the fragment; an
+; absolute URL is left alone there, since its fragment names another document's
+; heading.
 (inline_link
   (link_destination) @reference.string
-  (#match? @reference.string "^#."))
+  (#match? @reference.string "#."))
 
 ; `![alt][label]` — a reference image uses a link reference definition just as a
 ; reference link does, so renaming the definition has to rewrite it too.

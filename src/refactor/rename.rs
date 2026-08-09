@@ -9,7 +9,7 @@ use super::{Refusal, Warning, WarningKind};
 use crate::edit::{Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Symbol, SymbolId};
+use crate::model::{anchor_slug, Symbol, SymbolId, SymbolKind};
 use crate::parse::Parsers;
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
@@ -36,7 +36,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         .symbol(symbol_id)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
-    validate_name(new_name, symbol.language)?;
+    validate_name(new_name, symbol.language, symbol.kind)?;
 
     if new_name == symbol.name {
         anyhow::bail!("'{new_name}' is already the name of this symbol");
@@ -64,6 +64,15 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         );
     }
 
+    // A heading's references are `#anchor` links, and an anchor is a slug of the
+    // heading rather than the heading itself. Writing the new name into one would
+    // produce a link to nothing — `## Two Words` renamed to `Three Words` needs
+    // `#three-words`.
+    let reference_text = match symbol.kind {
+        SymbolKind::Heading => anchor_slug(new_name),
+        _ => new_name.to_string(),
+    };
+
     // References that resolved strongly enough to rewrite.
     let mut reference_edits = 0;
     let mut seen_spans = std::collections::HashSet::new();
@@ -77,7 +86,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     reference.file.clone(),
                     Edit::new(
                         reference.span,
-                        new_name,
+                        reference_text.as_str(),
                         format!("rename reference to {}", symbol.name),
                     ),
                 );
@@ -160,7 +169,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
 }
 
 /// Reject names that are not valid identifiers for the language.
-fn validate_name(name: &str, language: Language) -> Result<(), Refusal> {
+fn validate_name(name: &str, language: Language, kind: SymbolKind) -> Result<(), Refusal> {
     if name.is_empty() {
         return Err(Refusal::InvalidName {
             name: name.into(),
@@ -201,6 +210,16 @@ fn validate_name(name: &str, language: Language) -> Result<(), Refusal> {
             return Err(Refusal::InvalidName {
                 name: name.into(),
                 reason: format!("'{name}' is a {language} keyword"),
+            });
+        }
+    } else if kind == SymbolKind::Heading {
+        // A heading is prose, and the space in `## Getting Started` is the usual case
+        // rather than the exception. A line ending is still not allowed: it would end
+        // the heading and leave the rest as a paragraph.
+        if name.trim().is_empty() || name.contains(['\n', '\r']) {
+            return Err(Refusal::InvalidName {
+                name: name.into(),
+                reason: "a heading must be one non-blank line".into(),
             });
         }
     } else if name.chars().any(|c| c.is_whitespace()) {
@@ -687,9 +706,9 @@ mod tests {
     #[test]
     fn config_languages_allow_names_identifiers_would_reject() {
         // A CSS class may contain dashes, which is not a valid Rust identifier.
-        assert!(validate_name("my-class", Language::Css).is_ok());
-        assert!(validate_name("my-class", Language::Rust).is_err());
+        assert!(validate_name("my-class", Language::Css, SymbolKind::Selector).is_ok());
+        assert!(validate_name("my-class", Language::Rust, SymbolKind::Function).is_err());
         // Whitespace is never acceptable.
-        assert!(validate_name("two words", Language::Css).is_err());
+        assert!(validate_name("two words", Language::Css, SymbolKind::Selector).is_err());
     }
 }

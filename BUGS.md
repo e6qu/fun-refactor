@@ -173,6 +173,47 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B281: **a link to a heading resolved to nothing, and renaming the heading broke it.**
+  `queries/markdown/facts.scm` and `queries/html/facts.scm` both said the engine strips
+  the `#` when it resolves a fragment. It could not. `resolve_by_evidence` opens with a
+  verbatim lookup of the reference name, and `#beta` is nobody's name, so it returned
+  before reaching the branch that would have stripped it. That branch had never run for
+  a name beginning with `#` — which is every fragment.
+
+  What it cost: `fr refs` on a heading reported 0 references however many links pointed
+  at it, `fr unused` listed every heading in the workspace, and `fr rename Beta Zeta`
+  rewrote `# Beta` while leaving `[jump](#beta)` pointing at an anchor that no longer
+  existed — reporting one site changed and no warning.
+
+  Four parts:
+
+  * The fragment is separated at extraction now rather than at resolution, so the
+    reference is named `beta` and its span covers `beta`. A rename writing over the old
+    span would have taken the `#` with it.
+  * A heading is referenced by its *slug*, so `#two-words` matches the heading
+    `Two Words` only if both sides are slugged. `slug` moved out of `move_symbol.rs`,
+    where it was private, to `model::anchor_slug`, so the two agree by construction.
+  * Renaming a heading writes the slug of the new name into each link. Writing the name
+    itself would have produced `#Three Big Words`.
+  * `validate_name` refused any whitespace for every markup language, so a heading could
+    not be renamed to `Getting Started` — a heading with a space in it being the ordinary
+    case. Headings now take any single non-blank line.
+
+  Cross-document links (`guide.md#intro`, `other.html#sec`) were excluded by all three
+  queries as "not resolvable here" and now resolve, since a string-keyed reference already
+  resolves workspace-wide. XML's `href` was relaxed the same way, since the extraction
+  change is language-agnostic and leaving the query behind would have made XML the one
+  markup language that disagreed. An absolute URL is dropped rather than resolved: its
+  fragment names another document's heading, and before this it would have entered the
+  index as a reference named `https://example.com/p#top`.
+
+  `move_symbol` repointed same-document anchors by matching `reference.name` against a
+  leading `#`, which stopped matching anything the moment the name lost it — moving a
+  Markdown section left `[usage](#usage)` behind instead of repointing it to the new
+  file. It reads destinations from the text now, through the same `link_destinations`
+  the cross-document pass beside it already used, so it does not depend on the reference
+  spelling at all. Caught by the suite, not by review.
+
 - [x] B280: **one SCSS interpolation cost every fact below it in the file.**
   `tree-sitter-scss` 1.0 has no rule for `#{...}` in a declaration value, and the ERROR
   node it produces is not the expression — it runs to the end of the file. `_accordion.scss`
