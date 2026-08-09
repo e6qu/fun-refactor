@@ -190,6 +190,30 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B287: **`fr imports` moved an import out from under its `#[cfg]`.** Sorting
+  reorders whole lines within a run of imports, and an attribute occupies its own line.
+  Left where it was, it lands on whichever import sorts into its place. Run over this
+  repository, `fr imports` did that to 3 of its 49 Rust files. `src/index.rs`:
+
+      #[cfg(feature = "cli")]
+      -use crate::scan::{scan, ScanOptions, ScanResult};
+      -use anyhow::{Context, Result};
+      +use anyhow::{Context, Result};
+      +use crate::scan::{scan, ScanOptions, ScanResult};
+
+  The result compiles under neither setting of the feature: `anyhow` disappears without
+  it, and `crate::scan` is named unconditionally while the module it names is not. The
+  edit engine's reparse check cannot catch this — the file still parses, it just no
+  longer means what it did.
+
+  A statement's lines now cover the attributes above it, read from the tree so a
+  multi-line attribute is one span and a `#[` inside a string is not an attribute. The
+  "is anything else on this line" test still reads the statement's own line: run against
+  the extended one, every attributed import looked like shared code and its whole block
+  stopped sorting.
+
+  3 of 49 files affected before, 0 after.
+
 - [x] B284: **`fr inline` refused on any name reused elsewhere in the file.** The
   rebinding check asked whether another symbol of that name appeared later in the same
   file and stopped there, so two functions each declaring `let s` counted as one variable
