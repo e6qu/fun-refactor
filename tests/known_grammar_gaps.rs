@@ -173,3 +173,44 @@ fn scss_can_read_these_forms() {
         );
     }
 }
+
+/// B15: `tree-sitter-go` reads `new(…)` as the builtin, which takes a type.
+///
+/// `new` is a predeclared identifier in Go, not a keyword, so a package may define its
+/// own and call it — and 177 of the 178 Go files that fail to parse in `grafana/grafana`
+/// do exactly that.
+#[test]
+fn go_cannot_read_a_call_to_a_user_defined_new() {
+    let source = "package main\n\nfunc new(s string) string { return s }\n\n\
+                  func use() string {\n\treturn new(\"-10s\")\n}\n";
+    assert!(
+        error_nodes(Language::Go, source) > 0,
+        "a user-defined `new` now parses — retire B15"
+    );
+    // The shape either side of it: a call to anything else, and the builtin's own form.
+    assert_eq!(
+        error_nodes(
+            Language::Go,
+            "package main\n\nfunc old(s string) string { return s }\n\n\
+             func use() string {\n\treturn old(\"-10s\")\n}\n"
+        ),
+        0
+    );
+}
+
+/// B133: `tree-sitter-zig` requires at least one member in a struct.
+///
+/// `const Foo = struct {};` is ordinary Zig — it is the only parse failure across 29
+/// files of Zig's own standard library.
+#[test]
+fn zig_cannot_read_a_struct_with_no_members() {
+    assert!(
+        error_nodes(Language::Zig, "const Foo = struct {};\n") > 0,
+        "an empty struct now parses — retire B133"
+    );
+    assert_eq!(
+        error_nodes(Language::Zig, "const Bar = struct { x: i32 };\n"),
+        0,
+        "a struct with a member still parses"
+    );
+}
