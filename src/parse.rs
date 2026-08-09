@@ -105,14 +105,25 @@ impl Parsers {
             .set_language(&grammar)
             .with_context(|| format!("loading {lang} grammar"))?;
 
-        // Helm templates are not valid YAML. Mask the Go template actions with bytes of
-        // identical length so the YAML grammar sees well-formed input while every byte
-        // offset in the tree still refers to the original source.
-        let (parse_input, template_actions) = if lang == Language::Helm {
-            let actions = find_template_actions(source);
-            (mask_spans(source, &actions), actions)
-        } else {
-            (source.to_string(), Vec::new())
+        // Two languages are not parsed as written, and both replace bytes with the same
+        // number of bytes so every offset in the tree still indexes the original source.
+        let (parse_input, masked_spans) = match lang {
+            // Helm templates are not valid YAML.
+            Language::Helm => {
+                let actions = find_template_actions(source);
+                (mask_spans(source, &actions), actions)
+            }
+            // `tree-sitter-scss` 1.0 has no rule for `#{...}` in a declaration value, and
+            // the ERROR node it produces is not the expression: it runs to the end of the
+            // file, so one interpolated value costs every fact below it. An identifier in
+            // its place leaves the declaration well formed. What the filler then hides —
+            // the variables and calls written inside the braces — is put back by
+            // `interpolation_references`, so the parse is the only thing that changes.
+            Language::Scss => {
+                let spans = find_scss_interpolations(source);
+                (fill_spans(source, &spans, b'x'), spans)
+            }
+            _ => (source.to_string(), Vec::new()),
         };
 
         let tree = parser
@@ -129,14 +140,14 @@ impl Parsers {
             language: lang,
             tree,
             inline_trees,
-            template_actions,
+            masked_spans,
             gaps: Vec::new(),
         };
         if parsed.has_errors() {
             parsed.gaps.push(FactGap::SyntaxErrors);
         }
         if parsed
-            .template_actions
+            .masked_spans
             .iter()
             .any(|span| in_key_position(source, *span))
         {
@@ -247,7 +258,7 @@ pub struct Parsed {
     /// source, exactly as in [`Parsed::tree`].
     pub inline_trees: Vec<Tree>,
     /// Byte spans of Helm `{{ ... }}` template actions, masked out before YAML parsing.
-    pub template_actions: Vec<Span>,
+    pub masked_spans: Vec<Span>,
     /// Why facts drawn from this tree fall short of the file, empty when they do not.
     /// Settled here because the reasons need the original source, which the tree does
     /// not keep, and because every caller that indexes a file needs the same answer.
@@ -382,6 +393,58 @@ fn innermost_error_span(root: Node<'_>) -> Span {
             None => return Span::from(node),
         }
     }
+}
+
+/// Locate SCSS interpolations `#{ ... }`.
+///
+/// Braces nest — `#{map-get($m, #{$k})}` is one interpolation — so the scan counts them
+/// rather than stopping at the first `}`.
+fn find_scss_interpolations(source: &str) -> Vec<Span> {
+    let bytes = source.as_bytes();
+    let mut spans = Vec::new();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] != b'#' || bytes[i + 1] != b'{' {
+            i += 1;
+            continue;
+        }
+        let mut depth = 0usize;
+        let mut end = i + 1;
+        while end < bytes.len() {
+            match bytes[end] {
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                _ => {}
+            }
+            end += 1;
+        }
+        // An unterminated `#{` is a syntax error in the file itself. Leaving it alone
+        // lets the grammar say so rather than masking the evidence.
+        if end == bytes.len() {
+            break;
+        }
+        spans.push(Span::new(i, end + 1));
+        i = end + 1;
+    }
+    spans
+}
+
+/// Replace every byte of each span with `filler`, keeping newlines so line numbers hold.
+fn fill_spans(source: &str, spans: &[Span], filler: u8) -> String {
+    let mut out = source.as_bytes().to_vec();
+    for span in spans {
+        for byte in &mut out[span.start..span.end] {
+            if *byte != b'\n' {
+                *byte = filler;
+            }
+        }
+    }
+    String::from_utf8(out).expect("filling with ASCII preserves UTF-8 validity")
 }
 
 /// Locate Go template actions `{{ ... }}`, tolerating `{{- -}}` trim markers.
@@ -674,7 +737,7 @@ mod tests {
     }
 
     #[test]
-    fn helm_template_actions_are_masked_preserving_offsets() {
+    fn helm_actions_are_masked_preserving_offsets() {
         let src = "metadata:\n  name: {{ .Values.name }}\n  ns: {{- .Release.ns -}}\n";
         let parsed = parse(Language::Helm, src);
         assert!(
@@ -682,10 +745,10 @@ mod tests {
             "masked Helm should parse as YAML: {:?}",
             parsed.error_spans()
         );
-        assert_eq!(parsed.template_actions.len(), 2);
+        assert_eq!(parsed.masked_spans.len(), 2);
         // Spans must still index the ORIGINAL source, not the masked copy.
-        assert_eq!(parsed.template_actions[0].text(src), "{{ .Values.name }}");
-        assert_eq!(parsed.template_actions[1].text(src), "{{- .Release.ns -}}");
+        assert_eq!(parsed.masked_spans[0].text(src), "{{ .Values.name }}");
+        assert_eq!(parsed.masked_spans[1].text(src), "{{- .Release.ns -}}");
     }
 
     #[test]
@@ -708,7 +771,7 @@ mod tests {
             "adjacent actions in a value should parse: {:?}",
             parsed.error_spans()
         );
-        assert_eq!(parsed.template_actions.len(), 2);
+        assert_eq!(parsed.masked_spans.len(), 2);
     }
 
     #[test]

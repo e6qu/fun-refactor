@@ -387,7 +387,7 @@ fn textual_sweep(
 
 /// Spans of string literals, comments and Helm template actions.
 fn string_and_comment_spans(parsed: &crate::parse::Parsed) -> Vec<Span> {
-    let mut spans: Vec<Span> = parsed.template_actions.clone();
+    let mut spans: Vec<Span> = parsed.masked_spans.clone();
     let mut cursor = parsed.root().walk();
     let mut recurse = true;
 

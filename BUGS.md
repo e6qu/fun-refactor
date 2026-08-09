@@ -85,26 +85,36 @@ B11, B14, B15, B133 and B263.
   codebase. The CSS-in-JS majority is a different matter and out of scope: there is no
   stylesheet selector to link `styles.x` to.
 
-- [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse, each surfaced as a parse
-  error rather than mis-handled. Measured over `twbs/bootstrap`'s stylesheets, which is
-  the canonical SCSS codebase: **73 of 99 files fail**.
+- [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse. Measured over
+  `twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: 73 of 99 files failed,
+  and 59 do after B280 masked the first form below.
 
-  In order of how much they cost there:
+  The counts this entry used to carry were of files that *use* each form and fail, which
+  is co-occurrence, not cost — most of those files hit several forms at once. Masking one
+  form at a time and re-measuring gives what each actually costs:
 
-  * **Interpolation in a declaration value** — `color: #{$v}`, `--x: #{$v}`. 52 files use
-    it and 51 of them fail, so this one form is most of the 73. Interpolation in a
-    selector (`.a-#{$x}`) and in a property *name* (`--#{$p}x`) both parse.
+  * **Interpolation in a declaration value** — `color: #{$v}`, `--x: #{$v}`. Handled by
+    masking (B280); the grammar still cannot read it. Worth masking because its error
+    node runs to the end of the file rather than staying in the declaration: 14 files
+    parse once it is masked, and the facts recovered are far larger than that — symbols
+    1916 → 2826, references 3839 → 6277. Interpolation in a selector (`.a-#{$x}`) and in
+    a property *name* (`--#{$p}x`) both parse unaided.
   * **Empty parentheses**, on a declaration (`@mixin m()`) or a call (`@include m();`) —
-    24 files.
-  * **`@if` with `and` or `or`** — `@if $a == 1 and $b == 2`. `@if` with a bare
-    comparison parses. 10 files.
-  * **Map literals** — `$m: (a: 1, b: 2)`, nested or not. 7 files.
+    13 files.
+  * **A nested rule opening with a combinator** — `.a { > .b { … } }`, and the selector
+    list `> .b, > .c`. 10 files. Not in this entry until a sweep of the corpus found it,
+    which is what the counts above were hiding.
+  * **Map literals** — `$m: (a: 1, b: 2)`, nested or not.
+  * **`@if` with `and` or `or`** — `@if $a == 1 and $b == 2`. A bare comparison parses.
   * **`!default`** — `$x: 1rem !default`, on every configurable variable in a Sass
-    library. 6 files.
+    library.
   * **`@use 'x' as t`**, and so the namespaced `@include t.m(…)` that follows it. None in
     bootstrap; found by hand.
 
-  Fixing any of them is upstream grammar work.
+  Masking the rest was measured and rejected: they fix 23 more files' error counts and
+  recover **no** facts, because their error nodes stay inside the construct. Blanking
+  valid source for nothing is a worse trade than the parse error. Fixing them properly is
+  upstream grammar work.
 
   Corrected: this entry previously said `@content` inside a mixin was among them, from
   the grafana run. It parses — bare, nested, and with arguments — so the claim was either
@@ -162,6 +172,29 @@ B11, B14, B15, B133 and B263.
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B280: **one SCSS interpolation cost every fact below it in the file.**
+  `tree-sitter-scss` 1.0 has no rule for `#{...}` in a declaration value, and the ERROR
+  node it produces is not the expression — it runs to the end of the file. `_accordion.scss`
+  in `twbs/bootstrap` is 5050 bytes and the error span was 0..5050, so a stylesheet with
+  one interpolated value yielded almost nothing.
+
+  `Parsers::parse` now fills interpolations with an identifier, the same
+  length-preserving trick Helm uses, so the declaration is well formed and every offset
+  still indexes the original source. What the filler hides — the variables and calls
+  written between the braces — is read back by `interpolation_references`, so masking
+  changes the parse and nothing else.
+
+  Over the 99 stylesheets: files failing to parse 73 → 59, symbols 1916 → 2826,
+  references 3839 → 6277, and **no file lost a reference name it had before** (0 lost,
+  983 gained, compared per file). One custom property changed name, from
+  `#{$prefix}border-radius-pill` to `--#{$prefix}border-radius-pill`, which is the `--`
+  every other custom property in that file already reported.
+
+  `Parsed::template_actions` is now `masked_spans`, since Helm actions are no longer the
+  only thing in it. The fact cache needed no schema bump: `src/parse.rs` and
+  `src/extract.rs` are already fingerprint inputs, so the entries moved namespace by
+  themselves.
 
 - [x] B279: **a Helm action in key position left the entry out of the index, silently.**
   `{{ $key | quote }}: {{ $value | quote }}` names an entry the mask cannot read, so the
