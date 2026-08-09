@@ -14,6 +14,7 @@
 
 use crate::index::Index;
 use crate::lang::Language;
+use crate::model::FactGap;
 use crate::span::{LineCol, LineIndex, Span};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -252,7 +253,7 @@ impl Workspace {
         let mut unparsed = Vec::new();
         for (path, info) in self.index.files() {
             *by_language.entry(info.language.name()).or_default() += 1;
-            if info.had_parse_errors {
+            if info.gaps.contains(&FactGap::SyntaxErrors) {
                 unparsed.push(path.display().to_string());
             }
         }

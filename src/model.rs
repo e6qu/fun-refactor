@@ -327,14 +327,46 @@ impl ImportedName {
     }
 }
 
+/// A reason some of a file's content is missing from the index.
+///
+/// A gap carries the sentence that reports it, so a new way for extraction to come up
+/// short cannot be added without also deciding what the user is told about it. The
+/// alternative — a bool meaning "trust this file less" — has to pick one sentence for
+/// every reason, and grew wrong the moment a second reason existed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum FactGap {
+    /// The grammar produced ERROR nodes.
+    SyntaxErrors,
+    /// A Helm action stands where a mapping key belongs. The key has no name before
+    /// the template renders, so the entry is not in the index at all.
+    TemplatedKeys,
+}
+
+impl FactGap {
+    /// What went missing. Each reporting site appends what that costs it there.
+    pub fn cause(self) -> &'static str {
+        match self {
+            Self::SyntaxErrors => "file has syntax errors",
+            Self::TemplatedKeys => "file has a template action where a key belongs",
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::SyntaxErrors => "syntax-errors",
+            Self::TemplatedKeys => "templated-keys",
+        }
+    }
+}
+
 /// Everything extracted from one file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FileFacts {
     pub path: PathBuf,
-    /// Whether the file parsed cleanly. Carried with the facts so a cached entry
-    /// answers the question without reparsing.
+    /// Why the file's facts are incomplete, empty when they are not. Carried with the
+    /// facts so a cached entry answers the question without reparsing.
     #[serde(default)]
-    pub had_parse_errors: bool,
+    pub gaps: Vec<FactGap>,
     /// Set when the file could not be read at all, so a parallel worker can report
     /// the failure through its result rather than needing a second channel.
     #[serde(skip)]

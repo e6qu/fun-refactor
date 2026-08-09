@@ -620,8 +620,11 @@ positions where YAML needs whitespace, a comment, or nothing at all. Five distin
 fixed as B278: an action supplying the block indented under its key, the continuation
 lines of a multi-line action, the first line of a block scalar, an action at column zero
 inside an indented block scalar, and a `{{/* … */}}` template comment containing `}}`.
-After the fix, 4 fail. All four put an action in key position, where the mask stays
-visibly wrong rather than inventing a plausible key.
+After the fix, 4 fail. All four put an action in key position — and so do 3 files that
+parse cleanly, which is what made the parse error useless as the signal for it. The key
+has no name before the template renders, so the entry is absent from the index either
+way. B279 reports that as a `FactGap` carried with the facts, alongside syntax errors,
+and every refactoring that reads an incomplete file now says which of the two it was.
 
 Also swept the CLI surface after the `--lang` finding, and the other two candidates are
 defensible rather than defects. `impact` calls its walk `--caller-depth` where `callers`

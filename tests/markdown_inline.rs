@@ -62,7 +62,7 @@ fn a_wide_table_parses_instead_of_aborting_the_process() {
 fn a_wide_table_extracts_facts_without_errors() {
     let src = wide_table();
     let f = facts(&src);
-    assert!(!f.had_parse_errors);
+    assert!(f.gaps.is_empty());
     assert!(
         f.symbols.is_empty(),
         "a table defines nothing: {:?}",

@@ -60,8 +60,8 @@ pub enum WarningKind {
     WeaklyResolved,
     /// The old name appears in a string literal, comment or template.
     TextualOccurrence,
-    /// A file could not be parsed cleanly, so its facts may be incomplete.
-    ParseErrors,
+    /// Some of the file did not reach the index, so uses hidden there were not seen.
+    IncompleteFacts,
 }
 
 impl WarningKind {
@@ -69,7 +69,7 @@ impl WarningKind {
         match self {
             WarningKind::WeaklyResolved => "weakly-resolved",
             WarningKind::TextualOccurrence => "textual-occurrence",
-            WarningKind::ParseErrors => "parse-errors",
+            WarningKind::IncompleteFacts => "incomplete-facts",
         }
     }
 }

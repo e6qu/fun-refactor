@@ -4,6 +4,7 @@
 
 use fun_refactor::cache::Cache;
 use fun_refactor::index::Index;
+use fun_refactor::model::FactGap;
 use fun_refactor::scan::{scan, ScanOptions, ScanResult};
 use std::path::PathBuf;
 
@@ -136,12 +137,13 @@ fn a_files_parse_error_state_survives_a_round_trip() {
     let broken = cached
         .file(&tmp.path().join("broken.rs"))
         .expect("the broken file is indexed");
-    assert!(
-        broken.had_parse_errors,
+    assert_eq!(
+        broken.gaps,
+        [FactGap::SyntaxErrors],
         "a file with syntax errors must still be reported as such from cache"
     );
     let fine = cached.file(&tmp.path().join("a.rs")).unwrap();
-    assert!(!fine.had_parse_errors);
+    assert!(fine.gaps.is_empty());
 }
 
 #[test]

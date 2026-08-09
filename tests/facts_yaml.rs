@@ -3,7 +3,7 @@
 //! Two things are being pinned down here. For plain YAML: mapping keys are the
 //! API of a values file, so every key is a definition whose containment gives it
 //! a path, and anchor/alias is the one reference edge YAML resolves within a
-//! single file. For Helm: `{{ ... }}` actions are masked to spaces before the
+//! single file. For Helm: `{{ ... }}` actions are masked out before the
 //! YAML parse (src/parse.rs), so these tests establish that the surrounding
 //! document still extracts cleanly and that nothing from inside a template leaks
 //! out as a bogus symbol.

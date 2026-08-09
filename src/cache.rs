@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 /// Bumped when [`FileFacts`] changes shape in a way old entries cannot satisfy.
-const SCHEMA_VERSION: u32 = 4;
+const SCHEMA_VERSION: u32 = 5;
 
 /// Hits and misses since this cache was opened. Two `usize`s a caller could read in
 /// either order as a pair.

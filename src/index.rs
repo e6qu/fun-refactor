@@ -26,8 +26,9 @@ pub struct FileInfo {
     pub symbols: Vec<SymbolId>,
     /// Indices into [`Index::references`] for references in this file.
     pub references: Vec<usize>,
-    /// True if the file failed to parse cleanly; resolutions from it are suspect.
-    pub had_parse_errors: bool,
+    /// Why this file's facts are incomplete, empty when they are not. Resolutions from
+    /// a file with any gap are suspect.
+    pub gaps: Vec<FactGap>,
 }
 
 impl FileInfo {
@@ -72,12 +73,9 @@ pub fn extract_facts(
     source: &str,
 ) -> Result<FileFacts> {
     let parsed = parsers.parse(language, source)?;
-    let had_parse_errors = parsed.has_errors();
-    let mut facts = extractor
+    extractor
         .extract(&parsed, path, source)
-        .with_context(|| format!("extracting facts from {}", path.display()))?;
-    facts.had_parse_errors = had_parse_errors;
-    Ok(facts)
+        .with_context(|| format!("extracting facts from {}", path.display()))
 }
 
 impl Index {
@@ -130,8 +128,8 @@ impl Index {
                     }
                 };
 
-                // A cached entry carries its own parse-error flag, so a hit skips
-                // parsing entirely rather than reparsing to ask.
+                // A cached entry carries its own gaps, so a hit skips parsing entirely
+                // rather than reparsing to ask.
                 if let Some(cache) = cache {
                     let key = crate::cache::Cache::key(file.language, &source);
                     if let Some(facts) = cache.get(&key, &file.path) {
@@ -145,11 +143,9 @@ impl Index {
                 let parsers = Parsers::new();
                 let mut extractor = Extractor::new();
                 let parsed = parsers.parse(file.language, &source)?;
-                let had_parse_errors = parsed.has_errors();
-                let mut facts = extractor
+                let facts = extractor
                     .extract(&parsed, &file.path, &source)
                     .with_context(|| format!("extracting facts from {}", file.path.display()))?;
-                facts.had_parse_errors = had_parse_errors;
 
                 if let Some(cache) = cache {
                     let key = crate::cache::Cache::key(file.language, &source);
@@ -173,8 +169,7 @@ impl Index {
                 index.skipped.push((file.path.clone(), reason));
                 continue;
             }
-            let had_errors = facts.had_parse_errors;
-            index.add_file(facts, file.language, had_errors);
+            index.add_file(facts, file.language);
         }
 
         index.resolve();
@@ -222,15 +217,14 @@ impl Index {
     pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
         let mut index = Index::default();
         for (_, language, facts) in files {
-            let had_parse_errors = facts.had_parse_errors;
-            index.add_file(facts.clone(), *language, had_parse_errors);
+            index.add_file(facts.clone(), *language);
         }
         index.resolve();
         index
     }
 
     /// Merge one file's facts, remapping file-local ids into the global namespace.
-    pub fn add_file(&mut self, facts: FileFacts, language: Language, had_parse_errors: bool) {
+    pub fn add_file(&mut self, facts: FileFacts, language: Language) {
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);
 
@@ -256,7 +250,7 @@ impl Index {
                 imports: facts.imports,
                 symbols: symbol_ids,
                 references: reference_ids,
-                had_parse_errors,
+                gaps: facts.gaps,
             },
         );
     }
@@ -978,7 +972,15 @@ impl Index {
                 .filter(|r| r.target.is_some())
                 .count(),
             by_confidence,
-            files_with_parse_errors: self.files.values().filter(|f| f.had_parse_errors).count(),
+            files_by_gap: self
+                .files
+                .values()
+                .fold(BTreeMap::new(), |mut counts, file| {
+                    for gap in &file.gaps {
+                        *counts.entry(gap.as_str()).or_default() += 1;
+                    }
+                    counts
+                }),
             imperative_files: self
                 .files
                 .values()
@@ -1011,7 +1013,9 @@ pub struct IndexStats {
     pub references: usize,
     pub resolved: usize,
     pub by_confidence: BTreeMap<&'static str, usize>,
-    pub files_with_parse_errors: usize,
+    /// How many files each gap was found in, by [`FactGap::as_str`]. A gap nobody hit
+    /// is absent rather than zero, as with `by_confidence`.
+    pub files_by_gap: BTreeMap<&'static str, usize>,
     pub imperative_files: usize,
 }
 

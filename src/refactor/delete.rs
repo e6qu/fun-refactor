@@ -171,13 +171,16 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     warnings.extend(textual_occurrences(index, &target.name, &deleted)?);
 
     for (path, info) in index.files() {
-        if info.had_parse_errors {
+        for gap in &info.gaps {
             warnings.push(Warning {
-                kind: WarningKind::ParseErrors,
+                kind: WarningKind::IncompleteFacts,
                 file: path.clone(),
                 line: 1,
                 col: 1,
-                detail: "file has syntax errors; uses hidden in it would not have been seen".into(),
+                detail: format!(
+                    "{}; uses hidden in it would not have been seen",
+                    gap.cause()
+                ),
             });
         }
     }

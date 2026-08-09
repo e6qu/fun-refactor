@@ -512,7 +512,7 @@ fn open_a_parameter_list(
 fn reject_hidden_call_sites(index: &Index, sym: &Symbol) -> Result<()> {
     let hidden: Vec<&PathBuf> = index
         .files()
-        .filter(|(_, info)| info.had_parse_errors && info.language == sym.language)
+        .filter(|(_, info)| !info.gaps.is_empty() && info.language == sym.language)
         .filter(|(path, _)| {
             crate::vfs::read_to_string(path).is_ok_and(|source| source.contains(&sym.name))
         })

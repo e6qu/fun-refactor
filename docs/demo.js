@@ -145,7 +145,7 @@ var STEPS = [
       'it, which is the case find-and-replace gets wrong.',
     lines: [
       ['weak', 'Not changed — review these yourself:'],
-      ['weak', '  parse-errors (13):'],
+      ['weak', '  incomplete-facts (13):'],
       ['', '    internal/chart/v3/lint/rules/testdata/malformed-template/templates/bad.yaml:1:1'],
       ['dim', '      file has syntax errors; references in it may be missing'],
       ['dim', '    … and 12 more'],
