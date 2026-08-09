@@ -154,16 +154,28 @@ impl Language {
     ///
     /// Where this holds, a call with no receiver cannot be a method, which is what
     /// stops a bare `contextWithTimeout(…)` from resolving to the `statusWaiter`
-    /// method of that name sitting four lines above it. Rust is excluded: it reaches
-    /// an associated function through a path, `Foo::new()`, which is not a receiver
-    /// and is not recorded as one. Java is excluded for the same reason from the other
-    /// direction: inside a class, `helper()` calls the enclosing class's method with no
-    /// receiver at all, so requiring one made every unqualified call in the language
-    /// unresolvable and every method it named look dead.
+    /// method of that name sitting four lines above it.
+    ///
+    /// Rust holds. It was once excluded on the grounds that `Foo::new()` reaches an
+    /// associated function through a path "which is not recorded as a receiver"; it is
+    /// recorded, as a receiver with `receiver_is_path` set, so those calls are not bare
+    /// and were never at risk. What the exclusion did instead was let a bare
+    /// `width(&self.items, n)` inside an `impl` resolve to the method of that name
+    /// enclosing it, which is not something Rust can mean: there is no implicit self.
+    ///
+    /// Java is excluded, and for a real reason: inside a class, `helper()` calls the
+    /// enclosing class's method with no receiver at all, so requiring one made every
+    /// unqualified call in the language unresolvable and every method it named look
+    /// dead.
     pub fn members_always_have_a_receiver(&self) -> bool {
         matches!(
             self,
-            Language::Go | Language::TypeScript | Language::Tsx | Language::Python | Language::Zig
+            Language::Go
+                | Language::TypeScript
+                | Language::Tsx
+                | Language::Python
+                | Language::Zig
+                | Language::Rust
         )
     }
 

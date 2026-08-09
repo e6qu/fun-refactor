@@ -384,7 +384,12 @@ impl Index {
             && reference.receiver.is_none()
             && reference.language.members_always_have_a_receiver();
         // Written as a member of something — either `x.field` or a call on a value.
-        let member_access = reference.kind == ReferenceKind::Field || called_on_a_value;
+        // Written as a member of something — either `x.field`, a call on a value, or a
+        // dotted name inside a macro, where the grammar recorded the tokens and not the
+        // receiver.
+        let member_access = reference.kind == ReferenceKind::Field
+            || called_on_a_value
+            || reference.member_in_macro;
         let plausible = |s: &Symbol| {
             // A candidate in another language is only a candidate where the two
             // languages have a way of naming each other's declarations. Without this
