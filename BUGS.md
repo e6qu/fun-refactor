@@ -15,6 +15,14 @@ B11, B14, B15, B133 and B263.
 
 ## Open
 
+- [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
+  has two syntaxes — the braced one in `.scss` files and the older whitespace-significant
+  one in `.sass` files — and `tree-sitter-scss` implements the first. So a `.sass` file
+  is scanned and then fails to parse. It is visible rather than silent, which is why the
+  mapping stays: removing it would make those files vanish the way `.js` files did.
+  Pinned in `tests/known_grammar_gaps.rs`. Fixing it needs a grammar for the indented
+  syntax, which is upstream work.
+
 - [ ] B263: **a Terraform input variable and a local sharing a name are one symbol.**
   `var.x` and `local.x` are separate namespaces, and the index records both declarations
   as `SymbolKind::Variable` with no qualifier, so nothing tells them apart. With
@@ -172,6 +180,26 @@ B11, B14, B15, B133 and B263.
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B282: **JavaScript files were not source files.** `.js`, `.mjs`, `.cjs` and `.jsx`
+  mapped to no language, so they were not scanned, not parsed and not in the index — and
+  silently, since an unmapped extension is indistinguishable from a PNG. The TypeScript
+  grammar this build already carries is a superset of JavaScript and reads all of it:
+  the 19 `.js`/`.mjs` files tracked in this repository parse with **0 errors**, as does
+  CommonJS, ESM, private class fields and optional chaining.
+
+  The cost was not only the missing facts. A CSS class used from a `.js` file had no use
+  anywhere the index could see, so `fr unused` reported it dead — which is the answer
+  `fr delete` acts on.
+
+  The extensions map onto `Language::TypeScript` and `Language::Tsx` rather than to
+  variants of their own. A `Language::JavaScript` would read better in `fr scan` output
+  and would turn each of the twelve `matches!(lang, TypeScript | Tsx)` arms in the
+  codebase into a place JavaScript could be forgotten; sharing the variant makes that
+  divergence unrepresentable.
+
+  This repository, before and after: files 256 → 275, symbols 21,771 → 22,402,
+  references 140,648 → 143,877, of which resolved 84,350 → 86,148.
 
 - [x] B281: **a link to a heading resolved to nothing, and renaming the heading broke it.**
   `queries/markdown/facts.scm` and `queries/html/facts.scm` both said the engine strips

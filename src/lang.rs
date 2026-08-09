@@ -118,8 +118,13 @@ impl Language {
             Language::Go => &["go"],
             Language::Zig => &["zig"],
             Language::Java => &["java"],
-            Language::TypeScript => &["ts", "mts", "cts"],
-            Language::Tsx => &["tsx"],
+            // JavaScript is parsed by the TypeScript grammar, which is a superset of
+            // it, and read by the same queries. Mapping the extensions onto these two
+            // rather than adding variants is what keeps the two from drifting: every
+            // `matches!(lang, TypeScript | Tsx)` in the codebase would otherwise be a
+            // place JavaScript could be left out of.
+            Language::TypeScript => &["ts", "mts", "cts", "js", "mjs", "cjs"],
+            Language::Tsx => &["tsx", "jsx"],
             Language::Python => &["py", "pyi"],
             Language::Bash => &["sh", "bash"],
             Language::Html => &["html", "htm"],

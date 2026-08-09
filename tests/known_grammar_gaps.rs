@@ -98,6 +98,19 @@ fn typescript_cannot_read_a_property_called_in_after_another() {
     );
 }
 
+/// `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS.
+///
+/// Sass has two syntaxes: the braced one in `.scss` files, and the older
+/// whitespace-significant one in `.sass` files. `tree-sitter-scss` implements the
+/// first. The extension table names both, so a `.sass` file is scanned and then fails
+/// to parse — visible in `fr parse`, unlike an extension that maps to nothing at all,
+/// but still a claim of support the grammar cannot meet.
+#[test]
+fn the_indented_sass_syntax_is_not_scss() {
+    assert!(error_nodes(Language::Scss, ".button\n  color: red\n") > 0);
+    assert_eq!(error_nodes(Language::Scss, ".button { color: red; }\n"), 0);
+}
+
 /// The SCSS forms behind B11, and what each one costs in `twbs/bootstrap`.
 ///
 /// Interpolation in a declaration value is not here: `Parsers::parse` masks it, which
