@@ -435,11 +435,12 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         .into());
     }
 
-    if info.had_parse_errors {
+    if let Some(gap) = info.gaps.first() {
         anyhow::bail!(
-            "refusing to organize imports in {}: the file has syntax errors, so a use \
-             hidden in the unparsed part could make a live import look unused",
-            file.display()
+            "refusing to organize imports in {}: {}, so a use hidden in the part that did \
+             not reach the index could make a live import look unused",
+            file.display(),
+            gap.cause()
         );
     }
 

@@ -12,6 +12,7 @@
 
 use crate::index::Index;
 use crate::lang::Language;
+use crate::model::FactGap;
 use crate::parse::Parsers;
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
@@ -305,7 +306,7 @@ pub fn unparsed(index: &Index, options: &Options) -> Vec<PathBuf> {
     index
         .files()
         .filter(|(path, info)| {
-            info.had_parse_errors
+            info.gaps.contains(&FactGap::SyntaxErrors)
                 && (options.languages.is_empty() || options.languages.contains(&info.language))
                 && (options.paths.is_empty() || options.paths.iter().any(|p| path.starts_with(p)))
         })

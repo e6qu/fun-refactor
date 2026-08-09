@@ -8,6 +8,7 @@
 //! by a second grammar — because both preserve every byte offset.
 
 use crate::lang::Language;
+use crate::model::FactGap;
 use crate::span::Span;
 use anyhow::{Context, Result};
 use tree_sitter::{Node, Parser, Range, Tree};
@@ -104,9 +105,9 @@ impl Parsers {
             .set_language(&grammar)
             .with_context(|| format!("loading {lang} grammar"))?;
 
-        // Helm templates are not valid YAML. Mask the Go template actions with spaces
-        // of identical byte length so the YAML grammar sees well-formed input while
-        // every byte offset in the tree still refers to the original source.
+        // Helm templates are not valid YAML. Mask the Go template actions with bytes of
+        // identical length so the YAML grammar sees well-formed input while every byte
+        // offset in the tree still refers to the original source.
         let (parse_input, template_actions) = if lang == Language::Helm {
             let actions = find_template_actions(source);
             (mask_spans(source, &actions), actions)
@@ -124,12 +125,24 @@ impl Parsers {
             None => Vec::new(),
         };
 
-        Ok(Parsed {
+        let mut parsed = Parsed {
             language: lang,
             tree,
             inline_trees,
             template_actions,
-        })
+            gaps: Vec::new(),
+        };
+        if parsed.has_errors() {
+            parsed.gaps.push(FactGap::SyntaxErrors);
+        }
+        if parsed
+            .template_actions
+            .iter()
+            .any(|span| in_key_position(source, *span))
+        {
+            parsed.gaps.push(FactGap::TemplatedKeys);
+        }
+        Ok(parsed)
     }
 }
 
@@ -235,6 +248,10 @@ pub struct Parsed {
     pub inline_trees: Vec<Tree>,
     /// Byte spans of Helm `{{ ... }}` template actions, masked out before YAML parsing.
     pub template_actions: Vec<Span>,
+    /// Why facts drawn from this tree fall short of the file, empty when they do not.
+    /// Settled here because the reasons need the original source, which the tree does
+    /// not keep, and because every caller that indexes a file needs the same answer.
+    pub gaps: Vec<FactGap>,
 }
 
 impl Parsed {
@@ -444,12 +461,14 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
     let mut out = source.as_bytes().to_vec();
     for span in spans {
         // Scalar filler is only right where a *value* is expected. An action alone on
-        // its line is structural and must vanish; an action in key position must stay
-        // visibly wrong, because a plausible-looking fake key hides more than a
-        // parse error — the tool would report a key nobody wrote.
+        // its line is structural and must vanish, and so must one in key position: a
+        // key masked to `xxx` is reported under the action's own source text, giving a
+        // symbol named `{{ $key }}` that renaming would happily rewrite. Blanked, the
+        // entry is absent instead, which `FactGap::TemplatedKeys` then reports.
         let filler = if line_is_only_actions(source, spans, *span)
             || starts_the_line(source, *span)
             || supplies_the_block_below(source, spans, *span)
+            || in_key_position(source, *span)
         {
             b' '
         } else {
@@ -492,7 +511,25 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
     String::from_utf8(out).expect("masking preserves UTF-8 validity")
 }
 
-/// Is this span the first thing on its line, i.e. in key rather than value position?
+/// Does this action stand where a mapping key belongs?
+///
+/// Such an entry reaches the index under no name at all — the mask blanks it, and a
+/// blank key matches no capture — which is why the gap is reported rather than left to
+/// the parse. Whether the blank *also* trips the grammar depends on what surrounds it:
+/// `{{ $k }}: v` alone under its parent parses, the same line beside a second pair does
+/// not, so the parse error cannot be the signal.
+fn in_key_position(source: &str, span: Span) -> bool {
+    let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    // A block sequence entry's `- ` is structure, not a key, so an action after it is
+    // still in key position.
+    let opens_the_entry = source[line_start..span.start]
+        .trim()
+        .chars()
+        .all(|c| c == '-');
+    opens_the_entry && source[span.end..].trim_start_matches(' ').starts_with(':')
+}
+
+/// Is this span the first thing on its line?
 fn starts_the_line(source: &str, span: Span) -> bool {
     let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
     source[line_start..span.start].trim().is_empty()

@@ -132,15 +132,15 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         .collect();
     warnings.extend(textual_sweep(index, &symbol.name, &edited)?);
 
-    // Files that did not parse cleanly may be hiding references.
+    // Whatever did not reach the index may be hiding references.
     for (path, info) in index.files() {
-        if info.had_parse_errors {
+        for gap in &info.gaps {
             warnings.push(Warning {
-                kind: WarningKind::ParseErrors,
+                kind: WarningKind::IncompleteFacts,
                 file: path.clone(),
                 line: 1,
                 col: 1,
-                detail: "file has syntax errors; references in it may be missing".into(),
+                detail: format!("{}; references in it may be missing", gap.cause()),
             });
         }
     }
@@ -679,7 +679,7 @@ mod tests {
         assert!(
             plan.warnings
                 .iter()
-                .any(|w| w.kind == WarningKind::ParseErrors),
+                .any(|w| w.kind == WarningKind::IncompleteFacts),
             "a file with syntax errors may hide references and must be reported"
         );
     }

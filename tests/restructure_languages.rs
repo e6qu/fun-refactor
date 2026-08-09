@@ -511,7 +511,7 @@ fn helm_rewrites_a_pair_outside_a_template_action() {
 
 #[test]
 fn helm_does_not_match_a_value_that_is_a_template_action() {
-    // `{{ .Values.name }}` is masked to spaces before the YAML parse, so the pair has
+    // `{{ .Values.name }}` is masked out before the YAML parse, so the pair has
     // no value node at all. Matching it would mean rewriting bytes no parse saw.
     let (n, _) = restructured(
         &[

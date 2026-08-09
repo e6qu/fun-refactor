@@ -11,14 +11,16 @@
 ; discards anchors during composition, so this pre-composition view is strictly
 ; more information than a loaded document carries.
 ;
-; Helm: `{{ ... }}` actions are masked to equal-length spaces before parsing (see
+; Helm: `{{ ... }}` actions are masked to equal-length bytes before parsing (see
 ; src/parse.rs), so template contents are invisible to these patterns by
 ; construction. That is deliberate — a masked action leaves a well-formed YAML
 ; skeleton, and the surrounding keys extract normally. Resolving `.Values.x`
 ; needs a separate template-aware pass over `Parsed::template_actions`; nothing
 ; below attempts it. The one shape masking cannot rescue is an action in *key*
-; position (`{{ .Values.k }}: v`), which masks to a blank key and shows up as a
-; parse error — visible through `Parsed::has_errors`, not silently swallowed.
+; position (`{{ .Values.k }}: v`): the key has no name before the template
+; renders, so it is blanked and matches nothing here. Whether that also fails
+; the parse depends on what surrounds it, which is why the file carries
+; `FactGap::TemplatedKeys` rather than leaving the report to `has_errors`.
 
 ; ---------------------------------------------------------------- scopes
 (stream) @scope

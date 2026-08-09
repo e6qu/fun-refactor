@@ -2404,7 +2404,7 @@ fn cmd_symbols(
                     "references": s.references,
                     "resolved": s.resolved,
                     "by_confidence": s.by_confidence,
-                    "files_with_parse_errors": s.files_with_parse_errors,
+                    "files_by_gap": s.files_by_gap,
                 }))?
             );
         } else {
@@ -2414,11 +2414,8 @@ fn cmd_symbols(
             for (confidence, count) in &s.by_confidence {
                 println!("  {confidence:<18} {count}");
             }
-            if s.files_with_parse_errors > 0 {
-                println!(
-                    "\n{} file(s) had parse errors; their facts may be incomplete",
-                    s.files_with_parse_errors
-                );
+            for (gap, count) in &s.files_by_gap {
+                println!("\n{count} file(s): {gap}; their facts are incomplete");
             }
         }
         return Ok(());

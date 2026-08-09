@@ -594,8 +594,7 @@ impl Extractor {
 
         Ok(FileFacts {
             path: path.to_path_buf(),
-            // The caller knows whether the parse was clean; extraction does not set it.
-            had_parse_errors: parsed.has_errors(),
+            gaps: parsed.gaps.clone(),
             unreadable: None,
             symbols,
             references,

@@ -101,7 +101,8 @@ function renderWarnings(warnings: any[]): string {
     "textual-occurrence":
       "the name appears in a string or comment, where nothing can prove it is a use",
     "weakly-resolved": "the reference resolved too weakly to rewrite",
-    "parse-errors": "the file has syntax errors, so uses hidden in it were not seen",
+    "incomplete-facts":
+      "part of the file did not reach the index, so uses hidden there were not seen",
   };
 
   const sections = [...byKind.entries()].map(([kind, all]) => {

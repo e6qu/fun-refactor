@@ -35,7 +35,7 @@
 //! - **HCL**: an attribute (`count = $N`) or a block parses bare; a bare expression
 //!   (`var.$X`) is wrapped in an attribute.
 //! - **YAML/Helm**: a pattern is a mapping pair or a nested mapping. Helm `{{ ... }}`
-//!   actions are masked to spaces before the YAML parse (see [`crate::parse`]), so
+//!   actions are masked out before the YAML parse (see [`crate::parse`]), so
 //!   they carry no structure: a pattern may not contain one, and any match whose span
 //!   covers or runs up against one is dropped rather than rewritten from a tree that
 //!   never saw those bytes.
@@ -121,7 +121,7 @@ pub fn apply(
 ) -> Result<RestructurePlan> {
     let parsers = Parsers::new();
 
-    // Helm's `{{ ... }}` actions are masked to spaces before the YAML parse, so a
+    // Helm's `{{ ... }}` actions are masked out before the YAML parse, so a
     // pattern containing one would be matched against blanks. Say so rather than
     // silently matching nothing.
     if language == Language::Helm && pattern.contains("{{") {

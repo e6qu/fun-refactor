@@ -235,7 +235,7 @@ fn files_that_failed_to_parse_are_reported_as_possibly_hiding_uses() {
     assert!(
         plan.warnings
             .iter()
-            .any(|w| w.kind == WarningKind::ParseErrors),
+            .any(|w| w.kind == WarningKind::IncompleteFacts),
         "got {:?}",
         plan.warnings
     );

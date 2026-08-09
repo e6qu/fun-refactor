@@ -253,7 +253,7 @@ The run also ends with a section worth reading every time:
 
 ```
 Not changed — review these yourself:
-  parse-errors (13):
+  incomplete-facts (13):
     internal/chart/v3/lint/rules/testdata/malformed-template/templates/bad.yaml:1:1  file has syntax errors; references in it may be missing
     …
 ```

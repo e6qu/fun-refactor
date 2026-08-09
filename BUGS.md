@@ -163,11 +163,32 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B279: **a Helm action in key position left the entry out of the index, silently.**
+  `{{ $key | quote }}: {{ $value | quote }}` names an entry the mask cannot read, so the
+  mask blanks it and no capture matches. Whether that also fails the parse depends on
+  what surrounds it: of the 7 files in three `bitnami/charts` charts that write such a
+  key, **3 parse cleanly** and 4 do not, so the parse error was reporting the same
+  construct as a problem in 4 files and as nothing at all in 3.
+
+  The mask disagreed with itself too. After `- ` the action was not read as key position
+  and took the scalar filler, and since offsets index the original source, the entry
+  reached the index as a symbol *named* `{{ $key }}` — a rename target that would rewrite
+  template syntax into nonsense. One predicate now decides key position for the mask and
+  for the report, so the two cannot drift.
+
+  `FileFacts::had_parse_errors: bool` became `gaps: Vec<FactGap>`, an enum whose variants
+  each carry the cause they report. A gap that reaches the index without a sentence to
+  say so does not compile, and `Index::add_file` no longer takes the flag beside the
+  facts that already hold it. Two sites want syntax errors specifically rather than any
+  gap — `duplicates::unparsed` lists files the report skipped, and a templated key is
+  analysed, not skipped — which the bool could not express. `WarningKind::ParseErrors` is
+  now `IncompleteFacts`, since it names files that have none.
+
 - [x] B278: **Helm masking produced YAML that does not parse, four ways.** Masking replaces
   `{{ … }}` with bytes of identical length so every offset still indexes the original
   file. Which bytes matters, and a run of spaces or of scalar characters is not always
   legal YAML. Across three `bitnami/charts` charts, **48 of 92 files failed to parse**;
-  4 do now, all of them the key-position case the masking leaves visibly wrong on purpose.
+  4 do now, all of them actions in key position, which B279 covers.
 
   * An action **supplying the block indented under it** —
     `labels: {{- include … | nindent 4 }}` — took the scalar filler, leaving
