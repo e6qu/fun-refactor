@@ -634,6 +634,25 @@ is needed: those answer whole-workspace questions, and narrowing with `-C` inste
 a different answer — 30 dead symbols rather than 28, because references from outside the
 narrowed root are gone.
 
+### An inverse that did not close
+
+`fr signature` moving a parameter and moving it back should return the file to what it
+was. Over 159 sampled functions here, 37 round-tripped, 121 refused, and one did not
+close: `model::scope_at`, which is a free function with a method of the same name beside
+it.
+
+Neither name resolved to itself. The method's four call sites were attributed to the free
+function, and the free function's one call site to the method — exactly swapped, both
+reported `Exact`. Two separate causes. A bare call was allowed to mean a method, because
+Rust was missing from the list of languages where a member always has a receiver, on a
+stated ground that had stopped being true (B290). And the four `f.scope_at(30)` sit inside
+`assert_eq!`, where a macro body is tokens and the receiver is not recorded at all
+(B291).
+
+The second fix was wrong the first time in an instructive way: distrusting every token in
+every macro fixed the four references and made 12,989 others unrewritable. What
+distinguishes them is written in the source even where the syntax is not — the dot.
+
 ### What a refusal is hiding
 
 `fr move` over a sample of this repository refused all 64 candidates, which is the kind

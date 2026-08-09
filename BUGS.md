@@ -190,6 +190,44 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B290: **a bare Rust call resolved to a method or a field.** Rust was left out of
+  `members_always_have_a_receiver`, so nothing stopped `width(&self.items, n)` inside an
+  `impl` from resolving to the `width` method enclosing it. Rust has no implicit self:
+  that call is the free function, always.
+
+  The stated reason for the exclusion was that `Foo::new()` reaches an associated
+  function "through a path, which is not a receiver and is not recorded as one". It is
+  recorded — `receiver = Some("Foo")`, `receiver_is_path = true` — so those calls were
+  never bare and never at risk. The comment described a state of the code that no longer
+  held, and nothing re-checked it.
+
+  Across this repository, bare Rust calls resolving to a member: **150 → 0** (33 methods,
+  117 fields). Fourteen found their real target; the rest are honestly unresolved.
+  `fr signature` on the free `model::scope_at` updated **0 call sites** before and
+  reports 1 now, which is how many it has.
+
+- [x] B291: **a dotted name inside a macro resolved to a free function.** A macro body is
+  tokens: tree-sitter offers `token_tree` and no structure within it, so
+  `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier — not a call,
+  and with no receiver. Resolution had nothing to tell it from a call to the free
+  function of that name, and called it `Exact`.
+
+      $ fr rename src/model.rs:401:8 scope_at_free
+      -        assert_eq!(f.scope_at(30), Some(ScopeId(2)));
+      +        assert_eq!(f.scope_at_free(30), Some(ScopeId(2)));
+
+  Four method calls on `FileFacts`, rewritten to a method that does not exist.
+
+  The dot is still in the source where the syntax is not, so a reference written after
+  one inside a token tree is treated as the member access it is. Only the dotted ones:
+  distrusting every token in every macro would have left 12,989 references in this
+  repository unrewritable to fix four, and `assert_eq!(helper(), 1)` names `helper`
+  whether the grammar parsed the call or not.
+
+  Repository-wide: resolved 86,587 → 85,869, safe to rewrite 70,479 → 69,637, and
+  symbols with no detected use 2,099 → 2,097 — two methods stopped looking dead once
+  their call sites were attributed to them.
+
 - [x] B288: **`fr move` refused every move in this workspace, over a doc comment.** The
   check for `#[path]` module redirection searched each file's text for `#[path`, and
   `src/analysis/entrypoints.rs` documents an unrelated function with

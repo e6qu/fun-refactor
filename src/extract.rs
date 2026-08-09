@@ -196,6 +196,29 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
 /// `helper()` yields nothing. Read from the tree rather than captured by a query,
 /// because every grammar spells the shape differently but all of them put the
 /// receiver first and the member last.
+/// Was this reference written as `something.name` inside a macro's token tree?
+///
+/// A macro body is tokens, not syntax: tree-sitter offers `token_tree` and no structure
+/// within it, so `assert_eq!(f.scope_at(30), …)` yields a bare identifier with no
+/// receiver. Resolution then cannot tell it from a call to a free function of the same
+/// name, and renaming that function rewrote the method call.
+///
+/// Only the dotted ones. A plain `assert_eq!(helper(), 1)` names `helper` whether the
+/// grammar parsed the call or not, and treating every token in every macro as suspect
+/// would leave 12,989 references in this repository unrewritable for nothing.
+fn member_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
+    let mut node = root.descendant_for_byte_range(span.start, span.end);
+    let mut inside = false;
+    while let Some(current) = node {
+        if current.kind() == "token_tree" {
+            inside = true;
+            break;
+        }
+        node = current.parent();
+    }
+    inside && source[..span.start].trim_end().ends_with('.')
+}
+
 fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     const MEMBER_SHAPES: &[&str] = &[
         "selector_expression", // Go
@@ -330,6 +353,7 @@ fn interpolation_references(
                 kind,
                 receiver: None,
                 receiver_is_path: false,
+                member_in_macro: false,
             });
         }
     }
@@ -377,6 +401,7 @@ fn values_references(
                 kind: ReferenceKind::StringRef,
                 receiver: segments.len().checked_sub(2).map(|i| segments[i].clone()),
                 receiver_is_path: true,
+                member_in_macro: false,
             });
         }
     }
@@ -665,6 +690,7 @@ impl Extractor {
                     kind: r.kind,
                     receiver: receiver_of(root, span, source),
                     receiver_is_path: receiver_is_path(root, span),
+                    member_in_macro: member_in_macro(root, span, source),
                 });
             }
         }

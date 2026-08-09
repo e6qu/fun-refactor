@@ -250,6 +250,16 @@ pub struct Reference {
     /// receiver recorded here.
     #[serde(default)]
     pub receiver: Option<String>,
+    /// Written after a `.` inside a macro's token tree, where the grammar records
+    /// tokens rather than syntax and so records no receiver.
+    ///
+    /// `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier: not a
+    /// call, and with nothing before it. Left at that it is indistinguishable from a
+    /// call to a free function of the same name — which is what renaming the free
+    /// `scope_at` rewrote, turning four method calls into calls to a method that does
+    /// not exist. The dot is still in the source even where the syntax is not.
+    #[serde(default)]
+    pub member_in_macro: bool,
     /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f` —
     /// rather than as a value.
     ///
