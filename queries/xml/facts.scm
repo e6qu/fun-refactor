@@ -50,14 +50,14 @@
   (AttValue) @reference.string
   (#any-of? @_attr "idref" "idrefs" "ref"))
 
-; `href="#a"` — an in-document fragment. The quotes and the `#` are both inside
-; the span; resolution strips them. `href="other.xml#a"` is a cross-document
-; link and is deliberately not matched.
+; `href="#a"` and `href="other.xml#a"` — a link to an element id. The quotes are
+; inside the span, and the extractor narrows what is left to the fragment; an
+; absolute URL is left alone there, since its fragment names another document.
 (Attribute
   (Name) @_attr
   (AttValue) @reference.string
   (#eq? @_attr "href")
-  (#match? @reference.string "^[\"']#."))
+  (#match? @reference.string "#."))
 
 ; Any prefixed name — `<foo:child>`, `</foo:child>`, `foo:attr="v"` — uses a
 ; prefix bound by an `xmlns:` declaration. `xmlns:` declarations are definitions,

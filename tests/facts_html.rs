@@ -117,22 +117,30 @@ fn in_document_anchor_hrefs_are_references() {
     let anchor = f
         .references
         .iter()
-        .find(|r| r.name.starts_with('#'))
+        .find(|r| r.kind == ReferenceKind::StringRef && r.name == "sec")
         .expect("anchor reference");
-    // The `#` is inside the span: the grammar offers no node for the fragment
-    // alone, so the engine strips it when resolving against the id `sec`.
-    assert_eq!(anchor.name, "#sec");
-    assert_eq!(anchor.span.text(src), "#sec");
+    // The grammar offers no node for the fragment alone, so the extractor narrows the
+    // captured destination to it. Naming the reference `#sec` matched no symbol, and a
+    // rename writing over that span would have taken the `#` with it.
+    assert_eq!(anchor.span.text(src), "sec");
     assert_eq!(anchor.kind, ReferenceKind::StringRef);
     assert_eq!(names(&f, SymbolKind::ElementId), ["sec"]);
 }
 
 #[test]
-fn cross_document_and_external_hrefs_are_not_anchor_references() {
-    let src =
-        "<a href=\"other.html\">x</a><a href=\"https://example.com\">y</a><a href=\"#\">z</a>\n";
-    let f = facts(src);
-    assert!(refs(&f).is_empty(), "got {:?}", refs(&f));
+fn an_href_names_something_only_when_a_fragment_says_which() {
+    // A bare file name is a document, not a symbol in it; `#` alone is the top of the
+    // page; and an absolute URL's fragment belongs to another site's document.
+    let src = concat!(
+        "<a href=\"other.html\">x</a>",
+        "<a href=\"https://example.com/p#top\">y</a>",
+        "<a href=\"#\">z</a>\n",
+    );
+    assert!(refs(&facts(src)).is_empty(), "got {:?}", refs(&facts(src)));
+
+    // With a fragment, it names the id — in this document or another one.
+    let src = "<a href=\"other.html#sec\">x</a>\n";
+    assert_eq!(refs(&facts(src)), ["sec"]);
 }
 
 #[test]
@@ -211,6 +219,6 @@ fn a_realistic_document_extracts_the_css_facing_facts() {
 
     let mut r = refs(&f);
     r.sort();
-    assert_eq!(r, ["#main", "content", "field", "page", "q"]);
+    assert_eq!(r, ["content", "field", "main", "page", "q"]);
     assert_eq!(f.imports.len(), 2);
 }

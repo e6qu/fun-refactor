@@ -256,6 +256,30 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     Some(Span::from(children[0]).text(source).to_string())
 }
 
+/// What a string reference actually names: its fragment, itself, or nothing.
+///
+/// `None` drops the reference. An absolute URL is somebody else's document, and the
+/// grammars capture the destination whole, so without this every `href` with a fragment
+/// would enter the index under a name no file can define.
+fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Span> {
+    if kind != ReferenceKind::StringRef {
+        return Some(span);
+    }
+    let text = span.text(source);
+    if text.contains("://") {
+        return None;
+    }
+    let Some(hash) = text.find('#') else {
+        return Some(span);
+    };
+    let start = span.start + hash + 1;
+    match start < span.end {
+        true => Some(Span::new(start, span.end)),
+        // `#` with nothing after it is a link to the top of the page.
+        false => None,
+    }
+}
+
 /// The variables and calls written inside SCSS `#{ ... }`.
 ///
 /// The filler that makes the declaration parse is an identifier, so everything between
@@ -618,6 +642,17 @@ impl Extractor {
                 vec![refined]
             };
             for span in spans {
+                // `href="#top"`, `[x](#intro)`, `[x](guide.md#intro)`: every grammar
+                // here gives the destination as one node, so the fragment is separated
+                // out now rather than at resolution. A reference named `#intro` matches
+                // no symbol, and a rename writing over the span would take the `#` with
+                // it.
+                let span = match link_destination(span, source, r.kind) {
+                    Some(span) => span,
+                    // An absolute URL names another document. Neither its fragment nor
+                    // the URL itself refers to anything this workspace defines.
+                    None => continue,
+                };
                 references.push(Reference {
                     name: span.text(source).to_string(),
                     span,

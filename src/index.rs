@@ -357,7 +357,11 @@ impl Index {
         by_name: &HashMap<&str, Vec<SymbolId>>,
     ) -> (Option<SymbolId>, Confidence) {
         let candidates = match by_name.get(reference.name.as_str()) {
-            Some(c) => c,
+            Some(c) => c.as_slice(),
+            // A string-keyed reference need not name its target verbatim: `#two-words`
+            // is the anchor of a heading written `Two Words`. Step 4 does that
+            // matching, so a miss here is not the end of the search.
+            None if reference.kind == ReferenceKind::StringRef => &[],
             None => return (None, Confidence::NameOnly),
         };
 
@@ -670,12 +674,17 @@ impl Index {
         //    heuristic, so a unique kind match resolves exactly. This is what lets a
         //    CSS class rename reach HTML and TSX.
         if reference.kind == ReferenceKind::StringRef {
-            // Fragment references (`href="#top"`) name the id or heading without it.
-            let bare = reference.name.strip_prefix('#').unwrap_or(&reference.name);
+            // A heading is referenced by its anchor, which is a slug of its text and
+            // rarely equal to it. Everything else string-keyed — an element id, a CSS
+            // class, a link reference definition — is named as written.
+            let name = reference.name.as_str();
             let targets: Vec<&Symbol> = self
                 .symbols
                 .iter()
-                .filter(|s| s.kind.is_string_keyed() && s.name == bare)
+                .filter(|s| match s.kind {
+                    SymbolKind::Heading => anchor_slug(&s.name) == name,
+                    kind => kind.is_string_keyed() && s.name == name,
+                })
                 .collect();
 
             let kinds: HashSet<SymbolKind> = targets.iter().map(|s| s.kind).collect();

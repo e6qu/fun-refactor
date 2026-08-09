@@ -128,11 +128,11 @@ fn inline_content_in_a_block_quote_skips_the_quote_markers() {
     // becomes part of the text — and the spans on the far side of one still line up.
     let src = "> quoted [a](#sec) text\n> and [b](#sec) more\n";
     let f = facts(src);
-    let anchors: Vec<_> = f.references.iter().filter(|r| r.name == "#sec").collect();
+    let anchors: Vec<_> = f.references.iter().filter(|r| r.name == "sec").collect();
     assert_eq!(anchors.len(), 2, "got {:?}", f.references);
-    assert_eq!(anchors[0].span.text(src), "#sec");
-    assert_eq!(anchors[1].span.text(src), "#sec");
-    assert_eq!(anchors[1].span.start, src.rfind("#sec").unwrap());
+    assert_eq!(anchors[0].span.text(src), "sec");
+    assert_eq!(anchors[1].span.text(src), "sec");
+    assert_eq!(anchors[1].span.start, src.rfind("sec").unwrap());
 }
 
 #[test]
@@ -204,12 +204,12 @@ fn a_mixed_document_yields_every_kind_of_fact() {
     assert_eq!(
         refs,
         [
-            "#guide",        // a link from inside a table cell
-            "#installation", // an inline anchor link
-            "bash",          // the code fence's info string
-            "ref",           // [reference][ref]
-            "ref",           // ![logo][ref]
-            "shortcut",      // [shortcut]
+            "bash",         // the code fence's info string
+            "guide",        // a link from inside a table cell
+            "installation", // an inline anchor link
+            "ref",          // [reference][ref]
+            "ref",          // ![logo][ref]
+            "shortcut",     // [shortcut]
         ]
     );
 

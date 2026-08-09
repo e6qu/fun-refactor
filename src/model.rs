@@ -327,6 +327,22 @@ impl ImportedName {
     }
 }
 
+/// GitHub's heading anchor: lowercased, punctuation dropped, spaces hyphenated.
+///
+/// A Markdown heading is referenced by this, not by its text, so it is what resolution
+/// compares a `#fragment` against and what a rename writes into one.
+pub fn anchor_slug(heading: &str) -> String {
+    let mut out = String::with_capacity(heading.len());
+    for ch in heading.trim().chars() {
+        if ch.is_alphanumeric() {
+            out.extend(ch.to_lowercase());
+        } else if ch == ' ' || ch == '-' || ch == '_' {
+            out.push(if ch == '_' { '_' } else { '-' });
+        }
+    }
+    out
+}
+
 /// A reason some of a file's content is missing from the index.
 ///
 /// A gap carries the sentence that reports it, so a new way for extraction to come up
