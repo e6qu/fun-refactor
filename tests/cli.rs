@@ -359,3 +359,28 @@ fn what_unused_reports_can_be_given_to_delete() {
         "the list should say where:\n{text}"
     );
 }
+
+#[test]
+fn the_language_filter_has_one_name() {
+    // Five commands took `--lang` and two took `--language`, for the same filter, with
+    // nothing to say which was which — it cost two mistyped invocations while writing
+    // these tests. `--lang` is the name; `--language` stays as an alias so anything
+    // already written keeps working.
+    let ws = workspace();
+    for command in [
+        vec!["symbols", "--lang", "go"],
+        vec!["symbols", "--language", "go"],
+        vec!["unused", "--lang", "go"],
+        vec!["unused", "--language", "go"],
+        vec!["duplicates", "--lang", "go"],
+        vec!["duplicates", "--language", "go"],
+    ] {
+        let (out, ok) = ws.run(&command);
+        assert!(ok, "{command:?} should be accepted:\n{out}");
+    }
+
+    // And the two spellings mean the same thing.
+    let (short, _) = ws.run(&["symbols", "--lang", "go"]);
+    let (long, _) = ws.run(&["symbols", "--language", "go"]);
+    assert_eq!(short, long);
+}

@@ -140,7 +140,7 @@ Stopped at:
 defines every ripgrep flag as a struct impl. Nineteen of them are the same shape:
 
 ```console
-$ fr duplicates --language rust --min-tokens 120
+$ fr duplicates --lang rust --min-tokens 120
 19 copies, 137 tokens each (2466 redundant) — rust
   crates/core/flags/defs.rs:2673-2700
   crates/core/flags/defs.rs:3351-3379
@@ -155,7 +155,7 @@ matters here, since a textual search finds none of these.
 Zig, on the language server's test suite:
 
 ```console
-$ fr duplicates --language zig --min-tokens 100
+$ fr duplicates --lang zig --min-tokens 100
 7 copies, 109 tokens each (654 redundant) — zig
   tests/lsp_features/semantic_tokens.zig:334-343
   tests/lsp_features/semantic_tokens.zig:344-353
@@ -165,7 +165,7 @@ $ fr duplicates --language zig --min-tokens 100
 And helm, whose `v2` and `v3` package trees are a fork of one another:
 
 ```console
-$ fr duplicates --language go
+$ fr duplicates --lang go
 337 duplicated block(s), 64530 redundant token(s)
 ```
 
@@ -175,7 +175,7 @@ The largest is `internal/release/v2/info_test.go` against `pkg/release/v1/info_t
 ### `fr unused` — code nothing appears to use
 
 ```console
-$ fr unused --language go --internal        # helm
+$ fr unused --lang go --internal        # helm
 47 symbol(s) with no detected use, of 427 found across the workspace
 ```
 
@@ -187,7 +187,7 @@ is eight resolution bugs, the largest being that a Go package is a directory and
 Terraform was treated that way — so `fr refs` returned nothing for symbols helm calls
 from the file next door.
 
-`--internal` matters for a library: `--language go` alone reports 199 exported
+`--internal` matters for a library: `--lang go` alone reports 199 exported
 symbols, which is the public API, not dead code.
 
 ---
@@ -378,7 +378,7 @@ belongs here, across all sixteen languages at once.
 ```console
 $ git clone https://github.com/BurntSushi/ripgrep && cd ripgrep
 $ git checkout 435f59f
-$ fr duplicates --language rust --min-tokens 120
+$ fr duplicates --lang rust --min-tokens 120
 ```
 
 Every command above is copy-pasteable against the commit in the table. See

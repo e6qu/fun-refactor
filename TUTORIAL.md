@@ -148,12 +148,12 @@ cli-main           init                             pkg/kube/client.go
 ### Code nothing uses
 
 ```console
-$ fr unused --language go --internal
+$ fr unused --lang go --internal
 ```
 
 Two flags matter here.
 
-`--language go` narrows the *report*, not the index. That distinction is the whole
+`--lang go` narrows the *report*, not the index. That distinction is the whole
 point: you could scan only `pkg/` with `-C pkg`, but then the index cannot see the
 callers in `cmd/`, and everything they call would be reported as dead. Filters here
 never invent a finding.
@@ -184,7 +184,7 @@ reached only through an interface the tool cannot prove the receiver of.
 ### Code written twice
 
 ```console
-$ fr duplicates --language go --path pkg/cmd --path pkg/action --min-tokens 100
+$ fr duplicates --lang go --path pkg/cmd --path pkg/action --min-tokens 100
 5 copies, 107 tokens each (428 redundant) — go
   pkg/cmd/show.go:79-98
   pkg/cmd/show.go:100-119
