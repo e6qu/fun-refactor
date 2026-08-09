@@ -163,6 +163,13 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B277: **the language filter had two names.** Five commands took `--lang` and two
+  took `--language`, for the same filter, with nothing to say which was which. It cost
+  two mistyped invocations while writing tests during this sweep, which is how it was
+  found. `--lang` is the name now, on all seven; `--language` is an alias, so anything
+  already written keeps working. The docs used both and now use one.
+
+
 - [x] B276: **`fr duplicates` crashed on a multi-byte character.**
   `fr duplicates --language python` over `psf/black` panicked: "end byte index 691 is not
   a char boundary; it is inside '𨉟'". `LineIndex::line_col` slices the line by a byte
@@ -2014,7 +2021,7 @@ B11, B14, B15, B133 and B263.
 - [x] B34: `fr unused` had no way to narrow its report. On a polyglot repository every
   Markdown heading drowned the code findings, and `-C` could not be used to narrow
   because a smaller index invents dead symbols rather than hiding them. Added
-  `--language`, `--path` and `--internal`, which filter the report and not the index,
+  `--lang`, `--path` and `--internal`, which filter the report and not the index,
   with an unknown language name refused against the known list.
 
 

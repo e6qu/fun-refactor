@@ -86,7 +86,7 @@ fr signature <target> remove:1  # change parameters, update every call site
 fr move <target> <dest-file>  # move a symbol, update imports
 fr delete <target>            # delete it, refusing if anything uses it
 fr unused                     # symbols nothing appears to use
-fr unused --language go --internal   # ...only what is definitely dead here
+fr unused --lang go --internal   # ...only what is definitely dead here
 fr duplicates                 # code written more than once, by structure
 fr duplicates --exact         # ...requiring the names to match as well
 fr imports <file>             # drop unused imports, sort the rest

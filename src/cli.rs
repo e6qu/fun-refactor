@@ -58,7 +58,7 @@ enum Command {
         #[arg(long)]
         capability: Option<String>,
         /// Only this language.
-        #[arg(long = "lang")]
+        #[arg(long = "lang", alias = "language")]
         language: Option<String>,
         /// Emit the markdown table used in the README.
         #[arg(long)]
@@ -73,13 +73,13 @@ enum Command {
     /// List the source files fun-refactor can act on.
     Scan {
         /// Restrict to a language (repeatable), e.g. --lang rust --lang go.
-        #[arg(long = "lang")]
+        #[arg(long = "lang", alias = "language")]
         languages: Vec<String>,
     },
     /// Parse files and report syntax health.
     Parse {
         /// Restrict to a language (repeatable).
-        #[arg(long = "lang")]
+        #[arg(long = "lang", alias = "language")]
         languages: Vec<String>,
         /// Show per-language totals instead of per-file detail.
         #[arg(long)]
@@ -88,7 +88,7 @@ enum Command {
     /// List defined symbols.
     Symbols {
         /// Restrict to a language (repeatable).
-        #[arg(long = "lang")]
+        #[arg(long = "lang", alias = "language")]
         languages: Vec<String>,
         /// Only symbols whose name contains this string.
         #[arg(long)]
@@ -229,7 +229,7 @@ enum Command {
         #[arg(long)]
         exact: bool,
         /// Only report duplicates in this language. Repeatable.
-        #[arg(long = "language", value_name = "LANG")]
+        #[arg(long = "lang", alias = "language", value_name = "LANG")]
         languages: Vec<String>,
         /// Only report duplicates under this path prefix. Repeatable.
         #[arg(long = "path", value_name = "PREFIX")]
@@ -245,7 +245,7 @@ enum Command {
         /// Filters the report, not the index: reachability is still worked out
         /// across the whole workspace, so narrowing here cannot invent a dead
         /// symbol the way scanning a subdirectory would.
-        #[arg(long = "language", value_name = "LANG")]
+        #[arg(long = "lang", alias = "language", value_name = "LANG")]
         languages: Vec<String>,
         /// Only report symbols under this path prefix. Repeatable.
         #[arg(long = "path", value_name = "PREFIX")]
