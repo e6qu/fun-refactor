@@ -900,8 +900,6 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         format!("move {} in", sym.name),
     );
 
-    let statement = format!("use {}::{};", to_module.use_prefix(), sym.name);
-
     // The destination must not keep importing what it now defines.
     if let Some(binding) = binding_import(index, destination, &sym.name) {
         drop_rust_binding(&mut plan.edits, &binding, &sym.name, destination)?;
@@ -925,6 +923,22 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     }
 
     for file in &needs_use {
+        // `crate::` reaches the crate only from inside it. An integration test, an
+        // example and a benchmark are each their own crate and reach the library by its
+        // package name, so a `use crate::…` written into one names the test binary.
+        let statement = match reachable_prefix(&to_module, file) {
+            Some(prefix) => format!("use {prefix}::{};", sym.name),
+            None => {
+                plan.warnings.push(format!(
+                    "{}: it is outside {} and the package name is not readable from \
+                     Cargo.toml, so no `use` was written for '{}'",
+                    file.display(),
+                    to_module.src.display(),
+                    sym.name
+                ));
+                continue;
+            }
+        };
         match binding_import(index, file, &sym.name) {
             Some(binding) => {
                 repoint_rust_binding(&mut plan.edits, &binding, &sym.name, &statement)?
@@ -954,6 +968,42 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 ///
 /// Refuses rather than guessing: a wrong `use` path produces a file that does not
 /// compile, which is worse than declining the move.
+/// How `file` can name `to_module` in a `use`, or `None` if it cannot be worked out.
+///
+/// Inside the crate that is `crate::…`. Outside it — an integration test, an example, a
+/// benchmark — the library is a dependency named by its package, so the same module is
+/// `fun_refactor::…`. Writing `crate::` there names the test binary, which has no such
+/// module: `fr move` rewrote every consumer that way, and the ones under `tests/` and
+/// `examples/` stopped compiling.
+fn reachable_prefix(to_module: &CrateModule, file: &Path) -> Option<String> {
+    if file.starts_with(&to_module.src) {
+        return Some(to_module.use_prefix());
+    }
+    let name = package_name(&to_module.src)?;
+    Some(to_module.use_prefix().replacen("crate", &name, 1))
+}
+
+/// The package name from the Cargo.toml beside `src`, as a `use` path spells it.
+fn package_name(src: &Path) -> Option<String> {
+    let text = crate::vfs::read_to_string(src.parent()?.join("Cargo.toml")).ok()?;
+    let mut in_package = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if let Some(header) = line.strip_prefix('[') {
+            in_package = header.starts_with("package]");
+            continue;
+        }
+        if !in_package {
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("name") {
+            let value = rest.trim_start().strip_prefix('=')?.trim();
+            return Some(value.trim_matches('"').replace('-', "_"));
+        }
+    }
+    None
+}
+
 fn crate_module(file: &Path) -> Result<CrateModule> {
     let mut src: Option<PathBuf> = None;
     for ancestor in file.ancestors().skip(1) {
@@ -1077,20 +1127,56 @@ fn declares_module(source: &str, name: &str) -> bool {
 
 /// The first file under `src` that uses `#[path]`, which unhooks module paths from
 /// file locations.
+///
+/// Read from the tree. Searching the text for `#[path` also finds it in a doc comment,
+/// and this crate's own `src/analysis/entrypoints.rs` documents `#[path::name]` — which
+/// refused every move in this workspace, naming a file that carries no such attribute.
 fn path_attribute_user(index: &Index, src: &Path) -> Option<PathBuf> {
+    let parsers = crate::parse::Parsers::new();
     let mut found: Option<PathBuf> = None;
     for (path, info) in index.files() {
         if info.language != Language::Rust || !path.starts_with(src) {
             continue;
         }
+        if found.as_ref().is_some_and(|best| best < path) {
+            continue;
+        }
         let Ok(text) = crate::vfs::read_to_string(path) else {
             continue;
         };
-        if text.contains("#[path") && found.as_ref().is_none_or(|best| path < best) {
+        // Parsing every file in the crate to answer this would cost more than the move
+        // does; a file with no `#[path` bytes anywhere cannot carry the attribute.
+        if !text.contains("#[path") {
+            continue;
+        }
+        let Ok(parsed) = parsers.parse(Language::Rust, &text) else {
+            continue;
+        };
+        if declares_a_module_path(parsed.root(), &text) {
             found = Some(path.clone());
         }
     }
     found
+}
+
+/// Does any attribute in this tree set a module's file with `#[path = "…"]`?
+fn declares_a_module_path(root: tree_sitter::Node, source: &str) -> bool {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "attribute_item" {
+            let text = Span::from(node).text(source);
+            let rest = text.trim_start_matches("#[").trim_start();
+            if let Some(after) = rest.strip_prefix("path") {
+                // `path` the attribute, not `pathological` or `path::name`.
+                if after.trim_start().starts_with('=') {
+                    return true;
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.children(&mut cursor));
+    }
+    false
 }
 
 /// The import in `file` that binds `name`, described by the spans a rewrite needs.
