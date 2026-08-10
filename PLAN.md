@@ -485,7 +485,15 @@ follows the chain now, and `fr move` declines when a barrel exports the symbol, 
 repointing an export is a different operation from repointing an import. A test also breaks each fixture on purpose and checks the
 compiler complains, because a gate that cannot fail is worse than none.
 
-`restructure`, `remove-flag` and `translate` are not swept yet. The first two take a
+`restructure` is swept, by asking it for a rewrite that changes nothing. Eight identity
+patterns over `src/` changed files eight times out of eight, for three separate reasons,
+and none of the three broke a build (B301). An identity is a good sweep for a command that
+takes its instruction from the user: it needs no invented pattern and the correct answer is
+known in advance.
+
+`remove-flag` and `translate` are not swept yet. `remove-flag` has no boolean constant to
+target in this repository, so it needs a corpus that has one. `translate` has
+`tests/round_trip.rs`, which asks more of it than a sweep would. The first two take a
 pattern from the user, so a sweep has to invent the patterns and a poor choice measures
 nothing. `translate` has `tests/round_trip.rs`, which is a stronger check than a sweep
 would be. They are the remainder of this pull request's scope.

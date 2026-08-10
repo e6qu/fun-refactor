@@ -168,6 +168,29 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B301: **`fr restructure` rewrote files when asked for no change.** Running it with
+  the same pattern and template over this repository changed files for every one of eight
+  shapes tried. Three causes, none of them the shape the user asked about.
+
+  * A metavariable was bracketed because the *template* binds it. `grouped` is documented
+    as bracketing "a binding the template will bind more tightly than its source did", and
+    nothing read the source: `$X.len()` → `$X.len()` came back as `("a * b").len()`. The
+    two are compared now, and only the difference is bracketed.
+  * `is_atomic` decided by scanning characters, so the `*` inside `"price * quantity"`
+    read as an operator and the string was bracketed. A double-quoted string is one thing
+    now. Single quotes are left alone: they open a character in Rust and Zig and mark a
+    lifetime in Rust, where `&'a str` has no closing one.
+  * A template is written on one line, so substituting it over a receiver the author put
+    on its own line pulled the line up, and a trailing comma inside a call was dropped.
+    Neither is the shape being rewritten, and D2 says this tool never pretty-prints. A
+    replacement that differs from what it matched only in layout or in a comma before a
+    closing bracket is not written.
+
+  None of the three broke a build. All three wrote to files nobody asked to change.
+
+  Eight identity rewrites over `src/`: eight changed files before, none now. A template
+  that binds tighter still brackets, so `double($X)` → `$X * 2` still gives `(a + 1) * 2`.
+
 - [x] B300: **a use reached through a re-export barrel resolved by name alone.**
   `export { width } from "./holder";` was recorded as an import of `./holder` with no
   names, so a file writing `import { width } from "./index"` found no definition in

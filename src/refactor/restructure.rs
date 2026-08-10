@@ -201,8 +201,16 @@ pub fn apply(
     // kinds by name and are nothing of the sort — bracketing there is not a grouping,
     // it is a syntax error.
     let groups = crate::refactor::inline::groups_with_parentheses(language);
+    // Bracket a metavariable only where the template binds it more tightly than the
+    // pattern already did. Reading the template alone bracketed `$X.len()` → `$X.len()`,
+    // because a method call binds its receiver — and so did the pattern. An identity
+    // rewrite has to be a rewrite of nothing.
     let tight = match groups {
-        true => tightly_bound_metavariables(&parsers, language, template),
+        true => {
+            let by_template = tightly_bound_metavariables(&parsers, language, template);
+            let by_pattern = tightly_bound_metavariables(&parsers, language, pattern);
+            by_template.difference(&by_pattern).cloned().collect()
+        }
         false => HashSet::new(),
     };
     let template_binds = groups && template_is_an_operator_expression(&parsers, language, template);
@@ -226,8 +234,12 @@ pub fn apply(
             if template_binds && matched_in_a_tight_place(&parsed, span) {
                 replacement = format!("({replacement})");
             }
-            // A rewrite that changes nothing is not a rewrite.
-            if replacement == span.text(&source) {
+            // A rewrite that changes nothing is not a rewrite, and a rewrite that moves
+            // only whitespace is not one either. A template is written on one line, so
+            // substituting it over a receiver the author put on its own line pulls the
+            // line up. D2 says this tool never pretty-prints, and that holds for the
+            // layout it did not come to change.
+            if same_but_for_layout(&replacement, span.text(&source)) {
                 continue;
             }
             matches.push((path.clone(), span.text(&source).to_string()));
@@ -722,7 +734,30 @@ fn is_atomic(text: &str) -> bool {
     }
     let mut depth = 0i32;
     let mut previous = ' ';
+    let mut in_string = false;
+    let mut escaped = false;
     for character in trimmed.chars() {
+        // A quoted string is one thing, whatever is written inside it. Without this,
+        // `"price * quantity"` read as an expression with an operator in it and an
+        // identity rewrite bracketed it: `("price * quantity").len()`.
+        //
+        // Double quotes only. A single quote opens a character in Rust and Zig and
+        // marks a lifetime in Rust, where `&'a str` has no closing one, so reading it
+        // as a delimiter would swallow the rest of the text.
+        if in_string {
+            match (escaped, character) {
+                (false, '\\') => escaped = true,
+                (false, '"') => in_string = false,
+                _ => escaped = false,
+            }
+            previous = character;
+            continue;
+        }
+        if character == '"' {
+            in_string = true;
+            previous = character;
+            continue;
+        }
         match character {
             '(' | '[' | '{' => depth += 1,
             ')' | ']' | '}' => depth -= 1,
@@ -741,6 +776,28 @@ fn is_atomic(text: &str) -> bool {
         previous = character;
     }
     true
+}
+
+/// Do these two texts differ only in things the author chose and the tool did not?
+///
+/// Whitespace is one: a template is written on one line, so substituting it over a
+/// receiver the author put on its own line pulls the line up. A comma before a closing
+/// bracket is the other: `Some(x,)` matched and came back as `Some(x)`, which compiles
+/// and means the same and is still a file the user did not ask to change.
+fn same_but_for_layout(a: &str, b: &str) -> bool {
+    fn reduced(text: &str) -> String {
+        let dense: String = text.chars().filter(|c| !c.is_whitespace()).collect();
+        let mut out = String::with_capacity(dense.len());
+        let mut chars = dense.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == ',' && matches!(chars.peek(), Some(')' | ']' | '}')) {
+                continue;
+            }
+            out.push(c);
+        }
+        out
+    }
+    reduced(a) == reduced(b)
 }
 
 /// Bracket a binding the template will bind more tightly than its source did.
