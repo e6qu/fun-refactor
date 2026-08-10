@@ -673,10 +673,40 @@ impl Index {
                 .filter_map(|id| self.symbol(*id))
                 .filter(|s| s.name == original)
                 .collect();
+            let mut imported_file = imported_file;
             if let Some(target_file) = &imported_file {
                 matches.retain(|s| &s.file == target_file);
             }
             matches.retain(|s| s.exported || imported_file.is_some());
+
+            // A barrel declares nothing: `export { width } from "./holder"` exports a
+            // name it does not define, so the file the import names holds no match and
+            // the declaration is one hop further on. Follow the chain, with a limit
+            // because a pair of files can re-export from each other.
+            let mut hops = 0;
+            while matches.is_empty() && hops < 8 {
+                let Some(current) = imported_file.clone() else {
+                    break;
+                };
+                let Some(onward) = self.file(&current).and_then(|current_info| {
+                    current_info
+                        .imports
+                        .iter()
+                        .find(|i| i.re_export && i.names.iter().any(|n| n.local == original))
+                }) else {
+                    break;
+                };
+                imported_file = self.resolve_import_path(&current, &onward.path);
+                hops += 1;
+                let Some(next_file) = &imported_file else {
+                    break;
+                };
+                matches = candidates
+                    .iter()
+                    .filter_map(|id| self.symbol(*id))
+                    .filter(|s| s.name == original && &s.file == next_file)
+                    .collect();
+            }
 
             if matches.len() == 1 {
                 return (Some(matches[0].id), Confidence::ImportQualified);
@@ -880,7 +910,7 @@ impl Index {
     /// Module systems that need build configuration (Rust crate paths, Go module
     /// paths, tsconfig `paths` aliases) are not resolved here; callers see the
     /// weaker confidence that results instead of a wrong answer.
-    fn resolve_import_path(&self, from: &Path, import_path: &str) -> Option<PathBuf> {
+    pub fn resolve_import_path(&self, from: &Path, import_path: &str) -> Option<PathBuf> {
         if import_path.is_empty() {
             return None;
         }

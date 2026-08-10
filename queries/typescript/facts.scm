@@ -472,6 +472,15 @@
  (#eq? @_require "require"))
 
 ; A re-export is a module dependency exactly like an import, and dropping it
-; would lose the edge.
+; would lose the edge. The names matter as well: a file of these declares nothing,
+; so a name imported from it resolves to no definition there and the declaration is
+; one hop further on. Resolution follows that hop.
+(export_statement
+  (export_clause
+    (export_specifier
+      name: (identifier) @import.name))
+  source: (string) @import.path) @import @import.re-export
+
+; `export * from "./x"` names nothing, so only the edge is recorded.
 (export_statement
   source: (string) @import.path) @import

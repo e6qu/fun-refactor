@@ -202,11 +202,41 @@ fn interchangeable(from: Language, to: Language) -> bool {
 // TypeScript and Python: resolution follows relative paths.
 // ---------------------------------------------------------------------------
 
+/// A file that exports `sym`'s name onward from the file that declares it.
+fn re_exporting_file(index: &Index, sym: &Symbol) -> Option<PathBuf> {
+    index.files().find_map(|(path, info)| {
+        let names_it = info.imports.iter().any(|import| {
+            import.re_export
+                && import.names.iter().any(|n| n.local == sym.name)
+                && index
+                    .resolve_import_path(path, &import.path)
+                    .is_some_and(|target| target == sym.file)
+        });
+        names_it.then(|| path.clone())
+    })
+}
+
 fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
         bail!(
             "'{}' is nested inside another definition; only top-level symbols can be moved",
             sym.name
+        );
+    }
+
+    // A barrel exports the symbol from the file it is leaving: `export { width } from
+    // "./holder"`. Moving it makes that line name something the old file no longer
+    // exports, and every file importing through the barrel keeps a binding this move
+    // then adds a second import for. Repointing the export is a separate operation from
+    // repointing an import, and until it exists the honest answer is to decline.
+    if let Some(barrel) = re_exporting_file(index, sym) {
+        bail!(
+            "{} re-exports '{}' from {}. Moving it would leave that export naming a \
+             symbol the file no longer has, and repointing an export is not something \
+             this performs",
+            barrel.display(),
+            sym.name,
+            sym.file.display()
         );
     }
 

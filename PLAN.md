@@ -479,9 +479,10 @@ the compile gate then proved: B296 and B297. Both are fixture cases in
 `tests/output_compiles.rs` now.
 
 The compile gate drives TypeScript as well as Rust now, over a fixture with a re-export
-barrel in it. That found B300 on its first run: a use reached through a barrel resolves by
-name alone, so `fr rename` and `fr move` both write code that does not compile. Two
-`#[ignore]`d cases pin it. A test also breaks each fixture on purpose and checks the
+barrel in it. That found B300 on its first run: a use reached through a barrel resolved by
+name alone, so `fr rename` and `fr move` both wrote code that does not compile. Resolution
+follows the chain now, and `fr move` declines when a barrel exports the symbol, because
+repointing an export is a different operation from repointing an import. A test also breaks each fixture on purpose and checks the
 compiler complains, because a gate that cannot fail is worse than none.
 
 `restructure`, `remove-flag` and `translate` are not swept yet. The first two take a
