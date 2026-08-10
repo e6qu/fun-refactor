@@ -121,6 +121,20 @@ pub fn variable(
     })?;
     let statement_span = Span::from(statement);
 
+    // Every name the expression uses has to mean the same thing where the binding goes.
+    // A closure parameter, a loop variable and a `match` binding exist only inside the
+    // construct that introduces them, and the statement the binding is placed in front of
+    // can be outside it. `self.items.iter().filter(|i| i.kind != K)` is one statement, and
+    // `i` does not exist at the start of it.
+    if let Some(unreachable) =
+        a_name_that_does_not_reach(index, info, expr_span, statement_span.start)
+    {
+        anyhow::bail!(
+            "`{unreachable}` is introduced between the binding's position and this \
+             expression, so the binding would not compile"
+        );
+    }
+
     let targets = if all_occurrences {
         identical_siblings(&parsed, &source, expr, &expr_text)
     } else {
@@ -222,6 +236,35 @@ fn expression_at<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
 }
 
 /// The statement the expression belongs to: the ancestor whose parent is a block.
+/// A name in the expression that is written in a scope the binding cannot reach.
+///
+/// The binding goes at the start of the enclosing statement, and that statement can be
+/// outside the construct the expression sits in: `self.items.iter().filter(|i| i.kind != K)`
+/// is one statement, and `i` exists only inside the closure. Asking which scope each name
+/// is *written* in answers this without needing the declaration, which matters because a
+/// closure parameter is not recorded as one.
+fn a_name_that_does_not_reach(
+    index: &Index,
+    info: &crate::index::FileInfo,
+    expression: Span,
+    at: usize,
+) -> Option<String> {
+    let reachable: std::collections::HashSet<crate::model::ScopeId> = info
+        .scope_at(at)
+        .map(|scope| info.scope_chain(scope))
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+
+    info.references
+        .iter()
+        .map(|i| &index.references[*i])
+        .find(|reference| {
+            expression.contains(reference.span) && !reachable.contains(&reference.scope)
+        })
+        .map(|reference| reference.name.clone())
+}
+
 fn enclosing_statement(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {

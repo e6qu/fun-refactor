@@ -356,6 +356,70 @@ fn no_command_writes_a_broken_workspace() {
     eprintln!("refused on the awkward crate: {refused:?}");
 }
 
+#[test]
+fn extracting_an_expression_from_inside_a_closure_compiles_or_refuses() {
+    // The binding goes at the start of the enclosing statement, and that statement is
+    // outside the closure. `i` exists only inside it.
+    let mut files = plain();
+    files.push((
+        "src/counts.rs",
+        "use crate::holder::Holder;\n\n\
+         pub fn wide(h: &Holder) -> Vec<u8> {\n    \
+         h.items.iter().filter(|i| **i > 1 && **i < 9).copied().collect()\n}\n",
+    ));
+    files[1] = (
+        "src/lib.rs",
+        "pub mod holder;\npub mod util;\npub mod counts;\n#[cfg(feature = \"extra\")]\npub mod extra;\n",
+    );
+    let ws = Workspace::new(&files);
+    let index = ws.index();
+    let source = ws.read("src/counts.rs");
+    let at = source.find("**i > 1 && **i < 9").expect("the expression");
+    let span = fun_refactor::span::Span::new(at, at + "**i > 1 && **i < 9".len());
+    let planned = fun_refactor::refactor::extract::variable(
+        &index,
+        &ws.path("src/counts.rs"),
+        span,
+        "wide_enough",
+        false,
+    )
+    .map(|p| p.edits);
+    gate("extracting from inside a closure", &ws, planned);
+}
+
+#[test]
+fn a_guard_clause_in_a_function_that_returns_a_value_compiles_or_refuses() {
+    // An early exit needs a value here, and a bare `return` does not compile. The `if`
+    // is nested deeply enough that a bounded walk never reaches the function.
+    let mut files = plain();
+    files.push((
+        "src/deep.rs",
+        "pub fn pick(a: bool, b: bool) -> u8 {\n    match a {\n        true => {\n            \
+         {\n                if b {\n                    let _ = 1;\n                }\n            }\n        \
+         }\n        false => {}\n    }\n    7\n}\n",
+    ));
+    files[1] = (
+        "src/lib.rs",
+        "pub mod holder;\npub mod util;\npub mod deep;\n#[cfg(feature = \"extra\")]\npub mod extra;\n",
+    );
+    let ws = Workspace::new(&files);
+    let index = ws.index();
+    let source = ws.read("src/deep.rs");
+    let at = source.find("if b {").expect("the if");
+    let planned = fun_refactor::refactor::rewrite::apply(
+        &index,
+        &ws.path("src/deep.rs"),
+        at,
+        fun_refactor::refactor::rewrite::Rewrite::GuardClause,
+    )
+    .map(|p| p.edits);
+    gate(
+        "a guard clause in a function that returns a value",
+        &ws,
+        planned,
+    );
+}
+
 /// What this gate covers, said out loud.
 ///
 /// A gate that silently checks nothing is worse than no gate. This names the languages

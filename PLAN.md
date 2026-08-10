@@ -461,6 +461,15 @@ the results.
 **Exit.** Each command has a recorded sweep with counts. Every invariant that holds is a
 test.
 
+**Delivered so far.** `rewrite` and `extract` are swept, and each produced a defect that
+the compile gate then proved: B296 and B297. Both are fixture cases in
+`tests/output_compiles.rs` now.
+
+`restructure`, `remove-flag` and `translate` are not swept yet. The first two take a
+pattern from the user, so a sweep has to invent the patterns and a poor choice measures
+nothing. `translate` has `tests/round_trip.rs`, which is a stronger check than a sweep
+would be. They are the remainder of this pull request's scope.
+
 ### PR 3 — Make the commands that read agree with each other
 
 **Problem.** `refs`, `usages`, `callers`, `callees`, `graph`, `impact`, `flow`, `stitch`
