@@ -97,7 +97,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     &reference.file,
                     reference.span.start,
                     format!(
-                        "reference resolved only as '{}'; left unchanged",
+                        "left unchanged: {} (resolved only as '{}')",
+                        why_it_was_left(reference),
                         reference.confidence.as_str()
                     ),
                 ));
@@ -124,8 +125,9 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                 &reference.file,
                 reference.span.start,
                 format!(
-                    "occurrence of '{}' that resolved only as '{}'; left unchanged",
+                    "occurrence of '{}' left unchanged: {} (resolved only as '{}')",
                     symbol.name,
+                    why_it_was_left(reference),
                     reference.confidence.as_str()
                 ),
             ));
@@ -402,6 +404,23 @@ fn textual_sweep(
         }
     }
     Ok(warnings)
+}
+
+/// Why a reference resolved too weakly to rewrite, in terms a reader can act on.
+///
+/// The tier alone says how much to trust the answer. It does not say what to look at.
+/// This tool has no type information by design, so the commonest cause is a member read
+/// from a value, and saying so turns "check this" into "check whether this is the same
+/// declaration".
+fn why_it_was_left(reference: &crate::model::Reference) -> &'static str {
+    if reference.receiver.is_some() && !reference.receiver_is_path {
+        return "it is read from a value whose type is not known here, so it may name \
+                something else of the same name";
+    }
+    if reference.member_in_macro {
+        return "it is written inside a macro, where the receiver is not recorded";
+    }
+    "it matched by name alone"
 }
 
 /// Spans of string literals, comments and Helm template actions.
