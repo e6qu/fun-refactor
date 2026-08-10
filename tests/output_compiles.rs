@@ -457,7 +457,10 @@ fn typescript() -> Vec<(&'static str, &'static str)> {
     vec![
         (
             "tsconfig.json",
-            "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"noEmit\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"ES2020\",\n    \"moduleResolution\": \"node\"\n  },\n  \"include\": [\"src\"]\n}\n",
+            // `moduleResolution: node` was removed in a later TypeScript, and CI has one.
+            // `bundler` is accepted by every version that has it and needs no package
+            // layout on disk.
+            "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"noEmit\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\"\n  },\n  \"include\": [\"src\"]\n}\n",
         ),
         (
             "src/holder.ts",
