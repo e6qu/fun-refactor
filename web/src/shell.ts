@@ -59,7 +59,7 @@ function applyCollapsed(id: string, collapsed: boolean) {
   const twisty = pane.querySelector(".twisty");
   if (twisty) twisty.textContent = collapsed ? "▸" : "▾";
   // A folded pane must not keep its share of the column, and must come back to the
-  // share it had rather than to a default.
+  // share it had and not to a default.
   if (collapsed) {
     pane.dataset.grow = pane.style.flexGrow || "1";
     pane.style.flexGrow = "0";
@@ -88,7 +88,7 @@ function toggle(id: string) {
  * only tracks while the pointer is over its own handle stops the moment it becomes
  * useful. Pointer capture would fix that too, but it throws when the pointer is
  * already gone, and a throw inside `pointerdown` loses the whole gesture with nothing
- * said — so it is an optimisation here rather than the mechanism.
+ * said — so it is an optimisation here instead of the mechanism.
  */
 function onDrag(
   gutter: HTMLElement,
@@ -182,7 +182,7 @@ function dragRow(gutter: HTMLElement, aboveId: string) {
   // The two panes either side of this gutter share a fixed amount of space and a
   // fixed amount of flex-grow between them. Dragging moves the boundary within that
   // pair; every other pane in the column is untouched, which is what makes the drag
-  // land where the pointer is rather than somewhere proportionally near it.
+  // land where the pointer is and not somewhere proportionally near it.
   let pairHeight = 1;
   let pairGrow = 2;
   let padAbove = 0;

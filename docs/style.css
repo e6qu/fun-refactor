@@ -30,7 +30,7 @@
   --term-ink: #f4f4f4;
   --term-dim: #8d8d8d;
   /* The terminal is dark whichever way the page is, so it cannot borrow the page's
-     blue: `#0043ce` on `#161616` is a shape rather than a colour. */
+     blue: `#0043ce` on `#161616` is a shape and not a colour. */
   --term-accent: #78a9ff;
 
   --measure: 34rem;
@@ -726,7 +726,7 @@ footer a { color: var(--ink-soft); }
   background: var(--rule);
 }
 
-/* One column, and the panel below rather than beside, once there is no room for two.
+/* One column, and the panel below and not beside, once there is no room for two.
  * A 25vw panel on a phone is a column of single words. */
 @media (max-width: 1100px) {
   .has-panel main {

@@ -67,7 +67,7 @@ export const CATALOG = [
     sources: ["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5", "Tidy First? — Kent Beck (2023), “Explicit Parameters”"],
     intent: "A function's parameters change, and every call site changes with them.",
     invariant: "Every call passes the same values it did, plus the new one. The declaration and the call sites move together: either both change or nothing does.",
-    note: "The call inside `band_width` is updated twice, because it is called twice. A call the tool could not resolve would be reported rather than rewritten.",
+    note: "The call inside `band_width` is updated twice, because it is called twice. A call the tool could not resolve would be reported and not rewritten.",
     command: "fr signature circ 'add:1:units: str:\"m\"'",
     files: [
       { path: "src/geometry.py", before: "import math\n\n\ndef circ(r):\n    \"\"\"The distance around a circle.\"\"\"\n    return 2 * math.pi * r\n", after: "import math\n\n\ndef circ(r, units: str):\n    \"\"\"The distance around a circle.\"\"\"\n    return 2 * math.pi * r\n" },
@@ -126,7 +126,7 @@ export const CATALOG = [
     sources: ["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5 (Change Function Declaration)", "The online refactoring catalogue — Martin Fowler"],
     intent: "A parameter nobody needs goes, and every call site loses its argument.",
     invariant: "The parameter was unused, so no call was passing anything the body read. Every call keeps the arguments the body still uses.",
-    note: "The declaration and the calls change together or not at all. A call the tool could not resolve would be reported rather than left quietly passing an argument to a parameter that no longer exists.",
+    note: "The declaration and the calls change together or not at all. A call the tool could not resolve would be reported and not left quietly passing an argument to a parameter that no longer exists.",
     command: "fr signature circ remove:1",
     files: [
       { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n" },
@@ -156,7 +156,7 @@ export const CATALOG = [
     sources: ["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5 (Change Function Declaration)", "The online refactoring catalogue — Martin Fowler"],
     intent: "Two parameters swap, and so do the arguments at every call.",
     invariant: "Each argument still arrives at the parameter it was written for, in both files: the parameters and the arguments move in step.",
-    note: "The arguments move with the parameters. Getting one of the two halves right is worse than doing nothing, which is why this is a refactoring rather than two edits.",
+    note: "The arguments move with the parameters. Getting one of the two halves right is worse than doing nothing, which is why this is a refactoring instead of two edits.",
     command: "fr signature send move:0:1",
     files: [
       { path: "src/net.py", before: "def send(host, port):\n    return connect(host, port)\n", after: "def send(port, host):\n    return connect(host, port)\n" },
@@ -185,7 +185,7 @@ export const CATALOG = [
     sources: ["Refactoring, 2nd ed. — Martin Fowler (2018), §6.3", "Tidy First? — Kent Beck (2023), “Explaining Variables”"],
     intent: "One name for a repeated sub-expression, substituted everywhere it appears.",
     invariant: "Both occurrences read one binding instead of computing the same expression twice; the expression was the same, so the value is.",
-    note: "Fowler's mechanics say to replace *all* occurrences, and the second one here is inside a larger expression rather than alone on a line — which is why this matches on the parse tree rather than on the text.",
+    note: "Fowler's mechanics say to replace *all* occurrences, and the second one here is inside a larger expression and not alone on a line — which is why this matches on the parse tree and not on the text.",
     command: "fr extract src/pricing.py:2:12-2:45 gross --all",
     files: [
       { path: "src/pricing.py", before: "def total(order):\n    base = order.quantity * order.item_price\n    discount = order.quantity * order.item_price * 0.05\n    return base - discount\n", after: "def total(order):\n    gross = order.quantity * order.item_price\n    base = gross\n    discount = gross * 0.05\n    return base - discount\n" },
@@ -199,7 +199,7 @@ export const CATALOG = [
     sources: ["Not in either catalogue — but it is the tidying you do after the others"],
     intent: "Imports nothing uses are dropped and the rest are sorted.",
     invariant: "The same modules are imported. Only the order changes, and Python does not care about the order of independent imports.",
-    note: "Read what it prints above the diff. Liveness is decided by name, so an import kept for a trait, a registration side effect or a doc comment would look unused — and it says so rather than letting you find out. This is the step a recipe puts last, with `imports where changed`.",
+    note: "Read what it prints above the diff. Liveness is decided by name, so an import kept for a trait, a registration side effect or a doc comment would look unused — and it says so instead of letting you find out. This is the step a recipe puts last, with `imports where changed`.",
     command: "fr imports src/loader.py",
     files: [
       { path: "src/loader.py", before: "import os\nimport json\nimport sys\n\n\ndef load(path):\n    with open(path) as handle:\n        return json.load(handle)\n", after: "import json\n\n\ndef load(path):\n    with open(path) as handle:\n        return json.load(handle)\n" },
@@ -226,8 +226,8 @@ export const CATALOG = [
     kind: "edit",
     name: "Remove Dead Code",
     sources: ["Refactoring, 2nd ed. — Martin Fowler (2018), §8.9", "Tidy First? — Kent Beck (2023), “Dead Code”"],
-    intent: "Code nothing calls is deleted rather than maintained.",
-    invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. That is what makes the deletion safe rather than a guess.",
+    intent: "Code nothing calls is deleted and not maintained.",
+    invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. That is what makes the deletion safe instead of a guess.",
     note: "`fr unused` finds it and `fr delete` removes it, and the two must agree: delete refuses anything still referenced, which is what makes the list worth acting on.",
     command: "fr delete _legacy_histogram",
     files: [
@@ -270,7 +270,7 @@ export const CATALOG = [
     sources: ["Refactoring, 2nd ed. — Martin Fowler (2018), §10.3"],
     intent: "Fowler's own example is an `if`/`else` nest that assigns to a result.",
     invariant: "Nothing changes. The tool could not prove the shape it needs, and a guess here would reorder the conditions.",
-    note: "The tool will not do this one, and says why rather than guessing. Turning an `else` into an early return means deciding what the function returns on the path that used to fall through — a judgement about the code, not a fact about its syntax. `invert-if` is the move it offers instead, and the entry below is that same file.",
+    note: "The tool will not do this one, and says why instead of guessing. Turning an `else` into an early return means deciding what the function returns on the path that used to fall through — a judgement about the code, not a fact about its syntax. `invert-if` is the move it offers instead, and the entry below is that same file.",
     command: "fr rewrite src/payout.py:2:5 guard-clause",
     files: [
       { path: "src/payout.py", before: "def payout(employee):\n    if employee.is_separated:\n        result = 0\n    else:\n        if employee.is_retired:\n            result = 0\n        else:\n            result = employee.salary * employee.bonus_rate\n    return result\n", after: "def payout(employee):\n    if employee.is_separated:\n        result = 0\n    else:\n        if employee.is_retired:\n            result = 0\n        else:\n            result = employee.salary * employee.bonus_rate\n    return result\n" },
@@ -284,7 +284,7 @@ export const CATALOG = [
     sources: ["The online refactoring catalogue — Martin Fowler"],
     intent: "A condition is negated and its branches swapped, when that reads better.",
     invariant: "The branches swap and the condition is negated with them, so each case still runs for the same inputs.",
-    note: "Purely local: the tool does not need to resolve a single name to know this is sound, which is why it is offered at a position rather than for a symbol.",
+    note: "Purely local: the tool does not need to resolve a single name to know this is sound, which is why it is offered at a position and not for a symbol.",
     command: "fr rewrite src/payout.py:2:5 invert-if",
     files: [
       { path: "src/payout.py", before: "def payout(employee):\n    if employee.is_separated:\n        result = 0\n    else:\n        if employee.is_retired:\n            result = 0\n        else:\n            result = employee.salary * employee.bonus_rate\n    return result\n", after: "def payout(employee):\n    if not employee.is_separated:\n        if employee.is_retired:\n            result = 0\n        else:\n            result = employee.salary * employee.bonus_rate\n    else:\n        result = 0\n    return result\n" },
@@ -298,7 +298,7 @@ export const CATALOG = [
     sources: ["Not in either catalogue — De Morgan's law, 1847", "Tidy First? — Kent Beck (2023), “Normalize Symmetries”, in spirit"],
     intent: "A negated conjunction becomes a disjunction of negations, or the reverse.",
     invariant: "`not (a and b)` and `not a or not b` are the same predicate; the same readings still alert.",
-    note: "Named honestly: this is not Fowler's Consolidate Conditional Expression (§10.2), which combines several conditionals that produce the same result. It is a law of logic applied by the grammar rather than by eye. The two forms mean the same thing and one of them is usually the one you meant.",
+    note: "Named honestly: this is not Fowler's Consolidate Conditional Expression (§10.2), which combines several conditionals that produce the same result. It is a law of logic applied by the grammar and not by eye. The two forms mean the same thing and one of them is usually the one you meant.",
     command: "fr rewrite src/alerts.py:2:12 de-morgan",
     files: [
       { path: "src/alerts.py", before: "def should_alert(reading, limits):\n    if not (reading.celsius < limits.high and reading.humidity < limits.wet):\n        return True\n    return False\n", after: "def should_alert(reading, limits):\n    if reading.celsius >= limits.high or reading.humidity >= limits.wet:\n        return True\n    return False\n" },

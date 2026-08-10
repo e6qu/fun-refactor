@@ -8,7 +8,7 @@
 //! CI found it, three minutes and one push later.
 //!
 //! Two changes made this file possible: `vfs`'s in-memory backing follows the `wasm`
-//! feature rather than the target, and `Workspace::load` takes plain Rust values so
+//! feature instead of the target, and `Workspace::load` takes plain Rust values so
 //! only the `JsValue` conversion is left in the constructor.
 //!
 //! This does not replace `web/test/api.mjs`, which exercises the real wasm through the
@@ -59,7 +59,7 @@ fn a_workspace_loads_and_reports_what_it_read() {
 
 #[test]
 fn two_workspaces_do_not_read_each_others_bytes() {
-    // The reason `files` is a handle rather than one global map. Loading a second
+    // The reason `files` is a handle and not one global map. Loading a second
     // repository used to replace the bytes the first one's index was measured
     // against, and every span the older one held then pointed into somebody else's
     // file — nothing failed, the answers were just quietly about the wrong text.

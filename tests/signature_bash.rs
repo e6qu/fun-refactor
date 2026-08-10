@@ -103,7 +103,7 @@ fn error(result: anyhow::Result<signature::SignaturePlan>) -> String {
     }
 }
 
-/// The same, insisting the error is a structured [`Refusal`] rather than a bail.
+/// The same, insisting the error is a structured [`Refusal`] and not a bail.
 fn refusal(result: anyhow::Result<signature::SignaturePlan>) -> String {
     match result {
         Ok(_) => panic!("expected a refusal, got a plan"),

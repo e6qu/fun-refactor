@@ -2,7 +2,7 @@
 //!
 //! The promise is narrow and has to be tested as such: the *signature* is carried
 //! exactly, the declarations are idiomatic in the target, and everything with no
-//! counterpart is in the output verbatim rather than dropped or guessed at.
+//! counterpart is in the output verbatim and not dropped or guessed at.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -313,7 +313,7 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
         }
     }
     // The count is written down so that adding a language without adding a source for
-    // it fails here rather than quietly testing a fraction of the matrix.
+    // it fails here and not quietly testing a fraction of the matrix.
     let languages = transpile::SUPPORTED.len();
     assert_eq!(
         checked,
@@ -425,7 +425,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
             }
             let (output, _) = translate(&[(name, source)], name, *to);
             // Go capitalises an exported field, so the search has to be about the
-            // word rather than its spelling.
+            // word instead of its spelling.
             let body = output
                 .lines()
                 .find(|l| l.contains("return") && l.to_lowercase().contains("name"))
@@ -1082,7 +1082,7 @@ fn a_python_module_binding_is_a_constant_whatever_it_is_called() {
 
 #[test]
 fn a_coalesce_crosses_as_the_question_it_asks() {
-    // `a ?? b` asks whether the left side is absent, which is a question rather than an
+    // `a ?? b` asks whether the left side is absent, which is a question and not an
     // arithmetic operator. Zig spells it with a word, Rust and Java with a call, Python
     // has to name the value twice, and Go cannot say it at all.
     let source = "export function f(x: number | null): number {\n  const a = x ?? 5;\n  \

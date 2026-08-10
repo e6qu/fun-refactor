@@ -94,7 +94,7 @@ impl SymbolKind {
         matches!(self, SymbolKind::Variable | SymbolKind::Parameter)
     }
 
-    /// Is this kind referenced by name from other files, rather than through scope
+    /// Is this kind referenced by name from other files, and not through scope
     /// or imports?
     ///
     /// CSS classes, element ids, custom properties, YAML keys, Markdown headings and
@@ -130,7 +130,7 @@ impl SymbolKind {
 /// How confident we are that a reference or call resolved to the right symbol.
 ///
 /// Every resolved edge carries one of these. Refactorings refuse to act on
-/// low-confidence resolutions rather than guessing.
+/// low-confidence resolutions instead of guessing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Confidence {
@@ -167,7 +167,7 @@ impl Confidence {
 /// to act on". Five sites raised it where nothing had resolved at all, filling the field
 /// with `Confidence::NameOnly` — so a shell script that sources a computed path was
 /// refused with "resolution is only 'name-only'", sending the reader after a resolution
-/// problem that was not there. Taking this rather than a bare [`Confidence`] means the
+/// problem that was not there. Taking this instead of a bare [`Confidence`] means the
 /// variant cannot be built without a reference to take it from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResolvedConfidence(Confidence);
@@ -251,7 +251,7 @@ pub struct Reference {
     #[serde(default)]
     pub receiver: Option<String>,
     /// Written after a `.` inside a macro's token tree, where the grammar records
-    /// tokens rather than syntax and so records no receiver.
+    /// tokens and not syntax and so records no receiver.
     ///
     /// `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier: not a
     /// call, and with nothing before it. Left at that it is indistinguishable from a
@@ -261,7 +261,7 @@ pub struct Reference {
     #[serde(default)]
     pub member_in_macro: bool,
     /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f` —
-    /// rather than as a value.
+    /// and not as a value.
     ///
     /// A path names a type or a module, so it can be matched against a symbol's own
     /// qualifier without knowing any types. A value receiver names something whose
@@ -394,7 +394,7 @@ pub struct FileFacts {
     #[serde(default)]
     pub gaps: Vec<FactGap>,
     /// Set when the file could not be read at all, so a parallel worker can report
-    /// the failure through its result rather than needing a second channel.
+    /// the failure through its result instead of needing a second channel.
     #[serde(skip)]
     pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,

@@ -19,7 +19,7 @@
 //!
 //! A Next.js route's URL is its position on disk: `app/api/users/[id]/route.ts` is
 //! `/users/{id}`, and nothing inside the file says so. This translation reads the path
-//! as well as the text, so it lives here rather than in the general reader.
+//! as well as the text, so it lives here and not in the general reader.
 //!
 //! # What it still cannot do
 //!
@@ -81,7 +81,7 @@ pub struct Model {
 ///
 /// Both routers, matched on path *components*: an `api` directory somewhere above an
 /// App Router `route.ts`, or a `pages/api` pair for the Pages Router. Component-wise
-/// rather than by substring, because a substring rule needs a leading slash to avoid
+/// and not by substring, because a substring rule needs a leading slash to avoid
 /// matching `capi/`, and requiring one silently rejects every relative path — which is
 /// what a caller who passes `pages/api/users.ts` hands over.
 fn route_segments(path: &Path) -> Option<Vec<String>> {
@@ -151,7 +151,7 @@ pub fn route_for(path: &Path) -> String {
     }
 }
 
-/// Does this file contain JSX — that is, is it a component rather than a route?
+/// Does this file contain JSX — that is, is it a component instead of a route?
 fn has_jsx(source: &str, language: Language) -> Result<bool> {
     let parsers = Parsers::new();
     let parsed = parsers.parse(language, source)?;
@@ -201,7 +201,7 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
 
     if has_jsx(&source, language)? {
         bail!(
-            "{} contains JSX, so it is a React component rather than an API route. A \
+            "{} contains JSX, so it is a React component and not an API route. A \
              component renders a user interface and a FastAPI endpoint answers HTTP; \
              there is no translation between them, and a file that pretended there was \
              would be worse than none.",
@@ -318,7 +318,7 @@ impl ThenOr for String {
 
 /// Turn a zod schema into a record, so a request body reaches FastAPI as a model.
 ///
-/// Most Next.js applications declare their shapes with zod rather than with an
+/// Most Next.js applications declare their shapes with zod and not with an
 /// `interface`, and a zod schema is a *runtime value* — nothing that reads type
 /// declarations will find it. Left alone it arrives as an ordinary constant and the
 /// translated service publishes an OpenAPI document with no request body in it at all:
@@ -484,7 +484,7 @@ fn read_queries(module: &Module) -> Vec<(String, String)> {
 /// Which schema each handler parses its body with.
 ///
 /// A Next.js handler validates by hand — `const body = petCreateSchema.parse(json)` —
-/// so the link between an operation and its request body is a *call* rather than a
+/// so the link between an operation and its request body is a *call* and not a
 /// declaration. Reading it is what lets the contract say `requestBody` instead of
 /// listing a shape under `components` that nothing points at.
 fn parsed_bodies(module: &Module) -> Vec<(String, String)> {
@@ -562,7 +562,7 @@ fn parsed_bodies(module: &Module) -> Vec<(String, String)> {
     }
     out
 }
-/// The IR already holds the whole builder chain, so this is a walk rather than a parse.
+/// The IR already holds the whole builder chain, so this is a walk and not a parse.
 fn record_from_zod(name: &str, value: &Expr) -> Option<Record> {
     let fields = object_fields(value)?;
     Some(Record {
@@ -672,7 +672,7 @@ fn zod_type(spec: &Expr) -> Type {
                 // it to be its own model and naming one would be inventing a name.
                 "object" => Type::named("dict"),
                 // `z.enum([...])`, `z.union([...])`, `z.any()`, and anything else this
-                // does not know: written through by name rather than guessed at.
+                // does not know: written through by name and not guessed at.
                 other => Type::named(other),
             };
             if modifiers.iter().any(|m| m == "optional" || m == "nullable") {
@@ -824,7 +824,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         // differently, and treating them alike was wrong: `NextRequest` **is**
         // Starlette's `Request` — same headers, same `await .json()` — so it is kept
         // under its own name and typed, which makes every line that reads it correct
-        // rather than commented out. `context` genuinely has no counterpart, because
+        // and not commented out. `context` genuinely has no counterpart, because
         // FastAPI passes path parameters directly.
         let request = handler.params.iter().find(|p| is_the_request(p));
         if let Some(param) = request {
@@ -858,7 +858,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
             .collect();
         // `const id = context.params.id` is not untranslatable — it is *redundant*.
         // Pulling a path parameter off the context object is exactly the work FastAPI
-        // does for you, so the line is dropped rather than carried, and the report says
+        // does for you, so the line is dropped and not carried, and the report says
         // why. It is the single most common statement in a Next.js route, and carrying
         // it would leave every translated handler opening with a line that names an
         // object Python does not have.
@@ -1084,7 +1084,7 @@ impl Responses {
     }
 }
 
-/// Is this handler argument the request, rather than the route context?
+/// Is this handler argument the request, instead of the route context?
 ///
 /// By type where there is one — `Request`, `NextRequest` — and by name otherwise,
 /// since `(req, res)` and `(request, context)` are the two spellings Next.js uses.
@@ -1100,7 +1100,7 @@ fn is_the_request(param: &Param) -> bool {
 /// These are not approximations. Returning a value from a FastAPI handler *is*
 /// `NextResponse.json` — the framework serialises it — so `return NextResponse.json(x)`
 /// is `return x` and nothing is lost. Where a status or a redirect is involved FastAPI
-/// has a named class for it, which is the idiom rather than a workaround.
+/// has a named class for it, which is the idiom and not a workaround.
 fn as_fastapi(stmt: Stmt, needs: &mut Responses) -> Stmt {
     fn rewrite(e: Expr, needs: &mut Responses) -> Expr {
         // `new Response(null, { status: 204 })` is the Web-standard spelling and is

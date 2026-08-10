@@ -24,7 +24,7 @@ fn qualified(f: &FileFacts) -> Vec<String> {
 ///
 /// The container patterns matched `type: (type_identifier)`, and `impl Ctx<'_>` puts a
 /// `generic_type` there, so the methods inside got no container at all: `run` rather
-/// than `Ctx::run`, and kind `function` rather than `method`. A `self.hcl_backward(…)`
+/// than `Ctx::run`, and kind `function` and not `method`. A `self.hcl_backward(…)`
 /// then had no member to resolve to, and 43 of `provenance.rs`'s own methods read as
 /// dead code.
 #[test]
@@ -65,7 +65,7 @@ fn an_impl_on_a_generic_type_still_names_its_methods() {
     );
 }
 
-/// The same gap one node deeper: a type named by its path rather than imported.
+/// The same gap one node deeper: a type named by its path and not imported.
 ///
 /// `impl inner::Deep` puts a `scoped_type_identifier` where the patterns want a bare
 /// name, and `impl<T> other::Wrapped<T>` wraps that in a `generic_type` again.

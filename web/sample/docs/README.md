@@ -2,7 +2,7 @@
 
 A sensor collector, a dashboard, and the infrastructure that runs them. This
 workspace exists so every grammar the tool has can be exercised against something
-that reads like a service rather than a syntax sample.
+that reads like a service instead of a syntax sample.
 
 ## Layout
 

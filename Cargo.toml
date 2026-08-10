@@ -41,7 +41,7 @@ cli = [
 # most of a WebAssembly build's weight and none of a native build's concern — the
 # terminal takes all of them, a browser can take the few it needs. A language whose
 # grammar this build omits is still recognised by extension; the refusal names the
-# build rather than pretending the file is unsupported.
+# build instead of pretending the file is unsupported.
 lang-rust = ["dep:tree-sitter-rust"]
 lang-go = ["dep:tree-sitter-go"]
 lang-typescript = ["dep:tree-sitter-typescript"]

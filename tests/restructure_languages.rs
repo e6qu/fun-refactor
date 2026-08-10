@@ -43,7 +43,7 @@ fn workspace(files: &[(&str, &str)]) -> Workspace {
 /// the language under test — a Helm chart always carries its `Chart.yaml`.
 ///
 /// The edit set is also run through `ReparseStrict`, so any pattern that produced a
-/// syntactically broken file fails here rather than in review.
+/// syntactically broken file fails here and not in review.
 fn restructured(
     files: &[(&str, &str)],
     language: Language,

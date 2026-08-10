@@ -469,7 +469,7 @@ stale entry is simply never looked up.
 Entries live under `$FUN_REFACTOR_CACHE`, or the platform cache directory
 (`~/Library/Caches/fun-refactor` on macOS, `~/.cache/fun-refactor` on Linux). The
 directory carries a schema version, so a release that changes what a fact *is* starts
-a new namespace rather than reading old data with a new meaning.
+a new namespace instead of reading old data with a new meaning.
 
 ```console
 $ fr cache             # where it is and how big
@@ -481,7 +481,7 @@ $ fr <command> --no-cache
 ```
 
 The directory name carries both the schema version and the query-set fingerprint,
-which is why editing a query file makes every stale entry unreachable rather than
+which is why editing a query file makes every stale entry unreachable and not
 wrong.
 
 Indexing is parallel across files, and results merge in scan order, so the output does

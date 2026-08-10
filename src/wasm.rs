@@ -24,7 +24,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Workspace {
     index: Index,
-    /// This workspace's bytes. Held rather than installed once, because a page can
+    /// This workspace's bytes. Held and not installed once, because a page can
     /// have two workspaces open and each one's spans only mean anything against the
     /// text they were measured on.
     files: crate::vfs::Handle,
@@ -57,7 +57,7 @@ struct FlowText {
 }
 
 /// The move and signature plans report what they left alone as plain strings rather
-/// than the structured warning the others use. Rather than teach the view two shapes,
+/// than the structured warning the others use. Instead of teaching the view two shapes,
 /// they are attached to the applied result under one name.
 fn with_notes(applied: String, notes: &[String]) -> String {
     if notes.is_empty() {
@@ -127,7 +127,7 @@ fn ok<T: Serialize>(value: &T) -> String {
 impl Workspace {
     /// Load a repository. `files` is `{ "path/to/file.go": "contents", … }`.
     ///
-    /// Files in languages this does not parse are ignored rather than refused: a real
+    /// Files in languages this does not parse are ignored and not refused: a real
     /// repository is full of lockfiles and images, and refusing the whole load
     /// because of one would be useless.
     #[wasm_bindgen(constructor)]
@@ -356,7 +356,7 @@ impl Workspace {
     /// The type the symbol at a position was declared with, as the source wrote it.
     ///
     /// Nothing is inferred: a binding with no annotation comes back with `declared`
-    /// null, which is an answer rather than a gap in one.
+    /// null, which is an answer and not a gap in one.
     pub fn declared_type(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         let id = match self.symbol_at(path, line, col) {
@@ -385,7 +385,7 @@ impl Workspace {
     /// Retire a feature flag and the branch that only served it.
     ///
     /// The cascade re-indexes after each round, so it works over the whole loaded
-    /// workspace rather than one file.
+    /// workspace instead of one file.
     pub fn remove_flag(&mut self, flag: &str, value: bool) -> String {
         self.enter();
         let mut sources: std::collections::BTreeMap<PathBuf, (Language, String)> =
@@ -736,7 +736,7 @@ impl Workspace {
 
     /// What this file could be rewritten as, and why the rest are not on offer.
     ///
-    /// Answers for every language rather than only the possible ones, because "you
+    /// Answers for every language and not only the possible ones, because "you
     /// cannot turn Rust into Python and here is why" is the useful half of this
     /// feature and a shorter list would not say it.
     pub fn translations(&self, path: &str) -> String {
@@ -748,10 +748,10 @@ impl Workspace {
             destination: Option<String>,
             /// Absent when it can be done.
             unavailable: Option<String>,
-            /// Present when this is a translation rather than the same bytes, saying
+            /// Present when this is a translation and not the same bytes, saying
             /// how much of it is real. A caller must be able to tell the difference.
             draft: Option<String>,
-            /// A port to another framework rather than to another language.
+            /// A port to another framework and not to another language.
             ///
             /// Its own kind, because it answers a different question. "Write this
             /// TypeScript as Python" and "serve these routes from FastAPI instead" are
@@ -760,7 +760,7 @@ impl Workspace {
             framework: bool,
         }
 
-        // Three constructors rather than six literals. A field added to the struct is
+        // Three constructors and not six literals. A field added to the struct is
         // otherwise a field six call sites have to remember, and one of them will not:
         // `framework` was missed at exactly one, in code no host build compiles, and
         // the browser build in CI was what found it.
@@ -800,10 +800,10 @@ impl Workspace {
         let possible = crate::translate::targets(from);
         let mut out: Vec<Option_> = Vec::new();
 
-        // FastAPI is a framework rather than a language, and it goes first because
+        // FastAPI is a framework and not a language, and it goes first because
         // when it applies at all it is the best answer for the file: a Next.js route
         // translated as plain Python loses the routing, which is the half that lives
-        // in the path rather than the text.
+        // in the path instead of the text.
         if crate::transpile::nextjs::is_api_route(&path_buf) {
             match crate::transpile::nextjs::plan(&path_buf) {
                 Ok(plan) => out.push(
@@ -858,7 +858,7 @@ impl Workspace {
             if possible.contains(language) {
                 // Offered, but the file still has to parse as it — a `.scss` using
                 // nesting is not CSS, and the button must say that before it is
-                // pressed rather than after.
+                // pressed and not after.
                 match crate::translate::plan(&path_buf, *language) {
                     Ok(plan) => out.push(Option_::offered(
                         language.name(),

@@ -12,7 +12,7 @@ So this declares exactly what the grammars reference and nothing else. The
 implementations are in `src/wasm_libc.rs`, backed by Rust's allocator and its
 `compiler_builtins` memory intrinsics — no allocator of our own, no syscalls, and
 nothing that can drift from what the C actually calls, because a missing symbol is a
-link error rather than a runtime surprise.
+link error instead of a runtime surprise.
 
 Not used by any other build. `CFLAGS_wasm32_unknown_unknown` points at it, and that
 variable is set in one place: `tools/build-wasm.sh`.

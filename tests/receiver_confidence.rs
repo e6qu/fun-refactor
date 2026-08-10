@@ -132,11 +132,11 @@ fn a_call_on_an_unknown_receiver_inside_the_declaring_class_is_not_exact() {
     );
 }
 
-/// The property itself, rather than an instance of it: whatever route through the
+/// The property itself, instead of an instance of it: whatever route through the
 /// resolver produced an answer, a member access on a receiver this tool has not typed
 /// may not come back at a tier that refactorings rewrite. Each shape below reaches a
 /// different branch — same-file uniqueness, enclosing scope, a name declared in another
-/// file, and a field read rather than a call.
+/// file, and a field read instead of a call.
 #[test]
 fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
     let shapes: &[(&str, &[(&str, &str)])] = &[
@@ -191,7 +191,7 @@ fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
 /// The resolver returns a symbol and a tier as an ordinary pair, so that combination is
 /// representable, and a consumer that trusts the tier without checking the symbol would
 /// act on it — `call_graph` checks both, which is the tell. No branch produces it today.
-/// This says so for whole real workspaces rather than by reading the branches, because
+/// This says so for whole real workspaces and not by reading the branches, because
 /// reading the branches is what missed the receiver overclaim twice.
 #[test]
 fn an_unresolved_reference_never_claims_a_rewritable_tier() {

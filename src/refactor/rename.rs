@@ -29,7 +29,7 @@ pub struct RenamePlan {
 
 /// Work out how to rename `symbol` to `new_name`.
 ///
-/// Returns a [`Refusal`] rather than a partial rename when the change would collide
+/// Returns a [`Refusal`] instead of a partial rename when the change would collide
 /// with an existing name or the new name is not valid for the language.
 pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<RenamePlan> {
     let symbol = index
@@ -65,7 +65,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     }
 
     // A heading's references are `#anchor` links, and an anchor is a slug of the
-    // heading rather than the heading itself. Writing the new name into one would
+    // heading instead of the heading itself. Writing the new name into one would
     // produce a link to nothing — `## Two Words` renamed to `Three Words` needs
     // `#three-words`.
     let reference_text = match symbol.kind {
@@ -214,7 +214,7 @@ fn validate_name(name: &str, language: Language, kind: SymbolKind) -> Result<(),
         }
     } else if kind == SymbolKind::Heading {
         // A heading is prose, and the space in `## Getting Started` is the usual case
-        // rather than the exception. A line ending is still not allowed: it would end
+        // instead of the exception. A line ending is still not allowed: it would end
         // the heading and leave the rest as a paragraph.
         if name.trim().is_empty() || name.contains(['\n', '\r']) {
             return Err(Refusal::InvalidName {
@@ -439,7 +439,7 @@ fn string_and_comment_spans(parsed: &crate::parse::Parsed) -> Vec<Span> {
     }
 }
 
-/// Is the match at `offset` a whole word rather than part of a longer one?
+/// Is the match at `offset` a whole word and not part of a longer one?
 fn is_word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
     let before_ok = haystack[..offset]
         .chars()

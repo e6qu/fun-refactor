@@ -2,7 +2,7 @@
 //!
 //! Two things are renameable in XML: the id/idref graph and namespace prefixes.
 //! Two grammar limits shape every assertion below, and both are pinned by tests
-//! rather than papered over:
+//! and not papered over:
 //!
 //! * an attribute value is only addressable *with* its surrounding quotes, so
 //!   `id="a"` yields the name `"a"`, quotes included;

@@ -1,7 +1,7 @@
 //! Renaming a symbol and renaming it back leaves the workspace where it started.
 //!
 //! A rename touches every file that references the symbol, and the edits are byte
-//! splices rather than a reformat, so the inverse ought to restore the tree exactly —
+//! splices instead of a reformat, so the inverse ought to restore the tree exactly —
 //! including the files it decided not to touch. Anything else means the first rename
 //! wrote something the second could not find, or found something the first did not.
 //!
@@ -16,7 +16,7 @@ use fun_refactor::scan::ScanOptions;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-/// Every file's bytes, so the comparison is the whole tree rather than one file.
+/// Every file's bytes, so the comparison is the whole tree and not one file.
 fn snapshot(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     let mut out = BTreeMap::new();
     let mut stack = vec![root.to_path_buf()];

@@ -1,7 +1,7 @@
 //! What a file means, said in a way no one language owns.
 //!
 //! Translation goes source → IR → source, so adding a language costs one reader and
-//! one writer rather than a pair for every language already here. Six languages is
+//! one writer instead of a pair for every language already here. Six languages is
 //! thirty ordered pairs and twelve files.
 //!
 //! # In it
@@ -76,7 +76,7 @@ pub struct Function {
     pub returns: Option<Type>,
     pub body: Vec<Stmt>,
     pub exported: bool,
-    /// Reported rather than translated: a Rust `async fn` written as Python must say
+    /// Reported and not translated: a Rust `async fn` written as Python must say
     /// so, and a Go one cannot be written at all.
     pub is_async: bool,
     /// Does this function make a value of its type?
@@ -183,7 +183,7 @@ pub enum Type {
     Optional(Box<Type>),
     /// A type the reader recognised the shape of but not the meaning.
     ///
-    /// Structured rather than opaque text, because generic syntax differs: writing
+    /// Structured and not opaque text, because generic syntax differs: writing
     /// Rust's `Result<(), String>` into a Python annotation produced a file Python
     /// cannot parse. Keeping the arguments apart lets each writer spell them its own
     /// way, and lets a writer that cannot spell them at all say so.
@@ -344,13 +344,13 @@ pub enum Expr {
     ///
     /// Three of these languages have it and mean the same thing by it: suspend
     /// until this resolves. Only the spelling differs — prefix in Python and
-    /// TypeScript, postfix in Rust. Go has no counterpart and says so rather than
+    /// TypeScript, postfix in Rust. Go has no counterpart and says so instead of
     /// dropping the keyword, which would turn a suspension point into a plain call.
     Await(Box<Expr>),
     /// `name=value` in an argument list.
     ///
     /// Python has these and the other three do not, so a writer without them carries
-    /// the call rather than dropping the name and hoping the position is right.
+    /// the call instead of dropping the name and hoping the position is right.
     Keyword {
         name: String,
         value: Box<Expr>,
@@ -358,7 +358,7 @@ pub enum Expr {
     /// `x instanceof T`, `isinstance(x, T)`.
     ///
     /// The same question in both, spelled as an operator in one and a builtin in the
-    /// other, which is why it is a node rather than a call: a reader that emitted
+    /// other, which is why it is a node and not a call: a reader that emitted
     /// `isinstance(...)` would be writing Python inside the TypeScript reader.
     InstanceOf {
         value: Box<Expr>,
@@ -387,7 +387,7 @@ pub enum Expr {
     },
     /// `a ?? b`, `a orelse b` — the value unless it is absent, and then the fallback.
     ///
-    /// Its own node rather than a [`BinaryOp`], because it is not an operator on values
+    /// Its own node instead of a [`BinaryOp`], because it is not an operator on values
     /// in most of these languages: Zig spells it `orelse`, Rust reaches for
     /// `Option::unwrap_or`, Java for a static method, and Go has nothing at all. What is
     /// shared is the *question* — is this absent, and what then — and that is what
@@ -395,7 +395,7 @@ pub enum Expr {
     ///
     /// The catch is that three of the six can only say it by naming the value twice. A
     /// value that is a call cannot be named twice without calling it twice, so those
-    /// writers say so rather than changing how many times the program does something.
+    /// writers say so instead of changing how many times the program does something.
     Coalesce {
         value: Box<Expr>,
         fallback: Box<Expr>,
@@ -403,8 +403,8 @@ pub enum Expr {
     /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
     ///
     /// One expression that chooses between two, and five of these six languages have
-    /// it — only Go does not, and Go says so rather than inventing a statement out of
-    /// an expression. It is a node rather than an [`Stmt::If`] because it *is* a value:
+    /// it — only Go does not, and Go says so instead of inventing a statement out of
+    /// an expression. It is a node and not an [`Stmt::If`] because it *is* a value:
     /// reading it as a branch would need somewhere to put the result, and there is no
     /// such place inside an argument list.
     Ternary {
@@ -418,7 +418,7 @@ pub enum Expr {
     MapLit(Vec<(Expr, Expr)>),
     /// An interpolated string: `f"Hi {name}"`, `` `Hi ${name}` ``.
     ///
-    /// Kept as parts rather than text because flattening it loses the expressions —
+    /// Kept as parts and not text because flattening it loses the expressions —
     /// which is exactly the silent wrong answer this had before it existed.
     Template(Vec<TemplatePart>),
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
@@ -534,7 +534,7 @@ pub struct Fidelity {
     pub signatures_with_foreign_types: usize,
     /// Statements and expressions carried verbatim because nothing corresponds.
     pub carried_verbatim: usize,
-    /// Imports listed rather than translated. Counted apart because they are not a
+    /// Imports listed and not translated. Counted apart because they are not a
     /// failure to translate anything.
     pub imports_listed: usize,
     /// Signatures whose *types* carried but whose calling convention did not: a

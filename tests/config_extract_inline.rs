@@ -977,7 +977,7 @@ fn css_extract_puts_a_new_root_rule_after_leading_at_rules() {
 #[test]
 fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
     // A `$` name asks for an SCSS variable, which is declared at the stylesheet's top
-    // level rather than in a `:root` rule — `$vars` are resolved by the compiler, not
+    // level and not in a `:root` rule — `$vars` are resolved by the compiler, not
     // the cascade.
     let src = ".btn {\n  color: #3366ff;\n}\n\n.link {\n  color: #3366ff;\n}\n";
     let ws = workspace(&[("theme.scss", src)]);
@@ -1046,7 +1046,7 @@ fn a_dollar_name_is_refused_in_plain_css() {
 #[test]
 fn css_extract_works_alongside_scss_only_syntax() {
     // SCSS has its own grammar now, so a file using `$variables` parses cleanly and
-    // extraction works in it rather than refusing.
+    // extraction works in it instead of refusing.
     let src = "$brand: red;\n.btn { color: #3366ff; }\n";
     let ws = workspace(&[("theme.scss", src)]);
     let path = ws.path("theme.scss");

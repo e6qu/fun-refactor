@@ -11,7 +11,7 @@ authority, since it is what reads these files.
 These were written by consulting the query files each grammar ships upstream, which
 are the canonical statement of a grammar's node names. Those are vendored under
 `vendor/tree-sitter-queries/` with their licences and checksums, so the derivation is
-recorded rather than implicit — see `vendor/README.md`.
+recorded and not implicit. See `vendor/README.md`.
 
 When a grammar is bumped in `Cargo.toml`, re-run `python3 vendor/vendor.py` and read
 the diff before trusting these files. A grammar that renames a node does not break the

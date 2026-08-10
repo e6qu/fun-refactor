@@ -479,7 +479,7 @@ fn helm_anchors_work_the_same_as_in_plain_yaml() {
 
 #[test]
 fn a_template_action_in_key_position_breaks_the_parse() {
-    // Known gap, recorded rather than papered over: masking `{{ .Values.k }}: v`
+    // Known gap, recorded and not papered over: masking `{{ .Values.k }}: v`
     // leaves `                : v`, and a mapping entry with a blank key is not
     // valid YAML, so the document carries a parse error. Extraction still runs
     // and still finds the surrounding keys, but the masked line is lost.

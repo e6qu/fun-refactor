@@ -171,7 +171,7 @@ export function capture(
 
 export function refund(payment: Captured, amount: Money): Refunded | Captured {
   if (payment.kind !== "captured") throw new Error("not captured");
-  // This one stays. It relates two values rather than naming a state, and no type
+  // This one stays. It relates two values instead of naming a state, and no type
   // here can say "no larger than the amount in that other object".
   if (amount.exceeds(payment.amount)) return payment;
   return {

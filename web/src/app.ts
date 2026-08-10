@@ -427,7 +427,7 @@ function syncFromWorkspace(changed: { path: string }[]) {
     files[path] = text;
     const model = models.get(path);
     if (model && model.getValue() !== text) {
-      // `pushEditOperations` rather than `setValue` so undo still works and the
+      // `pushEditOperations` and not `setValue` so undo still works and the
       // viewport does not jump.
       model.pushEditOperations([], [{ range: model.getFullModelRange(), text }], () => null);
     }
@@ -457,9 +457,9 @@ function refreshEditedState() {
 // ----------------------------------------------------------------- the actions
 
 /**
- * Ask for one value, in a dialog rather than a `prompt` the browser may block.
+ * Ask for one value, in a dialog instead of a `prompt` the browser may block.
  *
- * Settled from the form's own `submit` rather than from the dialog's `close`. A
+ * Settled from the form's own `submit` and not from the dialog's `close`. A
  * `<form method="dialog">` closes its dialog and sets `returnValue` without always
  * firing `close` — which left the action waiting forever on a promise that had no
  * remaining way to settle, with the dialog gone and nothing said. `submit` fires
@@ -544,7 +544,7 @@ async function run(action: Action) {
     // the thing worth reading.
     show(
       `<p class="err">${escapeHtml(String(value.error))}</p>` +
-        `<p class="hint">The tool refuses rather than guessing. Nothing was changed.</p>`,
+        `<p class="hint">The tool refuses instead of guessing. Nothing was changed.</p>`,
       action.label,
     );
     return;
@@ -755,7 +755,7 @@ presetSelect.addEventListener("change", () => {
 /**
  * Fetch a repository and index it.
  *
- * Throws rather than reporting: the caller decides what a failure means. Pressing
+ * Throws instead of reporting: the caller decides what a failure means. Pressing
  * Load and having it fail is worth an error in the status bar; failing to reach
  * GitHub on the very first page load is worth standing something else up instead.
  */
@@ -1119,7 +1119,7 @@ init({ module_or_path: wasmUrl })
     // Start with something real loaded. A page whose every button is greyed out until
     // you have thought of a repository is a page nobody tries. If GitHub will not
     // answer — rate limits are 60 requests an hour for an anonymous browser — the
-    // bundled sample stands in, and says so rather than pretending it was the plan.
+    // bundled sample stands in, and says so instead of pretending it was the plan.
     // `?repo=` picks the workspace here exactly as it does for the JSON renderings —
     // one parameter meaning two different things depending on the mode would be a
     // trap for anyone sharing a link.

@@ -1,7 +1,7 @@
 # Vendored test corpus
 
 Unmodified source files from public repositories, kept here so the translation tests
-run against code somebody actually shipped rather than against fixtures written to
+run against code somebody actually shipped and not against fixtures written to
 pass. They are **test data only**: nothing here is compiled, linted, packaged or
 shipped, and no build target references this directory.
 

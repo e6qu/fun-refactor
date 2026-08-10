@@ -303,7 +303,7 @@ fn a_modifier_between_the_annotation_and_the_declaration_is_not_a_line_before_it
 }
 
 /// The other side of that: what precedes the symbol on its line may be a real statement
-/// rather than a modifier, and then an annotation above belongs to the statement.
+/// instead of a modifier, and then an annotation above belongs to the statement.
 #[test]
 fn a_nested_declaration_does_not_inherit_the_annotation() {
     let found = entry_kinds(&[("lib.rs", "#[test]\nfn outer() { fn inner() {} }\n")]);

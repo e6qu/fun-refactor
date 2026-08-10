@@ -8,6 +8,6 @@ publish = false
 
 # The analysis crate forbids unsafe outright, and that is worth keeping. Raw pointers
 # are the whole job here, so the exception lives in its own crate where it is a
-# hundred lines that can be read in one sitting rather than a hole in a guarantee.
+# hundred lines that can be read in one sitting instead of a hole in a guarantee.
 [lints.rust]
 unsafe_code = "allow"

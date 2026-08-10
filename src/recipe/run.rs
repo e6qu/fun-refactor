@@ -519,7 +519,7 @@ fn merge(into: &mut EditSet, from: &EditSet) {
 
 /// What a step acts on: a symbol, or a whole file.
 ///
-/// A symbol is named rather than identified. Each subject is acted on against a
+/// A symbol is named and not identified. Each subject is acted on against a
 /// freshly built index, because one deletion moves every span after it in the file and
 /// a `SymbolId` does not survive a rebuild — planning them all against one snapshot
 /// produced `conflicting edits: 0..396 overlaps 26..170` the first time two symbols in
@@ -742,7 +742,7 @@ pub const PREDICATES: &[&str] = &[
 
 /// The workspace-wide answers a selector needed, computed once per step.
 ///
-/// Each is an existing analysis rather than new machinery, and each is only run when a
+/// Each is an existing analysis and not new machinery, and each is only run when a
 /// predicate asks for it: the call graph over helm is not something to build for a
 /// selector that says `name="x"`.
 #[derive(Default)]
@@ -782,7 +782,7 @@ fn select(
             );
         }
         // `kind` and `lang` take a value from a closed set, and a misspelled one used to
-        // be answered by the codebase rather than by the recipe: `kind=functoin` matched
+        // be answered by the codebase and not by the recipe: `kind=functoin` matched
         // nothing, and the step failed saying it had matched nothing, which blames the
         // repository for a typo in the file. The predicate's own name is checked above
         // for exactly this reason; its value deserves the same.
@@ -952,7 +952,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
     Ok(facts)
 }
 
-/// Every symbol with this name, since a selector names one rather than pointing at it.
+/// Every symbol with this name, since a selector names one instead of pointing at it.
 fn named(index: &Index, name: &str) -> Vec<SymbolId> {
     index
         .symbols
@@ -977,7 +977,7 @@ fn symbol_matches(
             "in" => path.contains(value.trim_end_matches('/')),
             "file" => path.ends_with(value.as_str()),
             "annotated-with" => annotated(symbol, value),
-            // These four are answered by an analysis rather than by the symbol, so the
+            // These four are answered by an analysis and not by the symbol, so the
             // value has already been used to compute the set and only membership is
             // left to check.
             "calls" => facts.calls.contains(&symbol.id),

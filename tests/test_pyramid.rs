@@ -7,13 +7,13 @@
 //!    subtree.
 //! 2. **Integration** — `tests/*.rs` against the library. Most of the suite. A
 //!    workspace is written to a temp directory, indexed, and a refactoring is planned
-//!    and applied, so the assertion is about the resulting bytes rather than an
+//!    and applied, so the assertion is about the resulting bytes instead of an
 //!    intermediate.
 //! 3. **End-to-end** — `tests/cli.rs` and this file, running the binary. Argument
 //!    parsing, path resolution, exit codes and the text a person reads. This layer
 //!    did not exist until two bugs were found living in it: `--path` filters built by
 //!    joining the default root `.`, which matched nothing and reported that as
-//!    nothing found, and target paths read from the shell's directory rather than the
+//!    nothing found, and target paths read from the shell's directory instead of the
 //!    workspace `-C` names.
 //! 4. **Real repositories** — helm/helm and grafana/grafana, run by hand and recorded
 //!    in TUTORIAL.md and BUGS.md with the measurements. Not automated here: pinning a
@@ -25,7 +25,7 @@
 //! Every subcommand runs against a small polyglot workspace without panicking, and
 //! every one is named by at least one end-to-end test. The second half is the part
 //! that keeps the layer honest: a new command with no coverage fails the build here
-//! rather than shipping untested, which is exactly how the CLI layer came to have no
+//! instead of shipping untested, which is exactly how the CLI layer came to have no
 //! tests at all.
 
 use std::path::Path;

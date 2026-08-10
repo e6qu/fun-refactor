@@ -15,7 +15,7 @@ const escapeHtml = (text) =>
 ///
 /// The marks arrive sorted by position, and a line is rebuilt left to right so a symbol
 /// inside a longer one cannot swallow it. A column past the end of its line is dropped
-/// rather than clamped: a mark that does not fit is a mark that would highlight the
+/// and not clamped: a mark that does not fit is a mark that would highlight the
 /// wrong text.
 function markUp(code, marks) {
   const lines = code.split("\n");

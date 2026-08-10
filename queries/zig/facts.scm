@@ -7,7 +7,7 @@
 ; is the definition.
 ;
 ; `pub`, `export` and `extern` are anonymous tokens, so visibility is captured with
-; a quantified anonymous pattern inside each definition rather than a separate rule:
+; a quantified anonymous pattern inside each definition instead of a separate rule:
 ; captures only group within a single match.
 
 ; ---------------------------------------------------------------- scopes
@@ -62,7 +62,7 @@
   (string
     (string_content) @name)) @definition.function
 
-; `test someDecl { … }` names a declaration to exercise rather than introducing a
+; `test someDecl { … }` names a declaration to exercise instead of introducing a
 ; name of its own, so the identifier stays a reference and the block is not a
 ; symbol. The catch-all reference rule below picks it up.
 
@@ -100,7 +100,7 @@
 ; text is what keeps this from firing a second time on the container declarations
 ; above. The `error` alternative is closed with `$` so that an error-set *merge*
 ; (`error{A} || error{B}`, a binary expression) still counts as an ordinary const
-; rather than being dropped by both rules.
+; instead of being dropped by both rules.
 ((variable_declaration
    "pub"? @export
    "export"? @export

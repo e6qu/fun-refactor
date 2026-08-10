@@ -1,7 +1,7 @@
 //! Bash fact-extraction tests: what `queries/bash/facts.scm` actually yields.
 //!
 //! Bash is dynamically scoped and has no declarations to lean on, so several of
-//! these tests pin down deliberate heuristics rather than language guarantees.
+//! these tests pin down deliberate heuristics and not language guarantees.
 //! Where the query language cannot express something, the test says so.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
@@ -242,7 +242,7 @@ fn a_c_style_for_loop_binds_its_initializer() {
 #[test]
 fn positional_parameters_are_not_captured() {
     // `$1` is a variable_name node, but it has no definition site and cannot be
-    // renamed, so it is deliberately left out rather than reported as a use of a
+    // renamed, so it is deliberately left out and not reported as a use of a
     // variable called "1".
     let src = "f() {\n  local name=$1\n  echo \"$2 $name\"\n}\n";
     let f = facts(src);
@@ -314,7 +314,7 @@ fn quoted_source_paths_lose_their_quotes() {
 
 #[test]
 fn a_concatenated_source_path_is_captured_but_not_unquoted_cleanly() {
-    // Known shortcoming, in the extractor rather than the query: Import paths are
+    // Known shortcoming, in the extractor instead of the query: Import paths are
     // unquoted by trimming quote characters off the ends, which cannot handle a
     // path built from several pieces. The import itself, and its span, are right.
     let src = "source \"$DIR\"/lib.sh\n";

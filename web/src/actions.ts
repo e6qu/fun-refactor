@@ -3,10 +3,10 @@
  *
  * Every capability the wasm exposes appears here exactly once, with what it needs
  * before it can run — a cursor position, a selection, a name to type — and how to
- * render what comes back. Keeping it as a list rather than as a wall of buttons is
+ * render what comes back. Keeping it as a list and not as a wall of buttons is
  * what makes "can I try every feature from the site?" answerable: the page is built
  * from this array, so a capability that exists in the API and not on the page is a
- * missing entry rather than a forgotten button.
+ * missing entry instead of a forgotten button.
  */
 
 import type { Workspace } from "./wasm/fun_refactor.js";
@@ -60,7 +60,7 @@ export interface Action {
    *
    * Only navigation gets one: it is what you do most, and a trip through a list of
    * thirty buttons for "where is this defined" is the reason the panel felt like a
-   * form rather than an editor.
+   * form instead of an editor.
    */
   icon?: string;
   /** Does this rewrite the workspace? Mutations refresh the editor and the file list. */
@@ -139,7 +139,7 @@ export const ACTIONS: Action[] = [
     label: "Call graph size",
     group: "Analyse",
     needs: "workspace",
-    describes: "Functions, edges, and how many came from dispatch rather than a name",
+    describes: "Functions, edges, and how many came from dispatch instead of a name",
     run: (w) => w.graph(),
   },
   {

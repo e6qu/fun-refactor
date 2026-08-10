@@ -150,7 +150,7 @@ impl Operation {
         match self {
             Operation::ExtractVariable { .. } | Operation::ExtractFunction { .. } => {
                 "extract takes a range, and a range is a judgement about one specific \
-                 piece of code rather than something a predicate can select"
+                 piece of code instead of something a predicate can select"
             }
             Operation::RemoveFlag { .. } => {
                 "remove-flag acts on the whole workspace: it finds the flag, substitutes \

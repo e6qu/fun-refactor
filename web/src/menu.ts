@@ -2,7 +2,7 @@
  * The right-click menu.
  *
  * What you can do here depends on what is under the cursor, so the menu is built when
- * it opens rather than declared: an action whose preconditions are not met is shown
+ * it opens and not declared: an action whose preconditions are not met is shown
  * disabled with the reason as its tooltip, because a menu that hides half its items
  * teaches you nothing about why.
  */
@@ -70,7 +70,7 @@ export function openedBy(): HTMLElement | null {
  * Open at a point, describing `subject`.
  *
  * The menu is placed so it stays on screen: opened near the right or bottom edge it
- * flips rather than being half-drawn beyond it.
+ * flips instead of being half-drawn beyond it.
  */
 export function open(
   x: number,

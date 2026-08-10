@@ -3,7 +3,7 @@
 //! The insertion point matters as much as the extraction: the binding goes at the
 //! start of the statement containing the expression, at that statement's own
 //! indentation, so the result reads like hand-written code. The expression's
-//! original bytes are reused verbatim rather than reprinted, so any comments and
+//! original bytes are reused verbatim and not reprinted, so any comments and
 //! spacing inside it survive.
 
 use super::Refusal;
@@ -603,7 +603,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .ok_or_else(|| anyhow::anyhow!("select one or more complete statements to extract"))?;
 
     // A jump out of the region cannot be reproduced by a call, so the extraction
-    // would change control flow. Refuse rather than produce something that compiles
+    // would change control flow. Refuse and not produce something that compiles
     // but behaves differently.
     if let Some(kind) = escaping_control_flow(&parsed, region) {
         anyhow::bail!(
@@ -697,7 +697,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
 
     // Languages that require types on parameters cannot have them invented. Where a
     // binding's type was never written down there is nothing to recover, so the
-    // extraction is refused with the names rather than emitting code that will not
+    // extraction is refused with the names instead of emitting code that will not
     // compile.
     if requires_explicit_types(language) {
         let untyped: Vec<&str> = parameters
@@ -934,7 +934,7 @@ fn node_in_region(parsed: &Parsed, region: Span, wanted: impl Fn(&str) -> bool) 
 /// uses one can be carried across by marking the new function async?
 ///
 /// Rust writes `.await` as a postfix and Go and Zig have no such thing, so the
-/// question is per-language rather than a property of the region.
+/// question is per-language instead of a property of the region.
 fn awaits_with_a_keyword(language: Language) -> bool {
     matches!(
         language,
@@ -989,13 +989,13 @@ fn references_within<'a>(
 /// The type written at a declaration site, if the source states one.
 ///
 /// There is no type inference here: a binding whose type the programmer left to the
-/// compiler has none to recover, and the caller is told rather than guessed at.
+/// compiler has none to recover, so the caller is told and nothing is guessed.
 /// The type a declaration states, as a bare type with no punctuation.
 ///
 /// The C-family grammars make the `:` part of the annotation node, so the text of
-/// the `type` field is `: number` rather than `number`. Every caller wants the type
+/// the `type` field is `: number` and not `number`. Every caller wants the type
 /// alone and re-spells the punctuation its own language needs, so it is stripped
-/// here rather than in each of them.
+/// here and not in each of them.
 fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
     let node = parsed
         .root()
@@ -1042,7 +1042,7 @@ fn render_call(
 /// How the file being edited is indented.
 ///
 /// `outer` is what the extracted region already carries; `unit` is one level as this
-/// file writes it, which is read from the source rather than assumed so a two-space
+/// file writes it, which is read from the source and not assumed so a two-space
 /// or tab-indented file does not come back with four spaces.
 #[derive(Clone, Copy)]
 struct Indentation<'a> {
@@ -1648,7 +1648,7 @@ fn css_custom_property(
 
     // An SCSS variable is declared at the top level of the stylesheet, not inside a
     // `:root` rule — that is a CSS custom property's home, and `$vars` are resolved
-    // by the compiler rather than the cascade.
+    // by the compiler instead of the cascade.
     if scss_variable {
         let insert_at = css_insertion_point(&parsed, &source);
         let mut edits = EditSet::new();
@@ -1896,7 +1896,7 @@ const MARKDOWN_LINK_KINDS: [&str; 4] = [
 /// The innermost link enclosing `node`, whichever of the four spellings it is.
 ///
 /// Reference links are found too, so selecting one is refused for having no inline
-/// destination rather than for not being a link at all.
+/// destination and not for not being a link at all.
 fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
@@ -1926,7 +1926,7 @@ fn markdown_inline_destination(link: Node<'_>, source: &str) -> Option<(Span, St
 
 /// Does the document already end with a link reference definition?
 fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
-    // Blocks hang off `section` nodes rather than off the document, so the last block
+    // Blocks hang off `section` nodes and not off the document, so the last block
     // is at the bottom of the last section.
     let mut node = parsed.root();
     loop {
@@ -1962,7 +1962,7 @@ fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFun
         anyhow::anyhow!(
             "no Chart.yaml above {}, so the chart name is unknown. A named template is \
              addressed as `<chart>.<name>` across every chart in a release, and an \
-             include under the wrong name renders empty rather than failing",
+             include under the wrong name renders empty instead of failing",
             file.display()
         )
     })?;
@@ -2151,7 +2151,7 @@ const BASH_VALUE_KINDS: &[&str] = &[
 /// becomes a reference to it.
 ///
 /// Quoting is the whole difficulty, and the reference is spelled to reproduce what the
-/// original bytes did rather than to look tidy: `${name}` when the selection was
+/// original bytes did and not to look tidy: `${name}` when the selection was
 /// already inside double quotes, `"$name"` wherever quoting cannot change the result,
 /// and a bare `$name` only where the original expansion really was subject to word
 /// splitting and globbing — there, `"$name"` would collapse several words into one and
@@ -2318,9 +2318,9 @@ fn bash_is_statement_container(kind: &str) -> bool {
 
 /// The statement the value belongs to — the one the binding goes in front of.
 ///
-/// Two positions have no statement in front of them and are refused rather than
-/// approximated: the condition of an `if`, which the binding would be tested instead
-/// of, and the condition of a loop, which is re-evaluated on every iteration and so
+/// Two positions have no statement in front of them, and both are refused. The first
+/// is the condition of an `if`: the binding would replace the test. The second is the
+/// condition of a loop, which is re-evaluated on every iteration and so
 /// cannot be hoisted out without changing how many times it runs.
 fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
     let mut current = node;
@@ -2355,7 +2355,7 @@ fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
 /// How one occurrence must be spelled so the shell still sees the same words.
 fn bash_reference(occurrence: Node<'_>, source: &str, name: &str) -> String {
     // Inside double quotes the expansion is already protected from splitting, and a
-    // second pair of quotes would end the string rather than nest inside it.
+    // second pair of quotes would end the string and not nest inside it.
     if strict_ancestor_of_kind(occurrence, "string").is_some() {
         return format!("${{{name}}}");
     }
@@ -2648,7 +2648,7 @@ fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
 /// or declared inside the rule.
 ///
 /// Sass also evaluates a stylesheet top-down, so the definition goes above every rule
-/// rather than beside the one it came from — a mixin included before it is declared is
+/// and not beside the one it came from — a mixin included before it is declared is
 /// an error, not a forward reference.
 fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
     if name.is_empty()
@@ -2722,7 +2722,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
     if let Some(other) = selected.iter().find(|c| c.kind() != "declaration") {
         anyhow::bail!(
             "the selection contains a `{}`; only declarations move into a mixin \
-             unchanged, so this region is refused rather than reinterpreted",
+             unchanged, so this region is refused and not reinterpreted",
             other.kind()
         );
     }
@@ -2884,7 +2884,7 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
     if value_text.contains(['<', '&', '%']) {
         anyhow::bail!(
             "`{value_text}` contains `<`, `&` or `%`. Those are markup inside an entity \
-             value and would be re-parsed rather than copied, so the entity would not \
+             value and would be re-parsed and not copied, so the entity would not \
              stand for the same text"
         );
     }

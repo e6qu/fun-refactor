@@ -71,7 +71,7 @@
 ; One pattern per parameter form: plain, annotated, defaulted, annotated and
 ; defaulted, `*args` and `**kwargs` (each of the last two also in an annotated
 ; form, where the splat pattern sits inside a typed_parameter). The forms nest
-; rather than overlap, so no parameter is defined twice.
+; and not overlap, so no parameter is defined twice.
 (parameters (identifier) @name @definition.parameter)
 (lambda_parameters (identifier) @name @definition.parameter)
 (typed_parameter (identifier) @name) @definition.parameter

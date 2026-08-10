@@ -2,7 +2,7 @@
  * Turning an answer into something worth reading.
  *
  * The wasm returns the same JSON `fr --json` prints, which means the shapes vary: a
- * list of locations, a rendered tree, a set of diffs, a matrix. Rather than one
+ * list of locations, a rendered tree, a set of diffs, a matrix. Instead of one
  * renderer per action, this reads the shape — a `files` key means a refactoring
  * happened, a `tree` means an analysis printed itself — so an action that returns a
  * familiar shape needs no view code of its own.
@@ -79,7 +79,7 @@ function renderApplied(value: any): string {
  * Grouped and capped. Renaming a YAML key called `path` in a repository with GitHub
  * workflows reports every comment and string in every language that contains the word
  * — twelve thousand of them in `psf/requests`. Rendered one to a list item that is
- * twelve thousand DOM nodes, and read as "the rename failed" rather than "the rename
+ * twelve thousand DOM nodes, and read as "the rename failed" instead of "the rename
  * worked and here is a very long footnote".
  *
  * The count is never rounded down or hidden: a summary that under-reports is worse
@@ -161,7 +161,7 @@ function renderStats(s: any): string {
  * serialises to — and `support` is `{support: "yes"}` or a tagged variant carrying
  * `because`. That reason is the interesting half: "not applicable" and "refused" are
  * different claims, and the sentence explaining which is why the matrix is generated
- * from the code rather than written by hand. An earlier version of this reader
+ * from the code and not written by hand. An earlier version of this reader
  * expected objects with a `language` key and rendered fifteen chips reading
  * "undefined" per row.
  */
@@ -280,7 +280,7 @@ function renderUnused(dead: any[]): string {
             `</li>`,
         ),
     ) +
-    `<p class="hint">An exported symbol nothing here uses may be a public API rather than
+    `<p class="hint">An exported symbol nothing here uses may be a public API and not
       dead code — which it is, is not the tool's call.</p>`
   );
 }

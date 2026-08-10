@@ -17,7 +17,7 @@
 //!
 //! Every successful move goes through `edit::plan(…, ReparseStrict)` and is then
 //! re-indexed, so a move that produces text the tool can no longer resolve fails here
-//! rather than in someone's repository.
+//! and not in someone's repository.
 
 use fun_refactor::{
     edit::{self, apply_to_string, Validation},
@@ -788,7 +788,7 @@ fn yaml_carries_a_comment_on_the_key_but_leaves_the_file_header() {
         "# What this file is.\nalpha: 1\n\n"
     );
 
-    // The header comment opens the file, so it describes the file rather than the
+    // The header comment opens the file, so it describes the file instead of the
     // first key, and stays where it is.
     let plan = move_symbol::to_file(
         &index,

@@ -1,8 +1,8 @@
 ; Java fact extraction.
 ; Capture conventions are documented in src/extract.rs.
 ;
-; Java says "externally visible" with a keyword rather than with capitalisation, and
-; `modifiers` is an optional *positional* child rather than a field — so `!modifiers`
+; Java says "externally visible" with a keyword and not with capitalisation, and
+; `modifiers` is an optional *positional* child and not a field — so `!modifiers`
 ; is not available and the three cases have to be made mutually exclusive by hand. A
 ; match fires whole or not at all, and nothing downstream de-duplicates definitions, so
 ; two patterns that can both match one declaration produce two symbols sharing a name
@@ -127,7 +127,7 @@
  (#not-match? @mods "public"))
 
 ; A method with no modifiers at all — an interface method, or a package-private one.
-; The first child is its return type, and each shape is listed rather than matched
+; The first child is its return type, and each shape is listed and not matched
 ; with `(_)`, which would also match the `modifiers` node and undo the exclusion.
 (method_declaration
   . [

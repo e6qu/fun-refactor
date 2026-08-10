@@ -124,7 +124,7 @@
         <tr><td>Path parameters</td><td>the bracketed segments</td><td>typed <code>str</code>, named the way Python names things</td></tr>
         <tr><td>Query parameters</td><td>nowhere</td><td>read from <code>req.nextUrl.searchParams.get("…")</code> in the handler</td></tr>
         <tr><td>Request body</td><td>a zod schema, usually in another module</td><td>the schema is found anywhere in the tree; the <em>link</em> comes from the <code>.parse()</code> call inside the handler</td></tr>
-        <tr><td>Response body</td><td>nowhere</td><td>not in the contract, and said so rather than invented</td></tr>
+        <tr><td>Response body</td><td>nowhere</td><td>not in the contract, and said so and not invented</td></tr>
         <tr><td>Status codes</td><td>the returned object</td><td>carried into the code, reported for the contract</td></tr>
       </tbody>
     </table>
@@ -259,13 +259,13 @@ const pets = await db.pet.findMany({
     </p>
     <p>
       <strong>Not the other direction.</strong> FastAPI → Next.js <em>loses</em> a
-      machine-readable contract rather than gaining one: nothing in the target
+      machine-readable contract instead of gaining one: nothing in the target
       regenerates it, so it would have to be exported before the rewrite and asserted
       against afterwards. This tool does not do that direction.
     </p>
     <p>
       <strong>Read the notes.</strong> Everything the document could not settle is
-      printed beside it rather than guessed at, because a baseline that quietly invents
+      printed beside it and not guessed at, because a baseline that quietly invents
       an entry is the worst possible outcome: the diff comes out clean and the contract
       still shrank.
     </p>

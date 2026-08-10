@@ -19,7 +19,7 @@ The runner found a defect the design could not have: the refactorings read sourc
 after another step was measured against the file on *disk* — the text before any step
 ran. The in-memory backing that the browser build uses is now compiled everywhere and
 the runner installs the workspace on it, which is what makes "each step sees what the
-last one left" true rather than intended.
+last one left" true and not intended.
 
 ```
 schema 1
@@ -74,7 +74,7 @@ not a purpose.
 
 This is a third mini-language in one repository — after the entry-point catalogs and
 the `$META` patterns in `restructure`. That is a real cost and it buys terseness. To
-be worth it, three things have to ship *with* the parser rather than after it:
+be worth it, three things have to ship *with* the parser and not after it:
 
 1. **Errors that name the mistake and where it is**, with a caret and a suggestion
    from the closed vocabulary. `unknown predicate 'exportd'` with `did you mean
@@ -280,7 +280,7 @@ the dry run, and an `expect`.
 
 **`extract`** takes a range, and a range cannot be selected — it is a judgement about
 one specific piece of code. It stays positional, which means a recipe containing one
-is about a file rather than a policy. A real limit, better stated than papered over.
+is about a file instead of a policy. A real limit, better stated than papered over.
 
 **`rename` takes a literal.** There are no computed names in v1: no captures, no case
 conversions. A convention-wide rename — `handle_*` to `on_*` — is simply not
@@ -289,7 +289,7 @@ asked for this one yet.
 
 ## Refusals
 
-The tool refuses rather than guessing. A recipe run at scale collects refusals, and
+The tool refuses instead of guessing. A recipe run at scale collects refusals, and
 what it does with them is the decision that matters most here.
 
 | `on-refusal` | Meaning |
@@ -310,7 +310,7 @@ and its dead branches still there.
 
 Each step sees the workspace **as the previous step left it**, which means re-indexing
 between steps. `Index::build_from_sources` already does exactly this for the cascade
-machinery: re-resolve against in-memory results rather than writing to disk to read it
+machinery: re-resolve against in-memory results instead of writing to disk to read it
 back.
 
 Dry-run is the default, as everywhere else in this tool. `--write` applies.
@@ -410,7 +410,7 @@ running someone else's file against your source.
 unaddable later. It is the hook a future reader uses to refuse a file it does not
 understand.
 
-What sharing would require, written down rather than answered badly:
+What sharing would require, written down and not answered badly:
 
 - **Compatibility.** What does `schema 2` mean for a `schema 1` recipe — is the reader
   required to run it, refuse it, or upgrade it?

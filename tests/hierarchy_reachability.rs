@@ -9,7 +9,7 @@
 //! Two rules run through all of it. A hierarchy edge is never `Exact`: which
 //! implementation runs is a runtime fact and the tag has to say so. And where the
 //! syntax cannot separate an implementation from a same-named method on an unrelated
-//! type, the test asserts the over-approximation rather than pretending to precision.
+//! type, the test asserts the over-approximation instead of pretending to precision.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
@@ -239,7 +239,7 @@ fn rust_an_impl_reached_only_by_dispatch_is_not_reported_unused() {
             report.unused
         );
     }
-    // And the report can say why, rather than quietly dropping them.
+    // And the report can say why, and not quietly dropping them.
     let explanation = report
         .explain(&index, method(&index, "Circle", "area"))
         .expect("a spared symbol must carry its reason");
@@ -640,7 +640,7 @@ fn main() {
 //
 // "What are the Sinks?" is the question people ask of an interface, and it used to
 // answer nothing: `implementations_of` required a method, so pointing at the type it
-// belongs to returned an empty list rather than the three types that implement it.
+// belongs to returned an empty list instead of the three types that implement it.
 // The relationships were already known — only the direction of the question was new.
 
 /// Names of the implementations reported for the symbol called `name`.

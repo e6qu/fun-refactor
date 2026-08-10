@@ -712,9 +712,9 @@ fn an_unreferenced_rust_module_is_still_reported() {
 
 /// A class whose methods are entry points is reached, whatever calls them.
 ///
-/// JUnit constructs a test class in order to run the `@Test` methods in it, and the
+/// JUnit constructs a test class to run the `@Test` methods in it, and the
 /// class itself is named nowhere — `spring-petclinic` reported eleven of them. The rule
-/// asks the containment chain rather than the language, so a Rust `mod tests` and a
+/// asks the containment chain instead of the language, so a Rust `mod tests` and a
 /// Python class of pytest cases are covered by the same sentence.
 #[test]
 fn a_container_of_an_entry_point_is_not_dead() {

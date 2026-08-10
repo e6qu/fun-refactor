@@ -173,7 +173,7 @@ const CASES = [
     },
   ],
   [
-    "a deletion, which removes lines rather than changing them",
+    "a deletion, which removes lines instead of changing them",
     (w) => {
       const p = at("src/ingest.rs", "hottest");
       return w.delete(p.path, p.line, p.col);

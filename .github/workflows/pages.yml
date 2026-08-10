@@ -47,7 +47,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       # The generator and the crate must agree exactly on the bindgen ABI, so the
-      # version comes from the lockfile rather than from whatever is newest.
+      # version comes from the lockfile and not from whatever is newest.
       - name: Install wasm-bindgen-cli, matching the lockfile
         run: |
           version=$(awk '/^name = "wasm-bindgen"$/{found=1} found && /^version = /{gsub(/[",]/,"",$3); print $3; exit}' Cargo.lock)
@@ -116,7 +116,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # One publish at a time, and never cancel one in flight: a half-published site is
-    # worse than a slightly stale one. On the *job* rather than the workflow, because
+    # worse than a slightly stale one. On the *job* instead of the workflow, because
     # serialising the whole workflow serialised the build too — and a run wedged in
     # `waiting` then blocked every push behind it, which is how one stuck deployment
     # became a site that could not be updated at all.
@@ -127,7 +127,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Thirty minutes rather than the default ten. Six deploys in a row aborted with
+      # Thirty minutes instead of the default ten. Six deploys in a row aborted with
       # "Timeout reached" while the deployment sat queued behind a build that was
       # holding the same environment.
       - id: deployment

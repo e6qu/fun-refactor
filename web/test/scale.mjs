@@ -110,7 +110,7 @@ for (const path of Object.keys(files)) {
   if (Array.isArray(symbols)) for (const s of symbols) targets.push({ path, ...s });
 }
 /**
- * Spread the probes across the workspace rather than taking the first N.
+ * Spread the probes across the workspace instead of taking the first N.
  *
  * `targets` is in path order, so the first forty of the bundled sample are all in
  * `chart/` — a run that claims to cover sixteen languages and covers YAML. Striding
@@ -147,7 +147,7 @@ console.log(
     `${[...languagesProbed].filter(Boolean).sort().join(" ")}\n`,
 );
 
-// The coverage claim, asserted rather than written in a comment above it. `.java` was
+// The coverage claim, asserted and not written in a comment above it. `.java` was
 // missing from PARSEABLE for a whole release: the sweep went on saying it covered every
 // language of the bundled sample while skipping one of them entirely, and nothing
 // noticed because the only statement of the claim was prose.
@@ -174,7 +174,7 @@ const REFUSAL = [
   /is a \w[\w-]*, not a|is a `\w+` block, not a/i,   // "is a link-def, not a heading"
   /is still read \d+ time|would leave those/i,        // removing an input still used
   /is a block in \w+|names a module signature/i,
-  /has \d+ selectors|which is a rewrite rather than a move/i,
+  /has \d+ selectors|which is a rewrite instead of a move/i,
   /part of the module's call surface/i,
   /invert it instead|guard it instead|has an `?else`?/i,
   /nothing to act on|nothing is|no reference|not part of|already defined|is already/i,
@@ -263,7 +263,7 @@ for (const [operation, run] of Object.entries(OPERATIONS)) {
 // text. Its failure mode is silence — a pattern that matches nothing looks exactly
 // like a pattern that had nothing to match, and both report success. So each probe
 // below states whether it expects to match, and a `mustMatch` that finds nothing is
-// a defect rather than a shrug.
+// a defect instead of a shrug.
 
 console.log("\npattern DSL");
 
@@ -284,7 +284,7 @@ const PATTERNS = [
   ["bash", "echo $M", "printf '%s\\n' $M", false],
   ["hcl", "count = $N", "count = $N", false],
   // A metavariable in the template that the pattern never bound: the DSL must
-  // refuse rather than write the literal text `$Y` into the source.
+  // refuse and not write the literal text `$Y` into the source.
   ["python", "len($X) == 0", "not $Y", false],
   // Malformed: an unparseable fragment is a refusal, not a panic.
   ["python", "def (", "pass", false],

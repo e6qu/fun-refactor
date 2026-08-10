@@ -18,7 +18,7 @@
 //!   directories the module changes and every address breaks, so that is refused.
 //! - **CSS** — a class is named globally, so no reference changes. Reachability can
 //!   break: if nothing `@import`s the destination from where the rule was, the styles
-//!   stop applying. The move warns rather than refuses.
+//!   stop applying. The move warns and not refuses.
 //! - **Markdown** — a section is a heading and everything under it up to the next
 //!   heading of the same or higher level. In-repo links to the anchors that left
 //!   repoint at the new document.
@@ -92,17 +92,17 @@ pub fn why_not_move(language: Language) -> Option<&'static str> {
         // reference anywhere to update.
         Language::Html | Language::Xml => Some(
             "an element has no name that another document imports, so moving one \
-             between files changes what each document *is* rather than where a \
+             between files changes what each document *is* and not where a \
              definition lives",
         ),
         // Java ties a file's name to the public type inside it and imports by
-        // fully-qualified name rather than by path, so moving a type is a rename of the
+        // fully-qualified name and not by path, so moving a type is a rename of the
         // file *and* of its package, and moving a method is a change of receiver.
         // Neither is the operation this performs, and doing half of it would leave a
         // tree that does not compile.
         Language::Java => Some(
             "a public type must live in a file named after it and imports name packages \
-             rather than paths, so moving one is a rename of the file and its package, \
+             and not paths, so moving one is a rename of the file and its package, \
              not a move of a definition",
         ),
         _ => None,
@@ -158,7 +158,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         Language::Bash => move_bash(index, sym, destination),
         Language::Yaml | Language::Helm => move_values_key(index, sym, destination),
         // Java ties a file's name to the public type inside it and imports by
-        // fully-qualified name rather than by path, so moving a type is a rename of
+        // fully-qualified name and not by path, so moving a type is a rename of
         // the file *and* of its package, and moving a method is a change of receiver.
         // Neither is the operation this performs, and doing half of it would leave a
         // tree that does not compile.
@@ -166,19 +166,19 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
             operation: "move to file".into(),
             language: Language::Java,
             because: "a public type must live in a file named after it and imports name \
-                      packages rather than paths, so moving one is a rename of the file \
+                      packages and not paths, so moving one is a rename of the file \
                       and its package, not a move of a definition"
                 .into(),
         }
         .into()),
         // An element is addressed by its position in one document, or by an id that
-        // every other document reaches through a URL rather than an import. There is
+        // every other document reaches through a URL instead of an import. There is
         // no reference a move could repoint and no reachability it could preserve.
         other @ (Language::Html | Language::Xml) => Err(Refusal::Unsupported {
             operation: "move to file".into(),
             language: other,
             because: "an element has no name that another document imports, so moving \
-                      one between files changes what each document *is* rather than \
+                      one between files changes what each document *is* and not \
                       where a definition lives"
                 .into(),
         }
@@ -289,7 +289,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
 
 /// Remove the destination's import of a name it is about to define itself.
 ///
-/// Narrowed rather than deleted where the statement brings in more than one name: the
+/// Narrowed and not deleted where the statement brings in more than one name: the
 /// others are still over there and still needed.
 fn drop_local_import(
     index: &Index,
@@ -357,7 +357,7 @@ fn stem(file: &Path) -> String {
 /// Every identifier the moved region names.
 ///
 /// Deciding what the moved code depends on needs the names it mentions, and reading
-/// them off the tree rather than the text keeps strings and comments out of it.
+/// them off the tree instead of the text keeps strings and comments out of it.
 /// Locally-declared names come along too, which is harmless: they are only ever
 /// matched against imports and the names the source file defines, and a local that
 /// shadows one of those was already a hazard before the move.
@@ -389,7 +389,7 @@ fn names_used_in(
 /// uses, is re-pointed at the destination and copied across. A symbol the *source
 /// file itself* defines and the moved code still calls needs a new import pointing
 /// back at the source — and that symbol has to be exported for it to resolve, which
-/// is done here rather than left as a note.
+/// is done here and not left as a note.
 ///
 /// The import pointing back is a cycle when the source also imports the moved
 /// symbol. That is legal in both languages and common in TypeScript, but Python
@@ -627,7 +627,7 @@ fn back_import(language: Language, from: &Path, to: &Path, names: &[String]) -> 
 /// Make a symbol visible outside its file, if the language says so and it is not
 /// already.
 ///
-/// The edit rewrites the declaration's first word rather than inserting `export`
+/// The edit rewrites the declaration's first word instead of inserting `export`
 /// ahead of it. An insertion has no width, and a file whose first line is the
 /// declaration would put it at the same offset as the new import — two zero-width
 /// edits at one position, whose order decides whether the result reads
@@ -668,7 +668,7 @@ fn exported(language: Language, text: &str) -> String {
     format!("{lead}export {body}")
 }
 
-/// The import statement `from` needs in order to see `name` defined in `to`.
+/// The import statement `from` needs to see `name` defined in `to`.
 ///
 /// Failing to work one out is an error, not something to skip: the reference in
 /// `from` is what makes the import necessary, and a move that drops it leaves code
@@ -966,7 +966,7 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
 /// Where a Rust file sits in its crate.
 ///
-/// Refuses rather than guessing: a wrong `use` path produces a file that does not
+/// Refuses instead of guessing: a wrong `use` path produces a file that does not
 /// compile, which is worse than declining the move.
 /// How `file` can name `to_module` in a `use`, or `None` if it cannot be worked out.
 ///
@@ -1051,7 +1051,7 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
         path.push(part.to_string());
     }
     // The last component is the file; strip its extension and fold away the module
-    // spellings that name their parent directory rather than a module of their own.
+    // spellings that name their parent directory instead of a module of their own.
     if let Some(last) = path.pop() {
         let stem = last.strip_suffix(".rs").unwrap_or(&last).to_string();
         if !matches!(stem.as_str(), "mod" | "lib" | "main") {
@@ -1854,7 +1854,7 @@ fn widen_to_rule(source: &str, sym: &Symbol) -> Result<Span> {
             if count > 1 {
                 bail!(
                     "the rule for '{}' has {} selectors; moving one of them would have \
-                     to duplicate the declaration block, which is a rewrite rather than \
+                     to duplicate the declaration block, which is a rewrite and not \
                      a move",
                     sym.name,
                     count
@@ -1952,7 +1952,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
         );
     };
 
-    // Read the destinations from the text rather than from the index: a resolved
+    // Read the destinations from the text and not from the index: a resolved
     // reference spans the fragment alone, and repointing one means rewriting the whole
     // destination. The cross-document pass below reads them the same way.
     if let Ok(text) = crate::vfs::read_to_string(&sym.file) {
@@ -2464,7 +2464,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         bail!(
             "'{}' is a {}; only a function can be moved between scripts. A variable's \
              value depends on when its assignment ran, so moving one changes what it \
-             holds rather than where it lives",
+             holds and not where it lives",
             sym.name,
             sym.kind.as_str()
         );

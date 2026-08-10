@@ -51,7 +51,7 @@ pub struct Index {
     /// All references; `target` holds a global [`SymbolId`].
     pub references: Vec<Reference>,
     files: BTreeMap<PathBuf, FileInfo>,
-    /// Files skipped during scanning, reported rather than silently dropped.
+    /// Files skipped during scanning, reported and not silently dropped.
     pub skipped: Vec<(PathBuf, String)>,
 }
 
@@ -60,7 +60,7 @@ pub struct Index {
 /// Depends only on this file's bytes, which is what makes the result reusable: an
 /// edit elsewhere cannot change it.
 ///
-/// The parsers and the extractor are passed in rather than made here because
+/// The parsers and the extractor are passed in, not made here, because
 /// [`Extractor::new`] compiles the whole query set. Building one per file turned a
 /// 2.9-second index of `zod` into a 19-second one — the same mistake the parallel
 /// path avoids by noting that "query compilation is the cost here and it is paid once
@@ -129,7 +129,7 @@ impl Index {
                 };
 
                 // A cached entry carries its own gaps, so a hit skips parsing entirely
-                // rather than reparsing to ask.
+                // instead of reparsing to ask.
                 if let Some(cache) = cache {
                     let key = crate::cache::Cache::key(file.language, &source);
                     if let Some(facts) = cache.get(&key, &file.path) {
@@ -191,7 +191,7 @@ impl Index {
         }
     }
 
-    /// Build an index from sources held in memory rather than read from disk.
+    /// Build an index from sources held in memory and not read from disk.
     ///
     /// A cascading refactoring rewrites files and must re-resolve against the result
     /// before deciding what to do next; writing each intermediate state to disk just
@@ -212,7 +212,7 @@ impl Index {
     /// Extraction is per-file and depends only on a file's bytes; resolution is
     /// global and depends on all of them. Separating the two is what lets a caller
     /// that changed one file out of four hundred re-extract one file and re-resolve,
-    /// rather than parse the other three hundred and ninety-nine again. The on-disk
+    /// and not parse the other three hundred and ninety-nine again. The on-disk
     /// fact cache splits the work the same way for the same reason.
     pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
         let mut index = Index::default();
@@ -309,7 +309,7 @@ impl Index {
     /// the definition of the tier, and it holds however the branch below arrived at an
     /// answer.
     ///
-    /// It is enforced here rather than in the branches because there are twenty-eight
+    /// It is enforced here and not in the branches because there are twenty-eight
     /// places pairing a symbol with a tier, and each one was an opportunity to disagree.
     /// Two of them did, with the same reasoning — one definition of the name means
     /// "there is nothing to be wrong about" — and it is wrong the same way both times:
@@ -598,7 +598,7 @@ impl Index {
         //
         //    Naming a plausible target for a member access is useful — it is the tier
         //    that says how much to trust it, and `resolve_one` caps that for every
-        //    branch at once rather than each branch remembering to.
+        //    branch at once instead of each branch remembering to.
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
@@ -697,7 +697,7 @@ impl Index {
                 1 => return (Some(targets[0].id), Confidence::Exact),
                 0 => {}
                 // The same name declared as two different kinds is genuinely
-                // ambiguous; report it rather than pick one.
+                // ambiguous; report it and not pick one.
                 _ => return (Some(targets[0].id), Confidence::FieldBased),
             }
         }
@@ -763,7 +763,7 @@ impl Index {
         //    definition anywhere beside this file is in scope. Names are unique per
         //    namespace there, so a single match is exact; several mean the namespace
         //    (`var.` versus `local.`) decides, which this layer cannot see, so those
-        //    are reported rather than rewritten.
+        //    are reported and not rewritten.
         if reference.language.resolves_by_directory() {
             let dir = path.parent();
             let siblings: Vec<&Symbol> = candidates
@@ -832,7 +832,7 @@ impl Index {
     /// Handles the relative-path forms used by TypeScript, Python, SCSS and Bash.
     /// Module systems that need build configuration (Rust crate paths, Go module
     /// paths, tsconfig `paths` aliases) are not resolved here; callers see the
-    /// weaker confidence that results rather than a wrong answer.
+    /// weaker confidence that results instead of a wrong answer.
     fn resolve_import_path(&self, from: &Path, import_path: &str) -> Option<PathBuf> {
         if import_path.is_empty() {
             return None;
@@ -891,7 +891,7 @@ impl Index {
     }
 
     /// References that merely share a name with `symbol` but resolved elsewhere or
-    /// not at all. These are what a rename must report rather than rewrite.
+    /// not at all. These are what a rename must report and not rewrite.
     pub fn unresolved_matching(&self, symbol: SymbolId) -> Vec<&Reference> {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
@@ -906,7 +906,7 @@ impl Index {
     ///
     /// Usually just the symbol itself. For kinds with no canonical definition — CSS
     /// classes, custom properties — it is every site that declares the same name, so
-    /// a rename rewrites all of them rather than half.
+    /// a rename rewrites all of them and not half.
     pub fn definition_group(&self, symbol: SymbolId) -> Vec<SymbolId> {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
@@ -1028,7 +1028,7 @@ pub struct IndexStats {
     pub resolved: usize,
     pub by_confidence: BTreeMap<&'static str, usize>,
     /// How many files each gap was found in, by [`FactGap::as_str`]. A gap nobody hit
-    /// is absent rather than zero, as with `by_confidence`.
+    /// is absent and not zero, as with `by_confidence`.
     pub files_by_gap: BTreeMap<&'static str, usize>,
     pub imperative_files: usize,
 }
@@ -1037,7 +1037,7 @@ fn distance(a: usize, b: usize) -> usize {
     a.abs_diff(b)
 }
 
-/// Is this a chart's values file, rather than a manifest that merely has keys?
+/// Is this a chart's values file, instead of a manifest that merely has keys?
 ///
 /// `.Values.name` names a key a values file supplies. Every template in the chart is
 /// YAML with keys of its own, and matching those would point a reference at whatever

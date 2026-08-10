@@ -1,6 +1,6 @@
 //! Rewriting a file as a different programming language.
 //!
-//! Source → [`ir`] → source. One reader and one writer per language rather than a
+//! Source → [`ir`] → source. One reader and one writer per language instead of a
 //! translator per pair: six languages is thirty ordered pairs and twelve files.
 //!
 //! # Scope
@@ -179,7 +179,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
             .unwrap_or_default();
         bail!(
             "the {to} this produced does not parse{at}. That is a defect in the \
-             translator rather than in your file; the output is not written.\n\n{}",
+             translator and not in your file; the output is not written.\n\n{}",
             numbered(&output, first_error(&written, &output).map(|at| at.line))
         );
     }
@@ -212,7 +212,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
 /// reporting that says "line 1, column 1" and prints the banner, which tells whoever
 /// reads the defect report nothing at all. The innermost error is where the parser
 /// actually gave up, and a `MISSING` node beats an `ERROR` at the same depth because
-/// it names what was expected rather than merely where.
+/// it names what was expected and not merely where.
 fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![(parsed.root(), 0usize)];
@@ -239,7 +239,7 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::spa
     // A parse can report an error that this walk does not find: an empty Zig struct
     // holds a zero-width missing identifier that `Node::children` does not yield, and
     // the message came out with no position at all. `error_spans` walks with a cursor
-    // and does find it, so it is the fallback rather than a second opinion.
+    // and does find it, so it is the fallback and not a second opinion.
     let at = match best {
         Some((_, _, at)) => at,
         None => parsed.error_spans().first().map(|span| span.start)?,

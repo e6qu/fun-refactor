@@ -99,12 +99,12 @@
   (#match? @reference.identifier "^\\$")
 
 ; `@include theme(red)` calls a mixin. This is the call site a signature change
-; rewrites, so it is a call rather than a plain identifier use.
+; rewrites, so it is a call and not a plain identifier use.
 (include_statement
   (identifier) @reference.call)
 
 ; `double(3)` calls a Sass function. `var()` is excluded because it is CSS's
-; custom-property lookup rather than a function anyone declares, and it already has
+; custom-property lookup instead of a function anyone declares, and it already has
 ; its own pattern above; every other name here is either a user `@function` or a
 ; built-in that simply resolves to nothing.
 (call_expression
@@ -138,7 +138,7 @@
 ; `@use "buttons";` and `@forward "buttons";` — the Sass module system. The
 ; `as <namespace>` clause is not in this grammar (it parses as an ERROR sibling), so
 ; only the path is captured; a namespaced `@include ns.mixin()` is likewise not
-; parseable and is reported rather than resolved.
+; parseable and is reported and not resolved.
 (use_statement
   (string_value) @import.path) @import
 

@@ -171,7 +171,7 @@ fn trim_markdown_syntax(span: Span, source: &str) -> Span {
 ///
 /// `class="btn btn-primary"` is a single token in every HTML-ish grammar, but it
 /// references two CSS classes. Renaming one must rewrite only its own bytes, so the
-/// value is fanned out into separate references rather than treated as one name.
+/// value is fanned out into separate references and not treated as one name.
 fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
     let text = span.text(source);
     if !text.trim().contains(char::is_whitespace) {
@@ -193,7 +193,7 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
 /// What a reference was written against, if it was written as a member of something.
 ///
 /// `w.contextWithTimeout(…)` yields `w`; `time.Now()` yields `time`; a bare
-/// `helper()` yields nothing. Read from the tree rather than captured by a query,
+/// `helper()` yields nothing. Read from the tree and not captured by a query,
 /// because every grammar spells the shape differently but all of them put the
 /// receiver first and the member last.
 /// Was this reference written as `something.name` inside a macro's token tree?
@@ -242,7 +242,7 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     // Terraform writes its namespace as the first segment of a traversal:
     // `var.azs`, `local.azs`, `module.azs`, and each names a different declaration.
     // The segments are flat siblings under one `expression`, so the namespace is the
-    // first `variable_expr` rather than anything above this node. Without it,
+    // first `variable_expr` instead of anything above this node. Without it,
     // `var.azs` and an `output "azs"` in the same directory are indistinguishable.
     if parent.kind() == "get_attr" {
         let expression = parent.parent()?;
@@ -408,7 +408,7 @@ fn values_references(
     out
 }
 
-/// Was the receiver written as a path (`A::b`) rather than against a value (`a.b`)?
+/// Was the receiver written as a path (`A::b`) and not against a value (`a.b`)?
 fn receiver_is_path(root: Node<'_>, span: Span) -> bool {
     root.descendant_for_byte_range(span.start, span.end)
         .and_then(|n| n.parent())
@@ -669,7 +669,7 @@ impl Extractor {
             for span in spans {
                 // `href="#top"`, `[x](#intro)`, `[x](guide.md#intro)`: every grammar
                 // here gives the destination as one node, so the fragment is separated
-                // out now rather than at resolution. A reference named `#intro` matches
+                // out now and not at resolution. A reference named `#intro` matches
                 // no symbol, and a rename writing over the span would take the `#` with
                 // it.
                 let span = match link_destination(span, source, r.kind) {
@@ -997,7 +997,7 @@ mod tests {
             "label"
         );
 
-        // Unmatched quotes are left alone rather than half-trimmed.
+        // Unmatched quotes are left alone and not half-trimmed.
         let odd = "\"unclosed";
         assert_eq!(
             refine_name_span(Span::new(0, odd.len()), odd, Language::Rust).text(odd),

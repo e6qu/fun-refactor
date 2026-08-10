@@ -1,6 +1,6 @@
 //! Copy-paste detection: the same code, written twice.
 //!
-//! The comparison is structural rather than textual: a subtree's hash comes from the
+//! The comparison is structural and not textual: a subtree's hash comes from the
 //! node kinds it contains, so a copy whose variables were renamed still matches the
 //! original, and a textual search would not find it. [`Options::exact`] narrows to
 //! copies that also agree on every identifier and literal.
@@ -115,7 +115,7 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
     for (i, (_, language, source)) in files.iter().enumerate() {
         let Ok(parsed) = parsers.parse(*language, source) else {
             // A file that does not parse has no reliable structure to compare. It is
-            // already reported by `fr parse`, so it is skipped rather than guessed at.
+            // already reported by `fr parse`, so it is skipped and not guessed at.
             continue;
         };
         collect(parsed.root(), source, i, options, &mut candidates);
@@ -222,7 +222,7 @@ fn overlaps(a: Span, b: Span) -> bool {
 /// Hash every subtree large enough to be worth comparing.
 ///
 /// Done bottom-up in one pass: a node's hash is built from its kind and the hashes of
-/// its children, so the whole file costs one traversal rather than one per subtree.
+/// its children, so the whole file costs one traversal instead of one per subtree.
 fn collect(
     root: Node<'_>,
     source: &str,

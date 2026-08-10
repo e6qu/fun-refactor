@@ -9,7 +9,7 @@
 //! filesystem and costs nothing. On `wasm32` there is no filesystem, so it reads
 //! from a map the host loaded — a repository fetched from GitHub, say — and writes
 //! back into the same map, which is what makes a refactoring in the playground a
-//! real edit against real bytes rather than a rendering of one.
+//! real edit against real bytes instead of a rendering of one.
 //!
 //! Having a single choke point is worth something on native too: it is now possible
 //! to say exactly what this crate reads, and to answer it from somewhere else.
@@ -17,7 +17,7 @@
 use std::io;
 use std::path::Path;
 
-/// A workspace held in memory rather than on disk.
+/// A workspace held in memory and not on disk.
 ///
 /// Compiled everywhere, because "read through this map instead of the disk" has three
 /// callers and only one of them is the browser. The recipe runner is the other: it
@@ -37,7 +37,7 @@ mod memory {
 
     /// One workspace's files.
     ///
-    /// A handle rather than one global map, because a page can hold more than one
+    /// A handle instead of one global map, because a page can hold more than one
     /// workspace at a time and used to do so wrongly: loading a second repository
     /// replaced the bytes the first one's index was measured against, and every span
     /// the older handle held then pointed into somebody else's file. Nothing failed —
@@ -173,7 +173,7 @@ mod backing {
 /// no disk and on an ordinary build there is no handing over, so in both of those this
 /// expands to nothing at all.
 ///
-/// A macro rather than a function because the two backings share their names and only
+/// A macro instead of a function because the two backings share their names and only
 /// one of them exists in most configurations.
 macro_rules! through_memory {
     ($call:ident($($arg:expr),*)) => {{
@@ -184,10 +184,10 @@ macro_rules! through_memory {
     }};
 }
 
-/// Are reads and writes going to a workspace held in memory rather than to the disk?
+/// Are reads and writes going to a workspace held in memory and not to the disk?
 ///
 /// The question every caller that cares about *how* a write lands has to ask, and it
-/// is a fact about the active backing rather than about which features were compiled.
+/// is a fact about the active backing and not about which features were compiled.
 /// Asking `cfg!(feature = "cli")` instead is what made `commit` stage temporary files
 /// beside a path that exists only in a browser's memory, on any build with both
 /// features — a failure that could not happen in either build shipped today and was
@@ -229,7 +229,7 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()
 /// Is there a file here?
 ///
 /// Used for the questions a language asks of its neighbours — whether a `Chart.yaml`
-/// sits beside a YAML file, which is what makes it a Helm template rather than plain
+/// sits beside a YAML file, which is what makes it a Helm template and not plain
 /// YAML.
 pub fn exists(path: impl AsRef<Path>) -> bool {
     let path = path.as_ref();

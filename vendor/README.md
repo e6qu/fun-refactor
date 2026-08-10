@@ -35,7 +35,7 @@ actually compiles. Pinning a commit would record something we do not build.
 
 **Licences must be compatible with AGPL-3.0-or-later**, which is this project's
 licence. MIT and Apache-2.0 are; a copyleft licence with different terms is not, and
-`tests/vendor.rs` fails the build rather than letting one in quietly.
+`tests/vendor.rs` fails the build instead of letting one in quietly.
 
 **Nothing vendored is compiled.** `Cargo.toml` excludes this directory from the
 published package, and no `include_str!` points into it. If that ever changes, the

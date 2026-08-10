@@ -147,7 +147,7 @@ struct IfParts {
     condition: Span,
     consequence: Span,
     alternative: Option<Span>,
-    /// The `else` leads to another `if` rather than to a block.
+    /// The `else` leads to another `if` and not to a block.
     chained: bool,
 }
 
@@ -232,7 +232,7 @@ fn condition_expression(condition: Node<'_>) -> Span {
     Span::from(condition)
 }
 
-/// Does this `else` lead to another `if` rather than to a block?
+/// Does this `else` lead to another `if` and not to a block?
 ///
 /// An `else if` cannot have its branches swapped: the second condition is only ever
 /// tested when the first is false, so moving the block out from under it changes
@@ -422,7 +422,7 @@ fn guard_clause(
 
     // The `if` must be the last thing in its enclosing block, or an early return
     // would skip whatever follows. The comparison is against the statement the `if`
-    // forms, which may sit inside a wrapper node rather than directly in the block.
+    // forms, which may sit inside a wrapper node and not directly in the block.
     let (statement, block) = statement_in_block(node)
         .ok_or_else(|| anyhow::anyhow!("the `if` has no enclosing block"))?;
     let mut cursor = block.walk();
@@ -450,7 +450,7 @@ fn guard_clause(
     // Reuse the source's own header — everything from the `if` keyword up to the
     // body — with the condition negated in place. Whatever the language spells
     // around the condition, brackets in Zig and the C family, `:` in Python, `; then`
-    // in shell, is preserved rather than reinvented per language.
+    // in shell, is preserved and not reinvented per language.
     let start = Span::from(node).start;
     let header = format!(
         "{}{negated}{}",
@@ -472,7 +472,7 @@ fn guard_clause(
     };
 
     // The body loses one level of indentation as it leaves the block. Blank lines
-    // stay blank rather than collecting trailing spaces.
+    // stay blank instead of collecting trailing spaces.
     let dedented: Vec<String> = body
         .text(source)
         .lines()
@@ -512,7 +512,7 @@ fn guard_clause(
 /// `for` body with an `if`; rewriting that to `return` leaves the loop entirely, and
 /// leaves it with no value in a function returning `Result<PathBuf>`.
 ///
-/// A function that declares a return type is refused rather than guessed at: what to
+/// A function that declares a return type is refused and not guessed at: what to
 /// return early is a decision only the author can make.
 fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'static str> {
     let mut current = block;
@@ -549,7 +549,7 @@ fn declares_a_return_value(function: Node<'_>, source: &str, language: Language)
             let nothing = match language {
                 Language::Rust => text.is_empty() || text == "()",
                 // Java and Zig both spell "returns nothing" as a written `void`
-                // rather than as an absent type, so an empty test would read every
+                // and not as an absent type, so an empty test would read every
                 // method as returning something and refuse every guard clause in the
                 // language.
                 Language::Zig | Language::Java => text == "void",
@@ -638,7 +638,7 @@ fn top_level_find(text: &str, needle: &str) -> Option<usize> {
     None
 }
 
-/// Negate an expression, simplifying rather than piling up operators.
+/// Negate an expression, simplifying instead of piling up operators.
 fn negate(expression: &str, language: Language) -> String {
     let trimmed = expression.trim();
     let (not_token, and_op, or_op) = boolean_spelling(language);
@@ -649,7 +649,7 @@ fn negate(expression: &str, language: Language) -> String {
         return strip_outer_parentheses(inner).to_string();
     }
 
-    // A comparison flips to its opposite rather than gaining a `!` — but only when the
+    // A comparison flips to its opposite instead of gaining a `!` — but only when the
     // comparison is the whole of the condition, and only at the top level.
     //
     // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`,

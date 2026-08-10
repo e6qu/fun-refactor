@@ -25,7 +25,7 @@ jobs:
         run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
 
       # The tree-sitter grammars are C, and there is one per language, so a cold
-      # build is minutes rather than seconds.
+      # build is minutes and not seconds.
       - uses: Swatinem/rust-cache@v2
 
       # Formatting, clippy and the tests, on the default feature set and again with
@@ -42,7 +42,7 @@ jobs:
   # The site's playground is a WebAssembly build plus a Vite bundle, and it is
   # published by a workflow that only runs on main. Without this, a pull request goes
   # green and the deploy is where you find out the wasm no longer builds. Runs beside
-  # the test job rather than after it, so it costs wall-clock and not much else.
+  # the test job and not after it, so it costs wall-clock and not much else.
   playground:
     runs-on: ubuntu-latest
     steps:

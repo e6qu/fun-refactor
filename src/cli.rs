@@ -37,7 +37,7 @@ struct Cli {
     command: Command,
 }
 
-/// Every subcommand's name, asked of the parser rather than written down again.
+/// Every subcommand's name, asked of the parser and not written down again.
 ///
 /// The site tells a reader what to type, and a command that was renamed leaves prose
 /// that reads perfectly and does not run. A list maintained beside the parser would be
@@ -176,7 +176,7 @@ enum Command {
     Inline {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
-        /// Inline the call at that position rather than a variable.
+        /// Inline the call at that position instead of a variable.
         #[arg(long)]
         call: bool,
         /// Apply the change instead of printing a diff.
@@ -219,7 +219,7 @@ enum Command {
     },
     /// Find code that is written more than once.
     ///
-    /// Compares structure rather than text, so a copy whose variables were renamed
+    /// Compares structure and not text, so a copy whose variables were renamed
     /// still matches — that is the copy a textual search will never find.
     Duplicates {
         /// Smallest duplicate to report, in tokens.
@@ -273,7 +273,7 @@ enum Command {
     /// The baseline a contract-preserving rewrite is checked against: build it before
     /// the rewrite, run the finished service, fetch its `/openapi.json`, and diff.
     /// Paths, methods and path parameters are exact; anything the source did not
-    /// declare is listed rather than invented.
+    /// declare is listed and not invented.
     Openapi {
         /// Write the document here instead of to standard output.
         #[arg(long)]
@@ -693,7 +693,7 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
 
 /// What `fr extract` pulls out.
 ///
-/// An enum rather than a `bool`, because the call site passed three booleans in a row —
+/// An enum instead of a `bool`, because the call site passed three booleans in a row —
 /// `cmd_extract(&cli, range, name, *function, *all, *write)` — where any two could swap
 /// and still compile. Each of the three now has a type of its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -833,7 +833,7 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
 /// alone that produced imports like `'../../../../../../../var/folders/…'`.
 ///
 /// The file itself need not exist yet — a move usually creates it — so it is the
-/// parent directory that is resolved, and a missing one is an error rather than a
+/// parent directory that is resolved, and a missing one is an error and not a
 /// path passed through untouched.
 fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::path::PathBuf> {
     let absolute = if destination.is_absolute() {
@@ -931,7 +931,7 @@ fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     })
 }
 
-/// Language names from the command line, refused rather than ignored.
+/// Language names from the command line, refused and not ignored.
 ///
 /// A typo that silently narrowed a report to nothing would read as "nothing found",
 /// which is the wrong answer given confidently.
@@ -955,7 +955,7 @@ fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
 
 /// Path filters, spelled the way the index spells its paths.
 ///
-/// Resolved against the workspace root rather than the shell's cwd, and canonical,
+/// Resolved against the workspace root instead of the shell's cwd, and canonical,
 /// because the index holds canonical paths. The default root is `.`, so a filter
 /// built from it reads `./pkg/action` and matches no absolute path at all — the
 /// report then comes back empty and looks like a clean bill of health.
@@ -1238,7 +1238,7 @@ fn cmd_translate(
         // No target named: say what this file could be, and stop.
         let mut targets: Vec<crate::lang::Language> = crate::translate::targets(from).to_vec();
         // Plus every language this can be translated into, which is a different and
-        // much weaker promise — a draft rather than the same bytes.
+        // much weaker promise — a draft instead of the same bytes.
         if crate::transpile::supports(from) {
             for language in crate::transpile::SUPPORTED {
                 if *language != from && !targets.contains(language) {
@@ -1293,9 +1293,9 @@ fn cmd_translate(
         return Ok(());
     };
 
-    // `fastapi` is a framework rather than a language, and the translation into it
+    // `fastapi` is a framework and not a language, and the translation into it
     // reads the file's *path* as well as its text — a Next.js route's URL is where it
-    // sits on disk. It is therefore its own target rather than a flavour of Python.
+    // sits on disk. It is therefore its own target instead of a flavour of Python.
     if language.eq_ignore_ascii_case("fastapi") {
         return cmd_translate_fastapi(cli, &path, write);
     }
@@ -2252,7 +2252,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
             // Ambiguity is reported, never resolved by guessing.
             let mut listing = String::new();
             // Each candidate is listed by the name that would select it, so the fix is
-            // to copy a line rather than to go and find a line number.
+            // to copy a line and not to go and find a line number.
             for symbol in &matches {
                 listing.push_str(&format!(
                     "\n  {} ({}) in {}",
@@ -2378,7 +2378,7 @@ fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
         println!("size      {} KiB", bytes / 1024);
         println!(
             "\nEntries are keyed by file content and by the query set, so editing a \n\
-             query file makes every stale entry unreachable rather than wrong."
+             query file makes every stale entry unreachable and not wrong."
         );
     }
     Ok(())
@@ -2531,11 +2531,11 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
     match (&declared.declared, &declared.inferred) {
         (None, None) => println!(
             "\nThe source wrote no type here, and nothing follows from what it did \n\
-             write. That is the answer rather than a gap in one."
+             write. That is the answer and not a gap in one."
         ),
         (None, Some(_)) => println!(
             "\nThe source wrote no type here. The above was worked out from the \n\
-             evidence named, and is a derivation rather than a contract."
+             evidence named, and is a derivation and not a contract."
         ),
         _ => {}
     }
@@ -2792,7 +2792,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     Ok(())
 }
 
-/// Resolve `--lang` values, failing loudly on an unknown name rather than silently
+/// Resolve `--lang` values, failing loudly on an unknown name and not silently
 /// scanning everything.
 fn resolve_languages(names: &[String]) -> Result<Vec<Language>> {
     names

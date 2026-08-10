@@ -1,7 +1,7 @@
 //! Inline a variable: replace its uses with its value and remove the binding.
 //!
 //! Inlining is only safe when the answer is provably the same afterwards, so the
-//! preconditions are checked and refused rather than assumed: the binding must be
+//! preconditions are checked and refused, not assumed: the binding must be
 //! assigned exactly once, every use must resolve to it, and no name inside its value
 //! may mean something different at a use site (PLAN.md D8).
 
@@ -530,7 +530,7 @@ mod tests {
         // Not byte-for-byte: what comes back is the original with the substituted
         // expression in parentheses. That is the price of not having a precedence
         // table, it never changes what the code does, and it is worth saying out loud
-        // rather than hiding behind a comparison that strips them.
+        // instead of hiding behind a comparison that strips them.
         assert_eq!(
             after_inline,
             "fn f() {\n    let total = (price * quantity) + 10;\n}\n"
@@ -703,7 +703,7 @@ fn single_expression_body<'a>(declaration: tree_sitter::Node<'a>, source: &str) 
     // Peel the wrappers grammars put between a block and the value it yields:
     // an expression statement, a return statement, or a return expression nested
     // inside one (Zig spells it `expression_statement > return_expression`). Doing
-    // this in a loop rather than a fixed order keeps the `return` keyword from being
+    // this in a loop instead of a fixed order keeps the `return` keyword from being
     // inlined along with the value.
     let mut node = statements[0];
     for _ in 0..4 {
@@ -831,7 +831,7 @@ fn enclosing_call<'a>(
 
 /// Can a call be inlined in this language?
 ///
-/// A predicate the capability table asks, rather than a guess from the language's
+/// A predicate the capability table asks, instead of a guess from the language's
 /// class. `InlineCall` was the one cell derived from "is it imperative", so adding a
 /// language to the enum claimed the capability for it before a line was written.
 pub fn supports_call(language: crate::lang::Language) -> bool {
@@ -914,7 +914,7 @@ fn wrapped_in_one_group(text: &str) -> bool {
             '(' => depth += 1,
             ')' => {
                 // Unbalanced text is nothing this can reason about, so it is treated
-                // as needing the brackets rather than as already having them.
+                // as needing the brackets and not as already having them.
                 depth = match depth.checked_sub(1) {
                     Some(depth) => depth,
                     None => return false,
@@ -1747,7 +1747,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     // `FOO=bar cmd` sets FOO for that one command only; `$FOO` anywhere else is a
     // different variable, and removing the prefix would change the command's
-    // environment rather than inline anything.
+    // environment and not inline anything.
     if assignment.parent().is_some_and(|p| p.kind() == "command") {
         anyhow::bail!(
             "`{}=…` is a prefix of a single command, so it is visible only inside that \
@@ -1952,7 +1952,7 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
             }
         }
         other => anyhow::bail!(
-            "a use of `{name}` at byte {} is written as a bare `{other}` rather than \
+            "a use of `{name}` at byte {} is written as a bare `{other}` and not \
              `${name}` or `${{{name}}}`; refusing to guess what the shell reads there",
             node.start_byte()
         ),
@@ -2074,7 +2074,7 @@ fn bash_is_one_plain_word(text: &str) -> bool {
 /// created with it when nothing else is left inside.
 ///
 /// This is the exact inverse of `extract::variable` on an XML file, and it is a
-/// standalone function rather than only a `variable()` arm because an entity has no
+/// standalone function and not only a `variable()` arm because an entity has no
 /// [`SymbolId`]: `queries/xml/facts.scm` declares element ids and namespace prefixes
 /// and nothing else, so no entity reaches the index and the arm in `variable()` cannot
 /// fire until that query captures `(GEDecl (Name) @name) @definition.constant` and

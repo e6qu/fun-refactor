@@ -186,7 +186,7 @@ fn module_blocks_are_modules_and_outputs_are_blocks() {
     let f = hcl(MAIN_TF);
     assert_eq!(sym(&f, "network").kind, SymbolKind::Module);
     // `output` is a boundary declaration consumed from outside the module, so it
-    // is a Block rather than a Variable.
+    // is a Block and not a Variable.
     for out in ["bucket_arn", "acct", "net"] {
         assert_eq!(sym(&f, out).kind, SymbolKind::Block, "{out}");
     }
@@ -491,7 +491,7 @@ fn object_expressions_open_their_own_scope() {
 fn empty_labels_define_nothing() {
     // An empty `""` label has no `template_literal` child at all, so there is no
     // byte range to rename and no symbol is produced. Terraform rejects such a
-    // configuration anyway; this test records the behaviour rather than a claim.
+    // configuration anyway; this test records the behaviour instead of a claim.
     let f = hcl("resource \"aws_s3_bucket\" \"\" {}\n");
     assert!(f.symbols.is_empty(), "got {:?}", names(&f));
 }
@@ -515,7 +515,7 @@ fn a_splat_keeps_its_trailing_segments() {
 
 #[test]
 fn a_legacy_attr_splat_keeps_its_trailing_segments_too() {
-    // `.*.` is the older spelling and lands under `attr_splat` rather than
+    // `.*.` is the older spelling and lands under `attr_splat` and not
     // `full_splat`, which is a different node kind and so a different pattern.
     let src = "output \"ids\" {\n  value = aws_instance.web.*.id\n}\n";
     let f = hcl(src);
@@ -617,7 +617,7 @@ fn tf_block_arguments_are_still_not_definitions() {
 fn every_step_past_an_index_is_captured_to_a_stated_depth() {
     // A query cannot say "every sibling after this one", so each step past an index
     // needs its own pattern. Six are written; this asserts the bound is a decision
-    // rather than an accident, and that Terraform never realistically reaches it.
+    // instead of an accident, and that Terraform never realistically reaches it.
     let src = "a = x.y[0].z.w.q.r.s.t\n";
     let f = facts(Language::Hcl, src);
     let fields: Vec<&str> = f

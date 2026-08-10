@@ -6,7 +6,7 @@
 //! used from a `.js` file was reported by `fr unused` as having no use at all, which is
 //! the answer `fr delete` acts on.
 //!
-//! They map onto `Language::TypeScript` and `Language::Tsx` rather than to variants of
+//! They map onto `Language::TypeScript` and `Language::Tsx` and not to variants of
 //! their own, so that no `matches!(lang, TypeScript | Tsx)` anywhere can forget them.
 
 use fun_refactor::extract::Extractor;
@@ -80,7 +80,7 @@ fn jsx_needs_the_tsx_grammar() {
 
 #[test]
 fn a_class_used_only_from_javascript_is_not_reported_dead() {
-    // The defect that made this worth fixing rather than noting: `fr delete` acts on
+    // The defect that made this worth fixing instead of noting: `fr delete` acts on
     // what `fr unused` says.
     let tmp = tempfile::tempdir().unwrap();
     std::fs::write(

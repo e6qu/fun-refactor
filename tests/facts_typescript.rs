@@ -744,7 +744,7 @@ fn export_declare_is_captured_but_not_marked_exported() {
 fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
     // Known limit: definitions are matched through their statement parent
     // (`program` / `statement_block` / `export_statement`), so a declaration in
-    // a bare switch case is missed rather than duplicated.
+    // a bare switch case is missed and not duplicated.
     let src =
         "switch (k) { case 1: { const inBlock = 1; } }\nswitch (k) { case 2: const inCase = 2; }\n";
     let f = facts(Language::TypeScript, src);

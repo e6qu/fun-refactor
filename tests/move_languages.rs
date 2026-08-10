@@ -1,7 +1,7 @@
 //! Move to file, across the seven languages where a move can be made correct.
 //!
 //! Each language has its own answer to "what else has to change", and these tests
-//! pin the answer rather than the aspiration:
+//! pin the answer instead of the aspiration:
 //!
 //! - Rust and TypeScript/Python rewrite reference sites, so those tests assert the
 //!   import lines byte for byte.
@@ -10,7 +10,7 @@
 //! - Markdown repoints anchors.
 //!
 //! Every successful move is committed through `edit::plan(…, ReparseStrict)`, so a
-//! move that would break a file fails the test rather than the build. Where the tool
+//! move that would break a file fails the test instead of the build. Where the tool
 //! refuses, the refusal message is asserted, because a refusal that does not say what
 //! was wrong is not much better than a wrong answer.
 

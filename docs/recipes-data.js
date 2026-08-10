@@ -21,7 +21,7 @@ export const LESSONS = [
     title: "Rename across files, then tidy what that left",
     language: "typescript",
     teaches: "`where changed` selects the files this run has already touched.",
-    note: "The second step does not name a file. It asks for the ones the first step moved, which is a question only the run itself can answer — and the reason `changed` is a predicate rather than a path you have to keep in your head.",
+    note: "The second step does not name a file. It asks for the ones the first step moved, which is a question only the run itself can answer — and the reason `changed` is a predicate and not a path you have to keep in your head.",
     recipe: "schema 1\n\nrecipe intention-revealing-name {\n  description \"`p` says nothing; `parseUri` says what it is.\"\n\n  requires language typescript\n\n  rename to \"parseUri\" where name=\"p\" kind=function\n\n  imports where changed\n\n  expect refusals = 0\n}\n",
     file: "src/main.ts",
     before: "import { p } from \"./parse\";\nimport { unused } from \"./nowhere\";\n\nexport function main(argument: string): string {\n  return p(argument);\n}\n",

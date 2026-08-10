@@ -339,7 +339,7 @@ mod tests {
         // The one above checks the fingerprint is *stable*. A function that ignored the
         // queries entirely and hashed a constant would pass it, and the cache tells
         // every reader that "editing a query file makes every stale entry unreachable
-        // rather than wrong" — which would then be false, and false in the direction
+        // and not wrong" — which would then be false, and false in the direction
         // that returns confident answers computed by code that no longer exists.
         //
         // The queries are compiled in, so this cannot edit one. What it can do is

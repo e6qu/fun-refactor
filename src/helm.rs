@@ -1,11 +1,11 @@
-//! Go template actions in Helm charts, parsed rather than pattern-matched.
+//! Go template actions in Helm charts, parsed and not pattern-matched.
 //!
 //! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file
 //! to the YAML grammar, keeping the YAML tree well-formed and every byte offset
 //! indexing the original source — at the cost of hiding everything inside an action
 //! from the YAML queries. This module reads the spans `Parsed::masked_spans`
 //! records and turns each into a structured [`Action`], so `.Values` references,
-//! control flow and named templates parse rather than pattern-match.
+//! control flow and named templates are parsed, not pattern-matched.
 //!
 //! What it models, following `text/template`:
 //!
@@ -214,7 +214,7 @@ pub struct Action {
     /// Index into [`Template::regions`] of the innermost region containing this
     /// action. An opener is *not* inside the region it opens.
     pub enclosing: Option<usize>,
-    /// Anything the lexer could not account for, kept rather than dropped.
+    /// Anything the lexer could not account for, kept and not dropped.
     pub problems: Vec<String>,
 }
 
@@ -380,7 +380,7 @@ pub struct Template {
     pub invocations: Vec<Invocation>,
     /// Openers with no `end`, and `end`s (or `else`s) closing nothing. A Go
     /// template with any of these does not render at all, so they are reported
-    /// rather than repaired.
+    /// and not repaired.
     pub unbalanced: Vec<(Span, String)>,
 }
 
@@ -714,7 +714,7 @@ pub struct SetValue {
     pub path: Vec<SetSegment>,
     /// The value, with `\.`, `\,`, `\=` and `\\` escapes resolved.
     pub value: String,
-    /// `--set-string`: Helm keeps the value a string rather than coercing it.
+    /// `--set-string`: Helm keeps the value a string instead of coercing it.
     pub string: bool,
     /// The assignment exactly as written, e.g. `image.tag=1.2`.
     pub text: String,
@@ -759,7 +759,7 @@ impl std::fmt::Display for SetValue {
 /// Parse one `--set`/`--set-string` argument, which may hold several assignments
 /// separated by unescaped commas, as Helm's `strvals` does.
 ///
-/// What is not supported is refused by name rather than half-applied: the `{a,b}`
+/// What is not supported is refused by name and not half-applied: the `{a,b}`
 /// list literal has no single key to compete for, so it is rejected with the
 /// alternative that does work.
 pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
@@ -1278,7 +1278,7 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
     while i < tokens.len() {
         // `index .Values "a-b"` reaches a key no field chain can spell. Its string
         // arguments *are* the path, so it resolves like one; anything else it is
-        // given cannot be, and is reported rather than dropped.
+        // given cannot be, and is reported and not dropped.
         if let Some((reference, next)) = index_call(tokens, source, i, problems) {
             if let Some(reference) = reference {
                 out.push(reference);
@@ -1348,7 +1348,7 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
 /// `index .Values "a-b" "c"` is `.Values.a-b.c`: each literal string argument is
 /// one path segment, which is exactly what Go's `index` does to a map. A computed
 /// key or a parenthesised sub-call names a segment the workspace does not hold, so
-/// it becomes a problem on the action rather than a guessed path.
+/// it becomes a problem on the action and not a guessed path.
 fn index_call(
     tokens: &[Token],
     source: &str,

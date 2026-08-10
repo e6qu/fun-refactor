@@ -24,7 +24,7 @@
 ; `impl Ctx<'_>`, `impl<T> Generic<T>`, `impl Display for Wrapper<T>`. The type node is
 ; a `generic_type` wrapping the name, so the two patterns above do not match it and the
 ; methods inside got no container at all — they became plain functions named `run`
-; rather than `Ctx::run`. `provenance.rs` has one of these and 43 of its methods read as
+; and not `Ctx::run`. `provenance.rs` has one of these and 43 of its methods read as
 ; dead code, because a `self.hcl_backward(…)` cannot resolve to a symbol that is not a
 ; member of anything.
 (impl_item
@@ -38,7 +38,7 @@
 
 ; `impl inner::Deep` and `impl inner::Deep<'_>`. The same gap one node deeper: a path
 ; puts a `scoped_type_identifier` where the patterns above want a bare name, so the
-; methods became functions again. Rust code that spells a type by its path rather than
+; methods became functions again. Rust code that spells a type by its path instead of
 ; importing it is the case.
 (impl_item
   type: (scoped_type_identifier

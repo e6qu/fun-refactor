@@ -89,7 +89,7 @@
 ;
 ; `$1`, `$2`, … are variable_names too, but they are positional parameters: they
 ; have no definition site and no rename can touch them, so they are excluded
-; rather than reported as uses of a variable named "1". `$@`, `$?` and friends
+; and not reported as uses of a variable named "1". `$@`, `$?` and friends
 ; are special_variable_name nodes and never reach this pattern.
 ((variable_name) @reference.identifier
  (#not-match? @reference.identifier "^[0-9]+$"))

@@ -13,7 +13,7 @@
 //!   each enclosing parent chart, then `-f` files in command-line order, then
 //!   `--set`. Every competing source in the workspace is reported with its
 //!   precedence, the winner marked, the losers kept. The last two levels live in the
-//!   invocation rather than the workspace, so a caller that knows them supplies them
+//!   invocation instead of the workspace, so a caller that knows them supplies them
 //!   as [`ValuesInputs`] and the same order then decides outright.
 //! - **CSS**: the cascade is a specified algorithm (origin → layer → specificity →
 //!   source order). Losing declarations are reported struck through, as DevTools does.
@@ -22,12 +22,12 @@
 //!
 //! # Where it stops
 //!
-//! Anything undetermined becomes a [`StopReason`] rather than a guess:
+//! Anything undetermined becomes a [`StopReason`] and not a guess:
 //!
 //! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`
 //!   — outside the code entirely ([`StopReason::ExternalInput`]);
 //! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`]
-//!   reads it back rather than the YAML queries: the `.Values` paths it names resolve,
+//!   reads it back instead of the YAML queries: the `.Values` paths it names resolve,
 //!   and what the template engine decides — which branch renders, what the release
 //!   supplies — becomes [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
 //! - a resource attribute is computed by a provider at apply time
@@ -126,7 +126,7 @@ pub enum StopReason {
     /// before parsing and evaluated by the template engine, not by us.
     RenderDependent(String),
     /// Something renders only when a template conditional holds. The condition is
-    /// named, so this says *when* rather than merely *maybe*.
+    /// named, so this says *when* and not merely *maybe*.
     Conditional { what: String, condition: String },
     /// A provider computes this at apply time; no configuration holds it.
     ComputedAtApply(String),
@@ -292,7 +292,7 @@ pub struct Competition {
     ///
     /// A channel outside the workspace that could pre-empt every source listed —
     /// `--set`, `-var` — is a [`StopReason::ExternalInput`] stop, not an undecided
-    /// competition: it replaces the answer rather than reordering the candidates.
+    /// competition: it replaces the answer instead of reordering the candidates.
     /// A channel that ranks *between* two listed sources does make the competition
     /// undecided, which is why Terraform's `TF_VAR_*` leaves one undecided and
     /// Helm's `-f`, which outranks every values file in the chart, does not.
@@ -1564,7 +1564,7 @@ fn block_attribute<'t>(block: Node<'t>, source: &str, name: &str) -> Option<Node
 /// A top-level `name = value` entry of a `.tfvars` file.
 ///
 /// Values files declare no symbols (they are plain attributes, not addressable
-/// declarations), so this reads the CST directly rather than the index.
+/// declarations), so this reads the CST directly instead of the index.
 fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
     let parsed = Parsers::new().parse(Language::Hcl, source)?;
     let Some(body) = child_of_kind(parsed.root(), "body") else {
@@ -1744,7 +1744,7 @@ impl Ctx<'_> {
                 },
             );
             // The condition is itself an action reading values, so "when does this
-            // key exist" gets an answer rather than only a name.
+            // key exist" gets an answer and not only a name.
             let opener = template.regions[guard.region].open;
             self.helm_action(&sym.file, &template, opener, depth + 1)?;
         }
@@ -1835,7 +1835,7 @@ impl Ctx<'_> {
     /// Follow `include "name"` into the `define "name"` that supplies its text.
     ///
     /// Helm's named templates share one namespace across a chart and its subcharts,
-    /// so the search covers the whole chart tree rather than one directory.
+    /// so the search covers the whole chart tree instead of one directory.
     fn helm_named_template(&mut self, from: &Path, name: &str, depth: usize) -> Result<()> {
         if self.over_depth(depth) {
             return Ok(());
@@ -2518,7 +2518,7 @@ impl Ctx<'_> {
                 self.stop(depth + 1, StopReason::RenderDependent(action_text.clone()));
 
                 // A read under a conditional is a read that may not happen; the
-                // condition is what decides it, so name it rather than imply always.
+                // condition is what decides it, so name it and not imply always.
                 for guard in template.conditions_at(span.start) {
                     self.stop(
                         depth + 1,

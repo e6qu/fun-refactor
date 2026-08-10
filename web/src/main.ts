@@ -4,14 +4,14 @@
  * `?render_as=` picks the rendering:
  *
  *   html       the page (default)
- *   json       the same view, described rather than drawn — machine-readable
+ *   json       the same view, described and not drawn — machine-readable
  *   json_data  the analysis underneath it, with no view at all
  *
  * The two JSON modes exist so something other than a person can ask this page what it
  * knows: a script, a test, an agent. They never import the app, so Monaco — four
  * megabytes of editor — is not fetched to answer a question about a repository.
  *
- * An unrecognised value is refused rather than quietly treated as `html`: a typo in
+ * An unrecognised value is refused and not quietly treated as `html`: a typo in
  * `render_as` that silently returns a web page is the kind of thing a caller notices
  * three layers downstream.
  */

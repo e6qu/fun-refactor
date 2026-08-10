@@ -1,4 +1,4 @@
-//! The stages of the types tutorial, measured rather than asserted.
+//! The stages of the types tutorial, measured and not asserted.
 //!
 //! The page claims that each stage knows more about its own values than the one before.
 //! That is a claim about the code in `tests/types_tutorial`, and this is what makes it
@@ -132,7 +132,7 @@ fn the_last_stage_leaves_almost_nothing_unknown() {
 
 #[test]
 fn the_states_carry_only_what_that_state_has() {
-    // The climax of the page, checked rather than described: a failure has a reason and
+    // The climax of the page, checked and not described: a failure has a reason and
     // no capture time, and a capture has a capture time and no reason.
     let index = Index::build(
         &tutorial().join("stage6_state_machine"),
@@ -196,7 +196,7 @@ fn the_last_stage_deleted_the_checks_the_one_before_still_had() {
                 "{name}: stage 7 still checks for `{gone}`"
             );
         }
-        // And the one that stays, because it relates two values rather than a state.
+        // And the one that stays, because it relates two values instead of a state.
         assert!(
             after.contains("exceeds"),
             "{name}: stage 7 dropped the amount check too"

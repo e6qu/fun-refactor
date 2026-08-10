@@ -20,7 +20,7 @@
 ; position (`{{ .Values.k }}: v`): the key has no name before the template
 ; renders, so it is blanked and matches nothing here. Whether that also fails
 ; the parse depends on what surrounds it, which is why the file carries
-; `FactGap::TemplatedKeys` rather than leaving the report to `has_errors`.
+; `FactGap::TemplatedKeys` instead of leaving the report to `has_errors`.
 
 ; ---------------------------------------------------------------- scopes
 (stream) @scope

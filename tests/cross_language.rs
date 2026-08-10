@@ -341,7 +341,7 @@ fn the_boundaries_that_are_real_still_resolve() {
 /// Only a plain string attribute value is captured, so `cx("btn", …)` and
 /// `` `btn ${size}` `` do not resolve to the CSS selector. Resolving them means teaching
 /// the queries which call arguments are class lists, which is a per-library convention
-/// (`clsx`, `cx`, `classnames`, `cva`) rather than a language rule.
+/// (`clsx`, `cx`, `classnames`, `cva`) instead of a language rule.
 ///
 /// What this pins is the part that makes the gap survivable: a rename rewrites what it
 /// resolved and reports every occurrence it did not, so the result is incomplete rather

@@ -9,7 +9,7 @@
 //!
 //! Every read was already routed through the choke point when it was introduced; the
 //! `exists()` calls were not, and nothing noticed for a release. So the invariant is
-//! checked rather than remembered.
+//! checked and not remembered.
 
 use std::path::Path;
 

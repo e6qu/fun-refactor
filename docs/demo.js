@@ -28,7 +28,7 @@ var STEPS = [
     label: 'Naming a target',
     title: 'ambiguity is not resolved for you',
     caption:
-      'helm carries a v2 and a v3 of several packages side by side. Rather than picking one, the ' +
+      'helm carries a v2 and a v3 of several packages side by side. Instead of picking one, the ' +
       'tool shows both and asks for a position. A coin flip that reads like an answer is worse ' +
       'than a refusal.',
     lines: [
@@ -140,7 +140,7 @@ var STEPS = [
     title: 'the list under the diff',
     caption:
       'The important half. Thirteen chart fixtures do not parse, so a reference inside one is a ' +
-      'reference the tool cannot promise it found — it says so rather than assuming. It also left ' +
+      'reference the tool cannot promise it found — it says so instead of assuming. It also left ' +
       'TestDetermineReleaseSSAApplyMethod alone: that identifier contains the old name and is not ' +
       'it, which is the case find-and-replace gets wrong.',
     lines: [

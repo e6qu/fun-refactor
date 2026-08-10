@@ -23,10 +23,10 @@ impl Parsers {
 
     /// The tree-sitter grammar used for a language.
     ///
-    /// One dialect gets its own entry rather than borrowing a near neighbour's:
+    /// One dialect gets its own entry instead of borrowing a near neighbour's:
     /// SCSS on the CSS grammar reported every `$variable` and `@mixin` as a parse
     /// error, so it has the SCSS grammar. What a grammar still cannot express
-    /// surfaces through [`Parsed::has_errors`] rather than being mis-parsed silently.
+    /// surfaces through [`Parsed::has_errors`] instead of being mis-parsed silently.
     fn grammar(lang: Language) -> Option<tree_sitter::Language> {
         // Each arm is behind its own feature, because a grammar is a megabyte of C
         // parse table and a browser build takes only what it will use. Absent means
@@ -168,7 +168,7 @@ impl Default for Parsers {
 /// Each sub-tree is parsed from the *whole* source with tree-sitter's included ranges
 /// restricted to one inline node, so every byte offset in the result indexes the
 /// original document — the same property Helm masking preserves, and the one the edit
-/// engine depends on. Parsing the ranges one node at a time rather than all at once
+/// engine depends on. Parsing the ranges one node at a time and not all at once
 /// also keeps the nodes independent: a stray `[` at the end of one paragraph cannot
 /// pair with a `]` in the next.
 fn parse_inline_content(
@@ -288,7 +288,7 @@ impl Parsed {
     /// Byte spans of every ERROR and MISSING node, in source order.
     ///
     /// The edit engine compares these before and after an edit: an edit that
-    /// introduces new syntax errors is rejected rather than written.
+    /// introduces new syntax errors is rejected and not written.
     pub fn error_spans(&self) -> Vec<Span> {
         let mut errors = Vec::new();
         for root in self.roots() {
@@ -331,7 +331,7 @@ impl Parsed {
                 continue;
             };
             let len = |n: &Node<'_>| n.end_byte() - n.start_byte();
-            // `<=` rather than `<`: the sub-trees come last, so a tie goes to the
+            // `<=` and not `<`: the sub-trees come last, so a tie goes to the
             // more detailed one.
             if best.is_none_or(|current| len(&node) <= len(&current)) {
                 best = Some(node);
@@ -398,7 +398,7 @@ fn innermost_error_span(root: Node<'_>) -> Span {
 /// Locate SCSS interpolations `#{ ... }`.
 ///
 /// Braces nest — `#{map-get($m, #{$k})}` is one interpolation — so the scan counts them
-/// rather than stopping at the first `}`.
+/// instead of stopping at the first `}`.
 fn find_scss_interpolations(source: &str) -> Vec<Span> {
     let bytes = source.as_bytes();
     let mut spans = Vec::new();
@@ -424,7 +424,7 @@ fn find_scss_interpolations(source: &str) -> Vec<Span> {
             end += 1;
         }
         // An unterminated `#{` is a syntax error in the file itself. Leaving it alone
-        // lets the grammar say so rather than masking the evidence.
+        // lets the grammar say so instead of masking the evidence.
         if end == bytes.len() {
             break;
         }
@@ -450,7 +450,7 @@ fn fill_spans(source: &str, spans: &[Span], filler: u8) -> String {
 /// Locate Go template actions `{{ ... }}`, tolerating `{{- -}}` trim markers.
 ///
 /// Quoted strings inside an action may legally contain `}}`, so the scan tracks
-/// quoting rather than searching for the first closing delimiter.
+/// quoting instead of searching for the first closing delimiter.
 fn find_template_actions(source: &str) -> Vec<Span> {
     let bytes = source.as_bytes();
     let mut spans = Vec::new();
@@ -577,7 +577,7 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
 /// Does this action stand where a mapping key belongs?
 ///
 /// Such an entry reaches the index under no name at all — the mask blanks it, and a
-/// blank key matches no capture — which is why the gap is reported rather than left to
+/// blank key matches no capture — which is why the gap is reported and not left to
 /// the parse. Whether the blank *also* trips the grammar depends on what surrounds it:
 /// `{{ $k }}: v` alone under its parent parses, the same line beside a second pair does
 /// not, so the parse error cannot be the signal.
@@ -628,7 +628,7 @@ fn opens_a_block_scalar(source: &str, span: Span) -> bool {
     )
 }
 
-/// Does this action stand where a *block* goes rather than a scalar?
+/// Does this action stand where a *block* goes instead of a scalar?
 ///
 /// `labels: {{- include "common.labels.standard" . | nindent 4 }}` with lines indented
 /// under it renders to a nested mapping, so filling it with a scalar leaves

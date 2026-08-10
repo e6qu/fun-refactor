@@ -78,7 +78,7 @@ impl fmt::Display for LineCol {
 ///
 /// Built once per file; lookups are binary searches over line start offsets.
 ///
-/// A trailing newline terminates the final line rather than starting a new empty
+/// A trailing newline terminates the final line instead of starting a new empty
 /// one, so `"a\nb\n"` has two lines — matching how editors and diffs count them.
 #[derive(Debug, Clone)]
 pub struct LineIndex {
@@ -190,7 +190,7 @@ impl LineIndex {
 
 /// Parse `path:line:col-line:col` into a path and two positions.
 ///
-/// Here rather than in the CLI because a recipe's `extract … at "…"` writes the same
+/// Here and not in the CLI because a recipe's `extract … at "…"` writes the same
 /// spec, and two parsers for one syntax is two chances to disagree about it.
 pub fn parse_range(spec: &str) -> anyhow::Result<(std::path::PathBuf, LineCol, LineCol)> {
     let shape = || anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'");
