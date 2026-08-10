@@ -190,6 +190,36 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B292: **`fr move` imported the symbol it had just moved.** A method has no
+  container, because an `impl` block is not a declaration the index records. It carries
+  the type as its qualifier. The check for "which symbols of this file can another file
+  name" asked only about the container, so `Holder::width` counted as a top-level item of
+  `holder.rs`, and moving the free function `width` out of that file wrote
+  `use crate::holder::width;` into the file it moved `width` into. That names a function
+  which is no longer there. `Symbol::is_top_level` now asks about both.
+
+- [x] B293: **`fr move` wrote a workspace it knew would not build.** A use site that does
+  not resolve conclusively cannot be repointed, so after the move it names a definition
+  that is no longer there. The move reported each one in a warning and proceeded.
+  `fr signature` already declines in the same situation, with the same reason. `fr move`
+  now declines and names the sites. `tests/move_languages.rs` pinned the old behaviour and
+  its comment weighed two bad outcomes, a warning and a wrong `use`, without considering
+  a third.
+
+- [x] B294: **an import path resolved to a method of the same name.** `use crate::holder::{width, Holder}`
+  had two candidates when a `Holder::width` existed beside the free `width`, so it
+  resolved weakly. `fr rename` then left the import naming the function it had just
+  renamed. An import path names an item that a module exports and never names a method or
+  a field, so a member is no longer a candidate inside one.
+
+- [x] B295: **a call inside a macro was ambiguous with a method of the same name.** The
+  other half of B291. A macro body is tokens, so `assert_eq!(width(&h.items, 1), 3)` gives
+  a bare identifier and not a call, and the rule that a call with no receiver is not a
+  method never applied. The parenthesis is in the source where the syntax is not, so a
+  name applied to arguments inside a token tree is read as the call it is.
+
+  All four were found by the compile gate on its first run.
+
 - [x] B290: **a bare Rust call resolved to a method or a field.** Rust was left out of
   `members_always_have_a_receiver`, so nothing stopped `width(&self.items, n)` inside an
   `impl` from resolving to the `width` method enclosing it. Rust has no implicit self:

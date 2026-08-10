@@ -435,6 +435,14 @@ engine reparses and accepts it. Four known defects reached the repository this w
 **Exit.** Revert each of the four fixes in turn and confirm the harness fails. Restore
 them and confirm the sweep passes.
 
+**Delivered.** `tests/output_compiles.rs` drives rename, move, signature, imports and
+inline over two fixture crates and runs `cargo check --all-targets` on each result. The
+first fixture has nothing awkward in it and every command has to produce a plan that
+compiles. The second holds a free function and a method of the same name, called from
+inside `assert_eq!` in an integration test; there a refusal is a result and the only
+forbidden outcome is a plan that does not compile. The gate names the languages it does
+not drive. It found four defects on its first run: B292, B293, B294 and B295.
+
 ### PR 2 — Sweep the commands that write and have never been swept
 
 **Problem.** `extract`, `restructure`, `rewrite`, `remove-flag` and `translate` have never
