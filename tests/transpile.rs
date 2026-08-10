@@ -648,15 +648,26 @@ fn a_method_is_written_with_its_type() {
 #[test]
 fn a_rust_number_leaves_its_width_behind() {
     // `0usize` writes the type into the literal, which is a spelling only Rust has.
+    //
+    // This failed once, during one full run, and has not repeated since — see B258. The
+    // suffix can reach the output two ways, and the message says which: the writer wrote
+    // it, or the statement was carried over verbatim and brought its own text along. Last
+    // time there was no way to tell them apart, and a recurrence should not be a mystery
+    // twice.
     let source = "pub fn f() -> i64 {\n    let n = 0usize;\n    return 1i32;\n}\n";
     for target in transpile::SUPPORTED {
         if *target == Language::Rust {
             continue;
         }
-        let (output, _) = translate(&[("n.rs", source)], "n.rs", *target);
+        let (output, fidelity) = translate(&[("n.rs", source)], "n.rs", *target);
         assert!(
             !output.contains("0usize") && !output.contains("1i32"),
-            "{target} carried Rust's suffix:\n{output}"
+            "{target} carried Rust's suffix. {} statement(s) went over verbatim{}:\n{output}",
+            fidelity.carried_verbatim,
+            match fidelity.notes.is_empty() {
+                true => String::new(),
+                false => format!(" ({})", fidelity.notes.join("; ")),
+            }
         );
     }
 }

@@ -149,7 +149,8 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
              inventing structure the source never had.{}",
             from,
             match to {
-                Language::Tsx => " TSX is TypeScript with JSX in it, and a translation \
+                Language::Tsx =>
+                    " TSX is TypeScript with JSX in it, and a translation \
                                    writes none, so `typescript` is the target here.",
                 _ => "",
             }

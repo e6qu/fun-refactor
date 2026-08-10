@@ -312,8 +312,7 @@ fn repoint_re_export(
         let already = info.imports.iter().any(|other| {
             other.re_export
                 && other.span != star.span
-                && index.resolve_import_path(barrel, &other.path).as_deref()
-                    == Some(destination)
+                && index.resolve_import_path(barrel, &other.path).as_deref() == Some(destination)
         });
         let line = whole_lines(&source, star.span);
         // The symbol was the last thing the source exported, so the star has nothing
@@ -327,11 +326,7 @@ fn repoint_re_export(
         if already {
             plan.edits.add(
                 barrel.to_path_buf(),
-                Edit::new(
-                    line,
-                    replacement,
-                    format!("what {} left behind", sym.name),
-                ),
+                Edit::new(line, replacement, format!("what {} left behind", sym.name)),
             );
             return Ok(());
         }
@@ -377,7 +372,10 @@ fn repoint_re_export(
         if !statement_spans.contains(&import.span) {
             continue;
         }
-        match statements.iter_mut().find(|(span, _, _)| *span == import.span) {
+        match statements
+            .iter_mut()
+            .find(|(span, _, _)| *span == import.span)
+        {
             Some((_, _, names)) => names.extend(import.names.iter().cloned()),
             None => statements.push((import.span, import.path.clone(), import.names.clone())),
         }
@@ -392,8 +390,10 @@ fn repoint_re_export(
         let narrowed = match kept.is_empty() {
             true => String::new(),
             false => {
-                let spelled: Vec<String> =
-                    kept.iter().map(|n| n.span.text(&source).to_string()).collect();
+                let spelled: Vec<String> = kept
+                    .iter()
+                    .map(|n| n.span.text(&source).to_string())
+                    .collect();
                 format!("export {{ {} }} from '{path}';\n", spelled.join(", "))
             }
         };
@@ -432,12 +432,7 @@ fn repoint_re_export(
 /// Such a file is untouched by the move: the barrel it reads is repointed, so the name it
 /// binds arrives from the new place under the old spelling. Adding an import here would
 /// bind the same name twice.
-fn reaches_through_a_barrel(
-    index: &Index,
-    file: &Path,
-    barrels: &[PathBuf],
-    name: &str,
-) -> bool {
+fn reaches_through_a_barrel(index: &Index, file: &Path, barrels: &[PathBuf], name: &str) -> bool {
     let Some(info) = index.file(file) else {
         return false;
     };
