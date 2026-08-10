@@ -29,11 +29,8 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 | D9 | Every command has `--json` output; mutations default to dry-run unified diff, `--write` to apply, multi-file apply is atomic (all-or-nothing). | CLI-native + agent-friendly |
 | D10 | Do not build on stack-graphs (archived 2025-09). Scope resolution via our own locals-style queries; graph construction may use tree-sitter-graph if the DSL earns its keep. | §3 |
 
-**Open decisions.** One remains: whether to add the optional LSP delegation backend
-(Stage 8). It is the only route to type-correct method resolution in Rust, Go,
-TypeScript and Python, and it costs server lifecycle management, per-language project
-discovery, version skew, and the self-contained-binary property the tool has today.
-Recommendation on file: skip it.
+**Open decisions.** None. The last one was whether to add the optional LSP delegation
+backend, and it is answered below under Stage 8: the tool does not delegate.
 
 Resolved since: the tool is `fun-refactor`, binary `fr`; extract-function landed for
 both Zig and Bash without needing a CFG; and TSX `className` handles plain attribute
@@ -241,15 +238,31 @@ refs must fail with the ref list).
 **Exit**: cross-language fixtures (mini app: Terraform + Helm + Python service + TSX front
 end) with stitched-flow snapshot tests.
 
-### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring, micro-rewrites and cascading cleanup all complete; the optional LSP delegation backend and daemon/watch mode are what remain, sequenced as PR 5 below
+### Stage 8 — Advanced & ecosystem — **DONE**: pattern restructuring, micro-rewrites and cascading cleanup are complete; the delegation backend is decided against, with the measurement below; the daemon is deferred with a reason
 
 - Micro-rewrite tail (per-language `refactor.rewrite.*` equivalents: invert-if, guard
   clauses, de Morgan, fill-struct where syntax allows).
 - Pattern restructure: user-supplied before/after patterns with scope-aware constraints
   (rope-restructure / ast-grep-style), plus Piranha-style cascading cleanup chains.
-- Optional LSP delegation backend (`--engine lsp`) for Rust/Go/TS/Python: prepareRename →
-  rename → WorkspaceEdit apply, capability probing, LSP diagnostics as post-edit check.
-- Daemon/watch mode with incremental reindexing; editor integration surface.
+- Optional LSP delegation backend (`--engine lsp`) for Rust/Go/TS/Python. **Decided
+  against.** A language server settles one shape: a member read from a value whose type
+  this tool does not know. Measured on this repository, that shape is 400 of the 1,249
+  renames that are incomplete, and 18,313 symbols have uses. Delegation would complete
+  2.2% of renames and a third of the incomplete ones. It would cost server lifecycle,
+  per-language project discovery, version skew, and D1's self-contained binary. It would
+  do nothing for the 540 cross-language edges, which are what this tool has and an editor
+  does not, and nothing for the 61 of 285 files here whose languages have no server.
+
+  What makes the trade acceptable is that the 400 are refused and named, not rewritten
+  wrongly. That is D4 and D8 working. The refusal now says why the site was left, so a
+  reader knows what to check.
+
+  What would reopen this: the shape becoming silently wrong instead of refused, or a
+  language server that runs without a configured project.
+- Daemon/watch mode with incremental reindexing; editor integration surface. **Deferred
+  with a reason.** It changes speed and integration, not correctness. The fact cache
+  already makes a second run cheap, and there is no editor integration for a daemon to
+  serve. It is written down here so that its absence is a decision and not an oversight.
 
 **Exit**: scoped when reached; each item ships behind its own corpus.
 
@@ -339,8 +352,8 @@ written in advance would have looked for.
 
 ## Where this stands
 
-Stages 0 to 7 are complete. Stage 8 is partial. The figures below were measured on
-2026-08-10.
+Stages 0 to 8 are complete. The figures below were measured on 2026-08-10, except the
+defect counts, which are current.
 
 | | |
 |---|---|
@@ -545,6 +558,12 @@ calls both optional, so the stage cannot close while their status is unstated.
 
 **Exit.** Scoped when reached. A written decision not to delegate, with the reason, closes
 the stage as well as an implementation does.
+
+**Delivered.** The decision is recorded above with the measurement behind it, and Stage 8
+is closed. The daemon is deferred with its reason. What follows from deciding against
+types is that a refusal has to explain itself, so `fr rename` now names the cause of each
+site it leaves: read from a value of unknown type, written inside a macro, or matched by
+name alone.
 
 ## Progress log
 
