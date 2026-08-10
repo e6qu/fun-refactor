@@ -17,19 +17,34 @@ use std::path::PathBuf;
 use std::process::Command;
 
 /// A workspace on disk that can be indexed, edited and compiled.
+#[derive(Clone, Copy, PartialEq)]
+enum Toolchain {
+    Cargo,
+    Tsc,
+}
+
 struct Workspace {
     dir: tempfile::TempDir,
+    toolchain: Toolchain,
 }
 
 impl Workspace {
     fn new(files: &[(&str, &str)]) -> Self {
+        Self::with(Toolchain::Cargo, files)
+    }
+
+    fn typescript(files: &[(&str, &str)]) -> Self {
+        Self::with(Toolchain::Tsc, files)
+    }
+
+    fn with(toolchain: Toolchain, files: &[(&str, &str)]) -> Self {
         let dir = tempfile::tempdir().expect("a temporary directory");
         for (name, content) in files {
             let path = dir.path().join(name);
             std::fs::create_dir_all(path.parent().expect("a parent")).expect("mkdir");
             std::fs::write(&path, content).expect("write");
         }
-        Self { dir }
+        Self { dir, toolchain }
     }
 
     fn path(&self, name: &str) -> PathBuf {
@@ -51,32 +66,39 @@ impl Workspace {
         }
     }
 
-    /// Compile the workspace. `Err` holds what the compiler said.
+    /// Compile the workspace with the compiler for its language.
     fn compiles(&self) -> Result<(), String> {
-        let output = Command::new("cargo")
-            .args(["check", "--quiet", "--all-targets"])
-            .current_dir(self.dir.path())
-            .env("CARGO_TARGET_DIR", shared_target_dir())
-            .env("RUSTFLAGS", "-A warnings")
-            .output()
-            .expect("cargo runs");
+        let output = match self.toolchain {
+            Toolchain::Cargo => Command::new("cargo")
+                .args(["check", "--quiet", "--all-targets"])
+                .current_dir(self.dir.path())
+                // Its own build directory. Sharing one across the cases in this file made
+                // the result depend on what another case had just built, and the check that
+                // this gate can fail passed alone and failed in the suite.
+                .env("CARGO_TARGET_DIR", self.dir.path().join("target"))
+                .env("RUSTFLAGS", "-A warnings")
+                .output()
+                .expect("cargo runs"),
+            Toolchain::Tsc => Command::new("tsc")
+                .args(["--noEmit", "--project", "."])
+                .current_dir(self.dir.path())
+                .output()
+                .expect("tsc runs"),
+        };
         match output.status.success() {
             true => Ok(()),
-            false => Err(String::from_utf8_lossy(&output.stderr).to_string()),
+            // tsc reports on stdout.
+            false => Err(format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            )),
         }
     }
 
     fn read(&self, name: &str) -> String {
         std::fs::read_to_string(self.path(name)).expect("read")
     }
-}
-
-/// One target directory for every case in this binary, so the standard library and the
-/// fixture's own artifacts are built once.
-fn shared_target_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join("fun-refactor-compile-gate");
-    std::fs::create_dir_all(&dir).expect("mkdir");
-    dir
 }
 
 fn rustc_is_available() -> bool {
@@ -417,6 +439,156 @@ fn a_guard_clause_in_a_function_that_returns_a_value_compiles_or_refuses() {
         "a guard clause in a function that returns a value",
         &ws,
         planned,
+    );
+}
+
+// ------------------------------------------------------- TypeScript
+
+fn tsc_is_available() -> bool {
+    Command::new("tsc")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success())
+}
+
+/// The same shapes as the Rust fixture, in TypeScript: a free function and a method of
+/// one name, an import of the function from another module, and a caller of both.
+fn typescript() -> Vec<(&'static str, &'static str)> {
+    vec![
+        (
+            "tsconfig.json",
+            "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"noEmit\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"ES2020\",\n    \"moduleResolution\": \"node\"\n  },\n  \"include\": [\"src\"]\n}\n",
+        ),
+        (
+            "src/holder.ts",
+            "export function width(items: number[], n: number): number {\n               return items.length + n;\n}\n\n             export class Holder {\n  items: number[] = [];\n\n               width(n: number): number {\n    return width(this.items, n);\n  }\n}\n",
+        ),
+        (
+            "src/util.ts",
+            "import { width, Holder } from \"./holder\";\n\n             export function describe(h: Holder): string {\n               const total = width(h.items, 1);\n  return `${total * 2}`;\n}\n",
+        ),
+        (
+            "src/index.ts",
+            "export { width, Holder } from \"./holder\";\nexport { describe } from \"./util\";\n",
+        ),
+        (
+            "src/main.ts",
+            "import { Holder, width } from \"./index\";\nimport { describe } from \"./util\";\n\nconst h = new Holder();\nconsole.log(describe(h), h.width(1), width(h.items, 2));\n",
+        ),
+    ]
+}
+
+#[test]
+fn the_typescript_fixture_compiles_before_anything_touches_it() {
+    if !tsc_is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript());
+    if let Err(e) = ws.compiles() {
+        panic!("the TypeScript fixture is broken before any refactoring:\n{e}");
+    }
+}
+
+#[test]
+#[ignore = "B300: a use reached through a re-export barrel resolves name-only, so the \
+            rename leaves the barrel naming a symbol that no longer exists"]
+fn renaming_a_typescript_function_compiles() {
+    if !tsc_is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::rename::plan(&index, id, "spanOf").map(|p| p.edits);
+    must_plan("renaming a TypeScript function", &ws, planned);
+}
+
+#[test]
+fn organising_typescript_imports_compiles() {
+    if !tsc_is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript());
+    let index = ws.index();
+    let planned =
+        fun_refactor::refactor::imports::plan(&index, &ws.path("src/main.ts")).map(|p| p.edits);
+    // Organising an import list that is already tidy may plan nothing.
+    match planned {
+        Ok(edits) if edits.is_empty() => {}
+        other => {
+            gate("organising TypeScript imports", &ws, other);
+        }
+    }
+}
+
+#[test]
+#[ignore = "B300: the barrel still re-exports from the old module, and the move adds a \
+            second import of a name already imported through it"]
+fn moving_a_typescript_symbol_compiles_or_refuses() {
+    if !tsc_is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("src/util.ts"))
+        .map(|p| p.edits);
+    gate("moving a TypeScript symbol", &ws, planned);
+}
+
+#[test]
+fn changing_a_typescript_signature_compiles_or_refuses() {
+    if !tsc_is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::signature::change(
+        &index,
+        id,
+        fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
+    )
+    .map(|p| p.edits);
+    gate("changing a TypeScript signature", &ws, planned);
+}
+
+/// The gate has to be able to fail.
+///
+/// Every other test here passes when the tool behaves. That is also what they would do if
+/// the compiler stopped running: a wrong path, a missing project file, an exit code
+/// nobody reads. This breaks each fixture on purpose and checks the compiler says so.
+#[test]
+fn the_gate_reports_a_workspace_that_does_not_compile() {
+    let rust = Workspace::new(&plain());
+    std::fs::write(
+        rust.path("src/util.rs"),
+        "pub fn describe() -> String {\n    no_such_function()\n}\n",
+    )
+    .expect("write");
+    assert!(
+        rust.compiles().is_err(),
+        "cargo check accepted a call to a function that does not exist"
+    );
+
+    if !tsc_is_available() {
+        eprintln!("compile gate: the TypeScript half of this check was skipped, tsc is absent");
+        return;
+    }
+    let ts = Workspace::typescript(&typescript());
+    std::fs::write(
+        ts.path("src/util.ts"),
+        "import { nothing } from \"./holder\";\nexport const x = nothing;\n",
+    )
+    .expect("write");
+    assert!(
+        ts.compiles().is_err(),
+        "tsc accepted an import of a name that is not exported"
     );
 }
 
