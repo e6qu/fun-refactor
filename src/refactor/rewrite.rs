@@ -515,11 +515,13 @@ fn guard_clause(
 /// A function that declares a return type is refused and not guessed at: what to
 /// return early is a decision only the author can make.
 fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'static str> {
+    // Every ancestor, and not the first few. A bounded walk stops before it reaches the
+    // function whenever the `if` sits inside a `match` arm or a nested block, and the
+    // answer it falls through to is `return` — which is the unsafe one. `src/cli.rs` and
+    // `src/extract.rs` both have an `if` deep enough to reach it, and a bare `return`
+    // there does not compile in a function that returns a value.
     let mut current = block;
-    for _ in 0..4 {
-        let Some(parent) = current.parent() else {
-            break;
-        };
+    while let Some(parent) = current.parent() {
         let kind = parent.kind();
         if kind.contains("for") || kind.contains("while") || kind == "loop_expression" {
             return Ok("continue");

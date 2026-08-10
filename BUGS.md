@@ -190,6 +190,38 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B296: **`fr rewrite guard-clause` wrote `return;` in a function that returns a
+  value.** The check for what an early exit should be walked up four ancestors and then
+  fell through to `return`. An `if` inside a `match` arm or a nested block is further from
+  its function than that, so the check for a declared return value never ran. The
+  transformation is correct and the guard was correct; the search for the function gave up
+  first, and the answer it defaulted to is the unsafe one. It walks every ancestor now and
+  stops at the innermost loop or function, which is what `return` and `continue` mean.
+
+  Applying one guard clause per file across `src/`, 32 files: three did not compile before,
+  none do now.
+
+- [x] B297: **`fr extract` placed a binding where the names in it do not exist.** The
+  binding goes at the start of the enclosing statement, and that statement can be outside
+  the construct the expression sits in:
+
+      // before
+      self.items.iter().filter(|i| i.confidence.is_safe() && i.kind != Textual).collect()
+
+      // after
+      let extracted = i.confidence.is_safe() && i.kind != Textual;
+      self.items.iter().filter(|i| extracted).collect()
+
+  `i` is the closure's parameter and does not exist where the binding was put. The same
+  happens for a loop variable and for a name bound by a `match` arm.
+
+  The check asks which scope each name in the expression is *written* in, and refuses when
+  the binding's position cannot reach it. Asking the declaration instead would not work: a
+  closure parameter is not recorded as one, so those references resolve to nothing.
+
+  Extracting one expression per file across `src/`, 46 files: 18 compile errors before,
+  none now, with 56 sites refused that were silently wrong.
+
 - [x] B292: **`fr move` imported the symbol it had just moved.** A method has no
   container, because an `impl` block is not a declaration the index records. It carries
   the type as its qualifier. The check for "which symbols of this file can another file
