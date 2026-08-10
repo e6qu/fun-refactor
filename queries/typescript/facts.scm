@@ -481,6 +481,16 @@
       name: (identifier) @import.name))
   source: (string) @import.path) @import @import.re-export
 
-; `export * from "./x"` names nothing, so only the edge is recorded.
+; `export * from "./x"` names nothing, so only the edge is recorded — but it is still a
+; re-export, and marking it one is what lets a move see that the barrel has to be
+; repointed. Without this the star kept naming a file the symbol had left, and every
+; reader of the barrel gained a second binding of the same name.
 (export_statement
-  source: (string) @import.path) @import
+  source: (string) @import.path) @import @import.re-export
+
+; `export * as ns from "./x"` binds one name for everything the file exports, so the
+; alias is what a reader writes and the names are reached through it. Capturing the alias
+; is what tells the two stars apart.
+(export_statement
+  (namespace_export (identifier) @import.alias)
+  source: (string) @import.path) @import @import.re-export

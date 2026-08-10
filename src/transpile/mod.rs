@@ -38,7 +38,7 @@ pub fn read_file(path: &Path) -> Result<ir::Module> {
     let Some(language) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
     };
-    if !supports(language) {
+    if !can_be_read(language) {
         bail!("there is no reader for {language}");
     }
     let source = crate::vfs::read_to_string(path)?;
@@ -86,7 +86,7 @@ use crate::parse::Parsers;
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 
-/// The languages a file can be translated out of and into.
+/// The languages a file can be translated into.
 pub const SUPPORTED: &[Language] = &[
     Language::Rust,
     Language::Go,
@@ -96,8 +96,23 @@ pub const SUPPORTED: &[Language] = &[
     Language::Zig,
 ];
 
-pub fn supports(language: Language) -> bool {
+/// Whether a file written in this language can be read into the shared representation.
+///
+/// TSX is TypeScript with JSX in it, and the reader treats it as TypeScript, so a `.tsx`
+/// file is a source like any other.
+pub fn can_be_read(language: Language) -> bool {
     SUPPORTED.contains(&language) || language == Language::Tsx
+}
+
+/// Whether a translation can be written in this language.
+///
+/// Not TSX. A translation produces no JSX, so writing one into a `.tsx` file names a
+/// flavour the content does not have — `typescript` is the target, and `fr translate`
+/// turns a `.ts` file into a `.tsx` one where that is what is wanted. Reading and
+/// writing were one function, and the list the listing walks was the writing one, so
+/// asking for `tsx` worked while nothing ever offered it.
+pub fn can_be_written(language: Language) -> bool {
+    SUPPORTED.contains(&language)
 }
 
 /// A translation that has been worked out but not applied.
@@ -121,18 +136,24 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     if from == to {
         bail!("{} is already {to}", path.display());
     }
-    if !supports(from) {
+    if !can_be_read(from) {
         bail!(
             "there is no reader for {from}. Translating out of it would mean deciding \
              what its constructs mean in a language that has none of them, and this \
              tool does not guess."
         );
     }
-    if !supports(to) {
+    if !can_be_written(to) {
         bail!(
             "there is no writer for {to}. {} cannot be expressed in it without \
-             inventing structure the source never had.",
-            from
+             inventing structure the source never had.{}",
+            from,
+            match to {
+                Language::Tsx =>
+                    " TSX is TypeScript with JSX in it, and a translation \
+                                   writes none, so `typescript` is the target here.",
+                _ => "",
+            }
         );
     }
 

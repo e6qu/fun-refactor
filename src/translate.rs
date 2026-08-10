@@ -49,6 +49,60 @@ pub fn targets(from: Language) -> &'static [Language] {
     }
 }
 
+/// One thing a file could be rewritten as, and what that would produce.
+#[derive(Debug, Clone)]
+pub struct Option_ {
+    pub target: Language,
+    /// Where the result would be written.
+    pub destination: PathBuf,
+    /// `None` where the result is the same bytes under a different extension, and the
+    /// fidelity of the draft where it is a translation.
+    pub fidelity: std::option::Option<crate::transpile::Fidelity>,
+}
+
+/// Everything `path` could be rewritten as, worked out by asking for each one.
+///
+/// The list and the answer come from the same call, which is what keeps them from
+/// disagreeing. They were two: the listing walked one set of languages and the request
+/// checked another, so `fr translate x.py tsx` succeeded while nothing ever offered it.
+///
+/// A target that would fail is left out, and the reason is available from
+/// [`crate::transpile::plan`] or [`plan`] for a caller that asks for it by name.
+pub fn options_for(path: &Path) -> Vec<Option_> {
+    let Some(from) = crate::lang::detect(path) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+
+    for target in targets(from) {
+        if let Ok(planned) = plan(path, *target) {
+            out.push(Option_ {
+                target: *target,
+                destination: planned.destination,
+                fidelity: None,
+            });
+        }
+    }
+
+    // Plus every language this can be translated into, which is a different and much
+    // weaker promise — a draft instead of the same bytes.
+    if crate::transpile::can_be_read(from) {
+        for target in crate::transpile::SUPPORTED {
+            if *target == from || out.iter().any(|o| o.target == *target) {
+                continue;
+            }
+            if let Ok(planned) = crate::transpile::plan(path, *target) {
+                out.push(Option_ {
+                    target: *target,
+                    destination: planned.destination,
+                    fidelity: Some(planned.fidelity),
+                });
+            }
+        }
+    }
+    out
+}
+
 /// Why a language cannot be rewritten as another, in words a person can act on.
 ///
 /// Returned instead of a silent empty list so the interface can say *why* the button

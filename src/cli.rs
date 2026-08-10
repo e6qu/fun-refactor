@@ -1237,17 +1237,11 @@ fn cmd_translate(
 
     let Some(language) = language else {
         // No target named: say what this file could be, and stop.
-        let mut targets: Vec<crate::lang::Language> = crate::translate::targets(from).to_vec();
-        // Plus every language this can be translated into, which is a different and
-        // much weaker promise — a draft instead of the same bytes.
-        if crate::transpile::supports(from) {
-            for language in crate::transpile::SUPPORTED {
-                if *language != from && !targets.contains(language) {
-                    targets.push(*language);
-                }
-            }
-        }
-        if targets.is_empty() {
+        let options = crate::translate::options_for(&path);
+        let route = crate::transpile::nextjs::is_api_route(&path)
+            .then(|| crate::transpile::nextjs::plan(&path).ok())
+            .flatten();
+        if options.is_empty() && route.is_none() {
             println!(
                 "{} is {from}, and there is no language it can be rewritten as.\n\n{}",
                 path.display(),
@@ -1256,39 +1250,30 @@ fn cmd_translate(
             return Ok(());
         }
         println!("{} is {from}. It could be written as:", path.display());
-        if crate::transpile::nextjs::is_api_route(&path) {
-            match crate::transpile::nextjs::plan(&path) {
-                Ok(plan) => println!(
-                    "  {:<10} -> {} (route {}, {})",
-                    "fastapi",
-                    plan.destination.display(),
-                    plan.route,
-                    plan.methods.join(", ")
-                ),
-                Err(e) => println!("  {:<10} not this file: {e}", "fastapi"),
-            }
+        if let Some(plan) = route {
+            println!(
+                "  {:<10} -> {} (route {}, {})",
+                "fastapi",
+                plan.destination.display(),
+                plan.route,
+                plan.methods.join(", ")
+            );
         }
-
-        for target in &targets {
-            let containment = crate::translate::targets(from).contains(target);
-            let outcome = if containment {
-                crate::translate::plan(&path, *target).map(|p| (p.destination, None))
-            } else {
-                crate::transpile::plan(&path, *target).map(|p| (p.destination, Some(p.fidelity)))
-            };
-            match outcome {
-                Ok((destination, None)) => {
-                    println!("  {target:<10} -> {} (same bytes)", destination.display())
-                }
-                Ok((destination, Some(f))) => println!(
+        for option in &options {
+            let target = option.target;
+            match &option.fidelity {
+                None => println!(
+                    "  {target:<10} -> {} (same bytes)",
+                    option.destination.display()
+                ),
+                Some(f) => println!(
                     "  {target:<10} -> {} (a draft: {}/{} signatures complete, {} \
                      construct(s) carried over)",
-                    destination.display(),
+                    option.destination.display(),
                     f.signatures_complete,
                     f.functions,
                     f.carried_verbatim
                 ),
-                Err(e) => println!("  {target:<10} not this file: {e}"),
             }
         }
         return Ok(());

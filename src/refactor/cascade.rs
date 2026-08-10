@@ -14,7 +14,6 @@
 //! left undone is named in [`CascadePlan::unfinished`]. Half a cleanup that says
 //! which half it is beats refusing the whole operation.
 
-use super::Refusal;
 use crate::edit::{Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
@@ -132,6 +131,9 @@ pub fn remove_flag_in(
     let mut rounds = Vec::new();
     let mut removed_definition = false;
     let mut unfinished = Vec::new();
+    // Read once, in the round that still has the declaration to read it from. Every
+    // later round asks about uses of a flag whose definition has already gone.
+    let mut flag_kind = SymbolKind::Constant;
 
     for round in 0..MAX_ROUNDS {
         let snapshot: Vec<(PathBuf, Language, String)> = sources
@@ -142,19 +144,24 @@ pub fn remove_flag_in(
 
         // Round 1 substitutes the flag; later rounds only tidy what that exposed.
         let changes = if !removed_definition {
-            let substituted = substitute_flag(&index, &sources, flag, value)?;
-            if substituted.is_empty() {
-                if round == 0 {
-                    anyhow::bail!("no symbol named '{flag}' to remove; nothing was changed");
+            match substitute_flag(&index, &sources, flag, value)? {
+                None if round == 0 => {
+                    anyhow::bail!("no symbol named '{flag}' to remove; nothing was changed")
                 }
-                Vec::new()
-            } else {
-                removed_definition = true;
-                rounds.push(RoundSummary {
-                    description: format!("replaced uses of {flag} with {value}"),
-                    files_touched: distinct_files(&substituted),
-                });
-                substituted
+                None => Vec::new(),
+                Some((substituted, kind)) => {
+                    flag_kind = kind;
+                    removed_definition = true;
+                    // An empty substitution means the flag is there and not one use of
+                    // it could be rewritten. The loop ends and every reason is reported.
+                    if !substituted.is_empty() {
+                        rounds.push(RoundSummary {
+                            description: format!("replaced uses of {flag} with {value}"),
+                            files_touched: distinct_files(&substituted),
+                        });
+                    }
+                    substituted
+                }
             }
         } else {
             let simplified = simplify_constants(&sources, &originals)?;
@@ -183,7 +190,7 @@ pub fn remove_flag_in(
         apply_in_memory(&mut sources, &changes)?;
     }
 
-    unfinished.extend(remaining_uses(&sources, flag)?);
+    unfinished.extend(remaining_uses(&sources, flag, flag_kind)?);
     unfinished.extend(unfinished_work(&sources, &originals)?);
     unfinished.extend(dangling_resource_uses(&sources, &originals)?);
     unfinished.sort();
@@ -208,6 +215,16 @@ pub fn remove_flag_in(
         }
     }
 
+    // A cascade that changed nothing is a refusal, and reporting it as a plan of zero
+    // edits would read as success. The reasons are already gathered, so they are what
+    // the caller is told.
+    if edits.is_empty() {
+        anyhow::bail!(
+            "nothing about '{flag}' could be removed; nothing was changed:\n  {}",
+            unfinished.join("\n  ")
+        );
+    }
+
     Ok(CascadePlan {
         flag: flag.to_string(),
         value,
@@ -229,18 +246,21 @@ fn distinct_files(changes: &[Change]) -> usize {
 
 /// Replace every use of the flag with a literal, and delete its definition.
 ///
-/// Uses it will not touch are simply left alone: after the cascade every remaining
-/// occurrence of the flag's name is unfinished by definition, and [`remaining_uses`]
-/// names them all against the text the caller will actually be looking at.
+/// Uses it will not touch are left alone, and [`remaining_uses`] names them all against
+/// the text the caller will actually be looking at.
+///
+/// The definition goes only when every use went with it. A use the substitution
+/// declined still reads the flag, and deleting the declaration under it changes what the
+/// program does: `USE_NEW=true` with `${USE_NEW:-no}` left behind starts reading `no`.
 fn substitute_flag(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
     flag: &str,
     value: bool,
-) -> Result<Vec<Change>> {
+) -> Result<Option<(Vec<Change>, SymbolKind)>> {
     let definitions = index.find_symbols(flag, None);
     if definitions.is_empty() {
-        return Ok(Vec::new());
+        return Ok(None);
     }
     if definitions.len() > 1 {
         anyhow::bail!(
@@ -249,35 +269,75 @@ fn substitute_flag(
         );
     }
     let definition = definitions[0];
-    // A `Field` is a struct member in Go and Rust and never a flag — but Java has no
-    // top level below the type, so its constants are *all* fields: `public static final
-    // boolean NEW_CHECKOUT` is the idiomatic feature flag and there is nowhere else to
-    // put it. The kind alone cannot tell the two apart; the language can.
-    let field_is_a_constant = definition.language == Language::Java;
-    if !matches!(
-        definition.kind,
-        SymbolKind::Constant | SymbolKind::Variable | SymbolKind::Function
-    ) && !(field_is_a_constant && definition.kind == SymbolKind::Field)
-    {
-        return Err(Refusal::Unsupported {
-            operation: "remove flag".into(),
-            language: definition.language,
-            because: format!("a {} is not a flag", definition.kind.as_str()),
-        }
-        .into());
-    }
 
     let literal = literal_for(definition.language, value);
     let parsers = Parsers::new();
     let mut trees: BTreeMap<PathBuf, Parsed> = BTreeMap::new();
     let mut changes = Vec::new();
 
+    if let Some((language, source)) = sources.get(&definition.file) {
+        let parsed = parsers.parse(*language, source)?;
+        if let Some(what) = not_a_flag(definition, &parsed, source) {
+            anyhow::bail!(
+                "'{flag}' is not a flag: it {what}. Removing a flag replaces every use of \
+                 the name with `{literal}`, and that only reads correctly where the name \
+                 held a boolean. Nothing was changed."
+            );
+        }
+        trees.insert(definition.file.clone(), parsed);
+    }
+
+    // Nothing reads the name, so there is no flag to remove: no use to substitute, no
+    // conditional to collapse, nothing to prune. What is left is one declaration nobody
+    // reads, and deleting that is a different command with a different set of checks.
+    // Answering it here removed a Next.js route handler called `DELETE`.
+    if index.references_to(definition.id).is_empty() {
+        anyhow::bail!(
+            "'{flag}' is declared at {} and nothing reads it, so there is no flag to \
+             remove. `fr delete` removes a declaration nothing uses. Nothing was changed.",
+            definition.file.display()
+        );
+    }
+
+    // A name means one thing everywhere it is written, so one use that names a type
+    // settles what the name is for all of them. Zig makes the evidence necessary as well
+    // as sufficient: a type is a value there, so `expectEqualSlices(Position, …)` puts a
+    // type in argument position where nothing but the declaration elsewhere says so.
+    if definition.language != Language::Hcl && definition.language != Language::Bash {
+        for reference in index.references_to(definition.id) {
+            let Some((language, source)) = sources.get(&reference.file) else {
+                continue;
+            };
+            if !trees.contains_key(&reference.file) {
+                trees.insert(reference.file.clone(), parsers.parse(*language, source)?);
+            }
+            let parsed = &trees[&reference.file];
+            let names_a_type = parsed
+                .root()
+                .descendant_for_byte_range(reference.span.start, reference.span.end)
+                .is_some_and(names_a_type);
+            if names_a_type {
+                let line = LineIndex::new(source)
+                    .line_col(reference.span.start, source)
+                    .line;
+                anyhow::bail!(
+                    "'{flag}' is not a flag: it names a type at {}:{line}. Removing a flag \
+                     replaces every use of the name with `{literal}`, and a boolean is not \
+                     a type. Nothing was changed.",
+                    reference.file.display()
+                );
+            }
+        }
+    }
+
+    let mut every_use_was_rewritten = true;
     for reference in index.references_to(definition.id) {
         let Some((language, source)) = sources.get(&reference.file) else {
             continue;
         };
         // A use we cannot place is a use we must not rewrite.
         if !reference.confidence.is_safe_to_rewrite() {
+            every_use_was_rewritten = false;
             continue;
         }
 
@@ -286,31 +346,245 @@ fn substitute_flag(
         }
         let parsed = &trees[&reference.file];
 
-        // A call to a flag-returning function is replaced along with its parentheses.
-        if let UseSite::Replace(span) = use_site(*language, parsed, source, reference.span) {
-            changes.push((reference.file.clone(), span, literal.to_string()));
+        match use_site(*language, definition.kind, parsed, source, reference.span) {
+            UseSite::Replace(span) => {
+                changes.push((reference.file.clone(), span, literal.to_string()))
+            }
+            UseSite::Refuse(_) => every_use_was_rewritten = false,
         }
     }
 
-    // The definition goes with whatever holds it and then with its whole line — the
-    // same two steps `fr delete` takes, because the answer is the same question. Taking
-    // the symbol's own span instead removed `NEW_UI = true` from `const NEW_UI = true;`
-    // and left `const ;` behind: the edit guard caught it, so `fr remove-flag` did not
-    // damage a TypeScript file, it simply never worked on one.
-    let definition_span = match sources.get(&definition.file) {
-        Some((language, source)) => {
-            let widened = match parsers.parse(*language, source) {
-                Ok(parsed) => {
-                    crate::refactor::delete::widen_for_delete(&parsed, source, definition)
-                }
-                Err(_) => definition.full_span,
-            };
-            crate::refactor::delete::deletion_span(source, widened)
+    if every_use_was_rewritten {
+        // The definition goes with whatever holds it and then with its whole line — the
+        // same two steps `fr delete` takes, because the answer is the same question.
+        // Taking the symbol's own span instead removed `NEW_UI = true` from
+        // `const NEW_UI = true;` and left `const ;` behind: the edit guard caught it, so
+        // `fr remove-flag` did not damage a TypeScript file, it simply never worked on
+        // one.
+        let definition_span = match sources.get(&definition.file) {
+            Some((language, source)) => {
+                let widened = match parsers.parse(*language, source) {
+                    Ok(parsed) => {
+                        crate::refactor::delete::widen_for_delete(&parsed, source, definition)
+                    }
+                    Err(_) => definition.full_span,
+                };
+                crate::refactor::delete::deletion_span(source, widened)
+            }
+            None => definition.full_span,
+        };
+        changes.push((definition.file.clone(), definition_span, String::new()));
+    }
+    Ok(Some((changes, definition.kind)))
+}
+
+/// What the declaration says the named symbol holds, where that rules a flag out.
+///
+/// Removing a flag replaces every use of a name with `true` or `false`. A Zig module
+/// import and a Zig feature flag are both `const`, so the symbol's kind cannot tell the
+/// two apart: asking to remove `DocumentScope` from a file that opens
+/// `const DocumentScope = @import("DocumentScope.zig")` rewrote a type into
+/// `*const true`, which is text no compiler accepts. The declaration says what the kind
+/// cannot.
+///
+/// The question is whether the source rules a boolean out, and not whether the source
+/// proves one. A flag read from a call — `const enabled = feature("new-ui")` — states
+/// nothing about its type, and that is the case this command exists for.
+///
+/// The answer is prose, because it goes straight into the sentence the caller prints.
+fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> Option<String> {
+    // A `Field` is a struct member in Go and Rust and never a flag — but Java has no
+    // top level below the type, so its constants are *all* fields: `public static final
+    // boolean NEW_CHECKOUT` is the idiomatic feature flag and there is nowhere else to
+    // put it. The kind alone cannot tell the two apart; the language can.
+    let field_is_a_constant = symbol.language == Language::Java;
+    let kind_can_hold_a_flag = matches!(
+        symbol.kind,
+        SymbolKind::Constant | SymbolKind::Variable | SymbolKind::Function
+    ) || (field_is_a_constant && symbol.kind == SymbolKind::Field);
+    if !kind_can_hold_a_flag {
+        return Some(format!("is a {}", symbol.kind.as_str()));
+    }
+
+    let declaration = parsed
+        .root()
+        .descendant_for_byte_range(symbol.full_span.start, symbol.full_span.end)?;
+
+    // Terraform states a variable's type in an argument and not in a grammar field, so
+    // it is read on its own terms.
+    if symbol.language == Language::Hcl {
+        return hcl_not_a_flag(declaration, source);
+    }
+
+    // The exception made for Java fields is for `static final boolean`. An enum constant
+    // is a different thing written in the same place: it names one member of a type, and
+    // no boolean stands for it.
+    if declaration.kind() == "enum_constant" {
+        return Some("is an enum constant".into());
+    }
+
+    // The bound value first, because it is the stronger statement: `const NAME = "x"`
+    // says what `NAME` holds without naming a type at all.
+    if let Some(value) = bound_value(declaration) {
+        if let Some(what) = what_the_value_holds(value, source) {
+            return Some(what);
         }
-        None => definition.full_span,
+    }
+
+    let stated = ["type", "return_type", "result"]
+        .iter()
+        .find_map(|field| declaration.child_by_field_name(field))
+        .and_then(|node| crate::analysis::types::type_text(node, source))?;
+    match is_a_boolean_type(&stated) {
+        true => None,
+        false => Some(format!("is declared `{stated}`")),
+    }
+}
+
+/// The expression a declaration binds, where the grammar exposes one.
+fn bound_value<'a>(declaration: Node<'a>) -> Option<Node<'a>> {
+    let value = ["value", "right", "default_value"]
+        .iter()
+        .find_map(|field| declaration.child_by_field_name(field))
+        .or_else(|| {
+            // Zig gives a variable declaration's children no field names at all, so the
+            // value is the last of them — unless the declaration states a type and binds
+            // nothing, in which case the last child is that type.
+            if declaration.kind() != "variable_declaration" {
+                return None;
+            }
+            let count = u32::try_from(declaration.named_child_count()).ok()?;
+            let last = declaration.named_child(count.checked_sub(1)?)?;
+            (Some(last) != declaration.child_by_field_name("type")).then_some(last)
+        })?;
+    // Go wraps every bound value in an expression list, even where it binds just one.
+    match value.kind() == "expression_list" && value.named_child_count() == 1 {
+        true => value.named_child(0),
+        false => Some(value),
+    }
+}
+
+/// What a bound expression holds, where that rules a boolean out.
+///
+/// A literal states its own kind in every grammar here, so the node's name is the
+/// answer. Anything that is not a literal — a call, another name, an operator — states
+/// nothing, and stating nothing is not grounds to refuse.
+fn what_the_value_holds(value: Node<'_>, source: &str) -> Option<String> {
+    let held = match value.kind() {
+        "true" | "false" | "boolean" | "boolean_literal" | "bool_lit" => return None,
+        "string"
+        | "string_literal"
+        | "interpreted_string_literal"
+        | "raw_string_literal"
+        | "template_string"
+        | "char_literal"
+        | "character_literal"
+        | "concatenated_string" => "a string",
+        "integer"
+        | "float"
+        | "number"
+        | "int_literal"
+        | "float_literal"
+        | "integer_literal"
+        | "decimal_integer_literal"
+        | "hex_integer_literal"
+        | "decimal_floating_point_literal" => "a number",
+        "object"
+        | "array"
+        | "dictionary"
+        | "list"
+        | "set"
+        | "tuple"
+        | "composite_literal"
+        | "array_creation_expression"
+        | "object_creation_expression" => "a collection",
+        "struct_declaration"
+        | "enum_declaration"
+        | "union_declaration"
+        | "error_set_declaration"
+        | "slice_type"
+        | "pointer_type"
+        | "array_type"
+        | "generic_type"
+        | "builtin_type"
+        | "type_identifier" => "a type",
+        _ if binds_a_module(value, source) => "a module",
+        _ => return None,
     };
-    changes.push((definition.file.clone(), definition_span, String::new()));
-    Ok(changes)
+    Some(format!("holds {held}"))
+}
+
+/// Whether an expression opens another file.
+///
+/// Zig spells this as a builtin call and JavaScript as an ordinary one. Both bind a
+/// module, and no boolean stands in for a module.
+fn binds_a_module(value: Node<'_>, source: &str) -> bool {
+    let callee = match value.kind() {
+        "builtin_function" => value.named_child(0),
+        "call_expression" => value.child_by_field_name("function"),
+        _ => return false,
+    };
+    match callee {
+        Some(callee) => matches!(
+            Span::from(callee).text(source).trim(),
+            "@import" | "require"
+        ),
+        None => false,
+    }
+}
+
+/// How each language here spells the boolean type.
+fn is_a_boolean_type(stated: &str) -> bool {
+    matches!(stated.trim(), "bool" | "boolean" | "Bool" | "Boolean")
+}
+
+/// What a Terraform variable block says it holds.
+///
+/// Terraform writes the type as an argument, so there is no grammar field to read. A
+/// variable that states no type at all is the ordinary case and says nothing either
+/// way; `any` is Terraform's own word for unconstrained, and a boolean is one of the
+/// things it allows.
+fn hcl_not_a_flag(block: Node<'_>, source: &str) -> Option<String> {
+    if let Some(stated) = hcl_block_argument(block, source, "type") {
+        return match is_a_boolean_type(&stated) || stated == "any" {
+            true => None,
+            false => Some(format!("is declared `{stated}`")),
+        };
+    }
+    // With no type written down, the default is the only statement of what it holds.
+    let default = hcl_block_argument(block, source, "default")?;
+    match default.as_str() {
+        "true" | "false" => None,
+        _ if default.starts_with('"') => Some("holds a string".into()),
+        _ if default.parse::<f64>().is_ok() => Some("holds a number".into()),
+        _ if default.starts_with('[') || default.starts_with('{') => {
+            Some("holds a collection".into())
+        }
+        _ => None,
+    }
+}
+
+/// One argument's value from inside a Terraform block, as written.
+fn hcl_block_argument(block: Node<'_>, source: &str, name: &str) -> Option<String> {
+    let mut walk = block.walk();
+    let body = block
+        .named_children(&mut walk)
+        .find(|child| child.kind() == "body")?;
+    let mut body_walk = body.walk();
+    for attribute in body.named_children(&mut body_walk) {
+        if attribute.kind() != "attribute" {
+            continue;
+        }
+        let mut attribute_walk = attribute.walk();
+        let mut children = attribute.named_children(&mut attribute_walk);
+        let key = children.next()?;
+        if Span::from(key).text(source).trim() != name {
+            continue;
+        }
+        let value = children.next()?;
+        return Some(Span::from(value).text(source).trim().to_string());
+    }
+    None
 }
 
 /// Occurrences of the flag's name that outlived the cascade.
@@ -319,12 +593,28 @@ fn substitute_flag(
 /// the flag is something it declined — a use in a form no literal fits, or one whose
 /// resolution was never strong enough to touch. Finding them in the finished text is
 /// what makes the line numbers point at the file the caller will open.
+///
+/// The declaration is read from the finished text as well. Where it survived, it
+/// survived because a use of it did, and reporting it as one more unrewritable use of
+/// itself said something that is not true.
 fn remaining_uses(
     sources: &BTreeMap<PathBuf, (Language, String)>,
     flag: &str,
+    kind: SymbolKind,
 ) -> Result<Vec<String>> {
     let parsers = Parsers::new();
     let mut out = Vec::new();
+
+    let snapshot: Vec<(PathBuf, Language, String)> = sources
+        .iter()
+        .map(|(p, (l, s))| (p.clone(), *l, s.clone()))
+        .collect();
+    let index = Index::build_from_sources(&snapshot)?;
+    let declarations: BTreeSet<(PathBuf, Span)> = index
+        .find_symbols(flag, None)
+        .into_iter()
+        .map(|symbol| (symbol.file.clone(), symbol.name_span))
+        .collect();
 
     for (path, (language, source)) in sources {
         if !source.contains(flag) {
@@ -339,7 +629,16 @@ fn remaining_uses(
             if span.text(source) != flag {
                 continue;
             }
-            let reason = match use_site(*language, &parsed, source, span) {
+            if declarations.contains(&(path.clone(), span)) {
+                out.push(describe(
+                    path,
+                    source,
+                    span,
+                    "the declaration stayed, because a use of it did",
+                ));
+                continue;
+            }
+            let reason = match use_site(*language, kind, &parsed, source, span) {
                 UseSite::Refuse(reason) => reason,
                 UseSite::Replace(_) => {
                     "this use of the flag did not resolve to it firmly enough to rewrite".into()
@@ -385,12 +684,167 @@ enum UseSite {
 /// is the answer. Shell and HCL both write a use as a name inside a larger piece of
 /// syntax — `$FLAG`, `var.flag` — and replacing only the name would leave the sigil
 /// or the namespace stranded in front of a boolean.
-fn use_site(language: Language, parsed: &Parsed, source: &str, span: Span) -> UseSite {
+fn use_site(
+    language: Language,
+    definition: SymbolKind,
+    parsed: &Parsed,
+    source: &str,
+    span: Span,
+) -> UseSite {
     match language {
         Language::Bash => bash_use_site(parsed, source, span),
         Language::Hcl => hcl_use_site(parsed, source, span),
-        _ => UseSite::Replace(span),
+        _ => general_use_site(definition, parsed, source, span),
     }
+}
+
+/// Where a boolean literal can stand, in a language that writes a use as the name.
+///
+/// Most uses are the reference's own span, so most of this is the identity. Three are
+/// not, and each of the three produced text no compiler accepts:
+///
+/// * A name is also how a type is written. Replacing a use in type position gave
+///   `pub fn tokenToPosition(…) true` where the source said `… Position`.
+/// * A flag held by a function is read by calling it, so the literal replaces the call
+///   and not the callee. Replacing the callee gave `if true()`, which then never
+///   collapsed, because `true()` is not a boolean literal.
+/// * Reading a field of the flag reads into its value, and a boolean has no field.
+fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span: Span) -> UseSite {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
+        return UseSite::Replace(span);
+    };
+    let Some(parent) = node.parent() else {
+        return UseSite::Replace(span);
+    };
+
+    if names_a_type(node) {
+        return UseSite::Refuse(format!(
+            "`{}` names a type here, and a boolean is not a type",
+            span.text(source)
+        ));
+    }
+
+    if let Some(call) = call_around(node) {
+        // Only a function is read by calling it. A boolean that is called was already
+        // broken before this arrived, and writing `true()` over it would hide that.
+        return match definition == SymbolKind::Function {
+            true => UseSite::Replace(Span::from(call)),
+            false => UseSite::Refuse(format!(
+                "`{}` calls the flag, and a boolean cannot be called",
+                Span::from(call).text(source)
+            )),
+        };
+    }
+
+    // A flag held by a function and named without being called is the function itself
+    // and not its result: `let f = is_on;` holds a function, and `let f = true;` does
+    // not.
+    if definition == SymbolKind::Function {
+        return UseSite::Refuse(format!(
+            "`{}` names the flag's function without calling it",
+            span.text(source)
+        ));
+    }
+
+    if reads_into_the_value(node, parent) {
+        return UseSite::Refuse(format!(
+            "`{}` reads through the flag, and a boolean has nothing to read",
+            Span::from(parent).text(source)
+        ));
+    }
+
+    UseSite::Replace(span)
+}
+
+/// Whether a use of a name is a use of it as a type.
+///
+/// A type is written as a name, so nothing about the name says which it is. What says it
+/// is the field the grammar hangs it from: every language here holds a declared type
+/// under `type`, and a declared result under `return_type` or `result`, wrapping it in a
+/// node or two on the way — `*const P`, `P[]`, `: P`.
+fn names_a_type(node: Node<'_>) -> bool {
+    let mut current = node;
+    for _ in 0..4 {
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        for field in ["type", "return_type", "result"] {
+            if parent.child_by_field_name(field) == Some(current) {
+                return true;
+            }
+        }
+        // Zig writes a struct literal as the type followed by its fields and hangs the
+        // type off no field at all.
+        if parent.kind() == "struct_initializer" && parent.named_child(0) == Some(current) {
+            return true;
+        }
+        // Keep climbing only while still inside something that spells a type.
+        if !parent.kind().contains("type") {
+            return false;
+        }
+        current = parent;
+    }
+    false
+}
+
+/// The call this reference is the target of, where it is one.
+fn call_around(node: Node<'_>) -> Option<Node<'_>> {
+    let parent = node.parent()?;
+    if is_the_callee(node, parent) {
+        return Some(parent);
+    }
+    // `config.flag()` — the reference names the member, and the member access is what
+    // the call calls. The literal replaces the whole call, namespace included.
+    if member_of(parent) == Some(node) {
+        let grandparent = parent.parent()?;
+        if is_the_callee(parent, grandparent) {
+            return Some(grandparent);
+        }
+    }
+    None
+}
+
+fn is_the_callee(node: Node<'_>, parent: Node<'_>) -> bool {
+    let callee = match parent.kind() {
+        "call_expression" | "call" => parent.child_by_field_name("function"),
+        "method_invocation" => parent.child_by_field_name("name"),
+        _ => return false,
+    };
+    callee == Some(node)
+}
+
+/// The member a name-access node reads, where the node is one.
+fn member_of(node: Node<'_>) -> Option<Node<'_>> {
+    match node.kind() {
+        "field_expression" => node
+            .child_by_field_name("member")
+            .or_else(|| node.child_by_field_name("field")),
+        "member_expression" => node.child_by_field_name("property"),
+        "attribute" => node.child_by_field_name("attribute"),
+        "field_access" => node.child_by_field_name("field"),
+        "selector_expression" => node.child_by_field_name("field"),
+        "scoped_identifier" | "scoped_type_identifier" => node.child_by_field_name("name"),
+        _ => None,
+    }
+}
+
+/// Whether the use reads a member of the flag.
+fn reads_into_the_value(node: Node<'_>, parent: Node<'_>) -> bool {
+    let base = match parent.kind() {
+        "field_expression" => parent
+            .child_by_field_name("object")
+            .or_else(|| parent.child_by_field_name("value")),
+        "member_expression" | "attribute" | "field_access" | "method_invocation" => {
+            parent.child_by_field_name("object")
+        }
+        "selector_expression" => parent.child_by_field_name("operand"),
+        "scoped_identifier" | "scoped_type_identifier" => parent.child_by_field_name("path"),
+        _ => return false,
+    };
+    base == Some(node)
 }
 
 /// `$FLAG`, `${FLAG}` and `"$FLAG"` all stand for the value; anything more does not.

@@ -203,16 +203,244 @@ fn interchangeable(from: Language, to: Language) -> bool {
 // ---------------------------------------------------------------------------
 
 /// A file that exports `sym`'s name onward from the file that declares it.
-fn re_exporting_file(index: &Index, sym: &Symbol) -> Option<PathBuf> {
-    index.files().find_map(|(path, info)| {
-        let names_it = info.imports.iter().any(|import| {
+fn re_exporting_files(index: &Index, sym: &Symbol) -> Vec<PathBuf> {
+    let mut out: Vec<PathBuf> = index
+        .files()
+        .filter(|(path, info)| {
+            info.imports.iter().any(|import| {
+                import.re_export
+                    && index
+                        .resolve_import_path(path, &import.path)
+                        .is_some_and(|target| target == sym.file)
+                    // A star hands on whatever the file exports, so it hands on this too.
+                    && (import.names.iter().any(|n| n.local == sym.name)
+                        || re_exports_everything(info, import))
+            })
+        })
+        .map(|(path, _)| path.clone())
+        .collect();
+    out.sort();
+    out
+}
+
+/// Whether a re-export is a star: `export * from "./x"`.
+///
+/// The grammar gives a bare star no children beyond its source, and the query that
+/// records the edge for a named re-export matches it as well, so one statement produces
+/// an entry with names and an entry without. What tells them apart is whether any entry
+/// for the same statement carries a name at all.
+fn re_exports_everything(info: &crate::index::FileInfo, import: &crate::model::Import) -> bool {
+    import.alias.is_none()
+        && !info
+            .imports
+            .iter()
+            .any(|other| other.span == import.span && !other.names.is_empty())
+}
+
+/// Whether a re-export binds one name for the whole module: `export * as ns from "./x"`.
+fn re_exports_under_one_name(import: &crate::model::Import) -> bool {
+    import.re_export && import.alias.is_some() && import.names.is_empty()
+}
+
+/// Whether `file` still exports something once `moved` is out of it.
+fn exports_anything_else(index: &Index, file: &Path, moved: SymbolId) -> bool {
+    let Some(info) = index.file(file) else {
+        return false;
+    };
+    info.symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .any(|s| s.id != moved && s.exported && s.is_top_level())
+        || info.imports.iter().any(|import| import.re_export)
+}
+
+/// Move a barrel's export of the symbol from the file it left to the file it landed in.
+///
+/// `export { width, Holder } from "./holder"` becomes `export { Holder } from "./holder"`
+/// followed by `export { width } from "./util"`. Repointing an export is not repointing
+/// an import: an import binds a name for the file that wrote it, and an export hands the
+/// name onward to every file that reads through this one. Doing the second as though it
+/// were the first left the barrel naming a symbol the old file no longer has.
+///
+/// Every file importing through the barrel keeps working and needs no edit, which is why
+/// they are left out of the list that gains an import.
+fn repoint_re_export(
+    index: &Index,
+    sym: &Symbol,
+    barrel: &Path,
+    destination: &Path,
+    plan: &mut MovePlan,
+) -> Result<()> {
+    let Some(info) = index.file(barrel) else {
+        return Ok(());
+    };
+    let source = crate::vfs::read_to_string(barrel)?;
+
+    let points_at_the_source = |import: &crate::model::Import| {
+        index.resolve_import_path(barrel, &import.path).as_deref() == Some(sym.file.as_path())
+    };
+
+    // `export * as ns from "./holder"` hands the whole module on under one name, and
+    // readers write `ns.width`. Splitting the module in two would need every reader to
+    // write a second namespace, which is not a repointing.
+    if let Some(named) = info
+        .imports
+        .iter()
+        .find(|i| re_exports_under_one_name(i) && points_at_the_source(i))
+    {
+        bail!(
+            "{} re-exports {} as `{}`, so readers write `{}.{}`. Moving '{}' out would \
+             leave that name reaching a module it is no longer in, and no repointing of \
+             one statement can follow it",
+            barrel.display(),
+            sym.file.display(),
+            named.alias.as_deref().unwrap_or_default(),
+            named.alias.as_deref().unwrap_or_default(),
+            sym.name,
+            sym.name
+        );
+    }
+
+    // A star hands on whatever the source exports, and the symbol is about to stop being
+    // one of them. The star itself still belongs to the source, so what the barrel needs
+    // is one more line naming the symbol where it landed.
+    if let Some(star) = info
+        .imports
+        .iter()
+        .find(|i| i.re_export && re_exports_everything(info, i) && points_at_the_source(i))
+    {
+        let already = info.imports.iter().any(|other| {
+            other.re_export
+                && other.span != star.span
+                && index.resolve_import_path(barrel, &other.path).as_deref() == Some(destination)
+        });
+        let line = whole_lines(&source, star.span);
+        // The symbol was the last thing the source exported, so the star has nothing
+        // left to hand on. TypeScript calls a file with no exports "not a module" and
+        // rejects the star outright, so leaving it would trade one broken build for
+        // another.
+        let replacement = match exports_anything_else(index, &sym.file, sym.id) {
+            true => source[line.start..line.end].to_string(),
+            false => String::new(),
+        };
+        if already {
+            plan.edits.add(
+                barrel.to_path_buf(),
+                Edit::new(line, replacement, format!("what {} left behind", sym.name)),
+            );
+            return Ok(());
+        }
+        let module = relative_module(barrel, destination).ok_or_else(|| {
+            anyhow::anyhow!(
+                "cannot express {} as a module path from {}, so the re-export of '{}' \
+                 cannot be repointed",
+                destination.display(),
+                barrel.display(),
+                sym.name
+            )
+        })?;
+        plan.edits.add(
+            barrel.to_path_buf(),
+            Edit::new(
+                line,
+                format!("{replacement}export {{ {} }} from '{module}';\n", sym.name),
+                format!("re-export {} from its new home", sym.name),
+            ),
+        );
+        return Ok(());
+    }
+
+    // The index records one entry per exported name, each carrying the span of the whole
+    // statement it came from. Finding the statement and gathering its names are therefore
+    // two passes: collecting only the entries that name the moved symbol found one name
+    // where the statement had two, and `export { width, Holder } from "./holder"` came
+    // back as `export { width } from './util'` with `Holder` gone.
+    let statement_spans: Vec<Span> = info
+        .imports
+        .iter()
+        .filter(|import| {
             import.re_export
                 && import.names.iter().any(|n| n.local == sym.name)
-                && index
-                    .resolve_import_path(path, &import.path)
-                    .is_some_and(|target| target == sym.file)
-        });
-        names_it.then(|| path.clone())
+                && index.resolve_import_path(barrel, &import.path).as_deref()
+                    == Some(sym.file.as_path())
+        })
+        .map(|import| import.span)
+        .collect();
+
+    let mut statements: Vec<(Span, String, Vec<crate::model::ImportedName>)> = Vec::new();
+    for import in &info.imports {
+        if !statement_spans.contains(&import.span) {
+            continue;
+        }
+        match statements
+            .iter_mut()
+            .find(|(span, _, _)| *span == import.span)
+        {
+            Some((_, _, names)) => names.extend(import.names.iter().cloned()),
+            None => statements.push((import.span, import.path.clone(), import.names.clone())),
+        }
+    }
+
+    for (span, path, names) in statements {
+        let mut kept: Vec<&crate::model::ImportedName> =
+            names.iter().filter(|n| n.local != sym.name).collect();
+        kept.sort_by_key(|n| n.span.start);
+        kept.dedup_by_key(|n| n.span.start);
+
+        let narrowed = match kept.is_empty() {
+            true => String::new(),
+            false => {
+                let spelled: Vec<String> = kept
+                    .iter()
+                    .map(|n| n.span.text(&source).to_string())
+                    .collect();
+                format!("export {{ {} }} from '{path}';\n", spelled.join(", "))
+            }
+        };
+        // Where the barrel is itself the destination, the name is declared here now, and
+        // a file does not re-export from itself. The declaration carries the export.
+        let onward = match barrel == destination {
+            true => String::new(),
+            false => {
+                let module = relative_module(barrel, destination).ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "cannot express {} as a module path from {}, so the re-export of \
+                         '{}' cannot be repointed",
+                        destination.display(),
+                        barrel.display(),
+                        sym.name
+                    )
+                })?;
+                format!("export {{ {} }} from '{module}';\n", sym.name)
+            }
+        };
+
+        plan.edits.add(
+            barrel.to_path_buf(),
+            Edit::new(
+                whole_lines(&source, span),
+                format!("{narrowed}{onward}"),
+                format!("re-export {} from its new home", sym.name),
+            ),
+        );
+    }
+    Ok(())
+}
+
+/// Whether `file` already receives `name` by importing one of the barrels.
+///
+/// Such a file is untouched by the move: the barrel it reads is repointed, so the name it
+/// binds arrives from the new place under the old spelling. Adding an import here would
+/// bind the same name twice.
+fn reaches_through_a_barrel(index: &Index, file: &Path, barrels: &[PathBuf], name: &str) -> bool {
+    let Some(info) = index.file(file) else {
+        return false;
+    };
+    info.imports.iter().any(|import| {
+        import.names.iter().any(|n| n.local == name)
+            && index
+                .resolve_import_path(file, &import.path)
+                .is_some_and(|target| barrels.contains(&target))
     })
 }
 
@@ -225,20 +453,9 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     }
 
     // A barrel exports the symbol from the file it is leaving: `export { width } from
-    // "./holder"`. Moving it makes that line name something the old file no longer
-    // exports, and every file importing through the barrel keeps a binding this move
-    // then adds a second import for. Repointing the export is a separate operation from
-    // repointing an import, and until it exists the honest answer is to decline.
-    if let Some(barrel) = re_exporting_file(index, sym) {
-        bail!(
-            "{} re-exports '{}' from {}. Moving it would leave that export naming a \
-             symbol the file no longer has, and repointing an export is not something \
-             this performs",
-            barrel.display(),
-            sym.name,
-            sym.file.display()
-        );
-    }
+    // "./holder"`. Moving it leaves that line naming something the old file no longer
+    // has, so the export is repointed at the new one.
+    let barrels = re_exporting_files(index, sym);
 
     let source = crate::vfs::read_to_string(&sym.file)?;
     let removal = whole_lines(&source, sym.full_span);
@@ -250,19 +467,56 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         Edit::new(removal, "", format!("move {} out", sym.name)),
     );
 
+    for barrel in &barrels {
+        repoint_re_export(index, sym, barrel, destination, &mut plan)?;
+    }
+
     // Every file that referenced it now needs an import — including the file it
-    // came from, if references remain there.
+    // came from, if references remain there. A barrel is not one of them: its export is
+    // repointed above, and neither is a file that reads the name through one, because
+    // the binding it already has now arrives from the new place.
     let mut needs_import: BTreeSet<PathBuf> = BTreeSet::new();
     for reference in index.references_to(sym.id) {
-        if reference.file != *destination {
-            needs_import.insert(reference.file.clone());
+        if reference.file == *destination
+            || barrels.contains(&reference.file)
+            || reaches_through_a_barrel(index, &reference.file, &barrels, &sym.name)
+        {
+            continue;
         }
+        needs_import.insert(reference.file.clone());
     }
 
     // Code that moves has to keep working where it lands: it needs whatever it
     // referenced, and it needs to be visible to the files that will now import it.
     let used = names_used_in(sym.language, &source, removal)?;
-    let carried = carried_imports(index, sym, destination, &used, &source, &mut plan);
+    let (carried, imports_the_source_back) =
+        carried_imports(index, sym, destination, &used, &source, &mut plan);
+
+    // Both files would end up importing the other: the source needs the moved symbol
+    // back, and the moved symbol needs names the source kept. Python evaluates a module
+    // top to bottom the first time it is imported, so the second import in the cycle
+    // reaches a module that has not finished defining anything yet and raises
+    // `ImportError`. The result parses, compiles, and cannot be imported.
+    let destination_reaches_back =
+        imports_the_source_back || still_imports_from(index, destination, &sym.file, &sym.name);
+    if sym.language == Language::Python
+        && destination_reaches_back
+        && needs_import.contains(&sym.file)
+    {
+        bail!(
+            "moving '{}' to {} would make the two files import each other: {} would \
+             import '{}' from its new home, and {} would import back what '{}' still \
+             uses. Python fails on that cycle at import time. Move the names '{}' uses \
+             as well, or move it to a file neither imports",
+            sym.name,
+            destination.display(),
+            sym.file.display(),
+            sym.name,
+            destination.display(),
+            sym.name,
+            sym.name
+        );
+    }
     let moved_text = if needs_import.is_empty() {
         moved_text
     } else {
@@ -339,11 +593,7 @@ fn drop_local_import(
         }
         // Only the import that names the file the symbol is leaving. A same-named
         // thing imported from somewhere else is somebody else's.
-        let points_here = repoint(&import.path, destination, from)
-            .map(|p| p == import.path)
-            .unwrap_or(false)
-            || import.path.ends_with(&stem(from));
-        if !points_here {
+        if !import_points_at(&import, destination, from) {
             continue;
         }
         let kept: Vec<&crate::model::ImportedName> =
@@ -375,6 +625,29 @@ fn drop_local_import(
         )));
     }
     Ok(None)
+}
+
+/// Whether an import statement written in `file` names `target`.
+fn import_points_at(import: &ImportStatement, file: &Path, target: &Path) -> bool {
+    repoint(&import.path, file, target)
+        .map(|path| path == import.path)
+        .unwrap_or(false)
+        || import.path.ends_with(&stem(target))
+}
+
+/// Whether `destination` will still import from `from` once `name` stops coming from
+/// there.
+///
+/// One name in a statement goes away and the rest stay, and every one of those keeps the
+/// destination pointing at the file the moved symbol came from.
+fn still_imports_from(index: &Index, destination: &Path, from: &Path, name: &str) -> bool {
+    let Some(info) = index.file(destination) else {
+        return false;
+    };
+    import_statements(&info.imports).iter().any(|import| {
+        import_points_at(import, destination, from)
+            && import.names.iter().any(|imported| imported.local != name)
+    })
 }
 
 /// A file's name without its extension, for matching a relative import against it.
@@ -431,11 +704,14 @@ fn carried_imports(
     used: &std::collections::HashSet<String>,
     source: &str,
     plan: &mut MovePlan,
-) -> String {
+) -> (String, bool) {
     let Some(info) = index.file(&sym.file) else {
-        return String::new();
+        return (String::new(), false);
     };
     let mut statements: Vec<String> = Vec::new();
+    // Whether the moved code has to reach back into the file it left, which is one half
+    // of an import cycle. The caller holds the other half.
+    let mut imports_the_source_back = false;
 
     for statement in import_statements(&info.imports) {
         // `import os` binds `os` without naming it anywhere in the statement, and the
@@ -496,15 +772,7 @@ fn carried_imports(
                         plan.edits.add(sym.file.clone(), edit);
                     }
                 }
-                if sym.language == Language::Python {
-                    plan.warnings.push(format!(
-                        "{} now imports {} back from {}, which imports the moved symbol \
-                         in turn; Python resolves that cycle at run time and may fail on it",
-                        destination.display(),
-                        names.join(", "),
-                        sym.file.display()
-                    ));
-                }
+                imports_the_source_back = true;
             }
             None => plan.warnings.push(format!(
                 "the moved code uses {} from {}, and no import path back to it could be \
@@ -516,12 +784,15 @@ fn carried_imports(
     }
 
     if statements.is_empty() {
-        return String::new();
+        return (String::new(), imports_the_source_back);
     }
     // `__future__` must be the first statement in the file, so it leads whatever
     // else came along.
     statements.sort_by_key(|s| !s.contains("__future__"));
-    format!("{}\n", statements.join(""))
+    (
+        format!("{}\n", statements.join("")),
+        imports_the_source_back,
+    )
 }
 
 /// The same module, named from the destination instead of the source.
@@ -645,10 +916,7 @@ fn back_import(language: Language, from: &Path, to: &Path, names: &[String]) -> 
             )
         }
         Language::Python => {
-            format!(
-                "from {} import {joined}\n",
-                python_relative_module(from, to)?
-            )
+            format!("from {} import {joined}\n", python_module_path(from, to)?)
         }
         _ => return None,
     })
@@ -722,7 +990,7 @@ fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> R
         // is a syntax error, which the reparse check would reject — so the move would
         // never commit at all.
         Language::Python => {
-            let module = python_relative_module(from, to).ok_or_else(unresolvable)?;
+            let module = python_module_path(from, to).ok_or_else(unresolvable)?;
             format!("from {module} import {name}\n")
         }
         other => bail!(
@@ -732,10 +1000,52 @@ fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> R
     })
 }
 
-/// A Python relative module path for `to`, as seen from `from`.
+/// A Python module path for `to`, as `from` has to write it.
 ///
-/// `.sibling` for a file beside it, `.sub.mod` for one below, `..up.mod` for one
-/// reached by going up first — one leading dot per level, as the language spells it.
+/// Relative when the importing file is inside a package: `.sibling` for a file beside
+/// it, `.sub.mod` for one below, `..up.mod` for one reached by going up first — one
+/// leading dot per level, as the language spells it.
+///
+/// Absolute when it is not. A leading dot means "relative to the package I am in", and a
+/// file in a directory with no `__init__.py` is in no package: Python raises
+/// `attempted relative import with no known parent package` on the import itself.
+/// Writing `from .util import width` into a flat directory produced a file that compiles
+/// and cannot be imported.
+fn python_module_path(from: &Path, to: &Path) -> Option<String> {
+    match in_a_package(from.parent()?) {
+        true => python_relative_module(from, to),
+        false => python_absolute_module(to),
+    }
+}
+
+/// Whether a directory is a Python package, which is what makes a relative import mean
+/// anything from inside it.
+fn in_a_package(dir: &Path) -> bool {
+    crate::vfs::exists(dir.join("__init__.py"))
+}
+
+/// The dotted name Python knows `to` by, from wherever it is run.
+///
+/// The package parts are the directories above it that are packages themselves; the walk
+/// stops at the first directory that is not, because that one is on the import path and
+/// is not part of any name.
+fn python_absolute_module(to: &Path) -> Option<String> {
+    let stem = to.file_stem()?.to_str()?;
+    let mut parts = Vec::new();
+    let mut dir = to.parent();
+    while let Some(here) = dir {
+        if !in_a_package(here) {
+            break;
+        }
+        parts.push(here.file_name()?.to_str()?.to_string());
+        dir = here.parent();
+    }
+    parts.reverse();
+    parts.push(stem.to_string());
+    Some(parts.join("."))
+}
+
+/// A Python relative module path for `to`, as seen from `from`.
 fn python_relative_module(from: &Path, to: &Path) -> Option<String> {
     let from_dir = from.parent()?;
     let to_dir = to.parent()?;
@@ -1584,6 +1894,31 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         needs_import.insert(reference.file.clone());
     }
 
+    // The source package would import the destination, and the destination already
+    // imports the source. Go rejects that outright — `import cycle not allowed` — so the
+    // move produces a tree that does not build, and no later step can undo it.
+    if !needs_import.is_empty() {
+        if let Some(source_path) = go_import_path(source_dir) {
+            if go_package_imports(index, dest_dir, &source_path) {
+                bail!(
+                    "moving '{}' to {} would make packages {} and {} import each other: \
+                     {} already imports \"{}\", and moving '{}' makes \"{}\" import back. \
+                     Go does not allow an import cycle. Move what '{}' uses as well, or \
+                     move it to a package neither imports",
+                    sym.name,
+                    crate::vfs::describe_dir(dest_dir),
+                    crate::vfs::describe_dir(source_dir),
+                    crate::vfs::describe_dir(dest_dir),
+                    crate::vfs::describe_dir(dest_dir),
+                    source_path,
+                    sym.name,
+                    source_path,
+                    sym.name
+                );
+            }
+        }
+    }
+
     for file in &needs_import {
         let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
         if target_source.contains(&format!("\"{import_path}\"")) {
@@ -1609,6 +1944,17 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
     carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
+}
+
+/// Whether any file in `dir` imports `import_path`.
+///
+/// A Go package imports as a whole, so one file in the directory naming the path is the
+/// whole package naming it.
+fn go_package_imports(index: &Index, dir: &Path, import_path: &str) -> bool {
+    index
+        .files()
+        .filter(|(path, _)| path.parent() == Some(dir))
+        .any(|(_, info)| info.imports.iter().any(|import| import.path == import_path))
 }
 
 /// The package a Go file declares.

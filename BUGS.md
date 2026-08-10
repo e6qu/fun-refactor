@@ -5,15 +5,27 @@ stage.
 
 Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
 
-Open entries are characterised limitations — the behaviour is reported and no operation
-silently does the wrong thing — with one exception, B258, which is uncharacterised.
+Open entries are characterised limitations: the behaviour is reported and no operation
+silently does the wrong thing.
 
-Every open entry that asserts something checkable is pinned by a test, so a claim that
-stops being true fails a build instead of sitting here. B11 said `@content` was a gap
-after it had stopped being one, and nothing noticed; the entries verified since are
-B11, B14, B15, B133 and B263.
+Every open entry is pinned by a test, so a claim that stops being true fails a build
+instead of sitting here. B11 said `@content` was a gap after it had stopped being one, and
+nothing noticed. The eight grammar limits are pinned by `tests/known_grammar_gaps.rs`,
+from both sides — the failing form and the neighbouring forms that work. The four that are
+this tool's own behaviour are pinned by `tests/open_defects.rs`, and each asserts the
+whole entry: what the tool does not do, and what it reports instead. Every one of these
+stands on the second half, and a test that checked only the first would pass just as well
+if the report went away.
 
 ## Open
+
+Re-triaged against this branch. Every entry below still reproduces; none was found to be
+stale. Eight are limits of a published grammar, and each names the construct the grammar
+has no rule for, at the version this build pins — `tree-sitter` 0.26.11, with
+`tree-sitter-go` 0.25.0, `tree-sitter-python` 0.25.0, `tree-sitter-typescript` 0.23.2,
+`tree-sitter-zig` 1.1.2 and `tree-sitter-scss` 1.0.0. The version is part of the claim: an
+upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails when it does.
+
 
 - [ ] B286: `fr inline` parenthesises by what the value is, not by where it goes, so
   `let scaled = base` with `base = w * 2 + h * 3` inlines to `let scaled = (w * 2 + h * 3)`.
@@ -29,17 +41,9 @@ B11, B14, B15, B133 and B263.
   one in `.sass` files — and `tree-sitter-scss` implements the first. So a `.sass` file
   is scanned and then fails to parse. It is visible and not silent, which is why the
   mapping stays: removing it would make those files vanish the way `.js` files did.
-  Pinned in `tests/known_grammar_gaps.rs`. Fixing it needs a grammar for the indented
-  syntax, which is upstream work.
-
-- [ ] B258: **`a_rust_number_leaves_its_width_behind` failed once and has not repeated.**
-  During one `cargo test --all-targets`, the Java writer emitted Rust's `0usize` /
-  `1i32` suffixes, which that test exists to catch. It has since passed 5/5 runs in
-  isolation and 3/3 full runs, on the same commit. Ruled out: `tests/transpile.rs` never
-  activates a VFS handle, so a stale one cannot be the cause; the fact cache writes to a
-  temporary file and renames, so a concurrent reader cannot see a partial entry.
-  Mechanism unknown. Recorded and not dismissed because the test would have caught a
-  real defect and did, once.
+  Pinned in `tests/known_grammar_gaps.rs`. `tree-sitter-scss` 1.0.0 implements the braced
+  syntax only and has no rule set for the indented one, so this needs a second grammar
+  and not a change to that one.
 
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
   resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
@@ -109,7 +113,10 @@ B11, B14, B15, B133 and B263.
   Masking the rest was measured and rejected: they fix 23 more files' error counts and
   recover **no** facts, because their error nodes stay inside the construct. Blanking
   valid source for nothing is a worse trade than the parse error. Fixing them properly is
-  upstream grammar work.
+  upstream grammar work: `tree-sitter-scss` 1.0.0 has no rule accepting an interpolation
+  inside a declaration value, an empty parameter list on `@mixin` or `@include`, a nested
+  selector opening with a combinator, a map literal, `and` or `or` in an `@if` condition,
+  `!default`, or a namespace on `@use`.
 
   Corrected: this entry previously said `@content` inside a mixin was among them, from
   the grafana run. It parses — bare, nested, and with arguments — so the claim was either
@@ -122,17 +129,20 @@ B11, B14, B15, B133 and B263.
   and not invalid source. It accounts for **177 of the 178 Go files** that fail to
   parse in grafana/grafana (2.9% of 6,214); the remaining one is unexplained. Files
   still index, since an error node is local to its subtree — what is lost are the
-  facts inside that expression.
+  facts inside that expression. In `tree-sitter-go` 0.25.0 `new` is consumed by the
+  builtin-call rule, so no ordinary call expression is produced for it.
 
 - [ ] B234: `tree-sitter-python` cannot read a type parameter default —
   `type A[T = int] = float`, PEP 696, Python 3.13. A type alias without one reads
-  cleanly. Found in `psf/black`'s test data. Upstream grammar work.
+  cleanly. Found in `psf/black`'s test data. `tree-sitter-python` 0.25.0 has no default
+  clause on a type parameter.
 
 - [ ] B233: `tree-sitter-python` cannot read a starred *literal* in an unparenthesised
   tuple. `g = 1, *[2]` is ordinary Python, and so are the `*(2,)`, `*{2}` and `*"ab"`
   forms; a starred *name* or *call* in the same position reads fine, and so does the
   whole thing in brackets. Found in `psf/black`'s `expression.py`, where the line is
-  `g = 1, *"ten"`. Upstream grammar work.
+  `g = 1, *"ten"`. `tree-sitter-python` 0.25.0's unparenthesised tuple accepts a splat of
+  a name or a call and not of a literal.
 
   Both are pinned by `tests/known_grammar_gaps.rs`, from both sides: the failing form
   and the neighbouring forms that work. A grammar upgrade that fixes one should retire
@@ -152,11 +162,13 @@ B11, B14, B15, B133 and B263.
 
   The grammar takes `in` after a preceding member as the `in` operator. Found in
   `vuejs/core`'s SVG attribute types, where the SVG `in` and `in2` filter attributes sit
-  in a long list of properties. Upstream grammar work.
+  in a long list of properties. `tree-sitter-typescript` 0.23.2 takes `in` after a
+  preceding member as the `in` operator.
 
 - [ ] B231: `tree-sitter-typescript` cannot read an import type —
   `import("@babel/types").Statement[]` in a type position. Valid TypeScript and common in
-  generated declarations; found in `vuejs/core`'s compiler-sfc. Upstream grammar work.
+  generated declarations; found in `vuejs/core`'s compiler-sfc. `tree-sitter-typescript`
+  0.23.2 has no rule for an `import` type.
 
 - [ ] B133: `tree-sitter-zig` requires at least one member in a struct, so it cannot
   parse `const Foo = struct {};` — which is ordinary Zig, and is the only parse failure
@@ -164,9 +176,131 @@ B11, B14, B15, B133 and B263.
   therefore refuse to write a correct file, so an empty record is written with an empty
   `comptime {}` block in it, under a comment saying why. That block does nothing, both
   Zig and the grammar accept it, and the alternative was refusing to translate a type
-  with no fields at all. Upstream grammar work.
+  with no fields at all. `tree-sitter-zig` 1.1.2 requires at least one member in a
+  container declaration.
 
 ## Fixed
+
+- [x] B258: **closed unreproducible, with the evidence.** The one observation stands:
+  during a `cargo test --all-targets`, `a_rust_number_leaves_its_width_behind` saw Rust's
+  `0usize` / `1i32` suffixes in a translated file. Re-triaged against this commit under
+  the conditions of the original failure — the whole `tests/transpile.rs` binary,
+  eight test threads, six busy loops holding the cores — **200 runs, 200 passes**, on top
+  of 40 passes of the case alone. Nothing was found to fix, so nothing is claimed fixed;
+  what is closed is the search.
+
+  `unsuffixed` is a pure function of the literal's text, so the writer could only have
+  produced that output from different input. The remaining way it can reach a file is the
+  other one: a statement carried over verbatim brings its own text along, marker comment
+  and all, and the assertion reads the whole file. There was no way to tell the two apart
+  from the failure message, which is why one observation left nothing to work with. The
+  test now reports the verbatim count and the notes beside it, so a recurrence names its
+  own cause instead of being a mystery a second time.
+
+- [x] B313: **`Language` ignored a width in a format string.** Its `Display` wrote the
+  name straight out instead of going through `Formatter::pad`, so `{target:<10}` padded
+  nothing and the column of targets `fr translate` prints came out ragged wherever a
+  `Language` sat in it.
+
+- [x] B312: **`fr translate` offered a list that was not true.** Two entries in it. A
+  translation into TSX succeeded and no listing ever named it, because the listing walked
+  `transpile::SUPPORTED` and the request checked `transpile::supports`, which differed by
+  exactly TSX. And `fastapi`, which the command's own help documents as a target, was
+  never listed for a Next.js route, because the line that printed it sat outside the loop
+  that decides what to print. Both are one fault: two definitions of one thing. There is
+  one now, `translate::options_for`, which works each answer out by asking for it, and the
+  command prints what it returns. TSX is a target only where the source is already
+  TypeScript, since a translation writes no JSX at all. `tests/translate_sweep.rs` holds
+  the list to its word from both sides.
+
+- [x] B311: **`fr move` left a star re-export naming a file the symbol had left.**
+  `export * from "./holder"` names nothing, so nothing about the statement said which
+  symbols travelled through it, and the grammar did not record it as a re-export at all.
+  Moving one out left the star pointing at a file that no longer had it, and every reader
+  of the barrel gained a second binding of the same name — which TypeScript rejects as a
+  duplicate identifier. The star is now recorded, repointed, and removed outright where
+  the move took the last thing the source exported, because TypeScript calls a file with
+  no exports "not a module" and rejects the star for that instead.
+
+- [x] B310: **`fr move` dropped the names beside the one it repointed.** The index records
+  one entry per exported name, each carrying the span of the whole statement, so finding
+  the statement and gathering its names are two passes. Doing it in one collected only the
+  entries naming the moved symbol, and `export { width, Holder } from "./holder"` came
+  back as `export { width } from './util'` with `Holder` gone.
+
+- [x] B300: **`fr move` declined at a re-export barrel.** Moving a symbol out of a file a
+  barrel re-exports from left that line naming something the file no longer had, so the
+  move declined and said repointing an export was not something it performed. It is now.
+  Repointing an export is not repointing an import: an import binds a name for the file
+  that wrote it, and an export hands the name onward to every file reading through this
+  one, so the files that read through a barrel need no edit at all — and adding one to
+  them, as the move would have, binds the same name twice. `export * as ns from "./x"` is
+  still refused, and now says why: readers write `ns.width`, and splitting the module in
+  two cannot be followed by repointing one statement.
+
+- [x] B309: **`fr usages` and the reference index disagreed, and the check could not see
+  it.** A CSS custom property set in `:root` and again inside a media query is two
+  declarations of one entity, and `fr usages` answers about the entity. The agreement test
+  compared the report against the references resolving to one of the declarations, so it
+  called the other one's uses missing. Comparing a count was the mistake: the agreements
+  that hold are that the report leaves out nothing that resolved to the symbol and invents
+  no location that no reference produced, and those are what it checks now.
+
+- [x] B308: **a Go call into another package resolved to nothing.** Go's package is a
+  directory, and a file reaches another package by qualifying the name with what the
+  import bound: `holder.Width(…)`. Resolution looked for the declaration in the calling
+  file's own directory, which is the one place it is not. Every cross-package call was
+  therefore unresolved, `fr rename` rewrote the declaration and left every caller naming
+  a function that no longer exists, and `fr signature` moved a parameter without touching
+  a single cross-package argument list. Both produced trees that `go build` rejects. The
+  import statement names the package, so which declaration a qualified call means is
+  written down; resolution now reads it, and the reference comes back `import-qualified`,
+  which is strong enough to rewrite.
+
+- [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Moving
+  a symbol into a file that already imports the file it came from makes each import the
+  other. Go rejects that outright (`import cycle not allowed`). Python evaluates a module
+  top to bottom the first time it is imported, so the second import in the cycle reaches
+  a module that has defined nothing yet and raises `ImportError`. Python's half carried a
+  warning that said the cycle "may fail on it"; it always does. Both are refused now,
+  naming the two files and what each would import.
+
+- [x] B306: **`fr move` wrote a relative import into a file that is in no package.** A
+  leading dot means "relative to the package I am in", and a Python file in a directory
+  with no `__init__.py` is in no package. `from .util import width` in a flat directory
+  parses, compiles, and raises `attempted relative import with no known parent package`
+  the moment anything imports it. The import is written relative inside a package and
+  absolute outside one.
+
+- [x] B305: **`fr remove-flag` deleted a declaration whose readers it had refused.** The
+  substitution left `${USE_NEW:-no}` alone, correctly, and then removed `USE_NEW=true`
+  anyway, so a script that read `true` started reading `no`. Nothing was reported as
+  wrong: the refusal appeared under "left undone" beside a diff that had already broken
+  the script. The declaration goes only when every use of it went. A cascade that changes
+  nothing is now a refusal carrying the reasons, and not a plan of zero edits.
+
+- [x] B304: **`fr remove-flag` replaced the callee of a call instead of the call.** The
+  code carried a comment saying "a call to a flag-returning function is replaced along
+  with its parentheses", and only the Bash and Terraform paths did it. Everywhere else
+  `if is_on()` became `if true()`, which no compiler accepts and which the collapse step
+  then skipped, because `true()` is not a boolean literal. A rule that is documented and
+  never runs is the same defect shape as B296.
+
+- [x] B303: **`fr remove-flag` wrote a boolean into a type position.** `pub const
+  Position = offsets.Position` is a type, and Zig passes types as values, so
+  `expectEqualSlices(Position, …)` is grammatically an ordinary argument. Substituting
+  produced `pub fn tokenToPosition(…) true` and `position: true`. A name means one thing
+  everywhere it is written, so one use in a position only a type can occupy settles what
+  the name is; the whole operation is refused, naming that use.
+
+- [x] B302: **`fr remove-flag` treated every constant as a possible flag.** A Zig module
+  import and a Zig feature flag are both `const`, and the check asked only about the
+  symbol's kind. Sweeping every name in the vendored corpus, both values, found 234 asks
+  that produced a plan, among them `const DocumentScope = @import("DocumentScope.zig")`,
+  which was rewritten to `*const true`. The declaration says what the kind cannot: the
+  operation is refused where the source states a type or binds a value that rules a
+  boolean out, and where nothing reads the name at all, which is `fr delete` and not this.
+  `tests/remove_flag_sweep.rs` is the sweep, kept.
 
 - [x] B301: **`fr restructure` rewrote files when asked for no change.** Running it with
   the same pattern and template over this repository changed files for every one of eight

@@ -121,15 +121,42 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
             *per_target.entry(t).or_default() += 1;
         }
     }
+    // Every reference in the workspace, by where it is written and what it spells.
+    let spelled: HashMap<(&Path, usize), &str> = index
+        .references
+        .iter()
+        .map(|r| ((r.file.as_path(), r.span.start), r.name.as_str()))
+        .collect();
+
+    // Two agreements, and not a count. Some declarations are one of several for the
+    // same entity — a CSS custom property set in `:root` and again inside a media
+    // query — and `fr usages` answers about the entity, so counting against one of the
+    // declarations calls the other one's uses missing. What has to hold is that the
+    // report leaves nothing out and invents nothing.
+    //
     // `usages_of` walks every reference, so this samples rather than sweeps.
     for symbol in index.symbols.iter().step_by(1493) {
-        let reported = navigate::usages_of(index, symbol.id).usages.len();
-        assert_eq!(
-            reported,
-            *per_target.get(&symbol.id).unwrap_or(&0),
-            "usages and references disagree about {:?}",
-            symbol.name
+        let report = navigate::usages_of(index, symbol.id);
+        assert!(
+            report.usages.len() >= per_target.get(&symbol.id).copied().unwrap_or(0),
+            "usages left out references that resolved to {:?}: {} reported, {} resolved",
+            symbol.name,
+            report.usages.len(),
+            per_target.get(&symbol.id).copied().unwrap_or(0)
         );
+        for usage in &report.usages {
+            let at = (usage.location.file.as_path(), usage.location.span.start);
+            let found = spelled.get(&at);
+            assert_eq!(
+                found,
+                Some(&symbol.name.as_str()),
+                "usages reports {:?} at {}:{} where the index has {:?}",
+                symbol.name,
+                usage.location.file.display(),
+                usage.location.line,
+                found
+            );
+        }
     }
 }
 

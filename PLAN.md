@@ -352,42 +352,46 @@ written in advance would have looked for.
 
 ## Where this stands
 
-Stages 0 to 8 are complete. The figures below were measured on 2026-08-10, except the
-defect counts, which are current.
+Stages 0 to 8 are complete, and so are the five pull requests this plan sequenced. The
+figures below were measured on this branch.
 
 | | |
 |---|---|
-| Commits | 138 |
-| Pull requests | 100 |
-| Rust source | 54,646 lines |
-| Tests | 1,711 in 90 files |
+| Commits | 149 |
+| Merged pull requests | 98 |
+| Rust source | 55,683 lines |
+| Tests | 1,899 in 97 files |
 | Query sets | 14 |
 | Entry-point catalogs | 10 |
-| Capabilities × languages | 22 × 16 |
-| Defects fixed | 274 |
-| Defects open | 14 |
+| Capabilities × languages | 24 × 16 |
+| Supported pairs | 270 of 384, every other one carrying its reason |
+| Defects fixed | 299 |
+| Defects open | 12 |
 
-The delivered surface is wider than the matrix above states. Java does not appear in that
-matrix and is implemented. Both cells marked `tbd` are now supported. Every cell that
-`fr capabilities` marks `n/a` carries the reason the tool refuses, which keeps that column
-a commitment and not a gap.
+Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses, which
+keeps that column a commitment and not a gap.
 
-### The 14 open defects
+### The 12 open defects
 
-They are not 14 pieces of pending work.
+They are not 12 pieces of pending work. Each was re-triaged against this branch, still
+reproduces, and is pinned by a test that fails when it stops being true.
 
-- **Eight are limits of the published grammars.** B11 and B283 cover SCSS forms and the
+- **Eight are limits of a published grammar,** each naming the construct the grammar has
+  no rule for at the version this build pins. B11 and B283 cover SCSS forms and the
   indented Sass syntax. B15 covers Go `new`. B231 and B232 cover TypeScript. B233 and B234
-  cover Python. B133 covers Zig. A test pins each one. The test fails when a grammar
-  upgrade starts to read the form, so the entry is retired on purpose and not forgotten.
+  cover Python. B133 covers Zig. `tests/known_grammar_gaps.rs` pins every one from both
+  sides — the failing form and the neighbouring forms that work — so a grammar upgrade
+  that starts reading one retires the entry on purpose and not by accident.
 - **Three are incomplete answers that the tool reports.** B5 states what dispatch can be
   known without types. B13 states what a partial set of values inputs can decide. B14
-  covers a CSS class assembled inside a helper call.
+  covers a CSS class assembled inside a helper call. Each stands on the report, not on the
+  gap, and `tests/open_defects.rs` asserts both halves: a rename that quietly skipped the
+  helper call would satisfy the first half of B14 and fail the second.
 - **B286 is a decision.** Inlining adds brackets according to the value and not according
   to its destination. An extra bracket is noise. A missing bracket changes the arithmetic.
-- **B258 failed once and has not repeated.**
-- **B263 is the one open defect that belongs to this project and can be fixed here.** A
-  Terraform `var.x` and a `local.x` are recorded as one symbol.
+
+**No open defect is both this project's own and fixable here.** B263, the last one that
+was, closed in #105; B300, the re-export barrel, closed on this branch.
 
 ### What the work became
 
@@ -425,6 +429,13 @@ reading the output.
 
 Five pull requests in dependency order. PR 1 buys a gate that raises the value of PR 2 and
 PR 3. PR 4 is independent. PR 5 is a product decision and not a debt.
+
+**All five are delivered and merged.** What followed them was the work this plan had left
+unnamed: the two commands PR 2 never swept, the two languages PR 1's gate never drove, the
+re-export barrel `fr move` declined at, and a re-triage of every open defect. That is
+finished too, and it found eleven more defects — the largest of them a Go call into another
+package resolving to nothing at all, which made `fr rename` and `fr signature` write trees
+`go build` rejects.
 
 ### PR 1 — Compile what the tool wrote
 
@@ -592,12 +603,12 @@ attached to every non-supported cell, and a test asserts the README matches. Tha
 exists because the hand-written version drifted twice — once hiding 27 unbuilt cells,
 once publishing six working ones as refused.
 
-Open limitations are in BUGS.md. All five are described in writing, and
-none is a missing feature: reachability under dynamic dispatch (inherent), Helm
-values passed on a command line (invisible to a workspace scan), CSS classes named
-inside TSX helper calls (a per-library convention, measured), SCSS forms the grammar
-does not cover (upstream), and `tree-sitter-go` parsing a user-defined `new` as the
-builtin (upstream).
+Open limitations are in BUGS.md. All twelve are described in writing, pinned by a test,
+and none is a missing feature: reachability under dynamic dispatch (inherent), Helm values
+passed on a command line (invisible to a workspace scan), CSS classes named inside TSX
+helper calls (a per-library convention, measured), how `fr inline` brackets a value (a
+decision, with the asymmetry stated), and eight constructs a published grammar has no rule
+for.
 
 ### How the defects were found
 

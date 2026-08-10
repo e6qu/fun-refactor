@@ -693,6 +693,17 @@ impl Index {
                         .imports
                         .iter()
                         .find(|i| i.re_export && i.names.iter().any(|n| n.local == original))
+                        // `export * from "./holder"` names nothing and hands on
+                        // everything, so it is the onward hop for any name the file does
+                        // not export itself. A star that binds an alias is not: readers
+                        // of `export * as ns` write `ns.width`, and that is a member
+                        // access and not this name.
+                        .or_else(|| {
+                            current_info
+                                .imports
+                                .iter()
+                                .find(|i| i.re_export && i.names.is_empty() && i.alias.is_none())
+                        })
                 }) else {
                     break;
                 };
@@ -802,7 +813,44 @@ impl Index {
             }
         }
 
-        // 6. Package-scoped languages. Go's package is the directory: a top-level
+        // 6. A package-qualified name. `holder.Width(…)` names a top-level declaration
+        //    of the package the import bound as `holder`, and that package is a
+        //    directory somewhere else in the tree. Step 6b looks in the directory of
+        //    the file doing the calling, which is not this: without this step every
+        //    cross-package call in Go resolved to nothing, `fr unused` called the
+        //    callee dead, and `fr rename` rewrote the declaration while leaving
+        //    `holder.Width(…)` naming a function that no longer exists.
+        if reference.language.packages_by_directory() {
+            if let Some(package) = reference
+                .receiver
+                .as_deref()
+                .and_then(|receiver| self.import_binding(info, receiver))
+                .and_then(|import| self.package_directory(&import.path))
+            {
+                let exported_there: Vec<&Symbol> = candidates
+                    .iter()
+                    .filter_map(|id| self.symbol(*id))
+                    .filter(|s| {
+                        s.language == reference.language
+                            && s.qualifier.is_none()
+                            && s.container.is_none()
+                            // Go lets one package reach only what another exports, and
+                            // spells that as a capital letter.
+                            && s.exported
+                            && s.file.parent() == Some(package.as_path())
+                    })
+                    .collect();
+                match exported_there.len() {
+                    // The import statement names the package, so which declaration this
+                    // is was written down.
+                    1 => return (Some(exported_there[0].id), Confidence::ImportQualified),
+                    0 => {}
+                    _ => return (None, Confidence::FieldBased),
+                }
+            }
+        }
+
+        // 6b. Package-scoped languages. Go's package is the directory: a top-level
         //    declaration in one file is visible, unqualified, from every file beside
         //    it, with no import to record the fact. Only top-level declarations are
         //    in that scope — a method or a struct field is reached through a value,
@@ -902,6 +950,35 @@ impl Index {
                     .find(|s| !s.is_empty())
                     .is_some_and(|last| last == name)
         })
+    }
+
+    /// The directory a package import path names, where this workspace holds it.
+    ///
+    /// Go writes an import path from the module root — `gate/holder` — and the module
+    /// root is wherever `go.mod` sits, which is a file this does not read. Matching the
+    /// longest suffix of the path that names one directory in the tree resolves it
+    /// without the module file, and answers nothing where two directories would do,
+    /// because a wrong package is worse than an unresolved one.
+    fn package_directory(&self, import_path: &str) -> Option<PathBuf> {
+        let segments: Vec<&str> = import_path.split('/').filter(|s| !s.is_empty()).collect();
+        for start in 0..segments.len() {
+            let suffix = segments[start..].join("/");
+            let mut matches: Vec<PathBuf> = self
+                .files
+                .keys()
+                .filter_map(|path| path.parent())
+                .filter(|dir| dir.ends_with(&suffix))
+                .map(|dir| dir.to_path_buf())
+                .collect();
+            matches.sort();
+            matches.dedup();
+            match matches.len() {
+                1 => return matches.into_iter().next(),
+                0 => continue,
+                _ => return None,
+            }
+        }
+        None
     }
 
     /// Map an import path to a file in the workspace.
