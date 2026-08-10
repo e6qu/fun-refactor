@@ -327,6 +327,14 @@ pub struct Import {
     /// True for glob imports (`use x::*`, `from m import *`), which make
     /// name resolution ambiguous and force a confidence downgrade.
     pub is_glob: bool,
+    /// True when this statement also exports what it brings in:
+    /// `export { width } from "./holder"`.
+    ///
+    /// A file like that declares nothing, so a name imported from it resolves to no
+    /// definition there. The declaration is one hop further on, in the file this
+    /// statement names.
+    #[serde(default)]
+    pub re_export: bool,
 }
 
 /// One name bound by an import.

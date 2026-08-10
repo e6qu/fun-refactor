@@ -494,8 +494,6 @@ fn the_typescript_fixture_compiles_before_anything_touches_it() {
 }
 
 #[test]
-#[ignore = "B300: a use reached through a re-export barrel resolves name-only, so the \
-            rename leaves the barrel naming a symbol that no longer exists"]
 fn renaming_a_typescript_function_compiles() {
     if !tsc_is_available() {
         eprintln!("compile gate: typescript skipped, tsc is not on PATH");
@@ -528,8 +526,6 @@ fn organising_typescript_imports_compiles() {
 }
 
 #[test]
-#[ignore = "B300: the barrel still re-exports from the old module, and the move adds a \
-            second import of a name already imported through it"]
 fn moving_a_typescript_symbol_compiles_or_refuses() {
     if !tsc_is_available() {
         eprintln!("compile gate: typescript skipped, tsc is not on PATH");

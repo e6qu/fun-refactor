@@ -15,6 +15,7 @@
 //! - `@import` — an import statement, with optional `@import.path`, `@import.alias`,
 //!   `@import.name` and `@import.original` captures.
 //! - `@import.glob` — marks a wildcard import.
+//! - `@import.re-export` — marks a statement that exports what it imports.
 
 use crate::lang::Language;
 use crate::model::*;
@@ -584,6 +585,8 @@ impl Extractor {
                         import_parts.originals.push(span);
                     } else if cap_name == "import.glob" {
                         import_parts.is_glob = true;
+                    } else if cap_name == "import.re-export" {
+                        import_parts.re_export = true;
                     }
                 }
 
@@ -800,6 +803,7 @@ struct ImportParts {
     names: Vec<Span>,
     originals: Vec<Span>,
     is_glob: bool,
+    re_export: bool,
 }
 
 impl ImportParts {
@@ -835,6 +839,7 @@ impl ImportParts {
             span,
             file: path.to_path_buf(),
             is_glob: self.is_glob,
+            re_export: self.re_export,
         }
     }
 }

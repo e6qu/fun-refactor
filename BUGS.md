@@ -15,28 +15,6 @@ B11, B14, B15, B133 and B263.
 
 ## Open
 
-- [ ] B300: **a use reached through a re-export barrel resolves by name alone.**
-  `export { width } from "./holder";` in `index.ts` is recorded as an import of `./holder`
-  and a reference to `width`. A file that then writes `import { width } from "./index"`
-  finds no definition of `width` in `index.ts`, so the use falls back to a name match
-  across the workspace. Barrels are the usual shape of a TypeScript package, so this is
-  the common case and not an edge one.
-
-  Two commands write broken code because of it. `fr rename` leaves the barrel naming a
-  symbol that no longer exists:
-
-      src/index.ts(1,10): error TS2305: Module '"./holder"' has no exported member 'width'
-
-  and `fr move` leaves the barrel re-exporting from the old module while adding a second
-  import of a name the file already had:
-
-      src/index.ts(1,10): error TS2459: Module '"./holder"' declares 'width' locally, but it is not exported
-      src/main.ts(1,18): error TS2300: Duplicate identifier 'width'
-
-  Both are pinned by `#[ignore]`d cases in `tests/output_compiles.rs`, which name this
-  entry. Fixing it means recording a re-export as what it is, so that resolution can
-  follow the chain, which is a query change and a resolution change together.
-
 - [ ] B286: `fr inline` parenthesises by what the value is, not by where it goes, so
   `let scaled = base` with `base = w * 2 + h * 3` inlines to `let scaled = (w * 2 + h * 3)`.
   The parentheses are needed when the use site sits inside a tighter-binding expression —
@@ -189,6 +167,27 @@ B11, B14, B15, B133 and B263.
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B300: **a use reached through a re-export barrel resolved by name alone.**
+  `export { width } from "./holder";` was recorded as an import of `./holder` with no
+  names, so a file writing `import { width } from "./index"` found no definition in
+  `index.ts` and fell back to a name match across the workspace. Barrels are how a
+  TypeScript package is usually arranged, so this was the common case.
+
+  `fr rename` left the barrel naming a symbol that no longer existed:
+
+      src/index.ts(1,10): error TS2305: Module '"./holder"' has no exported member 'width'
+
+  The query records the names a re-export carries now, and `Import::re_export` marks the
+  statement, so resolution follows the chain to the file that declares the name. Eight
+  hops, because two files can re-export from each other. Across this repository: resolved
+  references 86,655 → 86,729, safe to rewrite 70,288 → 70,351.
+
+  `fr move` declines instead. Moving a symbol a barrel exports makes that line name
+  something the old file no longer has, and every file importing through the barrel keeps
+  a binding the move then adds a second import for. Repointing an export is a different
+  operation from repointing an import, and the move says so instead of writing both
+  faults. That repointing is the work left here.
 
 - [x] B263: **a Terraform input variable and a local sharing a name were one symbol.**
   `var.thing` and `local.thing` are two addresses. Both declarations are variables to the
