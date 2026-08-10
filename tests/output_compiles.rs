@@ -635,6 +635,76 @@ fn changing_a_typescript_signature_compiles_or_refuses() {
     gate("changing a TypeScript signature", &ws, planned);
 }
 
+/// A barrel that hands on everything the file next to it exports.
+///
+/// `export * from "./holder"` names nothing, so nothing about the statement says which
+/// symbols travel through it. Moving one out left the star naming a file that no longer
+/// had it, and every reader of the barrel gained a second binding of the same name.
+fn typescript_star_barrel() -> Vec<(&'static str, &'static str)> {
+    vec![
+        (
+            "tsconfig.json",
+            "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"noEmit\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\"\n  },\n  \"include\": [\"src\"]\n}\n",
+        ),
+        (
+            "src/holder.ts",
+            "export function width(items: number[], n: number): number {\n  return items.length + n;\n}\n\nexport const version = 1;\n",
+        ),
+        ("src/util.ts", "export const other = 1;\n"),
+        ("src/index.ts", "export * from \"./holder\";\n"),
+        (
+            "src/main.ts",
+            "import { width } from \"./index\";\nconsole.log(width([1], 2));\n",
+        ),
+    ]
+}
+
+#[test]
+fn moving_out_from_under_a_named_barrel_compiles() {
+    if !Toolchain::Tsc.is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("src/util.ts"))
+        .map(|p| p.edits);
+    must_plan("moving out from under a named barrel", &ws, planned);
+    let barrel = ws.read("src/index.ts");
+    assert!(
+        barrel.contains("width") && barrel.contains("./util"),
+        "the barrel still has to hand the name on:\n{barrel}"
+    );
+    assert!(
+        barrel.contains("Holder"),
+        "and it must not drop the names beside it:\n{barrel}"
+    );
+}
+
+#[test]
+fn moving_out_from_under_a_star_barrel_compiles() {
+    if !Toolchain::Tsc.is_available() {
+        eprintln!("compile gate: typescript skipped, tsc is not on PATH");
+        return;
+    }
+    let ws = Workspace::typescript(&typescript_star_barrel());
+    if let Err(e) = ws.compiles() {
+        panic!("the star barrel fixture is broken before any refactoring:\n{e}");
+    }
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("src/util.ts"))
+        .map(|p| p.edits);
+    must_plan("moving out from under a star barrel", &ws, planned);
+    let reader = ws.read("src/main.ts");
+    assert_eq!(
+        reader.matches("import").count(),
+        1,
+        "the reader already had the name through the barrel:\n{reader}"
+    );
+}
+
 // ------------------------------------------------------------------- Go
 
 /// The same shapes again in Go: a free function and a method sharing a name, an import

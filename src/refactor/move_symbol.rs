@@ -203,16 +203,249 @@ fn interchangeable(from: Language, to: Language) -> bool {
 // ---------------------------------------------------------------------------
 
 /// A file that exports `sym`'s name onward from the file that declares it.
-fn re_exporting_file(index: &Index, sym: &Symbol) -> Option<PathBuf> {
-    index.files().find_map(|(path, info)| {
-        let names_it = info.imports.iter().any(|import| {
+fn re_exporting_files(index: &Index, sym: &Symbol) -> Vec<PathBuf> {
+    let mut out: Vec<PathBuf> = index
+        .files()
+        .filter(|(path, info)| {
+            info.imports.iter().any(|import| {
+                import.re_export
+                    && index
+                        .resolve_import_path(path, &import.path)
+                        .is_some_and(|target| target == sym.file)
+                    // A star hands on whatever the file exports, so it hands on this too.
+                    && (import.names.iter().any(|n| n.local == sym.name)
+                        || re_exports_everything(info, import))
+            })
+        })
+        .map(|(path, _)| path.clone())
+        .collect();
+    out.sort();
+    out
+}
+
+/// Whether a re-export is a star: `export * from "./x"`.
+///
+/// The grammar gives a bare star no children beyond its source, and the query that
+/// records the edge for a named re-export matches it as well, so one statement produces
+/// an entry with names and an entry without. What tells them apart is whether any entry
+/// for the same statement carries a name at all.
+fn re_exports_everything(info: &crate::index::FileInfo, import: &crate::model::Import) -> bool {
+    import.alias.is_none()
+        && !info
+            .imports
+            .iter()
+            .any(|other| other.span == import.span && !other.names.is_empty())
+}
+
+/// Whether a re-export binds one name for the whole module: `export * as ns from "./x"`.
+fn re_exports_under_one_name(import: &crate::model::Import) -> bool {
+    import.re_export && import.alias.is_some() && import.names.is_empty()
+}
+
+/// Whether `file` still exports something once `moved` is out of it.
+fn exports_anything_else(index: &Index, file: &Path, moved: SymbolId) -> bool {
+    let Some(info) = index.file(file) else {
+        return false;
+    };
+    info.symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .any(|s| s.id != moved && s.exported && s.is_top_level())
+        || info.imports.iter().any(|import| import.re_export)
+}
+
+/// Move a barrel's export of the symbol from the file it left to the file it landed in.
+///
+/// `export { width, Holder } from "./holder"` becomes `export { Holder } from "./holder"`
+/// followed by `export { width } from "./util"`. Repointing an export is not repointing
+/// an import: an import binds a name for the file that wrote it, and an export hands the
+/// name onward to every file that reads through this one. Doing the second as though it
+/// were the first left the barrel naming a symbol the old file no longer has.
+///
+/// Every file importing through the barrel keeps working and needs no edit, which is why
+/// they are left out of the list that gains an import.
+fn repoint_re_export(
+    index: &Index,
+    sym: &Symbol,
+    barrel: &Path,
+    destination: &Path,
+    plan: &mut MovePlan,
+) -> Result<()> {
+    let Some(info) = index.file(barrel) else {
+        return Ok(());
+    };
+    let source = crate::vfs::read_to_string(barrel)?;
+
+    let points_at_the_source = |import: &crate::model::Import| {
+        index.resolve_import_path(barrel, &import.path).as_deref() == Some(sym.file.as_path())
+    };
+
+    // `export * as ns from "./holder"` hands the whole module on under one name, and
+    // readers write `ns.width`. Splitting the module in two would need every reader to
+    // write a second namespace, which is not a repointing.
+    if let Some(named) = info
+        .imports
+        .iter()
+        .find(|i| re_exports_under_one_name(i) && points_at_the_source(i))
+    {
+        bail!(
+            "{} re-exports {} as `{}`, so readers write `{}.{}`. Moving '{}' out would \
+             leave that name reaching a module it is no longer in, and no repointing of \
+             one statement can follow it",
+            barrel.display(),
+            sym.file.display(),
+            named.alias.as_deref().unwrap_or_default(),
+            named.alias.as_deref().unwrap_or_default(),
+            sym.name,
+            sym.name
+        );
+    }
+
+    // A star hands on whatever the source exports, and the symbol is about to stop being
+    // one of them. The star itself still belongs to the source, so what the barrel needs
+    // is one more line naming the symbol where it landed.
+    if let Some(star) = info
+        .imports
+        .iter()
+        .find(|i| i.re_export && re_exports_everything(info, i) && points_at_the_source(i))
+    {
+        let already = info.imports.iter().any(|other| {
+            other.re_export
+                && other.span != star.span
+                && index.resolve_import_path(barrel, &other.path).as_deref()
+                    == Some(destination)
+        });
+        let line = whole_lines(&source, star.span);
+        // The symbol was the last thing the source exported, so the star has nothing
+        // left to hand on. TypeScript calls a file with no exports "not a module" and
+        // rejects the star outright, so leaving it would trade one broken build for
+        // another.
+        let replacement = match exports_anything_else(index, &sym.file, sym.id) {
+            true => source[line.start..line.end].to_string(),
+            false => String::new(),
+        };
+        if already {
+            plan.edits.add(
+                barrel.to_path_buf(),
+                Edit::new(
+                    line,
+                    replacement,
+                    format!("what {} left behind", sym.name),
+                ),
+            );
+            return Ok(());
+        }
+        let module = relative_module(barrel, destination).ok_or_else(|| {
+            anyhow::anyhow!(
+                "cannot express {} as a module path from {}, so the re-export of '{}' \
+                 cannot be repointed",
+                destination.display(),
+                barrel.display(),
+                sym.name
+            )
+        })?;
+        plan.edits.add(
+            barrel.to_path_buf(),
+            Edit::new(
+                line,
+                format!("{replacement}export {{ {} }} from '{module}';\n", sym.name),
+                format!("re-export {} from its new home", sym.name),
+            ),
+        );
+        return Ok(());
+    }
+
+    // The index records one entry per exported name, each carrying the span of the whole
+    // statement it came from. Finding the statement and gathering its names are therefore
+    // two passes: collecting only the entries that name the moved symbol found one name
+    // where the statement had two, and `export { width, Holder } from "./holder"` came
+    // back as `export { width } from './util'` with `Holder` gone.
+    let statement_spans: Vec<Span> = info
+        .imports
+        .iter()
+        .filter(|import| {
             import.re_export
                 && import.names.iter().any(|n| n.local == sym.name)
-                && index
-                    .resolve_import_path(path, &import.path)
-                    .is_some_and(|target| target == sym.file)
-        });
-        names_it.then(|| path.clone())
+                && index.resolve_import_path(barrel, &import.path).as_deref()
+                    == Some(sym.file.as_path())
+        })
+        .map(|import| import.span)
+        .collect();
+
+    let mut statements: Vec<(Span, String, Vec<crate::model::ImportedName>)> = Vec::new();
+    for import in &info.imports {
+        if !statement_spans.contains(&import.span) {
+            continue;
+        }
+        match statements.iter_mut().find(|(span, _, _)| *span == import.span) {
+            Some((_, _, names)) => names.extend(import.names.iter().cloned()),
+            None => statements.push((import.span, import.path.clone(), import.names.clone())),
+        }
+    }
+
+    for (span, path, names) in statements {
+        let mut kept: Vec<&crate::model::ImportedName> =
+            names.iter().filter(|n| n.local != sym.name).collect();
+        kept.sort_by_key(|n| n.span.start);
+        kept.dedup_by_key(|n| n.span.start);
+
+        let narrowed = match kept.is_empty() {
+            true => String::new(),
+            false => {
+                let spelled: Vec<String> =
+                    kept.iter().map(|n| n.span.text(&source).to_string()).collect();
+                format!("export {{ {} }} from '{path}';\n", spelled.join(", "))
+            }
+        };
+        // Where the barrel is itself the destination, the name is declared here now, and
+        // a file does not re-export from itself. The declaration carries the export.
+        let onward = match barrel == destination {
+            true => String::new(),
+            false => {
+                let module = relative_module(barrel, destination).ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "cannot express {} as a module path from {}, so the re-export of \
+                         '{}' cannot be repointed",
+                        destination.display(),
+                        barrel.display(),
+                        sym.name
+                    )
+                })?;
+                format!("export {{ {} }} from '{module}';\n", sym.name)
+            }
+        };
+
+        plan.edits.add(
+            barrel.to_path_buf(),
+            Edit::new(
+                whole_lines(&source, span),
+                format!("{narrowed}{onward}"),
+                format!("re-export {} from its new home", sym.name),
+            ),
+        );
+    }
+    Ok(())
+}
+
+/// Whether `file` already receives `name` by importing one of the barrels.
+///
+/// Such a file is untouched by the move: the barrel it reads is repointed, so the name it
+/// binds arrives from the new place under the old spelling. Adding an import here would
+/// bind the same name twice.
+fn reaches_through_a_barrel(
+    index: &Index,
+    file: &Path,
+    barrels: &[PathBuf],
+    name: &str,
+) -> bool {
+    let Some(info) = index.file(file) else {
+        return false;
+    };
+    info.imports.iter().any(|import| {
+        import.names.iter().any(|n| n.local == name)
+            && index
+                .resolve_import_path(file, &import.path)
+                .is_some_and(|target| barrels.contains(&target))
     })
 }
 
@@ -225,20 +458,9 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     }
 
     // A barrel exports the symbol from the file it is leaving: `export { width } from
-    // "./holder"`. Moving it makes that line name something the old file no longer
-    // exports, and every file importing through the barrel keeps a binding this move
-    // then adds a second import for. Repointing the export is a separate operation from
-    // repointing an import, and until it exists the honest answer is to decline.
-    if let Some(barrel) = re_exporting_file(index, sym) {
-        bail!(
-            "{} re-exports '{}' from {}. Moving it would leave that export naming a \
-             symbol the file no longer has, and repointing an export is not something \
-             this performs",
-            barrel.display(),
-            sym.name,
-            sym.file.display()
-        );
-    }
+    // "./holder"`. Moving it leaves that line naming something the old file no longer
+    // has, so the export is repointed at the new one.
+    let barrels = re_exporting_files(index, sym);
 
     let source = crate::vfs::read_to_string(&sym.file)?;
     let removal = whole_lines(&source, sym.full_span);
@@ -250,13 +472,23 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         Edit::new(removal, "", format!("move {} out", sym.name)),
     );
 
+    for barrel in &barrels {
+        repoint_re_export(index, sym, barrel, destination, &mut plan)?;
+    }
+
     // Every file that referenced it now needs an import — including the file it
-    // came from, if references remain there.
+    // came from, if references remain there. A barrel is not one of them: its export is
+    // repointed above, and neither is a file that reads the name through one, because
+    // the binding it already has now arrives from the new place.
     let mut needs_import: BTreeSet<PathBuf> = BTreeSet::new();
     for reference in index.references_to(sym.id) {
-        if reference.file != *destination {
-            needs_import.insert(reference.file.clone());
+        if reference.file == *destination
+            || barrels.contains(&reference.file)
+            || reaches_through_a_barrel(index, &reference.file, &barrels, &sym.name)
+        {
+            continue;
         }
+        needs_import.insert(reference.file.clone());
     }
 
     // Code that moves has to keep working where it lands: it needs whatever it

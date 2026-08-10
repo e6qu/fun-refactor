@@ -693,6 +693,17 @@ impl Index {
                         .imports
                         .iter()
                         .find(|i| i.re_export && i.names.iter().any(|n| n.local == original))
+                        // `export * from "./holder"` names nothing and hands on
+                        // everything, so it is the onward hop for any name the file does
+                        // not export itself. A star that binds an alias is not: readers
+                        // of `export * as ns` write `ns.width`, and that is a member
+                        // access and not this name.
+                        .or_else(|| {
+                            current_info
+                                .imports
+                                .iter()
+                                .find(|i| i.re_export && i.names.is_empty() && i.alias.is_none())
+                        })
                 }) else {
                     break;
                 };

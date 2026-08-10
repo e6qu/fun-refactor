@@ -850,8 +850,8 @@ impl Workspace {
             // A containment is the same bytes; a translation is a draft. Both are
             // offered, and which one it is has to be visible before it is chosen.
             if !possible.contains(language)
-                && crate::transpile::supports(from)
-                && crate::transpile::supports(*language)
+                && crate::transpile::can_be_read(from)
+                && crate::transpile::can_be_written(*language)
             {
                 match crate::transpile::plan(&path_buf, *language) {
                     Ok(plan) => {

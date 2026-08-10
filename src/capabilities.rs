@@ -376,7 +376,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         // anything with no counterpart is carried into the output as a comment.
         C::Translate => {
             let containment = !crate::translate::targets(language).is_empty();
-            if crate::transpile::supports(language) || containment {
+            if crate::transpile::can_be_read(language) || containment {
                 Support::Yes
             } else if language.class() == LanguageClass::Imperative {
                 Support::NotApplicable {

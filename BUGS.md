@@ -168,6 +168,55 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B313: **`Language` ignored a width in a format string.** Its `Display` wrote the
+  name straight out instead of going through `Formatter::pad`, so `{target:<10}` padded
+  nothing and the column of targets `fr translate` prints came out ragged wherever a
+  `Language` sat in it.
+
+- [x] B312: **`fr translate` offered a list that was not true.** Two entries in it. A
+  translation into TSX succeeded and no listing ever named it, because the listing walked
+  `transpile::SUPPORTED` and the request checked `transpile::supports`, which differed by
+  exactly TSX. And `fastapi`, which the command's own help documents as a target, was
+  never listed for a Next.js route, because the line that printed it sat outside the loop
+  that decides what to print. Both are one fault: two definitions of one thing. There is
+  one now, `translate::options_for`, which works each answer out by asking for it, and the
+  command prints what it returns. TSX is a target only where the source is already
+  TypeScript, since a translation writes no JSX at all. `tests/translate_sweep.rs` holds
+  the list to its word from both sides.
+
+- [x] B311: **`fr move` left a star re-export naming a file the symbol had left.**
+  `export * from "./holder"` names nothing, so nothing about the statement said which
+  symbols travelled through it, and the grammar did not record it as a re-export at all.
+  Moving one out left the star pointing at a file that no longer had it, and every reader
+  of the barrel gained a second binding of the same name — which TypeScript rejects as a
+  duplicate identifier. The star is now recorded, repointed, and removed outright where
+  the move took the last thing the source exported, because TypeScript calls a file with
+  no exports "not a module" and rejects the star for that instead.
+
+- [x] B310: **`fr move` dropped the names beside the one it repointed.** The index records
+  one entry per exported name, each carrying the span of the whole statement, so finding
+  the statement and gathering its names are two passes. Doing it in one collected only the
+  entries naming the moved symbol, and `export { width, Holder } from "./holder"` came
+  back as `export { width } from './util'` with `Holder` gone.
+
+- [x] B300: **`fr move` declined at a re-export barrel.** Moving a symbol out of a file a
+  barrel re-exports from left that line naming something the file no longer had, so the
+  move declined and said repointing an export was not something it performed. It is now.
+  Repointing an export is not repointing an import: an import binds a name for the file
+  that wrote it, and an export hands the name onward to every file reading through this
+  one, so the files that read through a barrel need no edit at all — and adding one to
+  them, as the move would have, binds the same name twice. `export * as ns from "./x"` is
+  still refused, and now says why: readers write `ns.width`, and splitting the module in
+  two cannot be followed by repointing one statement.
+
+- [x] B309: **`fr usages` and the reference index disagreed, and the check could not see
+  it.** A CSS custom property set in `:root` and again inside a media query is two
+  declarations of one entity, and `fr usages` answers about the entity. The agreement test
+  compared the report against the references resolving to one of the declarations, so it
+  called the other one's uses missing. Comparing a count was the mistake: the agreements
+  that hold are that the report leaves out nothing that resolved to the symbol and invents
+  no location that no reference produced, and those are what it checks now.
+
 - [x] B308: **a Go call into another package resolved to nothing.** Go's package is a
   directory, and a file reaches another package by qualifying the name with what the
   import bound: `holder.Width(…)`. Resolution looked for the declaration in the calling

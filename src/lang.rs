@@ -200,7 +200,10 @@ impl Language {
 
 impl fmt::Display for Language {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.name())
+        // `pad` and not `write_str`, so a width in the format string is honoured. Writing
+        // the name straight out ignored it, and the column of targets `fr translate`
+        // prints came out ragged wherever a `Language` sat in it.
+        f.pad(self.name())
     }
 }
 
