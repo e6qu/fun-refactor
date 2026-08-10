@@ -517,6 +517,16 @@ other languages also have.
 **Exit.** `fr refs` on one of two declarations that share a name in different namespaces
 returns only its own uses, in every language where the shape exists.
 
+**Delivered.** Two instances, both fixed. Terraform's `var.thing` and `local.thing` are
+told apart by the block each is written in, which the index already recorded (B263). A CSS
+class and an element id are told apart by the attribute that names them, which the query
+now says and `Reference::expects` carries (B299). The second was the worse of the two: a
+rename of the id rewrote `class="thing"` at `exact` confidence.
+
+Three languages were checked and need nothing. Go already refuses to read a bare call as a
+method. Rust's inherent method beside a trait method needs types, and the answer is
+reported `field-based`. YAML's anchor and key of one name resolve separately.
+
 ### PR 5 — Stage 8: build the delegation backend, or record the decision not to
 
 **Problem.** Stage 8 lists a delegation backend and a daemon. Neither exists. The plan

@@ -49,24 +49,24 @@
 (attribute
   (attribute_name) @_attr
   (quoted_attribute_value
-    (attribute_value) @reference.string)
+    (attribute_value) @reference.selector)
   (#match? @_attr "^(?i)class$"))
 
 (attribute
   (attribute_name) @_attr
-  (attribute_value) @reference.string
+  (attribute_value) @reference.selector
   (#match? @_attr "^(?i)class$"))
 
 ; Attributes whose value is an element id: `for=`, and the ARIA relations.
 (attribute
   (attribute_name) @_attr
   (quoted_attribute_value
-    (attribute_value) @reference.string)
+    (attribute_value) @reference.element-id)
   (#match? @_attr "^(?i)(for|form|list|headers|aria-labelledby|aria-describedby|aria-controls|aria-owns)$"))
 
 (attribute
   (attribute_name) @_attr
-  (attribute_value) @reference.string
+  (attribute_value) @reference.element-id
   (#match? @_attr "^(?i)(for|form|list|headers|aria-labelledby|aria-describedby|aria-controls|aria-owns)$"))
 
 ; `href="#sec"` and `href="other.html#sec"` — a link to an element id. The grammar
@@ -76,9 +76,9 @@
 (attribute
   (attribute_name) @_attr
   (quoted_attribute_value
-    (attribute_value) @reference.string)
+    (attribute_value) @reference.element-id)
   (#match? @_attr "^(?i)href$")
-  (#match? @reference.string "#."))
+  (#match? @reference.element-id "#."))
 
 ; ---------------------------------------------------------------- imports
 ; `<link href="theme.css">` — the CSS file this document depends on. This is the

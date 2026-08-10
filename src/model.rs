@@ -260,6 +260,14 @@ pub struct Reference {
     /// not exist. The dot is still in the source even where the syntax is not.
     #[serde(default)]
     pub member_in_macro: bool,
+    /// The kind of declaration this reference can name, where the syntax says so.
+    ///
+    /// `class="thing"` names a CSS class and `href="#thing"` names an element id. Both
+    /// are string references to `thing`, and without this the nearer declaration won:
+    /// renaming the id `#thing` rewrote `class="thing"` as well, so the element lost the
+    /// class that styled it and gained one that nothing declares.
+    #[serde(default)]
+    pub expects: Option<SymbolKind>,
     /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f` —
     /// and not as a value.
     ///
