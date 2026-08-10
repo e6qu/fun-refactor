@@ -1098,7 +1098,10 @@ fn typescript_and_python_are_unchanged() {
 }
 
 #[test]
-fn python_move_adds_a_relative_import() {
+fn python_move_outside_a_package_writes_an_absolute_import() {
+    // No `__init__.py`, so these files are top-level modules and belong to no package.
+    // `from .dest import shared` raises `attempted relative import with no known parent
+    // package` on the import itself: the file parses, compiles, and cannot be imported.
     let ws = Workspace::new(&[
         ("lib.py", "def shared():\n    return 1\n"),
         (
@@ -1113,11 +1116,36 @@ fn python_move_adds_a_relative_import() {
     commit(&plan);
 
     assert_eq!(ws.read("dest.py"), "X = 1\n\ndef shared():\n    return 1\n");
-    // Python spells a relative module with dots. The old import stays beside the new
-    // one, which is TypeScript and Python's existing behaviour.
+    // The old import stays beside the new one, which is TypeScript and Python's
+    // existing behaviour.
     assert_eq!(
         ws.read("app.py"),
-        "from lib import shared\nfrom .dest import shared\n\n\ndef use():\n    return shared()\n"
+        "from lib import shared\nfrom dest import shared\n\n\ndef use():\n    return shared()\n"
+    );
+}
+
+#[test]
+fn python_move_inside_a_package_writes_a_relative_import() {
+    // `__init__.py` makes the directory a package, and inside one a leading dot means
+    // the package the importing file is in. That is the spelling Python wants here.
+    let ws = Workspace::new(&[
+        ("pkg/__init__.py", ""),
+        ("pkg/lib.py", "def shared():\n    return 1\n"),
+        (
+            "pkg/app.py",
+            "from .lib import shared\n\n\ndef use():\n    return shared()\n",
+        ),
+        ("pkg/dest.py", "X = 1\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "shared", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("pkg/dest.py")).unwrap();
+    commit(&plan);
+
+    assert!(
+        ws.read("pkg/app.py").contains("from .dest import shared"),
+        "got:\n{}",
+        ws.read("pkg/app.py")
     );
 }
 
@@ -1327,7 +1355,7 @@ fn a_move_that_cannot_write_the_import_fails_instead_of_skipping_it() {
     let plan = move_symbol::to_file(&index, id, &ws.path("b.py")).unwrap();
     commit(&plan);
     assert!(
-        ws.read("a.py").contains("from .b import move_me"),
+        ws.read("a.py").contains("from b import move_me"),
         "got:\n{}",
         ws.read("a.py")
     );

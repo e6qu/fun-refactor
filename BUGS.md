@@ -168,6 +168,62 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B308: **a Go call into another package resolved to nothing.** Go's package is a
+  directory, and a file reaches another package by qualifying the name with what the
+  import bound: `holder.Width(…)`. Resolution looked for the declaration in the calling
+  file's own directory, which is the one place it is not. Every cross-package call was
+  therefore unresolved, `fr rename` rewrote the declaration and left every caller naming
+  a function that no longer exists, and `fr signature` moved a parameter without touching
+  a single cross-package argument list. Both produced trees that `go build` rejects. The
+  import statement names the package, so which declaration a qualified call means is
+  written down; resolution now reads it, and the reference comes back `import-qualified`,
+  which is strong enough to rewrite.
+
+- [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Moving
+  a symbol into a file that already imports the file it came from makes each import the
+  other. Go rejects that outright (`import cycle not allowed`). Python evaluates a module
+  top to bottom the first time it is imported, so the second import in the cycle reaches
+  a module that has defined nothing yet and raises `ImportError`. Python's half carried a
+  warning that said the cycle "may fail on it"; it always does. Both are refused now,
+  naming the two files and what each would import.
+
+- [x] B306: **`fr move` wrote a relative import into a file that is in no package.** A
+  leading dot means "relative to the package I am in", and a Python file in a directory
+  with no `__init__.py` is in no package. `from .util import width` in a flat directory
+  parses, compiles, and raises `attempted relative import with no known parent package`
+  the moment anything imports it. The import is written relative inside a package and
+  absolute outside one.
+
+- [x] B305: **`fr remove-flag` deleted a declaration whose readers it had refused.** The
+  substitution left `${USE_NEW:-no}` alone, correctly, and then removed `USE_NEW=true`
+  anyway, so a script that read `true` started reading `no`. Nothing was reported as
+  wrong: the refusal appeared under "left undone" beside a diff that had already broken
+  the script. The declaration goes only when every use of it went. A cascade that changes
+  nothing is now a refusal carrying the reasons, and not a plan of zero edits.
+
+- [x] B304: **`fr remove-flag` replaced the callee of a call instead of the call.** The
+  code carried a comment saying "a call to a flag-returning function is replaced along
+  with its parentheses", and only the Bash and Terraform paths did it. Everywhere else
+  `if is_on()` became `if true()`, which no compiler accepts and which the collapse step
+  then skipped, because `true()` is not a boolean literal. A rule that is documented and
+  never runs is the same defect shape as B296.
+
+- [x] B303: **`fr remove-flag` wrote a boolean into a type position.** `pub const
+  Position = offsets.Position` is a type, and Zig passes types as values, so
+  `expectEqualSlices(Position, …)` is grammatically an ordinary argument. Substituting
+  produced `pub fn tokenToPosition(…) true` and `position: true`. A name means one thing
+  everywhere it is written, so one use in a position only a type can occupy settles what
+  the name is; the whole operation is refused, naming that use.
+
+- [x] B302: **`fr remove-flag` treated every constant as a possible flag.** A Zig module
+  import and a Zig feature flag are both `const`, and the check asked only about the
+  symbol's kind. Sweeping every name in the vendored corpus, both values, found 234 asks
+  that produced a plan, among them `const DocumentScope = @import("DocumentScope.zig")`,
+  which was rewritten to `*const true`. The declaration says what the kind cannot: the
+  operation is refused where the source states a type or binds a value that rules a
+  boolean out, and where nothing reads the name at all, which is `fr delete` and not this.
+  `tests/remove_flag_sweep.rs` is the sweep, kept.
+
 - [x] B301: **`fr restructure` rewrote files when asked for no change.** Running it with
   the same pattern and template over this repository changed files for every one of eight
   shapes tried. Three causes, none of them the shape the user asked about.

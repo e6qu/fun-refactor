@@ -262,7 +262,34 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     // Code that moves has to keep working where it lands: it needs whatever it
     // referenced, and it needs to be visible to the files that will now import it.
     let used = names_used_in(sym.language, &source, removal)?;
-    let carried = carried_imports(index, sym, destination, &used, &source, &mut plan);
+    let (carried, imports_the_source_back) =
+        carried_imports(index, sym, destination, &used, &source, &mut plan);
+
+    // Both files would end up importing the other: the source needs the moved symbol
+    // back, and the moved symbol needs names the source kept. Python evaluates a module
+    // top to bottom the first time it is imported, so the second import in the cycle
+    // reaches a module that has not finished defining anything yet and raises
+    // `ImportError`. The result parses, compiles, and cannot be imported.
+    let destination_reaches_back =
+        imports_the_source_back || still_imports_from(index, destination, &sym.file, &sym.name);
+    if sym.language == Language::Python
+        && destination_reaches_back
+        && needs_import.contains(&sym.file)
+    {
+        bail!(
+            "moving '{}' to {} would make the two files import each other: {} would \
+             import '{}' from its new home, and {} would import back what '{}' still \
+             uses. Python fails on that cycle at import time. Move the names '{}' uses \
+             as well, or move it to a file neither imports",
+            sym.name,
+            destination.display(),
+            sym.file.display(),
+            sym.name,
+            destination.display(),
+            sym.name,
+            sym.name
+        );
+    }
     let moved_text = if needs_import.is_empty() {
         moved_text
     } else {
@@ -339,11 +366,7 @@ fn drop_local_import(
         }
         // Only the import that names the file the symbol is leaving. A same-named
         // thing imported from somewhere else is somebody else's.
-        let points_here = repoint(&import.path, destination, from)
-            .map(|p| p == import.path)
-            .unwrap_or(false)
-            || import.path.ends_with(&stem(from));
-        if !points_here {
+        if !import_points_at(&import, destination, from) {
             continue;
         }
         let kept: Vec<&crate::model::ImportedName> =
@@ -375,6 +398,29 @@ fn drop_local_import(
         )));
     }
     Ok(None)
+}
+
+/// Whether an import statement written in `file` names `target`.
+fn import_points_at(import: &ImportStatement, file: &Path, target: &Path) -> bool {
+    repoint(&import.path, file, target)
+        .map(|path| path == import.path)
+        .unwrap_or(false)
+        || import.path.ends_with(&stem(target))
+}
+
+/// Whether `destination` will still import from `from` once `name` stops coming from
+/// there.
+///
+/// One name in a statement goes away and the rest stay, and every one of those keeps the
+/// destination pointing at the file the moved symbol came from.
+fn still_imports_from(index: &Index, destination: &Path, from: &Path, name: &str) -> bool {
+    let Some(info) = index.file(destination) else {
+        return false;
+    };
+    import_statements(&info.imports).iter().any(|import| {
+        import_points_at(import, destination, from)
+            && import.names.iter().any(|imported| imported.local != name)
+    })
 }
 
 /// A file's name without its extension, for matching a relative import against it.
@@ -431,11 +477,14 @@ fn carried_imports(
     used: &std::collections::HashSet<String>,
     source: &str,
     plan: &mut MovePlan,
-) -> String {
+) -> (String, bool) {
     let Some(info) = index.file(&sym.file) else {
-        return String::new();
+        return (String::new(), false);
     };
     let mut statements: Vec<String> = Vec::new();
+    // Whether the moved code has to reach back into the file it left, which is one half
+    // of an import cycle. The caller holds the other half.
+    let mut imports_the_source_back = false;
 
     for statement in import_statements(&info.imports) {
         // `import os` binds `os` without naming it anywhere in the statement, and the
@@ -496,15 +545,7 @@ fn carried_imports(
                         plan.edits.add(sym.file.clone(), edit);
                     }
                 }
-                if sym.language == Language::Python {
-                    plan.warnings.push(format!(
-                        "{} now imports {} back from {}, which imports the moved symbol \
-                         in turn; Python resolves that cycle at run time and may fail on it",
-                        destination.display(),
-                        names.join(", "),
-                        sym.file.display()
-                    ));
-                }
+                imports_the_source_back = true;
             }
             None => plan.warnings.push(format!(
                 "the moved code uses {} from {}, and no import path back to it could be \
@@ -516,12 +557,15 @@ fn carried_imports(
     }
 
     if statements.is_empty() {
-        return String::new();
+        return (String::new(), imports_the_source_back);
     }
     // `__future__` must be the first statement in the file, so it leads whatever
     // else came along.
     statements.sort_by_key(|s| !s.contains("__future__"));
-    format!("{}\n", statements.join(""))
+    (
+        format!("{}\n", statements.join("")),
+        imports_the_source_back,
+    )
 }
 
 /// The same module, named from the destination instead of the source.
@@ -645,10 +689,7 @@ fn back_import(language: Language, from: &Path, to: &Path, names: &[String]) -> 
             )
         }
         Language::Python => {
-            format!(
-                "from {} import {joined}\n",
-                python_relative_module(from, to)?
-            )
+            format!("from {} import {joined}\n", python_module_path(from, to)?)
         }
         _ => return None,
     })
@@ -722,7 +763,7 @@ fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> R
         // is a syntax error, which the reparse check would reject — so the move would
         // never commit at all.
         Language::Python => {
-            let module = python_relative_module(from, to).ok_or_else(unresolvable)?;
+            let module = python_module_path(from, to).ok_or_else(unresolvable)?;
             format!("from {module} import {name}\n")
         }
         other => bail!(
@@ -732,10 +773,52 @@ fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> R
     })
 }
 
-/// A Python relative module path for `to`, as seen from `from`.
+/// A Python module path for `to`, as `from` has to write it.
 ///
-/// `.sibling` for a file beside it, `.sub.mod` for one below, `..up.mod` for one
-/// reached by going up first — one leading dot per level, as the language spells it.
+/// Relative when the importing file is inside a package: `.sibling` for a file beside
+/// it, `.sub.mod` for one below, `..up.mod` for one reached by going up first — one
+/// leading dot per level, as the language spells it.
+///
+/// Absolute when it is not. A leading dot means "relative to the package I am in", and a
+/// file in a directory with no `__init__.py` is in no package: Python raises
+/// `attempted relative import with no known parent package` on the import itself.
+/// Writing `from .util import width` into a flat directory produced a file that compiles
+/// and cannot be imported.
+fn python_module_path(from: &Path, to: &Path) -> Option<String> {
+    match in_a_package(from.parent()?) {
+        true => python_relative_module(from, to),
+        false => python_absolute_module(to),
+    }
+}
+
+/// Whether a directory is a Python package, which is what makes a relative import mean
+/// anything from inside it.
+fn in_a_package(dir: &Path) -> bool {
+    crate::vfs::exists(dir.join("__init__.py"))
+}
+
+/// The dotted name Python knows `to` by, from wherever it is run.
+///
+/// The package parts are the directories above it that are packages themselves; the walk
+/// stops at the first directory that is not, because that one is on the import path and
+/// is not part of any name.
+fn python_absolute_module(to: &Path) -> Option<String> {
+    let stem = to.file_stem()?.to_str()?;
+    let mut parts = Vec::new();
+    let mut dir = to.parent();
+    while let Some(here) = dir {
+        if !in_a_package(here) {
+            break;
+        }
+        parts.push(here.file_name()?.to_str()?.to_string());
+        dir = here.parent();
+    }
+    parts.reverse();
+    parts.push(stem.to_string());
+    Some(parts.join("."))
+}
+
+/// A Python relative module path for `to`, as seen from `from`.
 fn python_relative_module(from: &Path, to: &Path) -> Option<String> {
     let from_dir = from.parent()?;
     let to_dir = to.parent()?;
@@ -1584,6 +1667,31 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         needs_import.insert(reference.file.clone());
     }
 
+    // The source package would import the destination, and the destination already
+    // imports the source. Go rejects that outright — `import cycle not allowed` — so the
+    // move produces a tree that does not build, and no later step can undo it.
+    if !needs_import.is_empty() {
+        if let Some(source_path) = go_import_path(source_dir) {
+            if go_package_imports(index, dest_dir, &source_path) {
+                bail!(
+                    "moving '{}' to {} would make packages {} and {} import each other: \
+                     {} already imports \"{}\", and moving '{}' makes \"{}\" import back. \
+                     Go does not allow an import cycle. Move what '{}' uses as well, or \
+                     move it to a package neither imports",
+                    sym.name,
+                    crate::vfs::describe_dir(dest_dir),
+                    crate::vfs::describe_dir(source_dir),
+                    crate::vfs::describe_dir(dest_dir),
+                    crate::vfs::describe_dir(dest_dir),
+                    source_path,
+                    sym.name,
+                    source_path,
+                    sym.name
+                );
+            }
+        }
+    }
+
     for file in &needs_import {
         let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
         if target_source.contains(&format!("\"{import_path}\"")) {
@@ -1609,6 +1717,17 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
     carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
+}
+
+/// Whether any file in `dir` imports `import_path`.
+///
+/// A Go package imports as a whole, so one file in the directory naming the path is the
+/// whole package naming it.
+fn go_package_imports(index: &Index, dir: &Path, import_path: &str) -> bool {
+    index
+        .files()
+        .filter(|(path, _)| path.parent() == Some(dir))
+        .any(|(_, info)| info.imports.iter().any(|import| import.path == import_path))
 }
 
 /// The package a Go file declares.

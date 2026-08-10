@@ -495,14 +495,37 @@ fn bash_a_compound_expansion_is_refused_by_name() {
     // `${FLAG:-no}` means more than the flag's value: the whole expansion cannot be
     // replaced without losing the default, and the name alone cannot be replaced
     // without producing `${true:-no}`.
+    //
+    // The assignment is the only other place the name appears, so refusing that one use
+    // leaves nothing to do. Removing the assignment on its own would have turned a
+    // script that read `true` into a script that reads `no`.
     let tmp = workspace(&[("run.sh", "USE_NEW=true\n\necho \"${USE_NEW:-no}\"\n")]);
+
+    let error = cascade::remove_flag(tmp.path(), "USE_NEW", true)
+        .expect_err("a flag whose every use is refused cannot be removed")
+        .to_string();
+    assert!(error.contains("not a plain expansion"), "{error}");
+    assert!(error.contains("nothing was changed"), "{error}");
+}
+
+#[test]
+fn bash_a_refused_use_keeps_the_assignment_that_feeds_it() {
+    // One use can be replaced and one cannot. The flag still has a reader, so the
+    // assignment has to stay: taking it away would leave `${USE_NEW:-no}` reading `no`.
+    let tmp = workspace(&[(
+        "run.sh",
+        "USE_NEW=true\n\
+         \n\
+         if [ \"$USE_NEW\" = true ]; then\n\
+         \x20 go\n\
+         fi\n\
+         echo \"${USE_NEW:-no}\"\n",
+    )]);
 
     let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
     let out = result_for(tmp.path(), "run.sh", &plan);
-    assert!(
-        out.contains("${USE_NEW:-no}"),
-        "the use must be left intact:\n{out}"
-    );
+    assert!(out.contains("USE_NEW=true"), "got:\n{out}");
+    assert!(out.contains("${USE_NEW:-no}"), "got:\n{out}");
     assert!(
         unfinished(&plan).contains("not a plain expansion"),
         "{}",
@@ -956,6 +979,30 @@ fn terraform_reading_through_the_flag_is_refused_by_name() {
         ),
     ]);
 
+    // That one traversal is the variable's only reader, so refusing it leaves nothing to
+    // do, and deleting the declaration under it would leave `var.enabled.name` pointing
+    // at a variable Terraform no longer declares.
+    let error = cascade::remove_flag(tmp.path(), "enabled", true)
+        .expect_err("a variable whose every use is refused cannot be removed")
+        .to_string();
+    assert!(error.contains("reads through the flag"), "{error}");
+    assert!(error.contains("nothing was changed"), "{error}");
+}
+
+#[test]
+fn terraform_a_refused_traversal_keeps_the_variable_it_reads() {
+    // One use reads the value and one reads through it. The second keeps the variable
+    // alive, so the declaration stays even though the first was replaced.
+    let tmp = workspace(&[
+        ("variables.tf", "variable \"enabled\" {\n  type = any\n}\n"),
+        (
+            "main.tf",
+            "resource \"aws_s3_bucket\" \"logs\" {\n  \
+             count  = var.enabled ? 1 : 0\n  \
+             bucket = var.enabled.name\n}\n",
+        ),
+    ]);
+
     let plan = cascade::remove_flag(tmp.path(), "enabled", true).unwrap();
     assert!(
         unfinished(&plan).contains("reads through the flag"),
@@ -964,6 +1011,11 @@ fn terraform_reading_through_the_flag_is_refused_by_name() {
     );
     let out = result_for(tmp.path(), "main.tf", &plan);
     assert!(out.contains("var.enabled.name"), "got:\n{out}");
+    assert_eq!(
+        result_for(tmp.path(), "variables.tf", &plan),
+        "variable \"enabled\" {\n  type = any\n}\n",
+        "the declaration still has a reader, so it stays"
+    );
 }
 
 #[test]

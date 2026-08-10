@@ -21,6 +21,44 @@ use std::process::Command;
 enum Toolchain {
     Cargo,
     Tsc,
+    Go,
+    Python,
+}
+
+impl Toolchain {
+    /// The program that has to be on `PATH` for this toolchain to run.
+    fn program(&self) -> &'static str {
+        match self {
+            Toolchain::Cargo => "cargo",
+            Toolchain::Tsc => "tsc",
+            Toolchain::Go => "go",
+            Toolchain::Python => "python3",
+        }
+    }
+
+    fn is_available(&self) -> bool {
+        // `go --version` is an error; the subcommand is `go version`. Asking the wrong
+        // way reported Go as absent on a machine that has it, and every Go case skipped
+        // itself while the run stayed green.
+        let version_flag = match self {
+            Toolchain::Go => "version",
+            _ => "--version",
+        };
+        Command::new(self.program())
+            .arg(version_flag)
+            .output()
+            .is_ok_and(|o| o.status.success())
+    }
+
+    /// What this toolchain checks, in one line, for the report at the end of the file.
+    fn covers(&self) -> &'static str {
+        match self {
+            Toolchain::Cargo => "cargo check --all-targets",
+            Toolchain::Tsc => "tsc --noEmit",
+            Toolchain::Go => "go build ./...",
+            Toolchain::Python => "python -m compileall, then import and call the fixture",
+        }
+    }
 }
 
 struct Workspace {
@@ -35,6 +73,14 @@ impl Workspace {
 
     fn typescript(files: &[(&str, &str)]) -> Self {
         Self::with(Toolchain::Tsc, files)
+    }
+
+    fn go(files: &[(&str, &str)]) -> Self {
+        Self::with(Toolchain::Go, files)
+    }
+
+    fn python(files: &[(&str, &str)]) -> Self {
+        Self::with(Toolchain::Python, files)
     }
 
     fn with(toolchain: Toolchain, files: &[(&str, &str)]) -> Self {
@@ -84,6 +130,38 @@ impl Workspace {
                 .current_dir(self.dir.path())
                 .output()
                 .expect("tsc runs"),
+            Toolchain::Go => Command::new("go")
+                .args(["build", "./..."])
+                .current_dir(self.dir.path())
+                // Its own build and module cache, for the reason the Rust arm has one.
+                .env("GOCACHE", self.dir.path().join("gocache"))
+                .env("GOFLAGS", "-mod=mod")
+                .output()
+                .expect("go runs"),
+            // Python states nothing until it runs, so compiling every file is only the
+            // first half. Importing the fixture resolves every `from … import …` against
+            // what the module now exports, and calling into it runs the code the edit
+            // changed. A rename that missed a call site is an error in neither half of
+            // the language and shows up in the second half of this.
+            Toolchain::Python => {
+                let compiled = Command::new("python3")
+                    .args(["-m", "compileall", "-q", "."])
+                    .current_dir(self.dir.path())
+                    .output()
+                    .expect("python3 runs");
+                if !compiled.status.success() {
+                    return Err(format!(
+                        "{}{}",
+                        String::from_utf8_lossy(&compiled.stdout),
+                        String::from_utf8_lossy(&compiled.stderr)
+                    ));
+                }
+                Command::new("python3")
+                    .args(["-c", "import main; main.check()"])
+                    .current_dir(self.dir.path())
+                    .output()
+                    .expect("python3 runs")
+            }
         };
         match output.status.success() {
             true => Ok(()),
@@ -557,6 +635,218 @@ fn changing_a_typescript_signature_compiles_or_refuses() {
     gate("changing a TypeScript signature", &ws, planned);
 }
 
+// ------------------------------------------------------------------- Go
+
+/// The same shapes again in Go: a free function and a method sharing a name, an import
+/// of the function from another package, and a caller of both.
+fn go_files() -> Vec<(&'static str, &'static str)> {
+    vec![
+        ("go.mod", "module gate\n\ngo 1.21\n"),
+        (
+            "holder/holder.go",
+            "package holder\n\n\
+             type Holder struct {\n\tItems []byte\n}\n\n\
+             func Width(items []byte, n int) int {\n\treturn len(items) + n\n}\n\n\
+             func (h *Holder) Width(n int) int {\n\treturn Width(h.Items, n)\n}\n",
+        ),
+        (
+            "util/util.go",
+            "package util\n\n\
+             import (\n\t\"fmt\"\n\n\t\"gate/holder\"\n)\n\n\
+             func Describe(h *holder.Holder) string {\n\t\
+             total := holder.Width(h.Items, 1)\n\treturn fmt.Sprintf(\"%d\", total*2)\n}\n",
+        ),
+        (
+            "main.go",
+            "package main\n\n\
+             import (\n\t\"fmt\"\n\n\t\"gate/holder\"\n\t\"gate/util\"\n)\n\n\
+             func main() {\n\t\
+             h := &holder.Holder{Items: []byte{1, 2}}\n\t\
+             fmt.Println(util.Describe(h), h.Width(1), holder.Width(h.Items, 2))\n}\n",
+        ),
+    ]
+}
+
+#[test]
+fn the_go_fixture_compiles_before_anything_touches_it() {
+    if !Toolchain::Go.is_available() {
+        eprintln!("compile gate: go skipped, go is not on PATH");
+        return;
+    }
+    let ws = Workspace::go(&go_files());
+    if let Err(e) = ws.compiles() {
+        panic!("the Go fixture is broken before any refactoring:\n{e}");
+    }
+}
+
+#[test]
+fn renaming_a_go_function_compiles() {
+    if !Toolchain::Go.is_available() {
+        eprintln!("compile gate: go skipped, go is not on PATH");
+        return;
+    }
+    let ws = Workspace::go(&go_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "Width");
+    let planned = fun_refactor::refactor::rename::plan(&index, id, "SpanOf").map(|p| p.edits);
+    must_plan("renaming a Go function", &ws, planned);
+}
+
+#[test]
+fn changing_a_go_signature_compiles_or_refuses() {
+    if !Toolchain::Go.is_available() {
+        eprintln!("compile gate: go skipped, go is not on PATH");
+        return;
+    }
+    let ws = Workspace::go(&go_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "Width");
+    let planned = fun_refactor::refactor::signature::change(
+        &index,
+        id,
+        fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
+    )
+    .map(|p| p.edits);
+    gate("changing a Go signature", &ws, planned);
+}
+
+#[test]
+fn moving_a_go_symbol_compiles_or_refuses() {
+    if !Toolchain::Go.is_available() {
+        eprintln!("compile gate: go skipped, go is not on PATH");
+        return;
+    }
+    let ws = Workspace::go(&go_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "Width");
+    let planned =
+        fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("util/util.go"))
+            .map(|p| p.edits);
+    gate("moving a Go symbol", &ws, planned);
+}
+
+#[test]
+fn organising_go_imports_compiles_or_refuses() {
+    if !Toolchain::Go.is_available() {
+        eprintln!("compile gate: go skipped, go is not on PATH");
+        return;
+    }
+    let ws = Workspace::go(&go_files());
+    let index = ws.index();
+    let planned =
+        fun_refactor::refactor::imports::plan(&index, &ws.path("main.go")).map(|p| p.edits);
+    match planned {
+        Ok(edits) if edits.is_empty() => {}
+        other => {
+            gate("organising Go imports", &ws, other);
+        }
+    }
+}
+
+// --------------------------------------------------------------- Python
+
+/// The same shapes in Python. `check` is what the toolchain calls, so the assertions in
+/// it are the behaviour a refactoring has to preserve and not only the names.
+fn python_files() -> Vec<(&'static str, &'static str)> {
+    vec![
+        (
+            "holder.py",
+            "def width(items, n):\n    return len(items) + n\n\n\n\
+             class Holder:\n    def __init__(self):\n        self.items = []\n\n    \
+             def width(self, n):\n        return width(self.items, n)\n",
+        ),
+        (
+            "util.py",
+            "from holder import Holder, width\n\n\n\
+             def describe(h: Holder) -> str:\n    \
+             total = width(h.items, 1)\n    return f\"{total * 2}\"\n",
+        ),
+        (
+            "main.py",
+            "from holder import Holder, width\nfrom util import describe\n\n\n\
+             def check():\n    h = Holder()\n    h.items = [1, 2]\n    \
+             assert describe(h) == \"6\", describe(h)\n    \
+             assert h.width(1) == 3, h.width(1)\n    \
+             assert width(h.items, 2) == 4, width(h.items, 2)\n",
+        ),
+    ]
+}
+
+#[test]
+fn the_python_fixture_runs_before_anything_touches_it() {
+    if !Toolchain::Python.is_available() {
+        eprintln!("compile gate: python skipped, python3 is not on PATH");
+        return;
+    }
+    let ws = Workspace::python(&python_files());
+    if let Err(e) = ws.compiles() {
+        panic!("the Python fixture is broken before any refactoring:\n{e}");
+    }
+}
+
+#[test]
+fn renaming_a_python_function_compiles() {
+    if !Toolchain::Python.is_available() {
+        eprintln!("compile gate: python skipped, python3 is not on PATH");
+        return;
+    }
+    let ws = Workspace::python(&python_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::rename::plan(&index, id, "span_of").map(|p| p.edits);
+    must_plan("renaming a Python function", &ws, planned);
+}
+
+#[test]
+fn changing_a_python_signature_compiles_or_refuses() {
+    if !Toolchain::Python.is_available() {
+        eprintln!("compile gate: python skipped, python3 is not on PATH");
+        return;
+    }
+    let ws = Workspace::python(&python_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::signature::change(
+        &index,
+        id,
+        fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
+    )
+    .map(|p| p.edits);
+    gate("changing a Python signature", &ws, planned);
+}
+
+#[test]
+fn moving_a_python_symbol_compiles_or_refuses() {
+    if !Toolchain::Python.is_available() {
+        eprintln!("compile gate: python skipped, python3 is not on PATH");
+        return;
+    }
+    let ws = Workspace::python(&python_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("util.py"))
+        .map(|p| p.edits);
+    gate("moving a Python symbol", &ws, planned);
+}
+
+#[test]
+fn inlining_a_python_variable_compiles_or_refuses() {
+    if !Toolchain::Python.is_available() {
+        eprintln!("compile gate: python skipped, python3 is not on PATH");
+        return;
+    }
+    let ws = Workspace::python(&python_files());
+    let index = ws.index();
+    let total = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "total")
+        .expect("the local")
+        .id;
+    let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
+    gate("inlining a Python variable", &ws, planned);
+}
+
 /// The gate has to be able to fail.
 ///
 /// Every other test here passes when the tool behaves. That is also what they would do if
@@ -589,6 +879,55 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
         ts.compiles().is_err(),
         "tsc accepted an import of a name that is not exported"
     );
+
+    if Toolchain::Go.is_available() {
+        let go = Workspace::go(&go_files());
+        std::fs::write(
+            go.path("util/util.go"),
+            "package util\n\nimport \"gate/holder\"\n\n\
+             func Describe(h *holder.Holder) string {\n\treturn holder.NoSuchFunction(h)\n}\n",
+        )
+        .expect("write");
+        assert!(
+            go.compiles().is_err(),
+            "go build accepted a call to a function that does not exist"
+        );
+    } else {
+        eprintln!("compile gate: the Go half of this check was skipped, go is absent");
+    }
+
+    if Toolchain::Python.is_available() {
+        // Python compiles a name that does not exist and fails when it is read, which is
+        // exactly why this toolchain runs the fixture as well as compiling it.
+        let python = Workspace::python(&python_files());
+        std::fs::write(
+            python.path("util.py"),
+            "from holder import Holder, no_such_function\n\n\n\
+             def describe(h: Holder) -> str:\n    return no_such_function(h)\n",
+        )
+        .expect("write");
+        assert!(
+            python.compiles().is_err(),
+            "importing a name that the module does not define was accepted"
+        );
+
+        // And the half that only running catches: every name still resolves, and the
+        // answer changed.
+        let changed = Workspace::python(&python_files());
+        std::fs::write(
+            changed.path("holder.py"),
+            "def width(items, n):\n    return len(items) + n + 1\n\n\n\
+             class Holder:\n    def __init__(self):\n        self.items = []\n\n    \
+             def width(self, n):\n        return width(self.items, n)\n",
+        )
+        .expect("write");
+        assert!(
+            changed.compiles().is_err(),
+            "the fixture's assertions did not notice a changed answer"
+        );
+    } else {
+        eprintln!("compile gate: the Python half of this check was skipped, python3 is absent");
+    }
 }
 
 /// What this gate covers, said out loud.
@@ -602,18 +941,25 @@ fn the_gate_states_what_it_covers() {
         rustc_is_available(),
         "cargo is not on PATH, so every case in this file checked nothing"
     );
-    eprintln!("compile gate: rust — cargo check --all-targets, every command that writes");
-    for (language, probe) in [("typescript", "tsc"), ("go", "go"), ("python", "python3")] {
-        let available = Command::new(probe)
-            .arg("--version")
-            .output()
-            .is_ok_and(|o| o.status.success());
+    for (language, toolchain) in [
+        ("rust", Toolchain::Cargo),
+        ("typescript", Toolchain::Tsc),
+        ("go", Toolchain::Go),
+        ("python", Toolchain::Python),
+    ] {
         eprintln!(
-            "compile gate: {language} — not driven yet (its compiler is {})",
-            match available {
-                true => "installed here",
-                false => "absent here",
+            "compile gate: {language} — {} ({})",
+            toolchain.covers(),
+            match toolchain.is_available() {
+                true => "ran here",
+                false => "skipped, its toolchain is absent here",
             }
         );
     }
+    // The languages this file has no fixture for. Naming them is the point: a green run
+    // covers four languages out of sixteen, and saying so keeps it from reading as more.
+    eprintln!(
+        "compile gate: not driven — zig, java, bash, html, css, scss, hcl, yaml, helm, xml, \
+         markdown, tsx"
+    );
 }

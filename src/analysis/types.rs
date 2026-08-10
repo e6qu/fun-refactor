@@ -436,7 +436,7 @@ fn binding_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Stri
 }
 
 /// A type node's text, with the punctuation that introduces it taken off.
-fn type_text(node: Node<'_>, source: &str) -> Option<String> {
+pub(crate) fn type_text(node: Node<'_>, source: &str) -> Option<String> {
     let text = Span::from(node).text(source).trim();
     let bare = text
         .strip_prefix(':')
