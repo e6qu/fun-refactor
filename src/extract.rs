@@ -196,6 +196,20 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
 /// `helper()` yields nothing. Read from the tree and not captured by a query,
 /// because every grammar spells the shape differently but all of them put the
 /// receiver first and the member last.
+/// Was this name written as `name(` inside a macro's token tree?
+///
+/// The same problem as `member_in_macro` from the other side. A macro body is tokens, so
+/// `assert_eq!(width(&h.items, 1), 3)` gives a bare identifier and not a call. Resolution
+/// then cannot apply the rule that a call with no receiver is not a method, so a
+/// same-named method stays a candidate and the answer is ambiguous. The parenthesis is in
+/// the source where the syntax is not.
+fn call_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
+    if !inside_token_tree(root, span) {
+        return false;
+    }
+    source[span.end..].starts_with('(')
+}
+
 /// Was this reference written as `something.name` inside a macro's token tree?
 ///
 /// A macro body is tokens, not syntax: tree-sitter offers `token_tree` and no structure
@@ -207,16 +221,18 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
 /// grammar parsed the call or not, and treating every token in every macro as suspect
 /// would leave 12,989 references in this repository unrewritable for nothing.
 fn member_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
+    inside_token_tree(root, span) && source[..span.start].trim_end().ends_with('.')
+}
+
+fn inside_token_tree(root: Node<'_>, span: Span) -> bool {
     let mut node = root.descendant_for_byte_range(span.start, span.end);
-    let mut inside = false;
     while let Some(current) = node {
         if current.kind() == "token_tree" {
-            inside = true;
-            break;
+            return true;
         }
         node = current.parent();
     }
-    inside && source[..span.start].trim_end().ends_with('.')
+    false
 }
 
 fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
@@ -678,6 +694,12 @@ impl Extractor {
                     // the URL itself refers to anything this workspace defines.
                     None => continue,
                 };
+                // A name applied to arguments is a call, whether or not the grammar
+                // said so. Inside a macro it does not.
+                let kind = match call_in_macro(root, span, source) {
+                    true => ReferenceKind::Call,
+                    false => r.kind,
+                };
                 references.push(Reference {
                     name: span.text(source).to_string(),
                     span,
@@ -687,7 +709,7 @@ impl Extractor {
                     target: None,
                     // Resolution happens in the index, which can see other files.
                     confidence: Confidence::NameOnly,
-                    kind: r.kind,
+                    kind,
                     receiver: receiver_of(root, span, source),
                     receiver_is_path: receiver_is_path(root, span),
                     member_in_macro: member_in_macro(root, span, source),

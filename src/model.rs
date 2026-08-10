@@ -353,6 +353,19 @@ pub fn anchor_slug(heading: &str) -> String {
     out
 }
 
+impl Symbol {
+    /// Can another file name this declaration on its own, with no type in front of it?
+    ///
+    /// A method has no container, because an `impl` block is not a declaration that the
+    /// index records. It has a qualifier, which is the type it belongs to. A check that
+    /// asks only about the container counts a method as a top-level item of its file, and
+    /// `fr move` then wrote `use crate::holder::width;` into the file it had just moved
+    /// `width` into, naming a function that was no longer there.
+    pub fn is_top_level(&self) -> bool {
+        self.container.is_none() && self.qualifier.is_none()
+    }
+}
+
 /// A reason some of a file's content is missing from the index.
 ///
 /// A gap carries the sentence that reports it, so a new way for extraction to come up

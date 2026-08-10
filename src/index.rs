@@ -390,6 +390,12 @@ impl Index {
         let member_access = reference.kind == ReferenceKind::Field
             || called_on_a_value
             || reference.member_in_macro;
+        // Written inside an `import` or `use` statement, which names what a module
+        // exports.
+        let in_an_import = info
+            .imports
+            .iter()
+            .any(|import| import.span.contains(reference.span));
         let plausible = |s: &Symbol| {
             // A candidate in another language is only a candidate where the two
             // languages have a way of naming each other's declarations. Without this
@@ -412,6 +418,14 @@ impl Index {
                 return false;
             }
             let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
+            if in_an_import {
+                // An import path names an item that a module exports. It never names a
+                // method or a field, so a same-named one is not a candidate. Without
+                // this, `use crate::holder::{width, Holder}` had two candidates and
+                // resolved weakly, and a rename of `width` left the import naming the
+                // function it had just renamed.
+                return !is_member;
+            }
             if member_access {
                 // `i.provData` names a field of `i`, never the local `provData` two
                 // lines up. Without this the nearest-definition rule below binds the

@@ -451,7 +451,7 @@ fn carried_imports(
         .symbols
         .iter()
         .filter_map(|id| index.symbol(*id))
-        .filter(|s| s.id != sym.id && s.container.is_none() && used.contains(&s.name))
+        .filter(|s| s.id != sym.id && s.is_top_level() && used.contains(&s.name))
         .collect();
     wanted.sort_by(|a, b| a.name.cmp(&b.name));
     wanted.dedup_by(|a, b| a.name == b.name);
@@ -906,20 +906,35 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     }
 
     let mut needs_use: BTreeSet<PathBuf> = BTreeSet::new();
+    let mut unverified: Vec<String> = Vec::new();
     for reference in &outside {
         if reference.file == *destination {
             continue;
         }
         if !reference.confidence.is_safe_to_rewrite() {
-            plan.warnings.push(format!(
-                "{}: '{}' resolves only '{}' here, so no `use` was written for it",
+            unverified.push(format!(
+                "{} (resolves only '{}')",
                 location(&reference.file, reference.span.start),
-                sym.name,
                 reference.confidence.as_str()
             ));
             continue;
         }
         needs_use.insert(reference.file.clone());
+    }
+
+    // A use site that cannot be repointed is a use site that will name a definition
+    // which is no longer there. Writing the move and reporting the site in a warning
+    // leaves a workspace that does not compile, which `fr signature` already declines
+    // to do for the same reason.
+    if !unverified.is_empty() {
+        bail!(
+            "'{}' is used at {} site(s) that did not resolve conclusively, so the `use` \
+             each one needs cannot be written: {}. Moving it would leave them naming a \
+             definition that is no longer there",
+            sym.name,
+            unverified.len(),
+            unverified.join(", ")
+        );
     }
 
     for file in &needs_use {
@@ -2336,7 +2351,7 @@ fn zig_top_level<'a>(index: &'a Index, file: &Path) -> Vec<&'a Symbol> {
     info.symbols
         .iter()
         .filter_map(|id| index.symbol(*id))
-        .filter(|s| s.container.is_none())
+        .filter(|s| s.is_top_level())
         .collect()
 }
 
@@ -2945,7 +2960,7 @@ fn carry_defined_dependencies(
         .symbols
         .iter()
         .filter_map(|id| index.symbol(*id))
-        .filter(|s| s.id != sym.id && s.container.is_none() && used.contains(&s.name))
+        .filter(|s| s.id != sym.id && s.is_top_level() && used.contains(&s.name))
         .collect();
     wanted.sort_by(|a, b| a.name.cmp(&b.name));
     wanted.dedup_by(|a, b| a.name == b.name);

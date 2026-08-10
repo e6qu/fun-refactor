@@ -314,7 +314,7 @@ fn rust_move_into_a_module_directory_uses_the_nested_path() {
 }
 
 #[test]
-fn rust_warns_instead_of_rewriting_a_weakly_resolved_use_site() {
+fn rust_refuses_when_a_use_site_cannot_be_repointed() {
     let ws = rust_crate(&[
         ("src/helpers.rs", "pub fn shared() -> i32 {\n    2\n}\n"),
         (
@@ -326,22 +326,20 @@ fn rust_warns_instead_of_rewriting_a_weakly_resolved_use_site() {
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
 
-    let plan = move_symbol::to_file(&index, id, &ws.path("src/store.rs")).unwrap();
-    // A fully-qualified call is matched by name alone, so the path in it cannot be
-    // rewritten with any confidence. Saying so beats writing a `use` that would sit
-    // beside a path still naming the old module.
-    assert!(
-        plan.imports_added.is_empty(),
-        "got {:?}",
-        plan.imports_added
+    // A fully-qualified call is matched by name alone, so the path inside it cannot be
+    // rewritten with any confidence. The move used to proceed and report the site in a
+    // warning, which left `crate::helpers::shared()` naming a module that no longer had
+    // it. That does not compile, so the move declines and names the site.
+    let refusal = move_symbol::to_file(&index, id, &ws.path("src/store.rs"))
+        .expect_err("the use site cannot be repointed")
+        .to_string();
+    assert!(refusal.contains("app.rs:2:"), "{refusal}");
+    assert!(refusal.contains("name-only"), "{refusal}");
+    assert_eq!(
+        ws.read("src/helpers.rs"),
+        "pub fn shared() -> i32 {\n    2\n}\n",
+        "nothing was written"
     );
-    assert_eq!(plan.warnings.len(), 1, "got {:?}", plan.warnings);
-    assert!(
-        plan.warnings[0].contains("app.rs:2:") && plan.warnings[0].contains("name-only"),
-        "the warning must point at the line: {:?}",
-        plan.warnings
-    );
-    commit(&plan);
 }
 
 #[test]
