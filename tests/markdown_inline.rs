@@ -238,7 +238,7 @@ fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
 #[test]
 fn renaming_a_link_reference_definition_rewrites_the_whole_file() {
     // End to end: the definition lives in the block tree, every use in an inline
-    // sub-tree. A span that indexed the fragment rather than the document would
+    // sub-tree. A span that indexed the fragment instead of the document would
     // corrupt the file here, silently and everywhere.
     let doc = concat!(
         "# Guide\n",

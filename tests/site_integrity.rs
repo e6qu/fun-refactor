@@ -68,11 +68,11 @@ fn ids(html: &str) -> Vec<String> {
     out
 }
 
-/// Is this path something the frontend build writes rather than something in the tree?
+/// Is this path something the frontend build writes instead of something in the tree?
 ///
 /// The playground is emitted by Vite and is not committed, so on a clean checkout every
 /// link to it points at a directory that is not there — while being perfectly live on
-/// the published site. Read from the build's own `outDir` rather than written down
+/// the published site. Read from the build's own `outDir` and not written down
 /// here: a hardcoded exception is a second place to remember, and this test exists
 /// because second places to remember are how a site rots.
 fn built_by_the_frontend(path: &Path) -> bool {
@@ -168,7 +168,7 @@ fn every_anchor_names_something_on_the_page() {
 #[test]
 fn no_page_declares_the_same_id_twice() {
     // Two elements with one id means every `#anchor` and `getElementById` picks one of
-    // them, and which one is a fact about source order rather than about intent.
+    // them, and which one is a fact about source order and not about intent.
     let mut duplicated = Vec::new();
     for (name, html) in pages() {
         let mut counts: BTreeMap<String, usize> = BTreeMap::new();

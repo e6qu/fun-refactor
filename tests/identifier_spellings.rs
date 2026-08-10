@@ -8,9 +8,9 @@
 //!
 //! Not every `as_str` is an identifier. `Capability` and `Basis` return prose for a
 //! reader — "call graph", "from the literal" — and are named `label` and `describe` so
-//! the difference is visible rather than remembered.
+//! the difference is visible and not remembered.
 //!
-//! The spellings are read out of the `as_str` match in the source rather than listed
+//! The spellings are read out of the `as_str` match in the source and not listed
 //! here. That match is exhaustive, so the compiler already forces a new variant to appear
 //! in it, and reading it means a new variant is covered by this test the day it is added.
 //! A list written here would be one more thing to forget.

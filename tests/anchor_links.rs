@@ -6,7 +6,7 @@
 //! nothing and `## Beta` was reported as unused. Renaming the heading then rewrote the
 //! heading alone and left the link pointing at an anchor that no longer existed.
 //!
-//! A heading is referenced by its slug rather than its text, which is the other half:
+//! A heading is referenced by its slug instead of its text, which is the other half:
 //! matching `#two-words` to `Two Words` needs the slug on both sides, and so does
 //! writing the new one.
 

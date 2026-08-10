@@ -31,8 +31,8 @@ pub fn numbers(a: i64, b: i64) -> bool {
 #[test]
 fn java_compares_the_contents_of_a_string() {
     // `a == b` on a Java String asks whether they are the same object, which is false
-    // for two equal strings that were built rather than interned. `Objects.equals`
-    // rather than `a.equals(b)`, because it answers for null on either side instead of
+    // for two equal strings that were built and not interned. `Objects.equals`
+    // and not `a.equals(b)`, because it answers for null on either side instead of
     // throwing, and written out in full because this writer emits no imports.
     let out = translated(STRINGS, Language::Java);
     assert!(

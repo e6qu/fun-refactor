@@ -176,7 +176,7 @@ fn typescript_an_import_nothing_names_goes() {
 
 #[test]
 fn typescript_a_side_effect_import_binds_nothing_and_is_kept() {
-    // Already handled by binding nothing rather than by a guard; asserted here so the
+    // Already handled by binding nothing and not by a guard; asserted here so the
     // zero-binding path stays covered next to the guards that surround it.
     kept_because(
         &[("a.ts", "import './polyfill';\n\nexport const x = 1;\n")],
@@ -219,7 +219,7 @@ fn typescript_a_comment_merely_mentioning_the_name_does_not_keep_it() {
 fn typescript_a_type_only_import_is_kept() {
     // Every use of a type-only import is in a type position, and the fact queries do
     // not capture all of them (`typeof Foo` is one they miss), so the whole form is
-    // held back rather than removed on incomplete evidence.
+    // held back and not removed on incomplete evidence.
     kept_because(
         &[(
             "a.ts",
@@ -345,7 +345,7 @@ fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
 #[test]
 fn go_an_unreadable_package_clause_holds_the_import_back() {
     // Nothing here names `yaml` either, and the package is not in the scan, so the
-    // honest answer is that the binding is unknown rather than unused.
+    // honest answer is that the binding is unknown and not unused.
     kept_because(
         &[(
             "a.go",
@@ -379,7 +379,7 @@ fn go_a_package_clause_the_scan_can_see_is_used_instead_of_the_path() {
 
 #[test]
 fn go_a_visible_package_clause_that_nothing_names_still_goes() {
-    // The counterpart: once the binding is known rather than guessed, an unused
+    // The counterpart: once the binding is known and not guessed, an unused
     // import has nothing left to hide behind.
     assert_eq!(
         removed_paths(

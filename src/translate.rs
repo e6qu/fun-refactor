@@ -73,7 +73,7 @@ pub fn why_not(from: Language, to: Language) -> String {
 
 /// Why a language can be rewritten as nothing at all.
 ///
-/// Said once, rather than by picking an arbitrary target and explaining that pair.
+/// Said once, and not by picking an arbitrary target and explaining that pair.
 pub fn why_nothing(from: Language) -> String {
     use crate::lang::LanguageClass;
     if from.class() == LanguageClass::Imperative {

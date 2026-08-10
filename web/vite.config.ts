@@ -8,7 +8,7 @@ export default defineConfig({
     outDir: "../docs/playground",
     emptyOutDir: true,
     // Monaco's editor core is one large chunk, and the wasm module is larger still.
-    // Both are the point; raise the advisory limit rather than warn every build.
+    // Both are the point; raise the advisory limit and not warn every build.
     chunkSizeWarningLimit: 12000,
     target: "es2022",
   },

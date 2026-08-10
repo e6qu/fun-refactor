@@ -35,5 +35,5 @@ were about to need.
 
 It does not write to GitHub, and it holds no token. A refactoring here edits the copy
 in the tab; the diff is what you take away. Loading is capped at 400 files and 6 MB,
-smallest first, and whatever is left out is reported rather than quietly dropped —
+smallest first, and whatever is left out is reported and not quietly dropped —
 see `src/github.ts`.

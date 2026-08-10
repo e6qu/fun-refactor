@@ -2,7 +2,7 @@
 //!
 //! These are the transformations rust-analyzer and gopls offer as code actions. The
 //! interesting property is that each one must preserve meaning exactly while changing
-//! shape, so the tests compare whole files rather than fragments.
+//! shape, so the tests compare whole files and not fragments.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;

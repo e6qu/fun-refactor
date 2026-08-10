@@ -37,7 +37,7 @@ pub struct CallEdge {
 
 /// Where a call edge came from.
 ///
-/// Kept beside the [`Confidence`] rather than folded into it: an edge can be
+/// Kept beside the [`Confidence`] and not folded into it: an edge can be
 /// unproven for two quite different reasons, and "the resolver was unsure" is not
 /// the same claim as "this is one of the implementations dynamic dispatch could
 /// pick".
@@ -101,10 +101,10 @@ pub struct CallGraph {
     graph: DiGraph<SymbolId, CallEdge>,
     nodes: HashMap<SymbolId, NodeIndex>,
     /// Call sites whose callee could not be resolved, kept so they can be reported
-    /// rather than silently dropped.
+    /// and not silently dropped.
     pub unresolved: Vec<UnresolvedCall>,
     /// Files whose hierarchy could not be read or parsed, so the caller can see that
-    /// the dispatch layer is incomplete for them rather than assume it is empty.
+    /// the dispatch layer is incomplete for them and not assume it is empty.
     pub hierarchy_gaps: Vec<(PathBuf, String)>,
 }
 
@@ -239,7 +239,7 @@ impl CallGraph {
     /// workspace's declarations admit.
     ///
     /// Two things happen here. A method call whose query set files it as a field
-    /// access rather than a call (Rust `x.m()`) still resolved, and becomes the
+    /// access instead of a call (Rust `x.m()`) still resolved, and becomes the
     /// ordinary resolved edge it always was. And a site that resolved to nothing, or
     /// to a candidate too weak to rewrite, gets one edge per plausible implementation
     /// — never replacing a proven answer, only filling in where there was none.
@@ -528,7 +528,7 @@ impl CallGraph {
     ///
     /// The difference between this and [`CallGraph::reachable_from`] is exactly what
     /// hierarchy analysis contributed, which is what lets a report say why a symbol
-    /// was spared rather than just dropping it.
+    /// was spared and not just dropping it.
     pub fn reachable_from_resolved(&self, seeds: &[SymbolId]) -> HashSet<SymbolId> {
         self.reachable_via(seeds, false)
     }
@@ -577,7 +577,7 @@ impl CallGraph {
         out
     }
 
-    /// How many edges hierarchy analysis contributed, rather than resolution.
+    /// How many edges hierarchy analysis contributed, and not resolution.
     pub fn hierarchy_edge_count(&self) -> usize {
         self.graph
             .edge_references()
@@ -656,7 +656,7 @@ pub struct TraceResult {
     pub start: SymbolId,
     pub direction: Direction2,
     pub nodes: Vec<TraceNode>,
-    /// Edges that closed a cycle; reported rather than silently pruned.
+    /// Edges that closed a cycle; reported and not silently pruned.
     pub cycles: Vec<(SymbolId, SymbolId)>,
     /// Nodes the depth limit stopped at that still had edges beyond them.
     ///
@@ -811,13 +811,13 @@ pub struct Hierarchy {
     /// round because every question asked of it is "who implements this?".
     direct_subtypes: HashMap<TypeKey, BTreeSet<String>>,
     /// Concrete method sets, name to arity. Go only: it is the sole language here
-    /// where implementing an interface is a structural fact rather than a declared
+    /// where implementing an interface is a structural fact and not a declared
     /// one, so it is the only one that needs to compare method sets.
     method_sets: HashMap<TypeKey, BTreeMap<String, usize>>,
     /// Method-call syntax sites per file.
     call_sites: BTreeMap<PathBuf, Vec<CallSite>>,
     /// Files that could not be read or parsed. A gap costs edges, never invents
-    /// them, but it is reported rather than passed off as an empty hierarchy.
+    /// them, but it is reported and not passed off as an empty hierarchy.
     pub gaps: Vec<(PathBuf, String)>,
 }
 
@@ -897,7 +897,7 @@ impl Hierarchy {
 
     /// The concrete types that implement an abstraction.
     ///
-    /// Pointing at the interface rather than at one of its methods is the question
+    /// Pointing at the interface and not at one of its methods is the question
     /// people actually ask — "what are the Sinks?" — and it used to answer nothing at
     /// all, on the grounds that only a method has implementations. The relationships
     /// were already known; nothing was reading them from this direction.
@@ -917,7 +917,7 @@ impl Hierarchy {
         if family == Family::Go {
             if let Some(required) = self.declares.get(&(family, name.clone())) {
                 // An interface with no methods is satisfied by every type in the
-                // workspace, which is true and useless. Say nothing rather than
+                // workspace, which is true and useless. Say nothing instead of
                 // everything.
                 if !required.is_empty() {
                     names.extend(self.go_implementors(&(family, name.clone())));
@@ -1021,7 +1021,7 @@ impl Hierarchy {
                 // The declaring class is reached by its own name alone — that is the
                 // field-based heuristic and it is labelled as such. Its subclasses
                 // are reached by a declared relationship, which is stronger.
-                // Java sits here for the same reason rather than a stronger one: it
+                // Java sits here for the same reason instead of a stronger one: it
                 // declares `implements` outright, but nothing in this tool infers the
                 // static type of a receiver, so reaching the declaring type is still
                 // the name-based step and is labelled as such.
@@ -1497,7 +1497,7 @@ fn java_supertypes(clause: Node, source: &str) -> Vec<String> {
 /// Types only: a parameter's *name* is not part of whether one signature satisfies
 /// another, and comparing `ctx context.Context` with `c context.Context` would refuse an
 /// implementation Go accepts. Returns `None` where the shape cannot be read, which
-/// leaves the arity answer standing rather than narrowing to nothing.
+/// leaves the arity answer standing instead of narrowing to nothing.
 fn go_signature(node: Node<'_>, source: &str) -> Option<String> {
     /// A type with its package qualifier dropped and its whitespace squeezed out.
     ///
@@ -1778,7 +1778,7 @@ mod tests {
     #[test]
     fn a_file_the_hierarchy_pass_cannot_read_is_reported() {
         // The dispatch layer reads files itself. One it cannot read yields no edges,
-        // which widens the unused list rather than narrowing it — but pretending the
+        // which widens the unused list instead of narrowing it — but pretending the
         // file simply had no hierarchy would hide the difference.
         let (tmp, index) = workspace(&[(
             "a.rs",

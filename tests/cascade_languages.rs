@@ -271,7 +271,7 @@ fn zig_a_payload_capture_is_refused_by_name() {
 #[test]
 fn zig_an_expression_conditional_without_an_else_is_refused_by_name() {
     // Zig has no such expression, so this file does not parse; the point is that the
-    // cascade says so rather than emitting a half-collapsed file.
+    // cascade says so instead of emitting a half-collapsed file.
     let tmp = workspace(&[(
         "a.zig",
         "const USE_NEW = true;\n\
@@ -634,7 +634,7 @@ fn bash_an_unrelated_conditional_is_not_touched() {
 #[test]
 fn terraform_true_drops_a_count_of_one_and_the_variable() {
     // `count = 1` is what a resource does by default, so the argument goes with the
-    // flag rather than being left as a line of noise.
+    // flag instead of being left as a line of noise.
     let tmp = workspace(&[
         (
             "variables.tf",

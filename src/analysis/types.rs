@@ -73,14 +73,14 @@ pub struct Declared {
     pub name: String,
     /// The type as written, or `None` where the source wrote none.
     ///
-    /// An `Option` rather than an empty string, because "no type here" is an answer and
+    /// An `Option` instead of an empty string, because "no type here" is an answer and
     /// the caller has to be made to handle it.
     pub declared: Option<String>,
     /// What follows from what the source declared, where the source declared nothing.
     ///
     /// Only ever consulted when `declared` is `None`: an annotation is a contract and
     /// this is a derivation, and where both exist the contract is the answer. Where they
-    /// disagree that is a defect in the code rather than a choice for this to make.
+    /// disagree that is a defect in the code and not a choice for this to make.
     pub inferred: Option<Inferred>,
     /// For a callable, each parameter's declared type in order, `None` where absent.
     pub parameters: Vec<(String, Option<String>)>,
@@ -125,13 +125,13 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
         true => parameters_of(&parsed, &source, sym),
         false => Vec::new(),
     };
-    // The named type, where the answer is one name rather than a signature.
+    // The named type, where the answer is one name and not a signature.
     let named = declared.as_deref().and_then(bare_name);
     let defined_at = named.and_then(|name| type_named(index, name, sym));
 
     // Only where the source said nothing. An annotation is a contract and an inference
     // is a derivation; where both exist the contract is the answer, and a disagreement
-    // between them is a defect in the code rather than a choice for this to make.
+    // between them is a defect in the code and not a choice for this to make.
     let inferred = match (&declared, sym.kind.is_callable()) {
         (None, false) => infer(index, sym, &parsed, &source, 0),
         _ => None,
@@ -302,7 +302,7 @@ impl Declared {
 ///
 /// An object literal is deliberately absent. `{"amount": 100}` is a `dict` and saying so
 /// is true and useless — the whole subject of this is that a dictionary is where a type
-/// should have been, and a tool that answers `dict` has agreed with the code rather than
+/// should have been, and a tool that answers `dict` has agreed with the code and not
 /// described it. A list literal is the same shape of non-answer.
 fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
     let python = matches!(language, Language::Python);
@@ -373,7 +373,7 @@ fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<Symb
 /// Python one — a `find` over every symbol in the workspace, answering with whichever
 /// happened to be indexed first.
 ///
-/// Several in one language is ambiguous, and nothing is reported rather than picking.
+/// Several in one language is ambiguous, and nothing is reported instead of picking.
 /// A definition the reader is sent to is a claim, and a coin toss is not one.
 fn type_named(index: &Index, name: &str, from: &Symbol) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index

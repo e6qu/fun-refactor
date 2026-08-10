@@ -7,7 +7,7 @@
  * twenty-eight others. They are not actions on a symbol; they are things you read
  * once to know where you are, so they live here, one to a page, over everything else.
  *
- * The live pages ask the wasm when opened rather than when built: a workspace can be
+ * The live pages ask the wasm when opened and not when built: a workspace can be
  * replaced, and a stale answer under a help tab is a quiet lie.
  */
 
@@ -32,7 +32,7 @@ const KEYS = `
   <tr><td>Right-click</td><td>Every action that applies to it</td></tr>
   <tr><td>Alt + ←&nbsp;/&nbsp;→</td><td>Back and forward through the jumps you made</td></tr>
   <tr><td>Click a node in <strong>Structure</strong></td><td>Select exactly the bytes it covers — how you pick a range for Extract</td></tr>
-  <tr><td>Select code, then Extract</td><td>Acts on the selection rather than the cursor</td></tr>
+  <tr><td>Select code, then Extract</td><td>Acts on the selection instead of the cursor</td></tr>
 </table>
 
 <h3>What the tiers mean</h3>
@@ -65,7 +65,7 @@ const ABOUT = `
 <p>It resolves what the syntax proves and says so when it cannot. A value held in a
    map and called through it, a class named only in a string, a Helm value passed on a
    command line — these are undecidable from the source, and the tool reports them
-   rather than guessing. That is why so much comes back as a list to review.</p>
+   instead of guessing. That is why so much comes back as a list to review.</p>
 <h3>Fifteen languages, one index</h3>
 <p>Rust, Go, Zig, TypeScript, TSX, Python, Bash, HTML, CSS, SCSS, HCL, YAML, Helm,
    XML and Markdown all land in the same index, which is what lets a rename cross from

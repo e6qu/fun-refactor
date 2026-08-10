@@ -71,7 +71,7 @@ fn every_workspace_method_activates_its_own_files() {
     assert!(
         missing.is_empty(),
         "these must call `self.enter()` on their first line, so they read their own \
-         workspace's bytes rather than the last one loaded:\n  {}",
+         workspace's bytes instead of the last one loaded:\n  {}",
         missing.join("\n  ")
     );
 }

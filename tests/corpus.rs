@@ -13,7 +13,7 @@
 //!
 //! 1. **It parses as what it claims to be.** Anything else is a defect in this tool.
 //! 2. **It adopts the target's conventions.** `user_create` is `userCreate` in
-//!    TypeScript, and a file that says otherwise reads as converted rather than
+//!    TypeScript, and a file that says otherwise reads as converted and not
 //!    written.
 //! 3. **Nothing goes missing quietly.** Every construct that did not translate is in
 //!    the output verbatim and counted.

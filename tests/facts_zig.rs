@@ -103,7 +103,7 @@ fn a_string_named_test_drops_the_quotes_from_its_name_span() {
 fn a_decl_test_references_the_declaration_it_exercises() {
     let src = "fn thing() void {}\ntest thing {}\n";
     let f = zig(src);
-    // `test thing` names an existing declaration rather than introducing one, so
+    // `test thing` names an existing declaration instead of introducing one, so
     // `thing` keeps a single definition site and the test block is a use of it.
     let things: Vec<_> = f.symbols.iter().filter(|s| s.name == "thing").collect();
     assert_eq!(things.len(), 1, "got {things:#?}");

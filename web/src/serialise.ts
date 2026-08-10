@@ -15,7 +15,7 @@
  * and should not have to read a description of a sidebar to get it.
  *
  * Both accept `?repo=` and `?file=` — a rendering of one fixed repository would be a
- * demonstration rather than a tool.
+ * demonstration instead of a tool.
  */
 
 import init, { Workspace } from "./wasm/fun_refactor.js";
@@ -183,7 +183,7 @@ function print(payload: unknown) {
   document.body.textContent = text;
   document.body.style.cssText =
     "font:12px ui-monospace,monospace;white-space:pre;margin:0;padding:1rem";
-  // A caller driving a browser reads this rather than scraping the page.
+  // A caller driving a browser reads this instead of scraping the page.
   (window as unknown as Record<string, unknown>).__fr = payload;
   document.documentElement.dataset.frReady = "true";
 }
@@ -224,7 +224,7 @@ export async function emit(mode: Mode) {
         .sort((a, b) => (files[b.path]?.length ?? 0) - (files[a.path]?.length ?? 0))[0]?.path ??
       "";
 
-    // Named one by one rather than "json or else data": a mode added to the
+    // Named one by one and not "json or else data": a mode added to the
     // dispatcher and forgotten here would otherwise be answered with the wrong
     // rendering and no complaint. `web/test/render_modes.mjs` checks each one
     // appears.

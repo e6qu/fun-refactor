@@ -76,7 +76,7 @@ recipe <em>name</em> {
       <strong>Layout is insignificant</strong> and statements are not terminated. A
       statement ends when the parser meets a token that can only begin a new one, which
       works because step keywords are reserved and no predicate shares a name with one —
-      an invariant a test enforces rather than hopes for. That is what lets a
+      an invariant a test enforces and not hopes for. That is what lets a
       <code>where</code> clause run across as many lines as it needs with no punctuation.
     </p>
     <p>
@@ -125,7 +125,7 @@ recipe <em>name</em> {
       <tr><td><code>matches='log($X)'</code></td><td>a structural shape — <code>fr restructure</code>. Needs <code>lang=</code> beside it</td></tr>
     </table></div>
     <p>
-      Each of the last five is an existing analysis rather than new machinery, and each
+      Each of the last five is an existing analysis and not new machinery, and each
       runs <em>only when a predicate asks for it</em>: building a call graph over a large
       repository for a selector that says <code>name="x"</code> is work nobody asked for.
       <code>matches=</code> needs a <code>lang=</code> beside it because the same text

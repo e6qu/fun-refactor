@@ -9,7 +9,7 @@
  * A repository is fetched into memory, so it has to be bounded. The caps below are
  * about what a browser tab can hold and what a person will wait for, not about what
  * the analysis can handle — the same code indexes 16,000 files in ten seconds
- * natively. Anything dropped is reported rather than silently skipped: a file list
+ * natively. Anything dropped is reported and not silently skipped: a file list
  * that quietly stops at 400 makes every later answer wrong in a way nobody can see.
  */
 

@@ -126,7 +126,7 @@
   matches:
     annotated_with: DeleteMapping
 
-# Reached when a request fails rather than when one arrives, but still reached by
+# Reached when a request fails and not when one arrives, but still reached by
 # a remote caller and still never called from the source.
 - id: java-spring-exception-handler
   kind: http-route
@@ -187,7 +187,7 @@
   matches:
     annotated_with: PreDestroy
 
-# Found by running the tool over `spring-petclinic` rather than by listing what Spring
+# Found by running the tool over `spring-petclinic` and not by listing what Spring
 # might call. The deliberate sweep got the callbacks above; a real application named
 # three more, which is the argument for doing both.
 #

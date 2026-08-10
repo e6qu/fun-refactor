@@ -83,7 +83,7 @@ fn a_bare_word_inside_the_braces_names_nothing() {
 #[test]
 fn a_name_is_read_from_the_source_not_the_filler() {
     // The filler exists for the parse. Every offset still indexes the original text,
-    // so a selector reports what the file says rather than a row of `x`.
+    // so a selector reports what the file says instead of a row of `x`.
     let (_, symbols, _) = parsed_and_facts(".btn-#{$variant} { color: red; }");
     assert!(
         symbols.iter().any(|s| s.contains("#{$variant}")),
@@ -106,7 +106,7 @@ fn braces_inside_the_braces_are_one_interpolation() {
 
 #[test]
 fn an_unterminated_interpolation_stays_a_syntax_error() {
-    // Masking it would hide a fault in the file rather than one in the grammar.
+    // Masking it would hide a fault in the file instead of one in the grammar.
     let (errors, _, _) = parsed_and_facts(".a { color: #{$v; }");
     assert!(errors > 0);
 }

@@ -140,7 +140,7 @@ rename safe is the Tier-0 layer of the flow graph.
 - **Entrypoint detection** (`src/analysis/entrypoints.rs`): five categories (Main, Test, Cli,
   Handler, Export) via naming conventions, attributes (`#[test]`, `#[tokio::main]`,
   `#[derive(Parser)]`), and file conventions (`main.tf`, `page.tsx`, `Chart.yaml`). Binary
-  classification, no confidence score, heuristics hardcoded in Rust rather than a data catalog.
+  classification, no confidence score, heuristics hardcoded in Rust instead of a data catalog.
 
 ### 6.2 Data-flow precision tiers (what "where does this value come from/go" can mean)
 
@@ -196,7 +196,7 @@ reverse. The layers stitch across the code/config boundary (Helm value → env v
 The literature's headline: **precision is cheap, recall dies on dynamic features**; the unsound
 field-based heuristic (bucket call targets by method/property name, [Feldthaus et al.
 ICSE'13](https://www.franktip.org/pubs/icse2013approximate.pdf)) gets ~66–80% precision / ≥85%
-recall on JS with no types — the single highest-leverage trick.
+recall on JS with no types — the single most effective technique.
 
 | Language | Strategy | Notes |
 |---|---|---|

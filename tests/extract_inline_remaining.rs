@@ -1,10 +1,10 @@
 //! Extract and inline for the cells the matrix still refused: Bash variables and
 //! functions, Zig functions, SCSS mixins and XML entities.
 //!
-//! Every test asserts the exact resulting file text rather than a substring, checks
+//! Every test asserts the exact resulting file text instead of a substring, checks
 //! that the bytes outside the edited ranges came through unchanged, and puts the plan
 //! through `edit::plan(.., ReparseStrict)` so a refactoring that would break the file
-//! fails here rather than on disk.
+//! fails here and not on disk.
 
 use fun_refactor::edit::{apply_to_string, plan, Edit, Validation};
 use fun_refactor::index::Index;

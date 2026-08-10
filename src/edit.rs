@@ -6,7 +6,7 @@
 //! comments and trailing whitespace outside the edited ranges survive byte-for-byte.
 //!
 //! Before anything is written, the result is reparsed: an edit that introduces new
-//! syntax errors is rejected rather than saved.
+//! syntax errors is rejected and not saved.
 
 use crate::lang::Language;
 use crate::parse::Parsers;
@@ -378,7 +378,7 @@ pub fn line_indent(source: &str, offset: usize) -> String {
 
 /// One level of indentation, as this file writes it.
 ///
-/// Read from the source rather than assumed: generated code that arrives four spaces
+/// Read from the source and not assumed: generated code that arrives four spaces
 /// deep in a two-space TypeScript file or a tab-indented Go file is a visible wart on
 /// every line it touches. The shortest indentation any line carries is one level —
 /// every real file has at least one line indented exactly once.

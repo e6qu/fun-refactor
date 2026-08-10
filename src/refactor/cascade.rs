@@ -7,7 +7,7 @@
 //! the cascade is the work.
 //!
 //! Each round re-indexes the rewritten sources, so every decision is made against
-//! what the code actually says now rather than a prediction of it. The cascade stops
+//! what the code actually says now instead of a prediction of it. The cascade stops
 //! when a round changes nothing.
 //!
 //! A cascade that cannot finish still runs: the substitution stays, and everything
@@ -481,10 +481,10 @@ fn hcl_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
         return UseSite::Refuse("the flag is not used as a `var.NAME` traversal".into());
     };
     // A longer traversal — `var.flag.attr`, `var.flag[0]` — reads *into* the value
-    // rather than being it, and a boolean has nothing to read.
+    // instead of being it, and a boolean has nothing to read.
     if parts.len() != 2 || parts[1] != get_attr {
         return UseSite::Refuse(format!(
-            "`{}` reads through the flag rather than using its value",
+            "`{}` reads through the flag instead of using its value",
             Span::from(expression).text(source)
         ));
     }
@@ -767,7 +767,7 @@ fn zig_block(node: Node<'_>) -> Option<Node<'_>> {
 ///
 /// Shell has no boolean type: substituting the flag leaves a *string* where the test
 /// used to read a variable, and only some of the ways a script can test a string are
-/// decidable from the text alone. Everything else is reported rather than guessed.
+/// decidable from the text alone. Everything else is reported and not guessed.
 fn bash_conditionals(parsed: &Parsed, source: &str) -> Collapse {
     let mut out = Collapse::default();
 
@@ -1029,7 +1029,7 @@ fn bash_literal(node: Node<'_>, source: &str) -> Option<String> {
 /// Three shapes follow from substituting it. A `cond ? a : b` collapses to a branch.
 /// A `count` of 1 is the default and the argument goes. A `count` of 0, or a
 /// `for_each` over nothing, means the block never exists at all — so the block goes,
-/// and whatever addressed it is reported as dangling rather than deleted in turn.
+/// and whatever addressed it is reported as dangling and not deleted in turn.
 ///
 /// Each of the last two only fires where the cascade itself produced the value: a
 /// `count = 0` that was already written by hand belongs to the author, not to this

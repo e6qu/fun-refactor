@@ -59,7 +59,7 @@
 ; address is `type.name`, and a query cannot synthesise a compound name, so the
 ; second label is the renameable @name and the first qualifies it as a container.
 ; The symbol's qualified name is therefore `type::name` — the address with the
-; engine's separator rather than Terraform's dot.
+; engine's separator and not Terraform's dot.
 (block
   . (identifier)
   . (string_lit (template_literal) @container.name)
@@ -142,7 +142,7 @@
 ; flat `get_attr` run: the grammar hangs everything after the `[*]` off a
 ; `splat` → `full_splat`/`attr_splat` node. Those trailing steps are attribute
 ; reads on each element, so they are fields, exactly as they would be without the
-; splat. Matching inside the splat node rather than as siblings is what makes them
+; splat. Matching inside the splat node and not as siblings is what makes them
 ; visible at all.
 (splat
   (full_splat
@@ -159,7 +159,7 @@
 ; Each step needs its own pattern, because a query cannot say "every sibling after
 ; this one". Six are written out: `x.y[0].a.b.c.d.e.f` is already far past anything
 ; Terraform expresses, and the depth is asserted by a test so the bound is a decision
-; rather than an accident.
+; instead of an accident.
 (expression
   (index)
   . (get_attr (identifier) @reference.field))

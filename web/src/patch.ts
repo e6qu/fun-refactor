@@ -1,7 +1,7 @@
 /**
  * A unified diff of the whole session, for pasting into a pull request.
  *
- * Whole-file rather than per-hunk: the analysis already prints proper hunks for each
+ * Whole-file and not per-hunk: the analysis already prints proper hunks for each
  * refactoring, and what this has to produce is one patch a person can read and
  * `git apply` will take. A common prefix and suffix are trimmed so an edit deep in a
  * large file does not print the file.

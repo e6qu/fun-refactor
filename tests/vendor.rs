@@ -206,10 +206,10 @@ fn nothing_vendored_is_compiled_into_the_binary() {
 
 /// `tests/corpus/` — real files from real projects, kept for the translation tests.
 ///
-/// Described by `PROVENANCE.md` rather than a manifest, because it is a document a
+/// Described by `PROVENANCE.md` instead of a manifest, because it is a document a
 /// person reads. That makes it exactly as rot-prone as `MANIFEST.toml` and it needs
 /// the same check: a file that changes without its checksum changing is a file whose
-/// provenance is a claim rather than a fact.
+/// provenance is a claim and not a fact.
 fn corpus_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")

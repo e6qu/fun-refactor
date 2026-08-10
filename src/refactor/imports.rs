@@ -2,7 +2,7 @@
 //!
 //! *Removal* follows the index's records: an import goes only when no reference outside
 //! an import statement names anything it binds. A glob import binds names nobody can
-//! enumerate and a side-effect import binds nothing, so this reports both rather than
+//! enumerate and a side-effect import binds nothing, so this reports both instead of
 //! removing them.
 //!
 //! Name-based liveness is exact for a value or type that must be spelled where it is
@@ -152,7 +152,7 @@ fn hold_back_reason(
             if statement.path == "__future__" {
                 return Some(format!(
                     "'{}' is a __future__ import: it changes how the file is compiled \
-                     rather than binding a name anyone spells, so it is never removed",
+                     instead of binding a name anyone spells, so it is never removed",
                     statement.path
                 ));
             }
@@ -452,7 +452,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     let parsed = Parsers::new().parse(info.language, &source)?;
     let mut statements = statements(info.imports.iter(), &source, info.language, &parsed);
     // A Go import binds the imported package's package clause. When that package is in
-    // the scan its real name is a fact rather than a guess, so record it as a binding
+    // the scan its real name is a fact and not a guess, so record it as a binding
     // and stop treating the path as the last word on the subject.
     if info.language == Language::Go {
         for statement in &mut statements {
@@ -569,7 +569,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
                 line: position.line,
                 col: position.col,
                 detail: "an import here shares its line with other code; the block was left \
-                         untouched rather than risk moving that code"
+                         untouched and not risk moving that code"
                     .into(),
             });
             continue;
@@ -627,7 +627,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 /// is semantic — a later rule beats an earlier one and `@import` must precede all other
 /// rules — so sorting would change what the stylesheet means. The markup and config
 /// languages have no import construct at all, and Bash `source` is an executed
-/// statement rather than a declaration.
+/// statement instead of a declaration.
 /// Why imports cannot be organized in this language, if they cannot.
 ///
 /// The single authority. The capability table and this operation each kept their own
@@ -647,7 +647,7 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
         // may depend on a variable an earlier one set, and a file may be sourced purely
         // for a side effect no name here refers to.
         Language::Bash => {
-            "`source` runs the other file rather than declaring a dependency on it, so \
+            "`source` runs the other file instead of declaring a dependency on it, so \
              order carries meaning and a file sourced only for its side effects looks \
              unused"
         }
@@ -683,9 +683,9 @@ struct Statement {
     /// True when nothing but this statement (and whitespace) is on those lines.
     line_exclusive: bool,
     /// True when the statement spells its local name out, so [`Statement::bindings`]
-    /// is a reading rather than a guess from the path.
+    /// is a reading and not a guess from the path.
     explicit_binding: bool,
-    /// True when the bindings are known rather than inferred from the import path.
+    /// True when the bindings are known and not inferred from the import path.
     /// Only Go can be uncertain: the binding is the imported package's package clause.
     binding_certain: bool,
 }
@@ -824,7 +824,7 @@ pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String>
 /// `cfg` and `use crate::scan::…` unconditional, which compiles under neither setting of
 /// the feature.
 ///
-/// Read from the tree rather than by looking for `#[`, so a multi-line attribute is one
+/// Read from the tree and not by looking for `#[`, so a multi-line attribute is one
 /// span and a `#[` inside a string is not an attribute at all.
 fn with_attributes(source: &str, lines: Span, attributes: &[Span]) -> Span {
     let mut start = lines.start;

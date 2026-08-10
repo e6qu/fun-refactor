@@ -6,7 +6,7 @@
 ; `jsx_opening_element` and friends exist only in the tsx grammar, and naming a
 ; node type the grammar does not define makes `Query::new` fail. So the JSX
 ; rules at the end of this file are written structurally — through the `name:`
-; field and through attribute shape — rather than by naming JSX nodes.
+; field and through attribute shape — and not by naming JSX nodes.
 
 ; ---------------------------------------------------------------- scopes
 ;
@@ -408,7 +408,7 @@
 ; `<MyComponent />` and its closing tag. Lowercase names are HTML tags and are
 ; not captured at all. The rule is deliberately structural because JSX node
 ; types cannot be named here, which is also why the captured kind is `identifier`
-; rather than `type`: the same `name:` field holds capitalised import and export
+; and not `type`: the same `name:` field holds capitalised import and export
 ; specifier names, which are plain value references.
 ;
 ; `<ns.Thing />` spells its name as a member expression, so it is captured by the

@@ -35,7 +35,7 @@ ar="$(dirname "$clang")/llvm-ar"
 
 export CC_wasm32_unknown_unknown="$clang"
 export AR_wasm32_unknown_unknown="$ar"
-# `-include` rather than trusting each scanner to include what it calls: several
+# `-include` instead of trusting each scanner to include what it calls: several
 # rely on implicit declarations, which C99 removed and clang now rejects.
 clang_include="$("$clang" -print-resource-dir)/include"
 export CFLAGS_wasm32_unknown_unknown="--target=wasm32-unknown-unknown -nostdinc \

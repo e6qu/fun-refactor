@@ -323,7 +323,7 @@ export async function POST(request: Request) {
 #[test]
 fn a_zod_schema_becomes_a_pydantic_model() {
     // Most Next.js applications declare their shapes with zod, and a zod schema is a
-    // runtime value rather than a type declaration — so nothing that reads declarations
+    // runtime value instead of a type declaration — so nothing that reads declarations
     // finds it. Left alone the translated service publishes a contract with no request
     // body in it: the endpoint works and the contract is smaller than the one it
     // replaced.
@@ -362,7 +362,7 @@ fn a_zod_schema_becomes_a_pydantic_model() {
 fn a_zod_constraint_is_not_invented_into_a_type() {
     // `.min(3).max(128)` is validation, and Pydantic spells it with `Field(...)`.
     // Guessing one from a zod call is a guess about the part of a contract it is least
-    // safe to guess at, so the constraint is dropped rather than mistranslated.
+    // safe to guess at, so the constraint is dropped and not mistranslated.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
     assert!(!plan.output.contains("min_length"), "{}", plan.output);
@@ -411,7 +411,7 @@ fn the_openapi_baseline_states_what_the_tree_declares() {
     assert_eq!(schema["properties"]["tags"]["type"], "array");
     assert_eq!(schema["properties"]["tags"]["items"]["type"], "string");
     // Optional says "may be absent", which OpenAPI spells by leaving it out of
-    // `required` rather than by changing the type.
+    // `required` and not by changing the type.
     let required: Vec<&str> = schema["required"]
         .as_array()
         .unwrap()

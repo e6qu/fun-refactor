@@ -95,7 +95,7 @@ fn zig_reads_the_environment_directly() {
 
 #[test]
 fn a_language_that_cannot_read_the_environment_is_not_claimed_to() {
-    // The capability row asks the analysis rather than repeating its list, which is how
+    // The capability row asks the analysis instead of repeating its list, which is how
     // that row came to say Java and Zig do not read the environment at all.
     use fun_refactor::lang::Language;
     for language in Language::ALL {

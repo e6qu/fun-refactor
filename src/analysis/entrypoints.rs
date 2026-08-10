@@ -227,7 +227,7 @@ pub struct Matcher {
 impl Matcher {
     /// Does this matcher say anything at all?
     ///
-    /// Destructured rather than tested field by field, so that adding a condition to
+    /// Destructured and not tested field by field, so that adding a condition to
     /// `Matcher` fails to compile here instead of being quietly left out of the answer.
     /// Three had been: a rule whose only condition was `symbol_kind`, `exported` or
     /// `top_level` counted as saying nothing, and a rule that says nothing matched
@@ -362,12 +362,12 @@ impl Catalog {
     /// Find every entry point in an index.
     pub fn detect(&self, index: &Index) -> Vec<Entrypoint> {
         let mut found = Vec::new();
-        // One read per symbol rather than one per rule. Three of the predicates below
+        // One read per symbol instead of one per rule. Three of the predicates below
         // need the file's text, and asking each of them separately read the whole file
         // once for every rule in the catalogue — on `vuejs/core`, 34,611 symbols against
         // the rules that apply to TypeScript, which doubled the time this command takes.
         // The index groups a file's symbols together, so remembering the last one is
-        // enough; a file that cannot be read is retried rather than remembered.
+        // enough; a file that cannot be read is retried and not remembered.
         let mut cached: Option<(std::path::PathBuf, String)> = None;
         for symbol in &index.symbols {
             if cached.as_ref().is_none_or(|(path, _)| path != &symbol.file) {
@@ -395,7 +395,7 @@ impl Catalog {
 
 /// The roots a reachability question starts from.
 ///
-/// This is a type rather than a `&[SymbolId]` because an empty slice is a legal value
+/// This is a type and not a `&[SymbolId]` because an empty slice is a legal value
 /// with a catastrophic meaning: nothing is reachable, so everything not exported reads
 /// as dead. The playground shipped exactly that — twenty symbols reported dead in the
 /// browser that the terminal reported live, including every `#[test]` function —
@@ -452,7 +452,7 @@ fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
     let m = &rule.matches;
     // A matcher with no conditions would tag every symbol in the language. `check_rules`
     // rejects one when a catalogue loads, which is where the useful message belongs; this
-    // is the backstop for a `Catalog` assembled directly rather than loaded. Both ask the
+    // is the backstop for a `Catalog` assembled directly and not loaded. Both ask the
     // same method, so they cannot come to different conclusions.
     if !m.names_a_condition() {
         return false;
@@ -553,7 +553,7 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// Does the catalog have any rule that could fire for this language?
 /// Is `symbol` annotated with `name` — `#[name]`, `#[path::name]` or `@name`?
 ///
-/// Reads the bytes above the definition rather than a captured fact: no grammar here
+/// Reads the bytes above the definition instead of a captured fact: no grammar here
 /// makes an attribute part of the symbol. Only the lines immediately above count, so a
 /// `#[test]` four declarations up does not leak onto this one.
 /// Is an annotation with this name written on the symbol?
@@ -564,7 +564,7 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// the symbol's own span, where a backwards search from that span's start never reaches
 /// it.
 ///
-/// Public so a recipe's `annotated-with=` predicate shares it rather than reimplementing
+/// Public so a recipe's `annotated-with=` predicate shares it instead of reimplementing
 /// it.
 pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
     annotation_on(symbol, name).is_some()
@@ -638,7 +638,7 @@ fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
 /// two is the argument: a route decorator names a URL path, and a mock names a module.
 ///
 /// A path held in a constant — `@app.get(PETS)` — is not matched. That is a real gap
-/// rather than a hidden one: the rule asks for something it can read, and says so.
+/// instead of a hidden one: the rule asks for something it can read, and says so.
 fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
     let Some((_, args)) = annotation.split_once('(') else {
         return false;
@@ -665,7 +665,7 @@ fn declaration_begins_with(source: &str, symbol: &Symbol, keyword: &str) -> bool
 
 /// Is this symbol called from its module's `if __name__ == "__main__":` block?
 ///
-/// The guard is a statement rather than a declaration, so there is no symbol to match a
+/// The guard is a statement and not a declaration, so there is no symbol to match a
 /// name against — which is why every other rule here could be written as a name and
 /// this one could not. What it calls is the program's starting point whatever it is
 /// called, and reporting nothing for a script that has one is the wrong answer to the
@@ -1018,7 +1018,7 @@ mod tests {
                 if has_rules { "has" } else { "has no" }
             );
         }
-        // And it is a real report rather than an empty one: some language has no rules
+        // And it is a real report and not an empty one: some language has no rules
         // and some language does, or the agreement above is vacuous.
         assert!(!gaps.is_empty(), "no gaps at all, so nothing was compared");
         assert!(

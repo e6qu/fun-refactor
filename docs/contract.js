@@ -9,7 +9,7 @@ import { specimen, split, paintDiff, paintReport, escape } from "./panes.js";
 
 // The contract, and everything it could not settle. Two panes, because they are two
 // halves of one answer: a baseline that quietly invents an entry is worse than no
-// baseline, so what it could not determine is beside it rather than filled in.
+// baseline, so what it could not determine is beside it and not filled in.
 specimen(document.getElementById("contract"), {
   title: "contract.yaml — derived from the tree, before the rewrite",
   command: "fr openapi --yaml > contract.yaml",

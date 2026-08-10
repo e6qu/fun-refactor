@@ -9,7 +9,7 @@
 //!
 //! These tests assert the exact resulting bytes, because "formatting outside the
 //! edited range survives" is only checkable against exact text. Where the SCSS grammar
-//! genuinely cannot parse a form, the test says so and pins the refusal rather than
+//! genuinely cannot parse a form, the test says so and pins the refusal instead of
 //! pretending the form works.
 
 use fun_refactor::{
@@ -550,10 +550,7 @@ fn reordering_module_variables_is_refused_as_meaningless() {
     let size = ws.symbol("size", SymbolKind::Variable);
     let error =
         refusal(signature::change(&ws.index, size, Change::Move { from: 1, to: 0 }).unwrap_err());
-    assert!(
-        error.contains("named rather than positional"),
-        "got: {error}"
-    );
+    assert!(error.contains("named and not positional"), "got: {error}");
 }
 
 #[test]
@@ -880,7 +877,7 @@ fn an_scss_function_has_a_signature_too() {
 }
 
 // The grammar is real but not complete. These two forms genuinely do not parse, so
-// the change refuses rather than editing around a call site it cannot see.
+// the change refuses instead of editing around a call site it cannot see.
 
 #[test]
 fn an_include_with_empty_parentheses_does_not_parse_and_blocks_the_change() {

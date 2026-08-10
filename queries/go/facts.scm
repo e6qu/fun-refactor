@@ -67,7 +67,7 @@
 
 ; ------------------------------------------------------------ definitions
 ; The package clause names the compilation unit every importer refers to, so it is
-; exported by construction rather than by capitalisation.
+; exported by construction and not by capitalisation.
 (package_clause
   "package" @export
   (package_identifier) @name) @definition.module
@@ -241,7 +241,7 @@
 
 ; ---------------------------------------------------------------- imports
 ; One `Import` per spec, so a grouped `import ( ... )` reports each path with its
-; own span rather than one span covering the whole block.
+; own span instead of one span covering the whole block.
 (import_spec
   !name
   path: (_) @import.path) @import

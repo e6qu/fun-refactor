@@ -22,7 +22,7 @@ typedef __SIZE_TYPE__ fr_size_t;
 /* tree-sitter-language's own wasm headers already declare malloc/calloc/realloc/
  * free/abort, the `mem*` family, `strlen`, `strncmp`, and the four wide classes
  * iswalpha/iswalnum/iswdigit/iswspace — as `static inline`, so re-declaring any of
- * them is an error rather than a duplicate. Only what they leave out is here. */
+ * them is an error instead of a duplicate. Only what they leave out is here. */
 
 _Noreturn void exit(int status);
 int strcmp(const char *a, const char *b);

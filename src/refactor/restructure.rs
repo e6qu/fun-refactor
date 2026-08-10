@@ -2,7 +2,7 @@
 //!
 //! `$NAME` in a pattern is a metavariable that matches any single node and binds its
 //! text; the same name in the template substitutes that text back. Matching is
-//! structural rather than textual, so `$A + $B` matches an addition however it is
+//! structural and not textual, so `$A + $B` matches an addition however it is
 //! spaced, and never matches inside a string or comment.
 //!
 //! Syntactic only: it carries no name resolution or type information, and the reparse
@@ -37,7 +37,7 @@
 //! - **YAML/Helm**: a pattern is a mapping pair or a nested mapping. Helm `{{ ... }}`
 //!   actions are masked out before the YAML parse (see [`crate::parse`]), so
 //!   they carry no structure: a pattern may not contain one, and any match whose span
-//!   covers or runs up against one is dropped rather than rewritten from a tree that
+//!   covers or runs up against one is dropped and not rewritten from a tree that
 //!   never saw those bytes.
 //! - **CSS/SCSS**: a rule, a declaration or a selector, in that order of preference.
 //! - **HTML/XML**: an element. An XML attribute value is one token *including* its
@@ -122,7 +122,7 @@ pub fn apply(
     let parsers = Parsers::new();
 
     // Helm's `{{ ... }}` actions are masked out before the YAML parse, so a
-    // pattern containing one would be matched against blanks. Say so rather than
+    // pattern containing one would be matched against blanks. Say so and not
     // silently matching nothing.
     if language == Language::Helm && pattern.contains("{{") {
         return Err(Refusal::Unsupported {
@@ -142,7 +142,7 @@ pub fn apply(
     let encoded = encode_metavariables(pattern);
     let (pattern_parsed, pattern_source, offset, trim_trailing) =
         parse_fragment(&parsers, language, &encoded, pattern)?;
-    // Located again rather than returned: a `Node` borrows its tree, and handing the
+    // Located again and not returned: a `Node` borrows its tree, and handing the
     // tree back out of `parse_fragment` alongside a node borrowed from it would need a
     // self-referential struct to say. Re-walking a fragment-sized tree costs nothing.
     let pattern_root = fragment_root(&pattern_parsed, offset, encoded.len())
@@ -194,7 +194,7 @@ pub fn apply(
         .into());
     }
 
-    // Both are properties of the template, so they are decided once rather than per
+    // Both are properties of the template, so they are decided once and not per
     // match site.
     // Only where `( … )` groups a sub-expression. A CSS selector's parent is an
     // `attribute_selector` or a `descendant_selector`, which look exactly like operator
@@ -429,7 +429,7 @@ struct Metavariable {
 /// one token, quotes included, so `id="$X"` has nothing else to bind to. The quoted
 /// spelling is deliberately restricted to leaves: where a grammar does expose the
 /// text inside the quotes, that inner node is what a metavariable binds, and a
-/// pattern string stays a pattern string rather than matching any node at all.
+/// pattern string stays a pattern string instead of matching any node at all.
 fn metavariable(node: Node<'_>, source: &str) -> Option<Metavariable> {
     // Some grammars fold padding into a node — tree-sitter-yaml keeps the space
     // after a `-` sequence marker inside the item — so compare trimmed.
@@ -785,7 +785,7 @@ fn substitute(
                     chars.next();
                 }
             }
-            // An unbound metavariable is left as written rather than silently
+            // An unbound metavariable is left as written and not silently
             // dropped, so a typo in the template is visible in the diff.
             None => out.push('$'),
         }

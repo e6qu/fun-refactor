@@ -150,7 +150,7 @@ impl Cx<'_> {
     /// invented parameters called `// how this language separates the parts of a
     /// qualified name`, which every target dutifully wrote into the signature.
     ///
-    /// So they are filtered here, once, rather than in the twenty places that would
+    /// So they are filtered here, once, and not in the twenty places that would
     /// each have to remember. The one place that genuinely wants them —
     /// [`Cx::children_with_comments`] — asks for them by name.
     fn children<'t>(&self, node: Node<'t>) -> Vec<Node<'t>> {
@@ -161,7 +161,7 @@ impl Cx<'_> {
     }
 
     /// The named children, comments included — for a statement block, which translates
-    /// them rather than skipping them.
+    /// them instead of skipping them.
     fn children_with_comments<'t>(&self, node: Node<'t>) -> Vec<Node<'t>> {
         let mut cursor = node.walk();
         node.named_children(&mut cursor).collect()
@@ -194,7 +194,7 @@ fn unsuffixed(text: &str) -> String {
 /// Is this node a comment, in whichever grammar produced it?
 ///
 /// The six grammars spell it three ways — `comment`, `line_comment`, `block_comment` —
-/// and Rust adds `inner_doc_comment_marker`. Matching on the substring rather than on
+/// and Rust adds `inner_doc_comment_marker`. Matching on the substring and not on
 /// the list means a seventh language cannot arrive with a fourth spelling and be read
 /// as a parameter.
 fn is_comment(node: Node<'_>) -> bool {
@@ -224,7 +224,7 @@ fn call_or_carry(cx: &Cx, node: Node<'_>, callee: Expr, args: Vec<Expr>) -> Expr
 fn has_unsupported_expr(stmt: &Stmt) -> bool {
     // Exhaustive on purpose — no `_` arm. The three cases this originally missed
     // were `MapLit`, `Template` and `Comprehension`, and each produced a silent wrong
-    // answer rather than a gap: `session?.user.id` inside an object literal came out
+    // answer instead of a gap: `session?.user.id` inside an object literal came out
     // as `None.id`, with the original nowhere in the file. A new variant must not be
     // able to join them quietly, so the compiler is made to ask.
     fn bad(e: &Expr) -> bool {
@@ -538,7 +538,7 @@ mod rust {
             doc: doc_above(cx, node, &["///", "//"]),
             name: plain(cx.field_text(node, "name").unwrap_or_default()),
             fields,
-            // Rust composes rather than inherits: a trait is a contract, not a base.
+            // Rust composes and not inherits: a trait is a contract, not a base.
             extends: None,
             exported: node
                 .children(&mut node.walk())
@@ -664,7 +664,7 @@ mod rust {
     ///
     /// Only the body's own tail. A tail inside an `if` is a return too, and reading it
     /// as one needs the whole of Rust's block-expression rule; that is left as it was
-    /// rather than half-done.
+    /// and not half-done.
     fn function_body(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
         let mut body = block(cx, node);
         // The tail is an expression the grammar did not wrap in a statement. Anything
@@ -1172,7 +1172,7 @@ mod python {
     ///
     /// Python has no declaration keyword, so `x = 1` declares the first time and
     /// assigns every time after. Reading all of them as declarations produced
-    /// `let total = total + x;` inside a Rust loop — which shadows rather than
+    /// `let total = total + x;` inside a Rust loop — which shadows and not
     /// accumulates, so the value outside the loop never changed. Nothing downstream
     /// can catch that: it parses, it type-checks, and it is the wrong program.
     ///
@@ -1752,7 +1752,7 @@ mod python {
             "comparison_operator" | "boolean_operator" | "binary_operator" => {
                 // `is not` and `not in` are two tokens. Reading only the first turned
                 // `x is not None` into `x == None`, which is the opposite of what it
-                // says — a wrong answer rather than a missing one.
+                // says — a wrong answer instead of a missing one.
                 let mut cursor = node.walk();
                 let operator: String = node
                     .children(&mut cursor)
@@ -1972,7 +1972,7 @@ mod go {
             doc: doc_above(cx, spec, &["//"]),
             exported: name.chars().next().is_some_and(|c| c.is_uppercase()),
             name,
-            // Go embeds rather than inherits.
+            // Go embeds and not inherits.
             extends: None,
             fields,
             methods: Vec::new(),
@@ -2349,7 +2349,7 @@ mod java {
                         });
                     }
                 }
-                // A constructor is a method that makes the type rather than acting on
+                // A constructor is a method that makes the type and not acting on
                 // one, and every target spells it its own way — so what carries is that
                 // it *is* one, not what it is called.
                 "method_declaration" | "constructor_declaration" => {
@@ -2516,7 +2516,7 @@ mod java {
                     .collect();
                 // `int a = 1, b = 2;` is two bindings in one statement and the IR has a
                 // place for one; carrying it whole keeps the source in front of the
-                // reader rather than silently dropping the second.
+                // reader and not silently dropping the second.
                 match declarators.as_slice() {
                     [only] => Stmt::Let {
                         name: cx.field_text(*only, "name").unwrap_or_default(),
@@ -2585,7 +2585,7 @@ mod java {
                     match child.kind() {
                         "catch_clause" => {
                             // `catch (IllegalStateException error)` holds a `catch_type`
-                            // and an identifier as plain children rather than as named
+                            // and an identifier as plain children and not as named
                             // fields, so asking for fields lost both the exception type
                             // and the name the body uses.
                             let parameter = cx
@@ -2809,7 +2809,7 @@ mod java {
 ///
 /// Two things shape this reader. A `variable_declaration` with no `var` or `const` in
 /// front of it is an **assignment**, not a declaration — the grammar reuses the node —
-/// so telling the two apart means reading the keyword rather than the node kind. And a
+/// so telling the two apart means reading the keyword instead of the node kind. And a
 /// type is a value: `const Reading = struct { … };` is a `variable_declaration` whose
 /// value happens to be a struct, which is where records come from.
 ///
@@ -3440,7 +3440,7 @@ mod zig {
 mod typescript {
     /// Does this access use `?.`?
     ///
-    /// The grammar makes `optional_chain` a child rather than a field, so the only way
+    /// The grammar makes `optional_chain` a child instead of a field, so the only way
     /// to ask is to look. Worth asking: `a?.b` and `a.b` differ exactly where it
     /// matters, and the difference is invisible in the text this reader keeps.
     fn has_optional_chain(node: Node<'_>) -> bool {
@@ -4077,7 +4077,7 @@ mod typescript {
                 };
                 let operator = cx.field_text(node, "operator").unwrap_or_default();
                 // `a ?? b` asks whether the left side is absent, which is a question
-                // rather than an arithmetic operator — half these languages spell it
+                // instead of an arithmetic operator — half these languages spell it
                 // with a word or a method, and one cannot spell it at all.
                 if operator == "??" {
                     return Expr::Coalesce {
@@ -4118,7 +4118,7 @@ mod typescript {
                 .unwrap_or(Expr::Null),
             // `x as T`, `x satisfies T` and `x!` are assertions to the type checker
             // and have no runtime effect whatever. The value is the expression, so
-            // the translation is exact rather than a gap — and leaving them
+            // the translation is exact instead of a gap — and leaving them
             // unhandled carried a whole statement over something that meant nothing.
             "new_expression" => Expr::New {
                 callee: Box::new(
@@ -4145,7 +4145,7 @@ mod typescript {
 
 /// Split `Name<A, B>` or `Name[A, B]` into its base and its arguments.
 ///
-/// Nesting is respected, so `Result<Vec<T>, E>` yields two arguments rather than
+/// Nesting is respected, so `Result<Vec<T>, E>` yields two arguments instead of
 /// three. A name with no brackets is itself with no arguments.
 fn split_generic(text: &str) -> (String, Vec<String>) {
     let trimmed = text.trim();
@@ -4291,7 +4291,7 @@ fn unquote(text: &str) -> String {
     t.to_string()
 }
 
-/// A string literal's **value**, with the escapes read rather than carried.
+/// A string literal's **value**, with the escapes read and not carried.
 ///
 /// The IR holds what the string *is*, not how the source spelled it. Carrying the
 /// spelling meant every writer escaped the backslash again on the way out, so a string

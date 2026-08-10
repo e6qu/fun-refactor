@@ -1,7 +1,7 @@
 //! Go template parsing for Helm charts, and what it lets the analyses say.
 //!
 //! Two halves. The first parses action text directly: a template action is a small
-//! language, and the tests pin what each construct means rather than what a
+//! language, and the tests pin what each construct means and not what a
 //! substring happens to contain. The second drives the public API over a realistic
 //! chart — subchart, `_helpers.tpl`, `include`, a `{{- if }}`-wrapped block and a
 //! `{{ if }}`-guarded environment variable — and pins either the resolved answer or
@@ -720,7 +720,7 @@ fn two_chart_values_files_have_a_decided_winner() {
         "nothing here is undetermined: {:?}",
         stops(&result)
     );
-    // The external channel is still reported — it replaces the answer rather than
+    // The external channel is still reported — it replaces the answer instead of
     // reordering these two.
     assert!(
         result.stopped_because(|r| matches!(

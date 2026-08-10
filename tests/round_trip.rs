@@ -203,7 +203,7 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             }
             let there = there_and_back(file, *to);
             let after = signatures(&there);
-            // The whole list at once, sorted, rather than each name looked up in turn:
+            // The whole list at once, sorted, instead of each name looked up in turn:
             // a name is not unique. Java overloads `add(Boolean)` beside
             // `add(Character)`, and Zig writes a `deinit` in every struct in the file,
             // so looking one up by name compares two different functions and calls the

@@ -1,8 +1,8 @@
 //! Valid source the grammars cannot read.
 //!
 //! Each of these is accepted by the language's own reference implementation and produces
-//! an error node here. They are recorded rather than worked around, and they are pinned
-//! rather than merely written down, for two reasons pointing opposite ways: a grammar
+//! an error node here. They are recorded and not worked around, and they are pinned
+//! and not merely written down, for two reasons pointing opposite ways: a grammar
 //! upgrade that fixes one should be noticed and the entry retired, and a grammar that
 //! starts reading one of these *without* an error node while still building the wrong
 //! tree would be worse than the error — a wrong answer with nothing to say it is one.
@@ -164,7 +164,7 @@ fn scss_cannot_read_these_forms() {
 /// The entry said `@content` inside a mixin was among the gaps, from a run over
 /// `grafana/grafana`. It parses — bare, nested, and with arguments — so the claim was
 /// either wrong when written or fixed upstream since, and nothing re-checked it. These
-/// are here so that a regression is a failure rather than a quietly wider limitation.
+/// are here so that a regression is a failure and not a quietly wider limitation.
 #[test]
 fn scss_can_read_these_forms() {
     let cases = [
@@ -287,7 +287,7 @@ fn helm_masking_produces_parseable_yaml() {
 
 /// And the one the masking leaves wrong on purpose.
 ///
-/// A key supplied by a template is reported rather than invented, because a
+/// A key supplied by a template is reported and not invented, because a
 /// plausible-looking fake key hides more than a parse error does.
 #[test]
 fn helm_leaves_a_templated_key_visibly_wrong() {

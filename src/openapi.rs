@@ -18,7 +18,7 @@
 //! - **Schemas**: as good as the declaration — an exported `interface` or a zod schema.
 //!   A body validated by hand appears nowhere.
 //! - **Responses**: `default` only. Which status an endpoint returns is a fact about its
-//!   code rather than its declaration.
+//!   code instead of its declaration.
 //!
 //! Anything undetermined goes in [`Baseline::notes`]. An invented entry would make the
 //! diff come out clean while the contract shrank.
@@ -195,7 +195,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                 "Derived from a Next.js route tree by fun-refactor. Paths, methods and \
                  path parameters are exact; schemas are as good as what the source \
                  declared; responses are not declared by the source and are `default` \
-                 here rather than invented. See the notes beside it.",
+                 here and not invented. See the notes beside it.",
         },
         "paths": Value::Object(paths),
         "components": { "schemas": Value::Object(schemas) },
@@ -252,7 +252,7 @@ fn schema_of(model: &Model, notes: &mut Vec<String>) -> Value {
             continue;
         };
         // Optional says the field may be absent, which OpenAPI spells by leaving it out
-        // of `required` rather than by changing its type.
+        // of `required` and not by changing its type.
         let optional = matches!(ty, Type::Optional(_));
         if !optional {
             required.push(Value::String(name.clone()));
@@ -282,7 +282,7 @@ fn json_type(ty: &Type) -> Value {
         Type::Named { name, .. } => match name.as_str() {
             "datetime" => json!({ "type": "string", "format": "date-time" }),
             // A type this tool does not know is not a type OpenAPI can be told about.
-            // `{}` is "anything", which is true, rather than a guess that is not.
+            // `{}` is "anything", which is true, instead of a guess that is not.
             _ => json!({}),
         },
     }
@@ -300,7 +300,7 @@ fn json_type(ty: &Type) -> Value {
 ///
 /// It reads what is written, not what will happen. A route added at run time, a router
 /// mounted under a prefix, a dependency that rejects the request: none of those are
-/// here, and the document says so rather than pretending otherwise.
+/// here, and the document says so instead of pretending otherwise.
 pub fn from_fastapi(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseline> {
     const METHODS: &[&str] = &["get", "post", "put", "patch", "delete", "head", "options"];
 

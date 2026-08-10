@@ -13,7 +13,7 @@
 //!     [`reject_hidden_call_sites`].
 //!   * Terraform. A module is a directory; its parameters are the `variable "x" {}`
 //!     blocks declared in it, and its call sites are `module "m" { source = "./dir" }`
-//!     blocks pointing at that directory. Arguments there are named rather than
+//!     blocks pointing at that directory. Arguments there are named and not
 //!     positional, so a change addresses a position in the variables' document order and
 //!     rewrites the named argument at each call site: [`terraform_module`].
 //!   * Bash. A shell function declares no parameter list, but still has a signature: the
@@ -50,7 +50,7 @@ pub enum Change {
 impl Change {
     /// Parse `remove:1`, `move:1:2` or `add:2:flag: bool:false`.
     ///
-    /// Here rather than in the CLI because a recipe's `signature "…"` step writes the
+    /// Here and not in the CLI because a recipe's `signature "…"` step writes the
     /// same syntax, and two parsers for one syntax is two chances to disagree.
     ///
     /// Three fields, not four. The declaration may itself contain colons — `flag: bool`
@@ -505,7 +505,7 @@ fn open_a_parameter_list(
 /// Refuse when a file that could hold a call site did not parse cleanly.
 ///
 /// A call site inside an ERROR node produces no reference, so it is invisible to the
-/// index rather than weakly resolved — the confidence check above cannot see it. In
+/// index and not weakly resolved — the confidence check above cannot see it. In
 /// SCSS this is not hypothetical: `@include m();` with empty parentheses and the
 /// namespaced `@include ns.m()` both fail to parse under tree-sitter-scss, and each
 /// one is a call this change would leave behind.
@@ -908,7 +908,7 @@ fn shell_positionals(
                     Some("expansion") => true,
                     Some("simple_expansion") => false,
                     other => anyhow::bail!(
-                        "`${text}` at {} sits inside a {} rather than an expansion, so the \
+                        "`${text}` at {} sits inside a {} instead of an expansion, so the \
                          tool cannot tell what rewriting it would mean",
                         location(&sym.file, node.start_byte()),
                         other.unwrap_or("(nothing)")
@@ -1058,7 +1058,7 @@ pub(super) fn shell_source_graph(
     (sources, opaque)
 }
 
-/// Is this `source` argument a fixed path, rather than one computed at run time?
+/// Is this `source` argument a fixed path, instead of one computed at run time?
 fn is_literal_shell_path(path: &str) -> bool {
     !path.is_empty() && !path.contains(['$', '`', '*', '?', '[', '~'])
 }
@@ -1456,7 +1456,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             return Err(Refusal::Unsupported {
                 operation: "reordering module variables".to_string(),
                 language: Language::Hcl,
-                because: "a Terraform module's arguments are named rather than \
+                because: "a Terraform module's arguments are named and not \
                           positional, so moving a `variable` block changes nothing at any \
                           call site"
                     .to_string(),

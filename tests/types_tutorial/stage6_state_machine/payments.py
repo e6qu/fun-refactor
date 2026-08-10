@@ -188,7 +188,7 @@ def capture(payment: Authorized, vendor: PayoutEnabledVendor) -> Captured:
 
 def refund(payment: Captured, amount: Money) -> Refunded | Captured:
     assert isinstance(payment, Captured), "not captured"
-    # This one stays. It relates two values rather than naming a state, and no type
+    # This one stays. It relates two values instead of naming a state, and no type
     # here can say "no larger than the amount in that other object".
     if amount.exceeds(payment.amount):
         return payment

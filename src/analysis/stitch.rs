@@ -5,16 +5,16 @@
 //! supplies the `value` of a container environment variable, and the program reads
 //! that variable by name at runtime. Three files, three languages, one value.
 //!
-//! Every link here is name-keyed rather than resolved — an environment variable is
+//! Every link here is name-keyed and not resolved — an environment variable is
 //! matched by the string a program passes to `getenv`, which no static analysis can
 //! prove refers to the same variable a manifest declares. So every chain carries
-//! [`Confidence::NameOnly`] on that hop and says so, rather than presenting a guess
+//! [`Confidence::NameOnly`] on that hop and says so, instead of presenting a guess
 //! as a fact.
 //!
 //! The manifest end of the chain is read with [`crate::helm`]: the `.Values` path
 //! behind a variable lives inside a `{{ ... }}` action, which is masked out before
 //! the YAML parse, and a `{{ if }}` around the `value:` decides whether that branch
-//! is the one that renders. Both are parsed rather than matched by line number.
+//! is the one that renders. Both are parsed and not matched by line number.
 
 use crate::helm;
 use crate::index::Index;
@@ -41,7 +41,7 @@ pub struct Chain {
     ///
     /// A `{{ if }}`-guarded `value:` is one branch of several, so the chain holds
     /// only when its condition does. Two branches produce two chains for the same
-    /// variable, each naming its own condition, rather than one that silently picks.
+    /// variable, each naming its own condition, instead of one that silently picks.
     pub conditional_on: Option<String>,
     /// Every place the program reads the variable.
     pub reads: Vec<EnvRead>,
@@ -328,7 +328,7 @@ struct NamedRead {
 /// Every environment-variable read in the workspace's code.
 ///
 /// These are matched textually against the well-known accessors of each language,
-/// because the variable's name is a string argument rather than a resolvable symbol.
+/// because the variable's name is a string argument and not a resolvable symbol.
 /// A read built from a computed name is invisible here and cannot be otherwise.
 fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
     let mut reads = Vec::new();
@@ -452,7 +452,7 @@ fn variable_name_after(rest: &str, skip_arguments: usize) -> Option<String> {
     let mut rest = rest;
     for _ in 0..skip_arguments {
         // Only a flat argument list is followed. A name reached past a nested call or a
-        // struct literal is not read rather than guessed at, on the same footing as a
+        // struct literal is not read and not guessed at, on the same footing as a
         // name computed at run time.
         let comma = rest.find(',')?;
         if rest[..comma].contains(['(', ')', '{', '}']) {

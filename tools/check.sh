@@ -2,7 +2,7 @@
 #
 # Everything CI's `check` job runs, in the order it runs it.
 #
-# CI calls this script rather than listing the commands itself, so there is one
+# CI calls this script instead of listing the commands itself, so there is one
 # definition of what passing means. A local run that checks a subset — tests and
 # clippy but not formatting, say — reports green for a branch CI will reject, and
 # the difference is only discovered after the push.

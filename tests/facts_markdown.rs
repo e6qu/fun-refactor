@@ -10,7 +10,7 @@
 //! extractor: an ATX heading's optional closing marker (`## Title ##`) and the
 //! brackets of a link label (`[label]`). A rename rewrites exactly the name span, so
 //! either one left in place would corrupt the file. Anchor destinations do still
-//! include their leading `#`, which is pinned here rather than hidden.
+//! include their leading `#`, which is pinned here and not hidden.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -203,7 +203,7 @@ fn footnote_definitions_and_uses_both_surface_as_references() {
     // NOT AVAILABLE: this grammar has no footnote rule either — `[^fn]: text` is a
     // paragraph whose inline content is the shortcut link `[^fn]` — so there is no
     // LinkDef symbol for a footnote. Both occurrences are still found, which is what
-    // a rename needs, so this is a missing symbol rather than a missing edit site.
+    // a rename needs, so this is a missing symbol and not a missing edit site.
     let src = "Text with a note[^fn].\n\n[^fn]: the note\n";
     let f = facts(src);
     assert!(names(&f, SymbolKind::LinkDef).is_empty());

@@ -2,7 +2,7 @@
 //!
 //! Scratch measurement: tabulate every resolved reference as
 //! (language it is written in) -> (language it resolves into), so the cross-language
-//! edges that exist can be counted rather than assumed.
+//! edges that exist can be counted and not assumed.
 use fun_refactor::index::Index;
 use fun_refactor::scan::{scan, ScanOptions};
 use std::collections::BTreeMap;
@@ -85,7 +85,7 @@ fn main() -> anyhow::Result<()> {
         println!("    {from:>10} -> {to:<10} {n:>6}   {}", detail.join(", "));
     }
     // Name the individual crossings for the pairs the caller asks about, so a
-    // surprising edge can be looked at rather than believed.
+    // surprising edge can be looked at and not believed.
     if let Some(want) = std::env::args().nth(2) {
         let (from_want, to_want) = want.split_once("->").unwrap_or((want.as_str(), ""));
         println!("\n  crossings {from_want} -> {to_want}:");

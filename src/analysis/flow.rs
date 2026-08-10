@@ -10,7 +10,7 @@
 //! assuming a value flows through an unknown call.
 //!
 //! Each step records the confidence of the resolution that produced it, so a chain
-//! containing a weak link is visibly weak rather than silently wrong.
+//! containing a weak link is visibly weak and not silently wrong.
 
 use crate::index::Index;
 use crate::lang::LanguageClass;

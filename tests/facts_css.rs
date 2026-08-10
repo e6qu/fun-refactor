@@ -207,7 +207,7 @@ fn a_realistic_stylesheet_parses_cleanly() {
 
 #[test]
 fn scss_variables_parse_on_the_scss_grammar() {
-    // SCSS has its own grammar now, so `$variables` are syntax rather than errors.
+    // SCSS has its own grammar now, so `$variables` are syntax and not errors.
     let src = "$brand: #3366ff;\n.a { color: $brand; }\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
     assert!(

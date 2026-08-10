@@ -120,7 +120,7 @@ impl Language {
             Language::Java => &["java"],
             // JavaScript is parsed by the TypeScript grammar, which is a superset of
             // it, and read by the same queries. Mapping the extensions onto these two
-            // rather than adding variants is what keeps the two from drifting: every
+            // instead of adding variants is what keeps the two from drifting: every
             // `matches!(lang, TypeScript | Tsx)` in the codebase would otherwise be a
             // place JavaScript could be left out of.
             Language::TypeScript => &["ts", "mts", "cts", "js", "mjs", "cjs"],
@@ -301,7 +301,7 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
 /// `Vec::push` call in Rust into `out.pushReading(…)`.
 ///
 /// A cross-language edge is real only where the two languages have a mechanism for
-/// naming each other's declarations. This enumerates those mechanisms rather than
+/// naming each other's declarations. This enumerates those mechanisms instead of
 /// inferring them: a wrong one produces an edit that compiles elsewhere and breaks here.
 ///
 /// Absent: every pair of imperative languages. Rust cannot name a Zig method, Go cannot

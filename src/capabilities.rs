@@ -168,10 +168,10 @@ impl Support {
 
 const NO_BINDING_FORM: &str =
     "markup has no binding form: a reusable value here is a CSS custom property, which \
-     belongs to the stylesheet rather than the document";
+     belongs to the stylesheet instead of the document";
 const NO_CALLABLES: &str = "this language has no functions, so there is nothing to call";
 const NO_SUBSTITUTION: &str =
-    "this language executes rather than substitutes, so dataflow answers this instead";
+    "this language executes and not substitutes, so dataflow answers this instead";
 
 /// Why a capability is absent, said about *this* language.
 ///
@@ -246,7 +246,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
                     "nothing here is executed, so there is no point at which a runtime \
                      starts",
                     "no entry-point rules are written for this language yet; they are \
-                     catalogue data rather than code, so adding them is a file under \
+                     catalogue data and not code, so adding them is a file under \
                      `catalogs/` naming what a runtime here is pointed at",
                 )
             }
@@ -311,7 +311,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             } else if language == Language::Bash {
                 Support::NotApplicable {
                     because: "a shell function returns a status, not a value, so a call \
-                              is a statement rather than an expression to substitute",
+                              is a statement and not an expression to substitute",
                 }
             } else {
                 absent(
@@ -350,7 +350,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // Asked of the operation rather than restated here; the two had drifted.
+        // Asked of the operation and not restated here; the two had drifted.
         C::OrganizeImports => match crate::refactor::imports::why_not_organizable(language) {
             None => Support::Yes,
             Some(because) => Support::NotApplicable { because },
@@ -363,7 +363,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 absent(
                     language,
                     "there is no conditional here for a flag to guard, so removing one is \
-                     a rename or a delete rather than a cascade",
+                     a rename or a delete instead of a cascade",
                     "the cascade knows how to fold a constant into the conditionals of \
                      some languages and this is not one of them yet",
                 )
@@ -393,7 +393,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         }
 
         // The contract lives in the *tree* — a Next.js route's URL is where its file
-        // sits — so this is a question about one framework rather than one language.
+        // sits — so this is a question about one framework and not one language.
         C::Openapi => match language {
             Language::TypeScript | Language::Tsx => Support::Yes,
             _ => Support::NotApplicable {
@@ -403,7 +403,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         },
 
         C::MoveToFile => match crate::refactor::move_symbol::why_not_move(language) {
-            // Asked of the operation rather than restated here. The table said Java
+            // Asked of the operation and not restated here. The table said Java
             // could be moved and the operation refused it, which is the table lying
             // about the tool in the tool's own words.
             None => Support::Yes,
@@ -425,7 +425,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         C::DeclaredType => {
             // The question is "what did the source write down", so the answer is yes
             // wherever a language has somewhere to write one. Bash has no type
-            // syntax at all; markup and configuration have values rather than
+            // syntax at all; markup and configuration have values and not
             // declarations, and a key in a YAML file is not annotated with anything.
             if matches!(
                 language,
@@ -448,7 +448,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         C::Stitch => {
             // A manifest declares the variables; a program reads them. The reading half
-            // asks the analysis rather than repeating its list, which is how this row
+            // asks the analysis instead of repeating its list, which is how this row
             // came to claim that Java and Zig do not read the environment.
             if matches!(language, Language::Helm | Language::Yaml)
                 || crate::analysis::stitch::reads_environment(language)

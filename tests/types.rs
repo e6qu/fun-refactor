@@ -1,6 +1,6 @@
 //! The type a symbol was declared with, in each language that writes one down.
 //!
-//! Nothing here is inferred, and that is the point rather than a limitation. `x = 5`
+//! Nothing here is inferred, and that is the point and not a limitation. `x = 5`
 //! has no declared type; answering `int` would be a different claim from the one the
 //! source made, and a tool that quietly fills the gap in cannot show the gap closing.
 
@@ -76,7 +76,7 @@ fn a_binding_with_an_annotation_reports_it() {
 #[test]
 fn a_callable_reports_the_signature_a_caller_has_to_satisfy() {
     // The return type alone is not what a caller needs to know, and a parameter the
-    // source left untyped is marked rather than filled in.
+    // source left untyped is marked and not filled in.
     for files in [&[("a.py", PY)][..], &[("a.ts", TS)][..]] {
         let found = describe(files, "capture");
         assert_eq!(
@@ -252,7 +252,7 @@ fn a_field_gives_what_its_record_declared() {
 fn an_object_literal_is_not_answered_with_dict() {
     // `{"amount": 100}` is a dict and saying so is true and useless: a dictionary is
     // where a type should have been, and a tool that answers `dict` has agreed with the
-    // code rather than described it.
+    // code and not described it.
     for (files, name) in [
         (&[("a.py", PY_INFER)][..], "bag"),
         (&[("a.ts", TS_INFER)][..], "bag"),
@@ -276,7 +276,7 @@ fn a_call_out_of_the_workspace_yields_nothing() {
 fn a_declaration_wins_over_a_derivation() {
     // An annotation is a contract and an inference is a derivation. Where both could
     // apply the contract is the answer, and a disagreement is a defect in the code
-    // rather than a choice for this to make.
+    // instead of a choice for this to make.
     let source = "\
 class Money:
     pass

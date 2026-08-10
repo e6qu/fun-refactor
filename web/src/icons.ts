@@ -2,7 +2,7 @@
  * Inline SVG, because a strict CSP blocks every external host and an icon font is a
  * megabyte to draw a dozen shapes.
  *
- * All of them are 24×24, stroked rather than filled, and use `currentColor` — so a
+ * All of them are 24×24, stroked and not filled, and use `currentColor` — so a
  * button's colour and the theme decide what they look like, and no icon needs a
  * second version for dark mode.
  */
@@ -26,7 +26,7 @@ export const ICONS: Record<string, string> = {
   /**
    * Implementations: one abstraction on top, the concrete types under it.
    *
-   * Drawn as a hierarchy rather than a single glyph because that is the shape of the
+   * Drawn as a hierarchy instead of a single glyph because that is the shape of the
    * answer — the first attempt was a box on a stem and read as a desk lamp.
    */
   implementations: svg(

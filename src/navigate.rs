@@ -7,7 +7,7 @@
 //!
 //! So every answer here is a list, each entry carrying the confidence of the
 //! resolution that produced it, and callers decide how much of the tail to show
-//! rather than being handed one result that looks certain.
+//! instead of being handed one result that looks certain.
 
 use crate::analysis::call_graph::Hierarchy;
 use crate::index::Index;
@@ -41,7 +41,7 @@ pub struct Definition {
 
 /// How a definition relates to what was asked about.
 ///
-/// Serialised as a token rather than the variant name, so `--json` spells it the way
+/// Serialised as a token instead of the variant name, so `--json` spells it the way
 /// every other enum here does and the browser does not have to know Rust's naming.
 /// The prose the terminal prints is [`DefinitionRole::as_str`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
@@ -491,7 +491,7 @@ impl Shape for Square {
         // The name of this test says "in path order" and for a long time it checked
         // only that there was more than one group. A function returning them in
         // whatever order the hash map felt like would have passed — and the order is
-        // the whole reason a caller groups rather than reading the flat list.
+        // the whole reason a caller groups instead of reading the flat list.
         let paths: Vec<&std::path::Path> = grouped.keys().map(|path| path.as_path()).collect();
         let mut sorted = paths.clone();
         sorted.sort();

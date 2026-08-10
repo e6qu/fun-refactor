@@ -304,7 +304,7 @@
       A fixture is written by whoever writes the assertion. So the same translations
       run over two MIT-licensed projects vendored unmodified and pinned —
       <code>fastapi/full-stack-fastapi-template</code> and
-      <code>shadcn-ui/taxonomy</code> — asserting three properties rather than exact
+      <code>shadcn-ui/taxonomy</code> — asserting three properties and not exact
       output: it parses as what it claims to be, it adopts the target's conventions,
       and nothing goes missing quietly.
     </p>
@@ -364,7 +364,7 @@
     <p>
       <strong>FastAPI derives OpenAPI from the code</strong> — the decorator gives the
       URL and method, the annotated parameters give the path parameters, a Pydantic
-      model gives the body schema. The contract is a projection of the types rather than
+      model gives the body schema. The contract is a projection of the types instead of
       a document somebody maintains. <strong>Next.js has no built-in equivalent.</strong>
     </p>
     <p>
@@ -387,7 +387,7 @@ async def delete(post_id: str, req: Request):
       The rewrite is behaviour-preserving and contract-shrinking at once, and every test
       you have will pass. The tool does not add <code>status_code=</code> to the
       decorator, because which status is the <em>success</em> one is a judgement about
-      the endpoint rather than a fact about the syntax. It lists every status it saw and
+      the endpoint instead of a fact about the syntax. It lists every status it saw and
       says what will happen if you leave them where they are.
     </p>
 
@@ -486,7 +486,7 @@ async def delete(post_id: str, req: Request):
         </tr>
         <tr>
           <td><code>playground/?render_as=json</code></td>
-          <td>The same interface described rather than drawn: the panes and what is in
+          <td>The same interface described and not drawn: the panes and what is in
               them, the toolbar, and every action with whether it can run and why not.</td>
         </tr>
         <tr>
@@ -590,7 +590,7 @@ size      3791 KiB
     <p>
       <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">BUGS.md</a> lists
       every one, each with the measurement that established it. In summary: reachability
-      under dynamic dispatch is undecidable from source and is reported rather than
+      under dynamic dispatch is undecidable from source and is reported and not
       guessed; Helm values passed on a command line are invisible to a workspace scan
       unless you supply them with <code>-f</code> and <code>--set</code>; CSS classes
       named inside TSX helper calls are not resolved, which measurably costs about

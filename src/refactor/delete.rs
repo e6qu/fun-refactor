@@ -47,7 +47,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
     // Every definition site of the entity, so a CSS class declared by both `.btn` and
-    // `.btn:hover` goes away as a whole rather than half.
+    // `.btn:hover` goes away as a whole and not half.
     let group = index.definition_group(symbol);
     // Some definitions cannot be removed on their own: a CSS selector leaves an
     // orphaned rule behind, so the span is widened to what actually has to go.
@@ -221,7 +221,7 @@ pub enum SparedReason {
     /// declaring the same function twice under opposite build tags. Every candidate
     /// stays live.
     AmbiguousMemberCall,
-    /// It names where the file lives rather than something in it: Java's `package app;`,
+    /// It names where the file lives instead of something in it: Java's `package app;`,
     /// Go's `package main`. Nothing ever references one, so "unused" is true of all of
     /// them and says nothing.
     NamesTheFilesPlace,
@@ -283,7 +283,7 @@ impl UnusedReport {
                     .to_string()
             }
             SparedReason::NamesTheFilesPlace => {
-                "it names where the file lives rather than something in it; nothing \
+                "it names where the file lives instead of something in it; nothing \
                  references a package clause and removing one is a syntax error"
                     .to_string()
             }
@@ -338,7 +338,7 @@ pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
 /// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose
 /// `address` and `active`.
 ///
-/// Java only, because there the convention is a specification rather than a habit:
+/// Java only, because there the convention is a specification and not a habit:
 /// template engines, JSON mappers and Spring's own data binding all reach a getter by
 /// the property name and never write the method's. `spring-petclinic` called
 /// `Owner::getAddress` dead while its template says `${owner.address}` and its tests say
@@ -373,7 +373,7 @@ fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
 ///
 /// A labelled block takes its name from a string label; a block with no labels takes it
 /// from the block-type keyword. So the quote before the name is the whole test, and it
-/// reads the declaration rather than a list of block types that would drift as Terraform
+/// reads the declaration instead of a list of block types that would drift as Terraform
 /// adds them.
 fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
     if symbol.language != crate::lang::Language::Hcl || symbol.kind != SymbolKind::Block {
@@ -385,7 +385,7 @@ fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
     !source[..symbol.name_span.start.min(source.len())].ends_with('"')
 }
 
-/// Does this symbol name where the file lives, rather than something in it?
+/// Does this symbol name where the file lives, instead of something in it?
 ///
 /// Java's `package app;` and Go's `package main` are file headers. Nothing references
 /// them by name — Java classes in one package never write it, and nothing can import
@@ -447,7 +447,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     // one of those sites, so counting uses per site reports the others as dead — and
     // `.nav-link`, used by three anchors in the markup, was reported dead twice while
     // `fr delete` refused to remove it and named those same three uses. Grouped once
-    // here rather than per symbol, which would be quadratic on a large workspace.
+    // here and not per symbol, which would be quadratic on a large workspace.
     let mut siblings: HashMap<(&str, SymbolKind), Vec<SymbolId>> = HashMap::new();
     for symbol in &index.symbols {
         if symbol.kind.allows_multiple_definitions() {
@@ -484,7 +484,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     // constructs a test class to run the `@Test` methods inside it, and the class itself
     // is named nowhere — `spring-petclinic` reported eleven of them. The same holds for a
     // Rust `mod tests` and a Python class of pytest cases, so this asks the containment
-    // chain rather than the language: if anything inside it is an entry point, something
+    // chain instead of the language: if anything inside it is an entry point, something
     // outside the workspace reaches in.
     let mut holds_an_entrypoint: HashSet<SymbolId> = HashSet::new();
     for entry in entrypoints {
@@ -512,7 +512,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let dead_cycles = dead_reference_cycles(index, &reachable);
 
     // What the answer would have been on resolved edges alone, so the difference the
-    // hierarchy layer made can be named rather than merely applied. A workspace with
+    // hierarchy layer made can be named and not merely applied. A workspace with
     // no dispatch edges pays nothing for this.
     let (reachable_directly, dead_cycles_directly) = if call_graph.hierarchy_edge_count() == 0 {
         (reachable.clone(), dead_cycles.clone())
@@ -614,7 +614,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 /// Reflection and handler tables leave a name in a string and nothing else. This takes
 /// words whole and split on `-`, so CSS `class="btn-primary"` answers for `btn-primary`
 /// and for `btn`. Files it cannot read or parse contribute nothing, which widens the
-/// unused list rather than narrowing it; [`plan`] reports parse errors separately.
+/// unused list instead of narrowing it; [`plan`] reports parse errors separately.
 /// Names used where more than one definition could answer to them.
 ///
 /// `cfg.recordRelease(r)` resolves to neither of helm's two `recordRelease` methods,
@@ -985,7 +985,7 @@ fn spans_of(parsed: &Parsed, wanted: impl Fn(&str) -> bool) -> Vec<Span> {
     }
 }
 
-/// Is the match at `offset` a whole word rather than part of a longer one?
+/// Is the match at `offset` a whole word and not part of a longer one?
 fn is_word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
     let before_ok = haystack[..offset]
         .chars()

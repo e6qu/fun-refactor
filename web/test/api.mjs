@@ -4,7 +4,7 @@
  * The playground is the only place this code runs as WebAssembly, and a browser is a
  * bad place to find out that a method traps. This is the same wasm the site ships,
  * loaded in Node, called once per capability per language that has one. It asserts
- * shapes rather than exact numbers: the point is that nothing throws, nothing returns
+ * shapes and not exact numbers: the point is that nothing throws, nothing returns
  * an unexpected `error`, and each answer is the kind of thing the view can render.
  *
  *     node web/test/api.mjs
@@ -345,7 +345,7 @@ check("duplicates", () => {
 // --------------------------------------------------------------- refactoring
 //
 // Each of these mutates, so each runs against a freshly indexed copy: otherwise a
-// later check is testing the result of an earlier one rather than the sample.
+// later check is testing the result of an earlier one instead of the sample.
 
 function fresh() {
   return new Workspace({ ...files });

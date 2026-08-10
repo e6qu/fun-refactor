@@ -68,7 +68,7 @@ confidence tier the tool *rewrites*. Renaming the Zig method turned the Rust cal
 `out.pushReading(…)`. Two languages, no relationship, and a perfectly ordinary diff.
 
 `lang::may_resolve_across(from, to, kind)` now enumerates the boundaries a reference
-may cross. It is a table rather than a heuristic because the cost of a wrong entry is
+may cross. It is a table and not a heuristic because the cost of a wrong entry is
 an edit that compiles somewhere else and breaks here.
 
 | From | To | For | Why it is real |
@@ -83,7 +83,7 @@ an edit that compiles somewhere else and breaks here.
 **Deliberately absent: every pair of imperative languages.** Rust cannot name a Zig
 method; Go cannot name a Python function. Where an FFI does connect them, the binding
 is declared in a build file this tool does not read, and reporting those as unresolved
-is the honest answer rather than a guess that occasionally rewrites the wrong file.
+is the honest answer and not a guess that occasionally rewrites the wrong file.
 
 ## What does not cross, and what each would take
 
@@ -122,9 +122,9 @@ code the id is a string literal.
 **What it needs.** String-keyed resolution already exists — it is how Helm values and
 some config keys resolve. This is the same mechanism with a narrower trigger: a string
 argument to a known DOM accessor. It must be `NameOnly`: nothing proves the string is
-an id rather than a coincidence, and the tool should say so rather than rewrite it.
+an id instead of a coincidence, and the tool should say so and not rewrite it.
 
-**Cost.** Small, and it should be reported rather than rewritten.
+**Cost.** Small, and it should be reported and not rewritten.
 
 ### 3. Environment variables — manifest to `os.getenv`
 
@@ -252,7 +252,7 @@ Three details that only real code surfaces:
 Java is the fifth, and it is the one that made the writer do something no other does.
 Every other target takes a module's items and writes them out. Java has **no top level
 below the type**: a function has to be inside a class, and a public class must be named
-after its file — which is a rule the compiler enforces rather than a convention. So a
+after its file — which is a rule the compiler enforces and not a convention. So a
 module becomes a class, `sensors.py` becomes `Sensors.java`, and a record that would
 have been public becomes a package-private sibling with a comment saying why.
 
@@ -336,11 +336,11 @@ None of these is exotic. All five are in the first file you would pick up.
 
 ### What the IR has, and what it deliberately does not
 
-Two additions came out of reading real Java rather than running it.
+Two additions came out of reading real Java instead of running it.
 
 **The conditional expression** — `a ? b : c`, `b if a else c`, `if a { b } else { c }` —
 is one expression that chooses between two, and five of these six languages have it. It
-is a node rather than a branch because it *is* a value: reading it as an `if` would need
+is a node and not a branch because it *is* a value: reading it as an `if` would need
 somewhere to put the result, and there is no such place inside an argument list. Go is
 the exception and says so.
 
@@ -370,7 +370,7 @@ something else is an ordinary function with a common name.
 The consequence worth knowing: **a constructor's body only travels where a receiver
 does.** The first three act on a value that already exists; the last three build one and
 return it, so a body that assigns through a receiver has nowhere to run. The tool says
-so rather than writing `self.n = n` inside a function that binds no `self`. And Java is
+so instead of writing `self.n = n` inside a function that binds no `self`. And Java is
 the one target that overloads constructors — a second one written anywhere else keeps
 the name its source gave it, and the report says which name to call instead.
 
@@ -487,4 +487,4 @@ Three things the measurements argue for:
 
 3. **The permitted table belongs beside the languages, not inside resolution.** It is
    a statement about how these languages refer to each other, which is knowledge about
-   the world rather than about this program, and it should be readable as such.
+   the world and not about this program, and it should be readable as such.

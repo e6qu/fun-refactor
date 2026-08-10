@@ -3,7 +3,7 @@
 //! These languages are messy in different ways, and the point of the analysis is
 //! that it says so: every test below either pins an exact substitution/override
 //! answer, or pins the *honest* refusal to answer — an external input, a masked
-//! template action, an undecidable precedence — rather than a guess.
+//! template action, an undecidable precedence — instead of a guess.
 
 use fun_refactor::{
     analysis::provenance::{consumers, provenance, specificity, EdgeKind, StopReason},

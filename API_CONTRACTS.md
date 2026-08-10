@@ -77,7 +77,7 @@ Run against `app/api/posts/[postId]/route.ts` from
 
 `app/api/posts/[postId]/route.ts` serves `/posts/{post_id}`, and **nothing inside the
 file says so.** No content-only translation can recover it, however well it reads
-TypeScript. This is the one part of the job that requires reading the tree rather than
+TypeScript. This is the one part of the job that requires reading the tree instead of
 the text, and it is most of the value.
 
 `[...path]` is a catch-all: it matches across slashes. FastAPI spells that
@@ -108,7 +108,7 @@ same time, and every test you have will pass. The fix is to declare it:
 ```
 
 The tool does not write that, because which status is the *success* one is a judgement
-about the endpoint rather than a fact about the syntax. It reports every status it saw
+about the endpoint instead of a fact about the syntax. It reports every status it saw
 and says what will happen if you leave them where they are.
 
 ### Reading zod
@@ -176,18 +176,18 @@ diff <(yq -P -S . before.yaml) <(yq -P -S . after.json)
 
 Paths, methods and path parameters are exact, because they come from the tree. Schemas
 are as good as what was declared. **Responses are `default` only** — which status an
-endpoint returns is a fact about its code rather than its declaration, and writing
+endpoint returns is a fact about its code and not its declaration, and writing
 `200` for everything would be putting fiction into the file you are about to diff
 against; an empty entry does not.
 
-Everything it could not settle is printed beside the document rather than guessed at,
+Everything it could not settle is printed beside the document and not guessed at,
 because a baseline that quietly invents an entry is the worst possible outcome: the
 diff comes out clean and the contract still shrank.
 
 ## A worked example: the pet store
 
 `tests/petstore/` is a Next.js App Router API with eight route files and thirteen
-operations, and it is there to be run rather than read about. Every figure below comes
+operations, and it is there to be run and not read about. Every figure below comes
 from running the tool over it; the generated page is `docs/contract.html`.
 
 It has one of every shape a CRUD API has, because the shapes are where the difficulty
@@ -310,7 +310,7 @@ The pet store's count has been two and is now zero. The two were
 modern TypeScript file is written in and refusing it refused the whole object, and with
 it the statement the object was in.
 
-What this cannot see, because it reads what is written rather than what will happen: a
+What this cannot see, because it reads what is written and not what will happen: a
 router mounted under a prefix, a route added at run time, a dependency that rejects the
 request. For those you need the server, which is why step 4 is still step 4.
 

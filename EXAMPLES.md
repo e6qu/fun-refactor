@@ -354,12 +354,12 @@ what is missing says more about a tool than the list of what it has.
 
 | Refactoring | Why not, and what it needs |
 |---|---|
-| **Extract interface / trait** | Needs to decide which members belong to the abstraction, which is a design decision rather than a mechanical one. The mechanical part — finding every implementor — already exists as `fr implementations`. |
+| **Extract interface / trait** | Needs to decide which members belong to the abstraction, which is a design decision and not a mechanical one. The mechanical part — finding every implementor — already exists as `fr implementations`. |
 | **Pull up / push down a member** | Needs the type hierarchy *and* the type of every receiver at every call site, to know which sites still resolve after the move. Hierarchy analysis exists; receiver types do not. |
 | **Introduce parameter object** | Mechanically an `fr signature` change plus a new type, but choosing which parameters group together is the substance of it. A version taking an explicit list is the likeliest of these to be built. |
 | **Change a return type** | The edit is easy; finding every caller that must adapt needs the type of each call's context, which syntax does not give. |
 | **Convert callback to promise / async** | Requires understanding control flow, not just shape. Each language spells it differently enough that it is really eight refactorings. |
-| **Encapsulate a field** | Needs to distinguish reads from writes at every use site, which is dataflow rather than resolution. `fr flow` has the machinery; the refactoring does not exist yet. |
+| **Encapsulate a field** | Needs to distinguish reads from writes at every use site, which is dataflow and not resolution. `fr flow` has the machinery; the refactoring does not exist yet. |
 | **Rename a file or module** | Every language spells the dependency differently — a Go directory, a Rust `mod`, a TypeScript relative path, a Python package. `fr move` already does this for a *symbol*; doing it for a file is the same work at a different granularity, and is the second-likeliest to be built. |
 | **Inline a class or type** | Needs to know every use is compatible with the inlined shape, which is type checking. |
 | **Extract a superclass** | As with extract interface: the mechanical part is small and the judgement is the task. |
@@ -367,7 +367,7 @@ what is missing says more about a tool than the list of what it has.
 
 The common thread: everything above needs types, and this tool is built on syntax. It
 stops where the syntax stops and says so, which is why a reference it cannot prove is
-reported rather than rewritten. A refactoring that needs the type of an arbitrary
+reported and not rewritten. A refactoring that needs the type of an arbitrary
 expression belongs in a language server; one that needs only what is written down
 belongs here, across all sixteen languages at once.
 

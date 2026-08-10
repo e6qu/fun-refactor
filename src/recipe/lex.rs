@@ -3,7 +3,7 @@
 //! Layout is insignificant and statements are not terminated: a statement ends when
 //! the parser meets a token that can only begin a new one. That works because step
 //! keywords are reserved and no predicate shares a name with one — an invariant
-//! `reserved_words_and_predicates_do_not_overlap` enforces rather than hopes for.
+//! `reserved_words_and_predicates_do_not_overlap` enforces and not hopes for.
 
 use anyhow::{bail, Result};
 

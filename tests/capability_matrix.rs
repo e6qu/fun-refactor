@@ -28,7 +28,7 @@ fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
     // The matrix is the tool's own claim about what it does, per language, and three
     // commands were missing from it — `fr translate` most conspicuously, since its
     // answer differs by language in two different ways. `fr recipe` is the one genuine
-    // exception: it composes the rows rather than adding one.
+    // exception: it composes the rows instead of adding one.
     let commands: Vec<&str> = Capability::ALL.iter().map(|c| c.command()).collect();
     for expected in [
         "fr rename",
@@ -98,7 +98,7 @@ fn no_reason_describes_a_different_language() {
                 assert!(
                     !reason.contains(word) || truthful_of.contains(language),
                     "{} for {language} says {word:?}, which describes {truthful_of:?} \
-                     rather than this language: {reason}",
+                     instead of this language: {reason}",
                     capability.label()
                 );
             }

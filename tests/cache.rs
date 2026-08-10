@@ -262,7 +262,7 @@ fn the_cache_namespace_includes_the_extractor_that_produced_the_facts() {
     // a test failure that was not in the code being bisected.
     //
     // build.rs hashes the sources that define extraction into the namespace, so an
-    // edit to any of them makes every stale entry unreachable rather than wrong.
+    // edit to any of them makes every stale entry unreachable and not wrong.
     let fingerprint = env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT");
     assert_eq!(
         fingerprint.len(),

@@ -37,7 +37,7 @@ Recommendation on file: skip it.
 
 Resolved since: the tool is `fun-refactor`, binary `fr`; extract-function landed for
 both Zig and Bash without needing a CFG; and TSX `className` handles plain attribute
-values but not helper calls or template literals — recorded as BUGS.md B14 rather than
+values but not helper calls or template literals — recorded as BUGS.md B14 and not
 left as an open question, because it is a gap with known behaviour, not a decision.
 
 ## Language tiers
@@ -241,7 +241,7 @@ refs must fail with the ref list).
 **Exit**: cross-language fixtures (mini app: Terraform + Helm + Python service + TSX front
 end) with stitched-flow snapshot tests.
 
-### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring, micro-rewrites and cascading cleanup all complete; the optional LSP delegation backend is the only item left
+### Stage 8 — Advanced & ecosystem — **PARTIAL**: pattern restructuring, micro-rewrites and cascading cleanup all complete; the optional LSP delegation backend and daemon/watch mode are what remain, sequenced as PR 5 below
 
 - Micro-rewrite tail (per-language `refactor.rewrite.*` equivalents: invert-if, guard
   clauses, de Morgan, fill-struct where syntax allows).
@@ -294,10 +294,10 @@ Four layers, each answering a question the one below it cannot:
 The end-to-end layer exists because two bugs were found living in it, both of the
 kind that answers wrongly while looking like it worked: `--path` filters built by
 joining the default root `.` matched nothing and reported that as nothing found, and
-target paths were read from the shell's directory rather than the workspace `-C`
+target paths were read from the shell's directory and not from the workspace `-C`
 names. Neither was visible from the library API.
 
-`tests/test_pyramid.rs` enforces the layer rather than merely occupying it: it reads
+`tests/test_pyramid.rs` enforces the layer. It reads
 the subcommand list out of `fr --help` and fails if any command has no end-to-end
 test. That guard is verified to bite — removing a command's entry fails the build
 with its name. It also asserts that no command writes to the workspace without
@@ -330,12 +330,184 @@ written in advance would have looked for.
   work (stack-graphs' lesson). Mitigation: only imperative languages need true scope trees;
   Tier C binders are string-keyed.
 - **Method/dispatch rename correctness ceiling** without types: bounded by D4/D8 (refuse or
-  present candidates rather than guess).
+  present candidates and do not guess).
 - **Helm templating is text-level YAML**: `{{ }}` breaks YAML parsing. Mitigation: parse
   templates with the funveil approach (tree-sitter YAML + template-token layer); treat
   render-dependent structures as unresolved, loudly.
 - **Scope creep across 12 × 17 features**: the matrix's — cells are commitments to refuse,
   not gaps to fill; tbd cells resolve via open decisions, not silent drift.
+
+## Where this stands
+
+Stages 0 to 7 are complete. Stage 8 is partial. The figures below were measured on
+2026-08-10.
+
+| | |
+|---|---|
+| Commits | 138 |
+| Pull requests | 100 |
+| Rust source | 54,646 lines |
+| Tests | 1,711 in 90 files |
+| Query sets | 14 |
+| Entry-point catalogs | 10 |
+| Capabilities × languages | 22 × 16 |
+| Defects fixed | 274 |
+| Defects open | 14 |
+
+The delivered surface is wider than the matrix above states. Java does not appear in that
+matrix and is implemented. Both cells marked `tbd` are now supported. Every cell that
+`fr capabilities` marks `n/a` carries the reason the tool refuses, which keeps that column
+a commitment and not a gap.
+
+### The 14 open defects
+
+They are not 14 pieces of pending work.
+
+- **Eight are limits of the published grammars.** B11 and B283 cover SCSS forms and the
+  indented Sass syntax. B15 covers Go `new`. B231 and B232 cover TypeScript. B233 and B234
+  cover Python. B133 covers Zig. A test pins each one. The test fails when a grammar
+  upgrade starts to read the form, so the entry is retired on purpose and not forgotten.
+- **Three are incomplete answers that the tool reports.** B5 states what dispatch can be
+  known without types. B13 states what a partial set of values inputs can decide. B14
+  covers a CSS class assembled inside a helper call.
+- **B286 is a decision.** Inlining adds brackets according to the value and not according
+  to its destination. An extra bracket is noise. A missing bracket changes the arithmetic.
+- **B258 failed once and has not repeated.**
+- **B263 is the one open defect that belongs to this project and can be fixed here.** A
+  Terraform `var.x` and a `local.x` are recorded as one symbol.
+
+### What the work became
+
+The first eighty pull requests built the surface. The last fifteen found that parts of the
+surface were untrue. None of them was a missing feature.
+
+| Defect | What was claimed | What was true |
+|---|---|---|
+| B281 | Resolution strips the `#` from a fragment link | The code that strips it could never run |
+| B282 | The tool reads the languages it lists | A `.js` file was not a source file at all |
+| B287 | Sorting imports preserves meaning | It separated `#[cfg]` from the import it guarded |
+| B288 | A `#[path]` attribute blocks a move | A doc comment blocked every move in the workspace |
+| B291 | A rename rewrites what the name refers to | It rewrote method calls inside `assert_eq!` |
+
+Each was found by the same method. Run the tool over a real repository, or over this one,
+then ask whether the result still means what it meant. The test suite passed throughout.
+
+### The gap that matters
+
+Four of the last eight defects produced output that parses and does not compile.
+
+| Defect | The output |
+|---|---|
+| B287 | An attribute guards the wrong import |
+| B289 | An integration test imports the library as `crate::` |
+| B290 | A signature changed and no call site was updated |
+| B291 | A method call names a method that does not exist |
+
+The edit engine has one automatic guard. It parses the file before the edit and after it,
+and rejects an edit that introduces a syntax error. That guard cannot see any of the four.
+Nothing in this repository compiles what the tool wrote. A person found all four by
+reading the output.
+
+## Sequenced work
+
+Five pull requests in dependency order. PR 1 buys a gate that raises the value of PR 2 and
+PR 3. PR 4 is independent. PR 5 is a product decision and not a debt.
+
+### PR 1 — Compile what the tool wrote
+
+**Problem.** A refactoring can produce a file that parses and does not compile. The edit
+engine reparses and accepts it. Four known defects reached the repository this way.
+
+**Change.** Make a successful compile a condition of merging.
+
+- Add a harness that copies a workspace, applies a planned refactoring, and runs the
+  compiler for that language over the result: `cargo check` for Rust, `tsc --noEmit` for
+  TypeScript, `go build` for Go, `python -m compileall` for Python.
+- Supply one small workspace for each language, and use this repository for Rust. All four
+  known defects appeared here.
+- Drive every command that writes: rename, delete, inline, move, signature, imports,
+  extract, restructure, rewrite and remove-flag.
+- Name any language whose compiler is absent in the output of the run. A green result must
+  never mean that nothing was checked.
+- Call the harness from `tools/check.sh`, which is the one definition of passing.
+- Fix every defect the harness reports, in this same pull request.
+
+**Exit.** Revert each of the four fixes in turn and confirm the harness fails. Restore
+them and confirm the sweep passes.
+
+### PR 2 — Sweep the commands that write and have never been swept
+
+**Problem.** `extract`, `restructure`, `rewrite`, `remove-flag` and `translate` have never
+been run across a corpus with their results checked. Every command that has been swept has
+had defects fixed against it.
+
+**Change.** Run each of the five over this repository and the vendored corpora, and check
+the results.
+
+- Count panics, refusals and wrong output separately.
+- Read every refusal. B288 was a refusal that named the wrong file for the wrong reason.
+- Check the invariants that apply: idempotence for a command that normalises, an inverse
+  where one exists, no new parse errors, and the compile gate from PR 1.
+- Fix what the sweep reports.
+
+**Exit.** Each command has a recorded sweep with counts. Every invariant that holds is a
+test.
+
+### PR 3 — Make the commands that read agree with each other
+
+**Problem.** `refs`, `usages`, `callers`, `callees`, `graph`, `impact`, `flow`, `stitch`
+and `duplicates` answer overlapping questions from one index. When two of them disagree,
+one is wrong. Nothing checks this today.
+
+**Change.** Write the agreements down as tests over real repositories.
+
+- `callers(X)` is a subset of `refs(X)`.
+- Every edge in `graph` corresponds to a call reference in the index.
+- `impact(X)` includes `refs(X)`.
+- `usages(X)` is `refs(X)` grouped by file.
+- Every span that `duplicates` reports parses.
+- Where a command stops early, its output says so. `callers` reports its depth limit
+  today. The others are unchecked.
+
+**Exit.** The agreements are tests. Every disagreement is fixed, or recorded with the
+reason it is correct.
+
+### PR 4 — Namespaces, with B263 as one instance
+
+**Problem.** A Terraform `var.x` and a `local.x` are different declarations. The index
+records them as one symbol, so `fr refs` on either returns both. This is a shape that
+other languages also have.
+
+**Change.** Record the namespace that a declaration was written in.
+
+- Fix B263 through that record, and not by naming the two Terraform prefixes at
+  resolution.
+- Look for the same shape in every other language: an inherent method beside a trait
+  method in Rust, a package function beside a method in Go, a class and an element id and
+  a custom property that spell the same name in CSS, an anchor beside a key in YAML.
+- Write a test for each instance found, then fix it.
+
+**Exit.** `fr refs` on one of two declarations that share a name in different namespaces
+returns only its own uses, in every language where the shape exists.
+
+### PR 5 — Stage 8: build the delegation backend, or record the decision not to
+
+**Problem.** Stage 8 lists a delegation backend and a daemon. Neither exists. The plan
+calls both optional, so the stage cannot close while their status is unstated.
+
+**Change.** Either implement the backend or record the decision.
+
+- `--engine lsp` for Rust, Go, TypeScript and Python. Probe the server for the capability,
+  call `prepareRename` and then `rename`, apply the returned `WorkspaceEdit`, and refuse
+  when the server declines.
+- The diagnostics that a language server returns after an edit are a second form of the
+  gate from PR 1. They suit a language whose compiler is too slow to run for each
+  refactoring.
+- Keep the daemon and the watch mode separate. That work changes performance and
+  integration. It does not change correctness.
+
+**Exit.** Scoped when reached. A written decision not to delegate, with the reason, closes
+the stage as well as an implementation does.
 
 ## Progress log
 
@@ -349,7 +521,7 @@ attached to every non-supported cell, and a test asserts the README matches. Tha
 exists because the hand-written version drifted twice — once hiding 27 unbuilt cells,
 once publishing six working ones as refused.
 
-Open limitations are in BUGS.md. All five are characterised rather than silent, and
+Open limitations are in BUGS.md. All five are described in writing, and
 none is a missing feature: reachability under dynamic dispatch (inherent), Helm
 values passed on a command line (invisible to a workspace scan), CSS classes named
 inside TSX helper calls (a per-library convention, measured), SCSS forms the grammar
@@ -377,7 +549,7 @@ Five recurring shapes, each of which has caught more than one defect:
 2. *Where does the search stop, and does the output say so?* — `fr impact`'s depth bound,
    `fr duplicates`' threshold, `fr unused`'s composition.
 3. *Does the test check what its name claims?* — one asserted a cache fingerprint was
-   steady rather than correct; several counted results without inspecting them.
+   steady, and not that it was correct. Several counted results without inspecting them.
 4. *The tool's own output is not valid input* — enum-variant struct literals it could not
    re-read, FastAPI handlers it emitted and then reported dead, `SymbolKind` JSON it
    could not deserialize.
@@ -411,11 +583,11 @@ pairs; the recipe language; the entry-point catalogues; the published site and i
 WebAssembly playground; the refactoring catalogue page; the API-contract invariant; the
 types tutorial. Each is recorded in BUGS.md with what it broke on the way.
 
-What the sweeps found, grouped by what went wrong rather than by when:
+What the sweeps found, grouped by what went wrong:
 
 **An expression moved into a context it was not written for.** Caught four times, in
 `fr inline`, `fr restructure`, `fr extract` and `translate`, and each time the fix was
-bracketing driven by one shared predicate rather than four local ones. The operators the
+bracketing driven by one shared predicate, replacing four local ones. The operators the
 six languages spell alike and mean differently — division, remainder, string equality —
 account for most of it.
 
@@ -438,7 +610,7 @@ had walked past, all of them the tool saying something untrue about the tool. Th
 stuck: the capability matrix is now computed from each refactoring's own predicate, the
 site's command names are checked against the binary, and so is the list of commands below.
 
-**The site.** Driven in a browser rather than read, which found dead links and a page that
+**The site.** Driven in a browser and not read, which found dead links and a page that
 was three commits behind and did not say so. Every page now stamps what it was built from.
 
 ### The last four findings
@@ -446,7 +618,7 @@ was three commits behind and did not say so. Every page now stamps what it was b
 These are recent enough that the reasoning is still worth having in full.
 
 **A framework calling it is what makes it an entry point.** Asked of every framework the
-catalogues claim, rather than waiting for a repository to surface the next one. FastAPI
+catalogues claim, without waiting for a repository to surface the next one. FastAPI
 handlers were dead code — on a project with a page devoted to porting Next.js routes to
 FastAPI, whose own `fr translate <route> fastapi` emits handlers it then called unused.
 Flask and actix were covered only by coincidence: `@app.route("/health")` above
@@ -507,7 +679,7 @@ fingers, and has to match the serde spelling exactly. On `Capability`, `Basis` a
 declared here". Those three are `label()` and `describe()` now, and the identifier ones
 have a round-trip test that reads its cases out of the exhaustive `as_str` match instead
 of a list — the compiler already forces a new variant into that match, so a new variant is
-covered the day it is added rather than the day somebody remembers.
+covered the day it is added, and not the day somebody remembers.
 
 And `fr type --json` was answering with `"symbol": 1` and `"defined_at": 0` — `SymbolId`s,
 positions in one run's index, unstable and useless to a reader, with `defined_at` looking
@@ -527,7 +699,7 @@ differs — a child module nothing references is a finding — so the exclusion 
 language, not the kind.
 
 **Containers of entry points.** JUnit constructs a test class to run its `@Test` methods;
-nothing names the class. The check walks the containment chain rather than testing the
+nothing names the class. The check walks the containment chain instead of testing the
 language, so it also covers Rust `mod tests` and Python classes of pytest cases.
 
 **JavaBean accessors.** `getAddress` reported dead while the template writes
@@ -590,7 +762,7 @@ Checked and not a defect: 240 `pub fn` declarations reported as unused. Zig `pub
 
 ### Properties over real code
 
-Two invariants asked of `psf/black` and `helm/helm` rather than of fixtures.
+Two invariants asked of `psf/black` and `helm/helm`, and not of fixtures.
 
 `fr imports` is idempotent: 18 of 40 files changed on the first run and none on the
 second. It also removed only genuinely unused imports — one name across 40 files, and
@@ -606,7 +778,7 @@ written breaks.
 
 The property itself holds. Fourteen uniquely-named Go callables in `helm/helm`, renamed to
 a placeholder and back: all fourteen left the tree byte-identical, including the files the
-rename decided not to touch. A larger run was cut off by a time limit rather than by a
+rename decided not to touch. A larger run was cut off by a time limit and not by a
 failure, so fourteen is what was checked. `tests/rename_inverse.rs` pins it on a workspace
 that spans languages, where a CSS class named from HTML and TSX gives the inverse more to
 get wrong, and the test is verified to fail when the reverse rename is given a different
@@ -627,11 +799,11 @@ way. B279 reports that as a `FactGap` carried with the facts, alongside syntax e
 and every refactoring that reads an incomplete file now says which of the two it was.
 
 Also swept the CLI surface after the `--lang` finding, and the other two candidates are
-defensible rather than defects. `impact` calls its walk `--caller-depth` where `callers`
+defensible, and are not defects. `impact` calls its walk `--caller-depth` where `callers`
 calls it `--depth`, because `impact` also reports references that the depth does not
 bound. `--path` exists on `unused` and `duplicates` and nowhere else, which is where it
 is needed: those answer whole-workspace questions, and narrowing with `-C` instead gives
-a different answer — 30 dead symbols rather than 28, because references from outside the
+a different answer of 30 dead symbols instead of 28, because references from outside the
 narrowed root are gone.
 
 ### An inverse that did not close
@@ -687,7 +859,7 @@ meant.
 
 ### Sweeping a command over its own repository
 
-`fr inline` on every local in this workspace, 9,147 of them, rather than on an example.
+`fr inline` on every local in this workspace, 9,147 of them, and not on an example.
 Two things fell out that no single case would have shown.
 
 It refused 4,940 of them as rebindings. The check asked whether the name appeared again
@@ -744,7 +916,7 @@ properly.
 One form is worth masking, and not for the reason the counts suggested. Interpolation in
 a declaration value (`color: #{$v}`) co-occurs with 51 of the 73 failures, but masking it
 alone fixes 14 files — most of those 51 hit other forms too, so the count measured
-co-occurrence rather than cost. What makes it the one worth handling is where its error
+co-occurrence and not cost. What makes it the one worth handling is where its error
 node goes: not the declaration but the rest of the file, so `_accordion.scss` reported one
 error span of 0..5050. Masking it, with the variables and calls inside the braces read
 back afterwards, took symbols from 1916 to 2826 and references from 3839 to 6277 with no
@@ -781,14 +953,14 @@ parser.
 
 The second is larger. Rust's container patterns matched `type: (type_identifier)`, and
 `impl Ctx<'_>` and `impl<T> Generic<T>` put a `generic_type` there — so the methods inside
-had no container: `run` rather than `Ctx::run`, kind `function` rather than `method`. A
+had no container. It was recorded as `run` and not `Ctx::run`, with kind `function` and not `method`. A
 `self.hcl_backward(…)` then had no member to resolve to, and 43 of `provenance.rs`'s own
 methods read as dead code. Internal dead-code findings for this repository go from 92 to
-49, and what is left is fields and parameters rather than phantom functions.
+49, and what is left is fields and parameters, with no phantom functions.
 
 ### Sweeping the refusals
 
-The Bash run found three defects in what refusals say rather than in what they refuse, so
+The Bash run found three defects in what refusals say, and none in what they refuse, so
 the next pass took that as the question and asked it of every `Refusal::TooWeak`. The
 sites divide by what they put in the confidence field: one reporting a real reference
 writes `reference.confidence`, and five wrote `Confidence::NameOnly` because there was no
@@ -812,7 +984,7 @@ wrote "a variable is not a flag", which names no language. Adding `because` and 
 parameter of `nvm_tree_contains_path` and renumbered the body and all three call sites
 correctly, which is the operation with the most shell-specific machinery behind it.
 
-Three defects, all in what the refusals say rather than in what they refuse. A signature
+Three defects, all in what the refusals say and none in what they refuse. A signature
 change on a function with a twin in another file refused by raising the refusal `rename`
 and `extract` use, so it said "renaming would shadow or collide with it" to somebody who
 had asked to move a parameter. An argument whose word count the shell decides at run time

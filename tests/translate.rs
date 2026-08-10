@@ -28,7 +28,7 @@ fn plain_css_is_scss() {
 #[test]
 fn scss_that_uses_scss_is_not_css() {
     // Nesting is the commonest thing CSS cannot read. The refusal must say so and
-    // point at it, rather than writing a .css file that no browser will parse.
+    // point at it, instead of writing a .css file that no browser will parse.
     let (_tmp, root) = workspace(&[(
         "a.scss",
         "$brand: red;\n\n.panel {\n  color: $brand;\n\n  .inner {\n    color: blue;\n  }\n}\n",

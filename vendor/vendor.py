@@ -85,7 +85,7 @@ def main():
         sources = sorted(glob.glob(os.path.join(directory, "queries", "**", "*.scm"),
                                    recursive=True))
         if not sources:
-            # Recorded rather than skipped: "this grammar ships no queries" is a fact
+            # Recorded and not skipped: "this grammar ships no queries" is a fact
             # a reader needs, and its absence would otherwise look like an oversight.
             entries.append({
                 "language": language,
