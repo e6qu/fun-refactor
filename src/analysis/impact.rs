@@ -269,6 +269,9 @@ pub fn format_report(index: &Index, impact: &Impact) -> String {
         if review.len() > 20 {
             out.push_str(&format!("  … and {} more\n", review.len() - 20));
         }
+        if review.len() > 20 {
+            out.push_str(&format!("  … and {} more\n", review.len() - 20));
+        }
     }
     out
 }

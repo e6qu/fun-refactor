@@ -190,6 +190,14 @@ B11, B14, B15, B133 and B263.
 
 ## Fixed
 
+- [x] B298: **four reports stopped early and said nothing.** A list that ends at twenty
+  with no word about the rest reads as the whole answer. `fr impact` printed "… and N
+  more" under its first heading and nothing under the second, in the same report. The
+  browser API dropped every translation note past the twentieth, and a note is the record
+  of what the translation could not do. `fr unused` showed the five commonest kinds as
+  though they were all of them. `fr graph` and `fr refs` listed ten and twenty of a set
+  whose size they had just printed. Each one now states how many it left out.
+
 - [x] B296: **`fr rewrite guard-clause` wrote `return;` in a function that returns a
   value.** The check for what an early exit should be walked up four ancestors and then
   fell through to `return`. An `if` inside a `match` arm or a nested block is further from

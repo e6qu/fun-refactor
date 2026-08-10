@@ -489,6 +489,16 @@ one is wrong. Nothing checks this today.
 **Exit.** The agreements are tests. Every disagreement is fixed, or recorded with the
 reason it is correct.
 
+**Delivered.** `tests/commands_agree.rs` asks all six agreements of this repository, which
+is the largest workspace the tests have. Every one held: 12,170 resolved call edges each
+with the reference that produced it, no call site outside the function it is attributed
+to, callers and callees symmetric, `usages` equal to the references that resolved,
+`impact` covering every reference it could rewrite, and every span `duplicates` reports
+inside its file.
+
+The disagreement the sweep found was between a report and itself. Four lists stopped early
+without saying so, one of them beside a list in the same report that did (B298).
+
 ### PR 4 — Namespaces, with B263 as one instance
 
 **Problem.** A Terraform `var.x` and a `local.x` are different declarations. The index

@@ -56,6 +56,20 @@ struct FlowText {
     tree: String,
 }
 
+/// The first twenty notes, and a note saying how many were left out.
+///
+/// A note says what a translation could not do. Dropping the twenty-first without a word
+/// tells the reader that the list is complete when it is not.
+fn first_notes(notes: Vec<String>) -> Vec<String> {
+    const SHOWN: usize = 20;
+    let total = notes.len();
+    let mut out: Vec<String> = notes.into_iter().take(SHOWN).collect();
+    if total > SHOWN {
+        out.push(format!("… and {} more note(s)", total - SHOWN));
+    }
+    out
+}
+
 /// The move and signature plans report what they left alone as plain strings rather
 /// than the structured warning the others use. Instead of teaching the view two shapes,
 /// they are attached to the applied result under one name.
@@ -905,7 +919,7 @@ impl Workspace {
                              and are in the file as comments",
                             f.carried_verbatim
                         ))
-                        .chain(f.notes.into_iter().take(20))
+                        .chain(first_notes(f.notes))
                         .collect::<Vec<_>>(),
                     )
                 }
@@ -938,7 +952,7 @@ impl Workspace {
                          counterpart and are in the file as comments",
                         f.signatures_complete, f.functions, f.carried_verbatim
                     ))
-                    .chain(f.notes.into_iter().take(20))
+                    .chain(first_notes(f.notes))
                     .collect::<Vec<_>>(),
                 )
             }

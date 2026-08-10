@@ -1158,15 +1158,16 @@ fn cmd_unused(
         }
         let mut kinds: Vec<_> = by_kind.into_iter().collect();
         kinds.sort_by_key(|(name, count)| (std::cmp::Reverse(*count), *name));
-        println!(
-            "  {}",
-            kinds
-                .iter()
-                .take(5)
-                .map(|(kind, count)| format!("{count} {kind}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        let shown: Vec<String> = kinds
+            .iter()
+            .take(5)
+            .map(|(kind, count)| format!("{count} {kind}"))
+            .collect();
+        let rest = match kinds.len() > shown.len() {
+            true => format!(", and {} other kind(s)", kinds.len() - shown.len()),
+            false => String::new(),
+        };
+        println!("  {}{rest}", shown.join(", "));
         if let Some((path, count)) = by_file.iter().max_by_key(|(path, count)| (**count, *path)) {
             // Only when one file dominates: otherwise the answer is spread out and
             // naming its largest single file says nothing.
@@ -1987,6 +1988,9 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
         for (file, detail) in graph.hierarchy_gaps.iter().take(10) {
             println!("  {}: {detail}", file.display());
         }
+        if graph.hierarchy_gaps.len() > 10 {
+            println!("  … and {} more", graph.hierarchy_gaps.len() - 10);
+        }
     }
     Ok(())
 }
@@ -2707,6 +2711,9 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 usage.location.col,
                 usage.confidence.as_str()
             );
+        }
+        if found.same_name_elsewhere.len() > 20 {
+            println!("  … and {} more", found.same_name_elsewhere.len() - 20);
         }
     }
     Ok(())
