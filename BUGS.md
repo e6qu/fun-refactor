@@ -32,28 +32,6 @@ B11, B14, B15, B133 and B263.
   Pinned in `tests/known_grammar_gaps.rs`. Fixing it needs a grammar for the indented
   syntax, which is upstream work.
 
-- [ ] B263: **a Terraform input variable and a local sharing a name are one symbol.**
-  `var.x` and `local.x` are separate namespaces, and the index records both declarations
-  as `SymbolKind::Variable` with no qualifier, so nothing tells them apart. With
-  `variable "thing"` and `locals { thing = … }` in one file, `fr refs` on the variable
-  returns two references — `var.thing`, which is its, and `local.thing`, which is not —
-  and `fr refs` on the local returns none. Both drop to `field-based`, so `fr rename`
-  rewrites the declaration and leaves every use for review; nothing is corrupted, and
-  nothing is usable either. `fr symbols` prints the two declarations identically, so the
-  ambiguity error's advice to "name one of these" cannot be followed. Without a name
-  collision both resolve `exact` and correctly.
-
-  In `terraform-aws-vpc`, 18 of 81 locals share a name with a variable.
-
-  The reference side is one line: the query captures the namespace as `@_ns` and
-  discards it, next to a `data.TYPE.NAME` pattern that captures its type as
-  `@reference.type`. The symbol side is not: `var` and `local` appear nowhere in a
-  declaration, and a query cannot synthesise a name, so the qualifier would have to be
-  assigned in `extract.rs` by language and kind — which changes every HCL qualified name
-  and so the cache schema. Exporting the namespace alone changes nothing, which I
-  checked before recording this.
-
-
 - [ ] B258: **`a_rust_number_leaves_its_width_behind` failed once and has not repeated.**
   During one `cargo test --all-targets`, the Java writer emitted Rust's `0usize` /
   `1i32` suffixes, which that test exists to catch. It has since passed 5/5 runs in
@@ -189,6 +167,35 @@ B11, B14, B15, B133 and B263.
   with no fields at all. Upstream grammar work.
 
 ## Fixed
+
+- [x] B263: **a Terraform input variable and a local sharing a name were one symbol.**
+  `var.thing` and `local.thing` are two addresses. Both declarations are variables to the
+  index, so `fr refs` on the `variable` block returned the use of the local as well, and
+  the local itself had no uses at all. Both answers were tagged `field-based`, which kept
+  `fr rename` from acting on them and left the reader with a wrong list.
+
+  Resolution said the block each was written in "is not something this layer carries". It
+  carries it: a local's container is the `locals` block, and a variable has none. The
+  namespace comes from that. Each declaration now returns its own use, `exact`.
+
+- [x] B299: **a CSS class and an element id sharing a name were one symbol.** `class="thing"`
+  names a class and `href="#thing"` names an element id. Both are string references to
+  `thing`, and the nearer declaration won, so `class="thing"` resolved to the id in the
+  same file. Renaming the id rewrote the class attribute with it:
+
+      -<div class="thing">a</div>
+      +<div class="renamed">a</div>
+
+  The element lost the class that `.thing { … }` styles and gained one that nothing
+  declares, at `exact` confidence.
+
+  Markup writes the namespace in the attribute, so the query says which kind of
+  declaration a reference can name and resolution honours it. `Reference::expects` holds
+  it.
+
+  Checked and sound already: Go, where a bare call cannot name a method; Rust, where an
+  inherent method beside a trait method needs types and is reported `field-based`; and
+  YAML, where an anchor and a key of one name resolve separately.
 
 - [x] B298: **four reports stopped early and said nothing.** A list that ends at twenty
   with no word about the rest reads as the whole answer. `fr impact` printed "… and N

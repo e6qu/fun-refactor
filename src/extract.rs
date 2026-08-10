@@ -108,7 +108,20 @@ fn reference_kind(name: &str) -> Option<ReferenceKind> {
         "identifier" => ReferenceKind::Identifier,
         "type" => ReferenceKind::Type,
         "field" => ReferenceKind::Field,
-        "string" => ReferenceKind::StringRef,
+        "string" | "selector" | "element-id" => ReferenceKind::StringRef,
+        _ => return None,
+    })
+}
+
+/// The kind of declaration a capture name says the reference can name.
+///
+/// Markup writes the namespace in the attribute: `class="thing"` names a class and
+/// `href="#thing"` names an element id. `@reference.string` says nothing, which is right
+/// where one attribute can name either.
+fn reference_expects(name: &str) -> Option<SymbolKind> {
+    Some(match name {
+        "selector" => SymbolKind::Selector,
+        "element-id" => SymbolKind::ElementId,
         _ => return None,
     })
 }
@@ -367,6 +380,7 @@ fn interpolation_references(
                 target: None,
                 confidence: Confidence::NameOnly,
                 kind,
+                expects: None,
                 receiver: None,
                 receiver_is_path: false,
                 member_in_macro: false,
@@ -415,6 +429,7 @@ fn values_references(
                 target: None,
                 confidence: Confidence::NameOnly,
                 kind: ReferenceKind::StringRef,
+                expects: None,
                 receiver: segments.len().checked_sub(2).map(|i| segments[i].clone()),
                 receiver_is_path: true,
                 member_in_macro: false,
@@ -548,7 +563,14 @@ impl Extractor {
                     } else if let Some(kind) =
                         cap_name.strip_prefix("reference.").and_then(reference_kind)
                     {
-                        raw_refs.push(RawRef { kind, span });
+                        let expects = cap_name
+                            .strip_prefix("reference.")
+                            .and_then(reference_expects);
+                        raw_refs.push(RawRef {
+                            kind,
+                            span,
+                            expects,
+                        });
                     } else if cap_name == "import" {
                         is_import = true;
                         import_parts.span = Some(span);
@@ -710,6 +732,7 @@ impl Extractor {
                     // Resolution happens in the index, which can see other files.
                     confidence: Confidence::NameOnly,
                     kind,
+                    expects: r.expects,
                     receiver: receiver_of(root, span, source),
                     receiver_is_path: receiver_is_path(root, span),
                     member_in_macro: member_in_macro(root, span, source),
@@ -766,6 +789,7 @@ struct RawDef {
 struct RawRef {
     kind: ReferenceKind,
     span: Span,
+    expects: Option<SymbolKind>,
 }
 
 #[derive(Default)]

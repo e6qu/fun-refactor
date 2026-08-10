@@ -301,6 +301,19 @@ impl Index {
         }
     }
 
+    /// Which Terraform namespace addresses this declaration.
+    ///
+    /// `locals { thing = … }` is written as `local.thing` and `variable "thing"` as
+    /// `var.thing`. Both are variables to the index, and the block each is written in is
+    /// what separates them: a local's container is the `locals` block, and a variable has
+    /// none.
+    fn terraform_namespace(&self, symbol: &Symbol) -> &'static str {
+        match symbol.container.and_then(|c| self.symbol(c)) {
+            Some(block) if block.name == "locals" => "local",
+            _ => "var",
+        }
+    }
+
     /// Resolve a reference, and cap what the answer is allowed to claim.
     ///
     /// [`Confidence::Exact`] means "safe to edit" and [`Confidence::FieldBased`] means
@@ -417,6 +430,14 @@ impl Index {
             {
                 return false;
             }
+            // Markup writes the namespace down: `class="x"` names a class and
+            // `href="#x"` names an element id. A declaration of the other kind is not a
+            // candidate, however near it is.
+            if let Some(expected) = reference.expects {
+                if s.kind != expected {
+                    return false;
+                }
+            }
             let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
             if in_an_import {
                 // An import path names an item that a module exports. It never names a
@@ -456,13 +477,20 @@ impl Index {
                         .iter()
                         .filter_map(|id| self.symbol(*id))
                         .filter(|s| s.kind == kind && s.file.parent() == dir)
+                        // A `variable "x"` and a `locals { x }` in one module are both
+                        // variables, and the block each is written in says which
+                        // namespace addresses it.
+                        .filter(|s| {
+                            !matches!(namespace, "var" | "local")
+                                || self.terraform_namespace(s) == namespace
+                        })
                         .collect();
                     match declared.len() {
                         1 => return (Some(declared[0].id), Confidence::Exact),
                         0 => {}
-                        // A `variable "x"` and a `locals { x }` in one module: both
-                        // are variables here, and telling them apart needs the block
-                        // each was declared in, which this layer does not carry.
+                        // Two declarations in one namespace, in one module. Terraform
+                        // rejects that, so the workspace is already broken and picking
+                        // one is a guess.
                         _ => return (Some(declared[0].id), Confidence::FieldBased),
                     }
                 }
@@ -700,9 +728,14 @@ impl Index {
             let targets: Vec<&Symbol> = self
                 .symbols
                 .iter()
-                .filter(|s| match s.kind {
-                    SymbolKind::Heading => anchor_slug(&s.name) == name,
-                    kind => kind.is_string_keyed() && s.name == name,
+                .filter(|s| match reference.expects {
+                    // The attribute wrote the namespace down. A declaration of another
+                    // kind is not a candidate, however near it is.
+                    Some(expected) => s.kind == expected && s.name == name,
+                    None => match s.kind {
+                        SymbolKind::Heading => anchor_slug(&s.name) == name,
+                        kind => kind.is_string_keyed() && s.name == name,
+                    },
                 })
                 .collect();
 
