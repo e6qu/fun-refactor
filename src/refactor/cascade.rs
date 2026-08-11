@@ -75,6 +75,19 @@ pub fn supports_cascade(language: Language) -> bool {
     )
 }
 
+/// Which declaration to remove, when the name alone does not say.
+///
+/// The refusal for an ambiguous name told the reader to "say which one with a
+/// position", and `fr remove-flag` took a bare name and nothing else — advice for a
+/// form the command did not have. `fr delete` has taken `path:line:col` all along; this
+/// is that, for the same reason.
+#[derive(Debug, Clone)]
+pub enum FlagTarget {
+    Named(String),
+    /// A byte offset inside a file, as `fr delete` and `fr rename` already accept.
+    At(PathBuf, usize),
+}
+
 /// Remove `flag`, assuming it always had `value`, and clean up what follows.
 ///
 /// Walks a workspace root, so it needs a filesystem. [`remove_flag_in`] is the same
@@ -82,6 +95,12 @@ pub fn supports_cascade(language: Language) -> bool {
 /// what this delegates to once it has read them.
 #[cfg(feature = "cli")]
 pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> {
+    remove_flag_for(root, &FlagTarget::Named(flag.to_string()), value)
+}
+
+/// [`remove_flag`], told which declaration is meant.
+#[cfg(feature = "cli")]
+pub fn remove_flag_for(root: &Path, target: &FlagTarget, value: bool) -> Result<CascadePlan> {
     let scanned = scan(root, &ScanOptions::default())?;
 
     let mut sources: BTreeMap<PathBuf, (Language, String)> = BTreeMap::new();
@@ -91,7 +110,7 @@ pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> 
         };
         sources.insert(file.path.clone(), (file.language, text));
     }
-    remove_flag_in(sources, flag, value)
+    remove_flag_in_for(sources, target, value)
 }
 
 /// [`remove_flag`] over sources already held in memory.
@@ -106,11 +125,42 @@ pub fn remove_flag_in(
     flag: &str,
     value: bool,
 ) -> Result<CascadePlan> {
+    remove_flag_in_for(sources, &FlagTarget::Named(flag.to_string()), value)
+}
+
+/// [`remove_flag_in`], told which declaration is meant.
+pub fn remove_flag_in_for(
+    sources: BTreeMap<PathBuf, (Language, String)>,
+    target: &FlagTarget,
+    value: bool,
+) -> Result<CascadePlan> {
     // Every language the workspace holds, because a cascade is not scoped to one file.
     for (language, _) in sources.values() {
         crate::capabilities::record(crate::capabilities::Capability::RemoveFlag, *language);
     }
     let mut sources = sources;
+
+    // The name, resolved once. Everything downstream — which uses are left, which
+    // imports were orphaned, what the rounds are called — looks the flag up by name, so
+    // a target given as a position has to become a name here and not later.
+    let flag_name = match target {
+        FlagTarget::Named(name) => name.clone(),
+        FlagTarget::At(path, offset) => {
+            let snapshot: Vec<(PathBuf, Language, String)> = sources
+                .iter()
+                .map(|(p, (l, s))| (p.clone(), *l, s.clone()))
+                .collect();
+            let index = Index::build_from_sources(&snapshot)?;
+            match index.definition_at(path, *offset) {
+                Some(symbol) => symbol.name.clone(),
+                None => anyhow::bail!(
+                    "no declaration at {}:{offset}; nothing was changed",
+                    path.display()
+                ),
+            }
+        }
+    };
+    let flag = &flag_name;
     // The originals are kept to diff against at the end.
     let originals = sources.clone();
 
@@ -168,7 +218,7 @@ pub fn remove_flag_in(
 
         // Round 1 substitutes the flag; later rounds only tidy what that exposed.
         let changes = if !removed_definition {
-            match substitute_flag(&index, &sources, flag, value)? {
+            match substitute_flag(&index, &sources, target, value)? {
                 None if round == 0 => {
                     anyhow::bail!("no symbol named '{flag}' to remove; nothing was changed")
                 }
@@ -288,20 +338,45 @@ fn distinct_files(changes: &[Change]) -> usize {
 fn substitute_flag(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
-    flag: &str,
+    target: &FlagTarget,
     value: bool,
 ) -> Result<Option<(Vec<Change>, SymbolKind)>> {
-    let definitions = index.find_symbols(flag, None);
-    if definitions.is_empty() {
-        return Ok(None);
-    }
-    if definitions.len() > 1 {
-        anyhow::bail!(
-            "'{flag}' is defined {} times; say which one with a position",
-            definitions.len()
-        );
-    }
-    let definition = definitions[0];
+    let definition = match target {
+        FlagTarget::At(path, offset) => match index.definition_at(path, *offset) {
+            Some(symbol) => symbol,
+            None => anyhow::bail!(
+                "no declaration at {}:{offset}; nothing was changed",
+                path.display()
+            ),
+        },
+        FlagTarget::Named(name) => {
+            let definitions = index.find_symbols(name, None);
+            if definitions.is_empty() {
+                return Ok(None);
+            }
+            if definitions.len() > 1 {
+                let where_they_are: Vec<String> = definitions
+                    .iter()
+                    .map(|s| {
+                        let line = sources
+                            .get(&s.file)
+                            .map(|(_, text)| {
+                                LineIndex::new(text).line_col(s.full_span.start, text).line
+                            })
+                            .unwrap_or(0);
+                        format!("{}:{line}", s.file.display())
+                    })
+                    .collect();
+                anyhow::bail!(
+                    "'{name}' is defined {} times; say which one as `path:line:col`: {}",
+                    definitions.len(),
+                    where_they_are.join(", ")
+                );
+            }
+            definitions[0]
+        }
+    };
+    let flag = &definition.name;
 
     // The matrix asks `supports_cascade` and the command did not, so `n/a` was a claim
     // with nothing behind it. Removing an XML entity flag rewrote `&use_new;` into

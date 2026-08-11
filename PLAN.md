@@ -23,7 +23,7 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 | D3 | One unified property graph, shared nodes, independent edge layers (`REF`, `IMPORTS`, `CALLS`, `DFLOW`, `PROVENANCE`), built incrementally per language. | §6.3 — Joern CPG model; queries degrade gracefully |
 | D4 | Every resolved edge carries a confidence tag: `exact` / `import-qualified` / `field-based` / `name-only`, plus candidate counts on multi-candidate edges. | §6.4 — characterized imprecision is what makes heuristic systems trustworthy |
 | D5 | At unresolved call edges, flow queries stop and downgrade loudly — no silent over-approximation. Summaries (stdlib/framework) can extend reach explicitly. | §6.2 — dev-tool honesty over scanner-style over-tainting |
-| D6 | Config languages get provenance semantics (substitution/override chains, hop chains preserved immutably), not imperative dataflow. | §6.2 — deterministic evaluation models; fix Checkov's substitute-in-place flaw |
+| D6 | Config languages with a substitution model get provenance semantics (substitution/override chains, hop chains preserved immutably), not imperative dataflow; markup with neither model is refused by both rather than answered emptily by one. | §6.2 — deterministic evaluation models; fix Checkov's substitute-in-place flaw |
 | D7 | Entrypoint detection is data (per-framework YAML catalogs, MaD-style schema), not hardcoded heuristics. | §6.5 — CodeQL MaD + OWASP noir precedent |
 | D8 | Unsupported operation × language combinations are refused with an explicit error naming the gap. No silent no-ops, no silent fallbacks. | engineering principle; also user convention |
 | D9 | Every command has `--json` output; mutations default to dry-run unified diff, `--write` to apply, multi-file apply is atomic (all-or-nothing). | CLI-native + agent-friendly |
@@ -364,7 +364,7 @@ figures below were measured on this branch.
 | Query sets | 14 |
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 16 |
-| Supported pairs | 272 of 384, every other one carrying its reason |
+| Supported pairs | 269 of 384, every other one carrying its reason |
 | Defects fixed | 311 |
 | Defects open | 12 |
 
@@ -594,8 +594,8 @@ name alone.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend, and every
-capability a language can meaningfully support is built: **272 of 384 capability ×
-language pairs supported, 112 not applicable, none refused.**
+capability a language can meaningfully support is built: **269 of 384 capability ×
+language pairs supported, 115 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, `fr capabilities` prints it with the reason
@@ -648,11 +648,11 @@ nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.
 
 `fr capabilities` computes the matrix from each refactoring's own predicate, so a `✓` means
 "this command would accept this language" and not "this has ever worked". Nothing had ever
-asked which of the 272 supported cells the tests reach.
+asked which of the 269 supported cells the tests reach.
 
 Measured, rather than argued about: every capability records the language it ran against
 when `FR_CAPABILITY_LOG` is set. The first run answered **205 of 270, 75%**. It is
-**272 of 272** now, and `tools/check.sh` measures it on the test run it already does, so
+**269 of 269** now, and `tools/check.sh` measures it on the test run it already does, so
 the figure is defended and not merely checkable. `tools/capability-audit.sh` asks the same
 question on its own, through the same reporter, so the two cannot drift apart.
 
@@ -684,6 +684,45 @@ nine languages each. Two more went the other way — `fr extract --function` wri
 The driver could not tell "the command proceeded" from "the fixture had nothing to offer",
 because eleven arms folded a missing symbol or span into `Ok(())`. Both tests now count
 those apart and report them, and both currently reach every cell they claim to.
+
+### The advice in a refusal is a claim too
+
+A refusal that stops at "no" is worth less than one that says what to do instead, and
+nearly every one of them does: `fr delete` removes a declaration nothing uses, rename the
+file to `.scss`, invert it instead of guarding, move it to a package neither imports. Of
+366 distinct refusal messages, **21 name a route the reader can take**, and nothing drove
+any of them. The sentence was the one part of the message no test read.
+
+Driving them found **five wrong**, and the two worst were the two that named a command:
+
+* `fr flow` refused eight languages and sent the reader to `fr provenance`, **which is
+  not a command** — the command is `fr flow`, which chooses between dataflow and
+  provenance itself. It also promised an answer for HTML, XML and Markdown, where
+  provenance has no arm and stops at the first hop.
+* Provenance's own refusal named `analysis::flow (backward/forward)`, a library module,
+  to readers holding a CLI or a browser.
+
+Both were written in the same week as the code they describe, which is the point: advice
+is prose, and prose is not compiled. Behind them was a matrix cell claiming provenance
+for eight languages when the dispatch has five arms — because a unit test asserted that
+every language gets exactly one of the two analyses, and the matrix had been shaped to
+satisfy the rule rather than to describe the code. Three languages get neither, and the
+rule that actually holds is that no language gets both.
+
+Chasing "is the route reachable?" also found the browser had no route at all: `fr flow`
+picks the model on the caller's behalf and the wasm bindings never did, so a YAML anchor
+the CLI traced came back empty in the playground.
+
+The other three were advice that led somewhere that also refuses, or nowhere:
+"move it somewhere under `src/`" (Rust reaches a file through a `mod` declaration, so the
+obvious destination is refused too), the second refusal that named no route at all, and
+`fr remove-flag`'s "say which one with a position" — for a command that took a bare name
+and nothing else. That one was fixed by giving it the position form `fr delete` and
+`fr rename` have always had, because the advice was better than the command.
+
+`tests/refusal_advice.rs` drives each route: it provokes the refusal, then does what the
+sentence says and checks that it works. A refusal that names a way out now fails the
+build when the way out is shut.
 
 ### Tests that passed without checking anything
 
@@ -724,6 +763,8 @@ produced the findings below:
 - **Ask whether a test checks what its name claims.** Several did not.
 - **Ask what a test would still pass on.** A loop over an empty collection, a skip that
   always fires, a refusal counted as success — 53 tests could pass while checking nothing.
+- **Do what the error message says.** 21 refusals name a way out; five named a command
+  that does not exist, a module, or a destination that also refuses.
 
 Five recurring shapes, each of which has caught more than one defect:
 

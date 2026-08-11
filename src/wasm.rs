@@ -544,11 +544,28 @@ impl Workspace {
     }
 
     /// Where the value at this position came from.
+    ///
+    /// Config and markup languages have substitution and override provenance rather than
+    /// dataflow, and `fr flow` routes between the two models on the caller's behalf. This
+    /// called dataflow whichever the language was, so the browser answered emptily for a
+    /// YAML anchor the CLI traced — and once dataflow started refusing those languages,
+    /// the browser started showing a refusal for a question the tool can answer.
     pub fn flow_back(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         let Ok(offset) = self.offset(path, line, col) else {
             return fail("that position is outside the file");
         };
+        if !crate::analysis::flow::applies_to(&self.index, Path::new(path)) {
+            return match self.symbol_at(path, line, col) {
+                Ok(id) => match crate::analysis::provenance::provenance(&self.index, id, 8) {
+                    Ok(traced) => ok(&FlowText {
+                        tree: traced.format_tree(),
+                    }),
+                    Err(e) => failed(e),
+                },
+                Err(e) => fail(e),
+            };
+        }
         match crate::analysis::flow::backward(&self.index, Path::new(path), offset, 8) {
             Ok(flow) => ok(&FlowText {
                 tree: flow.format_tree(),
@@ -560,14 +577,23 @@ impl Workspace {
     /// Where the value declared at this position goes.
     pub fn flow_forward(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
-        match self.symbol_at(path, line, col) {
-            Ok(id) => match crate::analysis::flow::forward(&self.index, id, 8) {
-                Ok(flow) => ok(&FlowText {
-                    tree: flow.format_tree(),
+        let id = match self.symbol_at(path, line, col) {
+            Ok(id) => id,
+            Err(e) => return fail(e),
+        };
+        if !crate::analysis::flow::applies_to(&self.index, Path::new(path)) {
+            return match crate::analysis::provenance::consumers(&self.index, id, 8) {
+                Ok(traced) => ok(&FlowText {
+                    tree: traced.format_tree(),
                 }),
                 Err(e) => failed(e),
-            },
-            Err(e) => fail(e),
+            };
+        }
+        match crate::analysis::flow::forward(&self.index, id, 8) {
+            Ok(flow) => ok(&FlowText {
+                tree: flow.format_tree(),
+            }),
+            Err(e) => failed(e),
         }
     }
 

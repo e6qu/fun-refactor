@@ -322,7 +322,8 @@ enum Command {
     ///
     /// Prints a diff by default; pass --write to apply it.
     RemoveFlag {
-        /// The flag's name.
+        /// The flag's name, or a position as `path:line:col` when the name is used
+        /// more than once.
         flag: String,
         /// The value to assume it always had.
         #[arg(long, action = clap::ArgAction::Set, default_value_t = true)]
@@ -1576,8 +1577,31 @@ fn print_recipe_report(report: &crate::recipe::Report) {
 }
 
 fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Result<()> {
+    use crate::refactor::cascade::FlagTarget;
+
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    let plan = crate::refactor::cascade::remove_flag(&root, flag, value.0)?;
+    // A position, for the ambiguity the refusal tells the reader to resolve this way.
+    let target = match parse_position(flag) {
+        Some(pos) => {
+            let path = workspace_path(cli, &pos.path)?;
+            let source = crate::vfs::read_to_string(&path)
+                .with_context(|| format!("reading {}", path.display()))?;
+            let offset = LineIndex::new(&source)
+                .offset(
+                    LineCol {
+                        line: pos.line,
+                        col: pos.col,
+                    },
+                    &source,
+                )
+                .with_context(|| {
+                    format!("{}:{} is outside {}", pos.line, pos.col, path.display())
+                })?;
+            FlagTarget::At(path, offset)
+        }
+        None => FlagTarget::Named(flag.to_string()),
+    };
+    let plan = crate::refactor::cascade::remove_flag_for(&root, &target, value.0)?;
 
     if plan.is_empty() {
         println!("Removing {flag} as {} changes nothing.", value.0);

@@ -512,11 +512,26 @@ fn refuse_unless_it_executes(language: Language) -> Result<()> {
     if supports_flow(language) {
         return Ok(());
     }
+    // The advice this used to give named `fr provenance`, which is not a command — the
+    // command is `fr flow`, which picks provenance itself for the languages provenance
+    // covers. It also promised an answer for HTML, XML and Markdown, where provenance
+    // stops at the first hop saying it has no substitution model to follow. Both halves
+    // were written without being run.
+    let because = match crate::analysis::provenance::supports_provenance(language) {
+        true => {
+            "this language is evaluated by substitution and override rather than \
+                 executed, so `fr flow` traces its provenance instead of its dataflow"
+        }
+        false => {
+            "this language is evaluated by substitution and override rather than \
+                  executed, and it has no substitution model to trace either: a value \
+                  here is written where it is used"
+        }
+    };
     Err(crate::refactor::Refusal::Unsupported {
         operation: "following dataflow".into(),
         language,
-        because: "this language is evaluated by substitution and override rather than \
-                  executed, so `fr provenance` answers this instead",
+        because,
     }
     .into())
 }

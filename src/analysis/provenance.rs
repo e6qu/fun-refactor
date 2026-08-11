@@ -143,8 +143,6 @@ pub enum StopReason {
         decided_by: String,
         unsupplied: Vec<String>,
     },
-    /// A config language with no value-substitution model to follow.
-    UnsupportedLanguage(Language),
     /// The symbol holds no value at all (a resource block, a chart heading…).
     NotAValue(String),
 }
@@ -202,10 +200,6 @@ impl std::fmt::Display for StopReason {
                     )
                 }
             }
-            StopReason::UnsupportedLanguage(lang) => write!(
-                f,
-                "{lang} has no value-substitution model; provenance covers terraform/hcl, yaml/helm and css"
-            ),
             StopReason::NotAValue(what) => write!(f, "{what} declares no value to trace"),
         }
     }
@@ -555,7 +549,7 @@ pub fn provenance_with_inputs(
         .symbol(symbol)
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
     crate::capabilities::record(crate::capabilities::Capability::Provenance, sym.language);
-    refuse_imperative(sym)?;
+    refuse_unless_it_substitutes(sym)?;
 
     let mut ctx = Ctx::new(
         index,
@@ -568,7 +562,9 @@ pub fn provenance_with_inputs(
         Language::Hcl => ctx.hcl_backward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_backward(sym, EdgeKind::Declaration, 0)?,
         Language::Css | Language::Scss => ctx.css_backward(sym, 0)?,
-        other => ctx.stop(0, StopReason::UnsupportedLanguage(other)),
+        other => unreachable!(
+            "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
+        ),
     }
     Ok(ctx.out)
 }
@@ -589,7 +585,7 @@ pub fn consumers_with_inputs(
         .symbol(symbol)
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
     crate::capabilities::record(crate::capabilities::Capability::Provenance, sym.language);
-    refuse_imperative(sym)?;
+    refuse_unless_it_substitutes(sym)?;
 
     let mut ctx = Ctx::new(
         index,
@@ -602,21 +598,50 @@ pub fn consumers_with_inputs(
         Language::Hcl => ctx.hcl_forward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_forward(sym, 0)?,
         Language::Css | Language::Scss => ctx.css_forward(sym, 0)?,
-        other => ctx.stop(0, StopReason::UnsupportedLanguage(other)),
+        other => unreachable!(
+            "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
+        ),
     }
     Ok(ctx.out)
 }
 
+/// Does this language have a value-substitution model to trace?
+///
+/// The five arms of the two dispatches above, named once. The matrix claimed provenance
+/// for every non-imperative language, which is three more than the dispatch handles: an
+/// HTML, XML or Markdown symbol reached the fallback and stopped, and `fr flow`'s
+/// refusal sent callers here for an answer this cannot give.
+pub fn supports_provenance(language: Language) -> bool {
+    matches!(
+        language,
+        Language::Hcl | Language::Yaml | Language::Helm | Language::Css | Language::Scss
+    )
+}
+
 /// Imperative languages are refused outright, pointing at the analysis that does
 /// apply to them.
-fn refuse_imperative(sym: &Symbol) -> Result<()> {
+fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     if sym.language.class() == LanguageClass::Imperative {
+        // This named `analysis::flow (backward/forward)` — a library module, which is
+        // not something the reader of the message can run. `fr flow` is.
         bail!(
-            "{} is imperative: '{}' has a dataflow, not a substitution/override provenance. \
-             Use analysis::flow (backward/forward) instead.",
+            "{} is imperative: '{}' has a dataflow, not a substitution/override \
+             provenance; `fr flow` traces it instead",
             sym.language,
             sym.name
         );
+    }
+    if !supports_provenance(sym.language) {
+        // The two dispatches have arms for five languages, and every other one fell
+        // through to a stop reason inside an `Ok` — an answer shaped like an answer,
+        // saying there was nothing to say. The matrix claimed those cells on that basis.
+        return Err(crate::refactor::Refusal::Unsupported {
+            operation: "tracing provenance".into(),
+            language: sym.language,
+            because: "this language has no value-substitution model to trace: a value \
+                      here is written where it is used",
+        }
+        .into());
     }
     Ok(())
 }
