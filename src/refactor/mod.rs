@@ -98,7 +98,17 @@ pub enum Refusal {
     Unsupported {
         operation: String,
         language: crate::lang::Language,
-        because: String,
+        /// Why *the language* cannot, which is a property of the language and of nothing
+        /// else. `&'static str` and not `String`, because that is what makes the rule
+        /// hold: a reason about this particular input has a path or a name interpolated
+        /// into it, and an interpolated reason will not fit here.
+        ///
+        /// Adding `because` at all was the previous attempt. It made the mistake easier to
+        /// avoid and did not stop it: `fr move` went on to tell a Rust user that Rust was
+        /// unsupported when the fault was a destination outside `src/`, and four more
+        /// sites were doing the same with crate roots and relative paths. A field that can
+        /// be filled in correctly is not a field that cannot be filled in wrongly.
+        because: &'static str,
     },
     /// Resolution was too weak to act on safely.
     TooWeak {

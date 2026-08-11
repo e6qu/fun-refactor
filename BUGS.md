@@ -181,6 +181,21 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B328: **four more refusals blamed a language for a path.** `fr move` said Rust was
+  unsupported when two files sat under different crate roots and when a `src/` had no
+  `lib.rs`; that Terraform was unsupported when a move crossed directories; and that Zig
+  was unsupported when a relative import would climb above its own root. Every one of them
+  is a fact about the paths involved, and every one contradicted the capability matrix,
+  which claims all four languages move to a file.
+
+  These are the twelfth to fifteenth sites to write a reason that names no language into a
+  field called `language`. The first ten were found and fixed by *adding* the `because`
+  field; that made the mistake easier to avoid and did not stop the eleventh (B327) or
+  these four. `because` is `&'static str` now, so a reason with a path interpolated into it
+  does not compile — which is the difference between a field that can be filled in
+  correctly and one that cannot be filled in wrongly. The four legitimate explanations
+  survive unchanged, because a fact about a language does not need a path in it.
+
 - [x] B327: **`fr move` told a Rust user that Rust was unsupported.** Moving a declaration
   to a file outside `src/` refused with `move to file is not supported for rust`, which is
   the opposite of what the capability matrix says and of what the command does. The fault

@@ -71,7 +71,7 @@ pub fn variable(
         return Err(Refusal::Unsupported {
             operation: "extract variable".into(),
             language,
-            because: String::new(),
+            because: "",
         }
         .into());
     }
@@ -630,7 +630,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         return Err(Refusal::Unsupported {
             operation: "extract function".into(),
             language,
-            because: String::new(),
+            because: "",
         }
         .into());
     }

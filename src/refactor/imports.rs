@@ -460,7 +460,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         return Err(Refusal::Unsupported {
             operation: "organize imports".into(),
             language: info.language,
-            because: reason.to_string(),
+            because: reason,
         }
         .into());
     }

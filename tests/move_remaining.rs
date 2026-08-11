@@ -287,11 +287,14 @@ fn zig_refuses_a_destination_that_would_need_a_climbing_import_path() {
         ("dest.zig", "pub const K: i32 = 1;\n"),
     ]);
     let index = ws.index();
-    let message = refusal(move_symbol::to_file(
+    let message = error(move_symbol::to_file(
         &index,
         symbol_id(&index, "thing", None),
         &ws.path("dest.zig"),
     ));
+    // `error` and not `refusal`: which two paths these are is a fact about them and not
+    // about Zig, so this is no longer a `Refusal::Unsupported` naming the language. It was
+    // one, and said Zig was unsupported when Zig moves between files perfectly well.
     assert!(message.contains("climbs above"), "got: {message}");
     assert!(message.contains("module root"), "got: {message}");
 }

@@ -130,8 +130,7 @@ pub fn apply(
             operation: "a pattern containing a '{{ ... }}' template action".to_string(),
             language,
             because: "those bytes are masked to whitespace before the YAML parse, so they \
-                      carry no structure to match"
-                .to_string(),
+                      carry no structure to match",
         }
         .into());
     }

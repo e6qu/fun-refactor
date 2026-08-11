@@ -71,6 +71,11 @@ jobs:
       # The commands live in the script so that running it locally and passing here
       # mean the same thing. Listing them twice let a branch be green on a laptop and
       # rejected on push, which is how this arrangement was arrived at.
+      #
+      # The script also reports capability coverage, measured on the test run it already
+      # does. A `✓` in the matrix is computed from a predicate and says the command would
+      # accept the language, not that anything ever ran it; the report fails when a claimed
+      # cell went undriven, so the 270/270 is defended here and not merely checkable.
       - name: Check
         run: ./tools/check.sh
 
