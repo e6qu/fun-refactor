@@ -1183,14 +1183,18 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     if from_module.src != to_module.src {
         // Not `Unsupported`: Rust moves between files perfectly well, and which crate
         // roots these two paths sit under is a fact about them and not about Rust.
-        anyhow::bail!(
-            "{} and {} are under different crate roots ({} and {}); a move between crates \
-             needs a dependency edge this tool cannot add",
-            sym.file.display(),
-            destination.display(),
-            from_module.src.display(),
-            to_module.src.display()
-        );
+        return Err(Refusal::NotHere {
+            operation: "move to file".into(),
+            detail: format!(
+                "{} and {} are under different crate roots ({} and {}); a move between \
+                 crates needs a dependency edge this tool cannot add",
+                sym.file.display(),
+                destination.display(),
+                from_module.src.display(),
+                to_module.src.display()
+            ),
+        }
+        .into());
     }
 
     if let Some(offender) = path_attribute_user(index, &to_module.src) {
@@ -1366,23 +1370,31 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
         }
     }
     let Some(src) = src else {
-        // Not `Refusal::Unsupported`: moving to a file is supported for Rust, and saying
-        // "move to file is not supported for rust" about a path outside `src/` tells the
-        // reader the opposite of what the capability matrix does. The fault is the
-        // destination, and that is what this says.
-        anyhow::bail!(
-            "{} is not under a `src/` directory, so its module path cannot be derived \
-             from its location; move it somewhere under `src/` instead",
-            file.display()
-        );
+        // `NotHere` and not `Unsupported`: moving to a file is supported for Rust, and
+        // saying "move to file is not supported for rust" about a path outside `src/`
+        // tells the reader the opposite of what the capability matrix does. The fault is
+        // the destination, and it is still a considered refusal.
+        return Err(Refusal::NotHere {
+            operation: "move to file".into(),
+            detail: format!(
+                "{} is not under a `src/` directory, so its module path cannot be derived \
+                 from its location; move it somewhere under `src/` instead",
+                file.display()
+            ),
+        }
+        .into());
     };
 
     if !crate::vfs::exists(src.join("lib.rs")) && !crate::vfs::exists(src.join("main.rs")) {
-        anyhow::bail!(
-            "{} has neither lib.rs nor main.rs, so there is no crate root to anchor a \
-             `use crate::…` path to",
-            src.display()
-        );
+        return Err(Refusal::NotHere {
+            operation: "move to file".into(),
+            detail: format!(
+                "{} has neither lib.rs nor main.rs, so there is no crate root to anchor a \
+                 `use crate::…` path to",
+                src.display()
+            ),
+        }
+        .into());
     }
 
     let relative = file
@@ -2024,14 +2036,18 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     if source_dir != destination.parent() {
         // Terraform moves within a directory; what this refuses is the pair of
         // directories, which is not a property of the language.
-        anyhow::bail!(
-            "Terraform's module is the directory, so moving '{}' from {} to {} changes its \
-             module. Every address that names it, and its state address, would break; \
-             `moved` blocks or `terraform state mv` are the tools for that",
-            sym.name,
-            sym.file.display(),
-            destination.display()
-        );
+        return Err(Refusal::NotHere {
+            operation: "move to file".into(),
+            detail: format!(
+                "Terraform's module is the directory, so moving '{}' from {} to {} changes \
+                 its module. Every address that names it, and its state address, would \
+                 break; `moved` blocks or `terraform state mv` are the tools for that",
+                sym.name,
+                sym.file.display(),
+                destination.display()
+            ),
+        }
+        .into());
     }
 
     let source_ext = sym.file.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -2621,14 +2637,18 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
             Some(local) => local.clone(),
             None => {
                 let Some(path) = zig_import_path(file, destination) else {
-                    anyhow::bail!(
-                        "{} would have to reach {} through a relative path that climbs \
-                         above its own directory. Zig refuses an `@import` that leaves the \
-                         module root, and where that root is cannot be read off the two \
-                         paths, so no import can be written for it",
-                        file.display(),
-                        destination.display()
-                    );
+                    return Err(Refusal::NotHere {
+                        operation: "move to file".into(),
+                        detail: format!(
+                            "{} would have to reach {} through a relative path that climbs \
+                             above its own directory. Zig refuses an `@import` that leaves \
+                             the module root, and where that root is cannot be read off \
+                             the two paths, so no import can be written for it",
+                            file.display(),
+                            destination.display()
+                        ),
+                    }
+                    .into());
                 };
                 let local = zig_namespace_name(destination)?;
                 if let Some(clash) = zig_top_level(index, file)

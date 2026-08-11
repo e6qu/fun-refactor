@@ -365,7 +365,7 @@ figures below were measured on this branch.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 16 |
 | Supported pairs | 270 of 384, every other one carrying its reason |
-| Defects fixed | 309 |
+| Defects fixed | 311 |
 | Defects open | 12 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses, which

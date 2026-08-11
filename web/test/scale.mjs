@@ -34,6 +34,33 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
+// The module this sweeps is a build artifact, and a stale one answers every question with
+// last week's code while looking exactly like a pass. Building it needs a wasm toolchain
+// that not every machine has, so the failure mode is a developer running this against
+// whatever `web/src/wasm` happens to hold — which is how a week-old module once reported
+// "no defects" for a change it had never seen.
+const wasm = join(root, "src/wasm/fun_refactor_bg.wasm");
+{
+  const built = statSync(wasm).mtimeMs;
+  const newest = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).reduce((latest, entry) => {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) return Math.max(latest, newest(path));
+      return entry.name.endsWith(".rs")
+        ? Math.max(latest, statSync(path).mtimeMs)
+        : latest;
+    }, 0);
+  const source = newest(join(root, "..", "src"));
+  if (source > built) {
+    console.error(
+      `web/src/wasm is older than src/: built ${new Date(built).toISOString()}, ` +
+        `newest source ${new Date(source).toISOString()}.\n` +
+        "Run tools/build-wasm.sh — sweeping a stale module measures nothing.",
+    );
+    process.exit(1);
+  }
+}
+
 const { default: init, Workspace } = await import(join(root, "src/wasm/fun_refactor.js"));
 await init({
   module_or_path: readFileSync(join(root, "src/wasm/fun_refactor_bg.wasm")),
@@ -162,7 +189,15 @@ if (missed.length) {
   process.exit(1);
 }
 
-/** A refusal names a rule; anything else that fails is a defect. */
+/**
+ * A refusal names a rule; anything else that fails is a defect.
+ *
+ * The list below is the fallback. It reads the sentence, which means rewording a refusal
+ * reclassifies it as a defect — and that happened, when five refusals stopped saying
+ * "is not supported for {language}" about a path and started saying what was actually
+ * wrong. The API reports `refused` now, and the patterns are only for the errors that do
+ * not carry it.
+ */
 const REFUSAL = [
   /at that position/i,                 // no `if` / no negation / no symbol here
   /refus|declin/i,
@@ -190,6 +225,10 @@ function outcomeOf(raw) {
     return { kind: "UNPARSEABLE", detail: String(e) };
   }
   if (value && typeof value === "object" && "error" in value) {
+    // What the tool says about itself, before what its wording suggests.
+    if (value.refused === true) {
+      return { kind: "refused", detail: value.error };
+    }
     return isRefusal(value.error)
       ? { kind: "refused", detail: value.error }
       : { kind: "BROKE", detail: value.error };
