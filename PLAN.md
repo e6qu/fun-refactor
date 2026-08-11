@@ -619,6 +619,27 @@ absence. The third found three, and all three are one shape: the last use of an 
 lives in the code being removed, and the statement stays behind. Every one of them parses,
 which is why the parse sweeps missed them and a compiler caught them.
 
+A fourth file, `validators_accept.rs`, drives five more languages by the tool that owns
+each one rather than by a compiler: `bash -n` with shellcheck and then the script itself,
+`terraform validate`, `helm lint`, and `xmllint` for XML and HTML. "Has a compiler" was the
+wrong bar — `terraform validate` resolves references, `helm lint` renders the chart against
+Kubernetes' schemas, and each rejects things tree-sitter reads happily.
+
+That sweep found no defects either. It found two mistakes of mine, both worth recording:
+in bash, `$NAME` in a restructure pattern is a metavariable and not a shell expansion, and
+the tool documents that; and the bash arm of the gate was too weak until it ran the script,
+because `bash -n` cannot see a call to a function that moved to another file.
+
+CI installs `terraform`, `helm`, `xmllint` and `zig` so those sweeps run there and not only
+on a laptop; only `shellcheck` is already on the runner. Zig had been absent since the gate
+started driving it, and the rule below is what found that. A validator the gate
+cannot find makes its cases skip themselves and say so — which is honest on a laptop and
+useless on CI, where `cargo test` captures that line and a hole looks exactly like a pass.
+Each gate file therefore fails on CI when a tool it names is absent, and says which.
+
+Not driven, and why: **scss** has no `sass` on the machine this was built on, **markdown**
+has nothing to validate, and **yaml** is checked as part of the chart `helm lint` renders.
+
 `fr translate` is the one writing command not driven here. Its output is a draft that
 carries unresolved constructs by design, so compiling it would fail correctly and prove
 nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.

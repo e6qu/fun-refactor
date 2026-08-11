@@ -202,6 +202,13 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   carries a body of knowledge about uses no query can see — a Rust trait reached through
   its methods, a JSX pragma in a comment — that a second answer would get wrong.
 
+Driving bash, hcl, helm, xml and html by the tool that owns each one — `bash -n` with
+shellcheck and the script itself, `terraform validate`, `helm lint`, `xmllint` — added no
+entries either. Every command those five languages claim in the capability matrix was run
+and validated. Two things it did surface are recorded in PLAN.md rather than here, because
+neither is a defect in the tool: bash's `$NAME` in a restructure pattern is a metavariable
+and the documentation says so, and the gate's bash arm was too weak until it ran the script.
+
 Sweeping `fr extract`, `fr rewrite` and `fr restructure` through the compile gate's six
 languages added no entries here. Recorded because the absence is the finding: 20
 extractions, 64 rewrite positions the command itself nominated, and 14 whole-file

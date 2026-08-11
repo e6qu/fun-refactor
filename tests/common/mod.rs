@@ -13,6 +13,26 @@ use fun_refactor::scan::{scan, ScanOptions};
 use std::path::PathBuf;
 use std::process::Command;
 
+/// Hold a gate to its coverage, where a hole would otherwise be invisible.
+///
+/// Each gate file prints the tools it drove and the ones it skipped. Under `cargo test`
+/// that output is captured, so on CI nobody ever sees it: a validator that is not
+/// installed skips its cases, says so into a void, and the run goes green looking exactly
+/// like one that checked everything.
+///
+/// So the rule differs by where it runs. On a laptop a missing tool is ordinary and the
+/// line is a note. On CI it is a hole in the build, and this fails instead.
+pub fn require_on_ci(what: &str, missing: &[String]) {
+    if missing.is_empty() || std::env::var("CI").is_err() {
+        return;
+    }
+    panic!(
+        "{what}: {} not installed on CI, so those cases checked nothing: {}",
+        missing.len(),
+        missing.join(", ")
+    );
+}
+
 /// A workspace on disk that can be indexed, edited and compiled.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Toolchain {
@@ -22,6 +42,15 @@ pub enum Toolchain {
     Python,
     Zig,
     Javac,
+    /// `bash -n` and shellcheck: a script that does not parse is not a script.
+    Bash,
+    /// `terraform validate`, which reads references and not only syntax.
+    Terraform,
+    /// `helm lint`, which renders the chart and checks it against Kubernetes' schemas.
+    Helm,
+    Xmllint,
+    /// The same tool in HTML mode, where the exit code says nothing and the output does.
+    XmllintHtml,
 }
 
 impl Toolchain {
@@ -34,6 +63,10 @@ impl Toolchain {
             Toolchain::Python => "python3",
             Toolchain::Zig => "zig",
             Toolchain::Javac => "javac",
+            Toolchain::Bash => "bash",
+            Toolchain::Terraform => "terraform",
+            Toolchain::Helm => "helm",
+            Toolchain::Xmllint | Toolchain::XmllintHtml => "xmllint",
         }
     }
 
@@ -42,7 +75,7 @@ impl Toolchain {
         // way reported Go as absent on a machine that has it, and every Go case skipped
         // itself while the run stayed green.
         let version_flag = match self {
-            Toolchain::Go | Toolchain::Zig => "version",
+            Toolchain::Go | Toolchain::Zig | Toolchain::Terraform | Toolchain::Helm => "version",
             _ => "--version",
         };
         Command::new(self.program())
@@ -60,6 +93,13 @@ impl Toolchain {
             Toolchain::Python => "python -m compileall, then import and call the fixture",
             Toolchain::Zig => "zig build-lib, from the root that reaches every file",
             Toolchain::Javac => "javac over every source in the workspace",
+            Toolchain::Bash => "bash -n, shellcheck, then the script itself",
+            Toolchain::Terraform => "terraform validate, which resolves references",
+            Toolchain::Helm => "helm lint, which renders the chart and checks the schemas",
+            Toolchain::Xmllint => "xmllint, for well-formedness",
+            Toolchain::XmllintHtml => {
+                "xmllint --html, whose report is its output and not its status"
+            }
         }
     }
 }
@@ -202,6 +242,102 @@ impl Workspace {
                     .output()
                     .expect("javac runs")
             }
+            // Three passes. The shell's own parser and shellcheck at error severity —
+            // a warning is style and an error is a script that will not run — and then
+            // the script itself, because neither of the first two can see a call to a
+            // function that moved to another file. `fr move` writes the `source` line
+            // that makes it work, and only running the thing checks that it did.
+            Toolchain::Bash => {
+                for script in self.files_ending(".sh") {
+                    for (program, args) in [
+                        ("bash", vec!["-n".to_string()]),
+                        ("shellcheck", vec!["-S".to_string(), "error".to_string()]),
+                    ] {
+                        if !Toolchain::Bash.is_available() && program == "bash" {
+                            continue;
+                        }
+                        let run = Command::new(program)
+                            .args(&args)
+                            .arg(&script)
+                            .current_dir(self.dir.path())
+                            .output();
+                        let Ok(run) = run else { continue };
+                        if !run.status.success() {
+                            return Err(format!(
+                                "{}{}",
+                                String::from_utf8_lossy(&run.stdout),
+                                String::from_utf8_lossy(&run.stderr)
+                            ));
+                        }
+                    }
+                }
+                // The entry script, which the fixture makes self-checking.
+                let entry = self.dir.path().join("run.sh");
+                if entry.exists() {
+                    let run = Command::new("bash")
+                        .arg(&entry)
+                        .current_dir(self.dir.path())
+                        .output()
+                        .expect("bash runs");
+                    if !run.status.success() {
+                        return Err(format!(
+                            "{}{}",
+                            String::from_utf8_lossy(&run.stdout),
+                            String::from_utf8_lossy(&run.stderr)
+                        ));
+                    }
+                }
+                return Ok(());
+            }
+            // `validate` needs the module initialised, and with no backend it needs no
+            // credentials and reaches no network.
+            Toolchain::Terraform => {
+                let _ = Command::new("terraform")
+                    .args(["init", "-backend=false", "-no-color"])
+                    .current_dir(self.dir.path())
+                    .output();
+                Command::new("terraform")
+                    .args(["validate", "-no-color"])
+                    .current_dir(self.dir.path())
+                    .output()
+                    .expect("terraform runs")
+            }
+            Toolchain::Helm => Command::new("helm")
+                .arg("lint")
+                .arg(self.dir.path())
+                .output()
+                .expect("helm runs"),
+            Toolchain::Xmllint => {
+                for file in self.files_ending(".xml") {
+                    let run = Command::new("xmllint")
+                        .arg("--noout")
+                        .arg(&file)
+                        .current_dir(self.dir.path())
+                        .output()
+                        .expect("xmllint runs");
+                    if !run.status.success() {
+                        return Err(String::from_utf8_lossy(&run.stderr).to_string());
+                    }
+                }
+                return Ok(());
+            }
+            // An HTML parser recovers from anything, so it exits 0 whatever it read. What
+            // it *says* is the answer: silence means well formed.
+            Toolchain::XmllintHtml => {
+                for file in self.files_ending(".html") {
+                    let run = Command::new("xmllint")
+                        .args(["--noout", "--html"])
+                        .arg(&file)
+                        .current_dir(self.dir.path())
+                        .output()
+                        .expect("xmllint runs");
+                    let said = String::from_utf8_lossy(&run.stderr).to_string();
+                    if !said.trim().is_empty() {
+                        return Err(said);
+                    }
+                }
+                return Ok(());
+            }
         };
         match output.status.success() {
             true => Ok(()),
@@ -212,6 +348,30 @@ impl Workspace {
                 String::from_utf8_lossy(&output.stderr)
             )),
         }
+    }
+
+    /// Every file in the workspace with this extension, deepest last.
+    fn files_ending(&self, suffix: &str) -> Vec<PathBuf> {
+        let mut out = Vec::new();
+        let mut stack = vec![self.dir.path().to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = std::fs::read_dir(&dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                match path.is_dir() {
+                    true => stack.push(path),
+                    false => {
+                        if path.to_string_lossy().ends_with(suffix) {
+                            out.push(path);
+                        }
+                    }
+                }
+            }
+        }
+        out.sort();
+        out
     }
 
     /// The workspace as the in-memory commands see it.

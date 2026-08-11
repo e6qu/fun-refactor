@@ -778,7 +778,15 @@ fn every_rewrite_the_command_offers_compiles() {
 /// What this file covers, said out loud.
 #[test]
 fn the_rewrite_gate_states_what_it_covers() {
+    let mut missing = Vec::new();
     for fixture in fixtures() {
+        if !fixture.toolchain.is_available() {
+            missing.push(format!(
+                "{} ({})",
+                fixture.language,
+                fixture.toolchain.program()
+            ));
+        }
         eprintln!(
             "rewrite gate: {} — {} ({})",
             fixture.language,
@@ -789,6 +797,7 @@ fn the_rewrite_gate_states_what_it_covers() {
             }
         );
     }
+    common::require_on_ci("rewrite gate", &missing);
     eprintln!(
         "rewrite gate: not driven — tsx, bash, html, css, scss, hcl, yaml, helm, xml, markdown"
     );
