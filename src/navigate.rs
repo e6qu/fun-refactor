@@ -238,6 +238,9 @@ pub fn implementations_with(
 
 /// Every use of a symbol, plus the same-named occurrences that are not uses of it.
 pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
+    if let Some(symbol) = index.symbol(symbol_id) {
+        crate::capabilities::record(crate::capabilities::Capability::Symbols, symbol.language);
+    }
     let query = index
         .symbol(symbol_id)
         .map(|s| s.qualified_name())

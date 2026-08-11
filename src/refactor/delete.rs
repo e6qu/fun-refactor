@@ -42,6 +42,9 @@ pub struct DeletePlan {
 /// the definition being deleted (a recursive call, a method calling its own class)
 /// do not block: they disappear with it.
 pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
+    if let Some(language) = index.symbol(symbol).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::SafeDelete, language);
+    }
     let target = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
@@ -425,6 +428,7 @@ fn declared_unused(symbol: &crate::model::Symbol) -> bool {
 
 /// [`find_unused`], with the reason each spared symbol was spared.
 pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedReport {
+    crate::capabilities::record_workspace(crate::capabilities::Capability::DeadCode, index);
     let entrypoints = entrypoints.as_slice();
     let call_graph = CallGraph::build(index);
 

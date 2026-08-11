@@ -187,6 +187,10 @@ fn translate_segment(segment: &str) -> String {
 
 /// Translate a Next.js API route into a FastAPI module.
 pub fn plan(path: &Path) -> Result<RoutePlan> {
+    crate::capabilities::record(
+        crate::capabilities::Capability::Openapi,
+        crate::lang::detect(path).unwrap_or(crate::lang::Language::TypeScript),
+    );
     let Some(language) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
     };

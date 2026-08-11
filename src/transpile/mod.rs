@@ -130,6 +130,7 @@ pub struct TranslationPlan {
 
 /// Translate `path` into `to`, writing beside it under the target's extension.
 pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
+    crate::capabilities::record(crate::capabilities::Capability::Translate, to);
     let Some(from) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
     };

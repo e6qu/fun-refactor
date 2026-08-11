@@ -111,6 +111,9 @@ impl Declared {
 
 /// What the source declared about `symbol`.
 pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
+    if let Some(language) = index.symbol(symbol).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::DeclaredType, language);
+    }
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("no symbol with that id"))?;

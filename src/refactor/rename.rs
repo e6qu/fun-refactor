@@ -32,6 +32,9 @@ pub struct RenamePlan {
 /// Returns a [`Refusal`] instead of a partial rename when the change would collide
 /// with an existing name or the new name is not valid for the language.
 pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<RenamePlan> {
+    if let Some(language) = index.symbol(symbol_id).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::Rename, language);
+    }
     let symbol = index
         .symbol(symbol_id)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;

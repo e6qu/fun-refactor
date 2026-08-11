@@ -200,6 +200,61 @@ fn absent(language: Language, structural: &'static str, missing: &'static str) -
 ///
 /// Every arm either calls the predicate the refactoring itself uses, or states why the
 /// operation is meaningless. Nothing here is a transcription.
+/// Record that a capability actually ran against a language.
+///
+/// The matrix is computed from each refactoring's own predicate, so a `✓` means "this
+/// command would accept this language" and not "this has ever worked". Those are different
+/// claims, and the difference is where this project's defects live: a rule that is
+/// documented and never runs, a gap recorded after it stopped being one, a language driven
+/// by a gate that was never installed.
+///
+/// So the claim is measured instead of assumed. With `FR_CAPABILITY_LOG` set to a path,
+/// every capability appends the pair it was invoked with, and the audit compares what ran
+/// against what is advertised. Without the variable this is a load of a `None` and a
+/// return, which is why it can sit on the hot path.
+///
+/// A file and not a global, because the test suite is many processes and one set has to
+/// span all of them.
+pub fn record(capability: Capability, language: Language) {
+    use std::io::Write;
+    use std::sync::OnceLock;
+
+    static LOG: OnceLock<Option<std::path::PathBuf>> = OnceLock::new();
+    let path = LOG.get_or_init(|| std::env::var_os("FR_CAPABILITY_LOG").map(Into::into));
+    let Some(path) = path else {
+        return;
+    };
+    // Appended and not held: the writer may be one of a dozen processes, and a line
+    // under the pipe buffer arrives whole.
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let _ = writeln!(file, "{}\t{}", capability.label(), language.name());
+    }
+}
+
+/// Record a capability that runs over a whole workspace rather than one file.
+///
+/// The languages the index actually holds, narrowed to the ones the matrix claims: a call
+/// graph built over a tree containing Markdown did not thereby build a call graph for
+/// Markdown, and recording that would make the audit agree with itself by inventing what
+/// it set out to check.
+pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
+    if std::env::var_os("FR_CAPABILITY_LOG").is_none() {
+        return;
+    }
+    let mut seen: Vec<Language> = index.files().map(|(_, info)| info.language).collect();
+    seen.sort_by_key(|l| l.name());
+    seen.dedup();
+    for language in seen {
+        if support(capability, language).is_yes() {
+            record(capability, language);
+        }
+    }
+}
+
 pub fn support(capability: Capability, language: Language) -> Support {
     use Capability as C;
     let imperative = language.class() == LanguageClass::Imperative;

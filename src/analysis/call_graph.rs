@@ -142,6 +142,7 @@ impl CallGraph {
 
     /// Build against a hierarchy that has already been scanned.
     pub fn build_with(index: &Index, hierarchy: &Hierarchy) -> Self {
+        crate::capabilities::record_workspace(crate::capabilities::Capability::CallGraph, index);
         let mut cg = CallGraph {
             hierarchy_gaps: hierarchy.gaps.clone(),
             ..CallGraph::default()

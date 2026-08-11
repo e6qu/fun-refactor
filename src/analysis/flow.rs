@@ -131,6 +131,9 @@ impl FlowResult {
 
 /// Trace where the value at `offset` comes from.
 pub fn backward(index: &Index, file: &Path, offset: usize, max_depth: usize) -> Result<FlowResult> {
+    if let Some(info) = index.file(file) {
+        crate::capabilities::record(crate::capabilities::Capability::Flow, info.language);
+    }
     let mut result = FlowResult {
         direction: FlowDirection::Backward,
         steps: Vec::new(),
@@ -278,6 +281,9 @@ fn walk_backward(
 
 /// Trace where a symbol's value is used.
 pub fn forward(index: &Index, symbol_id: SymbolId, max_depth: usize) -> Result<FlowResult> {
+    if let Some(symbol) = index.symbol(symbol_id) {
+        crate::capabilities::record(crate::capabilities::Capability::Flow, symbol.language);
+    }
     let mut result = FlowResult {
         direction: FlowDirection::Forward,
         steps: Vec::new(),

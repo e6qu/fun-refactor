@@ -29,6 +29,9 @@ pub struct InlinePlan {
 
 /// Inline the variable `symbol`.
 pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
+    if let Some(language) = index.symbol(symbol).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::InlineVariable, language);
+    }
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
@@ -572,6 +575,9 @@ pub struct InlineCallPlan {
 /// one takes the conservative half of that problem — a single-expression callee whose
 /// arguments cannot be duplicated unsafely — and refuses everything else by name.
 pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<InlineCallPlan> {
+    if let Some(info) = index.file(file) {
+        crate::capabilities::record(crate::capabilities::Capability::InlineCall, info.language);
+    }
     let reference = index
         .reference_at(file, offset)
         .ok_or_else(|| anyhow::anyhow!("no call at that position"))?;

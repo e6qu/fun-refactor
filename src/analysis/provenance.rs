@@ -554,6 +554,7 @@ pub fn provenance_with_inputs(
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
+    crate::capabilities::record(crate::capabilities::Capability::Provenance, sym.language);
     refuse_imperative(sym)?;
 
     let mut ctx = Ctx::new(
@@ -587,6 +588,7 @@ pub fn consumers_with_inputs(
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow!("no symbol with id {symbol:?} in this index"))?;
+    crate::capabilities::record(crate::capabilities::Capability::Provenance, sym.language);
     refuse_imperative(sym)?;
 
     let mut ctx = Ctx::new(

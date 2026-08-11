@@ -119,6 +119,9 @@ impl Impact {
 ///
 /// `caller_depth` bounds how far call edges are followed; 0 disables the call walk.
 pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<Impact> {
+    if let Some(language) = index.symbol(symbol).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::Impact, language);
+    }
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;

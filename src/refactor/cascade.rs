@@ -106,6 +106,10 @@ pub fn remove_flag_in(
     flag: &str,
     value: bool,
 ) -> Result<CascadePlan> {
+    // Every language the workspace holds, because a cascade is not scoped to one file.
+    for (language, _) in sources.values() {
+        crate::capabilities::record(crate::capabilities::Capability::RemoveFlag, *language);
+    }
     let mut sources = sources;
     // The originals are kept to diff against at the end.
     let originals = sources.clone();

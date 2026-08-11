@@ -316,6 +316,7 @@ pub fn unparsed(index: &Index, options: &Options) -> Vec<PathBuf> {
 
 /// Convenience for callers that only have a path prefix and defaults.
 pub fn find_in(index: &Index, root: &Path) -> Result<Vec<CloneClass>> {
+    crate::capabilities::record_workspace(crate::capabilities::Capability::Duplicates, index);
     find(
         index,
         &Options {
