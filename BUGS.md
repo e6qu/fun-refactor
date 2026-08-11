@@ -197,6 +197,45 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   test now reports the verbatim count and the notes beside it, so a recurrence names its
   own cause instead of being a mystery a second time.
 
+- [x] B318: **`fr move` left the destination calling the symbol through the file it came
+  from.** Moving a Zig declaration into a file that already called it left
+  `holder.width(…)` in that file, naming a file that no longer has the name. The
+  destination was the one file the loop over use sites skipped, which was safe only while
+  such a call resolved to nothing. `fr move` already narrows an import the destination no
+  longer needs; the qualifier in front of a Zig call is the same thing said differently,
+  and it is dropped now.
+
+- [x] B317: **`fr signature` reported call sites it had not touched.** Zig's grammar gives
+  a call's arguments no node of their own — `holder.width(a, b)` is a `call_expression`
+  whose children are the callee and then the arguments — and the code asked only for a
+  wrapper. Every Zig call therefore looked like a call that passes nothing, which took the
+  branch written for SCSS's `@include reset;` and did nothing, while the summary said
+  "updating 2 call site(s)". The two are told apart now: no argument list still means no
+  parentheses, and a grammar that wraps nothing is read on its own terms.
+
+- [x] B316: **a Zig `@import` path resolved to nothing.** `@import("holder.zig")` names a
+  file beside this one with no `./` in front of it, and every branch of the path resolver
+  assumed a leading dot or a dotted module name — so the extension was read as the last
+  segment of a dotted path and the import was looked up as a file called `zig`. Nothing in
+  Zig that reached across a file boundary resolved, so `fr rename` rewrote the declaration
+  and left every caller naming something that is not there.
+
+- [x] B315: **a Java static call resolved to the wrong method, at exact confidence.** What
+  makes a receiver a path is what it names, not how the language punctuates it: Rust
+  writes `Type::m` and Java writes `Type.m`. Only the first was recognised, so
+  `Widths.width(…)` fell through to the rule that takes the one declaration of that name
+  in this file — which, inside `Holder.java`, is `Holder`'s own method. The answer was
+  wrong and carried the strongest confidence there is. A receiver naming a type declared
+  in this workspace is a path now, in any language, and the qualifier match is filtered by
+  language as well: a workspace holding the same design in Python and in TypeScript
+  declares `Money::of` twice, and matching on the name alone called that ambiguous.
+
+- [x] B314: **the confidence cap and the rule that resolves a qualified call disagreed.**
+  Four receivers have a type the source states: the enclosing instance, a module path, an
+  import binding, and a type's own name. The cap listed three, so a Java static call found
+  the right method and then had its confidence lowered to `field-based`, which no
+  refactoring will rewrite. Both places ask one question and now ask it in one place.
+
 - [x] B313: **`Language` ignored a width in a format string.** Its `Display` wrote the
   name straight out instead of going through `Formatter::pad`, so `{target:<10}` padded
   nothing and the column of targets `fr translate` prints came out ragged wherever a

@@ -212,7 +212,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     source: &source,
                     language: sym.language,
                 },
-                params,
+                params.start_byte(),
                 &param_spans,
                 &change,
                 true,
@@ -271,9 +271,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             .into());
         }
 
-        match argument_list(call) {
-            Some(args) => {
-                let arg_spans = list_items(args);
+        match call_arguments(call) {
+            Some((opens_at, arg_spans)) => {
                 apply_change(
                     &mut edits,
                     &Site {
@@ -281,7 +280,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                         source: &call_source,
                         language: reference.language,
                     },
-                    args,
+                    opens_at,
                     &arg_spans,
                     &change,
                     false,
@@ -365,7 +364,7 @@ struct Site<'a> {
 fn apply_change(
     edits: &mut EditSet,
     site: &Site<'_>,
-    list: Node<'_>,
+    opens_at: usize,
     items: &[Span],
     change: &Change,
     is_declaration: bool,
@@ -429,7 +428,7 @@ fn apply_change(
             };
             if items.is_empty() {
                 // Insert just inside the parentheses.
-                let inside = Span::new(list.start_byte() + 1, list.start_byte() + 1);
+                let inside = Span::new(opens_at + 1, opens_at + 1);
                 edits.add(
                     file.to_path_buf(),
                     Edit::new(inside, text.clone(), "add parameter".to_string()),
@@ -578,7 +577,7 @@ fn parameter_list(node: Node<'_>) -> Option<Node<'_>> {
     found
 }
 
-/// The argument list node of a call.
+/// The argument list node of a call, where the grammar wraps one.
 fn argument_list(node: Node<'_>) -> Option<Node<'_>> {
     if let Some(named) = node.child_by_field_name("arguments") {
         return Some(named);
@@ -588,6 +587,42 @@ fn argument_list(node: Node<'_>) -> Option<Node<'_>> {
         .children(&mut cursor)
         .find(|c| c.kind().contains("argument"));
     found
+}
+
+/// Where a call's arguments start, and what they are.
+///
+/// Most grammars wrap the arguments in a node of their own, and the answer is that node.
+/// Zig does not: `holder.width(a, b)` is a `call_expression` whose children are the callee
+/// and then the arguments themselves, with no list around them and no `(` of its own to
+/// find them by. Asking only for a wrapper therefore reported every Zig call as taking no
+/// arguments, and `fr signature` reordered the declaration, said it was "updating 2 call
+/// site(s)", and left both of them alone.
+///
+/// `None` still means what it meant: a call that passes nothing and has no parentheses,
+/// which SCSS writes as `@include reset;`.
+fn call_arguments(node: Node<'_>) -> Option<(usize, Vec<Span>)> {
+    if let Some(list) = argument_list(node) {
+        return Some((list.start_byte(), list_items(list)));
+    }
+
+    // No wrapper. The callee is the first child, the arguments are the rest, and the
+    // opening parenthesis is the token between them.
+    let callee = node
+        .child_by_field_name("function")
+        .or_else(|| node.named_child(0))?;
+    let mut cursor = node.walk();
+    let open = node
+        .children(&mut cursor)
+        .find(|c| c.kind() == "(" && c.start_byte() >= callee.end_byte())?;
+
+    let mut items = node.walk();
+    let arguments: Vec<Span> = node
+        .named_children(&mut items)
+        .filter(|c| c.start_byte() >= open.end_byte() && !c.kind().contains("comment"))
+        .map(Span::from)
+        .filter(|span| !span.is_empty())
+        .collect();
+    Some((open.start_byte(), arguments))
 }
 
 /// The call expression whose callee is at `span`.
