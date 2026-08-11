@@ -143,7 +143,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         return Err(Refusal::Unsupported {
             operation: "move to file".into(),
             language: sym.language,
-            because: why.to_string(),
+            because: why,
         }
         .into());
     }
@@ -170,8 +170,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
             language: Language::Java,
             because: "a public type must live in a file named after it and imports name \
                       packages and not paths, so moving one is a rename of the file \
-                      and its package, not a move of a definition"
-                .into(),
+                      and its package, not a move of a definition",
         }
         .into()),
         // An element is addressed by its position in one document, or by an id that
@@ -182,8 +181,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
             language: other,
             because: "an element has no name that another document imports, so moving \
                       one between files changes what each document *is* and not \
-                      where a definition lives"
-                .into(),
+                      where a definition lives",
         }
         .into()),
     }
@@ -1183,10 +1181,11 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     let from_module = crate_module(&sym.file)?;
     let to_module = crate_module(destination)?;
     if from_module.src != to_module.src {
-        return Err(Refusal::Unsupported {
+        // Not `Unsupported`: Rust moves between files perfectly well, and which crate
+        // roots these two paths sit under is a fact about them and not about Rust.
+        return Err(Refusal::NotHere {
             operation: "move to file".into(),
-            language: Language::Rust,
-            because: format!(
+            detail: format!(
                 "{} and {} are under different crate roots ({} and {}); a move between \
                  crates needs a dependency edge this tool cannot add",
                 sym.file.display(),
@@ -1371,24 +1370,27 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
         }
     }
     let Some(src) = src else {
-        // Not `Refusal::Unsupported`: moving to a file is supported for Rust, and saying
-        // "move to file is not supported for rust" about a path outside `src/` tells the
-        // reader the opposite of what the capability matrix does. The fault is the
-        // destination, and that is what this says.
-        anyhow::bail!(
-            "{} is not under a `src/` directory, so its module path cannot be derived \
-             from its location; move it somewhere under `src/` instead",
-            file.display()
-        );
+        // `NotHere` and not `Unsupported`: moving to a file is supported for Rust, and
+        // saying "move to file is not supported for rust" about a path outside `src/`
+        // tells the reader the opposite of what the capability matrix does. The fault is
+        // the destination, and it is still a considered refusal.
+        return Err(Refusal::NotHere {
+            operation: "move to file".into(),
+            detail: format!(
+                "{} is not under a `src/` directory, so its module path cannot be derived \
+                 from its location; move it somewhere under `src/` instead",
+                file.display()
+            ),
+        }
+        .into());
     };
 
     if !crate::vfs::exists(src.join("lib.rs")) && !crate::vfs::exists(src.join("main.rs")) {
-        return Err(Refusal::Unsupported {
+        return Err(Refusal::NotHere {
             operation: "move to file".into(),
-            language: Language::Rust,
-            because: format!(
-                "{} has neither lib.rs nor main.rs, so there is no crate root to anchor \
-                 a `use crate::…` path to",
+            detail: format!(
+                "{} has neither lib.rs nor main.rs, so there is no crate root to anchor a \
+                 `use crate::…` path to",
                 src.display()
             ),
         }
@@ -2032,10 +2034,11 @@ fn with_go_doc_comment(source: &str, span: Span) -> Span {
 fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     let source_dir = sym.file.parent();
     if source_dir != destination.parent() {
-        return Err(Refusal::Unsupported {
+        // Terraform moves within a directory; what this refuses is the pair of
+        // directories, which is not a property of the language.
+        return Err(Refusal::NotHere {
             operation: "move to file".into(),
-            language: Language::Hcl,
-            because: format!(
+            detail: format!(
                 "Terraform's module is the directory, so moving '{}' from {} to {} changes \
                  its module. Every address that names it, and its state address, would \
                  break; `moved` blocks or `terraform state mv` are the tools for that",
@@ -2634,14 +2637,13 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
             Some(local) => local.clone(),
             None => {
                 let Some(path) = zig_import_path(file, destination) else {
-                    return Err(Refusal::Unsupported {
+                    return Err(Refusal::NotHere {
                         operation: "move to file".into(),
-                        language: Language::Zig,
-                        because: format!(
+                        detail: format!(
                             "{} would have to reach {} through a relative path that climbs \
                              above its own directory. Zig refuses an `@import` that leaves \
-                             the module root, and where that root is cannot be read off the \
-                             two paths, so no import can be written for it",
+                             the module root, and where that root is cannot be read off \
+                             the two paths, so no import can be written for it",
                             file.display(),
                             destination.display()
                         ),

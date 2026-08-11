@@ -101,7 +101,7 @@ pub fn apply(index: &Index, file: &Path, offset: usize, rewrite: Rewrite) -> Res
         return Err(Refusal::Unsupported {
             operation: rewrite.as_str().to_string(),
             language,
-            because: String::new(),
+            because: "",
         }
         .into());
     }

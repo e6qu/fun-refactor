@@ -124,11 +124,31 @@ fn parse_signature_change(text: &str) -> Result<crate::refactor::signature::Chan
 #[derive(Serialize)]
 struct Failure {
     error: String,
+    /// True when the tool declined on purpose, naming a rule, and wrote nothing.
+    ///
+    /// A caller cannot tell a considered refusal from an internal fault by reading the
+    /// sentence, and `web/test/scale.mjs` tried: it matched the message against a list of
+    /// patterns, so rewording a refusal reclassified it as a defect. That is what happened
+    /// when five refusals stopped saying "is not supported for" and started saying what
+    /// was actually wrong. The type already knows; this reports it.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    refused: bool,
 }
 
 fn fail(e: impl std::fmt::Display) -> String {
     serde_json::to_string(&Failure {
         error: e.to_string(),
+        refused: false,
+    })
+    .unwrap_or_else(|_| r#"{"error":"unprintable"}"#.to_string())
+}
+
+/// [`fail`] for an error that may be a refusal, which it asks rather than guesses.
+fn failed(e: anyhow::Error) -> String {
+    let refused = e.downcast_ref::<crate::refactor::Refusal>().is_some();
+    serde_json::to_string(&Failure {
+        error: e.to_string(),
+        refused,
     })
     .unwrap_or_else(|_| r#"{"error":"unprintable"}"#.to_string())
 }
@@ -392,7 +412,7 @@ impl Workspace {
         };
         match crate::refactor::rename::plan(&self.index, id, new_name) {
             Ok(plan) => self.apply(plan.edits, plan.warnings),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -418,7 +438,7 @@ impl Workspace {
         }
         match crate::refactor::cascade::remove_flag_in(sources, flag, value) {
             Ok(plan) => self.apply(plan.edits, Vec::new()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -431,7 +451,7 @@ impl Workspace {
         };
         match crate::analysis::duplicates::find(&self.index, &options) {
             Ok(classes) => ok(&classes),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -533,7 +553,7 @@ impl Workspace {
             Ok(flow) => ok(&FlowText {
                 tree: flow.format_tree(),
             }),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -545,7 +565,7 @@ impl Workspace {
                 Ok(flow) => ok(&FlowText {
                     tree: flow.format_tree(),
                 }),
-                Err(e) => fail(e),
+                Err(e) => failed(e),
             },
             Err(e) => fail(e),
         }
@@ -559,7 +579,7 @@ impl Workspace {
                 Ok(impact) => ok(&FlowText {
                     tree: crate::analysis::impact::format_report(&self.index, &impact),
                 }),
-                Err(e) => fail(e),
+                Err(e) => failed(e),
             },
             Err(e) => fail(e),
         }
@@ -572,7 +592,7 @@ impl Workspace {
             Ok(chains) => ok(&FlowText {
                 tree: crate::analysis::stitch::format_chains(&chains),
             }),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -923,7 +943,7 @@ impl Workspace {
                         .collect::<Vec<_>>(),
                     )
                 }
-                Err(e) => fail(e),
+                Err(e) => failed(e),
             };
         }
 
@@ -936,7 +956,7 @@ impl Workspace {
         if crate::translate::targets(from).contains(&to) {
             return match crate::translate::plan(&path_buf, to) {
                 Ok(plan) => self.apply(plan.edits, Vec::new()),
-                Err(e) => fail(e),
+                Err(e) => failed(e),
             };
         }
         match crate::transpile::plan(&path_buf, to) {
@@ -956,7 +976,7 @@ impl Workspace {
                     .collect::<Vec<_>>(),
                 )
             }
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -977,7 +997,7 @@ impl Workspace {
         };
         match crate::refactor::extract::variable(&self.index, &file, span, name, false) {
             Ok(plan) => self.apply(plan.edits, Vec::new()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -990,7 +1010,7 @@ impl Workspace {
         };
         match crate::refactor::extract::function(&self.index, &file, span, name) {
             Ok(plan) => self.apply(plan.edits, Vec::new()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1000,7 +1020,7 @@ impl Workspace {
         match self.symbol_at(path, line, col) {
             Ok(id) => match crate::refactor::inline::variable(&self.index, id) {
                 Ok(plan) => self.apply(plan.edits, Vec::new()),
-                Err(e) => fail(e),
+                Err(e) => failed(e),
             },
             Err(e) => fail(e),
         }
@@ -1014,7 +1034,7 @@ impl Workspace {
         };
         match crate::refactor::inline::call(&self.index, Path::new(path), offset) {
             Ok(plan) => self.apply(plan.edits, Vec::new()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1038,7 +1058,7 @@ impl Workspace {
                 let applied = self.apply(plan.edits, Vec::new());
                 with_notes(applied, &notes)
             }
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1055,7 +1075,7 @@ impl Workspace {
                 let applied = self.apply(plan.edits, Vec::new());
                 with_notes(applied, &notes)
             }
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1064,7 +1084,7 @@ impl Workspace {
         self.enter();
         match crate::refactor::imports::plan(&self.index, Path::new(path)) {
             Ok(plan) => self.apply(plan.edits, plan.warnings),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1087,7 +1107,7 @@ impl Workspace {
                     describes: r.describe().to_string(),
                 })
                 .collect::<Vec<_>>()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1102,7 +1122,7 @@ impl Workspace {
         };
         match crate::refactor::rewrite::apply(&self.index, Path::new(path), offset, kind) {
             Ok(plan) => self.apply(plan.edits, Vec::new()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1114,7 +1134,7 @@ impl Workspace {
         };
         match crate::refactor::restructure::apply(&self.index, language, pattern, template) {
             Ok(plan) => self.apply(plan.edits, Vec::new()),
-            Err(e) => fail(e),
+            Err(e) => failed(e),
         }
     }
 
@@ -1124,7 +1144,7 @@ impl Workspace {
         match self.symbol_at(path, line, col) {
             Ok(id) => match crate::refactor::delete::plan(&self.index, id) {
                 Ok(plan) => self.apply(plan.edits, plan.warnings),
-                Err(e) => fail(e),
+                Err(e) => failed(e),
             },
             Err(e) => fail(e),
         }

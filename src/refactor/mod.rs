@@ -98,8 +98,28 @@ pub enum Refusal {
     Unsupported {
         operation: String,
         language: crate::lang::Language,
-        because: String,
+        /// Why *the language* cannot, which is a property of the language and of nothing
+        /// else. `&'static str` and not `String`, because that is what makes the rule
+        /// hold: a reason about this particular input has a path or a name interpolated
+        /// into it, and an interpolated reason will not fit here.
+        ///
+        /// Adding `because` at all was the previous attempt. It made the mistake easier to
+        /// avoid and did not stop it: `fr move` went on to tell a Rust user that Rust was
+        /// unsupported when the fault was a destination outside `src/`, and four more
+        /// sites were doing the same with crate roots and relative paths. A field that can
+        /// be filled in correctly is not a field that cannot be filled in wrongly.
+        because: &'static str,
     },
+    /// The operation cannot be performed on *these* files, for a reason that is not the
+    /// language's.
+    ///
+    /// Two paths in different crates, a directory that is its own Terraform module, a
+    /// relative import that would climb out of its root. Each of these was once a
+    /// [`Refusal::Unsupported`] naming the language, which said the opposite of what the
+    /// capability matrix says and of what the command does elsewhere. They are still
+    /// considered refusals — the tool declined on purpose and wrote nothing — and this is
+    /// where a considered refusal goes when the language is not what is at fault.
+    NotHere { operation: String, detail: String },
     /// Resolution was too weak to act on safely.
     TooWeak {
         confidence: crate::model::ResolvedConfidence,
@@ -163,6 +183,7 @@ impl std::fmt::Display for Refusal {
                 "resolution is only '{}' — {detail}. Refusing to rewrite what cannot be verified",
                 confidence.get().as_str()
             ),
+            Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
             }

@@ -1496,8 +1496,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                 language: Language::Hcl,
                 because: "a Terraform module's arguments are named and not \
                           positional, so moving a `variable` block changes nothing at any \
-                          call site"
-                    .to_string(),
+                          call site",
             }
             .into());
         }

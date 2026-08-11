@@ -365,7 +365,7 @@ figures below were measured on this branch.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 16 |
 | Supported pairs | 270 of 384, every other one carrying its reason |
-| Defects fixed | 309 |
+| Defects fixed | 311 |
 | Defects open | 12 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses, which
@@ -651,8 +651,10 @@ nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.
 asked which of the 270 supported cells the tests reach.
 
 Measured, rather than argued about: every capability records the language it ran against
-when `FR_CAPABILITY_LOG` is set, and `tools/capability-audit.sh` runs the suite that way and
-compares. The first run answered **205 of 270, 75%**. It is **270 of 270** now.
+when `FR_CAPABILITY_LOG` is set. The first run answered **205 of 270, 75%**. It is
+**270 of 270** now, and `tools/check.sh` measures it on the test run it already does, so
+the figure is defended and not merely checkable. `tools/capability-audit.sh` asks the same
+question on its own, through the same reporter, so the two cannot drift apart.
 
 `tests/capability_claims.rs` is what closed it, and it asks the sharper question rather than
 the easier one. Every claimed cell is driven against a fixture in that language, and one

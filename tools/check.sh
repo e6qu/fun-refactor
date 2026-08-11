@@ -19,10 +19,23 @@ run() {
     "$@"
 }
 
+# The capability matrix advertises what each command supports, and a `✓` there is
+# computed from a predicate — it says the command would accept the language, not that
+# anything ever ran it. The test run records what it actually drove, and the report below
+# fails when a claimed cell was never touched. Folded into the run that happens anyway,
+# because measuring it with a second full `cargo test` would double the wall clock.
+log="$(mktemp)"
+matrix="$(mktemp)"
+trap 'rm -f "$log" "$matrix"' EXIT
+
 run cargo fmt --all --check
 run cargo clippy --all-targets -- -D warnings
-run cargo test --all-targets
+FR_CAPABILITY_LOG="$log" run cargo test --all-targets
 run cargo clippy --all-targets --features wasm -- -D warnings
 run cargo test --all-targets --features wasm
+
+printf '\n\033[1m==> capability coverage\033[0m\n'
+cargo run --quiet --features cli --bin fr -- capabilities --json > "$matrix"
+python3 tools/capability-report.py "$matrix" "$log"
 
 printf '\n\033[1mAll checks passed.\033[0m\n'
