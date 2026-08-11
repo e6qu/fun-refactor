@@ -186,7 +186,7 @@ pub(crate) fn supports_imperative_extract(language: Language) -> bool {
 /// Can a value be extracted into a named binding in this language?
 ///
 /// The single authority for the capability table. It has to account for the
-/// config-language paths `variable()` dispatches to before reaching the generic one —
+/// config-language paths `variable()` dispatches to before reaching the generic one,
 /// consulting only the imperative predicate is what made the published matrix wrong.
 pub fn supports_extract(language: Language) -> bool {
     supports_imperative_extract(language)
@@ -597,7 +597,7 @@ impl Parameter {
 /// Extract the statements covering `span` into a new function called `name`.
 ///
 /// The moved statements keep their original bytes, so comments inside the extracted
-/// region survive — the thing gopls is known to lose.
+/// region survive, the thing gopls is known to lose.
 pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
     if let Some(language) = index.file(file).map(|i| i.language) {
         crate::capabilities::record(crate::capabilities::Capability::ExtractFunction, language);
@@ -607,8 +607,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
 
-    // Each of these languages has something that plays a function's role — a shell
-    // function, an SCSS mixin, a Helm named template — but none of them reaches it
+    // Each of these languages has something that plays a function's role, a shell
+    // function, an SCSS mixin, a Helm named template, but none of them reaches it
     // through the generic dataflow analysis, so each has its own arm.
     match language {
         Language::Helm => return helm_named_template(file, span, name),
@@ -619,8 +619,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         Language::Css => anyhow::bail!(
             "plain CSS has no mixin, function or any other construct that names a group \
              of declarations, so there is nothing to extract into. `@mixin` / `@include` \
-             are Sass, and the SCSS grammar is the only one here that parses them — \
-             rename {} to `.scss` if that is what was meant",
+             are Sass, and the SCSS grammar is the only one here that parses them. Rename \
+             {} to `.scss` if that is what was meant",
             file.display()
         ),
         _ => {}
@@ -860,8 +860,8 @@ fn supports_imperative_extract_function(language: Language) -> bool {
 
 /// Can a region be extracted into something callable in this language?
 ///
-/// Three languages get there by a route of their own — a Helm named template in
-/// `_helpers.tpl`, an SCSS `@mixin`, a shell function — rather than a function with
+/// Three languages get there by a route of their own, a Helm named template in
+/// `_helpers.tpl`, an SCSS `@mixin`, a shell function, rather than a function with
 /// parameters and a returned value, so this cannot ask the imperative predicate alone.
 /// It named Helm and not the other two, and the matrix reads this: `fr extract
 /// --function` has been writing `@mixin`/`@include` and shell functions for languages
@@ -948,7 +948,7 @@ fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> 
 ///
 /// A `yield` belongs to the function whose iteration the caller is driving, and a call
 /// cannot hand that back. Extracting one produced a Python generator that was
-/// constructed and never run — the loop body silently did nothing — and TypeScript that
+/// constructed and never run, the loop body silently did nothing, and TypeScript that
 /// `tsc` rejects. `return`, `break` and `continue` were refused for the same reason from
 /// the day this was written; `yield` was not, and it is the one whose failure is silent.
 fn yields_to_caller(parsed: &Parsed, region: Span) -> bool {
@@ -959,7 +959,7 @@ fn yields_to_caller(parsed: &Parsed, region: Span) -> bool {
 ///
 /// Unlike a `yield`, this one a call *can* reproduce: the extracted function is async
 /// and the call awaits it. Without that the body kept an `await` in a function that is
-/// not async — `TS1308`, and `SyntaxError: 'await' outside async function` — and the
+/// not async, `TS1308`, and `SyntaxError: 'await' outside async function`, and the
 /// call site handed back a promise where the code expected a number.
 fn awaits(parsed: &Parsed, region: Span) -> bool {
     node_in_region(parsed, region, |kind| kind.contains("await"))
@@ -1212,7 +1212,7 @@ fn render_function(
 // None of these languages has a binding form, so "extract variable" means the
 // construct that plays the same role: name a value once and refer to it. What that
 // construct is differs per language, and so does where it has to be written, but the
-// shape of the work is identical everywhere — splice a declaration in, replace the
+// shape of the work is identical everywhere, splice a declaration in, replace the
 // occurrences with a reference to it, touch nothing else.
 
 /// Every node in the tree, in source order, that `keep` accepts.
@@ -1699,7 +1699,7 @@ fn css_custom_property(
     let declaration = format!("{property}: {value_text};");
 
     // An SCSS variable is declared at the top level of the stylesheet, not inside a
-    // `:root` rule — that is a CSS custom property's home, and `$vars` are resolved
+    // `:root` rule. That is a CSS custom property's home, and `$vars` are resolved
     // by the compiler instead of the cascade.
     if scss_variable {
         let insert_at = css_insertion_point(&parsed, &source);
@@ -1996,7 +1996,7 @@ fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
 
 /// Extract a region of a Helm template into a named template in `_helpers.tpl`.
 ///
-/// The selected bytes move verbatim — a Helm template is text, and reformatting it
+/// The selected bytes move verbatim, a Helm template is text, and reformatting it
 /// would change the rendered output. The region is widened to whole lines because a
 /// named template is included on a line of its own.
 fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
@@ -2166,7 +2166,7 @@ fn helm_helpers_path(file: &Path, chart_root: &Path) -> std::path::PathBuf {
 // is different is that the *spelling of a reference decides its semantics*: `"$name"`
 // is exactly one word whatever it holds, while a bare `$name` is split on `$IFS` and
 // then glob-expanded. Neither spelling is right everywhere, so the one that reproduces
-// what the selected bytes already did is the one written — see `bash_reference`.
+// what the selected bytes already did is the one written, see `bash_reference`.
 //
 // Shell also has no block scope. A variable assigned anywhere is visible from that
 // point to the end of the shell, which is why the binding goes on its own line
@@ -2206,7 +2206,7 @@ const BASH_VALUE_KINDS: &[&str] = &[
 /// original bytes did and not to look tidy: `${name}` when the selection was
 /// already inside double quotes, `"$name"` wherever quoting cannot change the result,
 /// and a bare `$name` only where the original expansion really was subject to word
-/// splitting and globbing — there, `"$name"` would collapse several words into one and
+/// splitting and globbing. There, `"$name"` would collapse several words into one and
 /// silently change the command's arguments.
 fn bash_variable(
     index: &Index,
@@ -2368,7 +2368,7 @@ fn bash_is_statement_container(kind: &str) -> bool {
     )
 }
 
-/// The statement the value belongs to — the one the binding goes in front of.
+/// The statement the value belongs to, the one the binding goes in front of.
 ///
 /// Two positions have no statement in front of them, and both are refused. The first
 /// is the condition of an `if`: the binding would replace the test. The second is the
@@ -2442,15 +2442,15 @@ fn bash_would_split(node: Node<'_>, source: &str) -> bool {
 /// Extract statements into a shell function.
 ///
 /// The function is written before the one the selection came from, or at the top of
-/// the script when the selection is not in a function — either way, before the call,
+/// the script when the selection is not in a function, either way, before the call,
 /// which is what the shell requires: a function has to have been *defined* by the time
 /// the call runs, and definition happens in file order.
 ///
 /// There is no parameter analysis, and there is none to do. Shell has no block scope:
 /// every name a shell function reads is either global or a caller's `local`, both of
 /// which stay readable from the new function, so no binding has to cross the boundary.
-/// The one thing that does not survive the move is the positional parameters — `$1`
-/// inside a function is that function's first argument, not the enclosing one's — so a
+/// The one thing that does not survive the move is the positional parameters, `$1`
+/// inside a function is that function's first argument, not the enclosing one's, so a
 /// region that reads them is refused instead of silently rebound.
 fn bash_function(
     index: &Index,
@@ -2491,7 +2491,7 @@ fn bash_function(
     // function can hold.
     if let Some(cut) = bash_straddling_node(&parsed, region) {
         anyhow::bail!(
-            "the selection cuts across a `{}` at bytes {}; select whole statements — a \
+            "the selection cuts across a `{}` at bytes {}; select whole statements. A \
              call can replace a statement but not part of one",
             cut.kind(),
             Span::from(cut)
@@ -2503,7 +2503,7 @@ fn bash_function(
         anyhow::bail!(
             "the selected code reads the positional parameter(s) {}. Inside a shell \
              function those name that function's own arguments, so moving the code \
-             would rebind them to whatever the call passes — which is nothing. Read \
+             would rebind them to whatever the call passes, which is nothing. Read \
              them into named variables first",
             positional.join(", ")
         );
@@ -2700,7 +2700,7 @@ fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
 /// or declared inside the rule.
 ///
 /// Sass also evaluates a stylesheet top-down, so the definition goes above every rule
-/// and not beside the one it came from — a mixin included before it is declared is
+/// and not beside the one it came from, a mixin included before it is declared is
 /// an error, not a forward reference.
 fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
     if name.is_empty()
@@ -2865,7 +2865,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
 ///
 /// XML's one binding form is the general entity: `<!ENTITY name "value">` inside the
 /// `<!DOCTYPE …[ … ]>` internal subset, referred to as `&name;`. The subset is created
-/// when the document has none, which is why the root element's name has to be known —
+/// when the document has none, which is why the root element's name has to be known,
 /// a `<!DOCTYPE>` names the root element and a document whose doctype names something
 /// else is not well-formed.
 fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Result<ExtractPlan> {
@@ -2981,7 +2981,7 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
                 None => match child_of_kind(doctype, "[") {
                     // An internal subset that is present but empty.
                     Some(bracket) => (bracket.end_byte(), format!("\n  {declaration}\n")),
-                    // `<!DOCTYPE root>` — the subset has to be opened first.
+                    // `<!DOCTYPE root>`, the subset has to be opened first.
                     None => (
                         doctype.end_byte().saturating_sub(1),
                         format!(" [\n  {declaration}\n]"),

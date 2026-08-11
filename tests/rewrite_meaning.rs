@@ -1,7 +1,7 @@
 //! The local rewrites, and the meaning they must not change.
 //!
 //! `invert-if` swaps the branches and negates the condition. Negating *half* of a
-//! condition and swapping the branches anyway is a different program — one that
+//! condition and swapping the branches anyway is a different program, one that
 //! compiles, passes the parse check, and answers differently.
 
 use fun_refactor::edit::apply_to_string;
@@ -100,7 +100,7 @@ fn an_if_that_binds_what_it_tested_is_refused() {
 #[test]
 fn zig_spells_its_boolean_operators_as_words() {
     // Falling into the C arm made `a and b` invisible to every rule that looks for an
-    // operator — and `!(a and b)` is an `error_union_type` in that grammar, because
+    // operator, and `!(a and b)` is an `error_union_type` in that grammar, because
     // `!T` is an error union where a type is expected and a negation where a value is.
     let source = "pub fn f(a: bool, b: bool) i64 {\n    if (!(a and b)) {\n        \
                   return 1;\n    }\n    return 2;\n}\n";

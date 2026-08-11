@@ -2,7 +2,7 @@
 //!
 //! The third place in this tool where an expression is moved into a context it was not
 //! written for. `inline` was fixed for it twice; `restructure` does the same thing by
-//! design — the whole point is to move code shapes around — and did not.
+//! design, the whole point is to move code shapes around, and did not.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -103,7 +103,7 @@ fn a_replacement_that_binds_is_grouped_where_it_lands() {
 fn a_language_that_does_not_group_with_brackets_gets_none() {
     // A CSS selector's parent is an `attribute_selector` or a `descendant_selector`,
     // which read as operator kinds by name and are nothing of the sort. Bracketing
-    // there is not a grouping, it is a syntax error — and the reparse guard caught it,
+    // there is not a grouping, it is a syntax error, and the reparse guard caught it,
     // which is how this was found before it shipped.
     let after = restructured(
         "a.css",

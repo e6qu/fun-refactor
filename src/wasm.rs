@@ -1,7 +1,7 @@
 //! The browser API.
 //!
-//! A workspace is handed over as a map of path to text — a repository fetched from
-//! GitHub, say — and every question is answered against that map. There is no
+//! A workspace is handed over as a map of path to text, a repository fetched from
+//! GitHub, say, and every question is answered against that map. There is no
 //! filesystem, no cache and no thread pool, and none of them are needed: the index is
 //! built once from source already in memory, and every analysis after that is reading
 //! facts.
@@ -33,7 +33,7 @@ pub struct Workspace {
     /// The status bar asks what the cursor is on after every keystroke, and answering
     /// meant parsing the whole file: seventeen milliseconds on `requests/models.py`,
     /// which is a dropped frame every time an arrow key repeats. Keyed by the source
-    /// itself, so there is nothing to invalidate — an edit changes the text and the
+    /// itself, so there is nothing to invalidate, an edit changes the text and the
     /// next question misses. One file, because only one is open.
     parsed: std::cell::RefCell<Option<(PathBuf, String, crate::parse::Parsed)>>,
     /// Paths in the order they were given, so the file list a user sees is stable.
@@ -48,7 +48,7 @@ pub struct Workspace {
     unsupported: Vec<String>,
 }
 
-/// A rendered tree or report — several analyses already know how to print
+/// A rendered tree or report, several analyses already know how to print
 /// themselves, and re-deriving those shapes in TypeScript would be a second
 /// implementation of an answer that already exists.
 #[derive(Serialize)]
@@ -94,7 +94,7 @@ struct Located {
     line: usize,
 }
 
-/// `remove:1`, `move:0:2`, `add:1:<declaration>:<argument>` — the command line's
+/// `remove:1`, `move:0:2`, `add:1:<declaration>:<argument>`, the command line's
 /// spelling, so what is documented for the terminal is true here too.
 fn parse_signature_change(text: &str) -> Result<crate::refactor::signature::Change, String> {
     use crate::refactor::signature::Change;
@@ -183,7 +183,7 @@ impl Workspace {
     pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
         // The grammars' scanners allocate through a bump allocator that starts at
         // NULL until it is given a region. See the wasm-libc crate. Only there: a
-        // host build links a real libc, and the shim is not compiled for it — which
+        // host build links a real libc, and the shim is not compiled for it, which
         // is what lets `cargo check --features wasm` work on a host and catch the
         // mistakes that otherwise reach CI.
         #[cfg(target_arch = "wasm32")]
@@ -548,7 +548,7 @@ impl Workspace {
     /// Config and markup languages have substitution and override provenance rather than
     /// dataflow, and `fr flow` routes between the two models on the caller's behalf. This
     /// called dataflow whichever the language was, so the browser answered emptily for a
-    /// YAML anchor the CLI traced — and once dataflow started refusing those languages,
+    /// YAML anchor the CLI traced, and once dataflow started refusing those languages,
     /// the browser started showing a refusal for a question the tool can answer.
     pub fn flow_back(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
@@ -655,7 +655,7 @@ impl Workspace {
     /// The parse tree of a file, as a structure a view can walk.
     ///
     /// Every answer this tool gives is a claim about a tree, and being able to see the
-    /// tree is what turns a surprising answer into an understandable one — a pattern
+    /// tree is what turns a surprising answer into an understandable one, a pattern
     /// that will not match, a rewrite that refuses, a name the resolver reads as a
     /// field. Named nodes only: the anonymous ones are punctuation, and a tree in
     /// which every brace is a row cannot be read.
@@ -871,7 +871,7 @@ impl Workspace {
                         "fastapi",
                         plan.destination.display().to_string(),
                         Some(format!(
-                            "route {} — {}{}",
+                            "route {}: {}{}",
                             plan.route,
                             plan.methods.join(", "),
                             if plan.fidelity.carried_verbatim == 0 {
@@ -906,7 +906,7 @@ impl Workspace {
                             language.name(),
                             plan.destination.display().to_string(),
                             Some(format!(
-                                "a draft — {}/{} signatures complete, {} construct(s) carried over as comments",
+                                "a draft. {}/{} signatures complete, {} construct(s) carried over as comments",
                                 f.signatures_complete, f.functions, f.carried_verbatim
                             )),
                         ));
@@ -916,7 +916,7 @@ impl Workspace {
                 continue;
             }
             if possible.contains(language) {
-                // Offered, but the file still has to parse as it — a `.scss` using
+                // Offered, but the file still has to parse as it, a `.scss` using
                 // nesting is not CSS, and the button must say that before it is
                 // pressed and not after.
                 match crate::translate::plan(&path_buf, *language) {
@@ -950,7 +950,7 @@ impl Workspace {
         let path_buf = PathBuf::from(path);
 
         // `fastapi` is not a language, and the translation into it reads the file's
-        // path as well as its text — a Next.js route's URL is where it sits on disk.
+        // path as well as its text, a Next.js route's URL is where it sits on disk.
         if language.eq_ignore_ascii_case("fastapi") {
             return match crate::transpile::nextjs::plan(&path_buf) {
                 Ok(plan) => {
@@ -1183,7 +1183,7 @@ impl Workspace {
     ///
     /// Called first by every method that answers a question about source. Two
     /// workspaces in one page otherwise share whichever was created last, and the
-    /// older one's answers come out measured against the newer one's bytes — a wrong
+    /// older one's answers come out measured against the newer one's bytes, a wrong
     /// answer that looks exactly like a right one. `tests/wasm_api.rs` checks that
     /// nothing new escapes this.
     fn enter(&self) {
@@ -1248,6 +1248,91 @@ impl Workspace {
     }
 
     /// A call tree, rendered the way the terminal renders it.
+    /// The call graph around one symbol, as nodes and edges a browser can draw.
+    ///
+    /// `graph` answers with three counts, which says how big the graph is and nothing
+    /// about its shape. The playground had no way to show the graph itself.
+    ///
+    /// Bounded by `depth` in both directions from the symbol under the cursor. A whole
+    /// workspace holds thousands of functions, and a picture of all of them says less
+    /// than a picture of the neighbourhood a reader asked about.
+    pub fn graph_around(&self, path: &str, line: usize, col: usize, depth: usize) -> String {
+        self.enter();
+        let start = match self.symbol_at(path, line, col) {
+            Ok(id) => id,
+            Err(e) => return fail(e),
+        };
+
+        #[derive(Serialize)]
+        struct Node {
+            id: u32,
+            name: String,
+            file: String,
+            line: usize,
+            /// Hops from the symbol the reader asked about. Negative is upwards.
+            rank: i32,
+        }
+        #[derive(Serialize)]
+        struct Edge {
+            from: u32,
+            to: u32,
+            /// `call` for a resolved call. `dispatch` for one implementation the call
+            /// could reach, chosen while the program runs.
+            kind: &'static str,
+        }
+        #[derive(Serialize)]
+        struct Drawing {
+            nodes: Vec<Node>,
+            edges: Vec<Edge>,
+            root: u32,
+            /// True when the walk stopped at `depth` with more to see.
+            more: bool,
+        }
+
+        let graph = crate::analysis::call_graph::CallGraph::build(&self.index);
+        let near = graph.neighbourhood(start, depth);
+
+        let nodes: Vec<Node> = near
+            .nodes
+            .iter()
+            .filter_map(|(id, at)| {
+                let symbol = self.index.symbol(*id)?;
+                let source = crate::vfs::read_to_string(&symbol.file).ok()?;
+                Some(Node {
+                    id: id.0,
+                    name: symbol.qualified_name(),
+                    file: symbol.file.display().to_string(),
+                    line: LineIndex::new(&source)
+                        .line_col(symbol.name_span.start, &source)
+                        .line,
+                    rank: *at,
+                })
+            })
+            .collect();
+        let known: std::collections::HashSet<u32> = nodes.iter().map(|n| n.id).collect();
+        let edges: Vec<Edge> = near
+            .edges
+            .iter()
+            .filter(|(from, to, _)| known.contains(&from.0) && known.contains(&to.0))
+            .map(|(from, to, hierarchy)| Edge {
+                from: from.0,
+                to: to.0,
+                kind: match hierarchy {
+                    true => "dispatch",
+                    false => "call",
+                },
+            })
+            .collect();
+        let more = near.more;
+
+        ok(&Drawing {
+            nodes,
+            edges,
+            root: start.0,
+            more,
+        })
+    }
+
     fn call_tree(
         &self,
         path: &str,
@@ -1369,8 +1454,8 @@ impl Workspace {
 
     /// Re-extract the files that were written, and resolve the whole workspace again.
     ///
-    /// Resolution has to be global — a rename in one file changes what a reference in
-    /// another points at — but extraction does not, and extraction is the expensive
+    /// Resolution has to be global, a rename in one file changes what a reference in
+    /// another points at, but extraction does not, and extraction is the expensive
     /// half. A file this workspace has never seen is added to the listing here:
     /// `fr move` can write one, and before this it was written to the virtual
     /// filesystem and then never indexed, so it had no symbols and did not appear in

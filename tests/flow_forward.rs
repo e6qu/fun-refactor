@@ -3,7 +3,7 @@
 //! `fr flow back` follows a chain of assignments to its source. `fr flow fwd` is the
 //! same question pointed the other way and answered a different, shorter question: it
 //! went one hop and stopped, while continuing into the enclosing function and its
-//! callers — so the answer looked like it had gone somewhere.
+//! callers, so the answer looked like it had gone somewhere.
 
 use fun_refactor::analysis::flow;
 use fun_refactor::index::Index;
@@ -66,7 +66,7 @@ fn a_value_is_followed_to_the_end_of_its_chain() {
 #[test]
 fn the_value_flows_into_the_binding_and_not_the_function_around_it() {
     // The candidate search accepted any symbol whose span *contained* the assigned
-    // name, and took the first in declaration order — which is the enclosing function,
+    // name, and took the first in declaration order, which is the enclosing function,
     // whose span contains everything.
     let steps = forward(
         "a.py",

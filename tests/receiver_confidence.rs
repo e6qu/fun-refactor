@@ -1,7 +1,7 @@
 //! What a member access is allowed to claim about its receiver.
 //!
 //! `Confidence::FieldBased` is defined as "matched by field/member name without knowing
-//! the receiver's type — plausible but unproven", and `Exact` as "safe to edit". A
+//! the receiver's type, plausible but unproven", and `Exact` as "safe to edit". A
 //! member access on a receiver of unknown type is the first of those by definition, and
 //! the difference is not cosmetic: only the top two tiers are rewritten, so calling it
 //! `Exact` means `fr rename` edits it without asking.
@@ -67,8 +67,8 @@ fn a_call_on_an_imported_instance_is_not_exact() {
     }
 }
 
-/// The other side. A call through `self` or `this` has a receiver whose type is known —
-/// it is the class the call is written inside — and lexical scope settles it before the
+/// The other side. A call through `self` or `this` has a receiver whose type is known.
+/// It is the class the call is written inside, and lexical scope settles it before the
 /// question of same-file uniqueness arises. Losing this would cost far more than the
 /// overclaim it guards against.
 #[test]
@@ -110,7 +110,7 @@ fn a_call_to_a_function_in_the_same_file_is_still_exact() {
 
 /// The same overclaim, one branch up.
 ///
-/// Lexical scope settles a name when the definition encloses the use — and it was also
+/// Lexical scope settles a name when the definition encloses the use, and it was also
 /// letting itself settle a *member* access whenever only one member in the workspace had
 /// that name, on the reasoning that there is then "nothing to be wrong about". There is:
 /// the workspace does not contain every type. Fixing the branch below this one left this
@@ -135,7 +135,7 @@ fn a_call_on_an_unknown_receiver_inside_the_declaring_class_is_not_exact() {
 /// The property itself, instead of an instance of it: whatever route through the
 /// resolver produced an answer, a member access on a receiver this tool has not typed
 /// may not come back at a tier that refactorings rewrite. Each shape below reaches a
-/// different branch — same-file uniqueness, enclosing scope, a name declared in another
+/// different branch, same-file uniqueness, enclosing scope, a name declared in another
 /// file, and a field read instead of a call.
 #[test]
 fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
@@ -190,7 +190,7 @@ fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
 ///
 /// The resolver returns a symbol and a tier as an ordinary pair, so that combination is
 /// representable, and a consumer that trusts the tier without checking the symbol would
-/// act on it — `call_graph` checks both, which is the tell. No branch produces it today.
+/// act on it, `call_graph` checks both, which is the tell. No branch produces it today.
 /// This says so for whole real workspaces and not by reading the branches, because
 /// reading the branches is what missed the receiver overclaim twice.
 #[test]

@@ -6,16 +6,16 @@
 //!
 //! # Capture conventions
 //!
-//! - `@scope` — a node introducing a lexical scope.
-//! - `@definition.<kind>` — a definition; `<kind>` maps to [`SymbolKind`]. The captured
+//! - `@scope`, a node introducing a lexical scope.
+//! - `@definition.<kind>`, a definition; `<kind>` maps to [`SymbolKind`]. The captured
 //!   node is the whole definition (its `full_span`). A sibling `@name` capture in the
-//!   same match marks the identifier (its `name_span`) — the bytes a rename rewrites.
-//! - `@export` — presence in a definition match marks the symbol as externally visible.
-//! - `@reference.<kind>` — a use site; `<kind>` maps to [`ReferenceKind`].
-//! - `@import` — an import statement, with optional `@import.path`, `@import.alias`,
+//!   same match marks the identifier (its `name_span`), the bytes a rename rewrites.
+//! - `@export`, presence in a definition match marks the symbol as externally visible.
+//! - `@reference.<kind>`, a use site; `<kind>` maps to [`ReferenceKind`].
+//! - `@import`, an import statement, with optional `@import.path`, `@import.alias`,
 //!   `@import.name` and `@import.original` captures.
-//! - `@import.glob` — marks a wildcard import.
-//! - `@import.re-export` — marks a statement that exports what it imports.
+//! - `@import.glob`, marks a wildcard import.
+//! - `@import.re-export`, marks a statement that exports what it imports.
 
 use crate::lang::Language;
 use crate::model::*;
@@ -54,8 +54,8 @@ fn query_source(lang: Language) -> Option<&'static str> {
 
 /// Separates the halves of a query file that compile against different grammars.
 ///
-/// Markdown is parsed by two grammars — one for block structure, one for the inline
-/// content the block grammar leaves opaque — and a query only compiles against the
+/// Markdown is parsed by two grammars, one for block structure, one for the inline
+/// content the block grammar leaves opaque, and a query only compiles against the
 /// grammar whose node names it uses. Both halves stay in one file per language, so
 /// `queries/<language>/facts.scm` remains the whole story for that language.
 const INLINE_SECTION: &str = "; ==== inline grammar ====";
@@ -264,7 +264,7 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     // positional rule below, which assumes the member is the last child: Java's
     // `a.m(x)` is one `method_invocation` whose children are the object, the name and
     // the *argument list*, so the member is not last and the positional rule saw no
-    // receiver at all — leaving every method call in the language unresolved.
+    // receiver at all, leaving every method call in the language unresolved.
     const RECEIVER_FIELDS: &[&str] = &["object", "operand", "receiver"];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
@@ -337,7 +337,7 @@ fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Spa
 ///
 /// The filler that makes the declaration parse is an identifier, so everything between
 /// the braces reaches the query as one word. These are the same two shapes the SCSS
-/// query matches outside interpolation — `$name`, and a name applied to arguments — read
+/// query matches outside interpolation, `$name`, and a name applied to arguments, read
 /// from the source the mask replaced.
 fn interpolation_references(
     source: &str,
@@ -458,6 +458,7 @@ fn reference_specificity(kind: ReferenceKind) -> u8 {
         ReferenceKind::Type => 2,
         ReferenceKind::StringRef => 3,
         ReferenceKind::Identifier => 4,
+        ReferenceKind::Textual => 5,
     }
 }
 
@@ -959,7 +960,7 @@ mod tests {
         assert!(names.contains(&"alpha"), "got {names:?}");
         assert!(names.contains(&"beta"), "got {names:?}");
 
-        // name_span must cover only the identifier — this is what rename rewrites.
+        // name_span must cover only the identifier. This is what rename rewrites.
         let alpha = f.symbols.iter().find(|s| s.name == "alpha").unwrap();
         assert_eq!(alpha.name_span.text(src), "alpha");
         assert!(alpha.full_span.contains(alpha.name_span));
@@ -1087,7 +1088,7 @@ mod tests {
 
     #[test]
     fn duplicate_definitions_of_one_identifier_are_merged() {
-        // Several patterns often match the same node — languages need one pattern
+        // Several patterns often match the same node, languages need one pattern
         // per parent context. Two symbols over identical bytes would make a rename
         // emit two edits at the same span, which the edit engine rejects.
         let mut defs = vec![

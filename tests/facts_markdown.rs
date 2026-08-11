@@ -4,7 +4,7 @@
 //! with two separate grammars: headings, link reference definitions and code fences
 //! come from the block tree, and links, labels and destinations from the inline
 //! sub-trees src/parse.rs builds over the same bytes. Both feed one extraction pass,
-//! so which grammar a fact came from is invisible here — which is the point.
+//! so which grammar a fact came from is invisible here, which is the point.
 //!
 //! Two shapes of syntax survive into a captured name and are trimmed by the
 //! extractor: an ATX heading's optional closing marker (`## Title ##`) and the
@@ -45,7 +45,7 @@ fn atx_headings_define_headings_without_the_markers() {
     let first = &f.symbols[0];
     assert_eq!(first.name_span.text(src), "Title One");
     // A block node runs to the end of its line, so the full span takes the newline
-    // with it — which is what makes deleting a heading leave no blank line behind.
+    // with it, which is what makes deleting a heading leave no blank line behind.
     assert_eq!(first.full_span.text(src), "# Title One\n");
     assert!(first.full_span.contains(first.name_span));
 }
@@ -200,8 +200,8 @@ fn code_block_contents_produce_no_facts() {
 
 #[test]
 fn footnote_definitions_and_uses_both_surface_as_references() {
-    // NOT AVAILABLE: this grammar has no footnote rule either — `[^fn]: text` is a
-    // paragraph whose inline content is the shortcut link `[^fn]` — so there is no
+    // NOT AVAILABLE: this grammar has no footnote rule either, `[^fn]: text` is a
+    // paragraph whose inline content is the shortcut link `[^fn]`, so there is no
     // LinkDef symbol for a footnote. Both occurrences are still found, which is what
     // a rename needs, so this is a missing symbol and not a missing edit site.
     let src = "Text with a note[^fn].\n\n[^fn]: the note\n";
@@ -213,7 +213,7 @@ fn footnote_definitions_and_uses_both_surface_as_references() {
 #[test]
 fn headings_do_not_nest_into_scopes() {
     // The grammar does nest `section` nodes under their headings, but a Markdown
-    // name is document-global — an anchor resolves against the whole file — so the
+    // name is document-global, an anchor resolves against the whole file, so the
     // queries capture only the document as a scope and every fact shares it.
     let src = "# A\n\ntext\n\n## B\n\nmore\n";
     let f = facts(src);

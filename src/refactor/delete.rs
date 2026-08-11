@@ -3,8 +3,8 @@
 //! The refusal is the feature. Deleting something that is still called is the exact
 //! mistake this tool exists to prevent, so a reference that resolved well enough to
 //! rewrite (`exact` or `import-qualified`) stops the delete and is reported with its
-//! file, line and column. Weaker matches — a name that resolved elsewhere, a hit in a
-//! string or comment — cannot be proven to be uses, so they are surfaced as warnings
+//! file, line and column. Weaker matches, a name that resolved elsewhere, a hit in a
+//! string or comment, cannot be proven to be uses, so they are surfaced as warnings
 //! instead of silently blocking or silently ignoring the delete.
 //!
 //! [`find_unused`] is the reporting half: candidates for deletion, found by combining
@@ -37,7 +37,7 @@ pub struct DeletePlan {
 
 /// Work out how to delete `symbol` and everything that defines it.
 ///
-/// Fails — with every blocking reference listed as `file:line:col` — when any
+/// Fails, with every blocking reference listed as `file:line:col`, when any
 /// reference to the symbol resolved strongly enough to be trusted. References inside
 /// the definition being deleted (a recursive call, a method calling its own class)
 /// do not block: they disappear with it.
@@ -224,11 +224,11 @@ pub enum SparedReason {
         basis: HierarchyBasis,
     },
     /// Its name begins with an underscore, which in Rust, TypeScript, Python and Zig
-    /// is how an author writes "this is deliberately not used" — usually a parameter
+    /// is how an author writes "this is deliberately not used", usually a parameter
     /// a signature requires and the body ignores.
     DeclaredUnused,
     /// Something uses this name, but more than one definition answers to it and
-    /// nothing here says which — two types declaring the same member, or one package
+    /// nothing here says which, two types declaring the same member, or one package
     /// declaring the same function twice under opposite build tags. Every candidate
     /// stays live.
     AmbiguousMemberCall,
@@ -289,7 +289,7 @@ impl UnusedReport {
                     .to_string()
             }
             SparedReason::ReachedByItsProperty => {
-                "its property is named elsewhere — a template or a mapper reaches a \
+                "its property is named elsewhere. A template or a mapper reaches a \
                  JavaBean accessor by the property, never by the method"
                     .to_string()
             }
@@ -304,8 +304,8 @@ impl UnusedReport {
                     .map(|s| s.qualified_name())
                     .unwrap_or_else(|| "<unknown>".into());
                 format!(
-                    "reached from {caller} by dynamic dispatch ({}); which implementation \
-                     runs is a runtime fact",
+                    "{caller} reaches it by dynamic dispatch, through {}, so the \
+                     program may call it while it runs",
                     basis.as_str()
                 )
             }
@@ -316,9 +316,9 @@ impl UnusedReport {
 /// Symbols nothing references and nothing reachable from `entrypoints` reaches.
 ///
 /// Backs the dead-CSS-selector, unused-Terraform-variable, unused-`values.yaml`-key and
-/// unused-function reports. A symbol qualifies when no resolved reference targets it —
+/// unused-function reports. A symbol qualifies when no resolved reference targets it,
 /// references from inside its own definition do not count, so dead recursive code still
-/// qualifies — and the call graph cannot reach it from any entry point.
+/// qualifies, and the call graph cannot reach it from any entry point.
 ///
 /// Five corrections apply on top, because the raw answer errs in both directions:
 ///
@@ -399,8 +399,8 @@ fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
 /// Does this symbol name where the file lives, instead of something in it?
 ///
 /// Java's `package app;` and Go's `package main` are file headers. Nothing references
-/// them by name — Java classes in one package never write it, and nothing can import
-/// `main` — so "nothing uses this" is true of every one of them and means nothing.
+/// them by name. Java classes in one package never write it, and nothing can import
+/// `main`, so "nothing uses this" is true of every one of them and means nothing.
 /// Removing one is a syntax error, not a refactoring. `spring-petclinic` reported all
 /// forty-nine of its package declarations, one per file.
 ///
@@ -419,7 +419,7 @@ fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
 ///
 /// A leading underscore is the convention in Rust, TypeScript, Python and Zig for a
 /// binding a signature forces on you and the body has no use for. Listing those as
-/// dead code buries the real findings — a single real file turned up eight of them.
+/// dead code buries the real findings, a single real file turned up eight of them.
 /// Go spells the same idea as a bare `_`, which binds nothing and never reaches the
 /// index in the first place.
 fn declared_unused(symbol: &crate::model::Symbol) -> bool {
@@ -436,12 +436,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     //
     // Everything an exported symbol reaches is live: something outside this
     // workspace may call it, and no amount of scanning here can rule that out.
-    // Without this, the entire tree beneath a public API reads as dead — in
+    // Without this, the entire tree beneath a public API reads as dead, in
     // helm/helm that was most of `pkg/action`, where `performInstall` is called by
     // `performInstallCtx`, called by the exported `RunWithContext`.
     //
     // The exported symbols themselves are judged on the narrow answer, so an export
-    // nothing in the workspace uses is still reported — tagged as exported, since
+    // nothing in the workspace uses is still reported, tagged as exported, since
     // whether that is dead code or the public API is not ours to decide.
     let exported_roots: Vec<SymbolId> = index
         .symbols
@@ -456,7 +456,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     // Some kinds are declared in several places and are still one thing: a CSS class
     // written in a stylesheet and again in a theme, an element id. A reference picks
-    // one of those sites, so counting uses per site reports the others as dead — and
+    // one of those sites, so counting uses per site reports the others as dead, and
     // `.nav-link`, used by three anchors in the markup, was reported dead twice while
     // `fr delete` refused to remove it and named those same three uses. Grouped once
     // here and not per symbol, which would be quadratic on a large workspace.
@@ -494,7 +494,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     // A class whose methods are entry points is reached, whatever calls them. JUnit
     // constructs a test class to run the `@Test` methods inside it, and the class itself
-    // is named nowhere — `spring-petclinic` reported eleven of them. The same holds for a
+    // is named nowhere, `spring-petclinic` reported eleven of them. The same holds for a
     // Rust `mod tests` and a Python class of pytest cases, so this asks the containment
     // chain instead of the language: if anything inside it is an entry point, something
     // outside the workspace reaches in.
@@ -760,7 +760,7 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 ///
 /// The index keeps the span a *rename* rewrites, which is rarely the span a delete can
 /// remove. `export const defaultLimits = {…}` has the declarator as its span; removing
-/// exactly that leaves `export const ;`, which the engine's reparse check rejects — so
+/// exactly that leaves `export const ;`, which the engine's reparse check rejects, so
 /// `fr unused` named the constant and `fr delete` refused it. A CSS class has the same
 /// shape.
 ///
@@ -806,7 +806,7 @@ pub(crate) fn widen_for_delete(
             break;
         }
         // A body is not optional. "No sibling of the same kind" is true of a Java class
-        // holding one field and four methods — the methods are a different kind — so the
+        // holding one field and four methods, the methods are a different kind, so the
         // climb went field → class_body → class_declaration and deleting one constant
         // took the whole class with it. Stop below anything its own parent names as its
         // body, which is the general form of "this container has to be here".
@@ -895,53 +895,34 @@ fn merge_runs(spans: &[Span]) -> Vec<Span> {
 /// The name inside string literals and comments anywhere in the workspace.
 ///
 /// Nothing resolves these, so they are reported for review. Occurrences inside the
-/// bytes being deleted are not outstanding — they go away with the definition.
+/// bytes being deleted are not outstanding. They go away with the definition.
+/// The name inside string literals and comments anywhere in the workspace.
+///
+/// Nothing resolves these, so they are reported for review. Occurrences inside the
+/// bytes being deleted are not outstanding. They go away with the definition.
 fn textual_occurrences(
     index: &Index,
     name: &str,
     deleted: &[(PathBuf, Span)],
 ) -> Result<Vec<Warning>> {
-    let parsers = Parsers::new();
-    let mut warnings = Vec::new();
-
-    for (path, info) in index.files() {
-        let Ok(source) = crate::vfs::read_to_string(path) else {
-            continue;
-        };
-        if !source.contains(name) {
-            continue;
-        }
-        let parsed = parsers.parse(info.language, &source)?;
-        let line_index = LineIndex::new(&source);
-
-        for span in string_and_comment_spans(&parsed) {
-            let text = span.text(&source);
-            for (offset, _) in text.match_indices(name) {
-                if !is_word_boundary(text, offset, name.len()) {
-                    continue;
-                }
-                let absolute = Span::new(span.start + offset, span.start + offset + name.len());
-                if deleted
-                    .iter()
-                    .any(|(file, gone)| file == path && gone.overlaps(absolute))
-                {
-                    continue;
-                }
-                let pos = line_index.line_col(absolute.start, &source);
-                warnings.push(Warning {
-                    kind: WarningKind::TextualOccurrence,
-                    file: path.clone(),
-                    line: pos.line,
-                    col: pos.col,
-                    detail: format!(
-                        "'{name}' appears in a string or comment; it is not deleted and may \
-                         be a use nothing can resolve"
-                    ),
-                });
-            }
-        }
-    }
-    Ok(warnings)
+    Ok(crate::mentions::of(index, name)?
+        .into_iter()
+        .filter(|m| {
+            !deleted
+                .iter()
+                .any(|(file, gone)| file == &m.file && gone.overlaps(m.span))
+        })
+        .map(|m| Warning {
+            kind: WarningKind::TextualOccurrence,
+            file: m.file,
+            line: m.line,
+            col: m.col,
+            detail: format!(
+                "'{name}' appears in a string or comment; it is not deleted and may \
+                 be a use nothing can resolve"
+            ),
+        })
+        .collect())
 }
 
 /// Does this node kind hold a string literal?
@@ -955,16 +936,6 @@ fn is_string_kind(kind: &str) -> bool {
 }
 
 /// Spans of string literals, comments and Helm template actions.
-fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
-    let mut spans: Vec<Span> = parsed.masked_spans.clone();
-    spans.extend(spans_of(parsed, |kind| {
-        is_string_kind(kind) || kind.contains("comment")
-    }));
-    spans.sort();
-    spans.dedup();
-    spans
-}
-
 /// Spans of every node whose kind `wanted` accepts, without recursing into a match.
 fn spans_of(parsed: &Parsed, wanted: impl Fn(&str) -> bool) -> Vec<Span> {
     let mut spans: Vec<Span> = Vec::new();
@@ -995,19 +966,6 @@ fn spans_of(parsed: &Parsed, wanted: impl Fn(&str) -> bool) -> Vec<Span> {
             }
         }
     }
-}
-
-/// Is the match at `offset` a whole word and not part of a longer one?
-fn is_word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
-    let before_ok = haystack[..offset]
-        .chars()
-        .next_back()
-        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-    let after_ok = haystack[offset + len..]
-        .chars()
-        .next()
-        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-    before_ok && after_ok
 }
 
 /// Reads each file at most once while one plan is being built.

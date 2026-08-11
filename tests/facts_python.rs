@@ -192,7 +192,7 @@ fn a_top_level_function_is_not_a_method() {
 #[test]
 fn a_function_nested_in_a_method_inherits_the_class_qualifier() {
     // Known behaviour, not a claim that it is ideal: the extractor qualifies by
-    // the innermost @container, and only the class is a container — so a closure
+    // the innermost @container, and only the class is a container, so a closure
     // inside a method is reported as a method of that class too.
     let src = "class C:\n    def m(self):\n        def inner():\n            pass\n        return inner\n";
     let f = facts(src);
@@ -333,7 +333,7 @@ fn loop_with_and_walrus_bindings_are_variables() {
 #[test]
 fn a_non_identifier_as_target_does_not_define_a_symbol() {
     // `with cm as self.attr` is legal Python but binds an attribute, not a new
-    // name — defining a symbol called "self.attr" would be nonsense.
+    // name, defining a symbol called "self.attr" would be nonsense.
     let f = facts("with cm() as self.attr:\n    pass\n");
     assert!(f.symbols.is_empty(), "got {:?}", f.symbols);
     assert!(f.references.iter().any(|r| r.name == "attr"));
@@ -431,7 +431,7 @@ fn global_and_nonlocal_names_are_references_not_definitions() {
 fn assigning_a_global_inside_a_function_still_looks_like_a_local() {
     // Known limitation. `global CONST` makes the following assignment write the
     // module-level name, but deciding that needs to correlate a `global`
-    // statement with an assignment elsewhere in the body — beyond what a
+    // statement with an assignment elsewhere in the body, beyond what a
     // tree-sitter pattern can express. The assignment is therefore reported as a
     // second, function-scoped definition of the same name.
     let src = "CONST = 1\n\n\ndef f():\n    global CONST\n    CONST = 2\n";

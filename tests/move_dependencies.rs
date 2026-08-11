@@ -90,7 +90,7 @@ fn a_rust_move_carries_what_the_source_file_defined() {
 #[test]
 fn a_zig_move_says_what_it_could_not_carry() {
     // Zig imports a module and qualifies, instead of binding a name, so there is no
-    // import to write — the reference itself would have to change. Saying so is the
+    // import to write, the reference itself would have to change. Saying so is the
     // least this can do, and it is infinitely more than saying nothing.
     let result = moved(
         &[

@@ -71,8 +71,8 @@ async def fetch1(n):
 
 #[test]
 fn an_awaiting_region_becomes_an_async_function() {
-    // Without this the body kept an `await` in a function that is not async — TS1308
-    // from `tsc`, `SyntaxError: 'await' outside async function` from CPython — and the
+    // Without this the body kept an `await` in a function that is not async. TS1308
+    // from `tsc`, `SyntaxError: 'await' outside async function` from CPython, and the
     // call handed back a promise where the code after it expected a number.
     let after = extracted("c.ts", TS_ASYNC, (2, 5), (3, 31), "fetchIt").expect("an extraction");
     assert!(after.contains("async function fetchIt("), "{after}");

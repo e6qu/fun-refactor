@@ -9,7 +9,7 @@
 //! - **Terraform**: `var.x`, `local.y` and `module.m.out` form a substitution DAG.
 //!   Every hop keeps its own file, line and expression text; nothing is rewritten.
 //!   (Checkov builds the same graph but substitutes in place, losing the hop chain.)
-//! - **Helm**: a values key has a defined override order — subchart defaults, then
+//! - **Helm**: a values key has a defined override order, subchart defaults, then
 //!   each enclosing parent chart, then `-f` files in command-line order, then
 //!   `--set`. Every competing source in the workspace is reported with its
 //!   precedence, the winner marked, the losers kept. The last two levels live in the
@@ -24,16 +24,16 @@
 //!
 //! Anything undetermined becomes a [`StopReason`] and not a guess:
 //!
-//! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`
-//!   — outside the code entirely ([`StopReason::ExternalInput`]);
+//! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`,
+//!   which is outside the code entirely ([`StopReason::ExternalInput`]);
 //! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`]
 //!   reads it back instead of the YAML queries: the `.Values` paths it names resolve,
-//!   and what the template engine decides — which branch renders, what the release
-//!   supplies — becomes [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
+//!   and what the template engine decides, which branch renders, what the release
+//!   supplies, becomes [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
 //! - a resource attribute is computed by a provider at apply time
 //!   ([`StopReason::ComputedAtApply`]);
-//! - competing sources whose relative order the workspace does not show — two `-f`
-//!   files, two `@layer`s, two stylesheets — all appear, winner undecided
+//! - competing sources whose relative order the workspace does not show, two `-f`
+//!   files, two `@layer`s, two stylesheets, all appear, winner undecided
 //!   ([`StopReason::PrecedenceUndetermined`]);
 //! - a Helm competition that caller-supplied inputs decide names which input decided
 //!   it and which channel it was never told about ([`StopReason::DecidedGivenInputs`]).
@@ -284,8 +284,8 @@ pub struct Competition {
     pub model: String,
     /// False when the workspace does not show which of *these* sources wins.
     ///
-    /// A channel outside the workspace that could pre-empt every source listed —
-    /// `--set`, `-var` — is a [`StopReason::ExternalInput`] stop, not an undecided
+    /// A channel outside the workspace that could pre-empt every source listed,
+    /// `--set`, `-var`, is a [`StopReason::ExternalInput`] stop, not an undecided
     /// competition: it replaces the answer instead of reordering the candidates.
     /// A channel that ranks *between* two listed sources does make the competition
     /// undecided, which is why Terraform's `TF_VAR_*` leaves one undecided and
@@ -356,7 +356,7 @@ impl Provenance {
         }
         for competition in &self.competitions {
             out.push_str(&format!(
-                "\n{} — {}{}\n",
+                "\n{}: {}{}\n",
                 competition.subject,
                 competition.model,
                 if competition.decided {
@@ -367,7 +367,7 @@ impl Provenance {
             ));
             for source in &competition.sources {
                 out.push_str(&format!(
-                    "  {} {} [{}]  ({}:{}) — {}\n",
+                    "  {} {} [{}]  ({}:{}): {}\n",
                     if source.wins { "WINS " } else { "loses" },
                     source.hop.text,
                     source.precedence.label,
@@ -622,7 +622,7 @@ pub fn supports_provenance(language: Language) -> bool {
 /// apply to them.
 fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     if sym.language.class() == LanguageClass::Imperative {
-        // This named `analysis::flow (backward/forward)` — a library module, which is
+        // This named `analysis::flow (backward/forward)`, a library module, which is
         // not something the reader of the message can run. `fr flow` is.
         bail!(
             "{} is imperative: '{}' has a dataflow, not a substitution/override \
@@ -633,7 +633,7 @@ fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     }
     if !supports_provenance(sym.language) {
         // The two dispatches have arms for five languages, and every other one fell
-        // through to a stop reason inside an `Ok` — an answer shaped like an answer,
+        // through to a stop reason inside an `Ok`, an answer shaped like an answer,
         // saying there was nothing to say. The matrix claimed those cells on that basis.
         return Err(crate::refactor::Refusal::Unsupported {
             operation: "tracing provenance".into(),
@@ -782,7 +782,7 @@ impl<'a> Ctx<'a> {
 /// What a Terraform symbol is, which decides where its value lives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HclRole {
-    /// `variable "x" {}` — an input, set from outside the module.
+    /// `variable "x" {}`, an input, set from outside the module.
     InputVariable,
     /// An attribute of a `locals` block.
     Local,
@@ -1098,7 +1098,7 @@ impl Ctx<'_> {
             return Ok(());
         }
 
-        // Two callers are two instances of the module, each with its own value —
+        // Two callers are two instances of the module, each with its own value,
         // not an override of one by the other.
         let per_instance = callers.len() > 1;
         sources.sort_by_key(|s| s.0);
@@ -1197,7 +1197,7 @@ impl Ctx<'_> {
                 }
                 (ReferenceKind::Identifier, Some(kind)) => {
                     followed += 1;
-                    // `aws_s3_bucket.main.arn` — a managed resource attribute.
+                    // `aws_s3_bucket.main.arn`, a managed resource attribute.
                     let attribute = references
                         .get(i + 1)
                         .filter(|r| r.kind == ReferenceKind::Field)
@@ -1301,7 +1301,7 @@ impl Ctx<'_> {
         Ok(out)
     }
 
-    /// `module.m.out` — resolve the module's `source` to a directory and find the
+    /// `module.m.out`, resolve the module's `source` to a directory and find the
     /// `output "out"` it declares.
     fn hcl_module_output(
         &mut self,
@@ -1531,7 +1531,7 @@ impl Ctx<'_> {
                 .into_iter()
                 .filter(|r| r.name == sym.name && r.kind == ReferenceKind::Field)
                 .filter(|r| {
-                    // `module.<alias>.<name>` — the segment before ours is the alias.
+                    // `module.<alias>.<name>`, the segment before ours is the alias.
                     namespace_before(&text, r.span).as_deref() == Some(alias.as_str())
                 })
                 .map(|r| r.span)
@@ -1642,7 +1642,7 @@ struct ValuesSource {
     label: String,
     origin: ValuesOrigin,
     /// False for a values file the supplied inputs say is never passed. It is still
-    /// listed — it is what the next reader will reach for — but it supplies nothing
+    /// listed. It is what the next reader will reach for, but it supplies nothing
     /// in the invocation described, so it cannot win.
     participates: bool,
 }
@@ -3249,7 +3249,7 @@ fn css_language(file: &Path) -> Language {
 pub fn specificity(selector: &str) -> Specificity {
     // A selector list has no single specificity; the strongest branch is the one
     // that can win, so report that. Only a comma outside parentheses splits a
-    // list — the one in `:is(#a, .b)` belongs to the functional pseudo-class.
+    // list, the one in `:is(#a, .b)` belongs to the functional pseudo-class.
     let branches = split_top_level(selector, ',');
     if branches.len() > 1 {
         return branches

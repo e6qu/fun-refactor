@@ -1,7 +1,7 @@
 //! Extract and inline variable for the config languages, end to end.
 //!
 //! None of Terraform, YAML, CSS or Markdown has a binding form, so each gets the
-//! construct that names a value there — a `locals` entry, a YAML anchor, a CSS custom
+//! construct that names a value there, a `locals` entry, a YAML anchor, a CSS custom
 //! property, a link reference definition. These tests assert the exact resulting
 //! bytes, that everything outside the edited ranges survives untouched, that the
 //! result still parses, and that extract and inline are inverses.
@@ -977,7 +977,7 @@ fn css_extract_puts_a_new_root_rule_after_leading_at_rules() {
 #[test]
 fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
     // A `$` name asks for an SCSS variable, which is declared at the stylesheet's top
-    // level and not in a `:root` rule — `$vars` are resolved by the compiler, not
+    // level and not in a `:root` rule, `$vars` are resolved by the compiler, not
     // the cascade.
     let src = ".btn {\n  color: #3366ff;\n}\n\n.link {\n  color: #3366ff;\n}\n";
     let ws = workspace(&[("theme.scss", src)]);
@@ -1370,8 +1370,8 @@ fn markdown_extract_then_inline_restores_the_original() {
 
 #[test]
 fn every_config_extraction_leaves_the_rest_of_the_file_byte_identical() {
-    // The edited ranges are the only ones that move. Anything outside them — comments,
-    // odd spacing, trailing whitespace — must come through untouched.
+    // The edited ranges are the only ones that move. Anything outside them, comments,
+    // odd spacing, trailing whitespace, must come through untouched.
     let src = "# a comment\nlocals {\n  keep = \"me\"\n}\n\n\nresource \"aws_s3_bucket\" \"b\" {\n  bucket   =    \"acme\"\n  tags = {}\n}\n   \n";
     let ws = workspace(&[("main.tf", src)]);
     let path = ws.path("main.tf");
@@ -1425,8 +1425,8 @@ fn untouched_regions_survive_every_config_extraction() {
 #[test]
 fn html_remains_refused_for_extract_variable() {
     // HTML has no binding form at all: a reusable value there is a CSS custom
-    // property, which belongs to the stylesheet. XML does have one — the DTD
-    // entity — and is covered in tests/extract_inline_remaining.rs.
+    // property, which belongs to the stylesheet. XML does have one, the DTD
+    // entity, and is covered in tests/extract_inline_remaining.rs.
     let ws = workspace(&[("page.html", "<div id=\"main\">hello</div>\n")]);
     let path = ws.path("page.html");
     let err = extract::variable(&ws.index, &path, Span::new(1, 4), "x", false)
@@ -1440,7 +1440,7 @@ fn a_go_binding_is_placed_before_the_statement_it_serves() {
     // Go puts a `statement_list` between a block and its statements. A third private
     // copy of the "is this a statement container" predicate did not know that, so the
     // enclosing *statement* of an expression resolved to the whole function body and
-    // the new binding was inserted at the top of the function — above the declaration
+    // the new binding was inserted at the top of the function, above the declaration
     // of the variable it reads. That parses, so no reparse check would catch it; it
     // simply does not compile.
     let src = "package p\n\nfunc f(xs []int) {\n\titems := []int{}\n\

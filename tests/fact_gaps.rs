@@ -3,7 +3,7 @@
 //! Two things stop extraction short of the file: the grammar failing, and a Helm
 //! action standing where a key belongs. Both leave the facts incomplete, and a
 //! refactoring that reads them is deciding on less than the file contains. These
-//! tests pin that each one is reported, and that neither is inferred from the other —
+//! tests pin that each one is reported, and that neither is inferred from the other,
 //! a templated key parses cleanly about as often as not, so the parse error is not a
 //! usable signal for it.
 

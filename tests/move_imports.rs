@@ -42,7 +42,7 @@ fn moved(files: &[(&str, &str)], symbol: &str, from: &str, to: &str) -> (String,
 fn the_destination_stops_importing_what_it_now_defines() {
     // `from .b import area` in the file `area` is moving *into* points at a file which
     // no longer defines the name. Nothing was adding that import, so nothing was
-    // removing it either — and the file failed on the line that used to make it work.
+    // removing it either, and the file failed on the line that used to make it work.
     let (_from, to) = moved(
         &[
             (
@@ -87,7 +87,7 @@ fn an_import_of_several_names_keeps_the_others() {
 #[test]
 fn what_the_moved_code_needs_lands_where_imports_go() {
     // Prepending them to the moved text put an `import` statement in the middle of the
-    // file — legal in Python, a syntax error in half the other targets, and
+    // file, legal in Python, a syntax error in half the other targets, and
     // wrong-looking in all of them.
     let (_from, to) = moved(
         &[

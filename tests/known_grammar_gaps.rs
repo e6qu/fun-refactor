@@ -5,7 +5,7 @@
 //! and not merely written down, for two reasons pointing opposite ways: a grammar
 //! upgrade that fixes one should be noticed and the entry retired, and a grammar that
 //! starts reading one of these *without* an error node while still building the wrong
-//! tree would be worse than the error — a wrong answer with nothing to say it is one.
+//! tree would be worse than the error, a wrong answer with nothing to say it is one.
 //!
 //! Every case here has a BUGS.md entry. When a test fails, the entry is what to update.
 
@@ -23,7 +23,7 @@ fn error_nodes(language: Language, source: &str) -> usize {
 #[test]
 fn python_cannot_read_a_starred_literal_in_a_bare_tuple() {
     // B233. `g = 1, *[2]` is ordinary Python. A starred *name* or *call* in the same
-    // position is read fine, so this is narrow — but `g = 1, *"ten"` appears in black's
+    // position is read fine, so this is narrow, but `g = 1, *"ten"` appears in black's
     // own test data, which is where it was found.
     for source in [
         "g = 1, *[2]\n",
@@ -103,7 +103,7 @@ fn typescript_cannot_read_a_property_called_in_after_another() {
 /// Sass has two syntaxes: the braced one in `.scss` files, and the older
 /// whitespace-significant one in `.sass` files. `tree-sitter-scss` implements the
 /// first. The extension table names both, so a `.sass` file is scanned and then fails
-/// to parse — visible in `fr parse`, unlike an extension that maps to nothing at all,
+/// to parse, visible in `fr parse`, unlike an extension that maps to nothing at all,
 /// but still a claim of support the grammar cannot meet.
 #[test]
 fn the_indented_sass_syntax_is_not_scss() {
@@ -116,7 +116,7 @@ fn the_indented_sass_syntax_is_not_scss() {
 /// Interpolation in a declaration value is not here: `Parsers::parse` masks it, which
 /// is what tests/scss_interpolation.rs covers. The grammar still cannot read it. The
 /// rest produce error nodes that stay inside the construct, so the file around them
-/// still yields facts — masking them too was measured and recovered nothing.
+/// still yields facts, masking them too was measured and recovered nothing.
 #[test]
 fn scss_cannot_read_these_forms() {
     let cases = [
@@ -162,7 +162,7 @@ fn scss_cannot_read_these_forms() {
 /// And the forms it can, which B11 claimed one of.
 ///
 /// The entry said `@content` inside a mixin was among the gaps, from a run over
-/// `grafana/grafana`. It parses — bare, nested, and with arguments — so the claim was
+/// `grafana/grafana`. It parses, bare, nested, and with arguments, so the claim was
 /// either wrong when written or fixed upstream since, and nothing re-checked it. These
 /// are here so that a regression is a failure and not a quietly wider limitation.
 #[test]
@@ -199,7 +199,7 @@ fn scss_can_read_these_forms() {
 /// B15: `tree-sitter-go` reads `new(…)` as the builtin, which takes a type.
 ///
 /// `new` is a predeclared identifier in Go, not a keyword, so a package may define its
-/// own and call it — and 177 of the 178 Go files that fail to parse in `grafana/grafana`
+/// own and call it, and 177 of the 178 Go files that fail to parse in `grafana/grafana`
 /// do exactly that.
 #[test]
 fn go_cannot_read_a_call_to_a_user_defined_new() {
@@ -222,7 +222,7 @@ fn go_cannot_read_a_call_to_a_user_defined_new() {
 
 /// B133: `tree-sitter-zig` requires at least one member in a struct.
 ///
-/// `const Foo = struct {};` is ordinary Zig — it is the only parse failure across 29
+/// `const Foo = struct {};` is ordinary Zig. It is the only parse failure across 29
 /// files of Zig's own standard library.
 #[test]
 fn zig_cannot_read_a_struct_with_no_members() {

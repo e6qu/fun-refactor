@@ -1,0 +1,14 @@
+# Writing habits this project is removing. `tools/check-prose.py` counts them and
+# `docs/style.md` says what to write instead.
+#
+# A count above its number fails the build. A count below it fails too, and asks you
+# to lower the number here. Both directions are recorded, so the total only falls.
+#
+# Measured against the same rules before any of this work: em-dash 2050,
+# false-comparison 240, filler 350, self-reference 222, long-sentence 2339.
+#
+em-dash 220
+false-comparison 235
+filler 338
+self-reference 211
+long-sentence 2261

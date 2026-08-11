@@ -3,10 +3,10 @@
 //! Adapted from funveil's `Language` enum, with dialects split apart where a
 //! refactoring tool must treat them differently:
 //!
-//! - `TypeScript` vs `Tsx` — genuinely different tree-sitter grammars.
-//! - `Css` vs `Scss` — SCSS adds `$variables`, nesting and `@mixin`; the plain CSS
+//! - `TypeScript` vs `Tsx`, genuinely different tree-sitter grammars.
+//! - `Css` vs `Scss`. SCSS adds `$variables`, nesting and `@mixin`; the plain CSS
 //!   grammar reports them as errors, so the dialect must be visible to callers.
-//! - `Yaml` vs `Helm` — Helm templates are YAML with Go template actions that are not
+//! - `Yaml` vs `Helm`. Helm templates are YAML with Go template actions that are not
 //!   valid YAML at all.
 
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use std::fmt;
 use std::path::Path;
 
 /// A source language, at the granularity that matters for parsing and refactoring.
-/// `name()` is this language's identifier — it appears in `--json`, in a catalogue's
+/// `name()` is this language's identifier. It appears in `--json`, in a catalogue's
 /// `languages:` list, and after `--language` on a command line. The serde spelling has to
 /// be the same string: without this attribute it was the variant name, so
 /// `fr duplicates --json` reported `"Go"` where every other command reported `"go"`, and
@@ -241,7 +241,7 @@ fn is_helm_path(path: &Path) -> bool {
         return true;
     }
 
-    // Any YAML sitting beside a Chart.yaml belongs to that chart — charts routinely
+    // Any YAML sitting beside a Chart.yaml belongs to that chart, charts routinely
     // carry values-prod.yaml and friends, and treating them as plain YAML would give
     // them different provenance rules than the values.yaml next to them.
     if let Some(dir) = path.parent() {
@@ -264,7 +264,7 @@ fn is_helm_path(path: &Path) -> bool {
 /// The chart directory a Helm file belongs to: the nearest ancestor with a Chart.yaml.
 ///
 /// A chart's values are its own. Two charts in one workspace routinely declare the
-/// same key — `image`, `name`, `replicaCount` — and a `.Values.image` in one of them
+/// same key, `image`, `name`, `replicaCount`, and a `.Values.image` in one of them
 /// says nothing about the other. Resolution needs the boundary to avoid pointing a
 /// template at a neighbour's values file.
 pub fn chart_root(path: &Path) -> Option<&Path> {

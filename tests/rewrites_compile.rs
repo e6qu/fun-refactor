@@ -1,6 +1,6 @@
 //! Does the code that a rewrite writes still compile?
 //!
-//! `output_compiles.rs` drives the commands that move a declaration — rename, signature,
+//! `output_compiles.rs` drives the commands that move a declaration, rename, signature,
 //! move, inline. These are the ones that rewrite a declaration in place: `fr extract`
 //! lifts an expression or a run of statements out, `fr rewrite` turns one shape into
 //! another, and `fr restructure` does that to every occurrence at once. None of the three
@@ -29,7 +29,7 @@ struct Fixture {
     file: &'static str,
     files: &'static [(&'static str, &'static str)],
     /// The expressions to lift into a binding, one sweep each. Chosen to sit in
-    /// different places — a return, a condition, a call argument, and inside one — because
+    /// different places, a return, a condition, a call argument, and inside one, because
     /// where the binding has to go is what varies.
     expressions: &'static [&'static str],
     /// The run of statements to lift into a function, as the first and last of them.

@@ -149,7 +149,7 @@ fn each_container_form_yields_exactly_one_symbol_of_the_right_kind() {
 #[test]
 fn empty_container_bodies_do_not_parse() {
     // Grammar limitation, not a query one: tree-sitter-zig 1.1.2 requires at least
-    // one member inside a container, so `struct {}` — valid Zig — fails to parse.
+    // one member inside a container, so `struct {}`, valid Zig, fails to parse.
     // Recorded here so the day the grammar is fixed, this test fails loudly.
     for src in ["const Z = struct {};\n", "const O = opaque {};\n"] {
         let parsed = Parsers::new().parse(Language::Zig, src).unwrap();

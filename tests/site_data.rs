@@ -15,7 +15,7 @@
 //!
 //! # On the catalogue
 //!
-//! The refactoring *names* — Extract Function, Guard Clauses, Slide Statements — come
+//! The refactoring *names*. Extract Function, Guard Clauses, Slide Statements, come
 //! from Martin Fowler's and Kent Beck's catalogues, and each entry says which book and
 //! which edition. The **code is not theirs**: every sample below is written for this
 //! page, in Python, to exercise the move the catalogue describes. Their examples are
@@ -54,7 +54,7 @@ struct Entry {
     /// What is the same after the change as it was before.
     ///
     /// A refactoring is a change to the *text* of a program that leaves what the
-    /// program does alone. Every entry has to be able to say what that means for it —
+    /// program does alone. Every entry has to be able to say what that means for it,
     /// and a move that redistributes behaviour across several files has to say where
     /// the behaviour went, not only where the edit landed. Naming it per entry is what
     /// stops the page from being a list of edits that happen to be reversible.
@@ -699,7 +699,7 @@ struct Translation {
     /// Where the sample came from, when it is not written for this page.
     provenance: Option<&'static str>,
     /// A directory under `tests/corpus/` to copy in whole, for a translation whose
-    /// input is a *tree* and not a file — a Next.js route's URL is its path.
+    /// input is a *tree* and not a file, a Next.js route's URL is its path.
     corpus: Option<&'static str>,
 }
 
@@ -1283,7 +1283,7 @@ fn resolve(argument: &str, root: &Path) -> String {
 /// Take the temporary directory's name back out of some text.
 ///
 /// macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so
-/// the longer spelling has to go first — replacing the short one first leaves the
+/// the longer spelling has to go first, replacing the short one first leaves the
 /// `/private` behind and prints `/privatesrc/pricing.py`.
 fn scrub(text: &str, root: &Path) -> String {
     let root_text = root.to_string_lossy().to_string();
@@ -1309,7 +1309,7 @@ fn run(root: &Path, argv: &[String]) -> String {
     // page has to show the path a reader would type.
     //
     // macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so
-    // the longer spelling has to go first — replacing the short one first leaves the
+    // the longer spelling has to go first, replacing the short one first leaves the
     // `/private` behind and prints `/privatesrc/pricing.py`.
     let root_text = root.to_string_lossy().to_string();
     let private = format!("/private{root_text}");
@@ -1392,7 +1392,7 @@ fn catalog_data() -> String {
 
         // Every file in the sample, not one of them. A refactoring that changes a
         // signature has to change the callers too, and a page that shows only the
-        // declaration is showing half of the move — the half that on its own would
+        // declaration is showing half of the move, the half that on its own would
         // break the program.
         let before: Vec<String> = entry
             .files
@@ -1648,7 +1648,7 @@ struct Endpoint {
 ///
 /// Not a sampler: a router that answers all of these is a router that has met a
 /// collection, a member, a sub-collection, a sub-member, a replacement, an action, an
-/// aggregate and a catch-all — which is the whole surface most APIs ever have.
+/// aggregate and a catch-all, which is the whole surface most APIs ever have.
 const ENDPOINTS: &[Endpoint] = &[
     Endpoint {
         route: "app/api/pets/route.ts",
@@ -1788,8 +1788,8 @@ fn contract_data() -> String {
     out.push_str("];\n\n");
 
     // The crossing, checked. Every route file has been translated by now, so the same
-    // command reads the *other* side — the decorators and the signatures a FastAPI
-    // router declares — and the two documents are compared operation by operation.
+    // command reads the *other* side, the decorators and the signatures a FastAPI
+    // router declares, and the two documents are compared operation by operation.
     //
     // This is the check you can make without running the service, and it catches the
     // failure the whole exercise is about: an endpoint that did not survive, or a path
@@ -1833,7 +1833,7 @@ fn contract_data() -> String {
 
     let before = operations(&contract);
     let after = operations(&crossed);
-    // The addressing half — the URLs and the methods — has to be identical. That is the
+    // The addressing half, the URLs and the methods, has to be identical. That is the
     // part this tool takes responsibility for.
     let addressing = |ops: &[String]| -> Vec<String> {
         let mut out: Vec<String> = ops
@@ -1860,8 +1860,8 @@ fn contract_data() -> String {
         .filter(|o| !before.contains(o))
         .cloned()
         .collect();
-    // Not only the addressing half. The whole contract survives this crossing —
-    // including the query parameters, which neither framework declares — and asserting
+    // Not only the addressing half. The whole contract survives this crossing,
+    // including the query parameters, which neither framework declares, and asserting
     // it here is what stops the page from going on claiming so after it stops being
     // true. What the two documents *cannot* say is a separate matter, and is in the
     // notes beside them.

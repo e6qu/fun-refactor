@@ -618,3 +618,56 @@ dialog menu { display: flex; justify-content: flex-end; gap: 0.4rem; margin: 1re
 }
 .menu button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
 .menu button .tier.edits { margin-left: auto; }
+
+/* ----------------------------------------------------------------- tabs and graph */
+
+.tabs { display: flex; gap: 2px; margin-right: 10px; }
+
+.tab {
+  font: inherit;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 2px 8px 3px;
+  cursor: pointer;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.graph-view { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+
+.graph-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 12px;
+}
+
+.graph-depth { display: flex; align-items: center; gap: 6px; color: var(--ink-faint); }
+.graph-depth input { width: 80px; }
+
+.graph-canvas { flex: 1 1 auto; overflow: auto; padding: 12px; }
+.graph-canvas svg { display: block; }
+
+.graph-node { cursor: pointer; }
+.graph-node rect {
+  fill: var(--raised);
+  stroke: var(--rule);
+  rx: 4;
+}
+.graph-node.root rect { stroke: var(--accent); stroke-width: 2; }
+.graph-node text { fill: var(--ink); font-size: 12px; }
+.graph-node:hover rect { stroke: var(--accent); }
+
+.graph-edge { stroke: var(--rule); fill: none; }
+.graph-edge.dispatch { stroke-dasharray: 4 3; }
+
+.graph-empty { color: var(--ink-faint); padding: 20px; }

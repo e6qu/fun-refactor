@@ -1,7 +1,7 @@
 //! Every language the tool parses, asked whether it can read an environment variable.
 //!
 //! `fr stitch` exists to find configuration with no consumer. A language whose reads it
-//! cannot see does not produce a smaller answer — it produces the wrong one, because a
+//! cannot see does not produce a smaller answer. It produces the wrong one, because a
 //! variable read only by that language is reported as orphaned.
 
 use fun_refactor::analysis::stitch;
@@ -45,7 +45,7 @@ fn read_once(app: &str, code: &str) -> String {
 #[test]
 fn java_reads_the_environment() {
     // `System.getenv` is how a Java service reads its configuration, and the accessor
-    // table did not have it — so a Helm chart feeding a Java service reported every
+    // table did not have it, so a Helm chart feeding a Java service reported every
     // variable as configuration with no consumer, which is the finding `fr stitch`
     // exists to produce and here it was produced backwards.
     let text = read_once(
@@ -67,7 +67,7 @@ fn java_reads_the_environment_through_the_map() {
 #[test]
 fn zig_reads_the_environment_past_its_allocator() {
     // Zig's accessor takes the allocator first, so reading the argument straight after
-    // the paren found `allocator` — which the upper-case name filter then dropped, and
+    // the paren found `allocator`, which the upper-case name filter then dropped, and
     // the read went missing without anything saying so.
     let text = read_once(
         "main.zig",

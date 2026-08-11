@@ -2,7 +2,7 @@
 //!
 //! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file
 //! to the YAML grammar, keeping the YAML tree well-formed and every byte offset
-//! indexing the original source — at the cost of hiding everything inside an action
+//! indexing the original source, at the cost of hiding everything inside an action
 //! from the YAML queries. This module reads the spans `Parsed::masked_spans`
 //! records and turns each into a structured [`Action`], so `.Values` references,
 //! control flow and named templates are parsed, not pattern-matched.
@@ -19,7 +19,7 @@
 //! - **Trim markers**: `{{- ` and ` -}}`, using Go's own rule that the hyphen counts
 //!   only when a space character sits between it and the content.
 //! - **Built-in objects**: `.Release`, `.Chart`, `.Capabilities`, `.Files`,
-//!   `.Template` and `.Subcharts`, kept apart from `.Values` — `.Release.Name` names
+//!   `.Template` and `.Subcharts`, kept apart from `.Values`, `.Release.Name` names
 //!   no key a values file can hold.
 //!
 //! What it does not model, it reports. `.field` under a `range` is a field of the
@@ -81,7 +81,7 @@ impl Builtin {
 /// What a field chain is rooted at.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RefRoot {
-    /// `.Values.a.b` — the chart's values, which a values file can supply.
+    /// `.Values.a.b`, the chart's values, which a values file can supply.
     Values,
     /// `.Release.Name` and friends, supplied by Helm at render time.
     Builtin(Builtin),
@@ -267,7 +267,7 @@ impl RegionKind {
     /// Does the region's body render only under some condition?
     ///
     /// `with` counts: it skips its body when the value is empty. `range` counts: a
-    /// zero-length collection renders nothing. `define` does not — its body renders
+    /// zero-length collection renders nothing. `define` does not, its body renders
     /// wherever it is included, which is a different question.
     pub fn is_conditional(&self) -> bool {
         matches!(self, RegionKind::If | RegionKind::Range | RegionKind::With)
@@ -723,8 +723,8 @@ pub struct SetValue {
 impl SetValue {
     /// The mapping keys of the path, with list indices dropped.
     ///
-    /// Values-file keys are indexed by their mapping path — a key under a sequence
-    /// is qualified by the sequence's key, with no index — so `ports[0].name` and
+    /// Values-file keys are indexed by their mapping path, a key under a sequence
+    /// is qualified by the sequence's key, with no index, so `ports[0].name` and
     /// the `name` under `ports:` are the same key path here.
     pub fn keys(&self) -> Vec<String> {
         self.path
@@ -793,7 +793,7 @@ pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
     Ok(out)
 }
 
-/// `image.tag`, `ports[0].name`, `annotations.foo\.bar` — Helm's key syntax.
+/// `image.tag`, `ports[0].name`, `annotations.foo\.bar`. Helm's key syntax.
 fn parse_set_path(key: &str) -> Result<Vec<SetSegment>> {
     if key.trim().is_empty() {
         bail!("`{key}=…` sets an empty key; --set takes key=value");
@@ -890,7 +890,7 @@ fn unescape(text: &str) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Tok {
     Ident(String),
-    /// `.Values.image.tag` — the segments after each dot.
+    /// `.Values.image.tag`, the segments after each dot.
     Field(Vec<String>),
     /// A bare `.`.
     Dot,
@@ -1307,7 +1307,7 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
                 });
             }
             // `$` is the root context, so `$.Values.x` names the same key `.Values.x`
-            // does — which is how a `range` body reaches past the rebound dot.
+            // does, which is how a `range` body reaches past the rebound dot.
             Tok::Variable { name, path } if name.is_empty() && !path.is_empty() => {
                 let (root, rest) = match Builtin::from_segment(&path[0]) {
                     Some(builtin) => (RefRoot::Builtin(builtin), path[1..].to_vec()),
@@ -1341,8 +1341,8 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
 
 /// An `index` call over `.Values`, starting at token `at`.
 ///
-/// Returns the reference it names — `None` inside the `Some` when the call names
-/// no key we can know — and the token index to continue from. `None` means the
+/// Returns the reference it names, `None` inside the `Some` when the call names
+/// no key we can know, and the token index to continue from. `None` means the
 /// tokens at `at` are not an `index` call at all, and are read the ordinary way.
 ///
 /// `index .Values "a-b" "c"` is `.Values.a-b.c`: each literal string argument is
@@ -1395,7 +1395,7 @@ fn index_call(
 
     if end == at + 2 {
         // Nothing literal followed. A chain with a path of its own still names a
-        // key — `index .Values.hosts 0` reads an element of `.Values.hosts` — but a
+        // key, `index .Values.hosts 0` reads an element of `.Values.hosts`, but a
         // bare `.Values` indexed by a computed key names nothing at all.
         if base_path.is_empty() {
             let key = tokens
@@ -1483,5 +1483,5 @@ fn invocations(tokens: &[Token], kind: &ActionKind) -> Vec<String> {
 }
 
 // Every item above is public, and `tests/helm_template.rs` exercises all of it
-// through the same door a caller uses — the parser has no private behaviour that
+// through the same door a caller uses, the parser has no private behaviour that
 // an in-module test could reach and that file could not.

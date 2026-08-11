@@ -1,7 +1,7 @@
 //! Markdown's two-grammar parse: the block tree plus one sub-tree per inline node.
 //!
 //! The grammar this replaced (tree-sitter-markdown-fork 0.7) parsed both layers into
-//! one tree, and `abort()`ed inside its C++ inline scanner on a wide table — an
+//! one tree, and `abort()`ed inside its C++ inline scanner on a wide table, an
 //! `assert()` failure no in-process handler can catch, so a single file made the tool
 //! unusable over a whole repository. The maintained grammar splits the two layers,
 //! which buys correctness at the price of a second parse pass whose spans must still
@@ -43,7 +43,7 @@ fn wide_table() -> String {
 #[test]
 fn a_wide_table_parses_instead_of_aborting_the_process() {
     // This is a reproduction, not a regression guard: the old grammar did not return
-    // an error here, it called abort(), so this test could not fail — the process
+    // an error here, it called abort(), so this test could not fail, the process
     // died and took the whole run with it.
     let src = wide_table();
     let parsed = parse(&src);
@@ -94,7 +94,7 @@ fn links_inside_a_wide_table_cell_keep_their_document_offsets() {
 fn inline_spans_are_offsets_into_the_original_document() {
     // The property the whole two-phase parse hangs on. The inline parser is handed
     // the whole source with its included ranges narrowed to one node, so a span it
-    // produces indexes the original document — never the extracted fragment.
+    // produces indexes the original document, never the extracted fragment.
     let filler = "padding text that pushes every real offset far to the right.\n\n";
     let src = format!("{filler}Read the [manual text][manual] first.\n\n[manual]: /m\n");
 
@@ -105,7 +105,7 @@ fn inline_spans_are_offsets_into_the_original_document() {
         .find(|r| r.name == "manual")
         .unwrap_or_else(|| panic!("expected the label reference: {:?}", f.references));
 
-    // Exactly the label bytes, at the offset the label really occupies — which is
+    // Exactly the label bytes, at the offset the label really occupies, which is
     // past the whole filler paragraph, not an offset into the inline fragment.
     assert_eq!(label.span.text(&src), "manual");
     assert_eq!(label.span.start, src.find("[manual]").unwrap() + 1);
@@ -125,7 +125,7 @@ fn inline_spans_are_offsets_into_the_original_document() {
 fn inline_content_in_a_block_quote_skips_the_quote_markers() {
     // A quoted paragraph carries `block_continuation` nodes inside its inline node.
     // They are cut out of the ranges handed to the inline parser, so `>` never
-    // becomes part of the text — and the spans on the far side of one still line up.
+    // becomes part of the text, and the spans on the far side of one still line up.
     let src = "> quoted [a](#sec) text\n> and [b](#sec) more\n";
     let f = facts(src);
     let anchors: Vec<_> = f.references.iter().filter(|r| r.name == "sec").collect();

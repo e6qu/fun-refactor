@@ -6,7 +6,7 @@
 //!
 //! Every other catalog can say `name: main`, because every other language here agrees
 //! that a program starts in a function called `main`. Python's starts in a *statement*,
-//! and the function it calls can be named anything — so the rule that worked everywhere
+//! and the function it calls can be named anything, so the rule that worked everywhere
 //! else reported nothing at all for an ordinary script.
 
 use fun_refactor::analysis::entrypoints::{Catalog, EntryKind};
@@ -77,7 +77,7 @@ fn a_module_with_no_guard_gains_nothing() {
 
 #[test]
 fn a_shared_fixture_is_an_entry_point() {
-    // Nothing calls a fixture by name — pytest injects it by matching the parameter.
+    // Nothing calls a fixture by name, pytest injects it by matching the parameter.
     // In `conftest.py`, where the shared ones live, neither the file nor the function
     // is named `test_*`, so no rule matched it at all.
     let found = entry_kinds(&[(
@@ -125,7 +125,7 @@ fn unittest_fixtures_are_entry_points() {
 fn a_next_js_server_action_is_an_entry_point() {
     // A `"use server"` file exports functions the framework makes reachable over the
     // network, called by nothing in the source. The catalogue already covered Next.js's
-    // *filename* conventions — `page.tsx`, `route.ts` — and this one is not a filename:
+    // *filename* conventions, `page.tsx`, `route.ts`, and this one is not a filename:
     // `components/cart/actions.ts` is an ordinary name. Found in `vercel/commerce`,
     // where five live network endpoints were reported as having no detected use.
     let found = entry_kinds(&[(
@@ -234,7 +234,7 @@ fn a_consumer_and_a_scheduled_job_are_entry_points() {
 
 /// The annotation's arguments may contain dots of their own. Stripping the qualifier
 /// before cutting the arguments off read the last dotted piece of an *argument* as the
-/// annotation's name, so a version number in a route path — `/v1.0/status` — quietly
+/// annotation's name, so a version number in a route path, `/v1.0/status`, quietly
 /// turned a live handler into dead code.
 #[test]
 fn a_dot_in_the_arguments_does_not_hide_the_annotation() {
@@ -281,8 +281,8 @@ fn the_annotation_is_found_however_it_is_spelled() {
 
 /// `export class` is how TypeScript writes almost every class, and the word `export`
 /// sits between the decorator and the declaration. Reading it as a preceding line ended
-/// the run of annotations before it reached the decorator, so a NestJS controller — the
-/// class the whole framework is organised around — matched nothing.
+/// the run of annotations before it reached the decorator, so a NestJS controller, the
+/// class the whole framework is organised around, matched nothing.
 #[test]
 fn a_modifier_between_the_annotation_and_the_declaration_is_not_a_line_before_it() {
     let found = entry_kinds(&[
@@ -354,7 +354,7 @@ fn a_rust_route_attribute_is_an_entry_point() {
 
 /// A decorator's name is not unique across libraries. `@patch` is `unittest.mock`'s far
 /// more often than it is FastAPI's, and matching the name alone tagged twenty-two of
-/// `psf/black`'s test methods as remotely reachable HTTP routes — including, once, a
+/// `psf/black`'s test methods as remotely reachable HTTP routes, including, once, a
 /// `self` parameter. A route decorator names a URL path; a mock names a module.
 #[test]
 fn a_route_rule_requires_the_path_and_not_just_the_name() {
@@ -434,7 +434,7 @@ fn a_parameter_does_not_carry_its_method_s_annotation() {
 ///
 /// `deny_unknown_fields` rejects a misspelled key. A misspelled *value* was accepted:
 /// `symbol_kind: functoin` and `languages: [pyhton]` both parsed, loaded, and matched
-/// nothing — indistinguishable from a rule that is present and simply never true. Both
+/// nothing, indistinguishable from a rule that is present and simply never true. Both
 /// are parsed into the type they denote now, so the mistake is a message at load.
 #[test]
 fn a_misspelled_value_in_a_catalogue_is_rejected_when_it_loads() {
@@ -509,7 +509,7 @@ fn a_rule_can_apply_to_every_language() {
 /// A rule that says nothing matched nothing, quietly.
 ///
 /// The comment on the old check said an empty matcher "is never what a catalog author
-/// means" and then returned false, which is also not what they meant — silently doing
+/// means" and then returned false, which is also not what they meant, silently doing
 /// the opposite of the dangerous thing is still silent. And the list of what counted as
 /// a condition had drifted from the fields that exist: `symbol_kind`, `exported` and
 /// `top_level` were not on it, so a rule whose only condition was one of those counted

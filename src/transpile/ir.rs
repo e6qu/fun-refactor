@@ -43,7 +43,7 @@ pub enum Item {
     /// An import.
     ///
     /// Not [`Item::Unsupported`], because an import is not a construct that failed to
-    /// translate — it is a dependency declaration, and every one of these languages
+    /// translate. It is a dependency declaration, and every one of these languages
     /// resolves dependencies differently. Counting them as failures made a perfect
     /// translation report one, which is the sort of noise that stops anyone reading
     /// the number at all.
@@ -64,8 +64,8 @@ pub struct Function {
     pub receiver: Option<String>,
     /// What the source called the receiver inside the body.
     ///
-    /// The six languages disagree — Rust, Python and Zig say `self`, Java and
-    /// TypeScript say `this`, and Go says whatever the author called it — and the
+    /// The six languages disagree. Rust, Python and Zig say `self`, Java and
+    /// TypeScript say `this`, and Go says whatever the author called it, and the
     /// receiver is not in the parameter list to be renamed with the rest. Recording
     /// the word here lets a writer spell it its own way; without it every translated
     /// method kept its source's word and referred to a name the output never binds.
@@ -85,7 +85,7 @@ pub struct Function {
     /// Java names it after the class, Python calls it `__init__`, TypeScript calls it
     /// `constructor`, and Rust, Go and Zig write `new`, `NewThing` and `init` by habit.
     /// Which of those a target writes is a fact about the target, so the *name* is not
-    /// what carries — this is. Without it a Java constructor was a class member nothing
+    /// what carries. This is. Without it a Java constructor was a class member nothing
     /// recognised, and it was dropped.
     pub is_constructor: bool,
 }
@@ -102,7 +102,7 @@ pub struct Param {
 ///
 /// Python writes `def f(*, session, user)` to make everything after the `*`
 /// keyword-only, and `*args` / `**kwargs` to take the rest. Reading those as ordinary
-/// parameters produced `export function createUser(*: unknown, ...)` — a file
+/// parameters produced `export function createUser(*: unknown, ...)`, a file
 /// TypeScript will not parse, found by the translator's own parse check. Reading them
 /// as *nothing* would be worse: the signature would look carried when the way callers
 /// must invoke it had changed.
@@ -110,15 +110,15 @@ pub struct Param {
 pub enum ParamKind {
     #[default]
     Normal,
-    /// `*args` — the rest, positionally.
+    /// `*args`, the rest, positionally.
     VarArgs,
-    /// `**kwargs` — the rest, by name.
+    /// `**kwargs`, the rest, by name.
     KeywordArgs,
     /// A bare `*` or `/`: not a parameter, a rule about the ones around it.
     Marker,
 }
 
-/// A struct, class, dataclass or interface — a named product of fields.
+/// A struct, class, dataclass or interface, a named product of fields.
 #[derive(Debug, Clone)]
 pub struct Record {
     pub doc: Vec<String>,
@@ -128,7 +128,7 @@ pub struct Record {
     ///
     /// Three of these six languages do and three do not, so this is carried where it
     /// can be and *reported* where it cannot. Dropping it silently made
-    /// `class JsonPrimitive extends JsonElement` into a class that extends nothing —
+    /// `class JsonPrimitive extends JsonElement` into a class that extends nothing,
     /// which is a different type, and the output said nothing about it.
     pub extends: Option<String>,
     pub exported: bool,
@@ -194,7 +194,7 @@ pub enum Type {
 }
 
 impl Type {
-    /// A named type with no arguments — the common case.
+    /// A named type with no arguments, the common case.
     pub fn named(name: impl Into<String>) -> Type {
         Type::Named {
             name: name.into(),
@@ -262,7 +262,7 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
-    /// `for x in xs` — the shape every language here shares. A C-style `for` is not
+    /// `for x in xs`, the shape every language here shares. A C-style `for` is not
     /// this, and is carried as unsupported.
     ForEach {
         binding: String,
@@ -273,8 +273,8 @@ pub enum Stmt {
     /// A comment on its own line.
     ///
     /// Every language here has one and they differ only in the marker. Treating a
-    /// comment as an untranslatable construct — which is what happened before this
-    /// existed — put `// Validate the route params.` in the output under a "not
+    /// comment as an untranslatable construct, which is what happened before this
+    /// existed, put `// Validate the route params.` in the output under a "not
     /// translated" marker, and inflated the count of real gaps with things that were
     /// never gaps.
     Comment(String),
@@ -284,7 +284,7 @@ pub enum Stmt {
     ///
     /// Half of these languages have it. Rust and Zig model failure in the return type
     /// and Go returns an error value, and none of the three has any general translation
-    /// of a catch block — so those writers carry it, which is why the original text
+    /// of a catch block, so those writers carry it, which is why the original text
     /// travels with it. Python, TypeScript and Java agree closely enough to translate:
     /// a typed `except` becomes an `instanceof` test inside one `catch`, which is
     /// exactly how the same intent is written in the other two.
@@ -343,7 +343,7 @@ pub enum Expr {
     /// `await x`, `x.await`.
     ///
     /// Three of these languages have it and mean the same thing by it: suspend
-    /// until this resolves. Only the spelling differs — prefix in Python and
+    /// until this resolves. Only the spelling differs, prefix in Python and
     /// TypeScript, postfix in Rust. Go has no counterpart and says so instead of
     /// dropping the keyword, which would turn a suspension point into a plain call.
     Await(Box<Expr>),
@@ -373,24 +373,24 @@ pub enum Expr {
         callee: Box<Expr>,
         args: Vec<Expr>,
     },
-    /// `Counter { value: 0, step }` — a record built by naming its fields.
+    /// `Counter { value: 0, step }`, a record built by naming its fields.
     ///
     /// Distinct from [`Expr::New`], which passes arguments in an order the callee
     /// decides. Four of these languages construct a record this way and two do not, so
     /// the fields have to stay named for as long as it takes to find out which target
-    /// is being written — a positional list assembled here would be in the source's
+    /// is being written, a positional list assembled here would be in the source's
     /// declaration order, which is a fact about the source and not about the
     /// constructor anyone will call.
     RecordLit {
         ty: String,
         fields: Vec<(String, Expr)>,
     },
-    /// `a ?? b`, `a orelse b` — the value unless it is absent, and then the fallback.
+    /// `a ?? b`, `a orelse b`, the value unless it is absent, and then the fallback.
     ///
     /// Its own node instead of a [`BinaryOp`], because it is not an operator on values
     /// in most of these languages: Zig spells it `orelse`, Rust reaches for
     /// `Option::unwrap_or`, Java for a static method, and Go has nothing at all. What is
-    /// shared is the *question* — is this absent, and what then — and that is what
+    /// shared is the *question*, is this absent, and what then, and that is what
     /// crosses.
     ///
     /// The catch is that three of the six can only say it by naming the value twice. A
@@ -403,7 +403,7 @@ pub enum Expr {
     /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
     ///
     /// One expression that chooses between two, and five of these six languages have
-    /// it — only Go does not, and Go says so instead of inventing a statement out of
+    /// it, only Go does not, and Go says so instead of inventing a statement out of
     /// an expression. It is a node and not an [`Stmt::If`] because it *is* a value:
     /// reading it as a branch would need somewhere to put the result, and there is no
     /// such place inside an argument list.
@@ -418,7 +418,7 @@ pub enum Expr {
     MapLit(Vec<(Expr, Expr)>),
     /// An interpolated string: `f"Hi {name}"`, `` `Hi ${name}` ``.
     ///
-    /// Kept as parts and not text because flattening it loses the expressions —
+    /// Kept as parts and not text because flattening it loses the expressions,
     /// which is exactly the silent wrong answer this had before it existed.
     Template(Vec<TemplatePart>),
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
@@ -493,7 +493,7 @@ impl BinaryOp {
 
     /// How tightly this operator binds. Higher binds tighter.
     ///
-    /// One table for every target, because every target orders these the same way —
+    /// One table for every target, because every target orders these the same way,
     /// multiplication before addition, arithmetic before comparison, comparison before
     /// `and`, `and` before `or`. Python spells two of them with words and agrees about
     /// all of it.

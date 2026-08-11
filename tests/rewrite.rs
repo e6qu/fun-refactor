@@ -298,8 +298,8 @@ fn bash_rewrites_still_parse() {
 ///
 /// The gap these close: for a long time only Rust, Python and Bash were exercised,
 /// and the matrix published the rest on the strength of the language list alone.
-/// TypeScript and Zig were both broken — a negated condition lost the brackets those
-/// grammars require — and nothing said so until the tool was run on real code.
+/// TypeScript and Zig were both broken, a negated condition lost the brackets those
+/// grammars require, and nothing said so until the tool was run on real code.
 const EVERY_LANGUAGE: &[(&str, &str, &str)] = &[
     (
         "a.rs",
@@ -419,7 +419,7 @@ fn invert_if_refuses_an_else_if_chain() {
 #[test]
 fn de_morgan_keeps_the_grouping_the_result_needs() {
     // `!(a && b)` is one operand of the outer `&&`; `!a || !b` is two. Without new
-    // brackets the outer operator rebinds and the meaning changes silently — this
+    // brackets the outer operator rebinds and the meaning changes silently. This
     // one parses cleanly, so no reparse check would catch it.
     let src = "fn f(a: bool, b: bool, x: bool) -> bool {\n    x && !(a && b)\n}\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);
@@ -488,7 +488,7 @@ fn guard_clause_refuses_when_the_if_is_not_last_in_a_go_block() {
     // wrapper for a statement made every block look like a block of one, so the
     // "is the `if` last?" check passed for an `if` with code after it and the guard
     // hoisted that code out from under the condition. The result parses, so no
-    // reparse check would have caught it — only the meaning changes.
+    // reparse check would have caught it, only the meaning changes.
     let src = "package p\n\nfunc f(a bool) {\n\tif a {\n\t\tgo1()\n\t}\n\tafter()\n}\n";
     let (tmp, index) = workspace(&[("a.go", src)]);
     let path = tmp.path().join("a.go");
@@ -528,7 +528,7 @@ fn guard_clause_still_applies_to_a_trailing_go_if() {
 #[test]
 fn a_guard_at_the_end_of_a_loop_body_continues_rather_than_returns() {
     // ripgrep's `find_program` ends a `for` body with an `if`. Rewriting that to
-    // `return` leaves the loop entirely — a different program — and leaves it with no
+    // `return` leaves the loop entirely, a different program, and leaves it with no
     // value in a function returning `Result<PathBuf>`.
     let src = "fn f(paths: Vec<i32>) {\n    for p in paths {\n        if p > 0 {\n            use_it(p);\n        }\n    }\n}\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);

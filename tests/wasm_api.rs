@@ -1,7 +1,7 @@
 //! Every method of the browser `Workspace` says whose files it is reading.
 //!
 //! `tests/wasm_native.rs` now drives the API itself, and `cargo check --features wasm`
-//! type-checks it — neither of which was true when this file was written. What it
+//! type-checks it, neither of which was true when this file was written. What it
 //! still cannot do is prove the invariant holds for *every* method: `enter()` is only
 //! observable when two workspaces exist at once, and a test that calls one method at a
 //! time would pass while a method that forgot it stayed broken.
@@ -10,7 +10,7 @@
 //! source.
 //!
 //! Without it the method reads whichever workspace was created most recently. Two
-//! repositories open in one page is enough to trigger it, and the failure is silent —
+//! repositories open in one page is enough to trigger it, and the failure is silent,
 //! spans measured against one file's bytes, applied to another's. That is how the
 //! playground came to report a rewrite as unavailable at a position where applying it
 //! worked: the listing re-read the file and got a different workspace's text.

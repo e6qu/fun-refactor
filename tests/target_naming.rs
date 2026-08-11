@@ -1,7 +1,7 @@
 //! Naming the thing you want to act on.
 //!
-//! Every listing the tool prints uses a qualified name — `Box::size`, `HookEvent::String`
-//! — and for a long time that spelling was the one thing it would not accept as input.
+//! Every listing the tool prints uses a qualified name, `Box::size`, `HookEvent::String`,
+//! and for a long time that spelling was the one thing it would not accept as input.
 //! On a real repository, where a bare `String` is twenty methods, the only way through
 //! was a line and column somebody had to go and look up.
 

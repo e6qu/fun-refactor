@@ -291,7 +291,7 @@ subtotal: int = Money()
 /// `--json` answers with names and places, like every other command.
 ///
 /// It used to serialize the analysis struct directly, so it emitted `"symbol": 1` and
-/// `"defined_at": 0` — `SymbolId`s, which are positions in one run's index and mean
+/// `"defined_at": 0`, `SymbolId`s, which are positions in one run's index and mean
 /// nothing to whoever reads the output. `defined_at` read like a line number. The text
 /// rendering resolved them all along; only the machine-readable half did not.
 #[test]

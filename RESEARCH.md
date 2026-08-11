@@ -1,8 +1,8 @@
-# fun-refactor — Research: what "standard refactors" means for the funveil language suite
+# fun-refactor. Research: what "standard refactors" means for the funveil language suite
 
 Target languages (inherited from [funveil](https://github.com/e6qu/funveil), see its
 [docs/LANGUAGE_FEATURES.md](https://github.com/e6qu/funveil/blob/main/docs/LANGUAGE_FEATURES.md)):
-**Rust, Go, Zig, TypeScript/TSX, Python, Bash, HTML, CSS/SCSS, Terraform/HCL, Helm/YAML, XML, Markdown** —
+**Rust, Go, Zig, TypeScript/TSX, Python, Bash, HTML, CSS/SCSS, Terraform/HCL, Helm/YAML, XML, Markdown**,
 all parsed with tree-sitter (funveil pins tree-sitter 0.26 + per-language grammar crates).
 
 ## 1. The canonical catalog
@@ -32,30 +32,30 @@ the **table stakes** are:
 Advanced tier (differentiators): the `refactor.rewrite.*` micro-transform tail (invert-if,
 guarded return, de Morgan, fill-struct/switch, loop↔iterator), class-level ops
 (extract class/interface, pull up/push down), async conversions, and rope-style
-**pattern restructure** (user-supplied before/after patterns — the only precedent for
+**pattern restructure** (user-supplied before/after patterns, the only precedent for
 automating catalog entries like Replace Loop with Pipeline).
 
 Notable gaps in the ecosystem we can exploit:
-- LSP has **no change-signature flow** — a CLI-native one is an advantage, not a workaround.
+- LSP has **no change-signature flow**, a CLI-native one is an advantage, not a workaround.
 - gopls drops comments in extract/inline ([golang/go#20744](https://github.com/golang/go/issues/20744));
   comment preservation is a known weak spot everywhere.
 
 ## 2. The language suite splits in two
 
-**Big-4 code languages (Rust, Go, TS/TSX, Python)** — mature LSPs exist
+**Big-4 code languages (Rust, Go, TS/TSX, Python)**, mature LSPs exist
 (rust-analyzer, gopls, typescript-language-server, pyright). Correct project-wide rename here
 requires imports/types/dynamic dispatch; only a compiler-grade frontend gets it right.
 
-**The other eight (Zig, Bash, HTML, CSS/SCSS, HCL, Helm/YAML, XML, Markdown)** — LSP support is
+**The other eight (Zig, Bash, HTML, CSS/SCSS, HCL, Helm/YAML, XML, Markdown)**. LSP support is
 weak to nonexistent (terraform-ls rename: open request
 [terraform-ls#1155](https://github.com/hashicorp/terraform-ls/issues/1155); bash-language-server
 rename: [bash-lsp#161](https://github.com/bash-lsp/bash-language-server/issues/161); zls rename
 returns empty edits in practice, [serena#799](https://github.com/oraios/serena/issues/799);
 nothing rename-grade for HTML/CSS/XML/Markdown/Helm). But their name semantics are simple and
 **string-keyed** (Terraform addresses, Helm `.Values` paths, CSS selectors, XML ids, Markdown
-anchors) — small hand-written binders on tree-sitter are feasible and *nobody else has built
+anchors), small hand-written binders on tree-sitter are feasible and *nobody else has built
 this*. Cross-language refs (CSS class ↔ HTML/TSX `className`, `values.yaml` ↔ template
-`{{ .Values.x }}`, Terraform `var.x` ↔ `variables.tf`) are invisible to every LSP — the unique
+`{{ .Values.x }}`, Terraform `var.x` ↔ `variables.tf`) are invisible to every LSP, the unique
 value of a multi-language tool.
 
 ## 3. Architecture options
@@ -67,16 +67,16 @@ value of a multi-language tool.
 | Project-wide rename (imports/types) | unsafe | must rebuild per-language import resolution | correct where servers exist (big 4) |
 | Type-dependent ops | impossible ([ast-grep FAQ](https://ast-grep.github.io/advanced/faq.html)) | impossible without a type checker | only option |
 | Config/markup languages | works but unscoped | **sweet spot** | servers weak/absent |
-| Cross-language references | only explicit rules | **feasible — we own the model** | invisible to every LSP |
+| Cross-language references | only explicit rules | **feasible. We own the model** | invisible to every LSP |
 | Ops cost | zero | per-language authoring | daemons, config discovery, version skew |
 
 Key facts:
 - **`github/stack-graphs` is archived** (2025-09-09, read-only; only 4 language definitions ever
-  shipped: Java/JS/Python/TS) — do not build on it.
+  shipped: Java/JS/Python/TS), do not build on it.
   [`tree-sitter/tree-sitter-graph`](https://github.com/tree-sitter/tree-sitter-graph) is alive
   but you'd own all binding rules.
 - tree-sitter `locals.scm` captures (`@local.scope/definition/reference`) give per-file
-  lexical scoping — enough for shadowing-safe renames — but no imports/types, and shipped
+  lexical scoping, enough for shadowing-safe renames, but no imports/types, and shipped
   query quality varies per grammar.
 - **Lossless editing**: tree-sitter CSTs keep every byte (comments included), so edits are
   byte-range splices on original source, applied descending by offset, followed by incremental
@@ -134,7 +134,7 @@ rename safe is the Tier-0 layer of the flow graph.
 
 - **Call graph** (`src/analysis/call_graph.rs`): petgraph `DiGraph<FunctionNode, CallEdge>` with
   BFS `trace()`, DOT export, std-function filtering. Resolution is **pure string-name matching**:
-  no scoping, no import resolution — same-named functions in different files are conflated into
+  no scoping, no import resolution, same-named functions in different files are conflated into
   one node; dynamic calls carry an `is_dynamic` flag but are never resolved. Good API shape
   (callers/callees/trace/format_tree), floor-level precision.
 - **Entrypoint detection** (`src/analysis/entrypoints.rs`): five categories (Main, Test, Cli,
@@ -150,25 +150,25 @@ rename safe is the Tier-0 layer of the flow graph.
 | 1 | Syntactic def-use / on-demand slicing, no PDG | [srcSlice](https://github.com/srcML/srcSlice) (sliced the Linux kernel in ~20 min on an XML CST, [JSEP'14](https://www.cs.kent.edu/~jmaletic/papers/JSEP14.pdf)); [tree-climber](https://github.com/bstee615/tree-climber) (CFG + def-use **directly on tree-sitter**) |
 | 2 | Intra-procedural CFG dataflow on a language-agnostic IL | **Semgrep CE**: constant propagation + taint over an IL from tree-sitter parses ([data-flow docs](https://docs.semgrep.dev/writing-rules/data-flow/data-flow-overview)); intraprocedural, no path sensitivity |
 | 3 | Reaching-defs + query-time inter-procedural traversal with call summaries | **Joern**: GEN/KILL fixpoint → `REACHING_DEF` edges, `reachableBy` walks CALL edges at query time; unresolved calls over-approximated unless a `FlowSemantic` summary narrows them ([docs](https://docs.joern.io/dataflow-semantics/)) |
-| 4 | Global, field/context-sensitive dataflow on compiler-grade extraction | CodeQL, Semgrep Pro — needs a compiler frontend; CodeQL's engine is **proprietary/unembeddable** ([license](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md)) |
+| 4 | Global, field/context-sensitive dataflow on compiler-grade extraction | CodeQL, Semgrep Pro, needs a compiler frontend; CodeQL's engine is **proprietary/unembeddable** ([license](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md)) |
 
 **Achievable target:** Tier 2–3 for the imperative languages (Semgrep proves the parser stack;
 Joern proves the architecture works without types for dynamic languages). The known cost of no
-compiler is **call boundaries** — so: intra-procedural reaching-defs everywhere, inter-procedural
+compiler is **call boundaries**, so: intra-procedural reaching-defs everywhere, inter-procedural
 tracing as query-time traversal that **downgrades confidence loudly at unresolved call edges**,
 plus Joern-style summaries for stdlib/framework functions.
 
-**Config languages get different — and fully solvable — flow semantics: substitution/override
+**Config languages get different, and fully solvable, flow semantics: substitution/override
 provenance**, since each has a deterministic evaluation model:
-- Terraform: `var`/`local`/`module.out` substitution is a true value DAG — Checkov implements it
+- Terraform: `var`/`local`/`module.out` substitution is a true value DAG. Checkov implements it
   completely with attribute-labeled edges and multi-pass rendering
   ([local_graph.py](https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/graph_builder/local_graph.py));
-  its one flaw: it substitutes in place, destroying the hop chain — we must keep it.
+  its one flaw: it substitutes in place, destroying the hop chain. We must keep it.
 - Helm: 4-level override precedence + coalescing ([docs](https://helm.sh/docs/chart_template_guide/values_files/));
   [helm-ls](https://github.com/mrjosh/helm-ls) already resolves `.Values.x` → values files.
 - CSS: the cascade **is** a spec'd provenance algorithm (origin → layer → specificity → order);
   DevTools' struck-through-losers view is the reference UX.
-- YAML: anchors are discarded post-composition per spec — provenance must be captured
+- YAML: anchors are discarded post-composition per spec, provenance must be captured
   pre-composition, which a CST-based tool does naturally (advantage over yq-style tools).
 - Markdown: [marksman](https://github.com/artempyanykh/marksman) does link resolution; HTML
   id/`for` reference resolution is a genuine gap (vscode-html-languageservice doesn't do it).
@@ -181,7 +181,7 @@ design, [cpg.joern.io](https://cpg.joern.io/)):
 
 - **Nodes**: `File`, `Symbol` (kind: function/type/var/param/css-rule/tf-block/helm-key/
   yaml-anchor/md-heading…, byte range, language), `CallSite`, `Reference`, `Value`.
-- **Edge layers**: `DECLARES`/`REF` (scope resolution — also powers rename) · `IMPORTS` ·
+- **Edge layers**: `DECLARES`/`REF` (scope resolution, also powers rename) · `IMPORTS` ·
   `CALLS` (with `resolution: exact | import-qualified | field-based | name-only` + candidate
   count) · `DFLOW` (intra-procedural reaching-defs; inter-procedural at query time) ·
   `PROVENANCE` (config langs; `kind: substitution|override|expansion|default`, precedence
@@ -196,15 +196,15 @@ reverse. The layers stitch across the code/config boundary (Helm value → env v
 The literature's headline: **precision is cheap, recall dies on dynamic features**; the unsound
 field-based heuristic (bucket call targets by method/property name, [Feldthaus et al.
 ICSE'13](https://www.franktip.org/pubs/icse2013approximate.pdf)) gets ~66–80% precision / ≥85%
-recall on JS with no types — the single most effective technique.
+recall on JS with no types, the single most effective technique.
 
 | Language | Strategy | Notes |
 |---|---|---|
-| Go | package-qualified names + CHA-style all-implementors for interface calls | gopls call hierarchy *omits dynamic calls by design* — own analysis can beat LSP recall |
+| Go | package-qualified names + CHA-style all-implementors for interface calls | gopls call hierarchy *omits dynamic calls by design*, own analysis can beat LSP recall |
 | Rust | direct calls + impl-block tracking; `dyn`/fn-pointer sites → multi-candidate | static-only misses ~29% of edges ([Rupta, CC'24](https://dl.acm.org/doi/10.1145/3640537.3641574)) |
 | TS/TSX | field-based (ACG) + explicit type annotations to narrow | module-graph tools (madge) are not function-level |
 | Python | **skip pure name-matching** (over-links badly); PyCG-style assignment graph | PyCG: 99.2% precision / 69.9% recall ([ICSE'21](https://arxiv.org/abs/2103.00587)), archived; successor: Jarvis |
-| Zig | name + `@import` resolution; comptime sites flagged unresolved | zls has no callHierarchy — trivially best-in-class opportunity |
+| Zig | name + `@import` resolution; comptime sites flagged unresolved | zls has no callHierarchy, trivially best-in-class opportunity |
 | Bash | function-name-in-command-position + static `source` resolution | bash-language-server has no callHierarchy either |
 
 Every `CALLS` edge carries its resolution-confidence tag (compare Sourcegraph's
@@ -224,7 +224,7 @@ env-read, queue-consumer, scheduled-job, exported-api, test, infra-exposure, inf
 orthogonal `threat_model` (remote/local) × per-language `match` block × `provenance:
 manual|generated`. For infra languages, entrypoints are externally-settable inputs (root-module
 tfvars, values.yaml keys) and declared network exposure (Service/Ingress, 0.0.0.0/0 ingress).
-Entrypoints become tagged Symbol nodes — seeds for reachability and forward-flow queries.
+Entrypoints become tagged Symbol nodes, seeds for reachability and forward-flow queries.
 Semgrep's per-rule duplication of source definitions is the anti-pattern to avoid.
 
 ### 6.6 Licensing constraints

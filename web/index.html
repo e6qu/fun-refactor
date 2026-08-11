@@ -99,11 +99,30 @@
 
   <section class="editor-wrap">
     <div class="panel-head">
+      <div class="tabs" role="tablist" aria-label="Editor view">
+        <button type="button" class="tab on" role="tab" id="tab-source"
+                aria-selected="true" data-view="source">Source</button>
+        <button type="button" class="tab" role="tab" id="tab-graph"
+                aria-selected="false" data-view="graph">Call graph</button>
+      </div>
       <span id="open-path">No file open</span>
       <span class="grow"></span>
       <span id="language" class="chip"></span>
     </div>
     <div id="editor"></div>
+    <!-- The call graph around the symbol at the cursor. Drawn from `graph_around`,
+         which returns the nodes and the edges. -->
+    <div id="graph-view" class="graph-view" hidden>
+      <div class="graph-bar">
+        <span id="graph-subject" class="dim">Click a function, then open this tab.</span>
+        <span class="grow"></span>
+        <label class="graph-depth">depth
+          <input id="graph-depth" type="range" min="1" max="4" value="2">
+          <span id="graph-depth-value">2</span>
+        </label>
+      </div>
+      <div id="graph-canvas" class="graph-canvas"></div>
+    </div>
     <!-- The status bar: what the cursor is on, in the spelling the terminal takes. -->
     <div class="panel-head sub statusbar">
       <button type="button" id="coordinate" class="coord" title="Copy this coordinate">—</button>

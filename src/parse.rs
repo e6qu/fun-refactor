@@ -3,9 +3,9 @@
 //! Grammars are loaded once into a [`Parsers`] handle and reused. Parsing never
 //! rewrites the source: byte offsets in the resulting tree always index the original
 //! text, which is what the edit engine relies on. That holds for the two languages
-//! that are not parsed as written — Helm, whose template actions are masked to keep
+//! that are not parsed as written. Helm, whose template actions are masked to keep
 //! the YAML grammar happy, and Markdown, whose inline content is parsed a second time
-//! by a second grammar — because both preserve every byte offset.
+//! by a second grammar, because both preserve every byte offset.
 
 use crate::lang::Language;
 use crate::model::FactGap;
@@ -72,7 +72,7 @@ impl Parsers {
     ///
     /// A browser build may leave grammars out to save a megabyte each, and the
     /// caller that loads a whole repository needs to know *before* it hands over a
-    /// file — a workspace should not fail to open because one README is in a
+    /// file, a workspace should not fail to open because one README is in a
     /// language this binary was not compiled with.
     pub fn supports(lang: Language) -> bool {
         Self::grammar(lang).is_some()
@@ -116,8 +116,8 @@ impl Parsers {
             // `tree-sitter-scss` 1.0 has no rule for `#{...}` in a declaration value, and
             // the ERROR node it produces is not the expression: it runs to the end of the
             // file, so one interpolated value costs every fact below it. An identifier in
-            // its place leaves the declaration well formed. What the filler then hides —
-            // the variables and calls written inside the braces — is put back by
+            // its place leaves the declaration well formed. What the filler then hides,
+            // the variables and calls written inside the braces, is put back by
             // `interpolation_references`, so the parse is the only thing that changes.
             Language::Scss => {
                 let spans = find_scss_interpolations(source);
@@ -167,7 +167,7 @@ impl Default for Parsers {
 ///
 /// Each sub-tree is parsed from the *whole* source with tree-sitter's included ranges
 /// restricted to one inline node, so every byte offset in the result indexes the
-/// original document — the same property Helm masking preserves, and the one the edit
+/// original document, the same property Helm masking preserves, and the one the edit
 /// engine depends on. Parsing the ranges one node at a time and not all at once
 /// also keeps the nodes independent: a stray `[` at the end of one paragraph cannot
 /// pair with a `]` in the next.
@@ -324,7 +324,7 @@ impl Parsed {
         let mut best: Option<Node<'_>> = None;
         for root in self.roots() {
             // An inline sub-tree covers only its own node, and still answers for a
-            // range outside it — with its root. Those answers are discarded here.
+            // range outside it, with its root. Those answers are discarded here.
             let Some(node) =
                 lookup(root, start, end).filter(|n| n.start_byte() <= start && end <= n.end_byte())
             else {
@@ -397,7 +397,7 @@ fn innermost_error_span(root: Node<'_>) -> Span {
 
 /// Locate SCSS interpolations `#{ ... }`.
 ///
-/// Braces nest — `#{map-get($m, #{$k})}` is one interpolation — so the scan counts them
+/// Braces nest, `#{map-get($m, #{$k})}` is one interpolation, so the scan counts them
 /// instead of stopping at the first `}`.
 fn find_scss_interpolations(source: &str) -> Vec<Span> {
     let bytes = source.as_bytes();
@@ -514,8 +514,8 @@ fn find_template_actions(source: &str) -> Vec<Span> {
 /// Replace each span with filler of the same byte length, preserving newlines so
 /// line numbering and every byte offset outside the spans stay identical.
 ///
-/// The filler cannot be one character. An action alone on its line — a `{{- if }}`
-/// wrapping other keys — has to become blank, or the line reads as a stray scalar.
+/// The filler cannot be one character. An action alone on its line, a `{{- if }}`
+/// wrapping other keys, has to become blank, or the line reads as a stray scalar.
 /// But an action *within* a value has to become scalar text: masking
 /// `name: {{.Release.Name}}-{{.Chart.Name}}` with spaces leaves `name:` followed by a
 /// lone `-`, which YAML rejects. So the choice is made per line, by whether anything
@@ -541,7 +541,7 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
         // The scalar filler belongs to the line the action starts on. An action that
         // runs over a newline continues on lines of its own, and a scalar character at
         // the start of one of those is content the surrounding structure did not ask
-        // for — inside a block scalar it lands at column zero and ends the block.
+        // for, inside a block scalar it lands at column zero and ends the block.
         // `SERVICE_NAMES="{{` with its body on the next line does exactly that.
         let mut seen_newline = false;
         for b in &mut out[span.start..span.end] {
@@ -563,7 +563,7 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
         // block-scalar content at the indentation the block wants.
         //
         // Only there. An action-only line anywhere else is legal as spaces, and a `#`
-        // at a lower indentation than the block would *end* the scalar — which is what
+        // at a lower indentation than the block would *end* the scalar, which is what
         // `health-configmap.yaml` does with `{{- if … }}` written at column zero inside
         // an indented script.
         if filler == b' ' && starts_the_line(source, *span) && opens_a_block_scalar(source, *span) {
@@ -576,8 +576,8 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
 
 /// Does this action stand where a mapping key belongs?
 ///
-/// Such an entry reaches the index under no name at all — the mask blanks it, and a
-/// blank key matches no capture — which is why the gap is reported and not left to
+/// Such an entry reaches the index under no name at all, the mask blanks it, and a
+/// blank key matches no capture, which is why the gap is reported and not left to
 /// the parse. Whether the blank *also* trips the grammar depends on what surrounds it:
 /// `{{ $k }}: v` alone under its parent parses, the same line beside a second pair does
 /// not, so the parse error cannot be the signal.
@@ -632,7 +632,7 @@ fn opens_a_block_scalar(source: &str, span: Span) -> bool {
 ///
 /// `labels: {{- include "common.labels.standard" . | nindent 4 }}` with lines indented
 /// under it renders to a nested mapping, so filling it with a scalar leaves
-/// `labels: xxxx` above a deeper mapping — which no YAML parser accepts, and which cost
+/// `labels: xxxx` above a deeper mapping, which no YAML parser accepts, and which cost
 /// 48 of 92 files across three `bitnami/charts` charts. Every failure there was this.
 ///
 /// The following line's indentation is what distinguishes the two. Where the action
@@ -671,17 +671,17 @@ fn supplies_the_block_below(source: &str, spans: &[Span], span: Span) -> bool {
 /// One definition, because there were three and they disagreed. Each was written against
 /// the languages its caller had in front of it, and each missed a different grammar: a
 /// Java local's value hangs off a declarator and not off the declaration, so `fr inline`
-/// called every Java local uninitialised; `fr type` answered `var` — the keyword that
-/// means "work it out" — as though it were the type written down, because it could not
+/// called every Java local uninitialised; `fr type` answered `var`, the keyword that
+/// means "work it out", as though it were the type written down, because it could not
 /// reach the value to work anything out from.
 ///
 /// The shapes, and why each is here:
 ///
-/// * `value`, `right`, `default_value` — what most grammars call the field.
-/// * `declarator` — Java and the C family put the name and the value together, because
+/// * `value`, `right`, `default_value`, what most grammars call the field.
+/// * `declarator`. Java and the C family put the name and the value together, because
 ///   one statement may declare several: `int a = 1, b = 2;`.
-/// * `expression_list` — Go wraps every bound value in a list, even where it binds one.
-/// * no field at all — Zig gives a variable declaration's children no names, so the value
+/// * `expression_list`. Go wraps every bound value in a list, even where it binds one.
+/// * no field at all. Zig gives a variable declaration's children no names, so the value
 ///   is the last of them, unless the declaration states a type and binds nothing.
 pub fn declaration_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
     let bound = ["value", "right", "default_value"]
@@ -701,7 +701,7 @@ pub fn declaration_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
     }
 }
 
-/// Zig's variable declaration names none of its children, so the value is the last one —
+/// Zig's variable declaration names none of its children, so the value is the last one,
 /// unless that is the type it states, in which case it binds nothing.
 fn zig_bound_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
     if declaration.kind() != "variable_declaration" {

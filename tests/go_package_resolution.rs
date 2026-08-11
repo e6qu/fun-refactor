@@ -219,7 +219,7 @@ fn two_types_sharing_a_private_method_name_both_stay_live() {
     // resolves to neither, and a list that invites deleting one of them is worse than
     // one that says it does not know.
     // The receiver is an expression, not a typed name, so nothing here says which
-    // `record` runs — the same position helm is in with `cfg.recordRelease(rl)`.
+    // `record` runs, the same position helm is in with `cfg.recordRelease(rl)`.
     let (_tmp, index) = workspace(&[(
         "a.go",
         "package p\n\ntype A struct{}\ntype B struct{}\n\n\

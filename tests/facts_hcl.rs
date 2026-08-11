@@ -642,7 +642,7 @@ fn every_step_past_an_index_is_captured_to_a_stated_depth() {
 fn a_namespace_decides_which_declaration_a_traversal_names() {
     // `var.azs`, `local.azs` and `module.azs` name three different declarations, and
     // an `output "azs"` beside them names a fourth that no traversal ever reaches.
-    // Terraform writes the namespace down, so this is not a guess — without it,
+    // Terraform writes the namespace down, so this is not a guess, without it,
     // `var.azs` in terraform-aws-vpc resolved to the module's own `output "azs"`,
     // and a rename would have rewritten the output and every use of the variable.
     let tmp = tempfile::tempdir().unwrap();

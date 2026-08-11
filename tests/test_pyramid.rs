@@ -1,21 +1,21 @@
-//! Every command, run for real — and a check that this file keeps up.
+//! Every command, run for real, and a check that this file keeps up.
 //!
 //! ## The layers
 //!
-//! 1. **Unit** — `#[cfg(test)] mod tests` beside the code, for the pieces whose
+//! 1. **Unit**, `#[cfg(test)] mod tests` beside the code, for the pieces whose
 //!    correctness is local: span arithmetic, negation, import liveness, the hash of a
 //!    subtree.
-//! 2. **Integration** — `tests/*.rs` against the library. Most of the suite. A
+//! 2. **Integration**, `tests/*.rs` against the library. Most of the suite. A
 //!    workspace is written to a temp directory, indexed, and a refactoring is planned
 //!    and applied, so the assertion is about the resulting bytes instead of an
 //!    intermediate.
-//! 3. **End-to-end** — `tests/cli.rs` and this file, running the binary. Argument
+//! 3. **End-to-end**, `tests/cli.rs` and this file, running the binary. Argument
 //!    parsing, path resolution, exit codes and the text a person reads. This layer
 //!    did not exist until two bugs were found living in it: `--path` filters built by
 //!    joining the default root `.`, which matched nothing and reported that as
 //!    nothing found, and target paths read from the shell's directory instead of the
 //!    workspace `-C` names.
-//! 4. **Real repositories** — helm/helm and grafana/grafana, run by hand and recorded
+//! 4. **Real repositories**, helm/helm and grafana/grafana, run by hand and recorded
 //!    in TUTORIAL.md and BUGS.md with the measurements. Not automated here: pinning a
 //!    500 MB clone into CI buys less than the numbers in BUGS.md already do, and the
 //!    bugs it found were found by *reading* the output, which a test cannot do.
@@ -98,7 +98,7 @@ fn run(root: &Path, cache: &Path, args: &[&str]) -> Outcome {
 
 /// One representative invocation per subcommand.
 ///
-/// Some of these are expected to refuse — deleting a symbol four things use, inlining
+/// Some of these are expected to refuse, deleting a symbol four things use, inlining
 /// a function. A refusal is a fine outcome; a panic is not, and neither is a message
 /// that does not say what went wrong.
 fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {

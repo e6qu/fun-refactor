@@ -109,7 +109,7 @@ fn pulling_a_path_parameter_off_the_context_is_dropped_not_carried() {
 fn the_request_object_is_kept_because_fastapi_has_one() {
     // `NextRequest` and Starlette's `Request` are the same thing: same headers, same
     // `await .json()`. Dropping it and commenting out every line that read it was the
-    // wrong call — the correspondence is exact, so the parameter is kept and typed.
+    // wrong call, the correspondence is exact, so the parameter is kept and typed.
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
 
@@ -150,7 +150,7 @@ fn a_handler_that_never_takes_a_request_does_not_import_one() {
 fn the_next_response_helpers_become_their_fastapi_equivalents() {
     // Not approximations: returning a value from a FastAPI handler *is* what
     // `NextResponse.json` does, and `JSONResponse` is how a status is spelled. The
-    // nested case matters most — an error return inside an `if` is the commonest
+    // nested case matters most, an error return inside an `if` is the commonest
     // branch in a route, and rewriting only the top level missed exactly those.
     let (_tmp, root) = workspace(&[(
         "app/api/posts/[id]/route.ts",
@@ -323,7 +323,7 @@ export async function POST(request: Request) {
 #[test]
 fn a_zod_schema_becomes_a_pydantic_model() {
     // Most Next.js applications declare their shapes with zod, and a zod schema is a
-    // runtime value instead of a type declaration — so nothing that reads declarations
+    // runtime value instead of a type declaration, so nothing that reads declarations
     // finds it. Left alone the translated service publishes a contract with no request
     // body in it: the endpoint works and the contract is smaller than the one it
     // replaced.
@@ -448,7 +448,7 @@ fn the_baseline_never_invents_a_response() {
 ///
 /// A translated route is a FastAPI module whose handlers the framework calls and the
 /// source never does. Before the catalogue knew what `@router.get` meant, every handler
-/// this command emitted came back from `fr unused` as having no detected use — output
+/// this command emitted came back from `fr unused` as having no detected use, output
 /// that was not valid input, with nothing checking that the two ends agreed.
 #[test]
 fn every_handler_this_command_emits_is_an_entry_point() {

@@ -220,7 +220,7 @@ fn anchor_on_a_scalar_is_found_and_qualified_like_one_on_a_mapping() {
 
 #[test]
 fn merge_key_becomes_an_alias_reference_and_not_a_key_definition() {
-    // `<<` names no field — it splices the aliased mapping in — so the only fact
+    // `<<` names no field. It splices the aliased mapping in, so the only fact
     // worth recording is the alias it points at.
     let f = yaml(VALUES);
     assert!(
@@ -362,7 +362,7 @@ fn keys_whose_value_is_entirely_a_template_action_still_extract() {
 #[test]
 fn keys_guarded_by_a_template_conditional_are_still_extracted() {
     // `{{- if }}` / `{{- end }}` mask to blank lines, leaving the guarded keys in
-    // place. They are reported unconditionally — this extraction has no notion of
+    // place. They are reported unconditionally. This extraction has no notion of
     // a key existing only when a condition holds.
     let f = helm(HELM_DEPLOYMENT);
     assert_eq!(sym(&f, "containers::resources").kind, SymbolKind::Key);
@@ -418,7 +418,7 @@ fn the_values_a_template_reads_are_the_only_facts_inside_an_action() {
     // The one exception, and it is deliberate: `{{ .Values.image.tag }}` is a use of
     // a key the values file declares, and a rename of that key has to rewrite it. The
     // paths come from parsing the actions themselves, not from the masked text, so
-    // each reference spans the final segment — `tag`, not `.Values.image.tag`.
+    // each reference spans the final segment, `tag`, not `.Values.image.tag`.
     let f = helm(HELM_DEPLOYMENT);
     let parsed = Parsers::new()
         .parse(Language::Helm, HELM_DEPLOYMENT)

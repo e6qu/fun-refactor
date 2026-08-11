@@ -1,4 +1,4 @@
-# API contracts — the invariant when the language changes
+# API contracts, the invariant when the language changes
 
 A refactoring preserves *behaviour*. A translation preserves a *signature*. Rewriting a
 service in another language has to preserve something else again, and it is the only
@@ -15,8 +15,8 @@ contract rewrite the HTTP contract                 the language, the framework,
 
 That last row is the useful one and the least served by tooling. A caller does not
 import your functions. It sends `PATCH /posts/42` with a JSON body and expects `204`.
-Everything a refactoring tool normally protects — call sites, imports, symbol
-resolution — is irrelevant, and what matters is not in the type system of
+Everything a refactoring tool normally protects, call sites, imports, symbol
+resolution, is irrelevant, and what matters is not in the type system of
 either language.
 
 ## What an HTTP contract is made of
@@ -34,7 +34,7 @@ Six things, and they do not all travel together:
 
 The first three are *addressing* and the last three are *shape*. This tool carries the
 addressing half exactly and the shape half only partly, and the purpose of this
-document is to say which is which — because a rewrite that gets addressing right and
+document is to say which is which, because a rewrite that gets addressing right and
 shape wrong looks finished.
 
 ## Why OpenAPI is the pivot, and why it is asymmetric
@@ -82,7 +82,7 @@ the text, and it is most of the value.
 
 `[...path]` is a catch-all: it matches across slashes. FastAPI spells that
 `{path:path}`, and a translation emitting `{path}` would produce a service that answers
-a strictly smaller set of URLs than the one it replaced — silently, and only for the
+a strictly smaller set of URLs than the one it replaced, silently, and only for the
 requests with a slash in them.
 
 ### The status codes: right behaviour, wrong document
@@ -115,7 +115,7 @@ and says what will happen if you leave them where they are.
 
 Most Next.js applications declare their shapes with zod, not with `interface`. A zod
 schema is a *runtime value*, not a type declaration, so nothing that reads declarations
-finds it — and left alone it arrives as an ordinary constant, producing a service whose
+finds it, and left alone it arrives as an ordinary constant, producing a service whose
 published contract has no request body in it at all.
 
 The builder chain is read instead:
@@ -139,8 +139,8 @@ class PostCreate(BaseModel):
     published_at: datetime | None
 ```
 
-A chain is left-nested — `z.string().min(3).optional()` is
-`optional(max(min(string)))` — so it is walked to the base call with the modifiers
+A chain is left-nested, `z.string().min(3).optional()` is
+`optional(max(min(string)))`, so it is walked to the base call with the modifiers
 collected on the way past. `.optional()` and `.nullable()` become `Optional`; `.int()`
 picks `int` over `float`.
 
@@ -155,7 +155,7 @@ and naming one would be inventing a name.
 The tool preserves what it can see and reports the rest. It does **not** verify the
 contract, and no amount of reading one side can. The check is a comparison:
 
-1. Export the contract from the original — for a Next.js app, that means writing the
+1. Export the contract from the original, for a Next.js app, that means writing the
    OpenAPI document by hand or from its zod schemas, which is the work most teams have
    already skipped.
 2. Rewrite. Read the report: what carried, what did not, and which status codes are
@@ -164,7 +164,7 @@ contract, and no amount of reading one side can. The check is a comparison:
 4. **Diff them**, and treat every difference as a defect until argued otherwise.
 
 Step 1 is `fr openapi`. It walks the tree, finds every API route, and emits an
-OpenAPI 3.1 document from what the source *declares* — as JSON, or as YAML with
+OpenAPI 3.1 document from what the source *declares*, as JSON, or as YAML with
 `--yaml`, which is what a contract kept beside the code is usually written in:
 
 ```sh
@@ -175,7 +175,7 @@ diff <(yq -P -S . before.yaml) <(yq -P -S . after.json)
 ```
 
 Paths, methods and path parameters are exact, because they come from the tree. Schemas
-are as good as what was declared. **Responses are `default` only** — which status an
+are as good as what was declared. **Responses are `default` only**, which status an
 endpoint returns is a fact about its code and not its declaration, and writing
 `200` for everything would be putting fiction into the file you are about to diff
 against; an empty entry does not.
@@ -227,13 +227,13 @@ and each one is a different kind of reading:
   can recover it, however well it reads TypeScript. This is most of the value.
 - **`[...path]` is a catch-all**, matching across slashes. FastAPI spells that
   `{path:path}`; emitting `{path}` produces a service that answers a strictly smaller
-  set of URLs than the one it replaced — silently, and only for the requests with a
+  set of URLs than the one it replaced, silently, and only for the requests with a
   slash in them.
 - **The method is the exported function's name.** `export async function PATCH` is
   `@router.patch`.
 - **The request body is a zod schema in another module.** `lib/schemas.ts` here, which
   is where a real application keeps them. Reading only the route file finds nothing, so
-  the schemas are collected from anywhere in the tree — and the *link* between an
+  the schemas are collected from anywhere in the tree, and the *link* between an
   operation and its body comes from the `petCreateSchema.parse(json)` call inside the
   handler. A `components` section nothing refers to is not a contract; it says every
   endpoint takes no body.
@@ -258,7 +258,7 @@ pet = await db.pet.findUnique({"where": {"id": pet_id}})
 
 That is the behaviour being redistributed while the URL it answers stays exactly the
 same. Rewriting the declaration and leaving `context.params.petId` in the body produces
-a file that parses, imports and starts — and answers every request with a `NameError`.
+a file that parses, imports and starts, and answers every request with a `NameError`.
 
 ### What the contract comes out as
 
@@ -266,7 +266,7 @@ Thirteen operations, five schemas, every path parameter, the catch-all converter
 the query parameters the handlers read. What it deliberately does *not* have:
 
 - **Response bodies.** Next.js does not declare one and neither does the output.
-- **Status codes.** They carry into the *code* and are reported for the *contract* —
+- **Status codes.** They carry into the *code* and are reported for the *contract*,
   see below, because this is the sharp edge.
 - **Required-ness of a query parameter.** A handler that defaults it and a handler that
   rejects the request without it read the same way, so every query parameter is
@@ -286,7 +286,7 @@ fr openapi --yaml > after.yaml       # the FastAPI router it became
 diff before.yaml after.yaml
 ```
 
-Run over the pet store, thirteen operations go in and thirteen come out — every URL,
+Run over the pet store, thirteen operations go in and thirteen come out, every URL,
 every method, every path parameter and every query parameter identical. Nothing lost,
 nothing invented, and the test suite asserts it, so a translation that started dropping
 endpoints would fail the build.
@@ -305,7 +305,7 @@ is the number to watch. A gap that announces itself is a gap you can close; a ga
 does not is what this document exists to prevent.
 
 The pet store's count has been two and is now zero. The two were
-`const limit = Number(… ?? "50")` — `??` had no counterpart in the IR — and
+`const limit = Number(… ?? "50")`, `??` had no counterpart in the IR, and
 `{ where: species ? { species } : {} }`, where `{ species }` is the shorthand every
 modern TypeScript file is written in and refusing it refused the whole object, and with
 it the statement the object was in.
@@ -323,16 +323,16 @@ for a person to finish.
 
 **Not a migration.** Authentication, database access, middleware ordering and every
 library the route imported have no counterpart and are reported, not translated. What
-the tool does is the mechanical, error-prone half — the half where a mistyped path
+the tool does is the mechanical, error-prone half, the half where a mistyped path
 segment costs you a week and a missing `:path` costs you the requests nobody reports.
 
 ## See also
 
-- `docs/contract.html` — the pet store, worked, with every figure generated by running
+- `docs/contract.html`, the pet store, worked, with every figure generated by running
   the tool
-- `tests/petstore/` — the source it is worked from
-- `CROSS_LANGUAGE.md` — what crosses between languages and what does not
-- `src/transpile/nextjs.rs` — the implementation, and what it refuses
-- `tests/nextjs.rs`, `tests/corpus.rs` — including the refusal for a `.tsx` file
+- `tests/petstore/`, the source it is worked from
+- `CROSS_LANGUAGE.md`, what crosses between languages and what does not
+- `src/transpile/nextjs.rs`, the implementation, and what it refuses
+- `tests/nextjs.rs`, `tests/corpus.rs`, including the refusal for a `.tsx` file
   containing JSX, because a React component renders a user interface and a FastAPI
   endpoint answers HTTP, and there is no translation between them

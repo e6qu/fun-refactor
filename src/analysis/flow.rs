@@ -5,7 +5,7 @@
 //! This is syntactic def-use analysis over the resolved index, not a full dataflow
 //! engine. It follows assignments and initialisers through resolved references, which
 //! answers most "where did this come from" questions in practice, and it stops
-//! **loudly** at every boundary it cannot cross — unresolved names, calls whose target
+//! **loudly** at every boundary it cannot cross, unresolved names, calls whose target
 //! is not proven, and dynamic dispatch (PLAN.md D5). It never over-approximates by
 //! assuming a value flows through an unknown call.
 //!
@@ -34,7 +34,7 @@ pub enum FlowDirection {
 /// Why a flow chain stopped.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StopReason {
-    /// Reached a literal or a parameter — the origin.
+    /// Reached a literal or a parameter, the origin.
     Origin(String),
     /// The value passes through a call whose target did not resolve.
     UnresolvedCall(String),
@@ -187,7 +187,7 @@ fn walk_backward(
         confidence: Confidence::Exact,
     });
 
-    // A parameter's value comes from the caller — an inter-procedural step this
+    // A parameter's value comes from the caller, an inter-procedural step this
     // tier deliberately does not take.
     if symbol.kind == crate::model::SymbolKind::Parameter {
         result.stops.push((
@@ -313,7 +313,7 @@ fn walk_forward(
     seen: &mut HashSet<SymbolId>,
     // Reached because a use of the previous value initialised this one, so the line
     // this binding is on has already been printed as that use. Printing it again puts
-    // `parsed = int(cleaned)` twice, one indent apart, at every hop of the chain — and
+    // `parsed = int(cleaned)` twice, one indent apart, at every hop of the chain, and
     // costs a level of depth for a line the reader has already seen.
     already_shown: bool,
 ) -> Result<()> {
@@ -451,7 +451,7 @@ fn enclosing_assignment_target(
                     }
                     // Otherwise the *smallest* binding whose span holds that name. Every
                     // enclosing function's span holds it too, and taking the first match
-                    // in declaration order took the function — so `parsed = int(cleaned)`
+                    // in declaration order took the function, so `parsed = int(cleaned)`
                     // said the value flowed into `load`, and forward flow stopped one hop
                     // from where it started while looking like it had gone somewhere.
                     return candidates()
@@ -507,12 +507,12 @@ pub fn applies_to(index: &Index, file: &Path) -> bool {
 /// provenance, so the answer was right by the route the CLI happened to take. Called as
 /// a library, `forward` and `backward` walked a Markdown or YAML symbol and returned an
 /// empty result, which reads as "nothing flows from here" rather than "this question
-/// has no meaning here" — and the matrix said `n/a` the whole time.
+/// has no meaning here", and the matrix said `n/a` the whole time.
 fn refuse_unless_it_executes(language: Language) -> Result<()> {
     if supports_flow(language) {
         return Ok(());
     }
-    // The advice this used to give named `fr provenance`, which is not a command — the
+    // The advice this used to give named `fr provenance`, which is not a command, the
     // command is `fr flow`, which picks provenance itself for the languages provenance
     // covers. It also promised an answer for HTML, XML and Markdown, where provenance
     // stops at the first hop saying it has no substitution model to follow. Both halves

@@ -983,7 +983,7 @@ fn the_gate_states_what_it_covers() {
     }
     // The languages this file has no fixture for. Naming them is the point: a green run
     // covers six languages out of sixteen, and saying so keeps it from reading as more.
-    // The ten below have no compiler to run — a stylesheet, a manifest and a document
+    // The ten below have no compiler to run, a stylesheet, a manifest and a document
     // are checked by parsing them, which the edit engine already does.
     eprintln!(
         "compile gate: not driven — bash, html, css, scss, hcl, yaml, helm, xml, markdown, tsx"

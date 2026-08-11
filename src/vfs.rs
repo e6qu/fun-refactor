@@ -1,13 +1,13 @@
 //! Where source text comes from.
 //!
-//! Every analysis in this crate re-reads a file's bytes when it needs them — the
+//! Every analysis in this crate re-reads a file's bytes when it needs them, the
 //! index keeps facts and spans, not contents, so a span is only useful against the
 //! source it was measured on. Until now each of those reads went straight to
 //! `std::fs`, which is correct in a terminal and impossible in a browser.
 //!
 //! This is the one place that decides. On a normal build it delegates to the
 //! filesystem and costs nothing. On `wasm32` there is no filesystem, so it reads
-//! from a map the host loaded — a repository fetched from GitHub, say — and writes
+//! from a map the host loaded, a repository fetched from GitHub, say, and writes
 //! back into the same map, which is what makes a refactoring in the playground a
 //! real edit against real bytes instead of a rendering of one.
 //!
@@ -24,7 +24,7 @@ use std::path::Path;
 /// holds the workspace as each step left it and the refactorings read through *this*,
 /// so a plan made after one step is measured against the text that step produced. It
 /// was gated on the browser build, and the recipe runner's first two-step run failed
-/// with `edit at 1..301 extends past end of file (226 bytes)` — spans computed against
+/// with `edit at 1..301 extends past end of file (226 bytes)`, spans computed against
 /// the file on disk, applied to the file in memory.
 ///
 /// Nothing in here is wasm-specific; it was only ever gated to pick a backend.
@@ -40,7 +40,7 @@ mod memory {
     /// A handle instead of one global map, because a page can hold more than one
     /// workspace at a time and used to do so wrongly: loading a second repository
     /// replaced the bytes the first one's index was measured against, and every span
-    /// the older handle held then pointed into somebody else's file. Nothing failed —
+    /// the older handle held then pointed into somebody else's file. Nothing failed,
     /// the answers were just quietly about the wrong text.
     pub type Handle = Rc<RefCell<BTreeMap<PathBuf, String>>>;
 
@@ -62,7 +62,7 @@ mod memory {
         /// Whether anyone has handed over a workspace.
         ///
         /// What decides between the two backings on a host build. Without it
-        /// `activate` would be a no-op there — the call would succeed and the reads
+        /// `activate` would be a no-op there, the call would succeed and the reads
         /// would go to the filesystem, which is the sort of quietly-wrong answer this
         /// module exists to prevent.
         static HANDED_OVER: RefCell<bool> = const { RefCell::new(false) };
@@ -190,7 +190,7 @@ macro_rules! through_memory {
 /// is a fact about the active backing and not about which features were compiled.
 /// Asking `cfg!(feature = "cli")` instead is what made `commit` stage temporary files
 /// beside a path that exists only in a browser's memory, on any build with both
-/// features — a failure that could not happen in either build shipped today and was
+/// features, a failure that could not happen in either build shipped today and was
 /// waiting for the first one that had both.
 pub fn is_in_memory() -> bool {
     #[cfg(target_arch = "wasm32")]
@@ -228,7 +228,7 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()
 
 /// Is there a file here?
 ///
-/// Used for the questions a language asks of its neighbours — whether a `Chart.yaml`
+/// Used for the questions a language asks of its neighbours, whether a `Chart.yaml`
 /// sits beside a YAML file, which is what makes it a Helm template and not plain
 /// YAML.
 pub fn exists(path: impl AsRef<Path>) -> bool {
@@ -269,7 +269,7 @@ pub fn activate(handle: &Handle) {
 
 /// A directory, as a sentence can name it.
 ///
-/// `Path::display` renders the workspace root — the parent of a top-level file — as
+/// `Path::display` renders the workspace root, the parent of a top-level file, as
 /// the empty string, so a message built from it comes out with a hole in it: *"no .go
 /// file in declares a package"*. That is what `fr move x.go` to a file at the root
 /// actually printed. Fifteen messages across move, signature and provenance

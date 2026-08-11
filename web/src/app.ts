@@ -28,6 +28,7 @@ import { escapeHtml, render } from "./render";
 import { installShell, setResizeHandler } from "./shell";
 import { patchOf } from "./patch";
 import { decorate } from "./icons";
+import { draw, type Drawing, type GraphNode } from "./graph";
 import { installTheme, onThemeChange, current as currentTheme, toggle as toggleTheme } from "./theme";
 import { installHelp, openHelp, livePages, PAGES } from "./help";
 import * as menu from "./menu";
@@ -589,6 +590,67 @@ function where(): Place | null {
   return current && position
     ? { path: current, line: position.lineNumber, col: position.column }
     : null;
+}
+
+// ------------------------------------------------------------------ the tabs
+
+const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".tab"));
+const graphView = el<HTMLDivElement>("graph-view");
+const graphCanvas = el<HTMLDivElement>("graph-canvas");
+const graphSubject = el<HTMLSpanElement>("graph-subject");
+const graphDepth = el<HTMLInputElement>("graph-depth");
+const graphDepthValue = el<HTMLSpanElement>("graph-depth-value");
+const editorHost = el<HTMLDivElement>("editor");
+
+let view: "source" | "graph" = "source";
+
+function showView(next: "source" | "graph") {
+  view = next;
+  for (const tab of tabs) {
+    const on = tab.dataset.view === next;
+    tab.classList.toggle("on", on);
+    tab.setAttribute("aria-selected", String(on));
+  }
+  editorHost.hidden = next !== "source";
+  graphView.hidden = next !== "graph";
+  if (next === "graph") drawGraph();
+  else editor.layout();
+}
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => showView(tab.dataset.view as "source" | "graph"));
+}
+
+graphDepth.addEventListener("input", () => {
+  graphDepthValue.textContent = graphDepth.value;
+  if (view === "graph") drawGraph();
+});
+
+/** Draw the graph around whatever the cursor is on. */
+function drawGraph() {
+  graphCanvas.replaceChildren();
+  const place = where();
+  if (!place || !workspace) {
+    graphSubject.textContent = "Open a file and click a function.";
+    return;
+  }
+  const answer = JSON.parse(
+    workspace.graph_around(place.path, place.line, place.col, Number(graphDepth.value)),
+  );
+  if (!answer.ok) {
+    graphSubject.textContent = answer.error ?? "No symbol at the cursor.";
+    return;
+  }
+  const drawing = answer.value as Drawing;
+  const root = drawing.nodes.find((n) => n.id === drawing.root);
+  graphSubject.textContent =
+    `${root ? root.name : "here"}: ${drawing.nodes.length} function(s), ` +
+    `${drawing.edges.length} edge(s)` +
+    (drawing.more ? ", and more beyond this depth" : "");
+  graphCanvas.appendChild(draw(drawing, (node: GraphNode) => {
+    showView("source");
+    jumpTo({ path: node.file, line: node.line, col: 1 });
+  }));
 }
 
 /** Move the cursor there, without touching the history. */

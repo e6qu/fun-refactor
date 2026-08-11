@@ -1,8 +1,8 @@
 //! Blast radius: everything a change to one symbol could touch.
 //!
 //! This is the query that motivates a multi-language tool. It composes every edge
-//! layer at once — resolved references, call edges, string-keyed cross-language
-//! references and textual occurrences — and groups the result by how certain each
+//! layer at once, resolved references, call edges, string-keyed cross-language
+//! references and textual occurrences, and groups the result by how certain each
 //! finding is, so "what breaks if I change this" has an answer that spans the
 //! code/config boundary no single-language tool can see across.
 
@@ -74,7 +74,7 @@ impl Impact {
         files
     }
 
-    /// Languages touched — more than one means no language server could answer this.
+    /// Languages touched, more than one means no language server could answer this.
     pub fn languages(&self) -> Vec<Language> {
         let mut langs: Vec<Language> = self.items.iter().map(|i| i.language).collect();
         langs.sort();
@@ -348,7 +348,7 @@ mod tests {
             .collect();
         assert_eq!(cross.len(), 2, "got {cross:?}");
 
-        // And which two. The count alone is satisfied by any pair — including the CSS
+        // And which two. The count alone is satisfied by any pair, including the CSS
         // definition itself mislabelled, with the TSX missed entirely, which is the
         // failure this query exists to make impossible.
         let mut from: Vec<&str> = cross

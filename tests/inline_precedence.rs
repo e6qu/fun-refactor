@@ -83,8 +83,8 @@ fn a_value_nothing_can_split_is_left_bare() {
 
 #[test]
 fn a_zig_binding_can_be_inlined_at_all() {
-    // tree-sitter-zig names nothing on a `variable_declaration` — the `=` is an
-    // anonymous token with the value after it — so asking for the `value` field refused
+    // tree-sitter-zig names nothing on a `variable_declaration`, the `=` is an
+    // anonymous token with the value after it, so asking for the `value` field refused
     // every Zig binding there has ever been, while the capability matrix said it worked.
     let source = "pub fn f(a: i64) i64 {\n    const b = g(a);\n    return b;\n}\n";
     let after = inlined("a.zig", source, "b");

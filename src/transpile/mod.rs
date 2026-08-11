@@ -11,7 +11,7 @@
 //! substitution never passes silently.
 //!
 //! Also translated: declarations, records, and the parts of a body that mean the same
-//! thing in every language — a return, a binding, a branch, a loop over a collection, a
+//! thing in every language, a return, a binding, a branch, a loop over a collection, a
 //! call. A record becomes a Rust `struct` with an `impl`, a Python `@dataclass`, a Go
 //! `struct` with methods beside it, or a TypeScript `interface` or `class` depending on
 //! whether it has behaviour.
@@ -107,7 +107,7 @@ pub fn can_be_read(language: Language) -> bool {
 /// Whether a translation can be written in this language.
 ///
 /// Not TSX. A translation produces no JSX, so writing one into a `.tsx` file names a
-/// flavour the content does not have — `typescript` is the target, and `fr translate`
+/// flavour the content does not have, `typescript` is the target, and `fr translate`
 /// turns a `.ts` file into a `.tsx` one where that is what is wanted. Reading and
 /// writing were one function, and the list the listing walks was the writing one, so
 /// asking for `tsx` worked while nothing ever offered it.
@@ -180,7 +180,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
 
     let mut module = read::read(from, &source, parsed.root())?;
     // Java has no top level below the type, so its writer needs a class to put the
-    // module in — and a public class must be named after its file.
+    // module in, and a public class must be named after its file.
     module.name = destination
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string());
@@ -197,7 +197,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     let written = parsers.parse(to, &output)?;
     if written.has_errors() {
         let at = first_error(&written, &output)
-            .map(|at| format!(" — first at line {}, column {}", at.line, at.col))
+            .map(|at| format!(". First at line {}, column {}", at.line, at.col))
             .unwrap_or_default();
         bail!(
             "the {to} this produced does not parse{at}. That is a defect in the \
@@ -229,8 +229,8 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
 
 /// Line and column of the most specific syntax error in a parse.
 ///
-/// **Deepest, not first.** An error node can swallow the whole file — when the very
-/// first construct is wrong, tree-sitter's outermost `ERROR` starts at byte zero — and
+/// **Deepest, not first.** An error node can swallow the whole file, when the very
+/// first construct is wrong, tree-sitter's outermost `ERROR` starts at byte zero, and
 /// reporting that says "line 1, column 1" and prints the banner, which tells whoever
 /// reads the defect report nothing at all. The innermost error is where the parser
 /// actually gave up, and a `MISSING` node beats an `ERROR` at the same depth because
@@ -238,7 +238,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
 fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![(parsed.root(), 0usize)];
-    // Depth, then "missing beats error", then earliest — in that order.
+    // Depth, then "missing beats error", then earliest, in that order.
     let mut best: Option<(usize, bool, usize)> = None;
     while let Some((node, depth)) = stack.pop() {
         if node.is_error() || node.is_missing() {

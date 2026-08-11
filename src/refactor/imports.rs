@@ -128,8 +128,8 @@ impl InvisibleUses {
 ///
 /// Every arm answers the same question for one language: is there a way this binding
 /// could be in use that no reference records? The Rust arm is the oldest and states the
-/// principle — a trait is used through its methods, so its name never appears at the
-/// call site — and the rest follow it. A returned reason is reported verbatim as a
+/// principle, a trait is used through its methods, so its name never appears at the
+/// call site, and the rest follow it. A returned reason is reported verbatim as a
 /// warning, so it has to say which binding and why.
 fn hold_back_reason(
     language: Language,
@@ -146,7 +146,7 @@ fn hold_back_reason(
                 .iter()
                 .find(|binding| binding.chars().next().is_some_and(char::is_uppercase))?;
             Some(format!(
-                "'{}' binds '{binding}', which nothing names — but a trait is used \
+                "'{}' binds '{binding}', which nothing names. A trait is used \
                  through its methods, never by name, so this is kept. Remove it by \
                  hand if it really is unused",
                 statement.path
@@ -203,7 +203,7 @@ fn hold_back_reason(
             {
                 return Some(format!(
                     "'{}' binds '{binding}', which is used in a `typeof {binding}` type \
-                     query — a type position no reference records, so it is kept",
+                     query. A type position no reference records, so it is kept",
                     statement.path
                 ));
             }
@@ -251,7 +251,7 @@ fn hold_back_reason(
 
         // Zig needs no guard: `@import` yields an ordinary container-level `const`, and
         // every use of it spells that const's name. There is no Zig construct that
-        // brings an imported name into scope without naming it — `usingnamespace` does,
+        // brings an imported name into scope without naming it, `usingnamespace` does,
         // but it binds nothing for this pass to remove.
         _ => None,
     }
@@ -280,7 +280,7 @@ fn text_of<'a>(node: Node, source: &'a str) -> &'a str {
     &source[node.start_byte()..node.end_byte().min(source.len())]
 }
 
-/// Identifiers inside `{...}` in a comment — a JSDoc `@type {Foo}` or `@param {Foo} x`.
+/// Identifiers inside `{...}` in a comment, a JSDoc `@type {Foo}` or `@param {Foo} x`.
 ///
 /// The braces are what makes a JSDoc tag a type annotation, so anything spelled inside
 /// them is a name the annotation depends on. `{import('./m').Foo}` yields both `m` and
@@ -443,7 +443,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 ///
 /// The cascade rewrites in memory and re-indexes each round, so the text on disk is the
 /// text before it started. Asking this question against that text would answer about the
-/// wrong file — and the question is the same one, which is why it is asked here and not
+/// wrong file, and the question is the same one, which is why it is asked here and not
 /// answered a second time somewhere else.
 pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<ImportsPlan> {
     if let Some(info) = index.file(file) {
@@ -508,7 +508,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         });
     }
 
-    // Every name used in the file, ignoring the import statements themselves — an
+    // Every name used in the file, ignoring the import statements themselves, an
     // import naming `HashMap` is not a use of `HashMap`.
     let mut live: HashSet<&str> = HashSet::new();
     for reference_index in &info.references {
@@ -563,7 +563,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         {
             continue;
         }
-        // Nothing names it — which for some constructs means nothing *can* name it.
+        // Nothing names it, which for some constructs means nothing *can* name it.
         // Removing one of those leaves a file that still parses but no longer builds,
         // which the reparse check cannot catch, so it is kept and reported instead.
         if let Some(detail) = hold_back_reason(info.language, statement, &invisible) {
@@ -587,7 +587,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
 
     // A statement may lose some of what it binds and keep the rest. Dropping only whole
     // statements left `import { up, down }` intact with nothing naming `down`, which is
-    // an error under `noUnusedLocals` and a lint failure everywhere else — from the one
+    // an error under `noUnusedLocals` and a lint failure everywhere else, from the one
     // command whose whole job is removing imports nothing uses.
     let mut narrowed_statements: Vec<(usize, String)> = Vec::new();
     for (i, statement) in statements.iter().enumerate() {
@@ -705,8 +705,8 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
 /// Does this language have import statements worth organizing?
 ///
 /// CSS and SCSS are excluded on purpose even though they have `@import`: order there
-/// is semantic — a later rule beats an earlier one and `@import` must precede all other
-/// rules — so sorting would change what the stylesheet means. The markup and config
+/// is semantic, a later rule beats an earlier one and `@import` must precede all other
+/// rules, so sorting would change what the stylesheet means. The markup and config
 /// languages have no import construct at all, and Bash `source` is an executed
 /// statement instead of a declaration.
 /// Why imports cannot be organized in this language, if they cannot.
@@ -720,8 +720,8 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
     }
     Some(match language {
         Language::Css | Language::Scss => {
-            "CSS @import order is semantic — a later import's rules beat an earlier \
-             one's in the cascade, and @import must precede all other rules — so \
+            "CSS @import order is semantic. A later import's rules beat an earlier \
+             one's in the cascade, and @import must precede all other rules, so \
              sorting or removing them would change which styles apply"
         }
         // Not a declaration but a command that *runs* the other file: a later `source`
@@ -782,7 +782,7 @@ struct Statement {
 ///
 /// Every edit that ends at or before the span shifts it by the difference between what it
 /// removed and what it wrote. A span that overlaps an edit has no position in the original
-/// and is answered `None` — an import statement inside a region being rewritten is not one
+/// and is answered `None`, an import statement inside a region being rewritten is not one
 /// this may also rewrite.
 fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
     let mut shift: isize = 0;
@@ -811,7 +811,7 @@ fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
 /// one. The result parses either way, which is why a sweep for parse errors never sees it.
 ///
 /// Asked by applying the edits to a copy and re-reading, because the question is about the
-/// file as it will be and not as it is. Only imports that were live before are touched —
+/// file as it will be and not as it is. Only imports that were live before are touched,
 /// one that was already dead is `fr imports`, not this.
 pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
     let mut out = EditSet::new();
@@ -974,7 +974,7 @@ fn statements<'a>(
 ///
 /// The three languages that have such a form disagree about which segment it is.
 /// `use std::fmt;` binds the last one. `import "net/http"` binds the imported package's
-/// package clause, which the path can only suggest — hence the version-suffix and
+/// package clause, which the path can only suggest, hence the version-suffix and
 /// `gopkg.in` handling here and the certainty check in [`go_binding_is_certain`].
 /// Python's `import a.b` binds `a`, the *first* segment: the statement makes the whole
 /// package reachable, and `b` is only spelled through it.
@@ -1068,8 +1068,8 @@ fn sorted<'a>(statements: &[&'a Statement]) -> Vec<&'a Statement> {
 ///
 /// The index records where a name is *bound*, which for `down as lower` is `lower`. Taking
 /// only that out leaves `down as` behind, so the span is widened to the clause the grammar
-/// wraps it in — `import_specifier` in TypeScript, `aliased_import` in Python,
-/// `use_as_clause` in Rust — stopping before it could swallow the statement itself.
+/// wraps it in, `import_specifier` in TypeScript, `aliased_import` in Python,
+/// `use_as_clause` in Rust, stopping before it could swallow the statement itself.
 fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
     let Some(node) = parsed
         .root()
@@ -1096,8 +1096,8 @@ fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
 /// The statement's text with some of the names it binds taken out.
 ///
 /// Byte surgery on the names themselves, and not a re-spelling of the statement, because
-/// every language writes the list differently — `use a::{b, c};`, `from m import b, c`,
-/// `import { b, c } from "m"` — and the separator is the only thing that has to be
+/// every language writes the list differently, `use a::{b, c};`, `from m import b, c`,
+/// `import { b, c } from "m"`, and the separator is the only thing that has to be
 /// understood. `None` where taking the names out would leave punctuation this does not
 /// know how to close up.
 fn without_names(

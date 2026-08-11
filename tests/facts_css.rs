@@ -202,7 +202,7 @@ fn a_realistic_stylesheet_parses_cleanly() {
 
 // ------------------------------------------------------------------ SCSS
 // SCSS has its own grammar. These tests hold the line in both directions: the
-// Sass-only constructs parse, and the same source is still an error under CSS —
+// Sass-only constructs parse, and the same source is still an error under CSS,
 // the dialects are different languages, not one language with a lenient mode.
 
 #[test]

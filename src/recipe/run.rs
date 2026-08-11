@@ -3,7 +3,7 @@
 //! A recipe is **one transaction**. Every step's edits are applied to an in-memory
 //! copy of the workspace and the index is rebuilt from it, so each step sees what the
 //! previous one left; nothing reaches disk until the whole run has succeeded. A
-//! half-applied recipe leaves a repository in a state nobody designed — the flag
+//! half-applied recipe leaves a repository in a state nobody designed, the flag
 //! removed and its dead branches still there.
 
 use super::parse::{Expect, OnRefusal, Operation, Predicate, Recipe, Requirement, Step};
@@ -42,7 +42,7 @@ pub struct StepReport {
     /// What the operation left alone and said so about.
     ///
     /// A refusal is the operation declining; a warning is it succeeding and telling
-    /// you what it could not verify — a reference that resolved too weakly to rewrite,
+    /// you what it could not verify, a reference that resolved too weakly to rewrite,
     /// a name in a comment. Dropping these on the floor is the accept-and-ignore this
     /// codebase bans elsewhere: `fr rename` prints them and a recipe was swallowing
     /// them, so a step that left work behind reported a clean run.
@@ -88,7 +88,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
 
     // Only what an expectation actually asks for. Both analyses run over the whole
     // workspace and both ran twice, before and after, even for a recipe with no
-    // `expect no-new` in it at all — which over helm is most of a minute spent
+    // `expect no-new` in it at all, which over helm is most of a minute spent
     // answering a question nobody asked.
     let wanted: BTreeSet<&str> = recipe
         .expects
@@ -195,7 +195,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
 /// Rebuild the index, and hand the same text to everything that reads a file.
 ///
 /// The refactorings read source through [`crate::vfs`], not from this map, so without
-/// installing it a plan made after one step is measured against the file on disk —
+/// installing it a plan made after one step is measured against the file on disk,
 /// which is the text before *any* step ran.
 fn reindex(sources: &Sources) -> Result<Index> {
     let handle = crate::vfs::new_handle(
@@ -233,11 +233,11 @@ fn check_requirements(recipe: &Recipe, index: &Index, sources: &Sources) -> Resu
         match requirement {
             Requirement::Language(name) => {
                 let Some(language) = Language::from_name(name) else {
-                    bail!("`requires language {name}` — no such language");
+                    bail!("`requires language {name}`. No such language");
                 };
                 if !sources.values().any(|(l, _)| *l == language) {
                     bail!(
-                        "`requires language {name}` — this workspace has no {name} file, so \
+                        "`requires language {name}`. This workspace has no {name} file, so \
                          the recipe would do nothing and say it had succeeded"
                     );
                 }
@@ -245,14 +245,14 @@ fn check_requirements(recipe: &Recipe, index: &Index, sources: &Sources) -> Resu
             Requirement::Symbol(name) => {
                 if !index.symbols.iter().any(|s| s.name == *name) {
                     bail!(
-                        "`requires symbol \"{name}\"` — nothing in this workspace is called \
+                        "`requires symbol \"{name}\"`. Nothing in this workspace is called \
                          that. The recipe was written for a different tree."
                     );
                 }
             }
             Requirement::Path(path) => {
                 if !sources.keys().any(|p| p.to_string_lossy().contains(path)) {
-                    bail!("`requires path \"{path}\"` — no file in this workspace is under it");
+                    bail!("`requires path \"{path}\"`. No file in this workspace is under it");
                 }
             }
         }
@@ -416,7 +416,7 @@ fn run_step(
                 None => chosen,
             };
 
-            // Each subject is planned against the workspace the previous one left —
+            // Each subject is planned against the workspace the previous one left,
             // but rebuilding the index after every one of them is what makes a step
             // unusable at scale: five files of helm took two minutes because each
             // subject re-indexed all five hundred and thirty-nine.
@@ -424,7 +424,7 @@ fn run_step(
             // It is needed exactly when a previous edit could have moved the text this
             // subject is about. That is true when its own file has already been edited,
             // and true for everything once an operation has edited a file other than
-            // its subject's — a rename rewrites call sites elsewhere. Otherwise the
+            // its subject's, a rename rewrites call sites elsewhere. Otherwise the
             // subjects are independent and one index does for all of them.
             let mut running = sources.clone();
             let mut current = reindex(&running)?;
@@ -433,7 +433,7 @@ fn run_step(
             for subject in taken {
                 if matches!(subject, Subject::Symbol { .. }) && subject.resolve(&current).is_none()
                 {
-                    // Already gone — an earlier subject's cascade took it. That is the
+                    // Already gone, an earlier subject's cascade took it. That is the
                     // step succeeding, not failing.
                     continue;
                 }
@@ -486,7 +486,7 @@ fn run_step(
     // failure this most wants to avoid, because it looks exactly like success.
     if matched == 0 && !step.allow_empty {
         bail!(
-            "line {}: `{}` matched nothing. That is not success — write `allow-empty` if \
+            "line {}: `{}` matched nothing. That is not success. Write `allow-empty` if \
              this step is genuinely conditional.",
             step.line,
             step.operation.describe()
@@ -521,7 +521,7 @@ fn merge(into: &mut EditSet, from: &EditSet) {
 ///
 /// A symbol is named and not identified. Each subject is acted on against a
 /// freshly built index, because one deletion moves every span after it in the file and
-/// a `SymbolId` does not survive a rebuild — planning them all against one snapshot
+/// a `SymbolId` does not survive a rebuild, planning them all against one snapshot
 /// produced `conflicting edits: 0..396 overlaps 26..170` the first time two symbols in
 /// one file were selected together.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -558,7 +558,7 @@ impl Subject {
 /// What an operation did, what it left alone, and how many sites it touched.
 ///
 /// The count is 1 for anything acting on a symbol and however many sites a `rewrite`
-/// found in one file — the unit that matters there is the site, not the file, which is
+/// found in one file, the unit that matters there is the site, not the file, which is
 /// what `limit` is for.
 type Outcome = (EditSet, Vec<String>, usize);
 
@@ -695,7 +695,7 @@ fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<(EditSet, usiz
     }
     // A file where the transformation applies nowhere is not a refusal. The selector
     // chose *files*; a file with no wrapping `if` in it simply had nothing to do, and
-    // treating that as a failure made `on-refusal stop` — the default — abandon the run
+    // treating that as a failure made `on-refusal stop`, the default, abandon the run
     // on the first ordinary file. Over one package of helm that was three of five.
     Ok((edits, applied))
 }
@@ -770,12 +770,12 @@ fn select(
                 .iter()
                 .min_by_key(|known| distance(known, predicate.field()));
             bail!(
-                "line {}: there is no predicate called `{}`{}. This build answers: {}.",
+                "line {}: there is no predicate called `{}`.{} This build answers: {}.",
                 step.line,
                 predicate.field(),
                 match closest {
                     Some(name) if distance(name, predicate.field()) <= 3 =>
-                        format!(" — did you mean `{name}`?"),
+                        format!(" Did you mean `{name}`?"),
                     _ => String::new(),
                 },
                 PREDICATES.join(", ")
@@ -802,11 +802,11 @@ fn select(
                     let known: Vec<&str> = Language::ALL.iter().map(|l| l.name()).collect();
                     let closest = known.iter().min_by_key(|name| distance(name, value));
                     bail!(
-                        "line {}: `{value}` is not a language{}. This build answers: {}.",
+                        "line {}: `{value}` is not a language.{} This build answers: {}.",
                         step.line,
                         match closest {
                             Some(name) if distance(name, value) <= 3 =>
-                                format!(" — did you mean `{name}`?"),
+                                format!(" Did you mean `{name}`?"),
                             _ => String::new(),
                         },
                         known.join(", ")
@@ -907,7 +907,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
     if wants(&step.selector, "calls") || wants(&step.selector, "called-by") {
         let graph = crate::analysis::call_graph::CallGraph::build(index);
         if let Some(name) = argument(&step.selector, "calls") {
-            // `calls="x"` selects the callers of x — the symbols with an edge into it.
+            // `calls="x"` selects the callers of x, the symbols with an edge into it.
             for target in named(index, name) {
                 for (caller, _) in graph.callers(target) {
                     facts.calls.insert(caller);
@@ -937,7 +937,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
         // the same text is a different tree in every one of them.
         let Some(name) = argument(&step.selector, "lang") else {
             bail!(
-                "line {}: `matches=` needs `lang=` beside it — the same text parses into a \
+                "line {}: `matches=` needs `lang=` beside it. The same text parses into a \
                  different tree in every language, so there is no language-free answer to \
                  where a shape occurs.",
                 step.line

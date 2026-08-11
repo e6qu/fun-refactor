@@ -4,7 +4,7 @@
 //! the wrong bar. `terraform validate` resolves references, `helm lint` renders the chart
 //! and checks it against Kubernetes' schemas, `bash -n` runs the shell's own parser, and
 //! `xmllint` decides well-formedness. Each of them rejects things tree-sitter reads
-//! happily — which is the exact gap that produced every defect the other three gate files
+//! happily, which is the exact gap that produced every defect the other three gate files
 //! found.
 //!
 //! Five languages here, and each drives every command the capability matrix claims for it.
@@ -35,7 +35,7 @@ struct Fixture {
     expression: Option<&'static str>,
     /// A shape that occurs more than once, what it becomes, and what must then appear.
     ///
-    /// In bash, `$NAME` in a pattern is a metavariable and not a shell expansion — the
+    /// In bash, `$NAME` in a pattern is a metavariable and not a shell expansion, the
     /// language and the pattern syntax spell the same thing the same way. `$1` is literal
     /// because a metavariable must start with a letter, and a named expansion is written
     /// `$$name`. Getting that wrong writes `greet "${target}"` over `greet "literal"`,
@@ -168,7 +168,7 @@ spec:
 ";
 
 /// XML's own binding forms, which are narrower than they look: an `id` attribute, an
-/// `xmlns:` prefix, and a DTD entity. A `name="timeout"` attribute declares nothing —
+/// `xmlns:` prefix, and a DTD entity. A `name="timeout"` attribute declares nothing,
 /// only a DTD could say that it does, and reading one is a gap this records rather than
 /// guesses at.
 const XML: &str = "\
@@ -551,7 +551,7 @@ fn moving_a_declaration_keeps_the_validator_happy() {
 /// The gate has to be able to fail, for every validator here.
 ///
 /// Each of these passes when the tool behaves, and would also pass if the validator
-/// stopped running — a wrong path, a flag that means nothing, an exit code nobody reads.
+/// stopped running, a wrong path, a flag that means nothing, an exit code nobody reads.
 /// This breaks each fixture on purpose and checks the validator says so.
 #[test]
 fn every_validator_reports_a_workspace_it_should_reject() {

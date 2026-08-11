@@ -79,7 +79,7 @@ impl fmt::Display for LineCol {
 /// Built once per file; lookups are binary searches over line start offsets.
 ///
 /// A trailing newline terminates the final line instead of starting a new empty
-/// one, so `"a\nb\n"` has two lines — matching how editors and diffs count them.
+/// one, so `"a\nb\n"` has two lines, matching how editors and diffs count them.
 #[derive(Debug, Clone)]
 pub struct LineIndex {
     /// Byte offset of the start of each line. Always starts with 0.
@@ -123,7 +123,7 @@ impl LineIndex {
     /// Convert a byte offset to a 1-based line/column.
     ///
     /// Column counts characters, not bytes, so multi-byte characters advance the
-    /// column by one — matching what editors display.
+    /// column by one, matching what editors display.
     pub fn line_col(&self, offset: usize, source: &str) -> LineCol {
         let offset = offset.min(self.len);
         let line = self.line_of(offset);
@@ -131,8 +131,8 @@ impl LineIndex {
         // Clamp to the line's end so a trailing newline does not report a column
         // past the last visible character.
         let mut col_end = offset.min(self.line_end(line));
-        // And to a character boundary. Callers arrive here with offsets they computed —
-        // `span.end - 1` to name the last covered byte, for one — and one of those lands
+        // And to a character boundary. Callers arrive here with offsets they computed,
+        // `span.end - 1` to name the last covered byte, for one, and one of those lands
         // inside a multi-byte character whenever the region ends with one. Slicing there
         // panicked: `fr duplicates --language python` over `psf/black` died on a '𨉟'.
         while col_end > line_start && !source.is_char_boundary(col_end) {
@@ -224,7 +224,7 @@ mod tests {
         assert!(!inner.contains(outer));
         assert!(outer.overlaps(inner));
 
-        // Adjacent spans touch but do not overlap — this is what lets us apply
+        // Adjacent spans touch but do not overlap. This is what lets us apply
         // back-to-back edits without a conflict error.
         let a = Span::new(0, 5);
         let b = Span::new(5, 10);
@@ -248,8 +248,8 @@ mod tests {
     fn line_col_survives_an_offset_inside_a_character() {
         // Callers compute offsets: `span.end - 1` names the last byte a region covers,
         // and that is inside the character whenever the region ends with a multi-byte
-        // one. Slicing there panicked — `fr duplicates --language python` over
-        // `psf/black` died on a '𨉟', four bytes wide — and `full_line_span` reaches
+        // one. Slicing there panicked, `fr duplicates --language python` over
+        // `psf/black` died on a '𨉟', four bytes wide, and `full_line_span` reaches
         // here the same way, so `fr delete` and `fr imports` could do the same.
         let source = "x = \"𨉟\"\n";
         let index = LineIndex::new(source);
@@ -295,7 +295,7 @@ mod tests {
     fn end_of_file_offset_maps_to_end_of_last_line() {
         let source = "alpha\nbeta\n";
         let index = LineIndex::new(source);
-        // Offset at EOF sits just past "beta", i.e. line 2 column 5 — not on a
+        // Offset at EOF sits just past "beta", i.e. line 2 column 5, not on a
         // phantom line 3, and not past the newline.
         assert_eq!(
             index.line_col(source.len(), source),

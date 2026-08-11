@@ -5,7 +5,7 @@
 //! supplies the `value` of a container environment variable, and the program reads
 //! that variable by name at runtime. Three files, three languages, one value.
 //!
-//! Every link here is name-keyed and not resolved — an environment variable is
+//! Every link here is name-keyed and not resolved, an environment variable is
 //! matched by the string a program passes to `getenv`, which no static analysis can
 //! prove refers to the same variable a manifest declares. So every chain carries
 //! [`Confidence::NameOnly`] on that hop and says so, instead of presenting a guess
@@ -219,7 +219,7 @@ fn value_keys<'a>(keys: &[&'a Symbol], name_key: &Symbol, end_of_file: usize) ->
 /// The `.Values` path a `value:` takes its content from.
 ///
 /// A `value:` whose whole content is a template action parses as a key with a null
-/// value — its span stops at the colon, because the action's bytes are masked. The
+/// value, its span stops at the colon, because the action's bytes are masked. The
 /// path therefore comes from the actions written after the key, on its own line.
 fn templated_values_path(
     template: &helm::Template,
@@ -381,7 +381,7 @@ struct Accessor {
     /// Every accessor the first five languages use puts the name first, and the reader
     /// was written to take it from there. Zig's does not: `getEnvVarOwned` is passed an
     /// allocator before the name, so reading the first argument found `allocator`, which
-    /// is lower case, which the name filter dropped — a read that went missing without
+    /// is lower case, which the name filter dropped, a read that went missing without
     /// saying so.
     skip_arguments: usize,
 }
@@ -691,7 +691,7 @@ mod tests {
         ]);
         let chains = chains(&index).unwrap();
         let chain = chains.iter().find(|c| c.env_var == "LOG_LEVEL").unwrap();
-        // No template action, so no .Values path — but the chain into code holds.
+        // No template action, so no .Values path, but the chain into code holds.
         assert!(chain.values_path.is_none());
         assert_eq!(chain.reads.len(), 1);
     }

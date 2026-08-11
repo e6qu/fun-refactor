@@ -9,7 +9,7 @@
 //! The bar is the weakest one that is still objective and the strongest one available
 //! without six compilers: **whatever comes out must be a file the target's own grammar
 //! accepts.** That found nine defects the first time it ran, across ninety-seven of two
-//! hundred and thirty-five translations — including three that had been quietly
+//! hundred and thirty-five translations, including three that had been quietly
 //! changing the meaning of every string and every JSDoc block since the transpiler
 //! landed.
 
@@ -74,7 +74,7 @@ fn every_target(files: &[PathBuf], what: &str, least: usize) {
 #[test]
 fn the_tools_own_rust_translates_into_something_that_parses() {
     // Twenty thousand lines of Rust nobody wrote to be translated. It is where the
-    // comment inside a parameter list came from — four invented parameters named after
+    // comment inside a parameter list came from, four invented parameters named after
     // the sentence that had been sitting between two real ones.
     every_target(&sources("src", "rs"), "Rust", 30);
 }
@@ -82,7 +82,7 @@ fn the_tools_own_rust_translates_into_something_that_parses() {
 #[test]
 fn the_playgrounds_typescript_translates_into_something_that_parses() {
     // Real TypeScript, and the source of the JSDoc defects: a `/** ... */` is one node
-    // however many lines it spans, and one of them quotes `app/**/route.ts` — which
+    // however many lines it spans, and one of them quotes `app/**/route.ts`, which
     // closes the comment in the middle of a sentence.
     every_target(&sources("web/src", "ts"), "TypeScript", 5);
 }

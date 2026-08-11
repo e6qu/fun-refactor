@@ -100,7 +100,7 @@ enum Command {
         #[arg(long)]
         stats: bool,
     },
-    /// Show where a symbol is defined — every definition, not just one.
+    /// Show where a symbol is defined, every definition, not just one.
     ///
     /// A trait or interface method has as many definitions as implementations, and a
     /// CSS class is declared by every rule that names it.
@@ -115,8 +115,8 @@ enum Command {
     ///
     /// The two are reported separately and never merged, because "the source said `int`"
     /// and "this holds an `int`" are different answers. A declared type is a contract. An
-    /// inferred one is a derivation, shown with the evidence it was drawn from — a
-    /// literal, a constructor call, the binding it was assigned from — so a reader can
+    /// inferred one is a derivation, shown with the evidence it was drawn from, a
+    /// literal, a constructor call, the binding it was assigned from, so a reader can
     /// judge it. Where neither is available the answer is that there is no type written
     /// down, which is also different from both.
     Type {
@@ -220,7 +220,7 @@ enum Command {
     /// Find code that is written more than once.
     ///
     /// Compares structure and not text, so a copy whose variables were renamed
-    /// still matches — that is the copy a textual search will never find.
+    /// still matches. That is the copy a textual search will never find.
     Duplicates {
         /// Smallest duplicate to report, in tokens.
         #[arg(long, default_value_t = 60)]
@@ -289,7 +289,7 @@ enum Command {
     /// and what must be true afterwards.
     ///
     /// Prints a report and a diff by default; pass --write to apply it. A recipe is
-    /// one transaction — either every step's edits are written or none are.
+    /// one transaction, either every step's edits are written or none are.
     Recipe {
         /// The recipe file.
         file: PathBuf,
@@ -302,8 +302,8 @@ enum Command {
     },
     /// Rewrite a file as another language, beside the original.
     ///
-    /// Only where one grammar contains the other — CSS as SCSS, a manifest as a Helm
-    /// template, TypeScript as TSX — and only when the file parses cleanly as the
+    /// Only where one grammar contains the other. CSS as SCSS, a manifest as a Helm
+    /// template, TypeScript as TSX, and only when the file parses cleanly as the
     /// target. Omit the language to list what this file could be. Rewriting one
     /// programming language as another is a translation, not a refactoring, and is
     /// refused with the reason.
@@ -597,7 +597,7 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
     let symbol = resolve_target(cli, &index, target)?;
     if !symbol.kind.is_callable() {
         anyhow::bail!(
-            "'{}' is {}, not a function or method — it has no call edges",
+            "'{}' is {}, not a function or method. It has no call edges",
             symbol.name,
             symbol.kind.with_article()
         );
@@ -694,8 +694,8 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
 
 /// What `fr extract` pulls out.
 ///
-/// An enum instead of a `bool`, because the call site passed three booleans in a row —
-/// `cmd_extract(&cli, range, name, *function, *all, *write)` — where any two could swap
+/// An enum instead of a `bool`, because the call site passed three booleans in a row,
+/// `cmd_extract(&cli, range, name, *function, *all, *write)`, where any two could swap
 /// and still compile. Each of the three now has a type of its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Extract {
@@ -833,7 +833,7 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
 /// canonical, and on macOS `/var` and `/private/var` name the same directory. Left
 /// alone that produced imports like `'../../../../../../../var/folders/…'`.
 ///
-/// The file itself need not exist yet — a move usually creates it — so it is the
+/// The file itself need not exist yet, a move usually creates it, so it is the
 /// parent directory that is resolved, and a missing one is an error and not a
 /// path passed through untouched.
 fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::path::PathBuf> {
@@ -908,7 +908,7 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 /// Relative paths resolve against the workspace root, not the shell's working
 /// directory: `-C` says which workspace to operate on, and `fr -C ../helm refs
 /// pkg/x.go:3:6` means that file in that workspace. Canonical, because the index is,
-/// and a path that does not exist is an error — resolving it to itself and letting
+/// and a path that does not exist is an error, resolving it to itself and letting
 /// the file read fail two frames later says "reading pkg/x.go: No such file", which
 /// is true and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
@@ -923,7 +923,7 @@ fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
             anyhow::anyhow!("{}: {e}", path.display())
         } else {
             anyhow::anyhow!(
-                "{} does not exist in {} — paths are read relative to the workspace \
+                "{} does not exist in {}. Paths are read relative to the workspace \
                  root, which -C set to that. ({e})",
                 path.display(),
                 root.display()
@@ -958,7 +958,7 @@ fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
 ///
 /// Resolved against the workspace root instead of the shell's cwd, and canonical,
 /// because the index holds canonical paths. The default root is `.`, so a filter
-/// built from it reads `./pkg/action` and matches no absolute path at all — the
+/// built from it reads `./pkg/action` and matches no absolute path at all, the
 /// report then comes back empty and looks like a clean bill of health.
 fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
@@ -1008,7 +1008,7 @@ fn cmd_duplicates(
     }
     for class in &classes {
         println!(
-            "{} copies, {} tokens each ({} redundant) — {}",
+            "{} copies, {} tokens each ({} redundant): {}",
             class.instances.len(),
             class.tokens,
             class.redundant_tokens(),
@@ -1037,7 +1037,7 @@ fn cmd_duplicates(
         println!(
             "Structure is compared, not text, so a copy with renamed variables still \n\
              matches; pass --exact to require the names too. Only the largest block of \n\
-             each duplication is listed — the statements inside it are duplicated as \n\
+             each duplication is listed. The statements inside it are duplicated as \n\
              well, and saying so again would bury the finding. Smaller copies exist in \n\
              most codebases and are not counted here; --min-tokens decides where the \n\
              line is."
@@ -1146,7 +1146,7 @@ fn cmd_unused(
     }
 
     // What a long answer is mostly made of. `spring-petclinic` reports 3,554, of which
-    // 3,395 are CSS selectors in one vendored stylesheet — true, and useless as read,
+    // 3,395 are CSS selectors in one vendored stylesheet, true, and useless as read,
     // because the fourteen methods a person came for are somewhere in the scroll. The
     // count alone does not say that; a reader should not have to pipe it through `sort`
     // to find out what they are looking at.
@@ -1189,7 +1189,7 @@ fn cmd_unused(
     if exported_count > 0 && !internal_only {
         println!(
             "\n{exported_count} of these are exported. In a library that is the public \n\
-             API, which nothing in this repository can be expected to call — pass \n\
+             API, which nothing in this repository can be expected to call. Pass \n\
              --internal to list only what is definitely dead here."
         );
     }
@@ -1281,7 +1281,7 @@ fn cmd_translate(
     };
 
     // `fastapi` is a framework and not a language, and the translation into it
-    // reads the file's *path* as well as its text — a Next.js route's URL is where it
+    // reads the file's *path* as well as its text, a Next.js route's URL is where it
     // sits on disk. It is therefore its own target instead of a flavour of Python.
     if language.eq_ignore_ascii_case("fastapi") {
         return cmd_translate_fastapi(cli, &path, write);
@@ -1290,7 +1290,7 @@ fn cmd_translate(
     let to = crate::lang::Language::from_name(language)
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
 
-    // Containment first — CSS as SCSS is the same bytes and needs no translation. A
+    // Containment first. CSS as SCSS is the same bytes and needs no translation. A
     // pair that is not a containment is a translation, which is a different promise.
     if crate::translate::targets(from).contains(&to) {
         let plan = crate::translate::plan(&path, to)?;
@@ -1317,7 +1317,7 @@ fn cmd_translate(
         );
         // Not every note is about a carried construct. A type the source never wrote
         // down, a name the target reserves, a base class a language without
-        // inheritance cannot keep — those were computed and then printed only
+        // inheritance cannot keep. Those were computed and then printed only
         // when something *else* had gone wrong, so a translation that lost a supertype
         // and nothing else reported a clean bill.
         if f.carried_verbatim > 0 {
@@ -1352,7 +1352,7 @@ fn cmd_translate(
     present(cli, &plan.edits, &summary, write)
 }
 
-/// `fr translate <route.ts> fastapi` — a Next.js API route as a FastAPI module.
+/// `fr translate <route.ts> fastapi`, a Next.js API route as a FastAPI module.
 fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Result<()> {
     let plan = crate::transpile::nextjs::plan(path)?;
     if !cli.json {
@@ -1395,7 +1395,7 @@ fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Resu
     present(cli, &plan.edits, &summary, write)
 }
 
-/// `fr openapi` — the contract a Next.js tree declares, before it is rewritten.
+/// `fr openapi`, the contract a Next.js tree declares, before it is rewritten.
 fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<()> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     let scanned = scan(&root, &ScanOptions::default())?;
@@ -1408,7 +1408,7 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
     // Either side of the crossing. A Next.js tree declares nothing and the contract is
     // inferred from where the files sit; a FastAPI tree declares everything and the
     // contract is read off the decorators. Which one is here decides which is read, and
-    // the report says which it was — because a document that does not say where it came
+    // the report says which it was, because a document that does not say where it came
     // from cannot be argued with.
     let mut baseline = crate::openapi::from_routes(&title, &root, &files)?;
     let mut side = "Next.js route tree";
@@ -1457,14 +1457,14 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         }
         eprintln!(
             "\nDiff this against the finished service's /openapi.json. A difference is a \n\
-             defect until argued otherwise — and the one this catches is a contract that \n\
+             defect until argued otherwise, and the one this catches is a contract that \n\
              quietly got smaller."
         );
     }
     Ok(())
 }
 
-/// `fr recipe <file>` — run a refactoring written down.
+/// `fr recipe <file>`, run a refactoring written down.
 fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBuf]) -> Result<()> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     // A relative path is relative to the workspace, as every other file argument is.
@@ -1535,7 +1535,7 @@ fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBu
 }
 
 fn print_recipe_report(report: &crate::recipe::Report) {
-    println!("recipe {} — {} step(s)", report.recipe, report.steps.len());
+    println!("recipe {}: {} step(s)", report.recipe, report.steps.len());
     if let Some(description) = &report.description {
         println!("  {description}");
     }
@@ -1556,7 +1556,7 @@ fn print_recipe_report(report: &crate::recipe::Report) {
             step.matched, step.applied, step.files_changed
         );
         for refusal in &step.refusals {
-            println!("       refused  {} — {}", refusal.subject, refusal.reason);
+            println!("       refused  {}: {}", refusal.subject, refusal.reason);
         }
         for warning in &step.warnings {
             println!("       left     {warning}");
@@ -1841,7 +1841,7 @@ fn report_values_inputs(
     for competition in &result.competitions {
         match competition.winner() {
             Some(winner) => println!(
-                "  {} decided by {} — {}",
+                "  {} decided by {}: {}",
                 competition.subject, winner.precedence.label, winner.hop.text
             ),
             None => println!(
@@ -2051,7 +2051,7 @@ fn cmd_entrypoints(
                 "\nNote: reachability follows resolved call edges plus class-hierarchy \
                  dispatch, so a method reached through a trait object or an interface \
                  value is counted. A function held in a map or a struct field, and a \
-                 name assembled at runtime, are not — this list can still include \
+                 name assembled at runtime, are not. This list can still include \
                  functions that are used."
             );
         }
@@ -2152,7 +2152,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
 
     if !plan.warnings.is_empty() {
         let grouped = crate::refactor::rename::group_warnings(&plan.warnings);
-        println!("\nNot changed — review these yourself:");
+        println!("\nNot changed. Review these yourself:");
         for (kind, warnings) in grouped {
             println!("  {} ({}):", kind, warnings.len());
             for w in warnings.iter().take(10) {
@@ -2226,7 +2226,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         });
     }
 
-    // A qualified name — `Box::size`, the spelling every listing prints — before a bare
+    // A qualified name, `Box::size`, the spelling every listing prints, before a bare
     // one. The tool printed these everywhere and then refused them as input, so the
     // obvious way to name one of twenty `String` methods was the one way that did not
     // work, and the only alternative offered was a line and column somebody had to go
@@ -2258,8 +2258,8 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
     match matches.len() {
         0 => anyhow::bail!("no symbol named '{target}'"),
         1 => Ok(matches[0]),
-        // Several sites can declare one entity — a CSS class has no canonical
-        // definition — and that is not an ambiguous choice between rivals.
+        // Several sites can declare one entity, a CSS class has no canonical
+        // definition, and that is not an ambiguous choice between rivals.
         _ if index.is_one_entity(&matches) => Ok(matches[0]),
         _ => {
             // Ambiguity is reported, never resolved by guessing.
@@ -2479,7 +2479,7 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
 
     if cli.json {
         // Resolved, not raw. Serializing the analysis directly emitted `"symbol": 1` and
-        // `"defined_at": 0` — `SymbolId`s, which are positions in this run's index and
+        // `"defined_at": 0`, `SymbolId`s, which are positions in this run's index and
         // mean nothing to a reader of the output. `defined_at` read like a line number.
         // Every other command answers with a qualified name and a place; so does this.
         let place = |id: crate::model::SymbolId| {
@@ -2644,8 +2644,9 @@ fn cmd_implementations(cli: &Cli, target: &str) -> Result<()> {
         println!("{:<34} {}", name, file.display());
     }
     println!(
-        "\n{} implementation(s). These are dispatch candidates, matched through \n\
-         declared implements-relationships — which one runs is a runtime fact.",
+        "\n{} implementation(s) that a call through this declaration could reach, \n\
+         found by reading which types declare that they implement it. The program \n\
+         chooses one of them while it runs, and this list cannot say which.",
         rendered.len()
     );
     Ok(())
@@ -2723,6 +2724,25 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         }
         if found.same_name_elsewhere.len() > 20 {
             println!("  … and {} more", found.same_name_elsewhere.len() - 20);
+        }
+    }
+
+    if !found.in_text.is_empty() {
+        println!(
+            "\n{} mention(s) in a comment or a string. No command edits these:",
+            found.in_text.len()
+        );
+        for usage in found.in_text.iter().take(20) {
+            println!(
+                "  {}:{}:{}  {}",
+                usage.location.file.display(),
+                usage.location.line,
+                usage.location.col,
+                usage.location.preview
+            );
+        }
+        if found.in_text.len() > 20 {
+            println!("  … and {} more", found.in_text.len() - 20);
         }
     }
     Ok(())

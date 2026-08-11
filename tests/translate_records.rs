@@ -1,6 +1,6 @@
 //! Building a record, which is the line every constructor is made of.
 //!
-//! `Counter { value: 0, step }` is the one way Rust builds one, and nothing read it —
+//! `Counter { value: 0, step }` is the one way Rust builds one, and nothing read it,
 //! so every constructor body in every target came out as "not translated".
 
 use fun_refactor::lang::Language;
@@ -70,7 +70,7 @@ impl Counter {
 fn a_constructor_that_builds_and_returns_keeps_its_body() {
     // Rust, Go and Zig have no constructor, only a function that returns the type. The
     // body was thrown away for all three under a rule about bodies that assign through
-    // a receiver — which this one does not.
+    // a receiver, which this one does not.
     for (target, expected) in [
         (Language::Go, "return Counter{Value: 0, Step: step}"),
         (Language::Zig, "return Counter{ .value = 0, .step = step };"),
@@ -101,7 +101,7 @@ fn a_constructor_becomes_field_assignments_where_one_takes_a_receiver() {
 fn an_enum_variant_is_not_a_record() {
     // `StopReason::Conditional { … }` builds a tagged union, which no target here has.
     // Writing the path through produced Go that says `StopReason::Conditional{…}`,
-    // which Go does not parse — the round-trip sweep caught it.
+    // which Go does not parse, the round-trip sweep caught it.
     let source = "\
 pub enum Stop {
     Conditional { what: String },

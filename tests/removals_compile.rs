@@ -8,7 +8,7 @@
 //! Taking code away has a failure mode the other two do not. The last use of an import
 //! often lives in the code being removed, and the statement stays behind. Go calls that an
 //! error outright, TypeScript does under `noUnusedLocals`, and Rust makes it a warning that
-//! a `-D warnings` build — this project's own — turns into one. **The result parses in
+//! a `-D warnings` build. This project's own, turns into one. **The result parses in
 //! every case**, which is why sweeping for parse errors found none of it and running a
 //! compiler found all of it.
 
@@ -320,7 +320,7 @@ fn organizing_imports_narrows_a_statement_that_lost_one_name() {
         let ws = fixture.workspace();
         let index = ws.index();
         // Nothing is dead in the fixture as it stands, so the honest answer is no edits.
-        // What this checks is that whatever it does plan compiles — and, below, that it
+        // What this checks is that whatever it does plan compiles, and, below, that it
         // narrows once something has died.
         match fun_refactor::refactor::imports::plan(&index, &ws.path(fixture.file)) {
             Ok(plan) if plan.edits.is_empty() => {}
@@ -423,8 +423,8 @@ fn the_removal_gate_states_what_it_covers() {
             }
         );
     }
-    // Zig and Java have no import list to narrow — Zig binds one file per `const` and
-    // Java's `import` binds one name — so the shape these fixtures are built around does
+    // Zig and Java have no import list to narrow. Zig binds one file per `const` and
+    // Java's `import` binds one name, so the shape these fixtures are built around does
     // not exist there. They are driven by the other two gate files.
     common::require_on_ci("removal gate", &missing);
     eprintln!("removal gate: not driven — zig and java, which have no multi-name import");

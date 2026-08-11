@@ -86,7 +86,7 @@ pub enum ThreatModel {
 /// into the language it denotes moves that from a silent Tuesday to a message at load.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppliesTo {
-    /// `*` — every language.
+    /// `*`, every language.
     Any,
     Language(Language),
 }
@@ -160,7 +160,7 @@ pub struct Matcher {
     ///
     /// The kind's own type, not its name. `symbol_kind: functoin` used to parse, load and
     /// match nothing, which reads exactly like a rule that is present and simply never
-    /// true — the same failure `deny_unknown_fields` catches for a misspelled key.
+    /// true, the same failure `deny_unknown_fields` catches for a misspelled key.
     #[serde(default)]
     pub symbol_kind: Option<SymbolKind>,
     /// The file name must equal this.
@@ -190,7 +190,7 @@ pub struct Matcher {
     /// The symbol is called from the module's `if __name__ == "__main__":` block.
     ///
     /// Every other language here says its entry point is a function called `main`, and
-    /// the rules were written that way. Python's is not a function at all — it is a
+    /// the rules were written that way. Python's is not a function at all. It is a
     /// statement, and what it calls can be named anything. A script whose guard calls
     /// `cli()` reported no entry point whatsoever.
     #[serde(default)]
@@ -200,7 +200,7 @@ pub struct Matcher {
     /// `"use server"` marks a Next.js server action: an exported function the framework
     /// makes reachable over the network, called by nothing in the source. It is the same
     /// case as Java's `@RestController` and pytest's fixtures, and unlike Next.js's other
-    /// conventions it is not a filename — `components/cart/actions.ts` is an ordinary
+    /// conventions it is not a filename, `components/cart/actions.ts` is an ordinary
     /// name, so no `file_name` rule can find it.
     #[serde(default)]
     pub file_directive: Option<String>,
@@ -208,7 +208,7 @@ pub struct Matcher {
     ///
     /// Zig writes a test as `test "any prose you like" { … }`, so the name a rule could
     /// match on is the description. `zig-test` asked for `name_prefix: test` and found
-    /// 12 of the 495 test blocks in Zig's standard library — the ones whose description
+    /// 12 of the 495 test blocks in Zig's standard library, the ones whose description
     /// happens to begin with "test". The other 483 read as dead code, and so did
     /// anything only they called.
     #[serde(default)]
@@ -217,7 +217,7 @@ pub struct Matcher {
     ///
     /// A decorator's name is not unique across libraries: `@patch` is `unittest.mock`'s
     /// far more often than it is FastAPI's. What separates them is what the decorator
-    /// names — a URL path or a module — so a route rule asks for the path.
+    /// names, a URL path or a module, so a route rule asks for the path.
     ///
     /// Only meaningful alongside `annotated_with`, and rejected without it.
     #[serde(default)]
@@ -231,7 +231,7 @@ impl Matcher {
     /// `Matcher` fails to compile here instead of being quietly left out of the answer.
     /// Three had been: a rule whose only condition was `symbol_kind`, `exported` or
     /// `top_level` counted as saying nothing, and a rule that says nothing matched
-    /// nothing — silently, and in a way that reads like a rule that is simply never true.
+    /// nothing, silently, and in a way that reads like a rule that is simply never true.
     pub fn names_a_condition(&self) -> bool {
         let Matcher {
             file_prefix,
@@ -303,7 +303,7 @@ const BUILTIN: &[(&str, &str)] = &[
 /// Reject a rule that cannot mean what it says.
 ///
 /// `deny_unknown_fields` catches a misspelled key; this catches a well-spelled one in a
-/// combination that has no meaning. Such a rule would parse, load, and match nothing —
+/// combination that has no meaning. Such a rule would parse, load, and match nothing,
 /// which reads exactly like a framework that is covered and simply absent.
 fn check_rules(rules: &[Rule]) -> Result<()> {
     for rule in rules {
@@ -364,7 +364,7 @@ impl Catalog {
         let mut found = Vec::new();
         // One read per symbol instead of one per rule. Three of the predicates below
         // need the file's text, and asking each of them separately read the whole file
-        // once for every rule in the catalogue — on `vuejs/core`, 34,611 symbols against
+        // once for every rule in the catalogue, on `vuejs/core`, 34,611 symbols against
         // the rules that apply to TypeScript, which doubled the time this command takes.
         // The index groups a file's symbols together, so remembering the last one is
         // enough; a file that cannot be read is retried and not remembered.
@@ -397,8 +397,8 @@ impl Catalog {
 ///
 /// This is a type and not a `&[SymbolId]` because an empty slice is a legal value
 /// with a catastrophic meaning: nothing is reachable, so everything not exported reads
-/// as dead. The playground shipped exactly that — twenty symbols reported dead in the
-/// browser that the terminal reported live, including every `#[test]` function —
+/// as dead. The playground shipped exactly that, twenty symbols reported dead in the
+/// browser that the terminal reported live, including every `#[test]` function,
 /// because one caller passed `&[]` where the other passed a detected catalog, and both
 /// type-checked.
 ///
@@ -552,7 +552,7 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 }
 
 /// Does the catalog have any rule that could fire for this language?
-/// Is `symbol` annotated with `name` — `#[name]`, `#[path::name]` or `@name`?
+/// Is `symbol` annotated with `name`, `#[name]`, `#[path::name]` or `@name`?
 ///
 /// Reads the bytes above the definition instead of a captured fact: no grammar here
 /// makes an attribute part of the symbol. Only the lines immediately above count, so a
@@ -561,7 +561,7 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 ///
 /// Two shapes. Rust and Python put an annotation on its own line above the definition,
 /// so the search walks back through the run of `#[…]` and `@…` lines. Java puts it
-/// inside the declaration, in the `modifiers` node — `@Test public void f()` — within
+/// inside the declaration, in the `modifiers` node, `@Test public void f()`, within
 /// the symbol's own span, where a backwards search from that span's start never reaches
 /// it.
 ///
@@ -638,7 +638,7 @@ fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
 /// of `psf/black`'s test methods as remotely reachable HTTP routes. What separates the
 /// two is the argument: a route decorator names a URL path, and a mock names a module.
 ///
-/// A path held in a constant — `@app.get(PETS)` — is not matched. That is a real gap
+/// A path held in a constant, `@app.get(PETS)`, is not matched. That is a real gap
 /// instead of a hidden one: the rule asks for something it can read, and says so.
 fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
     let Some((_, args)) = annotation.split_once('(') else {
@@ -667,7 +667,7 @@ fn declaration_begins_with(source: &str, symbol: &Symbol, keyword: &str) -> bool
 /// Is this symbol called from its module's `if __name__ == "__main__":` block?
 ///
 /// The guard is a statement and not a declaration, so there is no symbol to match a
-/// name against — which is why every other rule here could be written as a name and
+/// name against, which is why every other rule here could be written as a name and
 /// this one could not. What it calls is the program's starting point whatever it is
 /// called, and reporting nothing for a script that has one is the wrong answer to the
 /// only question `fr entrypoints` asks.
@@ -731,7 +731,7 @@ fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
     names
 }
 
-/// Is this symbol under a directive — at the top of its file, or of its own body?
+/// Is this symbol under a directive, at the top of its file, or of its own body?
 ///
 /// Both forms are real. `"use server"` at the top of a file makes every export in it a
 /// server action; the same string at the top of one function body marks only that one.

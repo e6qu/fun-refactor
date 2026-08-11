@@ -4,7 +4,7 @@
 //! toolchain, `wasm-bindgen`, a Vite build and a Node run. The cost of that was not
 //! theoretical: a struct field added at six call sites in `src/wasm.rs` and missed at
 //! one passed `cargo test` and `cargo clippy -D warnings` both, because neither
-//! compiles that file — Apple's clang cannot emit wasm, so no local build reaches it.
+//! compiles that file. Apple's clang cannot emit wasm, so no local build reaches it.
 //! CI found it, three minutes and one push later.
 //!
 //! Two changes made this file possible: `vfs`'s in-memory backing follows the `wasm`
@@ -62,7 +62,7 @@ fn two_workspaces_do_not_read_each_others_bytes() {
     // The reason `files` is a handle and not one global map. Loading a second
     // repository used to replace the bytes the first one's index was measured
     // against, and every span the older one held then pointed into somebody else's
-    // file — nothing failed, the answers were just quietly about the wrong text.
+    // file. Nothing failed, the answers were just quietly about the wrong text.
     let first = workspace(&[("a.py", "def only_in_first() -> int:\n    return 1\n")]);
     let second = workspace(&[("a.py", "def only_in_second() -> int:\n    return 2\n")]);
 
@@ -96,7 +96,7 @@ fn the_translation_menu_answers_for_every_language() {
         options.len()
     );
     for option in options {
-        // Every option says what it is, and the three kinds are distinguishable —
+        // Every option says what it is, and the three kinds are distinguishable,
         // which is the whole point of the field that went missing.
         assert!(option["language"].is_string(), "{option}");
         assert!(option["framework"].is_boolean(), "{option}");

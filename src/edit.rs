@@ -40,7 +40,7 @@ pub struct FileEdits {
     pub edits: Vec<Edit>,
 }
 
-/// A set of edits spanning any number of files — the unit a refactoring produces.
+/// A set of edits spanning any number of files, the unit a refactoring produces.
 #[derive(Debug, Clone, Default)]
 pub struct EditSet {
     files: BTreeMap<PathBuf, FileEdits>,
@@ -177,8 +177,8 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
         if edits.is_empty() {
             continue;
         }
-        // A refactoring may create a file — moving a symbol to a new module, or
-        // writing a Helm `_helpers.tpl` that does not exist yet — so a missing
+        // A refactoring may create a file, moving a symbol to a new module, or
+        // writing a Helm `_helpers.tpl` that does not exist yet, so a missing
         // destination is an empty one, not a failure.
         let original = match crate::vfs::read_to_string(path) {
             Ok(text) => text,
@@ -380,7 +380,7 @@ pub fn line_indent(source: &str, offset: usize) -> String {
 ///
 /// Read from the source and not assumed: generated code that arrives four spaces
 /// deep in a two-space TypeScript file or a tab-indented Go file is a visible wart on
-/// every line it touches. The shortest indentation any line carries is one level —
+/// every line it touches. The shortest indentation any line carries is one level,
 /// every real file has at least one line indented exactly once.
 pub fn indent_unit(source: &str) -> String {
     source

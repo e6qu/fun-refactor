@@ -2,7 +2,7 @@
 //!
 //! This is not style. `src/vfs.rs` is what makes the crate work in a browser, where
 //! there is no filesystem: a `std::fs` call there returns nothing and a `Path::exists`
-//! returns false, and both do it quietly. That is the worst failure shape available —
+//! returns false, and both do it quietly. That is the worst failure shape available,
 //! `fr move` in the playground refused every Rust file with "src has neither lib.rs nor
 //! main.rs" while `src/main.rs` sat right there in the loaded workspace, because
 //! `exists()` had been left pointing at a filesystem that was not there.
@@ -17,7 +17,7 @@ use std::path::Path;
 fn is_exempt(path: &Path) -> bool {
     let name = path.to_string_lossy().replace('\\', "/");
     // vfs.rs *is* the choke point. cache.rs is the on-disk fact cache, which does not
-    // exist in a browser at all — the wasm build has no cache and asks for none.
+    // exist in a browser at all, the wasm build has no cache and asks for none.
     // scan.rs walks a working tree to find files, which is a terminal-only question:
     // a browser workspace arrives as a map that is already the answer.
     name.ends_with("src/vfs.rs") || name.ends_with("src/cache.rs") || name.ends_with("src/scan.rs")

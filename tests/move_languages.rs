@@ -97,7 +97,7 @@ fn error(result: Result<move_symbol::MovePlan, anyhow::Error>) -> String {
 }
 
 // ===========================================================================
-// Rust — module paths derived from the file tree.
+// Rust, module paths derived from the file tree.
 // ===========================================================================
 
 /// A crate whose module tree is spelled out, which is the precondition Rust needs.
@@ -305,8 +305,8 @@ fn rust_move_into_a_module_directory_uses_the_nested_path() {
         ws.read("src/store/inner.rs"),
         "// inner\n\npub fn shared() -> i32 {\n    2\n}\n"
     );
-    // src/store/mod.rs is the module `store`, so src/store/inner.rs is `store::inner`
-    // — the directory becomes a path segment, and `mod.rs` does not.
+    // src/store/mod.rs is the module `store`, so src/store/inner.rs is `store::inner`,
+    // the directory becomes a path segment, and `mod.rs` does not.
     assert_eq!(
         ws.read("src/app.rs"),
         "use crate::store::inner::shared;\n\npub fn run() -> i32 {\n    shared()\n}\n"
@@ -438,7 +438,7 @@ fn rust_refuses_a_move_between_crates() {
 }
 
 // ===========================================================================
-// Go — a package is a directory.
+// Go, a package is a directory.
 // ===========================================================================
 
 #[test]
@@ -642,7 +642,7 @@ fn go_refuses_when_a_third_package_already_qualifies_the_name() {
 }
 
 // ===========================================================================
-// HCL / Terraform — a module is a directory.
+// HCL / Terraform, a module is a directory.
 // ===========================================================================
 
 #[test]
@@ -802,7 +802,7 @@ fn hcl_refuses_to_move_a_block_nested_in_another_block() {
 }
 
 // ===========================================================================
-// CSS — names are global, reachability is not.
+// CSS, names are global, reachability is not.
 // ===========================================================================
 
 #[test]
@@ -910,7 +910,7 @@ fn css_refuses_to_move_a_custom_property_on_its_own() {
 }
 
 // ===========================================================================
-// Markdown — a section is a heading and what is under it.
+// Markdown, a section is a heading and what is under it.
 // ===========================================================================
 
 const GUIDE: &str = "\
@@ -1366,7 +1366,7 @@ fn a_new_import_goes_after_a_multi_line_import_statement() {
     // The insertion point used to be found by scanning lines for an `import` prefix,
     // which stops at the first line that is not one. requests writes
     // `from typing import (` across three lines, so the new import landed *inside*
-    // the parentheses and the file no longer parsed — every move out of utils.py.
+    // the parentheses and the file no longer parsed, every move out of utils.py.
     let ws = Workspace::new(&[
         ("pkg/__init__.py", ""),
         (
@@ -1415,7 +1415,7 @@ fn a_moved_python_symbol_takes_the_module_imports_it_uses() {
 
 #[test]
 fn a_future_import_travels_with_the_code_it_governs() {
-    // It binds nothing, so no name-based rule would carry it — and it decides how
+    // It binds nothing, so no name-based rule would carry it, and it decides how
     // every annotation in the file is read. `str | None` stops parsing without it on
     // Python below 3.10.
     let ws = Workspace::new(&[
