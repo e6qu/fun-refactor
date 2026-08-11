@@ -61,7 +61,7 @@ impl Toolchain {
             Toolchain::Tsc => "tsc --noEmit",
             Toolchain::Go => "go build ./...",
             Toolchain::Python => "python -m compileall, then import and call the fixture",
-            Toolchain::Zig => "zig build-obj, from the root that reaches every file",
+            Toolchain::Zig => "zig build-lib, from the root that reaches every file",
             Toolchain::Javac => "javac over every source in the workspace",
         }
     }
@@ -178,9 +178,9 @@ impl Workspace {
             }
             // Zig analyses what the root reaches and nothing else, so the fixture's root
             // calls into every file for there to be anything to check. `-fno-emit-bin`
-            // keeps the object file out of the workspace the next index would scan.
+            // keeps the artefact out of the workspace the next index would scan.
             Toolchain::Zig => Command::new("zig")
-                .args(["build-obj", "main.zig", "-fno-emit-bin"])
+                .args(["build-lib", "main.zig", "-fno-emit-bin"])
                 .arg("--cache-dir")
                 .arg(self.dir.path().join("zig-cache"))
                 .current_dir(self.dir.path())
