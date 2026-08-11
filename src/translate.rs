@@ -205,6 +205,7 @@ fn pascal_case(name: &str) -> String {
 
 /// Work out how to rewrite `path` as `to`, refusing when it is not the same file.
 pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
+    crate::capabilities::record(crate::capabilities::Capability::Translate, to);
     let Some(from) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
     };

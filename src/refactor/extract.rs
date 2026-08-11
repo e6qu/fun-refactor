@@ -43,6 +43,7 @@ pub fn variable(
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
+    crate::capabilities::record(crate::capabilities::Capability::ExtractVariable, language);
 
     // The config languages have no bindings, so each gets the construct that plays
     // the same role there: a Terraform `local`, a YAML anchor, a CSS custom property,
@@ -598,6 +599,9 @@ impl Parameter {
 /// The moved statements keep their original bytes, so comments inside the extracted
 /// region survive — the thing gopls is known to lose.
 pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
+    if let Some(language) = index.file(file).map(|i| i.language) {
+        crate::capabilities::record(crate::capabilities::Capability::ExtractFunction, language);
+    }
     let info = index
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;

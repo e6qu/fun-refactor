@@ -644,6 +644,25 @@ has nothing to validate, and **yaml** is checked as part of the chart `helm lint
 carries unresolved constructs by design, so compiling it would fail correctly and prove
 nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.
 
+### What the matrix claims, and what the suite drove
+
+`fr capabilities` computes the matrix from each refactoring's own predicate, so a `✓` means
+"this command would accept this language" and not "this has ever worked". Nothing had ever
+asked which of the 270 supported cells the tests reach.
+
+Measured, rather than argued about: every capability records the language it ran against
+when `FR_CAPABILITY_LOG` is set, and `tools/capability-audit.sh` runs the suite that way and
+compares. The first run answered **205 of 270, 75%**. It is **270 of 270** now.
+
+`tests/capability_claims.rs` is what closed it, and it asks the sharper question rather than
+the easier one. Every claimed cell is driven against a fixture in that language, and one
+thing is asserted: it must not answer that the language is unsupported. That is the exact
+contradiction a wrong `✓` produces, and it found one — `fr move` telling a Rust user that
+Rust was unsupported when the fault was the destination path.
+
+What that file deliberately does not assert is that each answer is *good*. The four gates do
+that. This checks the claims are true.
+
 Open limitations are in BUGS.md. All twelve are described in writing, pinned by a test,
 and none is a missing feature: reachability under dynamic dispatch (inherent), Helm values
 passed on a command line (invisible to a workspace scan), CSS classes named inside TSX

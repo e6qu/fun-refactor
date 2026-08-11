@@ -119,6 +119,7 @@ pub fn apply(
     pattern: &str,
     template: &str,
 ) -> Result<RestructurePlan> {
+    crate::capabilities::record(crate::capabilities::Capability::Restructure, language);
     let parsers = Parsers::new();
 
     // Helm's `{{ ... }}` actions are masked out before the YAML parse, so a

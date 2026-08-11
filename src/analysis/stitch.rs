@@ -77,6 +77,7 @@ pub struct EnvRead {
 
 /// Find every configuration-to-code chain in the workspace.
 pub fn chains(index: &Index) -> Result<Vec<Chain>> {
+    crate::capabilities::record_workspace(crate::capabilities::Capability::Stitch, index);
     let declarations = env_declarations(index)?;
     let reads = env_reads(index)?;
 

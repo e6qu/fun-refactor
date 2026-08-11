@@ -416,6 +416,7 @@ impl Entrypoints {
 
     /// The same, from a catalog the caller has already extended.
     pub fn from_catalog(catalog: &Catalog, index: &Index) -> Self {
+        crate::capabilities::record_workspace(crate::capabilities::Capability::EntryPoints, index);
         Entrypoints(catalog.detect(index).iter().map(|e| e.symbol).collect())
     }
 

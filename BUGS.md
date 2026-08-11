@@ -181,6 +181,14 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B327: **`fr move` told a Rust user that Rust was unsupported.** Moving a declaration
+  to a file outside `src/` refused with `move to file is not supported for rust`, which is
+  the opposite of what the capability matrix says and of what the command does. The fault
+  is the destination, not the language. This is the eleventh site to put a reason that is
+  not a language into a field called `language` — the refusal type's own documentation
+  describes the previous ten — and it is the one the matrix audit found, because a claim
+  and a refusal cannot both be right.
+
 - [x] B326: **`fr delete` left the import its deleted code was the only user of.** Deleting
   a Go function whose body was the one caller of `strings` left `"strings" imported and not
   used`, which Go rejects outright and Rust makes a warning that a `-D warnings` build —

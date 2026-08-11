@@ -152,6 +152,9 @@ fn still_read(
 
 /// Apply `change` to `symbol` and every call site.
 pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<SignaturePlan> {
+    if let Some(language) = index.symbol(symbol).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::ChangeSignature, language);
+    }
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;

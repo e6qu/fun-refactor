@@ -111,6 +111,9 @@ pub fn why_not_move(language: Language) -> Option<&'static str> {
 
 /// Move `symbol` into `destination`.
 pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<MovePlan> {
+    if let Some(language) = index.symbol(symbol).map(|s| s.language) {
+        crate::capabilities::record(crate::capabilities::Capability::MoveToFile, language);
+    }
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
@@ -1368,16 +1371,15 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
         }
     }
     let Some(src) = src else {
-        return Err(Refusal::Unsupported {
-            operation: "move to file".into(),
-            language: Language::Rust,
-            because: format!(
-                "{} is not under a `src/` directory, so its module path cannot be \
-                 derived from its location",
-                file.display()
-            ),
-        }
-        .into());
+        // Not `Refusal::Unsupported`: moving to a file is supported for Rust, and saying
+        // "move to file is not supported for rust" about a path outside `src/` tells the
+        // reader the opposite of what the capability matrix does. The fault is the
+        // destination, and that is what this says.
+        anyhow::bail!(
+            "{} is not under a `src/` directory, so its module path cannot be derived \
+             from its location; move it somewhere under `src/` instead",
+            file.display()
+        );
     };
 
     if !crate::vfs::exists(src.join("lib.rs")) && !crate::vfs::exists(src.join("main.rs")) {

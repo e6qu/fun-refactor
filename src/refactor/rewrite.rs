@@ -89,6 +89,9 @@ pub fn available(index: &Index, file: &Path, offset: usize) -> Result<Vec<Rewrit
 
 /// Apply `rewrite` at `offset`.
 pub fn apply(index: &Index, file: &Path, offset: usize, rewrite: Rewrite) -> Result<RewritePlan> {
+    if let Some(language) = index.file(file).map(|i| i.language) {
+        crate::capabilities::record(crate::capabilities::Capability::MicroRewrites, language);
+    }
     let info = index
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;

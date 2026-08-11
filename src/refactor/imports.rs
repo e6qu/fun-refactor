@@ -446,6 +446,12 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 /// wrong file — and the question is the same one, which is why it is asked here and not
 /// answered a second time somewhere else.
 pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<ImportsPlan> {
+    if let Some(info) = index.file(file) {
+        crate::capabilities::record(
+            crate::capabilities::Capability::OrganizeImports,
+            info.language,
+        );
+    }
     let info = index
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
