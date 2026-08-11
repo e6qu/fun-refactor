@@ -181,6 +181,14 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+Sweeping `fr extract`, `fr rewrite` and `fr restructure` through the compile gate's six
+languages added no entries here. Recorded because the absence is the finding: 20
+extractions, 64 rewrite positions the command itself nominated, and 14 whole-file
+restructures, each compiled by the language's own compiler, and every one of them clean.
+These three are the commands with the most property tests behind them already, and it
+shows.
+
+
 - [x] B258: **closed unreproducible, with the evidence.** The one observation stands:
   during a `cargo test --all-targets`, `a_rust_number_leaves_its_width_behind` saw Rust's
   `0usize` / `1i32` suffixes in a translated file. Re-triaged against this commit under

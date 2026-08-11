@@ -608,6 +608,13 @@ and Java — and names the ten it does not on every run. The ten have no compile
 stylesheet, a manifest and a document are checked by parsing them, which the edit engine
 already does.
 
+It drives seven commands across those six languages. `output_compiles.rs` puts the ones
+that move a declaration through it — rename, signature, move, inline — and
+`rewrites_compile.rs` the ones that rewrite one in place: extract, rewrite and restructure.
+The second sweep found nothing, which is the first time a language or command added to the
+gate has not failed on its first run, and is worth recording as a result rather than an
+absence.
+
 Open limitations are in BUGS.md. All twelve are described in writing, pinned by a test,
 and none is a missing feature: reachability under dynamic dispatch (inherent), Helm values
 passed on a command line (invisible to a workspace scan), CSS classes named inside TSX
