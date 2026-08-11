@@ -859,6 +859,18 @@ or a module, so route rules ask for `/`.
 --check` was one of CI's steps and not one of the commands run locally. Neither set was
 wrong; there being two sets was. `tools/check.sh` holds them and the workflow calls it.
 
+**A queue that never cancels needs something that does.** The Pages deploy job held its
+concurrency group with `cancel-in-progress: false`, so that a publish in flight could not
+be interrupted. A job then stopped between being created and running its first step and
+stayed `queued` for fifty-three hours; nothing evicts the holder of a group that never
+cancels, so twenty-four later runs queued behind it and were cancelled one at a time as
+the next push arrived. Two days without a publish, reported as twenty-four cancellations
+and no failure anywhere — the shape that hides longest is the one where every part
+reports something other than "wrong". The guard bought against interruption cost far more
+than interruption would have, and the interruption it feared is not a real outcome: a
+Pages deployment swaps its artifact in atomically, so a superseded one leaves the previous
+version serving.
+
 **Being the only method of that name is not knowing the receiver.** A single definition of
 a name in a file resolved any use of that name at `Exact`, and the rule did not exclude
 member accesses — so `fr rename total sum` rewrote `client.total()` on a boto3 client

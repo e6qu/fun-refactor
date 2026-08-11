@@ -181,6 +181,25 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B342: **the site could not be published for two days, and every run said
+  `cancelled`.** On 9 August a Pages `deploy` job stopped between being created and
+  running its first step, and stayed `queued` — for fifty-three hours, with no steps and
+  no error. The job holds `concurrency: pages-deploy`, which was set
+  `cancel-in-progress: false` so that a publish in flight could never be interrupted;
+  nothing evicts the holder of a group that never cancels. The twenty-four runs that
+  followed built in ninety seconds, queued behind it, and were cancelled one at a time as
+  the next push arrived, so the symptom was twenty-four cancellations and no failure
+  anywhere. The `timeout: 1800000` on `actions/deploy-pages` could not help: it is an
+  input the action reads once the step runs, and the step never ran.
+
+  The premise was wrong as well as costly — a Pages deployment swaps its artifact in
+  atomically, so a superseded one leaves the previous version serving, which is what the
+  site did throughout. `cancel-in-progress: true` now, so the newest deploy takes the
+  slot, and `timeout-minutes: 35` on the job for a hang after it starts, which is the
+  half the action's own timeout cannot catch. The stuck run was cancelled by hand to
+  release the group; the queue drained and the site published from `accbe24` on the
+  first attempt.
+
 - [x] B341: **`fr flow` sent three languages to an analysis that has no arm for them.**
   The refusal named `fr provenance`, which is not a command — the command is `fr flow`,
   which picks between dataflow and provenance itself — and it promised an answer for

@@ -115,17 +115,32 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # One publish at a time, and never cancel one in flight: a half-published site is
-    # worse than a slightly stale one. On the *job* instead of the workflow, because
-    # serialising the whole workflow serialised the build too — and a run wedged in
-    # `waiting` then blocked every push behind it, which is how one stuck deployment
-    # became a site that could not be updated at all.
+    # One publish at a time, and the newest wins.
+    #
+    # This said `cancel-in-progress: false`, reasoning that a half-published site is
+    # worse than a slightly stale one. What it bought instead was a site that could not
+    # be published at all: on 9 August a deploy job stopped between being created and
+    # running its first step, and stayed `queued`. Nothing evicts the holder of a group
+    # that never cancels, so the next twenty-four runs built in ninety seconds, queued
+    # behind it, and were cancelled one by one as the next push arrived. Two days, no
+    # publish, and every run reported as `cancelled` rather than as anything wrong.
+    #
+    # The premise was wrong as well as costly. A Pages deployment swaps the artifact in
+    # atomically, so a superseded one leaves the previous version serving — which is
+    # what the site did throughout, on the last commit that got through.
     concurrency:
       group: pages-deploy
-      cancel-in-progress: false
+      cancel-in-progress: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    # A job that hangs after it starts is the other half, and the action's own timeout
+    # cannot catch it: `timeout` below is an input read once the step runs, so a job
+    # that hangs before its first step never reaches it. This is the one that applies.
+    #
+    # Longer than that input, deliberately: the action gives up at thirty minutes and
+    # says why, and this is the backstop for the action itself hanging.
+    timeout-minutes: 35
     steps:
       # Thirty minutes instead of the default ten. Six deploys in a row aborted with
       # "Timeout reached" while the deployment sat queued behind a build that was
