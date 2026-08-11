@@ -630,8 +630,9 @@ in bash, `$NAME` in a restructure pattern is a metavariable and not a shell expa
 the tool documents that; and the bash arm of the gate was too weak until it ran the script,
 because `bash -n` cannot see a call to a function that moved to another file.
 
-CI installs `terraform`, `helm` and `xmllint` so that sweep runs there and not only on a
-laptop; only `shellcheck` is already on the runner. A validator the gate
+CI installs `terraform`, `helm`, `xmllint` and `zig` so those sweeps run there and not only
+on a laptop; only `shellcheck` is already on the runner. Zig had been absent since the gate
+started driving it, and the rule below is what found that. A validator the gate
 cannot find makes its cases skip themselves and say so — which is honest on a laptop and
 useless on CI, where `cargo test` captures that line and a hole looks exactly like a pass.
 Each gate file therefore fails on CI when a tool it names is absent, and says which.
