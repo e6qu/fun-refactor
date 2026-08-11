@@ -38,6 +38,13 @@ pub struct ImportsPlan {
     pub removed: Vec<RemovedImport>,
     /// Number of contiguous blocks whose statements changed order.
     pub sorted_blocks: usize,
+    /// What each touched statement's lines become, with no reordering in it.
+    ///
+    /// [`ImportsPlan::edits`] carries the reordering too, which is right for the command
+    /// and wrong for a caller that only wants the dead names gone: a flag removal must not
+    /// also sort somebody's imports. A dropped statement maps to nothing, and a narrowed
+    /// one to the same statement without the names that died.
+    pub replacements: Vec<(Span, String)>,
 }
 
 /// Uses a language makes of an imported name without ever spelling it where a query
@@ -423,6 +430,22 @@ pub struct RemovedImport {
 /// keeps its import and produces a warning saying which binding and why; check the
 /// [`ImportsPlan::removed`] list before committing all the same.
 pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
+    // The index first. Reading the file before asking answers "no such file" about a path
+    // whose real problem is that nothing indexed it, which is a different thing to fix.
+    index
+        .file(file)
+        .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
+    let source = crate::vfs::read_to_string(file)?;
+    plan_in(index, file, &source)
+}
+
+/// [`plan`] over source already held in memory.
+///
+/// The cascade rewrites in memory and re-indexes each round, so the text on disk is the
+/// text before it started. Asking this question against that text would answer about the
+/// wrong file — and the question is the same one, which is why it is asked here and not
+/// answered a second time somewhere else.
+pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<ImportsPlan> {
     let info = index
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
@@ -445,12 +468,11 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         );
     }
 
-    let source = crate::vfs::read_to_string(file)?;
-    let line_index = LineIndex::new(&source);
+    let line_index = LineIndex::new(source);
     let mut warnings = Vec::new();
 
-    let parsed = Parsers::new().parse(info.language, &source)?;
-    let mut statements = statements(info.imports.iter(), &source, info.language, &parsed);
+    let parsed = Parsers::new().parse(info.language, source)?;
+    let mut statements = statements(info.imports.iter(), source, info.language, &parsed);
     // A Go import binds the imported package's package clause. When that package is in
     // the scan its real name is a fact and not a guess, so record it as a binding
     // and stop treating the path as the last word on the subject.
@@ -476,6 +498,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
             warnings,
             removed: Vec::new(),
             sorted_blocks: 0,
+            replacements: Vec::new(),
         });
     }
 
@@ -490,12 +513,12 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         live.insert(reference.name.as_str());
     }
 
-    let invisible = InvisibleUses::collect(info.language, &parsed, &source);
+    let invisible = InvisibleUses::collect(info.language, &parsed, source);
 
     let mut removed = Vec::new();
     let mut drop_statement = vec![false; statements.len()];
     for (i, statement) in statements.iter().enumerate() {
-        let position = line_index.line_col(statement.span.start, &source);
+        let position = line_index.line_col(statement.span.start, source);
         if statement.is_glob {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
@@ -556,13 +579,64 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         });
     }
 
+    // A statement may lose some of what it binds and keep the rest. Dropping only whole
+    // statements left `import { up, down }` intact with nothing naming `down`, which is
+    // an error under `noUnusedLocals` and a lint failure everywhere else — from the one
+    // command whose whole job is removing imports nothing uses.
+    let mut narrowed_statements: Vec<(usize, String)> = Vec::new();
+    for (i, statement) in statements.iter().enumerate() {
+        if drop_statement[i] || statement.is_glob || statement.named.len() < 2 {
+            continue;
+        }
+        let dead: Vec<&NamedImport> = statement
+            .named
+            .iter()
+            .filter(|name| !live.contains(name.local.as_str()))
+            // A name that would be held back on its own is held back here too: the
+            // question is the same one, asked of one binding instead of all of them.
+            .filter(|name| {
+                let alone = Statement {
+                    bindings: vec![name.local.clone()],
+                    named: vec![(*name).clone()],
+                    ..(*statement).clone()
+                };
+                hold_back_reason(info.language, &alone, &invisible).is_none()
+            })
+            .collect();
+        if dead.is_empty() || dead.len() == statement.named.len() {
+            continue;
+        }
+        if let Some(text) = without_names(source, &parsed, statement, &dead) {
+            narrowed_statements.push((i, text));
+            let position = line_index.line_col(statement.span.start, source);
+            removed.push(RemovedImport {
+                path: statement.path.clone(),
+                bindings: dead.iter().map(|n| n.local.clone()).collect(),
+                span: statement.span,
+                line: position.line,
+            });
+        }
+    }
+    for (i, text) in narrowed_statements {
+        statements[i].narrowed = Some(text);
+    }
+
+    let mut replacements: Vec<(Span, String)> = Vec::new();
+    for (i, statement) in statements.iter().enumerate() {
+        if drop_statement[i] {
+            replacements.push((statement.lines, String::new()));
+        } else if let Some(text) = &statement.narrowed {
+            replacements.push((statement.lines, text.clone()));
+        }
+    }
+
     let mut edits = EditSet::new();
     let mut sorted_blocks = 0;
 
     for block in blocks(&statements) {
         let members = &statements[block.clone()];
         if members.iter().any(|s| !s.line_exclusive) {
-            let position = line_index.line_col(members[0].span.start, &source);
+            let position = line_index.line_col(members[0].span.start, source);
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
                 file: file.to_path_buf(),
@@ -583,8 +657,8 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
             .map(|(_, s)| s)
             .collect();
 
-        let before = region.text(&source);
-        let after = rebuild(&kept, &source, before.ends_with('\n'));
+        let before = region.text(source);
+        let after = rebuild(&kept, source, before.ends_with('\n'));
         if after == before {
             continue;
         }
@@ -618,6 +692,7 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
         warnings,
         removed,
         sorted_blocks,
+        replacements,
     })
 }
 
@@ -670,7 +745,7 @@ pub fn organizable(language: Language) -> bool {
 
 /// One import statement, which may correspond to several [`Import`] records: a query
 /// reports `use m::{a, b}` once per name, all sharing the statement's span.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Statement {
     /// Bytes of the statement itself.
     span: Span,
@@ -688,6 +763,114 @@ struct Statement {
     /// True when the bindings are known and not inferred from the import path.
     /// Only Go can be uncertain: the binding is the imported package's package clause.
     binding_certain: bool,
+    /// Each name the statement spells out, with the bytes it occupies. A statement that
+    /// binds several can lose some and keep the rest, which needs the spans and not only
+    /// the names.
+    named: Vec<NamedImport>,
+    /// Replacement text for [`Statement::lines`], where some of the names it binds went
+    /// and the rest stayed.
+    narrowed: Option<String>,
+}
+
+/// Where a span of the edited text sat before the edits.
+///
+/// Every edit that ends at or before the span shifts it by the difference between what it
+/// removed and what it wrote. A span that overlaps an edit has no position in the original
+/// and is answered `None` — an import statement inside a region being rewritten is not one
+/// this may also rewrite.
+fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
+    let mut shift: isize = 0;
+    for edit in edits {
+        let removed = edit.span.end.saturating_sub(edit.span.start) as isize;
+        let written = edit.replacement.len() as isize;
+        let ends_at = (edit.span.start as isize) + shift + written;
+        if ends_at <= span.start as isize {
+            shift += removed - written;
+            continue;
+        }
+        // Overlapping, or after this span and therefore irrelevant.
+        if (edit.span.start as isize) + shift < span.end as isize {
+            return None;
+        }
+    }
+    let start = (span.start as isize + shift).try_into().ok()?;
+    let end = (span.end as isize + shift).try_into().ok()?;
+    Some(Span::new(start, end))
+}
+
+/// The edits that drop imports a set of edits would leave with nothing naming them.
+///
+/// Removing code often removes the last use of an import, and the statement stays behind:
+/// `go build` calls that an error and Rust a warning that a `-D warnings` build turns into
+/// one. The result parses either way, which is why a sweep for parse errors never sees it.
+///
+/// Asked by applying the edits to a copy and re-reading, because the question is about the
+/// file as it will be and not as it is. Only imports that were live before are touched —
+/// one that was already dead is `fr imports`, not this.
+pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
+    let mut out = EditSet::new();
+    for (file, file_edits) in edits.iter() {
+        let Some(info) = index.file(file) else {
+            continue;
+        };
+        if why_not_organizable(info.language).is_some() {
+            continue;
+        }
+        let Ok(before) = crate::vfs::read_to_string(file) else {
+            continue;
+        };
+        let Ok(after) = crate::edit::apply_to_string(&before, file_edits) else {
+            continue;
+        };
+
+        let was_dead: Vec<Span> = plan_in(index, file, &before)
+            .map(|plan| {
+                plan.replacements
+                    .into_iter()
+                    .map(|(span, _)| span)
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        // The index still describes the file as it was, and the spans below index the
+        // text as it will be. Rebuilding it for one file is what keeps the two agreeing.
+        let snapshot = vec![(file.clone(), info.language, after.clone())];
+        let Ok(reindexed) = Index::build_from_sources(&snapshot) else {
+            continue;
+        };
+        let Ok(plan) = plan_in(&reindexed, file, &after) else {
+            continue;
+        };
+        for (span, replacement) in plan.replacements {
+            if was_dead.contains(&span) {
+                continue;
+            }
+            // The span indexes the file as it will be, and the edit set is applied to the
+            // file as it is. Every edit that lands before this statement moves it, so the
+            // move is undone here rather than two coordinate systems being mixed.
+            let Some(original) = before_the_edits(span, file_edits) else {
+                continue;
+            };
+            out.add(
+                file.clone(),
+                Edit::new(
+                    original,
+                    replacement,
+                    "an import nothing names any more".to_string(),
+                ),
+            );
+        }
+    }
+    Ok(out)
+}
+
+/// One name inside a statement that spells its names out.
+#[derive(Debug, Clone)]
+struct NamedImport {
+    /// The name this binds locally, which is the alias where there is one.
+    local: String,
+    /// The bytes of the whole clause, `original as local` included.
+    span: Span,
 }
 
 /// Collapse import records into statements, in source order.
@@ -741,8 +924,13 @@ fn statements<'a>(
                 && source[span.end..lines.end].trim().is_empty();
 
             let mut bindings = Vec::new();
+            let mut named = Vec::new();
             for record in &records {
                 bindings.extend(record.names.iter().map(|n| n.local.clone()));
+                named.extend(record.names.iter().map(|n| NamedImport {
+                    local: n.local.clone(),
+                    span: n.span,
+                }));
                 if let Some(alias) = &record.alias {
                     bindings.push(alias.clone());
                 }
@@ -769,6 +957,8 @@ fn statements<'a>(
                 line_exclusive,
                 explicit_binding,
                 binding_certain,
+                named,
+                narrowed: None,
             }
         })
         .collect()
@@ -868,12 +1058,98 @@ fn sorted<'a>(statements: &[&'a Statement]) -> Vec<&'a Statement> {
 /// Each statement contributes its own line text verbatim, so indentation, spacing and
 /// the exact spelling of the statement are carried across untouched. Nothing is
 /// regenerated from the parsed import.
+/// The bytes a name occupies in an import list, alias and all.
+///
+/// The index records where a name is *bound*, which for `down as lower` is `lower`. Taking
+/// only that out leaves `down as` behind, so the span is widened to the clause the grammar
+/// wraps it in — `import_specifier` in TypeScript, `aliased_import` in Python,
+/// `use_as_clause` in Rust — stopping before it could swallow the statement itself.
+fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(name.start, name.end)
+    else {
+        return name;
+    };
+    let mut widest = name;
+    let mut current = Some(node);
+    for _ in 0..3 {
+        let Some(here) = current else { break };
+        let span = Span::from(here);
+        let names_one_import = here.kind().contains("specifier")
+            || here.kind().contains("aliased")
+            || here.kind().contains("as_clause");
+        if names_one_import && span.start >= statement.start && span.end <= statement.end {
+            widest = span;
+        }
+        current = here.parent();
+    }
+    widest
+}
+
+/// The statement's text with some of the names it binds taken out.
+///
+/// Byte surgery on the names themselves, and not a re-spelling of the statement, because
+/// every language writes the list differently — `use a::{b, c};`, `from m import b, c`,
+/// `import { b, c } from "m"` — and the separator is the only thing that has to be
+/// understood. `None` where taking the names out would leave punctuation this does not
+/// know how to close up.
+fn without_names(
+    source: &str,
+    parsed: &Parsed,
+    statement: &Statement,
+    dead: &[&NamedImport],
+) -> Option<String> {
+    let start = statement.lines.start;
+    let mut text = statement.lines.text(source).to_string();
+
+    // Latest first, so an earlier removal cannot move a later span.
+    let mut spans: Vec<Span> = dead
+        .iter()
+        .map(|name| whole_clause(parsed, name.span, statement.span))
+        .collect();
+    spans.sort_by_key(|span| std::cmp::Reverse(span.start));
+
+    for span in spans {
+        let (from, to) = (span.start.checked_sub(start)?, span.end.checked_sub(start)?);
+        if to > text.len() || !text.is_char_boundary(from) || !text.is_char_boundary(to) {
+            return None;
+        }
+        // The comma after it, or the one before it where this was the last in the list.
+        let mut cut_to = to;
+        while text[cut_to..].starts_with(|c: char| c.is_whitespace()) {
+            cut_to += text[cut_to..].chars().next()?.len_utf8();
+        }
+        let mut cut_from = from;
+        if text[cut_to..].starts_with(',') {
+            cut_to += 1;
+            while text[cut_to..].starts_with(' ') {
+                cut_to += 1;
+            }
+        } else {
+            while text[..cut_from].ends_with(|c: char| c.is_whitespace()) {
+                cut_from -= text[..cut_from].chars().next_back()?.len_utf8();
+            }
+            if !text[..cut_from].ends_with(',') {
+                return None;
+            }
+            cut_from -= 1;
+            cut_to = to;
+        }
+        text.replace_range(cut_from..cut_to, "");
+    }
+    Some(text)
+}
+
 fn rebuild(kept: &[&Statement], source: &str, trailing_newline: bool) -> String {
-    let parts: Vec<&str> = sorted(kept)
+    let parts: Vec<String> = sorted(kept)
         .iter()
         .map(|s| {
-            let text = s.lines.text(source);
-            text.strip_suffix('\n').unwrap_or(text)
+            let text = s
+                .narrowed
+                .as_deref()
+                .unwrap_or_else(|| s.lines.text(source));
+            text.strip_suffix('\n').unwrap_or(text).to_string()
         })
         .collect();
     if parts.is_empty() {

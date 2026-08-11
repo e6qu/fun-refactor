@@ -214,6 +214,21 @@ impl Workspace {
         }
     }
 
+    /// The workspace as the in-memory commands see it.
+    pub fn sources(
+        &self,
+    ) -> std::collections::BTreeMap<PathBuf, (fun_refactor::lang::Language, String)> {
+        let scanned = scan(self.dir.path(), &ScanOptions::default()).expect("scan");
+        scanned
+            .files
+            .iter()
+            .filter_map(|file| {
+                let text = std::fs::read_to_string(&file.path).ok()?;
+                Some((file.path.clone(), (file.language, text)))
+            })
+            .collect()
+    }
+
     pub fn read(&self, name: &str) -> String {
         std::fs::read_to_string(self.path(name)).expect("read")
     }

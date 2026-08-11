@@ -181,6 +181,27 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B326: **`fr delete` left the import its deleted code was the only user of.** Deleting
+  a Go function whose body was the one caller of `strings` left `"strings" imported and not
+  used`, which Go rejects outright and Rust makes a warning that a `-D warnings` build —
+  this project's own — turns into an error. The result parses either way, which is why the
+  parse sweeps never saw it.
+
+- [x] B325: **`fr imports` never narrowed a statement that lost one of its names.** It drops
+  a statement nothing names and leaves `import { up, down }` intact when only `down` died,
+  which `noUnusedLocals` rejects and every linter flags — from the one command whose whole
+  job is removing imports nothing uses. It narrows now, by taking the dead names' clauses
+  out of the statement rather than re-spelling it, because each language writes the list
+  differently and the separator is the only thing that has to be understood. The test that
+  covered this asserted the old behaviour under a name that described the new one.
+
+- [x] B324: **`fr remove-flag` left the imports its collapsed branch had been using.** The
+  cascade prunes symbols nothing uses any more and stopped there, so a dead branch holding
+  the only call to an imported package left the import behind. The cascade now defers to
+  `fr imports` for the question rather than answering it a second time: that command
+  carries a body of knowledge about uses no query can see — a Rust trait reached through
+  its methods, a JSX pragma in a comment — that a second answer would get wrong.
+
 Sweeping `fr extract`, `fr rewrite` and `fr restructure` through the compile gate's six
 languages added no entries here. Recorded because the absence is the finding: 20
 extractions, 64 rewrite positions the command itself nominated, and 14 whole-file

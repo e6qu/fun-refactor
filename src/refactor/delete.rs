@@ -190,6 +190,14 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     });
     warnings.dedup();
 
+    // An import the deleted code was the only user of is part of what goes. Leaving it
+    // gave `"strings" imported and not used`, which Go rejects outright.
+    for (file, orphaned) in crate::refactor::imports::orphaned_by(index, &edits)?.iter() {
+        for edit in orphaned {
+            edits.add(file.clone(), edit.clone());
+        }
+    }
+
     Ok(DeletePlan {
         symbol,
         name: target.name.clone(),
