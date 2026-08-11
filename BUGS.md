@@ -181,6 +181,41 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B341: **`fr flow` sent three languages to an analysis that has no arm for them.**
+  The refusal named `fr provenance`, which is not a command — the command is `fr flow`,
+  which picks between dataflow and provenance itself — and it promised an answer for
+  HTML, XML and Markdown, where provenance stops at the first hop. The matrix claimed
+  provenance for all eight non-imperative languages because a unit test asserted that
+  every language gets exactly one of the two analyses, and the matrix had been shaped to
+  satisfy the rule rather than to describe the code. The dispatch has five arms;
+  `supports_provenance` is those five, the matrix asks it, and the rule that holds — no
+  language is offered both — is what the test asserts now. 269 of 384 pairs.
+
+- [x] B340: **the browser never routed to provenance, so it answered questions the CLI
+  could.** `fr flow` chooses between the two models on the caller's behalf; `flow_back`
+  and `flow_forward` in the wasm bindings called dataflow whichever the language was. A
+  YAML anchor the CLI traced came back empty in the playground, and once dataflow began
+  refusing those languages it came back as a refusal instead. Both bindings route the
+  same way the CLI does now.
+
+- [x] B339: **`fr remove-flag` told the reader to do something the command could not
+  do.** An ambiguous flag name refused with "say which one with a position", and the
+  command took a bare name and nothing else. `fr delete` and `fr rename` have taken
+  `path:line:col` all along; `fr remove-flag` does now, through the same parser, and the
+  refusal lists where the declarations are. The resolved name is fixed before the
+  cascade starts, because everything downstream — which uses are left, which imports were
+  orphaned, what each round is called — looks the flag up by name.
+
+- [x] B338: **"move it somewhere under `src/`" led to a second refusal.** Rust reaches a
+  file through a `mod` declaration and not through its directory, so a destination under
+  `src/` that nothing declares is refused too — and that second refusal named no route at
+  all. The first now says the destination has to be one the module tree already declares,
+  and the second names the line to add.
+
+- [x] B337: **provenance's refusal named a library module.** "Use analysis::flow
+  (backward/forward) instead" is not something the reader of a CLI or browser message can
+  run. It names `fr flow`.
+
 - [x] B336: **the compile gate passed whether the tool worked or refused.** Twenty-six
   call sites threw away `gate`'s answer, so every test named `…_compiles_or_refuses`
   passed on either outcome — a test that cannot fail. Two of them (`fr move` on Go and on

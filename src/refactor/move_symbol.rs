@@ -1378,7 +1378,8 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
             operation: "move to file".into(),
             detail: format!(
                 "{} is not under a `src/` directory, so its module path cannot be derived \
-                 from its location; move it somewhere under `src/` instead",
+                 from its location; move it to a file under `src/` that the module tree \
+                 already declares",
                 file.display()
             ),
         }
@@ -1443,10 +1444,13 @@ fn check_module_is_declared(module: &CrateModule, destination: &Path) -> Result<
         if !declares_module(&source, segment) {
             bail!(
                 "{} does not declare `mod {};`, so {} is not part of the module tree and \
-                 a `use` path to it would not compile",
+                 a `use` path to it would not compile — add `mod {};` to {} and the move \
+                 goes through",
                 parent_file.display(),
                 segment,
-                destination.display()
+                destination.display(),
+                segment,
+                parent_file.display()
             );
         }
         walked.push(segment.clone());

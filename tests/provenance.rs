@@ -1027,7 +1027,9 @@ fn imperative_languages_are_refused_and_pointed_at_flow() {
     let a = index.symbols.iter().find(|s| s.name == "a").unwrap();
 
     let error = provenance(&index, a.id, 5).unwrap_err().to_string();
-    assert!(error.contains("analysis::flow"), "{error}");
+    // `analysis::flow (backward/forward)` was the route this named, which is a module
+    // and not something the reader can run.
+    assert!(error.contains("`fr flow` traces it instead"), "{error}");
     assert!(error.contains("imperative"), "{error}");
     assert!(consumers(&index, a.id, 5).is_err());
 
@@ -1065,13 +1067,16 @@ fn a_config_language_with_no_substitution_model_says_so() {
         .iter()
         .find(|s| s.kind == SymbolKind::Heading)
         .unwrap();
-    let result = provenance(&index, heading.id, 5).unwrap();
+    // It used to say so inside an `Ok`: a walk with no hops and a stop reason, which is
+    // an answer shaped like an answer. The matrix claimed the cell on that basis, and
+    // `fr flow` sent readers here for it.
+    let error = provenance(&index, heading.id, 5)
+        .expect_err("markdown has no value-substitution model")
+        .to_string();
     assert!(
-        result.stopped_because(|r| matches!(r, StopReason::UnsupportedLanguage(_))),
-        "got {:?}",
-        result.stops
+        error.contains("no value-substitution model to trace"),
+        "{error}"
     );
-    assert!(result.is_empty());
 }
 
 #[test]

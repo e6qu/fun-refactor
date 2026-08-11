@@ -302,12 +302,18 @@ pub fn support(capability: Capability, language: Language) -> Support {
         }
 
         C::Provenance => {
-            if imperative {
+            // Asked of the analysis, which handles five languages and not eight.
+            if crate::analysis::provenance::supports_provenance(language) {
+                Support::Yes
+            } else if imperative {
                 Support::NotApplicable {
                     because: NO_SUBSTITUTION,
                 }
             } else {
-                Support::Yes
+                Support::NotApplicable {
+                    because: "this language has no value-substitution model to trace: a \
+                              value here is written where it is used",
+                }
             }
         }
 
@@ -622,17 +628,30 @@ mod tests {
     }
 
     #[test]
-    fn analysis_splits_cleanly_by_language_class() {
-        // Every language gets exactly one of dataflow or provenance, never both and
-        // never neither.
+    fn no_language_is_offered_both_dataflow_and_provenance() {
+        // This asserted that every language gets *exactly* one, and the matrix was
+        // shaped to satisfy it: provenance was claimed for every non-imperative
+        // language, which is three more than the analysis has arms for. The rule that
+        // holds is the one about overlap. Neither is a real answer for a language whose
+        // values are written where they are used, and `fr flow`'s refusal used to send
+        // those three readers to provenance for an answer it cannot give.
+        let mut neither = Vec::new();
         for language in Language::ALL {
             let flow = support(Capability::Flow, *language).is_yes();
             let provenance = support(Capability::Provenance, *language).is_yes();
             assert!(
-                flow != provenance,
-                "{language} has flow={flow} provenance={provenance}"
+                !(flow && provenance),
+                "{language} is offered both dataflow and provenance"
             );
+            if !flow && !provenance {
+                neither.push(language.name());
+            }
         }
+        assert_eq!(
+            neither,
+            ["html", "xml", "markdown"],
+            "the languages with no value model of either kind"
+        );
     }
 
     #[test]
