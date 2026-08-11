@@ -197,6 +197,37 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   test now reports the verbatim count and the notes beside it, so a recurrence names its
   own cause instead of being a mystery a second time.
 
+- [x] B323: **a Java statement declaring several names gave each of them all three.**
+  `int a = 1, b = 2, c = 3;` produced three symbols with one span between them — the whole
+  statement — so each claimed the other two. Inlining `b` took `a`'s value and deleted the
+  line. The query captured the statement; it captures the declarator now, which is what
+  the symbol is. `fr inline` widens back to the statement where the declarator is the only
+  one in it, because `int` is not part of the symbol and leaving it behind gives `int ;`.
+
+- [x] B322: **`fr type` could not read a Java call or construction.** Java names a call
+  `method_invocation` and a construction `object_creation_expression`, and names the
+  callee `name` and `type` where every other grammar here says `function`. Asking only for
+  `function` found neither, so nothing was ever inferred from a Java expression. This is
+  the same omission that once made `fr signature` refuse at every Java call site there has
+  ever been, in a second place that had not heard.
+
+- [x] B321: **`fr type` answered `var`.** `var` is Java's keyword for "work it out", so a
+  binding written with one has no declared type — and the tool reported the keyword as
+  though it were the type the source wrote down, which answers the question with the
+  question. It falls through to inference now, which is what the keyword asks for.
+
+- [x] B320: **`fr inline` refused every Java local.** "'total' has no initialiser, so there
+  is nothing to inline", about `int total = Widths.width(h.items, 1);`. Java puts the name
+  and the value together in a declarator, because one statement may declare several, so
+  the value hangs off the declarator and not off the declaration.
+
+- [x] B319: **three readers answered "what does this declaration bind", and disagreed.**
+  One per caller, each written against the languages its author had in front of them, and
+  each missing a different grammar — which is why B320 showed in `fr inline` alone while
+  `fr type` and `fr remove-flag` were covered for by a fallback that read the declared
+  type instead. There is one reader now, `parse::declaration_value`, and
+  `tests/declaration_values.rs` names every shape it has to know.
+
 - [x] B318: **`fr move` left the destination calling the symbol through the file it came
   from.** Moving a Zig declaration into a file that already called it left
   `holder.width(…)` in that file, naming a file that no longer has the name. The

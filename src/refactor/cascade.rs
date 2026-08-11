@@ -425,7 +425,7 @@ fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> O
 
     // The bound value first, because it is the stronger statement: `const NAME = "x"`
     // says what `NAME` holds without naming a type at all.
-    if let Some(value) = bound_value(declaration) {
+    if let Some(value) = crate::parse::declaration_value(declaration) {
         if let Some(what) = what_the_value_holds(value, source) {
             return Some(what);
         }
@@ -438,29 +438,6 @@ fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> O
     match is_a_boolean_type(&stated) {
         true => None,
         false => Some(format!("is declared `{stated}`")),
-    }
-}
-
-/// The expression a declaration binds, where the grammar exposes one.
-fn bound_value<'a>(declaration: Node<'a>) -> Option<Node<'a>> {
-    let value = ["value", "right", "default_value"]
-        .iter()
-        .find_map(|field| declaration.child_by_field_name(field))
-        .or_else(|| {
-            // Zig gives a variable declaration's children no field names at all, so the
-            // value is the last of them — unless the declaration states a type and binds
-            // nothing, in which case the last child is that type.
-            if declaration.kind() != "variable_declaration" {
-                return None;
-            }
-            let count = u32::try_from(declaration.named_child_count()).ok()?;
-            let last = declaration.named_child(count.checked_sub(1)?)?;
-            (Some(last) != declaration.child_by_field_name("type")).then_some(last)
-        })?;
-    // Go wraps every bound value in an expression list, even where it binds just one.
-    match value.kind() == "expression_list" && value.named_child_count() == 1 {
-        true => value.named_child(0),
-        false => Some(value),
     }
 }
 
