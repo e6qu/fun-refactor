@@ -383,7 +383,15 @@ fn a_recipe_that_removes_a_flag_and_prunes_what_it_orphaned_compiles() {
 /// What this file covers, said out loud.
 #[test]
 fn the_removal_gate_states_what_it_covers() {
+    let mut missing = Vec::new();
     for fixture in fixtures() {
+        if !fixture.toolchain.is_available() {
+            missing.push(format!(
+                "{} ({})",
+                fixture.language,
+                fixture.toolchain.program()
+            ));
+        }
         eprintln!(
             "removal gate: {} — {} ({})",
             fixture.language,
@@ -397,5 +405,6 @@ fn the_removal_gate_states_what_it_covers() {
     // Zig and Java have no import list to narrow — Zig binds one file per `const` and
     // Java's `import` binds one name — so the shape these fixtures are built around does
     // not exist there. They are driven by the other two gate files.
+    common::require_on_ci("removal gate", &missing);
     eprintln!("removal gate: not driven — zig and java, which have no multi-name import");
 }

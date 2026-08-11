@@ -568,7 +568,15 @@ fn every_validator_reports_a_workspace_it_should_reject() {
 /// What this file covers, said out loud.
 #[test]
 fn the_validator_gate_states_what_it_covers() {
+    let mut missing = Vec::new();
     for fixture in fixtures() {
+        if !fixture.toolchain.is_available() {
+            missing.push(format!(
+                "{} ({})",
+                fixture.language,
+                fixture.toolchain.program()
+            ));
+        }
         eprintln!(
             "validator gate: {} — {} ({})",
             fixture.language,
@@ -579,6 +587,7 @@ fn the_validator_gate_states_what_it_covers() {
             }
         );
     }
+    common::require_on_ci("validator gate", &missing);
     eprintln!(
         "validator gate: not driven — scss (no sass here), markdown (nothing to validate), \
          yaml (checked as part of the chart helm lint renders)"

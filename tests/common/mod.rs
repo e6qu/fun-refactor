@@ -13,6 +13,26 @@ use fun_refactor::scan::{scan, ScanOptions};
 use std::path::PathBuf;
 use std::process::Command;
 
+/// Hold a gate to its coverage, where a hole would otherwise be invisible.
+///
+/// Each gate file prints the tools it drove and the ones it skipped. Under `cargo test`
+/// that output is captured, so on CI nobody ever sees it: a validator that is not
+/// installed skips its cases, says so into a void, and the run goes green looking exactly
+/// like one that checked everything.
+///
+/// So the rule differs by where it runs. On a laptop a missing tool is ordinary and the
+/// line is a note. On CI it is a hole in the build, and this fails instead.
+pub fn require_on_ci(what: &str, missing: &[String]) {
+    if missing.is_empty() || std::env::var("CI").is_err() {
+        return;
+    }
+    panic!(
+        "{what}: {} not installed on CI, so those cases checked nothing: {}",
+        missing.len(),
+        missing.join(", ")
+    );
+}
+
 /// A workspace on disk that can be indexed, edited and compiled.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Toolchain {
