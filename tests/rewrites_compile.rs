@@ -15,7 +15,7 @@
 //! a language is added here once and gets all of them.
 
 mod common;
-use common::{gate, must_plan, Toolchain, Workspace};
+use common::{gate, must_plan, GateRun, Toolchain, Workspace};
 
 use fun_refactor::lang::Language;
 use fun_refactor::refactor::rewrite::Rewrite;
@@ -456,8 +456,10 @@ fn skip(fixture: &Fixture) -> bool {
 
 #[test]
 fn every_fixture_compiles_before_anything_touches_it() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -467,13 +469,17 @@ fn every_fixture_compiles_before_anything_touches_it() {
                 fixture.language
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("the fixtures as written", &[]);
 }
 
 #[test]
 fn extracting_an_expression_compiles_in_every_language() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         for expression in fixture.expressions {
@@ -488,22 +494,31 @@ fn extracting_an_expression_compiles_in_every_language() {
                 false,
             )
             .map(|p| p.edits);
-            gate(
+            let compiled = gate(
                 &format!("extracting `{expression}` in {}", fixture.language),
                 &ws,
                 planned,
             );
+            run.record(fixture.language.name(), compiled);
         }
     }
+    // Java has no binding form the matrix claims, and every expression in it refused
+    // while this test reported success.
+    run.expect_refusals("extract variable", &["java"]);
 }
 
 #[test]
 fn extracting_a_function_compiles_in_every_language() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some((first, last)) = fixture.statements else {
+            // No statements to lift is a gap in the fixture, not a result about the
+            // language, so it counts as skipped rather than as a language that worked.
+            run.skip(fixture.language.name());
             continue;
         };
         let ws = fixture.workspace();
@@ -517,18 +532,22 @@ fn extracting_a_function_compiles_in_every_language() {
             "announce",
         )
         .map(|p| p.edits);
-        gate(
+        let compiled = gate(
             &format!("extracting a function in {}", fixture.language),
             &ws,
             planned,
         );
+        run.record(fixture.language.name(), compiled);
     }
+    run.expect_refusals("extract function", &[]);
 }
 
 #[test]
 fn every_rewrite_compiles_in_every_language() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         for (rewrite, needle) in [
@@ -536,6 +555,8 @@ fn every_rewrite_compiles_in_every_language() {
             (Rewrite::DeMorgan, fixture.de_morgan),
             (Rewrite::GuardClause, fixture.guard_clause),
         ] {
+            // A fixture without a construct for this rewrite says nothing about the
+            // language, so it is a skip and not a pass.
             let Some(needle) = needle else {
                 continue;
             };
@@ -545,19 +566,23 @@ fn every_rewrite_compiles_in_every_language() {
             let planned =
                 fun_refactor::refactor::rewrite::apply(&index, &ws.path(fixture.file), at, rewrite)
                     .map(|p| p.edits);
-            gate(
+            let compiled = gate(
                 &format!("{} in {}", rewrite.as_str(), fixture.language),
                 &ws,
                 planned,
             );
+            run.record(fixture.language.name(), compiled);
         }
     }
+    run.expect_refusals("rewrites", &[]);
 }
 
 #[test]
 fn restructuring_every_occurrence_compiles_in_every_language() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         for (pattern, template, expected) in fixture.restructures {
@@ -582,11 +607,14 @@ fn restructuring_every_occurrence_compiles_in_every_language() {
                 fixture.language
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("restructure", &[]);
 }
 
 #[test]
 fn inverting_an_if_twice_returns_it_to_what_it_was() {
+    let mut run = GateRun::default();
     // The strongest thing that can be asked of a rewrite without running the program: it
     // has an inverse, and applying both leaves the source where it started. A rewrite that
     // dropped an `else`, reordered a branch's statements or left a stray `!!` would
@@ -597,6 +625,7 @@ fn inverting_an_if_twice_returns_it_to_what_it_was() {
     // back out. The command says so rather than doing something.
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some(needle) = fixture.invert_if else {
@@ -637,7 +666,9 @@ fn inverting_an_if_twice_returns_it_to_what_it_was() {
                 fixture.language
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("inverting an if twice", &[]);
 }
 
 /// The `if` to invert on this round.
@@ -734,8 +765,10 @@ fn every_applicable_position(ws: &Workspace, file: &str) -> Vec<(usize, Rewrite)
 
 #[test]
 fn every_rewrite_the_command_offers_compiles() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let probe = fixture.workspace();
@@ -757,7 +790,7 @@ fn every_rewrite_the_command_offers_compiles() {
                 *rewrite,
             )
             .map(|p| p.edits);
-            gate(
+            let compiled = gate(
                 &format!(
                     "{} at offset {at} in {}",
                     rewrite.as_str(),
@@ -766,6 +799,7 @@ fn every_rewrite_the_command_offers_compiles() {
                 &ws,
                 planned,
             );
+            run.record(fixture.language.name(), compiled);
         }
         eprintln!(
             "rewrite sweep: {} — {} position(s) offered and checked",
@@ -773,6 +807,9 @@ fn every_rewrite_the_command_offers_compiles() {
             positions.len()
         );
     }
+    // Every position the command offers has to survive its own compiler: an offer that
+    // refuses is the command contradicting itself.
+    run.expect_refusals("the rewrites the command offers", &[]);
 }
 
 /// What this file covers, said out loud.

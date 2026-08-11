@@ -235,6 +235,24 @@ pub fn record(capability: Capability, language: Language) {
     }
 }
 
+/// Does this capability take a whole workspace rather than one thing in one language?
+///
+/// The difference decides what an `n/a` cell promises. Asked about a symbol, a span or a
+/// file, `n/a` means the command refuses: the caller pointed at something and is owed an
+/// answer about it. Asked about a workspace, the language is a filter and not an
+/// argument — a call graph over a tree holding Markdown is not refused, it simply has no
+/// Markdown in it — so `n/a` means the language contributes nothing.
+///
+/// It was implicit before, in which of the two recording functions a call site happened
+/// to use, and a test that wanted to hold the two promises apart had no way to ask.
+pub fn is_whole_workspace(capability: Capability) -> bool {
+    use Capability as C;
+    matches!(
+        capability,
+        C::CallGraph | C::EntryPoints | C::Stitch | C::Duplicates | C::DeadCode
+    )
+}
+
 /// Record a capability that runs over a whole workspace rather than one file.
 ///
 /// The languages the index actually holds, narrowed to the ones the matrix claims: a call
@@ -242,6 +260,11 @@ pub fn record(capability: Capability, language: Language) {
 /// Markdown, and recording that would make the audit agree with itself by inventing what
 /// it set out to check.
 pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
+    debug_assert!(
+        is_whole_workspace(capability),
+        "{} is recorded as a whole-workspace capability and is not one",
+        capability.label()
+    );
     if std::env::var_os("FR_CAPABILITY_LOG").is_none() {
         return;
     }
@@ -324,25 +347,16 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::refactor::extract::supports_extract_function(language) {
                 Support::Yes
             } else {
-                // The two imperative languages left do not get here for the same
-                // reason, and the shared one was Java's — so the table told the reader
-                // that a shell function needs a return type and modifiers.
+                // Java is the only language with something callable that is still
+                // refused, and the reason is Java's. Bash was carrying an arm here that
+                // explained why a shell function could not be written, while `fr
+                // extract --function` was writing them.
                 absent(
                     language,
                     "this language has nothing callable to extract into",
-                    match language {
-                        Language::Bash => {
-                            "a value crosses into a shell function as a positional \
-                             parameter and comes back as text on stdout or a global, so \
-                             the named parameters and returned value this computes have \
-                             no form here"
-                        }
-                        _ => {
-                            "a method here needs a written return type and modifiers, \
-                              and choosing them is a judgement about the code rather \
-                              than a fact about the selection"
-                        }
-                    },
+                    "a method here needs a written return type and modifiers, and \
+                     choosing them is a judgement about the code rather than a fact \
+                     about the selection",
                 )
             }
         }
@@ -478,20 +492,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
         C::Duplicates => Support::Yes,
 
         C::DeclaredType => {
-            // The question is "what did the source write down", so the answer is yes
-            // wherever a language has somewhere to write one. Bash has no type
-            // syntax at all; markup and configuration have values and not
-            // declarations, and a key in a YAML file is not annotated with anything.
-            if matches!(
-                language,
-                Language::Rust
-                    | Language::Go
-                    | Language::Zig
-                    | Language::Java
-                    | Language::TypeScript
-                    | Language::Tsx
-                    | Language::Python
-            ) {
+            // Asked of the analysis and not restated here, so the two cannot drift.
+            if crate::analysis::types::supports_declared_type(language) {
                 Support::Yes
             } else {
                 Support::NotApplicable {

@@ -364,7 +364,7 @@ figures below were measured on this branch.
 | Query sets | 14 |
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 16 |
-| Supported pairs | 270 of 384, every other one carrying its reason |
+| Supported pairs | 272 of 384, every other one carrying its reason |
 | Defects fixed | 311 |
 | Defects open | 12 |
 
@@ -594,8 +594,8 @@ name alone.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend, and every
-capability a language can meaningfully support is built: **270 of 384 capability ×
-language pairs supported, 114 not applicable, none refused.**
+capability a language can meaningfully support is built: **272 of 384 capability ×
+language pairs supported, 112 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, `fr capabilities` prints it with the reason
@@ -648,11 +648,11 @@ nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.
 
 `fr capabilities` computes the matrix from each refactoring's own predicate, so a `✓` means
 "this command would accept this language" and not "this has ever worked". Nothing had ever
-asked which of the 270 supported cells the tests reach.
+asked which of the 272 supported cells the tests reach.
 
 Measured, rather than argued about: every capability records the language it ran against
 when `FR_CAPABILITY_LOG` is set. The first run answered **205 of 270, 75%**. It is
-**270 of 270** now, and `tools/check.sh` measures it on the test run it already does, so
+**272 of 272** now, and `tools/check.sh` measures it on the test run it already does, so
 the figure is defended and not merely checkable. `tools/capability-audit.sh` asks the same
 question on its own, through the same reporter, so the two cannot drift apart.
 
@@ -664,6 +664,43 @@ Rust was unsupported when the fault was the destination path.
 
 What that file deliberately does not assert is that each answer is *good*. The four gates do
 that. This checks the claims are true.
+
+### The other half: what the empty cells promise
+
+`n/a` is a claim too — the command does not do this here — and nothing drove those 112
+cells, so it was unfalsifiable. `fr remove-flag` was breaking it on XML: an entity flag was
+substituted, `&use_new;` became `&true;`, and the prolog went with the declaration.
+
+`every_unsupported_capability_refuses_the_language_it_disclaims` drives every disclaimed
+cell and fails when one proceeds. It found 35 at first, and separating the two kinds of
+promise is what made the number mean anything: a whole-workspace analysis takes no language
+argument, so `n/a` there says the language contributes nothing rather than that the command
+refuses — `capabilities::is_whole_workspace` names that distinction, which had lived only
+in which of two recording functions a call site happened to use. Of the 95 that remain,
+seventeen were real: XML flag removal, and `fr type` and `fr flow` answering emptily for
+nine languages each. Two more went the other way — `fr extract --function` writes an SCSS
+`@mixin` and a shell function and the table said it could not, so the matrix grew to 272.
+
+The driver could not tell "the command proceeded" from "the fixture had nothing to offer",
+because eleven arms folded a missing symbol or span into `Ok(())`. Both tests now count
+those apart and report them, and both currently reach every cell they claim to.
+
+### Tests that passed without checking anything
+
+A test that cannot fail is worse than a missing one, because it is counted. Sweeping for
+the shapes — a loop over a collection that may be empty, a `let Some(x) else { return }`
+that skips in silence, a skip path that always fires, an assertion behind an early exit —
+turned up 53, and they are listed with their fixes in BUGS.md as B331–B336.
+
+The largest group was the compile gate: twenty-six sites called `gate` and discarded its
+answer, so `…_compiles_or_refuses` passed either way and two of them had never reached a
+compiler. Each now names the outcome it expects. The worst single one was a cascade test
+whose fixture never referenced the flag it was about: `remove_flag` bailed, the body sat
+behind `if let Ok(plan)`, and it had asserted nothing since the day it was written. Fixing
+it is what found the XML corruption above.
+
+The pattern worth keeping: every one of these was found by making the test say how much it
+had checked, and then reading the number.
 
 Open limitations are in BUGS.md. All twelve are described in writing, pinned by a test,
 and none is a missing feature: reachability under dynamic dispatch (inherent), Helm values
@@ -685,6 +722,8 @@ produced the findings below:
   thing six ways exposes a rule true only of the language it was written against.
 - **Feed the output back in.** Anything the tool emits, it should be able to read.
 - **Ask whether a test checks what its name claims.** Several did not.
+- **Ask what a test would still pass on.** A loop over an empty collection, a skip that
+  always fires, a refusal counted as success — 53 tests could pass while checking nothing.
 
 Five recurring shapes, each of which has caught more than one defect:
 

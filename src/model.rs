@@ -58,6 +58,45 @@ pub enum SymbolKind {
 }
 
 impl SymbolKind {
+    /// Every kind, so a rule about kinds can be asked of all of them at once.
+    pub const ALL: &'static [SymbolKind] = &[
+        SymbolKind::Function,
+        SymbolKind::Method,
+        SymbolKind::Class,
+        SymbolKind::Struct,
+        SymbolKind::Trait,
+        SymbolKind::Interface,
+        SymbolKind::Enum,
+        SymbolKind::TypeAlias,
+        SymbolKind::Constant,
+        SymbolKind::Variable,
+        SymbolKind::Parameter,
+        SymbolKind::Field,
+        SymbolKind::Module,
+        SymbolKind::Block,
+        SymbolKind::Key,
+        SymbolKind::Selector,
+        SymbolKind::Property,
+        SymbolKind::Anchor,
+        SymbolKind::Heading,
+        SymbolKind::LinkDef,
+        SymbolKind::ElementId,
+    ];
+
+    /// The kind with the article that fits it, for a sentence that reads.
+    ///
+    /// Nine refusals wrote `is a {kind}`, and four kinds start with a vowel: a YAML
+    /// anchor asked to be a flag was told "it is a anchor". The article belongs to the
+    /// word, so it lives with the word.
+    pub fn with_article(&self) -> String {
+        let word = self.as_str();
+        let article = match word.starts_with(['a', 'e', 'i', 'o', 'u']) {
+            true => "an",
+            false => "a",
+        };
+        format!("{article} {word}")
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             SymbolKind::Function => "function",
@@ -491,6 +530,35 @@ impl FileFacts {
         self.references
             .iter()
             .find(|r| r.span.contains_offset(offset))
+    }
+}
+
+#[cfg(test)]
+mod article_tests {
+    use super::SymbolKind;
+
+    #[test]
+    fn a_kind_starting_with_a_vowel_takes_an() {
+        // Nine refusals wrote the article themselves and four kinds start with a vowel,
+        // so `fr inline` on a Java interface said "is a interface".
+        assert_eq!(SymbolKind::Interface.with_article(), "an interface");
+        assert_eq!(SymbolKind::Anchor.with_article(), "an anchor");
+        assert_eq!(SymbolKind::Function.with_article(), "a function");
+        assert_eq!(SymbolKind::Variable.with_article(), "a variable");
+    }
+
+    #[test]
+    fn every_kind_gets_the_article_its_first_letter_asks_for() {
+        for kind in SymbolKind::ALL {
+            let said = kind.with_article();
+            let vowel = kind.as_str().starts_with(['a', 'e', 'i', 'o', 'u']);
+            assert_eq!(
+                said.starts_with("an "),
+                vowel,
+                "{} takes the wrong article: {said}",
+                kind.as_str()
+            );
+        }
     }
 }
 

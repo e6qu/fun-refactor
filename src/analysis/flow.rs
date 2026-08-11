@@ -13,7 +13,7 @@
 //! containing a weak link is visibly weak and not silently wrong.
 
 use crate::index::Index;
-use crate::lang::LanguageClass;
+use crate::lang::{Language, LanguageClass};
 use crate::model::{Confidence, ReferenceKind, SymbolId, SymbolKind};
 use crate::parse::Parsers;
 use crate::span::Span;
@@ -133,6 +133,7 @@ impl FlowResult {
 pub fn backward(index: &Index, file: &Path, offset: usize, max_depth: usize) -> Result<FlowResult> {
     if let Some(info) = index.file(file) {
         crate::capabilities::record(crate::capabilities::Capability::Flow, info.language);
+        refuse_unless_it_executes(info.language)?;
     }
     let mut result = FlowResult {
         direction: FlowDirection::Backward,
@@ -283,6 +284,7 @@ fn walk_backward(
 pub fn forward(index: &Index, symbol_id: SymbolId, max_depth: usize) -> Result<FlowResult> {
     if let Some(symbol) = index.symbol(symbol_id) {
         crate::capabilities::record(crate::capabilities::Capability::Flow, symbol.language);
+        refuse_unless_it_executes(symbol.language)?;
     }
     let mut result = FlowResult {
         direction: FlowDirection::Forward,
@@ -484,14 +486,39 @@ fn line_text(source: &str, offset: usize) -> String {
         .unwrap_or_default()
 }
 
-/// Does flow analysis apply to this file's language?
+/// Does flow analysis apply to this language?
 ///
 /// Config and markup languages get provenance analysis instead of dataflow: their
 /// evaluation model is substitution and override, not execution.
+pub fn supports_flow(language: Language) -> bool {
+    language.class() == LanguageClass::Imperative
+}
+
+/// Does flow analysis apply to this file's language?
 pub fn applies_to(index: &Index, file: &Path) -> bool {
     index
         .file(file)
-        .is_some_and(|info| info.language.class() == LanguageClass::Imperative)
+        .is_some_and(|info| supports_flow(info.language))
+}
+
+/// The refusal both entry points owe a language that does not execute.
+///
+/// The predicate above was the CLI's, asked before choosing between flow and
+/// provenance, so the answer was right by the route the CLI happened to take. Called as
+/// a library, `forward` and `backward` walked a Markdown or YAML symbol and returned an
+/// empty result, which reads as "nothing flows from here" rather than "this question
+/// has no meaning here" — and the matrix said `n/a` the whole time.
+fn refuse_unless_it_executes(language: Language) -> Result<()> {
+    if supports_flow(language) {
+        return Ok(());
+    }
+    Err(crate::refactor::Refusal::Unsupported {
+        operation: "following dataflow".into(),
+        language,
+        because: "this language is evaluated by substitution and override rather than \
+                  executed, so `fr provenance` answers this instead",
+    }
+    .into())
 }
 
 #[cfg(test)]

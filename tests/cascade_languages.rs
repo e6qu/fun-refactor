@@ -1041,28 +1041,44 @@ fn terraform_resolves_the_variable_across_the_module_directory() {
 // ================================================================ across languages
 
 #[test]
-fn a_language_without_a_collapse_step_says_so_rather_than_going_quiet() {
-    // YAML has no conditionals to collapse. Substituting is still useful, and the
-    // report is what makes the half-finished result honest.
-    let tmp = workspace(&[
-        ("a.py", "USE_NEW = True\n"),
-        ("conf.yaml", "use_new: USE_NEW\n"),
-    ]);
+fn a_language_without_a_collapse_step_refuses_rather_than_going_quiet() {
+    // This test used to assert that a substituted-but-uncollapsed YAML file is reported
+    // rather than left silent, over a fixture where `use_new: USE_NEW` was supposed to
+    // read the Python flag. It never does: YAML's only reference edge is the anchor and
+    // alias, which the query says in as many words. So `remove_flag` bailed, the whole
+    // body sat behind `if let Ok(plan)`, and the test asserted nothing from the day it
+    // was written.
+    //
+    // Driving it properly found the real defect. The matrix answers `supports_cascade`
+    // for this cell and the command never asked, so `n/a` was a claim with nothing
+    // behind it: an XML entity flag *was* substituted, `&use_new;` became `&true;`, an
+    // entity no document defines, and the prolog went with the declaration. The command
+    // asks the same predicate now, so the contract below is a refusal.
+    //
+    // The substituted-but-uncollapsed report has no reachable input any more, and this
+    // says why rather than pretending to cover it: the definition's language is checked
+    // above, and a reference in one of these languages never resolves better than
+    // `NameOnly`, which is not safe to rewrite. All seven were tried.
+    let tmp = workspace(&[(
+        "doc.xml",
+        "<?xml version=\"1.0\"?>\n<!DOCTYPE doc [\n<!ENTITY use_new \"true\">\n]>\n\
+         <doc>\n  <flag>&use_new;</flag>\n</doc>\n",
+    )]);
 
-    let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true);
-    // Whether YAML resolves the name at all is the index's business; the contract
-    // under test is that a substituted-but-uncollapsed file is never silent.
-    if let Ok(plan) = plan {
-        for path in plan.edits.paths() {
-            if path.extension().is_some_and(|e| e == "yaml") {
-                assert!(
-                    unfinished(&plan).contains("not collapsed"),
-                    "{}",
-                    unfinished(&plan)
-                );
-            }
-        }
-    }
+    let said = cascade::remove_flag(tmp.path(), "use_new", true)
+        .expect_err("xml has no conditional for a flag to guard")
+        .to_string();
+
+    assert!(
+        said.contains("is not supported for xml"),
+        "it refuses by name: {said}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(tmp.path().join("doc.xml")).expect("the file"),
+        "<?xml version=\"1.0\"?>\n<!DOCTYPE doc [\n<!ENTITY use_new \"true\">\n]>\n\
+         <doc>\n  <flag>&use_new;</flag>\n</doc>\n",
+        "and leaves the document exactly as it was"
+    );
 }
 
 #[test]

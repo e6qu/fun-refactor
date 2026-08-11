@@ -581,10 +581,14 @@ fn what_find_unused_reports_delete_can_always_remove() {
     );
 
     let mut refused = Vec::new();
+    let mut checked = 0;
     for id in &unused {
-        let Some(symbol) = index.symbol(*id) else {
-            continue;
-        };
+        // `find_unused` just returned this id, so the index not knowing it is a
+        // contradiction and not a reason to look at one candidate fewer.
+        let symbol = index
+            .symbol(*id)
+            .unwrap_or_else(|| panic!("find_unused returned an id the index does not hold"));
+        checked += 1;
         match delete::plan(&index, *id) {
             Ok(plan) => assert!(
                 !plan.edits.is_empty(),
@@ -605,6 +609,12 @@ fn what_find_unused_reports_delete_can_always_remove() {
         refused.is_empty(),
         "`fr unused` named these and `fr delete` would not remove them:\n  {}",
         refused.join("\n  ")
+    );
+    assert_eq!(
+        checked,
+        unused.len(),
+        "every candidate has to be asked, and {checked} of {} were",
+        unused.len()
     );
 }
 

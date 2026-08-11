@@ -154,9 +154,13 @@ fn instances_of_one_class_never_overlap_each_other() {
     let src = format!("package p\n\nfunc f(x int) {{\n{body}{body}}}\n\nfunc use(a, b int) {{}}\n");
     let (_tmp, index) = workspace(&[("a.go", &src)]);
 
+    // Counted, because the loop is the whole test: a run that found no class, or one
+    // instance per class, compares nothing and passes.
+    let mut compared = 0;
     for class in duplicates::find(&index, &options(15)).unwrap() {
         for (i, one) in class.instances.iter().enumerate() {
             for other in &class.instances[i + 1..] {
+                compared += 1;
                 if one.file == other.file {
                     assert!(
                         one.span.end <= other.span.start || other.span.end <= one.span.start,
@@ -166,6 +170,10 @@ fn instances_of_one_class_never_overlap_each_other() {
             }
         }
     }
+    assert!(
+        compared > 0,
+        "no two instances were compared, so this checked nothing"
+    );
 }
 
 #[test]

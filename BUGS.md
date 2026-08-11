@@ -181,6 +181,55 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B336: **the compile gate passed whether the tool worked or refused.** Twenty-six
+  call sites threw away `gate`'s answer, so every test named `…_compiles_or_refuses`
+  passed on either outcome — a test that cannot fail. Two of them (`fr move` on Go and on
+  Python) had never once reached a compiler, and any of the others could have started
+  refusing without a word. Each site now says which outcome it expects: `must_plan` where
+  it compiles, `must_refuse` with the reason where it declines, and `GateRun` for the
+  loops, which pins the set of languages that refuse and fails when nothing compiled at
+  all.
+
+- [x] B335: **licence and provenance checks passed when they checked nothing.** The
+  vendor walk swallowed an unreadable directory with `let Ok(entries) = read_dir else
+  { continue }`, so a vendor tree that had gone missing read as a tree with no stray
+  files in it; the licence-file check counted nothing; and the "nothing vendored is
+  compiled in" walk read each file with `unwrap_or_default`, so a file it could not read
+  became empty source, and empty source contains no `vendor/`. All three now count what
+  they examined and fail when the count is zero.
+
+- [x] B334: **nine refusals wrote their own article, and four kinds start with a vowel.**
+  `fr inline` on a Java interface said "'Shape' is a interface". The article belongs to
+  the word, so `SymbolKind::with_article` carries it, and a test asks every kind at once
+  rather than the four that happen to be wrong today.
+
+- [x] B333: **`fr type` and `fr flow` answered for nine languages the matrix disclaims.**
+  Both returned an empty answer for Markdown, YAML, XML and the rest — which reads as
+  "the source wrote nothing here" and "nothing flows from here", when the truth is that
+  the question has no meaning there. `fr flow` already had the predicate: `applies_to`
+  was the CLI's, asked before choosing between flow and provenance, so the answer was
+  right by the route the CLI happened to take and wrong for every library caller. Both
+  now refuse by name, and the language list lives in one place each.
+
+- [x] B332: **the matrix disclaimed two capabilities the tool has.** `fr extract
+  --function` writes an SCSS `@mixin` and a shell function, and has for as long as those
+  arms have existed, while the table said `n/a` for both — under a reason invented to
+  explain the gap, telling the reader that a value crosses into a shell function as a
+  positional parameter so the named parameters "have no form here". The matrix asked
+  `supports_extract_function` and the command asked
+  `supports_imperative_extract_function`; the two had drifted. One predicate now, and it
+  is the list of arms the command actually has: 272 of 384 pairs supported.
+
+- [x] B331: **`fr remove-flag` wrote XML that no parser accepts.** The matrix says `n/a`
+  for XML and the command never asked, so an entity flag was substituted anyway:
+  `&use_new;` became `&true;`, an entity no document defines, and the deletion took the
+  `<?xml?>` declaration and the whole DOCTYPE with it. `xmllint` rejects the result. The
+  command asks `supports_cascade` now — the same predicate the matrix publishes — and
+  refuses by name. Found by fixing a test that had never asserted anything: it asked
+  whether a substituted-but-uncollapsed YAML file is reported rather than left silent,
+  over a fixture where the YAML never referenced the flag, so `remove_flag` bailed and
+  the whole body sat behind an `if let Ok(plan)`.
+
 - [x] B330: **the scale sweep measured whatever `web/src/wasm` happened to hold.** The
   module it drives is a build artifact, and building it needs a wasm toolchain not every
   machine has, so a run on a stale one answers every question with old code and looks

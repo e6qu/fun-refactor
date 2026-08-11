@@ -596,9 +596,9 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
     let symbol = resolve_target(cli, &index, target)?;
     if !symbol.kind.is_callable() {
         anyhow::bail!(
-            "'{}' is a {}, not a function or method — it has no call edges",
+            "'{}' is {}, not a function or method — it has no call edges",
             symbol.name,
-            symbol.kind.as_str()
+            symbol.kind.with_article()
         );
     }
 
