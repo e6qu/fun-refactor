@@ -358,14 +358,14 @@ figures below were measured on this branch.
 | | |
 |---|---|
 | Commits | 149 |
-| Merged pull requests | 98 |
-| Rust source | 55,683 lines |
-| Tests | 1,899 in 97 files |
+| Merged pull requests | 99 |
+| Rust source | 55,839 lines |
+| Tests | 1,914 in 98 files |
 | Query sets | 14 |
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 16 |
 | Supported pairs | 270 of 384, every other one carrying its reason |
-| Defects fixed | 299 |
+| Defects fixed | 304 |
 | Defects open | 12 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses, which
@@ -602,6 +602,11 @@ asking each refactoring's own predicate, `fr capabilities` prints it with the re
 attached to every non-supported cell, and a test asserts the README matches. That
 exists because the hand-written version drifted twice — once hiding 27 unbuilt cells,
 once publishing six working ones as refused.
+
+The compile gate drives six of the sixteen languages — Rust, TypeScript, Go, Python, Zig
+and Java — and names the ten it does not on every run. The ten have no compiler to run: a
+stylesheet, a manifest and a document are checked by parsing them, which the edit engine
+already does.
 
 Open limitations are in BUGS.md. All twelve are described in writing, pinned by a test,
 and none is a missing feature: reachability under dynamic dispatch (inherent), Helm values

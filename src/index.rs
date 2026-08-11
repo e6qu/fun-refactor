@@ -348,18 +348,46 @@ impl Index {
             return (target, confidence);
         };
 
-        // Three receivers whose type is not a guess: the enclosing instance, a module
-        // path, and an import binding — all three name something the source declared.
-        // Anything else is a value this tool has not typed.
+        // Four receivers whose type is not a guess: the enclosing instance, a module
+        // path, an import binding, and a type's own name. All four name something the
+        // source declared. Anything else is a value this tool has not typed.
+        //
+        // The fourth was missing, and the omission was invisible because the rule that
+        // resolves such a call lives elsewhere: Java's `Widths.width(…)` found the right
+        // method and then had its confidence capped to `field-based`, which no
+        // refactoring will rewrite. Both places ask the same question and now ask it in
+        // one place.
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
-            || self.import_binding(info, receiver).is_some();
+            || self.import_binding(info, receiver).is_some()
+            || self.names_a_type(receiver, reference.language);
 
         // Weaker of the two: the tiers are ordered strongest first.
         match known {
             true => (target, confidence),
             false => (target, confidence.max(Confidence::FieldBased)),
         }
+    }
+
+    /// Whether a name is one this workspace declares a type under.
+    ///
+    /// What makes a receiver a path is what it names, not how the language punctuates it:
+    /// Rust writes `Type::m` and Java writes `Type.m`, and both say which type the member
+    /// belongs to.
+    fn names_a_type(&self, name: &str, language: Language) -> bool {
+        self.symbols.iter().any(|s| {
+            s.name == name
+                && s.language == language
+                && matches!(
+                    s.kind,
+                    SymbolKind::Class
+                        | SymbolKind::Struct
+                        | SymbolKind::Interface
+                        | SymbolKind::Enum
+                        | SymbolKind::Trait
+                        | SymbolKind::TypeAlias
+                )
+        })
     }
 
     fn resolve_by_evidence(
@@ -507,15 +535,26 @@ impl Index {
         //     `from_low_args` methods in one file, so the nearest-in-file rule below
         //     would pick whichever sat closest and leave the other three looking
         //     dead. `Patterns::` already says which.
-        if let Some(prefix) = reference
-            .receiver
-            .as_deref()
-            .filter(|_| reference.receiver_is_path)
-        {
+        //
+        //     A path is what the receiver *means*, not how it is punctuated. Rust writes
+        //     `Type::m` and Java writes `Type.m`, and only the first was recognised, so
+        //     every static call in Java fell through to the nearest-in-file rule below —
+        //     which answered `Widths.width(…)` inside `Holder.java` with `Holder`'s own
+        //     method, at exact confidence. A receiver that names a type in this workspace
+        //     is a path however the language spells it.
+        if let Some(prefix) = reference.receiver.as_deref().filter(|receiver| {
+            reference.receiver_is_path || self.names_a_type(receiver, reference.language)
+        }) {
             let by_qualifier: Vec<&Symbol> = candidates
                 .iter()
                 .filter_map(|id| self.symbol(*id))
-                .filter(|s| s.qualifier.as_deref() == Some(prefix))
+                // The language too. A workspace holding the same design in Python and in
+                // TypeScript declares `Money::of` twice, and matching on the qualifier
+                // alone called that ambiguous — so a call that had always resolved
+                // stopped, and `Money::plus` vanished from its callers.
+                .filter(|s| {
+                    s.language == reference.language && s.qualifier.as_deref() == Some(prefix)
+                })
                 .collect();
             match by_qualifier.len() {
                 1 => return (Some(by_qualifier[0].id), Confidence::Exact),
@@ -544,6 +583,34 @@ impl Index {
                     0 => {}
                     _ => return (None, Confidence::FieldBased),
                 }
+            }
+        }
+
+        // 0b. A receiver bound by an import names a *file*, so the member is one of that
+        //     file's declarations. `const holder = @import("holder.zig")` makes
+        //     `holder.width(…)` a call to the `width` declared over there, and the import
+        //     statement is what says so.
+        //
+        //     This runs beside the rule above and for the same reason: without it the
+        //     call reached the name-matching rules, which saw a free function and a
+        //     method sharing one name and could not choose. Every cross-file call in Zig
+        //     was unresolved, so `fr rename` rewrote the declaration and left the callers
+        //     naming something the file no longer has.
+        if let Some(file) = reference
+            .receiver
+            .as_deref()
+            .and_then(|receiver| self.import_binding(info, receiver))
+            .and_then(|import| self.resolve_import_path(path, &import.path))
+        {
+            let over_there: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| s.file == file && s.is_top_level())
+                .collect();
+            match over_there.len() {
+                1 => return (Some(over_there[0].id), Confidence::ImportQualified),
+                0 => {}
+                _ => return (None, Confidence::FieldBased),
             }
         }
 
@@ -992,6 +1059,15 @@ impl Index {
             return None;
         }
         let dir = from.parent()?;
+
+        // A path that names a file beside this one, with no `./` in front of it. Zig
+        // writes `@import("holder.zig")` exactly so, and every branch below assumed a
+        // leading dot or a dotted module name: the extension was read as the last segment
+        // of a dotted path, so `holder.zig` was looked up as a file called `zig`.
+        let beside = dir.join(import_path);
+        if self.files.contains_key(&beside) {
+            return Some(beside);
+        }
 
         if import_path.starts_with('.') || import_path.starts_with('/') {
             let base = dir.join(import_path.trim_start_matches("./"));

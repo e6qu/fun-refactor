@@ -23,6 +23,8 @@ enum Toolchain {
     Tsc,
     Go,
     Python,
+    Zig,
+    Javac,
 }
 
 impl Toolchain {
@@ -33,6 +35,8 @@ impl Toolchain {
             Toolchain::Tsc => "tsc",
             Toolchain::Go => "go",
             Toolchain::Python => "python3",
+            Toolchain::Zig => "zig",
+            Toolchain::Javac => "javac",
         }
     }
 
@@ -41,7 +45,7 @@ impl Toolchain {
         // way reported Go as absent on a machine that has it, and every Go case skipped
         // itself while the run stayed green.
         let version_flag = match self {
-            Toolchain::Go => "version",
+            Toolchain::Go | Toolchain::Zig => "version",
             _ => "--version",
         };
         Command::new(self.program())
@@ -57,6 +61,8 @@ impl Toolchain {
             Toolchain::Tsc => "tsc --noEmit",
             Toolchain::Go => "go build ./...",
             Toolchain::Python => "python -m compileall, then import and call the fixture",
+            Toolchain::Zig => "zig build-obj, from the root that reaches every file",
+            Toolchain::Javac => "javac over every source in the workspace",
         }
     }
 }
@@ -81,6 +87,14 @@ impl Workspace {
 
     fn python(files: &[(&str, &str)]) -> Self {
         Self::with(Toolchain::Python, files)
+    }
+
+    fn zig(files: &[(&str, &str)]) -> Self {
+        Self::with(Toolchain::Zig, files)
+    }
+
+    fn java(files: &[(&str, &str)]) -> Self {
+        Self::with(Toolchain::Javac, files)
     }
 
     fn with(toolchain: Toolchain, files: &[(&str, &str)]) -> Self {
@@ -161,6 +175,35 @@ impl Workspace {
                     .current_dir(self.dir.path())
                     .output()
                     .expect("python3 runs")
+            }
+            // Zig analyses what the root reaches and nothing else, so the fixture's root
+            // calls into every file for there to be anything to check. `-fno-emit-bin`
+            // keeps the object file out of the workspace the next index would scan.
+            Toolchain::Zig => Command::new("zig")
+                .args(["build-obj", "main.zig", "-fno-emit-bin"])
+                .arg("--cache-dir")
+                .arg(self.dir.path().join("zig-cache"))
+                .current_dir(self.dir.path())
+                .output()
+                .expect("zig runs"),
+            // Every source named at once, because javac resolves across the set it is
+            // given and would otherwise read a stale class file for a file it was not.
+            Toolchain::Javac => {
+                let mut sources: Vec<PathBuf> = std::fs::read_dir(self.dir.path())
+                    .expect("read_dir")
+                    .filter_map(|entry| {
+                        let path = entry.ok()?.path();
+                        (path.extension()? == "java").then_some(path)
+                    })
+                    .collect();
+                sources.sort();
+                Command::new("javac")
+                    .arg("-d")
+                    .arg(self.dir.path().join("classes"))
+                    .args(&sources)
+                    .current_dir(self.dir.path())
+                    .output()
+                    .expect("javac runs")
             }
         };
         match output.status.success() {
@@ -917,6 +960,217 @@ fn inlining_a_python_variable_compiles_or_refuses() {
     gate("inlining a Python variable", &ws, planned);
 }
 
+// ------------------------------------------------------------------ Zig
+
+/// The same shapes again in Zig: a free function and a method of one name, a second file
+/// importing the first, and a root that calls both.
+///
+/// The root matters more here than in the other languages. Zig analyses what it can reach
+/// from the file it is given and leaves the rest alone, so a declaration nothing calls is
+/// never type-checked and a gate pointed at it would pass on anything.
+fn zig_files() -> Vec<(&'static str, &'static str)> {
+    vec![
+        (
+            "holder.zig",
+            "pub const Holder = struct {\n    items: []const u8,\n\n    \
+             pub fn width(self: Holder, n: usize) usize {\n        \
+             return self.items.len + n;\n    }\n};\n\n\
+             pub fn width(items: []const u8, n: usize) usize {\n    return items.len + n;\n}\n",
+        ),
+        (
+            "util.zig",
+            "const holder = @import(\"holder.zig\");\n\n\
+             pub fn describe(h: holder.Holder) usize {\n    \
+             const total = holder.width(h.items, 1);\n    return total * 2;\n}\n",
+        ),
+        (
+            "main.zig",
+            "const holder = @import(\"holder.zig\");\nconst util = @import(\"util.zig\");\n\n\
+             pub fn main() void {\n    const h = holder.Holder{ .items = \"ab\" };\n    \
+             _ = util.describe(h);\n    _ = h.width(1);\n    \
+             _ = holder.width(h.items, 2);\n}\n",
+        ),
+    ]
+}
+
+#[test]
+fn the_zig_fixture_compiles_before_anything_touches_it() {
+    if !Toolchain::Zig.is_available() {
+        eprintln!("compile gate: zig skipped, zig is not on PATH");
+        return;
+    }
+    let ws = Workspace::zig(&zig_files());
+    if let Err(e) = ws.compiles() {
+        panic!("the Zig fixture is broken before any refactoring:\n{e}");
+    }
+}
+
+#[test]
+fn renaming_a_zig_function_compiles() {
+    if !Toolchain::Zig.is_available() {
+        eprintln!("compile gate: zig skipped, zig is not on PATH");
+        return;
+    }
+    let ws = Workspace::zig(&zig_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::rename::plan(&index, id, "spanOf").map(|p| p.edits);
+    must_plan("renaming a Zig function", &ws, planned);
+}
+
+#[test]
+fn changing_a_zig_signature_compiles_or_refuses() {
+    if !Toolchain::Zig.is_available() {
+        eprintln!("compile gate: zig skipped, zig is not on PATH");
+        return;
+    }
+    let ws = Workspace::zig(&zig_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::signature::change(
+        &index,
+        id,
+        fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
+    )
+    .map(|p| p.edits);
+    gate("changing a Zig signature", &ws, planned);
+}
+
+#[test]
+fn moving_a_zig_symbol_compiles_or_refuses() {
+    if !Toolchain::Zig.is_available() {
+        eprintln!("compile gate: zig skipped, zig is not on PATH");
+        return;
+    }
+    let ws = Workspace::zig(&zig_files());
+    let index = ws.index();
+    let id = the_free_function(&index, "width");
+    let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("util.zig"))
+        .map(|p| p.edits);
+    gate("moving a Zig symbol", &ws, planned);
+}
+
+#[test]
+fn inlining_a_zig_variable_compiles_or_refuses() {
+    if !Toolchain::Zig.is_available() {
+        eprintln!("compile gate: zig skipped, zig is not on PATH");
+        return;
+    }
+    let ws = Workspace::zig(&zig_files());
+    let index = ws.index();
+    let total = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "total")
+        .expect("the local")
+        .id;
+    let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
+    gate("inlining a Zig variable", &ws, planned);
+}
+
+// ----------------------------------------------------------------- Java
+
+/// The same shapes in Java, where they land differently: a class has no top level, so the
+/// free function is a static method on a class of its own and the method is on the record.
+fn java_files() -> Vec<(&'static str, &'static str)> {
+    vec![
+        (
+            "Widths.java",
+            "public class Widths {\n    public static int width(byte[] items, int n) {\n        \
+             return items.length + n;\n    }\n}\n",
+        ),
+        (
+            "Holder.java",
+            "public class Holder {\n    public byte[] items = new byte[0];\n\n    \
+             public int width(int n) {\n        return Widths.width(items, n);\n    }\n}\n",
+        ),
+        (
+            "Describe.java",
+            "public class Describe {\n    public static String describe(Holder h) {\n        \
+             int total = Widths.width(h.items, 1);\n        \
+             return String.valueOf(total * 2);\n    }\n}\n",
+        ),
+        (
+            "Main.java",
+            "public class Main {\n    public static void main(String[] args) {\n        \
+             Holder h = new Holder();\n        h.items = new byte[] { 1, 2 };\n        \
+             System.out.println(\n            Describe.describe(h) + h.width(1) + \
+             Widths.width(h.items, 2));\n    }\n}\n",
+        ),
+    ]
+}
+
+#[test]
+fn the_java_fixture_compiles_before_anything_touches_it() {
+    if !Toolchain::Javac.is_available() {
+        eprintln!("compile gate: java skipped, javac is not on PATH");
+        return;
+    }
+    let ws = Workspace::java(&java_files());
+    if let Err(e) = ws.compiles() {
+        panic!("the Java fixture is broken before any refactoring:\n{e}");
+    }
+}
+
+/// The static method, which is the free function's counterpart here.
+fn the_static_method(index: &Index, name: &str) -> fun_refactor::model::SymbolId {
+    index
+        .symbols
+        .iter()
+        .find(|s| s.name == name && s.qualifier.as_deref() == Some("Widths"))
+        .unwrap_or_else(|| panic!("no static method named {name} on Widths"))
+        .id
+}
+
+#[test]
+fn renaming_a_java_method_compiles() {
+    if !Toolchain::Javac.is_available() {
+        eprintln!("compile gate: java skipped, javac is not on PATH");
+        return;
+    }
+    let ws = Workspace::java(&java_files());
+    let index = ws.index();
+    let id = the_static_method(&index, "width");
+    let planned = fun_refactor::refactor::rename::plan(&index, id, "spanOf").map(|p| p.edits);
+    must_plan("renaming a Java method", &ws, planned);
+}
+
+#[test]
+fn changing_a_java_signature_compiles_or_refuses() {
+    if !Toolchain::Javac.is_available() {
+        eprintln!("compile gate: java skipped, javac is not on PATH");
+        return;
+    }
+    let ws = Workspace::java(&java_files());
+    let index = ws.index();
+    let id = the_static_method(&index, "width");
+    let planned = fun_refactor::refactor::signature::change(
+        &index,
+        id,
+        fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
+    )
+    .map(|p| p.edits);
+    gate("changing a Java signature", &ws, planned);
+}
+
+#[test]
+fn inlining_a_java_variable_compiles_or_refuses() {
+    if !Toolchain::Javac.is_available() {
+        eprintln!("compile gate: java skipped, javac is not on PATH");
+        return;
+    }
+    let ws = Workspace::java(&java_files());
+    let index = ws.index();
+    let total = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "total")
+        .expect("the local")
+        .id;
+    let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
+    gate("inlining a Java variable", &ws, planned);
+}
+
 /// The gate has to be able to fail.
 ///
 /// Every other test here passes when the tool behaves. That is also what they would do if
@@ -998,6 +1252,39 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
     } else {
         eprintln!("compile gate: the Python half of this check was skipped, python3 is absent");
     }
+
+    if Toolchain::Zig.is_available() {
+        let zig = Workspace::zig(&zig_files());
+        std::fs::write(
+            zig.path("util.zig"),
+            "const holder = @import(\"holder.zig\");\n\n\
+             pub fn describe(h: holder.Holder) usize {\n    \
+             return holder.noSuchFunction(h);\n}\n",
+        )
+        .expect("write");
+        assert!(
+            zig.compiles().is_err(),
+            "zig accepted a call to a declaration the imported file does not have"
+        );
+    } else {
+        eprintln!("compile gate: the Zig half of this check was skipped, zig is absent");
+    }
+
+    if Toolchain::Javac.is_available() {
+        let java = Workspace::java(&java_files());
+        std::fs::write(
+            java.path("Describe.java"),
+            "public class Describe {\n    public static String describe(Holder h) {\n        \
+             return Widths.noSuchMethod(h);\n    }\n}\n",
+        )
+        .expect("write");
+        assert!(
+            java.compiles().is_err(),
+            "javac accepted a call to a method that does not exist"
+        );
+    } else {
+        eprintln!("compile gate: the Java half of this check was skipped, javac is absent");
+    }
 }
 
 /// What this gate covers, said out loud.
@@ -1016,6 +1303,8 @@ fn the_gate_states_what_it_covers() {
         ("typescript", Toolchain::Tsc),
         ("go", Toolchain::Go),
         ("python", Toolchain::Python),
+        ("zig", Toolchain::Zig),
+        ("java", Toolchain::Javac),
     ] {
         eprintln!(
             "compile gate: {language} — {} ({})",
@@ -1027,9 +1316,10 @@ fn the_gate_states_what_it_covers() {
         );
     }
     // The languages this file has no fixture for. Naming them is the point: a green run
-    // covers four languages out of sixteen, and saying so keeps it from reading as more.
+    // covers six languages out of sixteen, and saying so keeps it from reading as more.
+    // The ten below have no compiler to run — a stylesheet, a manifest and a document
+    // are checked by parsing them, which the edit engine already does.
     eprintln!(
-        "compile gate: not driven — zig, java, bash, html, css, scss, hcl, yaml, helm, xml, \
-         markdown, tsx"
+        "compile gate: not driven — bash, html, css, scss, hcl, yaml, helm, xml, markdown, tsx"
     );
 }

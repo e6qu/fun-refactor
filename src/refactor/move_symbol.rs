@@ -2586,6 +2586,30 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         format!("move {} in", sym.name),
     );
 
+    // The destination may already have been calling it through the file it is leaving:
+    // `holder.width(…)`. The declaration is local here now, so the namespace in front of
+    // it names a file that no longer has the name. Nothing was adding that qualifier, so
+    // nothing was removing it either, and the destination was the one file the loop below
+    // skipped.
+    if let Some(namespace) = zig_import_binding(index, destination, &sym.file) {
+        let text = crate::vfs::read_to_string(destination)?;
+        let parsed = crate::parse::Parsers::new().parse(Language::Zig, &text)?;
+        for reference in outside.iter().filter(|r| r.file == *destination) {
+            let Some(qualifier) = zig_qualifier_span(&parsed, &text, reference.span, &namespace)
+            else {
+                continue;
+            };
+            plan.edits.add(
+                destination.to_path_buf(),
+                Edit::new(
+                    qualifier,
+                    "",
+                    format!("`{}` is declared here now", sym.name),
+                ),
+            );
+        }
+    }
+
     let mut by_file: BTreeMap<PathBuf, Vec<&crate::model::Reference>> = BTreeMap::new();
     for reference in &outside {
         if reference.file == *destination {
@@ -2732,6 +2756,31 @@ fn zig_top_level<'a>(index: &'a Index, file: &Path) -> Vec<&'a Symbol> {
 }
 
 /// The local name `file` binds the `@import` of `target` to, if it has one.
+/// The `namespace.` in front of a use of a name, where that is what is written.
+///
+/// Returns the bytes from the namespace to the member, so removing them leaves the bare
+/// name behind. Nothing is returned where the use carries no namespace, or carries a
+/// different one — another file's declaration of the same name is somebody else's.
+fn zig_qualifier_span(
+    parsed: &crate::parse::Parsed,
+    source: &str,
+    member: Span,
+    namespace: &str,
+) -> Option<Span> {
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(member.start, member.end)?;
+    let parent = node.parent()?;
+    if parent.kind() != "field_expression" {
+        return None;
+    }
+    let object = parent.child_by_field_name("object")?;
+    if Span::from(object).text(source).trim() != namespace {
+        return None;
+    }
+    Some(Span::new(object.start_byte(), member.start))
+}
+
 fn zig_import_binding(index: &Index, file: &Path, target: &Path) -> Option<String> {
     let info = index.file(file)?;
     info.imports.iter().find_map(|import| {
