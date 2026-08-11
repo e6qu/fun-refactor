@@ -25,14 +25,17 @@ jobs:
         run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
 
       # The tools the validator gate drives. Without them those cases skip themselves
-      # and say so, which keeps the run honest — and leaves two languages checked on a
-      # laptop and nowhere else. `shellcheck` and `xmllint` are already on the runner;
-      # these two are not. Pinned, because a gate that changes under you is not a gate.
+      # and say so, which keeps the run honest — and leaves a language checked on a
+      # laptop and nowhere else. Only `shellcheck` is already on the runner; `xmllint`
+      # is not, which this step found out by asking rather than by assuming. The two
+      # downloads are pinned, because a gate that changes under you is not a gate.
       - name: Install the validators the gate drives
         run: |
           set -euo pipefail
           TERRAFORM=1.9.8
           HELM=v3.16.3
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils
           curl -fsSL -o /tmp/terraform.zip \
             "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
           sudo unzip -o -d /usr/local/bin /tmp/terraform.zip

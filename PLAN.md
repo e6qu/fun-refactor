@@ -630,8 +630,8 @@ in bash, `$NAME` in a restructure pattern is a metavariable and not a shell expa
 the tool documents that; and the bash arm of the gate was too weak until it ran the script,
 because `bash -n` cannot see a call to a function that moved to another file.
 
-CI installs `terraform` and `helm` at pinned versions so that sweep runs there and not only
-on a laptop; `shellcheck` and `xmllint` are already on the runner. A validator the gate
+CI installs `terraform`, `helm` and `xmllint` so that sweep runs there and not only on a
+laptop; only `shellcheck` is already on the runner. A validator the gate
 cannot find makes its cases skip themselves and say so, which is honest and is also how a
 language ends up checked in one place and nowhere else.
 
