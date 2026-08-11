@@ -666,6 +666,71 @@ fn supplies_the_block_below(source: &str, spans: &[Span], span: Span) -> bool {
     false
 }
 
+/// The expression a declaration binds, where the grammar exposes one.
+///
+/// One definition, because there were three and they disagreed. Each was written against
+/// the languages its caller had in front of it, and each missed a different grammar: a
+/// Java local's value hangs off a declarator and not off the declaration, so `fr inline`
+/// called every Java local uninitialised; `fr type` answered `var` — the keyword that
+/// means "work it out" — as though it were the type written down, because it could not
+/// reach the value to work anything out from.
+///
+/// The shapes, and why each is here:
+///
+/// * `value`, `right`, `default_value` — what most grammars call the field.
+/// * `declarator` — Java and the C family put the name and the value together, because
+///   one statement may declare several: `int a = 1, b = 2;`.
+/// * `expression_list` — Go wraps every bound value in a list, even where it binds one.
+/// * no field at all — Zig gives a variable declaration's children no names, so the value
+///   is the last of them, unless the declaration states a type and binds nothing.
+pub fn declaration_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
+    let bound = ["value", "right", "default_value"]
+        .iter()
+        .find_map(|field| declaration.child_by_field_name(field))
+        .or_else(|| {
+            declaration
+                .child_by_field_name("declarator")
+                .and_then(declaration_value)
+        })
+        .or_else(|| zig_bound_value(declaration))
+        .or_else(|| after_the_equals(declaration))?;
+
+    match bound.kind() == "expression_list" && bound.named_child_count() == 1 {
+        true => bound.named_child(0),
+        false => Some(bound),
+    }
+}
+
+/// Zig's variable declaration names none of its children, so the value is the last one —
+/// unless that is the type it states, in which case it binds nothing.
+fn zig_bound_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
+    if declaration.kind() != "variable_declaration" {
+        return None;
+    }
+    let count = u32::try_from(declaration.named_child_count()).ok()?;
+    let last = declaration.named_child(count.checked_sub(1)?)?;
+    (Some(last) != declaration.child_by_field_name("type")).then_some(last)
+}
+
+/// The node after an `=`, for a grammar that names neither side.
+fn after_the_equals<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
+    let mut cursor = declaration.walk();
+    let children: Vec<Node<'t>> = declaration.children(&mut cursor).collect();
+    let at = children.iter().position(|c| c.kind() == "=")?;
+    children
+        .get(at + 1)
+        .copied()
+        .filter(|c| c.kind() != ";" && c.kind() != "}")
+}
+
+/// Whether a type as written is a placeholder for one the compiler works out.
+///
+/// Java's `var`, C++'s `auto` and Go's `:=` all mean "not stated". Reporting the keyword
+/// as the declared type answers the question with the question.
+pub fn is_an_inferred_type(written: &str) -> bool {
+    matches!(written.trim(), "var" | "auto" | "let" | "const")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

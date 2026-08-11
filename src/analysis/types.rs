@@ -119,7 +119,11 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
 
     let declared = match sym.kind.is_callable() {
         true => signature(&parsed, &source, sym),
-        false => binding_type(&parsed, &source, sym.full_span),
+        // `var` and `auto` are the keyword for "not stated", so a binding written with one
+        // has no declared type and falls through to what can be worked out. Reporting the
+        // keyword answered the question with the question.
+        false => binding_type(&parsed, &source, sym.full_span)
+            .filter(|written| !crate::parse::is_an_inferred_type(written)),
     };
     let parameters = match sym.kind.is_callable() {
         true => parameters_of(&parsed, &source, sym),
@@ -170,6 +174,10 @@ fn infer(
 }
 
 /// The expression a definition binds, where the grammar names one.
+///
+/// The declaration itself first, through the one reader that knows every grammar's shape,
+/// and only then outwards: a Python `x: int = 1` hangs the value off the assignment and
+/// not off `x`, so the name alone is not always the declaration.
 fn assigned_value<'a>(parsed: &'a Parsed, declaration: Span, name: Span) -> Option<Node<'a>> {
     let node = parsed
         .root()
@@ -177,11 +185,9 @@ fn assigned_value<'a>(parsed: &'a Parsed, declaration: Span, name: Span) -> Opti
     let mut current = Some(node);
     for _ in 0..4 {
         let here = current?;
-        for field in ["value", "right", "default_value"] {
-            if let Some(value) = here.child_by_field_name(field) {
-                if Span::from(value) != name {
-                    return Some(value);
-                }
+        if let Some(value) = crate::parse::declaration_value(here) {
+            if Span::from(value) != name {
+                return Some(value);
             }
         }
         current = here.parent();
@@ -213,10 +219,20 @@ fn infer_expression(
     match kind {
         // `Money(0, USD)` in Python, `new Money(...)` in TypeScript. The callee decides
         // which of the two this is: a class is constructed, a function is called.
-        "call" | "call_expression" | "new_expression" => {
-            let callee = node
-                .child_by_field_name("function")
-                .or_else(|| node.child_by_field_name("constructor"))?;
+        // Java spells a call `method_invocation` and a construction
+        // `object_creation_expression`, which is the same omission that once made
+        // `fr signature` refuse at every Java call site there has ever been.
+        "call"
+        | "call_expression"
+        | "new_expression"
+        | "method_invocation"
+        | "object_creation_expression" => {
+            // Each grammar names the callee differently: `function` in most,
+            // `constructor` for a TypeScript `new`, and in Java `name` for a call and
+            // `type` for a construction.
+            let callee = ["function", "constructor", "name", "type"]
+                .iter()
+                .find_map(|field| node.child_by_field_name(field))?;
             let name = last_segment(Span::from(callee).text(source).trim());
             let target = resolve_in_workspace(index, from, name)?;
             let resolved = index.symbol(target)?;

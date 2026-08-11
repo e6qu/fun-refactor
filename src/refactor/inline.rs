@@ -71,7 +71,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .root()
         .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
         .ok_or_else(|| anyhow::anyhow!("could not locate the binding"))?;
-    let value = bound_value(node).ok_or_else(|| {
+    let value = crate::parse::declaration_value(node).ok_or_else(|| {
         anyhow::anyhow!(
             "'{}' has no initialiser, so there is nothing to inline",
             sym.name
@@ -139,11 +139,17 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     }
 
     // Remove the binding, taking its whole line when nothing else is on it.
-    let line = full_line_span(&source, sym.full_span.start);
-    let removal = if line.text(&source).trim() == sym.full_span.text(&source).trim() {
+    //
+    // A Java declarator is the symbol and the `int` in front of it is not, so removing
+    // the symbol's own span left `int ;` behind. The statement goes too — but only where
+    // this declarator is the only one in it, because `int a = 1, b = 2, c = 3;` declares
+    // three and inlining one must leave the other two alone.
+    let binding = sole_declarator_statement(&parsed, sym.full_span).unwrap_or(sym.full_span);
+    let line = full_line_span(&source, binding.start);
+    let removal = if line.text(&source).trim() == binding.text(&source).trim() {
         line
     } else {
-        sym.full_span
+        binding
     };
     edits.add(
         sym.file.clone(),
@@ -156,29 +162,6 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         edits,
         use_sites: references.len(),
     })
-}
-
-/// A later assignment to the same name, if any.
-/// The value a binding is bound to.
-///
-/// Most grammars name it — `value`, or `right` for an assignment — and tree-sitter-zig
-/// names nothing at all: a `variable_declaration` there holds the `=` as an anonymous
-/// token with the value after it. Asking only for the field meant `inline` refused
-/// every Zig binding there has ever been, while the capability matrix said it worked.
-fn bound_value<'t>(node: tree_sitter::Node<'t>) -> Option<tree_sitter::Node<'t>> {
-    if let Some(value) = node
-        .child_by_field_name("value")
-        .or_else(|| node.child_by_field_name("right"))
-    {
-        return Some(value);
-    }
-    let mut cursor = node.walk();
-    let children: Vec<tree_sitter::Node<'t>> = node.children(&mut cursor).collect();
-    let at = children.iter().position(|c| c.kind() == "=")?;
-    children
-        .get(at + 1)
-        .copied()
-        .filter(|c| c.kind() != ";" && c.kind() != "}")
 }
 
 /// The value as it must read at a use site.
@@ -374,6 +357,28 @@ pub fn weakest_use(index: &Index, symbol: SymbolId) -> Option<Confidence> {
         .iter()
         .map(|r| r.confidence)
         .max()
+}
+
+/// The declaration statement a lone declarator belongs to.
+///
+/// Java and the C family write the type once and the bindings after it, so the symbol is
+/// `total = g()` and the statement is `int total = g();`. Removing the symbol alone leaves
+/// the type stranded. Where the statement declares more than one name the symbol is all
+/// that may go, and this answers `None`.
+fn sole_declarator_statement(parsed: &crate::parse::Parsed, symbol: Span) -> Option<Span> {
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(symbol.start, symbol.end)?;
+    if Span::from(node) != symbol || !node.kind().contains("declarator") {
+        return None;
+    }
+    let parent = node.parent()?;
+    let mut cursor = parent.walk();
+    let siblings = parent
+        .named_children(&mut cursor)
+        .filter(|c| c.kind() == node.kind())
+        .count();
+    (siblings == 1).then(|| Span::from(parent))
 }
 
 #[cfg(test)]

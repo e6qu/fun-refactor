@@ -175,9 +175,13 @@
     name: (identifier) @name)) @definition.field
 
 ; ---- locals and parameters, never visible outside the method that declares them
+; The declarator and not the statement. One statement may declare several names —
+; `int a = 1, b = 2, c = 3;` — and capturing the statement gave all three the same span,
+; so each of them claimed the other two: inlining `b` took `a`'s value and deleted the
+; whole line.
 (local_variable_declaration
   declarator: (variable_declarator
-    name: (identifier) @name)) @definition.variable
+    name: (identifier) @name) @definition.variable)
 
 (formal_parameter
   name: (identifier) @name) @definition.parameter
