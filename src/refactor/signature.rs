@@ -170,9 +170,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
     if !matches!(sym.kind, SymbolKind::Function | SymbolKind::Method) {
         anyhow::bail!(
-            "'{}' is a {}; only functions and methods have signatures",
+            "'{}' is {}; only functions and methods have signatures",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         );
     }
 
@@ -718,9 +718,9 @@ struct ShellCall {
 fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<SignaturePlan> {
     if sym.kind != SymbolKind::Function {
         anyhow::bail!(
-            "'{}' is a {}; only a shell function has positional parameters",
+            "'{}' is {}; only a shell function has positional parameters",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         );
     }
     // Two functions of one name make every call site ambiguous, and bash resolves
@@ -1712,10 +1712,10 @@ fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
             }
         }
         _ => anyhow::bail!(
-            "'{}' is a {} in Terraform; only a `variable` block or a `module` block names a \
+            "'{}' is {} in Terraform; only a `variable` block or a `module` block names a \
              module signature",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         ),
     }
 }

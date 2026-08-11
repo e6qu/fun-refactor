@@ -2300,10 +2300,10 @@ fn imports_reach(index: &Index, origin: &Path, target: &Path) -> bool {
 fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.kind != SymbolKind::Heading {
         bail!(
-            "'{}' is a {}, not a heading; a Markdown move takes a section, which is a \
+            "'{}' is {}, not a heading; a Markdown move takes a section, which is a \
              heading and the content under it",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         );
     }
 
@@ -2906,11 +2906,11 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
     if sym.kind != SymbolKind::Function {
         bail!(
-            "'{}' is a {}; only a function can be moved between scripts. A variable's \
+            "'{}' is {}; only a function can be moved between scripts. A variable's \
              value depends on when its assignment ran, so moving one changes what it \
              holds and not where it lives",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         );
     }
     if sym.container.is_some() {
@@ -3100,11 +3100,11 @@ fn shell_prelude_end(source: &str) -> usize {
 fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.kind != SymbolKind::Key {
         bail!(
-            "'{}' is a {}; only a mapping key and the subtree under it can move between \
+            "'{}' is {}; only a mapping key and the subtree under it can move between \
              values files. An anchor is resolved within one document and does not \
              survive leaving it",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         );
     }
     if let Some(container) = sym.container.and_then(|id| index.symbol(id)) {

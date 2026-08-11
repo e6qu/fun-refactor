@@ -12,7 +12,8 @@
 
 mod common;
 use common::{
-    awkward, gate, must_plan, plain, rustc_is_available, the_free_function, Toolchain, Workspace,
+    awkward, gate, must_plan, must_refuse, plain, rustc_is_available, the_free_function, Toolchain,
+    Workspace,
 };
 
 use fun_refactor::edit::EditSet;
@@ -176,7 +177,12 @@ fn extracting_an_expression_from_inside_a_closure_compiles_or_refuses() {
         false,
     )
     .map(|p| p.edits);
-    gate("extracting from inside a closure", &ws, planned);
+    must_refuse(
+        "extracting from inside a closure",
+        &ws,
+        planned,
+        "is introduced between the binding's position and this expression",
+    );
 }
 
 #[test]
@@ -205,10 +211,11 @@ fn a_guard_clause_in_a_function_that_returns_a_value_compiles_or_refuses() {
         fun_refactor::refactor::rewrite::Rewrite::GuardClause,
     )
     .map(|p| p.edits);
-    gate(
+    must_refuse(
         "a guard clause in a function that returns a value",
         &ws,
         planned,
+        "this function returns a value, so an early exit needs one too",
     );
 }
 
@@ -290,7 +297,7 @@ fn organising_typescript_imports_compiles() {
     match planned {
         Ok(edits) if edits.is_empty() => {}
         other => {
-            gate("organising TypeScript imports", &ws, other);
+            must_plan("organising TypeScript imports", &ws, other);
         }
     }
 }
@@ -306,7 +313,7 @@ fn moving_a_typescript_symbol_compiles_or_refuses() {
     let id = the_free_function(&index, "width");
     let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("src/util.ts"))
         .map(|p| p.edits);
-    gate("moving a TypeScript symbol", &ws, planned);
+    must_plan("moving a TypeScript symbol", &ws, planned);
 }
 
 #[test]
@@ -324,7 +331,7 @@ fn changing_a_typescript_signature_compiles_or_refuses() {
         fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
     )
     .map(|p| p.edits);
-    gate("changing a TypeScript signature", &ws, planned);
+    must_plan("changing a TypeScript signature", &ws, planned);
 }
 
 /// A barrel that hands on everything the file next to it exports.
@@ -469,7 +476,7 @@ fn changing_a_go_signature_compiles_or_refuses() {
         fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
     )
     .map(|p| p.edits);
-    gate("changing a Go signature", &ws, planned);
+    must_plan("changing a Go signature", &ws, planned);
 }
 
 #[test]
@@ -484,7 +491,12 @@ fn moving_a_go_symbol_compiles_or_refuses() {
     let planned =
         fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("util/util.go"))
             .map(|p| p.edits);
-    gate("moving a Go symbol", &ws, planned);
+    must_refuse(
+        "moving a Go symbol",
+        &ws,
+        planned,
+        "is used from 2 file(s) outside package",
+    );
 }
 
 #[test]
@@ -500,7 +512,7 @@ fn organising_go_imports_compiles_or_refuses() {
     match planned {
         Ok(edits) if edits.is_empty() => {}
         other => {
-            gate("organising Go imports", &ws, other);
+            must_plan("organising Go imports", &ws, other);
         }
     }
 }
@@ -574,7 +586,7 @@ fn changing_a_python_signature_compiles_or_refuses() {
         fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
     )
     .map(|p| p.edits);
-    gate("changing a Python signature", &ws, planned);
+    must_plan("changing a Python signature", &ws, planned);
 }
 
 #[test]
@@ -588,7 +600,12 @@ fn moving_a_python_symbol_compiles_or_refuses() {
     let id = the_free_function(&index, "width");
     let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("util.py"))
         .map(|p| p.edits);
-    gate("moving a Python symbol", &ws, planned);
+    must_refuse(
+        "moving a Python symbol",
+        &ws,
+        planned,
+        "would make the two files import each other",
+    );
 }
 
 #[test]
@@ -606,7 +623,7 @@ fn inlining_a_python_variable_compiles_or_refuses() {
         .expect("the local")
         .id;
     let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
-    gate("inlining a Python variable", &ws, planned);
+    must_plan("inlining a Python variable", &ws, planned);
 }
 
 // ------------------------------------------------------------------ Zig
@@ -682,7 +699,7 @@ fn changing_a_zig_signature_compiles_or_refuses() {
         fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
     )
     .map(|p| p.edits);
-    gate("changing a Zig signature", &ws, planned);
+    must_plan("changing a Zig signature", &ws, planned);
 }
 
 #[test]
@@ -696,7 +713,7 @@ fn moving_a_zig_symbol_compiles_or_refuses() {
     let id = the_free_function(&index, "width");
     let planned = fun_refactor::refactor::move_symbol::to_file(&index, id, &ws.path("util.zig"))
         .map(|p| p.edits);
-    gate("moving a Zig symbol", &ws, planned);
+    must_plan("moving a Zig symbol", &ws, planned);
 }
 
 #[test]
@@ -714,7 +731,7 @@ fn inlining_a_zig_variable_compiles_or_refuses() {
         .expect("the local")
         .id;
     let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
-    gate("inlining a Zig variable", &ws, planned);
+    must_plan("inlining a Zig variable", &ws, planned);
 }
 
 // ----------------------------------------------------------------- Java
@@ -799,7 +816,7 @@ fn changing_a_java_signature_compiles_or_refuses() {
         fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
     )
     .map(|p| p.edits);
-    gate("changing a Java signature", &ws, planned);
+    must_plan("changing a Java signature", &ws, planned);
 }
 
 #[test]
@@ -817,7 +834,7 @@ fn inlining_a_java_variable_compiles_or_refuses() {
         .expect("the local")
         .id;
     let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
-    gate("inlining a Java variable", &ws, planned);
+    must_plan("inlining a Java variable", &ws, planned);
 }
 
 /// The gate has to be able to fail.

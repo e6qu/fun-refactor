@@ -97,21 +97,33 @@ fn every_vendored_file_has_provenance() {
         .collect();
 
     let mut stray = Vec::new();
+    let mut seen = 0;
     let queries = vendor_root().join("tree-sitter-queries");
     let mut stack = vec![queries.clone()];
     while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
+        // A directory that cannot be read is not a directory with nothing in it. The
+        // whole walk used to pass by finding nothing, so a vendor tree that had gone
+        // missing read as a vendor tree with no stray files in it.
+        let entries = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("{} cannot be read: {e}", dir.display()));
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
                 stack.push(path);
-            } else if path.extension().is_some_and(|e| e == "scm") && !recorded.contains(&path) {
-                stray.push(path);
+            } else if path.extension().is_some_and(|e| e == "scm") {
+                seen += 1;
+                if !recorded.contains(&path) {
+                    stray.push(path);
+                }
             }
         }
     }
+
+    assert!(
+        seen > 0,
+        "no vendored query files were found under {}, so this checked nothing",
+        queries.display()
+    );
 
     assert!(
         stray.is_empty(),
@@ -159,17 +171,23 @@ fn every_licence_is_compatible_with_this_project() {
 #[test]
 fn a_licence_file_accompanies_every_grammar_that_ships_one() {
     let text = manifest();
+    let mut checked = 0;
     for line in text.lines() {
         let Some(rest) = line.trim().strip_prefix("license_file = ") else {
             continue;
         };
         let relative = rest.trim_matches('"');
+        checked += 1;
         assert!(
             vendor_root().join(relative).exists(),
             "{relative} is referenced by the manifest but missing — the licence text \
              has to travel with the files it covers"
         );
     }
+    assert!(
+        checked > 0,
+        "the manifest names no licence file at all, so this checked nothing"
+    );
 }
 
 #[test]
@@ -179,10 +197,10 @@ fn nothing_vendored_is_compiled_into_the_binary() {
     // only by a maintainer does not. Keep the two apart.
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut stack = vec![src];
+    let mut read = 0;
     while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
+        let entries = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("{} cannot be read: {e}", dir.display()));
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
@@ -190,7 +208,11 @@ fn nothing_vendored_is_compiled_into_the_binary() {
                 continue;
             }
             if path.extension().is_some_and(|e| e == "rs") {
-                let source = std::fs::read_to_string(&path).unwrap_or_default();
+                // Not `unwrap_or_default`: a file that cannot be read became empty
+                // source, and empty source contains no `vendor/`.
+                let source = std::fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("{} cannot be read: {e}", path.display()));
+                read += 1;
                 assert!(
                     !source.contains("vendor/"),
                     "{} reaches into vendor/ — that turns reference material into a \
@@ -200,6 +222,10 @@ fn nothing_vendored_is_compiled_into_the_binary() {
             }
         }
     }
+    assert!(
+        read > 10,
+        "only {read} source file(s) were read; the walk found nothing"
+    );
 }
 
 // ------------------------------------------------------- the translation corpus

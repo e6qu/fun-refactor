@@ -110,9 +110,42 @@ impl Declared {
 }
 
 /// What the source declared about `symbol`.
+/// Does this language have anywhere to write a type down?
+///
+/// The question this answers is "what did the source say", so it is yes wherever a
+/// language has a place to say it. Bash has no type syntax at all; markup and
+/// configuration have values and not declarations, and a key in a YAML file is not
+/// annotated with anything.
+///
+/// The list lived in the capability matrix and nowhere else, so the matrix said `n/a`
+/// for nine languages while [`of`] answered for all of them — with the empty answer that
+/// means "the source wrote nothing here", which is a different statement from "there is
+/// nowhere here to write".
+pub fn supports_declared_type(language: Language) -> bool {
+    matches!(
+        language,
+        Language::Rust
+            | Language::Go
+            | Language::Zig
+            | Language::Java
+            | Language::TypeScript
+            | Language::Tsx
+            | Language::Python
+    )
+}
+
 pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
     if let Some(language) = index.symbol(symbol).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::DeclaredType, language);
+        if !supports_declared_type(language) {
+            return Err(crate::refactor::Refusal::Unsupported {
+                operation: "reading a declared type".into(),
+                language,
+                because: "this language has nowhere to write a type down, so there is \
+                          nothing here for the source to have said",
+            }
+            .into());
+        }
     }
     let sym = index
         .symbol(symbol)

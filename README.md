@@ -50,7 +50,7 @@ read by the `typescript` grammar and queries, and `.jsx` by `tsx`.
 | provenance | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | entry points | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | ✓ | n/a | ✓ | ✓ | ✓ |
 | extract variable | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| extract function | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | ✓ | n/a | n/a |
+| extract function | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | n/a | n/a | ✓ | n/a | n/a | ✓ | n/a | n/a |
 | inline variable | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline call | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | change signature | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | ✓ | ✓ | n/a | n/a | n/a | n/a |
@@ -176,7 +176,7 @@ framework or a language means adding data.
 
 Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
 backend, and every capability a language can meaningfully support is built:
-**270 of 384 capability × language pairs supported, 114 not applicable, none refused.**
+**272 of 384 capability × language pairs supported, 112 not applicable, none refused.**
 The matrix above is generated, and `fr capabilities` prints the reason behind every
 cell that is not a ✓.
 

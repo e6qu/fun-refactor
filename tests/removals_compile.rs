@@ -13,7 +13,7 @@
 //! compiler found all of it.
 
 mod common;
-use common::{gate, must_plan, Toolchain, Workspace};
+use common::{gate, must_plan, GateRun, Toolchain, Workspace};
 
 use fun_refactor::lang::Language;
 
@@ -207,8 +207,10 @@ fn symbol(index: &fun_refactor::index::Index, name: &str) -> fun_refactor::model
 
 #[test]
 fn every_fixture_compiles_before_anything_touches_it() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -218,7 +220,9 @@ fn every_fixture_compiles_before_anything_touches_it() {
                 fixture.language
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("the fixtures as written", &[]);
 }
 
 impl Fixture {
@@ -229,11 +233,13 @@ impl Fixture {
 
 #[test]
 fn deleting_a_function_takes_the_import_only_it_used() {
+    let mut run = GateRun::default();
     // The whole shape in one case: `Doomed` is the only caller of `strings`, so removing
     // it leaves `"strings" imported and not used`, which Go rejects. Rust makes the same
     // thing a warning, and this project's own CI runs `-D warnings`.
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -257,13 +263,17 @@ fn deleting_a_function_takes_the_import_only_it_used() {
                 fixture.keeps
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("delete", &[]);
 }
 
 #[test]
 fn removing_a_flag_takes_the_import_its_dead_branch_used() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -291,16 +301,20 @@ fn removing_a_flag_takes_the_import_its_dead_branch_used() {
                 fixture.keeps
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("remove a flag", &[]);
 }
 
 #[test]
 fn organizing_imports_narrows_a_statement_that_lost_one_name() {
+    let mut run = GateRun::default();
     // `fr imports` dropped a statement nothing named and left one that named two things
     // and used one. That is an error under `noUnusedLocals` and a lint failure everywhere
     // else, from the one command whose whole job is removing imports nothing uses.
     for fixture in fixtures() {
         if skip(&fixture) || fixture.keeps.is_empty() {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -311,11 +325,12 @@ fn organizing_imports_narrows_a_statement_that_lost_one_name() {
         match fun_refactor::refactor::imports::plan(&index, &ws.path(fixture.file)) {
             Ok(plan) if plan.edits.is_empty() => {}
             other => {
-                gate(
+                let compiled = gate(
                     &format!("organizing imports in {}", fixture.language),
                     &ws,
                     other.map(|p| p.edits),
                 );
+                run.record(fixture.language.name(), compiled);
             }
         }
 
@@ -336,15 +351,19 @@ fn organizing_imports_narrows_a_statement_that_lost_one_name() {
             fixture.language,
             fixture.keeps
         );
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("organize imports", &[]);
 }
 
 #[test]
 fn a_recipe_that_removes_a_flag_and_prunes_what_it_orphaned_compiles() {
+    let mut run = GateRun::default();
     // A recipe is one transaction over several commands, so it inherits their behaviour
     // and adds a way for them to interact. This is the shape a real retirement takes.
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -377,7 +396,9 @@ fn a_recipe_that_removes_a_flag_and_prunes_what_it_orphaned_compiles() {
                 fixture.language
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("a recipe", &[]);
 }
 
 /// What this file covers, said out loud.

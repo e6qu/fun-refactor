@@ -541,3 +541,82 @@ pub fn must_plan(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>) {
         "{what} refused on a workspace with nothing awkward in it"
     );
 }
+
+/// The other half: this case refuses today, and the refusal is the thing being pinned.
+///
+/// Twenty-six call sites threw `gate`'s answer away. Named `…_compiles_or_refuses`, they
+/// passed on either outcome, which is a test that cannot fail: the two that refuse never
+/// reached the compiler, and a case that compiles today could start refusing without a
+/// word. Saying which outcome is expected is what makes a change in either direction
+/// visible.
+pub fn must_refuse(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>, because: &str) {
+    match planned {
+        Ok(edits) => {
+            ws.apply(&edits);
+            panic!(
+                "{what} was expected to refuse ({because}) and planned edits instead. \
+                 If this is now supported, say so here."
+            );
+        }
+        Err(refusal) => {
+            let said = refusal.to_string();
+            assert!(
+                said.contains(because),
+                "{what} refused, as expected, but for another reason.\n  expected: {because}\n  said: {said}"
+            );
+        }
+    }
+}
+
+/// What a loop over language fixtures actually did, so a language that flips is visible.
+///
+/// The loops call `gate` once per language and threw the answer away, so "extract a
+/// function in every language" passed while Java refused every case in it, and would
+/// have passed had they all refused. Skipping is tracked apart from refusing because a
+/// missing toolchain is not a result about the tool.
+#[derive(Default)]
+pub struct GateRun {
+    pub compiled: Vec<String>,
+    pub refused: Vec<String>,
+    pub skipped: Vec<String>,
+}
+
+impl GateRun {
+    pub fn record(&mut self, language: &str, compiled: bool) {
+        match compiled {
+            true => self.compiled.push(language.to_string()),
+            false => self.refused.push(language.to_string()),
+        }
+    }
+
+    pub fn skip(&mut self, language: &str) {
+        self.skipped.push(language.to_string());
+    }
+
+    /// The languages expected to refuse, and nothing else.
+    pub fn expect_refusals(&self, what: &str, expected: &[&str]) {
+        for language in &self.refused {
+            assert!(
+                expected.contains(&language.as_str()),
+                "{what}: {language} refused and was not expected to.\n  \
+                 refused: {:?}\n  expected to refuse: {expected:?}",
+                self.refused
+            );
+        }
+        for language in expected {
+            let skipped = self.skipped.iter().any(|s| s == language);
+            let refused = self.refused.iter().any(|s| s == language);
+            assert!(
+                refused || skipped,
+                "{what}: {language} was expected to refuse and did not. If it works now, \
+                 take it off the list."
+            );
+        }
+        assert!(
+            !self.compiled.is_empty(),
+            "{what}: nothing compiled, so this checked nothing. skipped: {:?}, refused: {:?}",
+            self.skipped,
+            self.refused
+        );
+    }
+}

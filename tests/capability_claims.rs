@@ -17,7 +17,7 @@
 //! `validators_accept.rs` are what check the answers are right; this checks the claims are
 //! true.
 
-use fun_refactor::capabilities::{support, Capability};
+use fun_refactor::capabilities::{is_whole_workspace, support, Capability};
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
 use fun_refactor::model::SymbolId;
@@ -197,11 +197,23 @@ impl Fixture {
     }
 }
 
-/// Run one capability against one language, and return what it said.
+/// What happened when one capability was pointed at one language.
 ///
-/// `Ok(())` covers both success and a refusal about this particular input. The one thing
-/// that comes back as an error here is a refusal that names the language.
-fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), String> {
+/// The three are not two. A fixture that offers no symbol and no span drives nothing,
+/// and folding that into "it worked" is how a cell gets counted as checked without
+/// having been run — which is what both tests below were doing.
+#[derive(Debug)]
+enum Outcome {
+    /// The fixture had nothing for this capability to take.
+    NotDriven,
+    /// It ran and produced a plan or an answer.
+    Proceeded,
+    /// It declined, for whatever reason.
+    Refused(String),
+}
+
+/// Run one capability against one language, and return what it said.
+fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
     use fun_refactor::{analysis, refactor, transpile};
 
     let said = |e: anyhow::Error| e.to_string();
@@ -214,19 +226,19 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
             Some(id) => refactor::rename::plan(&f.index, id, "renamedThing")
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::SafeDelete => match f.a_symbol() {
             Some(id) => refactor::delete::plan(&f.index, id)
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::Impact => match f.a_symbol() {
             Some(id) => analysis::impact::analyse(&f.index, id, 2)
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::Restructure => {
             refactor::restructure::apply(&f.index, language, "nothing_matches_this", "nor_this")
@@ -241,13 +253,13 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
             Some(id) => analysis::flow::forward(&f.index, id, 3)
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::Provenance => match f.a_symbol() {
             Some(id) => analysis::provenance::provenance(&f.index, id, 3)
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::EntryPoints => {
             let _ = analysis::entrypoints::Entrypoints::detect(&f.index);
@@ -257,19 +269,19 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
             Some(span) => refactor::extract::variable(&f.index, &f.file, span, "lifted", false)
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::ExtractFunction => match f.a_span() {
             Some(span) => refactor::extract::function(&f.index, &f.file, span, "lifted")
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::InlineVariable => match f.a_symbol() {
             Some(id) => refactor::inline::variable(&f.index, id)
                 .map(|_| ())
                 .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::InlineCall => refactor::inline::call(&f.index, &f.file, f.an_offset())
             .map(|_| ())
@@ -282,7 +294,7 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
             )
             .map(|_| ())
             .map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::MicroRewrites => refactor::rewrite::apply(
             &f.index,
@@ -321,17 +333,19 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
                     .map(|_| ())
                     .map_err(said)
             }
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
         Capability::Stitch => analysis::stitch::chains(&f.index).map(|_| ()).map_err(said),
         Capability::Duplicates => analysis::duplicates::find_in(&f.index, &f.root)
             .map(|_| ())
             .map_err(said),
-        Capability::DeadCode => {
-            let entrypoints = analysis::entrypoints::Entrypoints::detect(&f.index).map_err(said)?;
-            let _ = refactor::delete::find_unused(&f.index, &entrypoints);
-            Ok(())
-        }
+        Capability::DeadCode => match analysis::entrypoints::Entrypoints::detect(&f.index) {
+            Ok(entrypoints) => {
+                let _ = refactor::delete::find_unused(&f.index, &entrypoints);
+                Ok(())
+            }
+            Err(e) => Err(said(e)),
+        },
         Capability::Translate => {
             // Every target the matrix claims for this source, since one of them working
             // is what the cell means.
@@ -344,10 +358,10 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
                 // the IR-based translation. A cell is honoured if either accepts.
                 let containment = fun_refactor::translate::plan(&f.file, *target).map(|_| ());
                 if containment.is_ok() {
-                    return Ok(());
+                    return Outcome::Proceeded;
                 }
                 match transpile::plan(&f.file, *target) {
-                    Ok(_) => return Ok(()),
+                    Ok(_) => return Outcome::Proceeded,
                     Err(e) => last = Err(e.to_string()),
                 }
             }
@@ -356,10 +370,13 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Result<(), 
         Capability::Openapi => transpile::nextjs::plan(&f.file).map(|_| ()).map_err(said),
         Capability::DeclaredType => match f.a_symbol() {
             Some(id) => analysis::types::of(&f.index, id).map(|_| ()).map_err(said),
-            None => Ok(()),
+            None => return Outcome::NotDriven,
         },
     };
-    outcome
+    match outcome {
+        Ok(()) => Outcome::Proceeded,
+        Err(said) => Outcome::Refused(said),
+    }
 }
 
 /// The sentence a wrong `✓` produces.
@@ -372,6 +389,7 @@ fn denies_the_language(said: &str, language: Language) -> bool {
 fn every_claimed_capability_accepts_the_language_it_claims() {
     let mut contradictions = Vec::new();
     let mut driven = 0;
+    let mut not_driven = 0;
 
     for language in Language::ALL {
         let f = build(*language);
@@ -379,14 +397,21 @@ fn every_claimed_capability_accepts_the_language_it_claims() {
             if !support(*capability, *language).is_yes() {
                 continue;
             }
-            driven += 1;
-            if let Err(said) = drive(*capability, *language, &f) {
-                if denies_the_language(&said, *language) {
-                    contradictions.push(format!(
-                        "{} claims {} and then says: {said}",
-                        language.name(),
-                        capability.label()
-                    ));
+            match drive(*capability, *language, &f) {
+                // Counted apart and reported below. A cell the fixture cannot reach is
+                // not a cell this test checked, and calling it checked is the vacuity
+                // this suite went looking for.
+                Outcome::NotDriven => not_driven += 1,
+                Outcome::Proceeded => driven += 1,
+                Outcome::Refused(said) => {
+                    driven += 1;
+                    if denies_the_language(&said, *language) {
+                        contradictions.push(format!(
+                            "{} claims {} and then says: {said}",
+                            language.name(),
+                            capability.label()
+                        ));
+                    }
                 }
             }
         }
@@ -398,7 +423,10 @@ fn every_claimed_capability_accepts_the_language_it_claims() {
         contradictions.len(),
         contradictions.join("\n  ")
     );
-    eprintln!("capability claims: {driven} cells driven, none contradicted");
+    eprintln!(
+        "capability claims: {driven} cells driven, none contradicted; \
+         {not_driven} not reachable from their fixture"
+    );
 }
 
 #[test]
@@ -417,5 +445,57 @@ fn the_matrix_and_this_file_agree_on_how_many_cells_there_are() {
     assert_eq!(
         driven, yes,
         "the matrix reports {yes} supported cells and this file drives {driven}"
+    );
+}
+
+#[test]
+fn every_unsupported_capability_refuses_the_language_it_disclaims() {
+    // The mirror of the test above, and the half nothing was asking. An `n/a` cell is a
+    // promise too: the command does not do this here. Nothing drove those cells, so the
+    // promise was unfalsifiable — and `fr remove-flag` was breaking it on XML, rewriting
+    // `&use_new;` into `&true;` and deleting the prolog, output no parser accepts.
+    //
+    // Proceeding is the failure. An error is fine whatever it says, because a refusal
+    // about this particular fixture is still a refusal.
+    let mut proceeded = Vec::new();
+    let mut driven = 0;
+    let mut not_driven = 0;
+
+    for language in Language::ALL {
+        let f = build(*language);
+        for capability in Capability::ALL {
+            if support(*capability, *language).is_yes() {
+                continue;
+            }
+            // A whole-workspace analysis takes no language argument, so there is
+            // nothing for it to refuse: `n/a` there says the language contributes
+            // nothing, and `capability-report.py` is what holds that half.
+            if is_whole_workspace(*capability) {
+                continue;
+            }
+            match drive(*capability, *language, &f) {
+                Outcome::NotDriven => not_driven += 1,
+                Outcome::Refused(_) => driven += 1,
+                Outcome::Proceeded => {
+                    driven += 1;
+                    proceeded.push(format!(
+                        "{} disclaims {} and does it anyway",
+                        language.name(),
+                        capability.label()
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        proceeded.is_empty(),
+        "{} of {driven} disclaimed cells went ahead:\n  {}",
+        proceeded.len(),
+        proceeded.join("\n  ")
+    );
+    eprintln!(
+        "capability disclaimers: {driven} cells driven, none proceeded; \
+         {not_driven} not reachable from their fixture"
     );
 }

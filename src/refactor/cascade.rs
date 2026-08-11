@@ -303,6 +303,20 @@ fn substitute_flag(
     }
     let definition = definitions[0];
 
+    // The matrix asks `supports_cascade` and the command did not, so `n/a` was a claim
+    // with nothing behind it. Removing an XML entity flag rewrote `&use_new;` into
+    // `&true;` — an entity no document defines — and took the prolog with it, output
+    // xmllint rejects. The predicate the matrix already publishes is the one to ask.
+    if !supports_cascade(definition.language) {
+        return Err(crate::refactor::Refusal::Unsupported {
+            operation: "removing a flag".into(),
+            language: definition.language,
+            because: "the cascade folds a constant into a language's conditionals, and \
+                      this language has none for a flag to guard",
+        }
+        .into());
+    }
+
     let literal = literal_for(definition.language, value);
     let parsers = Parsers::new();
     let mut trees: BTreeMap<PathBuf, Parsed> = BTreeMap::new();
@@ -436,7 +450,7 @@ fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> O
         SymbolKind::Constant | SymbolKind::Variable | SymbolKind::Function
     ) || (field_is_a_constant && symbol.kind == SymbolKind::Field);
     if !kind_can_hold_a_flag {
-        return Some(format!("is a {}", symbol.kind.as_str()));
+        return Some(format!("is {}", symbol.kind.with_article()));
     }
 
     let declaration = parsed

@@ -101,8 +101,10 @@ fn every_call_site_sits_inside_the_function_it_is_attributed_to() {
 fn callers_and_callees_are_two_views_of_one_edge() {
     let (_root, index) = workspace();
     let graph = CallGraph::build(index);
+    let mut edges = 0;
     for symbol in index.symbols.iter().step_by(23) {
         for (caller, _) in graph.callers(symbol.id) {
+            edges += 1;
             assert!(
                 graph.callees(caller).iter().any(|(c, _)| *c == symbol.id),
                 "{:?} lists a caller that does not list it back",
@@ -110,6 +112,8 @@ fn callers_and_callees_are_two_views_of_one_edge() {
             );
         }
     }
+    // A graph that resolved no call at all agrees with itself trivially.
+    assert!(edges > 0, "no call edge was checked in either direction");
 }
 
 #[test]
@@ -164,6 +168,7 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
 fn impact_covers_every_reference_it_could_rewrite() {
     let (_root, index) = workspace();
     let mut sources: HashMap<PathBuf, String> = HashMap::new();
+    let mut checked = 0;
     for symbol in index.symbols.iter().step_by(311) {
         let Ok(report) = impact::analyse(index, symbol.id, 2) else {
             continue;
@@ -177,6 +182,7 @@ fn impact_covers_every_reference_it_could_rewrite() {
             if !reference.confidence.is_safe_to_rewrite() {
                 continue;
             }
+            checked += 1;
             let text = sources
                 .entry(reference.file.clone())
                 .or_insert_with(|| std::fs::read_to_string(&reference.file).unwrap_or_default());
@@ -191,6 +197,12 @@ fn impact_covers_every_reference_it_could_rewrite() {
             );
         }
     }
+    // Every `impact::analyse` erroring, or no reference being safe to rewrite, would
+    // leave nothing compared and the test passing.
+    assert!(
+        checked > 0,
+        "no rewritable reference was checked against any impact report"
+    );
 }
 
 #[test]

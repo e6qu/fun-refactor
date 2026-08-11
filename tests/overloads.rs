@@ -76,9 +76,11 @@ fn an_overload_set_is_not_resolved_by_proximity() {
                   public int use() { return add(1) + add(\"x\"); }\n}\n";
     let (_tmp, root) = workspace(&[("A.java", source)]);
     let index = index_of(&root);
+    let mut checked = 0;
     for nth in 0..2 {
         let add = symbol_at(&index, "A.java", "add", nth);
         for reference in index.references_to(add) {
+            checked += 1;
             assert_ne!(
                 reference.confidence,
                 Confidence::Exact,
@@ -86,6 +88,10 @@ fn an_overload_set_is_not_resolved_by_proximity() {
             );
         }
     }
+    assert!(
+        checked > 0,
+        "neither overload had a reference, so this checked nothing"
+    );
 }
 
 #[test]

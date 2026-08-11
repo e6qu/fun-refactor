@@ -60,9 +60,9 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     if !matches!(sym.kind, SymbolKind::Variable | SymbolKind::Constant) {
         anyhow::bail!(
-            "'{}' is a {}; only variables and constants can be inlined",
+            "'{}' is {}; only variables and constants can be inlined",
             sym.name,
-            sym.kind.as_str()
+            sym.kind.with_article()
         );
     }
 

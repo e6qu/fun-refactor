@@ -14,7 +14,7 @@
 //! validate, and **yaml** is checked as part of the chart `helm lint` renders.
 
 mod common;
-use common::{gate, must_plan, Toolchain, Workspace};
+use common::{gate, must_plan, GateRun, Toolchain, Workspace};
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -299,8 +299,10 @@ fn fixtures() -> Vec<Fixture> {
 
 #[test]
 fn every_fixture_satisfies_its_validator_before_anything_touches_it() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let ws = fixture.workspace();
@@ -310,13 +312,17 @@ fn every_fixture_satisfies_its_validator_before_anything_touches_it() {
                 fixture.language
             );
         }
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("the fixtures as written", &[]);
 }
 
 #[test]
 fn renaming_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let (from, to) = fixture.rename;
@@ -335,13 +341,17 @@ fn renaming_keeps_the_validator_happy() {
             "{} did not write the new name:\n{after}",
             fixture.language
         );
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("rename", &[]);
 }
 
 #[test]
 fn deleting_something_nothing_uses_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some(doomed) = fixture.doomed else {
@@ -361,13 +371,17 @@ fn deleting_something_nothing_uses_keeps_the_validator_happy() {
             "{} kept what it said it deleted",
             fixture.language
         );
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("delete", &[]);
 }
 
 #[test]
 fn extracting_a_binding_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some(expression) = fixture.expression else {
@@ -384,18 +398,22 @@ fn extracting_a_binding_keeps_the_validator_happy() {
             false,
         )
         .map(|p| p.edits);
-        gate(
+        let compiled = gate(
             &format!("extracting a binding in {}", fixture.language),
             &ws,
             planned,
         );
+        run.record(fixture.language.name(), compiled);
     }
+    run.expect_refusals("extract a binding", &[]);
 }
 
 #[test]
 fn restructuring_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some((pattern, template, expected)) = fixture.restructure else {
@@ -417,13 +435,17 @@ fn restructuring_keeps_the_validator_happy() {
             "{} did not produce `{expected}`:\n{after}",
             fixture.language
         );
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("restructure", &[]);
 }
 
 #[test]
 fn inlining_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some(name) = fixture.inline else {
@@ -433,18 +455,22 @@ fn inlining_keeps_the_validator_happy() {
         let index = ws.index();
         let planned =
             fun_refactor::refactor::inline::variable(&index, symbol(&index, name)).map(|p| p.edits);
-        gate(
+        let compiled = gate(
             &format!("inlining `{name}` in {}", fixture.language),
             &ws,
             planned,
         );
+        run.record(fixture.language.name(), compiled);
     }
+    run.expect_refusals("inline a binding", &[]);
 }
 
 #[test]
 fn changing_a_signature_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some(name) = fixture.signature else {
@@ -458,18 +484,22 @@ fn changing_a_signature_keeps_the_validator_happy() {
             fun_refactor::refactor::signature::Change::Move { from: 0, to: 1 },
         )
         .map(|p| p.edits);
-        gate(
+        let compiled = gate(
             &format!("changing `{name}`'s signature in {}", fixture.language),
             &ws,
             planned,
         );
+        run.record(fixture.language.name(), compiled);
     }
+    run.expect_refusals("change a signature", &[]);
 }
 
 #[test]
 fn removing_a_flag_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some(flag) = fixture.flag else {
@@ -478,18 +508,22 @@ fn removing_a_flag_keeps_the_validator_happy() {
         let ws = fixture.workspace();
         let planned = fun_refactor::refactor::cascade::remove_flag_in(ws.sources(), flag, true)
             .map(|p| p.edits);
-        gate(
+        let compiled = gate(
             &format!("removing `{flag}` in {}", fixture.language),
             &ws,
             planned,
         );
+        run.record(fixture.language.name(), compiled);
     }
+    run.expect_refusals("remove a flag", &[]);
 }
 
 #[test]
 fn moving_a_declaration_keeps_the_validator_happy() {
+    let mut run = GateRun::default();
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
         let Some((name, destination, seed)) = fixture.moves else {
@@ -504,12 +538,14 @@ fn moving_a_declaration_keeps_the_validator_happy() {
             &ws.path(destination),
         )
         .map(|p| p.edits);
-        gate(
+        let compiled = gate(
             &format!("moving `{name}` in {}", fixture.language),
             &ws,
             planned,
         );
+        run.record(fixture.language.name(), compiled);
     }
+    run.expect_refusals("move a symbol", &[]);
 }
 
 /// The gate has to be able to fail, for every validator here.
@@ -519,6 +555,7 @@ fn moving_a_declaration_keeps_the_validator_happy() {
 /// This breaks each fixture on purpose and checks the validator says so.
 #[test]
 fn every_validator_reports_a_workspace_it_should_reject() {
+    let mut run = GateRun::default();
     let broken: &[(Language, &str, &str)] = &[
         (
             Language::Bash,
@@ -549,10 +586,14 @@ fn every_validator_reports_a_workspace_it_should_reject() {
 
     for fixture in fixtures() {
         if skip(&fixture) {
+            run.skip(fixture.language.name());
             continue;
         }
+        // No broken counterpart written for this language yet, which is a gap in the
+        // table above rather than a fact about the validator.
         let Some((_, file, content)) = broken.iter().find(|(l, _, _)| *l == fixture.language)
         else {
+            run.skip(fixture.language.name());
             continue;
         };
         let ws = fixture.workspace();
@@ -562,7 +603,9 @@ fn every_validator_reports_a_workspace_it_should_reject() {
             "{}'s validator accepted a file it should have rejected",
             fixture.language
         );
+        run.record(fixture.language.name(), true);
     }
+    run.expect_refusals("a workspace every validator should reject", &[]);
 }
 
 /// What this file covers, said out loud.

@@ -64,11 +64,13 @@ fn no_reason_describes_a_different_language() {
     // Six reasons once explained Java's absences in terms of stylesheets and markup,
     // because the fallback strings were written when every unsupported language was
     // one of those. A reason that names a language other than its own is the tell.
+    let mut examined = 0;
     for capability in Capability::ALL {
         for language in Language::ALL {
             let Some(reason) = capabilities::support(*capability, *language).reason() else {
                 continue;
             };
+            examined += 1;
             // A word only some languages can be described with, and the ones that can.
             // The first three caught Java; the rest were added when `extract function`
             // told a reader that a **shell function** needs "a written return type and
@@ -104,6 +106,10 @@ fn no_reason_describes_a_different_language() {
             }
         }
     }
+    assert!(
+        examined > 100,
+        "only {examined} reason(s) were examined; the matrix carries far more than that"
+    );
 }
 
 #[test]

@@ -860,11 +860,16 @@ fn supports_imperative_extract_function(language: Language) -> bool {
 
 /// Can a region be extracted into something callable in this language?
 ///
-/// Helm gets there by a different route — a named template in `_helpers.tpl` rather
-/// than a function with parameters — so the capability table has to ask this rather
-/// than the imperative predicate alone.
+/// Three languages get there by a route of their own — a Helm named template in
+/// `_helpers.tpl`, an SCSS `@mixin`, a shell function — rather than a function with
+/// parameters and a returned value, so this cannot ask the imperative predicate alone.
+/// It named Helm and not the other two, and the matrix reads this: `fr extract
+/// --function` has been writing `@mixin`/`@include` and shell functions for languages
+/// the table told the reader it could not do, under a reason invented to explain the
+/// gap. The arms in [`function`] are the list, and this is that list.
 pub fn supports_extract_function(language: Language) -> bool {
-    supports_imperative_extract_function(language) || language == Language::Helm
+    supports_imperative_extract_function(language)
+        || matches!(language, Language::Helm | Language::Bash | Language::Scss)
 }
 
 /// Widen a selection to the complete statements it touches.
