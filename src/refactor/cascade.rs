@@ -128,6 +128,26 @@ pub fn remove_flag_in(
             .collect()
     };
 
+    // Which imports were unused before any of this started. Only an import the cascade
+    // itself killed is the cascade's business; one that was already dead is a tidy-up of
+    // the whole workspace, which is `fr imports` and not this. The same rule
+    // `initially_used` applies to symbols.
+    let already_dead_imports: HashSet<(PathBuf, Span)> = {
+        let snapshot: Vec<(PathBuf, Language, String)> = sources
+            .iter()
+            .map(|(p, (l, s))| (p.clone(), *l, s.clone()))
+            .collect();
+        let index = Index::build_from_sources(&snapshot)?;
+        sources
+            .iter()
+            .flat_map(|(path, (_, text))| {
+                dead_import_spans(&index, path, text)
+                    .into_iter()
+                    .map(|(span, _)| (path.clone(), span))
+            })
+            .collect()
+    };
+
     let mut rounds = Vec::new();
     let mut removed_definition = false;
     let mut unfinished = Vec::new();
@@ -173,14 +193,23 @@ pub fn remove_flag_in(
                 simplified
             } else {
                 let orphans = remove_orphans(&index, &sources, flag, &initially_used)?;
-                if orphans.is_empty() {
-                    break;
+                if !orphans.is_empty() {
+                    rounds.push(RoundSummary {
+                        description: "removed symbols nothing uses any more".into(),
+                        files_touched: distinct_files(&orphans),
+                    });
+                    orphans
+                } else {
+                    let imports = remove_dead_imports(&index, &sources, &already_dead_imports)?;
+                    if imports.is_empty() {
+                        break;
+                    }
+                    rounds.push(RoundSummary {
+                        description: "removed imports nothing uses any more".into(),
+                        files_touched: distinct_files(&imports),
+                    });
+                    imports
                 }
-                rounds.push(RoundSummary {
-                    description: "removed symbols nothing uses any more".into(),
-                    files_touched: distinct_files(&orphans),
-                });
-                orphans
             }
         };
 
@@ -1857,6 +1886,44 @@ fn remove_orphans(
         break;
     }
     Ok(changes)
+}
+
+/// Imports the cascade's own edits left with nothing naming them.
+///
+/// A dead branch is often the only place an import was used, and taking the branch away
+/// leaves the statement behind: `go build` calls that an error outright, and Rust a
+/// warning that this project's own CI turns into one. The output parses either way, which
+/// is why sweeping for parse errors never saw it.
+///
+/// Which imports are dead is not asked here. `fr imports` already answers it, and carries
+/// a body of knowledge about uses no query can see — a Rust trait used through its
+/// methods, a JSX pragma in a comment — that a second answer would get wrong.
+fn remove_dead_imports(
+    index: &Index,
+    sources: &BTreeMap<PathBuf, (Language, String)>,
+    already_dead: &HashSet<(PathBuf, Span)>,
+) -> Result<Vec<Change>> {
+    for (path, (_, text)) in sources {
+        for (span, replacement) in dead_import_spans(index, path, text) {
+            if already_dead.contains(&(path.clone(), span)) {
+                continue;
+            }
+            // One per round: the next round re-indexes and finds whatever this exposed.
+            return Ok(vec![(path.clone(), span, replacement)]);
+        }
+    }
+    Ok(Vec::new())
+}
+
+/// What `fr imports` would make of this file's import statements, region by region.
+///
+/// The replacements and not the removals: a statement may lose one of the names it binds
+/// and keep the others, and treating that as a removal deleted the live ones with it.
+fn dead_import_spans(index: &Index, path: &Path, source: &str) -> Vec<(Span, String)> {
+    let Ok(plan) = crate::refactor::imports::plan_in(index, path, source) else {
+        return Vec::new();
+    };
+    plan.replacements
 }
 
 /// The statements inside a block, moved out one indentation level.

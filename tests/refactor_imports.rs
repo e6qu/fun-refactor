@@ -193,16 +193,20 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
         "a.ts",
     );
 
+    // `./m` binds two names and only one is used, so the statement stays and `b` goes.
+    // It used to stay whole, which left a binding nothing named — an error under
+    // `noUnusedLocals` and a lint failure everywhere else, from the command whose whole
+    // job is removing imports nothing uses. The name this test already had says so.
     assert_eq!(
         plan.removed
             .iter()
             .map(|r| r.path.as_str())
             .collect::<Vec<_>>(),
-        vec!["other"]
+        vec!["other", "./m"]
     );
     assert_eq!(
         updated,
-        "import { b, a } from './m';\n\nexport function go() { return a; }\n"
+        "import { a } from './m';\n\nexport function go() { return a; }\n"
     );
 }
 

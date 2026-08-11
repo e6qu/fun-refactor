@@ -608,12 +608,20 @@ and Java — and names the ten it does not on every run. The ten have no compile
 stylesheet, a manifest and a document are checked by parsing them, which the edit engine
 already does.
 
-It drives seven commands across those six languages. `output_compiles.rs` puts the ones
-that move a declaration through it — rename, signature, move, inline — and
-`rewrites_compile.rs` the ones that rewrite one in place: extract, rewrite and restructure.
-The second sweep found nothing, which is the first time a language or command added to the
-gate has not failed on its first run, and is worth recording as a result rather than an
-absence.
+It drives every command that writes, across those six languages. `output_compiles.rs` puts
+the ones that move a declaration through it — rename, signature, move, inline —
+`rewrites_compile.rs` the ones that rewrite one in place — extract, rewrite, restructure —
+and `removals_compile.rs` the ones that take code away: delete, imports, remove-flag, and
+recipe, which composes them.
+
+The second sweep found nothing, which is worth recording as a result rather than an
+absence. The third found three, and all three are one shape: the last use of an import
+lives in the code being removed, and the statement stays behind. Every one of them parses,
+which is why the parse sweeps missed them and a compiler caught them.
+
+`fr translate` is the one writing command not driven here. Its output is a draft that
+carries unresolved constructs by design, so compiling it would fail correctly and prove
+nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.
 
 Open limitations are in BUGS.md. All twelve are described in writing, pinned by a test,
 and none is a missing feature: reachability under dynamic dispatch (inherent), Helm values
