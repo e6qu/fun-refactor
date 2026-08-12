@@ -67,17 +67,21 @@ for (const slot of document.querySelectorAll("[data-diff]")) {
     slot.innerHTML = `<p class="ts-missing">Missing diff: ${escape(id)}</p>`;
     continue;
   }
+  const label = slot.dataset.label ?? "Show the diff";
   slot.innerHTML = `
-    <div class="ts-pair">
-      <div class="ts-pane">
-        <div class="ts-pane-head"><span>Python 3.14</span></div>
-        <pre><code>${diffLines(diff.python)}</code></pre>
+    <details class="ts-diff-toggle">
+      <summary>${escape(label)}</summary>
+      <div class="ts-pair">
+        <div class="ts-pane">
+          <div class="ts-pane-head"><span>Python 3.14</span></div>
+          <pre><code>${diffLines(diff.python)}</code></pre>
+        </div>
+        <div class="ts-pane">
+          <div class="ts-pane-head"><span>TypeScript 5.9</span></div>
+          <pre><code>${diffLines(diff.typescript)}</code></pre>
+        </div>
       </div>
-      <div class="ts-pane">
-        <div class="ts-pane-head"><span>TypeScript 5.9</span></div>
-        <pre><code>${diffLines(diff.typescript)}</code></pre>
-      </div>
-    </div>`;
+    </details>`;
 }
 
 // The reading position, kept per section so a return visit lands where you left.
