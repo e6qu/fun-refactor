@@ -1,7 +1,7 @@
 //! Building a record, which is the line every constructor is made of.
 //!
-//! `Counter { value: 0, step }` is the one way Rust builds one, and nothing read it,
-//! so every constructor body in every target came out as "not translated".
+//! `Counter { value: 0, step }` is the one way Rust builds one. Nothing read it, so every
+//! constructor body in every target came out as "not translated".
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -38,7 +38,7 @@ fn the_four_languages_that_name_their_fields_do() {
 
 #[test]
 fn the_shorthand_is_read_as_the_field_it_names() {
-    // `Point { x, y }` is `x: x, y: y`, and is how the code is actually written.
+    // `Point { x, y }` is `x: x, y: y`, and is how the code is written.
     let source = "\
 pub struct Point {
     pub x: i64,
@@ -83,7 +83,7 @@ fn a_constructor_that_builds_and_returns_keeps_its_body() {
 #[test]
 fn a_constructor_becomes_field_assignments_where_one_takes_a_receiver() {
     // An `__init__` that returns a value raises; a Java constructor that returns one
-    // does not compile. Building and returning the record says exactly what assigning
+    // does not compile. Building and returning the record says what assigning
     // through the receiver says.
     let out = translated("a.rs", COUNTER, Language::Python);
     assert!(out.contains("self.value = 0"), "{out}");

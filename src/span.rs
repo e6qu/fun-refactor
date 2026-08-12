@@ -1,7 +1,7 @@
 //! Byte-native source positions.
 //!
 //! Every position in fun-refactor is a byte offset into the original file. Line/column
-//! are derived only for display. This is what makes edits lossless: an edit is
+//! are derived only for display. This makes edits lossless: an edit is
 //! "replace bytes [start, end) with this text", touching nothing else in the file.
 
 use serde::{Deserialize, Serialize};
@@ -78,8 +78,8 @@ impl fmt::Display for LineCol {
 ///
 /// Built once per file; lookups are binary searches over line start offsets.
 ///
-/// A trailing newline terminates the final line instead of starting a new empty
-/// one, so `"a\nb\n"` has two lines, matching how editors and diffs count them.
+/// A trailing newline terminates the final line instead of starting a new empty one. So
+/// `"a\nb\n"` has two lines, matching how editors and diffs count them.
 #[derive(Debug, Clone)]
 pub struct LineIndex {
     /// Byte offset of the start of each line. Always starts with 0.
@@ -190,8 +190,8 @@ impl LineIndex {
 
 /// Parse `path:line:col-line:col` into a path and two positions.
 ///
-/// Here and not in the CLI because a recipe's `extract … at "…"` writes the same
-/// spec, and two parsers for one syntax is two chances to disagree about it.
+/// Here and not in the CLI because a recipe's `extract … at "…"` writes the same spec. Two
+/// parsers for one syntax is two chances to disagree about it.
 pub fn parse_range(spec: &str) -> anyhow::Result<(std::path::PathBuf, LineCol, LineCol)> {
     let shape = || anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'");
     let (head, end_col) = spec.rsplit_once(':').ok_or_else(shape)?;
@@ -246,11 +246,11 @@ mod tests {
 
     #[test]
     fn line_col_survives_an_offset_inside_a_character() {
-        // Callers compute offsets: `span.end - 1` names the last byte a region covers,
-        // and that is inside the character whenever the region ends with a multi-byte
-        // one. Slicing there panicked, `fr duplicates --language python` over
-        // `psf/black` died on a '𨉟', four bytes wide, and `full_line_span` reaches
-        // here the same way, so `fr delete` and `fr imports` could do the same.
+        // Callers compute offsets: `span.end - 1` names the last byte a region covers. That is
+        // inside the character whenever the region ends with a multi-byte one. Slicing there
+        // panicked, `fr duplicates --language python` over `psf/black` died on a '𨉟', four
+        // bytes wide, and `full_line_span` reaches here the same way. So `fr delete` and `fr
+        // imports` could do the same.
         let source = "x = \"𨉟\"\n";
         let index = LineIndex::new(source);
         let end = source.find('\n').expect("a newline");

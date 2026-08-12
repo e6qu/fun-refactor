@@ -47,7 +47,7 @@ fn workspace() -> tempfile::TempDir {
         std::fs::create_dir_all(path.parent().expect("a parent")).expect("mkdir");
         std::fs::write(&path, content).expect("write");
     }
-    // A `templates/` directory beside a chart file is what makes a YAML file Helm.
+    // A `templates/` directory beside a chart file makes a YAML file Helm.
     std::fs::write(
         dir.path().join("Chart.yaml"),
         "name: chart\nversion: 0.1.0\n",

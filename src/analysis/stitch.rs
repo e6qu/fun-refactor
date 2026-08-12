@@ -1,20 +1,19 @@
 //! Stitching references across the code/config boundary.
 //!
-//! A Helm value reaches application code by a route no single tool follows: a key in
-//! `values.yaml` is named by a `{{ .Values.x }}` action in a template, that action
-//! supplies the `value` of a container environment variable, and the program reads
-//! that variable by name at runtime. Three files, three languages, one value.
+//! A Helm value reaches application code by a route no single tool follows. A key in
+//! `values.yaml` is named by a `{{ .Values.x }}` action in a template, that action supplies the
+//! `value` of a container environment variable. The program reads that variable by name at
+//! runtime. Three files, three languages, one value.
 //!
-//! Every link here is name-keyed and not resolved, an environment variable is
-//! matched by the string a program passes to `getenv`, which no static analysis can
-//! prove refers to the same variable a manifest declares. So every chain carries
-//! [`Confidence::NameOnly`] on that hop and says so, instead of presenting a guess
-//! as a fact.
+//! Every link here is name-keyed and not resolved, an environment variable is matched by the
+//! string a program passes to `getenv`, which no static analysis can prove refers to the same
+//! variable a manifest declares. So every chain carries [`Confidence::NameOnly`] on that hop
+//! and says so, instead of presenting a guess as a fact.
 //!
-//! The manifest end of the chain is read with [`crate::helm`]: the `.Values` path
-//! behind a variable lives inside a `{{ ... }}` action, which is masked out before
-//! the YAML parse, and a `{{ if }}` around the `value:` decides whether that branch
-//! is the one that renders. Both are parsed and not matched by line number.
+//! The manifest end of the chain is read with [`crate::helm`]: the `.Values` path behind a
+//! variable lives inside a `{{ ... }}` action, which is masked out before the YAML parse, and a
+//! `{{ if }}` around the `value:` decides whether that branch is the one that renders. Both are
+//! parsed and not matched by line number.
 
 use crate::helm;
 use crate::index::Index;
@@ -71,7 +70,7 @@ pub struct EnvRead {
     pub language: Language,
     /// The call or access as written.
     pub text: String,
-    /// Always name-only: the link is a string, not a resolved reference.
+    /// Always name-only: the link is a string. It is not a resolved reference.
     pub confidence: Confidence,
 }
 
@@ -180,9 +179,9 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
                 continue;
             }
 
-            // Each `value:` is a branch: `{{ if }}` around one of them means this
-            // entry has several possible values, and which renders is the template's
-            // decision. Every branch is reported, with the condition that selects it.
+            // Each `value:` is a branch: `{{ if }}` around one of them means this entry has
+            // several possible values. Which renders is the template's decision. Every branch
+            // is reported, with the condition that selects it.
             for value_key in values {
                 found.push(Declaration {
                     name: variable.clone(),
@@ -199,8 +198,8 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
 
 /// The `value:` keys belonging to one `name:` entry of an `env:` list.
 ///
-/// A list item is not its own container in the index, so the entry is bounded by
-/// the next `name:` key at the same level instead.
+/// A list item is not its own container in the index. So the entry is bounded by the next
+/// `name:` key at the same level instead.
 fn value_keys<'a>(keys: &[&'a Symbol], name_key: &Symbol, end_of_file: usize) -> Vec<&'a Symbol> {
     let next_entry = keys
         .iter()
@@ -378,11 +377,10 @@ struct Accessor {
     prefix: &'static str,
     /// Arguments standing between the prefix and the name.
     ///
-    /// Every accessor the first five languages use puts the name first, and the reader
-    /// was written to take it from there. Zig's does not: `getEnvVarOwned` is passed an
-    /// allocator before the name, so reading the first argument found `allocator`, which
-    /// is lower case, which the name filter dropped, a read that went missing without
-    /// saying so.
+    /// Every accessor the first five languages use puts the name first, and the reader was
+    /// written to take it from there. Zig's does not: `getEnvVarOwned` is passed an allocator
+    /// before the name. So reading the first argument found `allocator`, which is lower case,
+    /// which the name filter dropped, a read that went missing without saying so.
     skip_arguments: usize,
 }
 

@@ -215,7 +215,7 @@ fn refuses_to_remove_a_parameter_the_body_still_reads() {
 #[test]
 fn notes_a_call_site_with_nothing_at_that_position() {
     // Passing fewer arguments than the function reads is legal shell: the parameter
-    // is simply unset. There is then nothing to remove, which is worth saying.
+    // is unset. There is then nothing to remove, which is worth saying.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$1\"\n}\nf a b\nf a\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(1)).unwrap();
@@ -414,8 +414,8 @@ fn braced_references_are_renumbered_in_place() {
 
 #[test]
 fn renumbering_past_nine_has_to_start_bracing() {
-    // `$10` is not parameter 10, the shell reads it as `${1}0`, so a reference
-    // pushed past nine must gain braces or the rewrite would change its meaning.
+    // `$10` is not parameter 10, the shell reads it as `${1}0`. So a reference pushed past nine
+    // must gain braces or the rewrite would change its meaning.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$9\"\n}\nf 1 2 3 4 5 6 7 8 9\n")]);
     let index = ws.index();
     let plan = signature::change(
@@ -462,8 +462,8 @@ fn refuses_a_multi_digit_unbraced_reference() {
 
 #[test]
 fn notes_a_body_that_reads_the_parameter_count() {
-    // `$#` stays correct as an expression and wrong as an intent: the count it
-    // reports is one lower than the code below it was written for.
+    // `$#` stays correct as an expression and wrong as an intent. The count it reports is one
+    // lower than the code below it was written for.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$# $2\"\n}\nf a b\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
@@ -805,11 +805,11 @@ fn the_summary_names_the_positional_parameter() {
 
 /// A refusal names the operation the caller asked for.
 ///
-/// Two shell functions of one name make every call site ambiguous, which is a reason to
-/// refuse a signature change, but it reused the refusal `rename` and `extract` raise
-/// when a *new* name would collide, so the message said "renaming would shadow or
-/// collide with it" to somebody who had asked to move a parameter. Nothing is being
-/// renamed and nothing is being introduced; two definitions were already there.
+/// Two shell functions of one name make every call site ambiguous, which is a reason to refuse
+/// a signature change, but it reused the refusal `rename` and `extract` raise when a *new* name
+/// would collide. So the message said "renaming would shadow or collide with it" to somebody
+/// who had asked to move a parameter. Nothing is being renamed and nothing is being introduced;
+/// two definitions were already there.
 #[test]
 fn two_definitions_of_one_name_refuse_without_mentioning_renaming() {
     let ws = Workspace::new(&[

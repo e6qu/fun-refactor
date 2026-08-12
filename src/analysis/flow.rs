@@ -2,15 +2,14 @@
 //!
 //! # What tier this is
 //!
-//! This is syntactic def-use analysis over the resolved index, not a full dataflow
-//! engine. It follows assignments and initialisers through resolved references, which
-//! answers most "where did this come from" questions in practice, and it stops
-//! **loudly** at every boundary it cannot cross, unresolved names, calls whose target
-//! is not proven, and dynamic dispatch (PLAN.md D5). It never over-approximates by
-//! assuming a value flows through an unknown call.
+//! This is syntactic def-use analysis over the resolved index, not a full dataflow engine. It
+//! follows assignments and initialisers through resolved references, which answers most "where
+//! did this come from" questions in practice. It stops **loudly** at every boundary it cannot
+//! cross, unresolved names, calls whose target is not proven, and dynamic dispatch (PLAN.md
+//! D5). It never over-approximates by assuming a value flows through an unknown call.
 //!
-//! Each step records the confidence of the resolution that produced it, so a chain
-//! containing a weak link is visibly weak and not silently wrong.
+//! Each step records the confidence of the resolution that produced it, so a chain containing a
+//! weak link is visibly weak and not silently wrong.
 
 use crate::index::Index;
 use crate::lang::{Language, LanguageClass};
@@ -392,7 +391,7 @@ fn value_of_definition<'a>(
 
     for field in ["value", "right", "default_value"] {
         if let Some(value) = node.child_by_field_name(field) {
-            // Guard against a "value" that is actually the name itself.
+            // Guard against a "value" that is the name itself.
             if Span::from(value) != name_span {
                 return Some(value);
             }
@@ -429,11 +428,11 @@ fn enclosing_assignment_target(
         for field in ["value", "right"] {
             if let Some(value) = node.child_by_field_name(field) {
                 if Span::from(value).contains(span) {
-                    // A node can hold the value without naming anything: Rust's
-                    // `cleaned as i64` is a `type_cast_expression` whose `value` is the
-                    // reference, and `raw.len()` is a `field_expression` whose `value`
-                    // is the receiver. Giving up there gave up on the `let` two levels
-                    // out, so forward flow in Rust stopped at the first hop every time.
+                    // A node can hold the value without naming anything: Rust's `cleaned as
+                    // i64` is a `type_cast_expression` whose `value` is the reference.
+                    // `raw.len()` is a `field_expression` whose `value` is the receiver. Giving
+                    // up there gave up on the `let` two levels out, so forward flow in Rust
+                    // stopped at the first hop every time.
                     let Some(target_span) = node
                         .child_by_field_name("name")
                         .or_else(|| node.child_by_field_name("left"))
@@ -450,10 +449,10 @@ fn enclosing_assignment_target(
                         return Some(exact.id);
                     }
                     // Otherwise the *smallest* binding whose span holds that name. Every
-                    // enclosing function's span holds it too, and taking the first match
-                    // in declaration order took the function, so `parsed = int(cleaned)`
-                    // said the value flowed into `load`, and forward flow stopped one hop
-                    // from where it started while looking like it had gone somewhere.
+                    // enclosing function's span holds it too, and taking the first match in
+                    // declaration order took the function. So `parsed = int(cleaned)` said the
+                    // value flowed into `load`, and forward flow stopped one hop from where it
+                    // started while looking like it had gone somewhere.
                     return candidates()
                         .filter(|s| {
                             matches!(
@@ -489,7 +488,7 @@ fn line_text(source: &str, offset: usize) -> String {
 /// Does flow analysis apply to this language?
 ///
 /// Config and markup languages get provenance analysis instead of dataflow: their
-/// evaluation model is substitution and override, not execution.
+/// evaluation model is substitution and override. It is not execution.
 pub fn supports_flow(language: Language) -> bool {
     language.class() == LanguageClass::Imperative
 }
@@ -503,11 +502,11 @@ pub fn applies_to(index: &Index, file: &Path) -> bool {
 
 /// The refusal both entry points owe a language that does not execute.
 ///
-/// The predicate above was the CLI's, asked before choosing between flow and
-/// provenance, so the answer was right by the route the CLI happened to take. Called as
-/// a library, `forward` and `backward` walked a Markdown or YAML symbol and returned an
-/// empty result, which reads as "nothing flows from here" rather than "this question
-/// has no meaning here", and the matrix said `n/a` the whole time.
+/// The predicate above was the CLI's, asked before choosing between flow and provenance. So the
+/// answer was right by the route the CLI happened to take. Called as a library, `forward` and
+/// `backward` walked a Markdown or YAML symbol and returned an empty result, which reads as
+/// "nothing flows from here" and not "this question has no meaning here". The matrix said
+/// `n/a` the whole time.
 fn refuse_unless_it_executes(language: Language) -> Result<()> {
     if supports_flow(language) {
         return Ok(());

@@ -1,13 +1,11 @@
 //! Entry-point detection driven by declarative catalogs.
 //!
-//! funveil detected entry points with heuristics hardcoded in Rust. Here the rules
-//! are data: one YAML catalog per framework, following the shape CodeQL uses for
-//! models-as-data and OWASP noir uses for endpoint extraction. Adding Flask or Axum
-//! support means adding rows, not code.
+//! funveil detected entry points with heuristics hardcoded in Rust. Here the rules are data:
+//! one YAML catalog per framework, following the shape CodeQL uses for models-as-data and OWASP
+//! noir uses for endpoint extraction. Adding Flask or Axum support means adding rows, not code.
 //!
-//! An entry point is a tagged symbol, so it feeds directly into call-graph
-//! reachability: "what is reachable from an HTTP handler" is a graph walk from
-//! everything tagged `http-route`.
+//! An entry point is a tagged symbol, so it feeds directly into call-graph reachability. "what
+//! is reachable from an HTTP handler" is a graph walk from everything tagged `http-route`.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -81,9 +79,9 @@ pub enum ThreatModel {
 /// A language a rule applies to, or every language the tool knows.
 ///
 /// A plain `String` here meant `languages: [pyhton]` parsed, loaded, and matched nothing.
-/// Nothing was wrong with the YAML and nothing was wrong with the rule: it simply never
-/// fired, which is indistinguishable from a language that has no rules. Parsing the name
-/// into the language it denotes moves that from a silent Tuesday to a message at load.
+/// Nothing was wrong with the YAML and nothing was wrong with the rule. It never fired, which
+/// is indistinguishable from a language that has no rules. Parsing the name into the language
+/// it denotes moves that from a silent Tuesday to a message at load.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppliesTo {
     /// `*`, every language.
@@ -159,7 +157,7 @@ pub struct Matcher {
     /// Symbol kind, e.g. function, block, key.
     ///
     /// The kind's own type, not its name. `symbol_kind: functoin` used to parse, load and
-    /// match nothing, which reads exactly like a rule that is present and simply never
+    /// match nothing, which reads like a rule that is present and never
     /// true, the same failure `deny_unknown_fields` catches for a misspelled key.
     #[serde(default)]
     pub symbol_kind: Option<SymbolKind>,
@@ -197,11 +195,11 @@ pub struct Matcher {
     pub called_from_main_guard: Option<bool>,
     /// A directive at the top of the file, or at the top of the symbol's own body.
     ///
-    /// `"use server"` marks a Next.js server action: an exported function the framework
-    /// makes reachable over the network, called by nothing in the source. It is the same
-    /// case as Java's `@RestController` and pytest's fixtures, and unlike Next.js's other
-    /// conventions it is not a filename, `components/cart/actions.ts` is an ordinary
-    /// name, so no `file_name` rule can find it.
+    /// `"use server"` marks a Next.js server action: an exported function the framework makes
+    /// reachable over the network, called by nothing in the source. It is the same case as
+    /// Java's `@RestController` and pytest's fixtures. Unlike Next.js's other conventions it is
+    /// not a filename, `components/cart/actions.ts` is an ordinary name. So no `file_name` rule
+    /// can find it.
     #[serde(default)]
     pub file_directive: Option<String>,
     /// The declaration begins with this keyword.
@@ -227,11 +225,11 @@ pub struct Matcher {
 impl Matcher {
     /// Does this matcher say anything at all?
     ///
-    /// Destructured and not tested field by field, so that adding a condition to
-    /// `Matcher` fails to compile here instead of being quietly left out of the answer.
-    /// Three had been: a rule whose only condition was `symbol_kind`, `exported` or
-    /// `top_level` counted as saying nothing, and a rule that says nothing matched
-    /// nothing, silently, and in a way that reads like a rule that is simply never true.
+    /// Destructured and not tested field by field, so that adding a condition to `Matcher`
+    /// fails to compile here instead of being quietly left out of the answer. Three had been: a
+    /// rule whose only condition was `symbol_kind`, `exported` or `top_level` counted as saying
+    /// nothing. A rule that says nothing matched nothing, silently, and in a way that reads
+    /// like a rule that is never true.
     pub fn names_a_condition(&self) -> bool {
         let Matcher {
             file_prefix,
@@ -304,7 +302,7 @@ const BUILTIN: &[(&str, &str)] = &[
 ///
 /// `deny_unknown_fields` catches a misspelled key; this catches a well-spelled one in a
 /// combination that has no meaning. Such a rule would parse, load, and match nothing,
-/// which reads exactly like a framework that is covered and simply absent.
+/// which reads like a framework that is covered and absent.
 fn check_rules(rules: &[Rule]) -> Result<()> {
     for rule in rules {
         // Most specific first: a rule with only `annotation_argument_prefix` also names
@@ -362,12 +360,12 @@ impl Catalog {
     /// Find every entry point in an index.
     pub fn detect(&self, index: &Index) -> Vec<Entrypoint> {
         let mut found = Vec::new();
-        // One read per symbol instead of one per rule. Three of the predicates below
-        // need the file's text, and asking each of them separately read the whole file
-        // once for every rule in the catalogue, on `vuejs/core`, 34,611 symbols against
-        // the rules that apply to TypeScript, which doubled the time this command takes.
-        // The index groups a file's symbols together, so remembering the last one is
-        // enough; a file that cannot be read is retried and not remembered.
+        // One read per symbol instead of one per rule. Three of the predicates below need the
+        // file's text. Asking each of them separately read the whole file once for every rule
+        // in the catalogue, on `vuejs/core`, 34,611 symbols against the rules that apply to
+        // TypeScript, which doubled the time this command takes. The index groups a file's
+        // symbols together, so remembering the last one is enough; a file that cannot be read
+        // is retried and not remembered.
         let mut cached: Option<(std::path::PathBuf, String)> = None;
         for symbol in &index.symbols {
             if cached.as_ref().is_none_or(|(path, _)| path != &symbol.file) {
@@ -395,15 +393,14 @@ impl Catalog {
 
 /// The roots a reachability question starts from.
 ///
-/// This is a type and not a `&[SymbolId]` because an empty slice is a legal value
-/// with a catastrophic meaning: nothing is reachable, so everything not exported reads
-/// as dead. The playground shipped exactly that, twenty symbols reported dead in the
-/// browser that the terminal reported live, including every `#[test]` function,
-/// because one caller passed `&[]` where the other passed a detected catalog, and both
-/// type-checked.
+/// This is a type and not a `&[SymbolId]` because an empty slice is a legal value with a
+/// catastrophic meaning: nothing is reachable. So everything not exported reads as dead. The
+/// playground shipped that, twenty symbols reported dead in the browser that the terminal
+/// reported live, including every `#[test]` function, because one caller passed `&[]` where the
+/// other passed a detected catalog, and both type-checked.
 ///
-/// Now a caller has to say which it means. There is no way to end up with no roots by
-/// omission; [`Entrypoints::none`] exists, but you have to ask for it by name.
+/// Now a caller has to say which it means. There is no way to end up with no roots by omission;
+/// [`Entrypoints::none`] exists, but you have to ask for it by name.
 #[derive(Debug, Clone, Default)]
 pub struct Entrypoints(Vec<SymbolId>);
 
@@ -452,9 +449,9 @@ fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
 
     let m = &rule.matches;
     // A matcher with no conditions would tag every symbol in the language. `check_rules`
-    // rejects one when a catalogue loads, which is where the useful message belongs; this
-    // is the backstop for a `Catalog` assembled directly and not loaded. Both ask the
-    // same method, so they cannot come to different conclusions.
+    // rejects one when a catalogue loads, which is where the useful message belongs. This is
+    // the backstop for a `Catalog` assembled directly and not loaded. Both ask the same method,
+    // so they cannot come to different conclusions.
     if !m.names_a_condition() {
         return false;
     }
@@ -595,15 +592,15 @@ fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
         return Some(piece.to_string());
     }
 
-    // What sits before the symbol on its own line is part of the declaration, not a line
-    // before it: `export class C` and `pub async fn f` put a modifier there, and reading
-    // it as a preceding line ended the run before it reached the annotation above. So the
-    // search starts at the beginning of the declaration's line.
+    // What sits before the symbol on its own line is part of the declaration, not a line before
+    // it. `export class C` and `pub async fn f` put a modifier there. Reading it as a preceding
+    // line ended the run before it reached the annotation above. So the search starts at the
+    // beginning of the declaration's line.
     //
     // Unless that text opens or closes something, in which case the symbol is nested in
-    // whatever the annotation above actually annotates, and does not carry it: the
-    // `payload` in `@KafkaListener void consume(String payload)` is not a queue consumer,
-    // and the `inner` in `fn outer() { fn inner()` is not `outer`'s `#[test]`.
+    // whatever the annotation above annotates, and does not carry it. The `payload` in
+    // `@KafkaListener void consume(String payload)` is not a queue consumer, and the `inner` in
+    // `fn outer() { fn inner()` is not `outer`'s `#[test]`.
     let before = &source[..start];
     let partial = before.rsplit_once('\n').map_or(before, |(_, tail)| tail);
     if partial.contains(['{', ';', '}', '(']) {
@@ -633,13 +630,13 @@ fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
 
 /// Does this annotation's first string argument start with `prefix`?
 ///
-/// A decorator's *name* is not unique across libraries. `@patch` is `unittest.mock`'s
-/// far more often than it is FastAPI's, and matching the name alone tagged twenty-two
-/// of `psf/black`'s test methods as remotely reachable HTTP routes. What separates the
-/// two is the argument: a route decorator names a URL path, and a mock names a module.
+/// A decorator's *name* is not unique across libraries. `@patch` is `unittest.mock`'s far more
+/// often than it is FastAPI's. Matching the name alone tagged twenty-two of `psf/black`'s test
+/// methods as remotely reachable HTTP routes. What separates the two is the argument: a route
+/// decorator names a URL path, and a mock names a module.
 ///
-/// A path held in a constant, `@app.get(PETS)`, is not matched. That is a real gap
-/// instead of a hidden one: the rule asks for something it can read, and says so.
+/// A path held in a constant, `@app.get(PETS)`, is not matched. That is a real gap instead of a
+/// hidden one: the rule asks for something it can read, and says so.
 fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
     let Some((_, args)) = annotation.split_once('(') else {
         return false;
@@ -666,15 +663,14 @@ fn declaration_begins_with(source: &str, symbol: &Symbol, keyword: &str) -> bool
 
 /// Is this symbol called from its module's `if __name__ == "__main__":` block?
 ///
-/// The guard is a statement and not a declaration, so there is no symbol to match a
-/// name against, which is why every other rule here could be written as a name and
-/// this one could not. What it calls is the program's starting point whatever it is
-/// called, and reporting nothing for a script that has one is the wrong answer to the
-/// only question `fr entrypoints` asks.
+/// The guard is a statement and not a declaration. So there is no symbol to match a name
+/// against. So every other rule here could be written as a name and this one could not. What it
+/// calls is the program's starting point whatever it is called. Reporting nothing for a script
+/// that has one is the wrong answer to the only question `fr entrypoints` asks.
 ///
-/// Direct calls only: `cli()` inside the guard, not a call made by something the guard
-/// calls. The second is reachability, which the call graph answers, and folding it in
-/// here would tag half a program as an entry point.
+/// Direct calls only: `cli()` inside the guard, not a call made by something the guard calls.
+/// The second is reachability, which the call graph answers, and folding it in here would tag
+/// half a program as an entry point.
 fn called_from_main_guard(source: &str, symbol: &Symbol) -> bool {
     if symbol.language != Language::Python || symbol.container.is_some() {
         return false;
@@ -735,7 +731,7 @@ fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
 ///
 /// Both forms are real. `"use server"` at the top of a file makes every export in it a
 /// server action; the same string at the top of one function body marks only that one.
-/// Quoted either way, and the first statement either way, which is what keeps a mention
+/// Quoted either way, and the first statement either way, which keeps a mention
 /// of the words in a comment or a string from counting.
 fn under_directive(source: &str, symbol: &Symbol, directive: &str) -> bool {
     let quoted = |line: &str| {
@@ -765,15 +761,15 @@ fn under_directive(source: &str, symbol: &Symbol, directive: &str) -> bool {
 
 /// Does this fragment name the annotation, whatever punctuation surrounds it?
 ///
-/// `#[tokio::test]`, `@pytest.mark.asyncio` and `@org.junit.jupiter.api.Test` all end
-/// in the bare name, so the qualification is dropped and the arguments with it.
+/// `#[tokio::test]`, `@pytest.mark.asyncio` and `@org.junit.jupiter.api.Test` all end in the
+/// bare name, so the qualification is dropped and the arguments with it.
 ///
-/// The arguments go first and the qualifier second, because the arguments may contain
-/// dots of their own: `@GetMapping(Routes.PETS)` and `@app.route("/v1.0/status")` name
-/// `GetMapping` and `route`, not `PETS` and `0/status")`.
+/// The arguments go first and the qualifier second, because the arguments may contain dots of
+/// their own. `@GetMapping(Routes.PETS)` and `@app.route("/v1.0/status")` name `GetMapping` and
+/// `route`, not `PETS` and `0/status")`.
 fn names_the_annotation(fragment: &str, name: &str) -> bool {
-    // Whitespace ends the name as surely as a bracket does: inside a Java declaration
-    // the annotation is followed by a newline and the modifiers, not by a delimiter.
+    // Whitespace ends the name as surely as a bracket does. Inside a Java declaration the
+    // annotation is followed by a newline and the modifiers. It is not by a delimiter.
     fragment
         .trim()
         .trim_start_matches(['#', '[', '@'])
@@ -902,10 +898,10 @@ mod tests {
 
     #[test]
     fn an_empty_matcher_never_matches_everything() {
-        // A rule with no conditions would tag every symbol; that is always a
-        // catalog authoring mistake. A loaded catalogue is refused outright, which is
-        // where the author gets told; this is the backstop for a `Catalog` assembled
-        // directly, as here, where there is nobody to tell.
+        // A rule with no conditions would tag every symbol; that is always a catalog authoring
+        // mistake. A loaded catalogue is refused outright, which is where the author gets told.
+        // This is the backstop for a `Catalog` assembled directly, as here, where there is
+        // nobody to tell.
         let rule = Rule {
             id: "bad".into(),
             kind: EntryKind::CliMain,
@@ -1000,11 +996,11 @@ mod tests {
 
     #[test]
     fn coverage_gaps_are_reportable() {
-        // This used to assert that each gap's *name* was a non-empty string, which is
-        // true of every `&'static str` in the enum and would have passed had the
-        // function returned nothing, everything, or the wrong languages entirely. The
-        // report tells a reader which languages have no entry-point rules, and the only
-        // way that is worth printing is if it agrees with which languages have none.
+        // This used to assert that each gap's *name* was a non-empty string, which is true of
+        // every `&'static str` in the enum and would have passed had the function returned
+        // nothing, everything, or the wrong languages entirely. The report tells a reader which
+        // languages have no entry-point rules. The only way that is worth printing is if it
+        // agrees with which languages have none.
         let catalog = Catalog::builtin().unwrap();
         let gaps = languages_without_rules(&catalog);
 
@@ -1019,8 +1015,8 @@ mod tests {
                 if has_rules { "has" } else { "has no" }
             );
         }
-        // And it is a real report and not an empty one: some language has no rules
-        // and some language does, or the agreement above is vacuous.
+        // And it is a real report and not an empty one. Some language has no rules and some
+        // language does, or the agreement above is vacuous.
         assert!(!gaps.is_empty(), "no gaps at all, so nothing was compared");
         assert!(
             gaps.len() < Language::ALL.len(),

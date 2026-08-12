@@ -89,15 +89,15 @@ fn the_languages_that_already_agreed_are_untouched() {
 
 #[test]
 fn zig_refuses_to_join_two_strings_rather_than_pretending() {
-    // Joining two slices in Zig means allocating, and the allocator is a parameter the
-    // function does not have, inventing one changes the signature every caller was
-    // written against. `a + b` on two slices is not something the compiler accepts, so
-    // it went out looking like the other four targets and not building.
+    // Joining two slices in Zig means allocating, and the allocator is a parameter the function
+    // does not have, inventing one changes the signature every caller was written against. `a +
+    // b` on two slices is not something the compiler accepts, so it went out looking like the
+    // other four targets and not building.
     //
-    // `@compileError` is a value anywhere one is expected, it says why in the
-    // compiler's own output, and it cannot be mistaken for code that works, which
-    // returning an empty slice quietly could. Zig has no block comment, so a marker
-    // beside the value would swallow the rest of the line.
+    // `@compileError` is a value anywhere one is expected, it says why in the compiler's own
+    // output. It cannot be mistaken for code that works, which returning an empty slice quietly
+    // could. Zig has no block comment, so a marker beside the value would swallow the rest of
+    // the line.
     let out = translated(
         "pub fn join(a: String, b: String) -> String {\n    return a + b;\n}\n",
         Language::Zig,

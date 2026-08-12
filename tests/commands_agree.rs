@@ -132,13 +132,13 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
         .map(|r| ((r.file.as_path(), r.span.start), r.name.as_str()))
         .collect();
 
-    // Two agreements, and not a count. Some declarations are one of several for the
-    // same entity, a CSS custom property set in `:root` and again inside a media
-    // query, and `fr usages` answers about the entity, so counting against one of the
-    // declarations calls the other one's uses missing. What has to hold is that the
-    // report leaves nothing out and invents nothing.
+    // Two agreements, and not a count. Some declarations are one of several for the same
+    // entity, a CSS custom property set in `:root` and again inside a media query. `fr usages`
+    // answers about the entity. So counting against one of the declarations calls the other
+    // one's uses missing. What has to hold is that the report leaves nothing out and invents
+    // nothing.
     //
-    // `usages_of` walks every reference, so this samples rather than sweeps.
+    // `usages_of` walks every reference, so this samples and does not sweep.
     for symbol in index.symbols.iter().step_by(1493) {
         let report = navigate::usages_of(index, symbol.id);
         assert!(
@@ -256,11 +256,11 @@ fn a_report_that_stops_early_says_how_many_it_left_out() {
 
 #[test]
 fn usages_reports_the_name_where_it_appears_in_prose() {
-    // `fr usages` answers "where does this name appear". It listed only the references
-    // a grammar resolved, so a name written in a comment was missing from the answer and
-    // nothing said so: `fr usages supports_cascade` said four for a name that appeared
-    // six times. `fr rename` and `fr delete` had each grown their own scan for exactly
-    // these, and `fr usages` had none.
+    // `fr usages` answers "where does this name appear". It listed only the references a
+    // grammar resolved. So a name written in a comment was missing from the answer and nothing
+    // said so. `fr usages supports_cascade` said four for a name that appeared six times. `fr
+    // rename` and `fr delete` had each grown their own scan for exactly these, and `fr usages`
+    // had none.
     let (_root, index) = workspace();
     let symbol = index
         .symbols

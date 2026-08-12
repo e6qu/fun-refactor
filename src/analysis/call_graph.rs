@@ -1,17 +1,16 @@
 //! Call graph construction over the resolved index.
 //!
-//! The API shape (callers / callees / trace / DOT export) follows funveil's call graph.
-//! The resolution differs: funveil matched callee names as strings in one flat
-//! namespace, merging a `parse` in one file with a `parse` in another. Here every edge
-//! comes from a resolved reference and carries that resolution's [`Confidence`].
+//! The API shape (callers / callees / trace / DOT export) follows funveil's call graph. The
+//! resolution differs: funveil matched callee names as strings in one flat namespace, merging a
+//! `parse` in one file with a `parse` in another. Here every edge comes from a resolved
+//! reference and carries that resolution's [`Confidence`].
 //!
-//! A second layer sits on top: class hierarchy analysis ([`Hierarchy`]). A call through
-//! a `dyn Trait`, an interface value or a base-class reference names no single
-//! definition, but the workspace says which types implement the abstraction, and each
-//! implementation is a possible callee. Those edges carry [`Confidence::FieldBased`] and
-//! an [`EdgeOrigin::Hierarchy`] tag: dashed in DOT, counted separately by
-//! [`CallGraph::origin_breakdown`], and named as the reason a symbol stayed off the
-//! unused list.
+//! A second layer sits on top: class hierarchy analysis ([`Hierarchy`]). A call through a `dyn
+//! Trait`, an interface value or a base-class reference names no single definition. But the
+//! workspace says which types implement the abstraction. Each implementation is a possible
+//! callee. Those edges carry [`Confidence::FieldBased`] and an [`EdgeOrigin::Hierarchy`] tag:
+//! dashed in DOT, counted separately by [`CallGraph::origin_breakdown`], and named as the
+//! reason a symbol stayed off the unused list.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -37,10 +36,9 @@ pub struct CallEdge {
 
 /// Where a call edge came from.
 ///
-/// Kept beside the [`Confidence`] and not folded into it: an edge can be
-/// unproven for two quite different reasons, and "the resolver was unsure" is not
-/// the same claim as "this is one of the implementations dynamic dispatch could
-/// pick".
+/// Kept beside the [`Confidence`] and not folded into it: an edge can be unproven for two quite
+/// different reasons. "the resolver was unsure" is not the same claim as "this is one of the
+/// implementations dynamic dispatch could pick".
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum EdgeOrigin {
     /// A reference the index resolved to this definition.
@@ -73,7 +71,7 @@ pub enum HierarchyBasis {
     ImplementedTrait,
     /// Go: the type's method set covers the interface's. Go has no `implements`
     /// keyword, covering the method set *is* implementing the interface, so
-    /// name-and-arity matching is the language's own rule, not a guess.
+    /// name-and-arity matching is the language's own rule. It is not a guess.
     InterfaceMethodSet,
     /// A declared supertype: TypeScript `implements` / `extends`, Python
     /// `class C(Base)`.
@@ -103,8 +101,8 @@ pub struct CallGraph {
     /// Call sites whose callee could not be resolved, kept so they can be reported
     /// and not silently dropped.
     pub unresolved: Vec<UnresolvedCall>,
-    /// Files whose hierarchy could not be read or parsed, so the caller can see that
-    /// the dispatch layer is incomplete for them and not assume it is empty.
+    /// Files whose hierarchy could not be read or parsed. So the caller can see that the
+    /// dispatch layer is incomplete for them and not assume it is empty.
     pub hierarchy_gaps: Vec<(PathBuf, String)>,
 }
 
@@ -143,7 +141,7 @@ impl CallGraph {
     ///
     /// This runs both layers: resolved references first, then the hierarchy
     /// fan-out for every method call site the first layer could not pin down. The
-    /// second layer costs one parse per imperative file, which is what it takes to
+    /// second layer costs one parse per imperative file, which it takes to
     /// see an `impl Trait for T` or an `implements` clause, the index keeps a
     /// method's owning type but not the abstraction that type answers to.
     pub fn build(index: &Index) -> Self {
@@ -367,9 +365,9 @@ impl CallGraph {
 
     /// Add the edge a resolved reference already earned.
     ///
-    /// Only for sites whose reference the query set files as a field access rather
-    /// than a call: Rust's `x.m()` is a `field_expression`, and the resolved-reference
-    /// pass skips it, so a perfectly ordinary method call produced no edge at all.
+    /// Only for sites whose reference the query set files as a field access and not a call:
+    /// Rust's `x.m()` is a `field_expression`, and the resolved-reference pass skips it. So a
+    /// perfectly ordinary method call produced no edge at all.
     #[allow(clippy::too_many_arguments)]
     fn add_resolved_site(
         &mut self,
@@ -595,8 +593,8 @@ impl CallGraph {
 
     /// Everything reachable from `seeds` following **resolved** edges only.
     ///
-    /// The difference between this and [`CallGraph::reachable_from`] is exactly what
-    /// hierarchy analysis contributed, which is what lets a report say why a symbol
+    /// The difference between this and [`CallGraph::reachable_from`] is what
+    /// hierarchy analysis contributed, which lets a report say why a symbol
     /// was spared and not just dropping it.
     pub fn reachable_from_resolved(&self, seeds: &[SymbolId]) -> HashSet<SymbolId> {
         self.reachable_via(seeds, false)
@@ -863,14 +861,13 @@ pub struct Hierarchy {
     /// Methods an abstraction declares, name to arity: a Rust trait, a Go interface,
     /// a TypeScript interface or class, a Python class.
     declares: HashMap<TypeKey, BTreeMap<String, usize>>,
-    /// The same methods, name to the *types* in their signature, where those could be
-    /// read. Go decides implementation by signature and not by name and count, and
-    /// matching on the count alone said a `Run() string` implements an interface that
-    /// asks for `Run() error`.
+    /// The same methods, name to the *types* in their signature, where those could be read. Go
+    /// decides implementation by signature and not by name and count. Matching on the count
+    /// alone said a `Run() string` implements an interface that asks for `Run() error`.
     ///
-    /// Separate from `declares` because it is a refinement and not a replacement: a
-    /// signature nobody could read leaves the arity answer standing, so a method this
-    /// cannot parse widens the answer instead of narrowing it to nothing.
+    /// Separate from `declares` because it is a refinement and not a replacement: a signature
+    /// nobody could read leaves the arity answer standing. So a method this cannot parse widens
+    /// the answer instead of narrowing it to nothing.
     signatures: HashMap<TypeKey, BTreeMap<String, String>>,
     /// Which abstractions declare a given method name, the reverse of `declares`,
     /// so a call site asks about its own name instead of walking every type.
@@ -879,9 +876,9 @@ pub struct Hierarchy {
     /// `extends`, a Rust supertrait bound, a Python base class list. Held this way
     /// round because every question asked of it is "who implements this?".
     direct_subtypes: HashMap<TypeKey, BTreeSet<String>>,
-    /// Concrete method sets, name to arity. Go only: it is the sole language here
-    /// where implementing an interface is a structural fact and not a declared
-    /// one, so it is the only one that needs to compare method sets.
+    /// Concrete method sets, name to arity. Go only: it is the sole language here where
+    /// implementing an interface is a structural fact and not a declared one. So it is the only
+    /// one that needs to compare method sets.
     method_sets: HashMap<TypeKey, BTreeMap<String, usize>>,
     /// Method-call syntax sites per file.
     call_sites: BTreeMap<PathBuf, Vec<CallSite>>,
@@ -966,10 +963,10 @@ impl Hierarchy {
 
     /// The concrete types that implement an abstraction.
     ///
-    /// Pointing at the interface and not at one of its methods is the question
-    /// people actually ask — "what are the Sinks?", and it used to answer nothing at
-    /// all, on the grounds that only a method has implementations. The relationships
-    /// were already known; nothing was reading them from this direction.
+    /// Pointing at the interface and not at one of its methods is the question people ask —
+    /// "what are the Sinks?". It used to answer nothing at all, on the grounds that only a
+    /// method has implementations. The relationships were already known; nothing was reading
+    /// them from this direction.
     fn implementors_of_type(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
         let Some(declaration) = index.symbol(symbol) else {
             return Vec::new();
@@ -1087,13 +1084,12 @@ impl Hierarchy {
                         note(implementor, HierarchyBasis::InterfaceMethodSet);
                     }
                 }
-                // The declaring class is reached by its own name alone. That is the
-                // field-based heuristic and it is labelled as such. Its subclasses
-                // are reached by a declared relationship, which is stronger.
-                // Java sits here for the same reason instead of a stronger one: it
-                // declares `implements` outright, but nothing in this tool infers the
-                // static type of a receiver, so reaching the declaring type is still
-                // the name-based step and is labelled as such.
+                // The declaring class is reached by its own name alone. That is the field-based
+                // heuristic and it is labelled as such. Its subclasses are reached by a
+                // declared relationship, which is stronger. Java sits here for the same reason
+                // instead of a stronger one: it declares `implements` outright, but nothing in
+                // this tool infers the static type of a receiver. So reaching the declaring
+                // type is still the name-based step and is labelled as such.
                 Family::Ts | Family::Java => {
                     note(abstraction.clone(), HierarchyBasis::MethodName);
                     for subclass in self.subtypes(family, abstraction) {
@@ -1128,9 +1124,8 @@ impl Hierarchy {
                 continue;
             };
             for child in children {
-                // A cyclic `extends` is not legal in any of these languages, but a
-                // workspace can still contain one; visiting each name once means it
-                // cannot loop here.
+                // A cyclic `extends` is not legal in any of these languages. But a workspace
+                // can still contain one; visiting each name once means it cannot loop here.
                 if child != abstraction && found.insert(child.clone()) {
                     frontier.push(child.clone());
                 }
@@ -1141,10 +1136,10 @@ impl Hierarchy {
 
     /// Go types whose method set covers `required`.
     ///
-    /// This is Go's rule verbatim, minus the types: a method's name and its number of
-    /// parameters are what the syntax shows, and two same-named methods of the same
-    /// arity but different signatures are indistinguishable here. That widens the
-    /// candidate set; it never narrows it.
+    /// This is Go's rule verbatim, minus the types. A method's name and its number of
+    /// parameters are what the syntax shows, and two same-named methods of the same arity but
+    /// different signatures are indistinguishable here. That widens the candidate set; it never
+    /// narrows it.
     fn go_implementors(&self, interface: &TypeKey) -> BTreeSet<String> {
         let Some(required) = self.declares.get(interface) else {
             return BTreeSet::new();
@@ -1159,9 +1154,9 @@ impl Hierarchy {
                 if methods.get(method) != Some(arity) {
                     return false;
                 }
-                // Go decides this by signature. Where both sides are legible, they have
-                // to agree; where either is not, the arity answer stands, because a
-                // dropped edge here becomes a live method reported as dead code.
+                // Go decides this by signature. Where both sides are legible, they have to
+                // agree. Where either is not, the arity answer stands, because a dropped edge
+                // here becomes a live method reported as dead code.
                 match (
                     wanted.and_then(|w| w.get(method)),
                     self.signatures
@@ -1521,10 +1516,10 @@ fn push_site(accessor: Node, field: &str, source: &str, family: Family, sites: &
 
 /// Every type name mentioned in a type position, outermost first.
 ///
-/// `fmt::Display` names `Display` and a Go receiver `(a *A)` names `A`: the module
-/// path and the binding are not type names, and only the grammar's `type_identifier`
-/// nodes are. A generic argument *is* one — `Wrapper<T>` yields `Wrapper` then `T`,
-/// so a caller after the type being named takes the first and no more.
+/// `fmt::Display` names `Display` and a Go receiver `(a *A)` names `A`. The module path and the
+/// binding are not type names, and only the grammar's `type_identifier` nodes are. A generic
+/// argument *is* one — `Wrapper<T>` yields `Wrapper` then `T`, so a caller after the type being
+/// named takes the first and no more.
 fn type_identifiers(node: Node, source: &str) -> Vec<String> {
     let mut names = Vec::new();
     let mut visit = |child: Node| {
@@ -1563,10 +1558,10 @@ fn java_supertypes(clause: Node, source: &str) -> Vec<String> {
 
 /// The types in a Go signature, as `(A, B) -> C`.
 ///
-/// Types only: a parameter's *name* is not part of whether one signature satisfies
-/// another, and comparing `ctx context.Context` with `c context.Context` would refuse an
-/// implementation Go accepts. Returns `None` where the shape cannot be read, which
-/// leaves the arity answer standing instead of narrowing to nothing.
+/// Types only: a parameter's *name* is not part of whether one signature satisfies another.
+/// Comparing `ctx context.Context` with `c context.Context` would refuse an implementation Go
+/// accepts. Returns `None` where the shape cannot be read, which leaves the arity answer
+/// standing instead of narrowing to nothing.
 fn go_signature(node: Node<'_>, source: &str) -> Option<String> {
     /// A type with its package qualifier dropped and its whitespace squeezed out.
     ///
@@ -1846,9 +1841,9 @@ mod tests {
 
     #[test]
     fn a_file_the_hierarchy_pass_cannot_read_is_reported() {
-        // The dispatch layer reads files itself. One it cannot read yields no edges,
-        // which widens the unused list instead of narrowing it, but pretending the
-        // file simply had no hierarchy would hide the difference.
+        // The dispatch layer reads files itself. One it cannot read yields no edges, which
+        // widens the unused list instead of narrowing it. But pretending the file had no
+        // hierarchy would hide the difference.
         let (tmp, index) = workspace(&[(
             "a.rs",
             "trait T { fn m(&self); }\nstruct S;\nimpl T for S { fn m(&self) {} }\n",

@@ -1,13 +1,13 @@
 //! Which same-named variable counts as a rebinding, and what a multi-line one deletes.
 //!
-//! `fr inline` refused whenever another symbol of the same name appeared later in the
-//! same file, whatever scope it was in. Two functions that each declare `let s` are not
-//! a rebinding, and reusing a local name across functions is the common case: 6,166 of
-//! this repository's 9,147 locals share a name with another local in the same file, and
-//! the refusal covered 4,940 of them.
+//! `fr inline` refused whenever another symbol of the same name appeared later in the same
+//! file, whatever scope it was in. Two functions that each declare `let s` are not a rebinding.
+//! Reusing a local name across functions is the common case. 6,166 of this repository's 9,147
+//! locals share a name with another local in the same file, and the refusal covered 4,940 of
+//! them.
 //!
-//! The check is per-scope now. A rebinding in the same scope still refuses, in every
-//! language, because there the value really does differ per use.
+//! The check is per-scope now. A rebinding in the same scope still refuses, in every language,
+//! because there the value really does differ per use.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::inline;

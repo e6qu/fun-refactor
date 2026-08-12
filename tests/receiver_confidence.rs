@@ -1,10 +1,10 @@
 //! What a member access is allowed to claim about its receiver.
 //!
-//! `Confidence::FieldBased` is defined as "matched by field/member name without knowing
-//! the receiver's type, plausible but unproven", and `Exact` as "safe to edit". A
-//! member access on a receiver of unknown type is the first of those by definition, and
-//! the difference is not cosmetic: only the top two tiers are rewritten, so calling it
-//! `Exact` means `fr rename` edits it without asking.
+//! `Confidence::FieldBased` is defined as "matched by field/member name without knowing the
+//! receiver's type, plausible but unproven", and `Exact` as "safe to edit". A member access on
+//! a receiver of unknown type is the first of those by definition. The difference is not
+//! cosmetic: only the top two tiers are rewritten. So calling it `Exact` means `fr rename`
+//! edits it without asking.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
@@ -94,8 +94,8 @@ fn a_call_through_self_is_still_exact() {
     assert_eq!(typescript, vec![Confidence::Exact], "typescript `this`");
 }
 
-/// And a plain call to a function defined in the same file is not a member access at
-/// all, so it keeps the tier it earned.
+/// And a plain call to a function defined in the same file is not a member access at all. So it
+/// keeps the tier it earned.
 #[test]
 fn a_call_to_a_function_in_the_same_file_is_still_exact() {
     let found = confidences(
@@ -110,11 +110,11 @@ fn a_call_to_a_function_in_the_same_file_is_still_exact() {
 
 /// The same overclaim, one branch up.
 ///
-/// Lexical scope settles a name when the definition encloses the use, and it was also
-/// letting itself settle a *member* access whenever only one member in the workspace had
-/// that name, on the reasoning that there is then "nothing to be wrong about". There is:
-/// the workspace does not contain every type. Fixing the branch below this one left this
-/// one untouched, which is what a rule kept at its use sites does.
+/// Lexical scope settles a name when the definition encloses the use. It was also letting
+/// itself settle a *member* access whenever only one member in the workspace had that name, on
+/// the reasoning that there is then "nothing to be wrong about". There is: the workspace does
+/// not contain every type. Fixing the branch below this one left this one untouched, which is
+/// what a rule kept at its use sites does.
 #[test]
 fn a_call_on_an_unknown_receiver_inside_the_declaring_class_is_not_exact() {
     let found = confidences(
@@ -132,11 +132,11 @@ fn a_call_on_an_unknown_receiver_inside_the_declaring_class_is_not_exact() {
     );
 }
 
-/// The property itself, instead of an instance of it: whatever route through the
-/// resolver produced an answer, a member access on a receiver this tool has not typed
-/// may not come back at a tier that refactorings rewrite. Each shape below reaches a
-/// different branch, same-file uniqueness, enclosing scope, a name declared in another
-/// file, and a field read instead of a call.
+/// The property itself, instead of an instance of it. Whatever route through the resolver
+/// produced an answer, a member access on a receiver this tool has not typed may not come back
+/// at a tier that refactorings rewrite. Each shape below reaches a different branch, same-file
+/// uniqueness, enclosing scope, a name declared in another file, and a field read instead of a
+/// call.
 #[test]
 fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
     let shapes: &[(&str, &[(&str, &str)])] = &[
@@ -186,13 +186,13 @@ fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
     }
 }
 
-/// "I could not say what this refers to, and I am certain of it."
+/// "I could not say what this refers to. I am certain of it."
 ///
-/// The resolver returns a symbol and a tier as an ordinary pair, so that combination is
-/// representable, and a consumer that trusts the tier without checking the symbol would
-/// act on it, `call_graph` checks both, which is the tell. No branch produces it today.
-/// This says so for whole real workspaces and not by reading the branches, because
-/// reading the branches is what missed the receiver overclaim twice.
+/// The resolver returns a symbol and a tier as an ordinary pair. So that combination is
+/// representable, and a consumer that trusts the tier without checking the symbol would act on
+/// it, `call_graph` checks both, which is the tell. No branch produces it today. This says so
+/// for whole real workspaces and not by reading the branches, because reading the branches is
+/// what missed the receiver overclaim twice.
 #[test]
 fn an_unresolved_reference_never_claims_a_rewritable_tier() {
     let files: &[(&str, &str)] = &[

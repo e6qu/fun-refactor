@@ -1,11 +1,10 @@
 //! YAML and Helm fact extraction, exercised through the public API.
 //!
-//! Two things are being pinned down here. For plain YAML: mapping keys are the
-//! API of a values file, so every key is a definition whose containment gives it
-//! a path, and anchor/alias is the one reference edge YAML resolves within a
-//! single file. For Helm: `{{ ... }}` actions are masked out before the
-//! YAML parse (src/parse.rs), so these tests establish that the surrounding
-//! document still extracts cleanly and that nothing from inside a template leaks
+//! Two things are being pinned down here. For plain YAML: mapping keys are the API of a values
+//! file. So every key is a definition whose containment gives it a path, and anchor/alias is
+//! the one reference edge YAML resolves within a single file. For Helm: `{{ ... }}` actions are
+//! masked out before the YAML parse (src/parse.rs), so these tests establish that the
+//! surrounding document still extracts cleanly and that nothing from inside a template leaks
 //! out as a bogus symbol.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
@@ -126,7 +125,7 @@ fn key_name_span_is_the_key_alone() {
 
 #[test]
 fn nested_keys_are_qualified_by_their_parent_key() {
-    // One level of qualification, which is what the engine's `qualifier` holds.
+    // One level of qualification, which the engine's `qualifier` holds.
     let f = yaml(VALUES);
     assert_eq!(sym(&f, "image::tag").name, "tag");
     assert_eq!(
@@ -276,7 +275,7 @@ fn every_reference_starts_unresolved() {
 
 #[test]
 fn block_scalars_contribute_no_spurious_keys() {
-    // Text inside a literal block is data, not structure.
+    // Text inside a literal block is data. It is not structure.
     let src = "script: |\n  key: not-a-key\n  echo hi\nafter: 1\n";
     let f = yaml(src);
     assert_eq!(names(&f), vec!["script", "after"], "got {:?}", names(&f));
@@ -286,9 +285,9 @@ fn block_scalars_contribute_no_spurious_keys() {
 
 #[test]
 fn quoted_keys_report_the_bare_name() {
-    // The grammar gives quoted scalars no inner-content node, so @name captures the
-    // whole scalar; the extractor trims the quotes, so a quoted key reports the same
-    // bare name a plain key does and a rename rewrites only the text inside.
+    // The grammar gives quoted scalars no inner-content node. So @name captures the whole
+    // scalar; the extractor trims the quotes. So a quoted key reports the same bare name a
+    // plain key does and a rename rewrites only the text inside.
     let f = yaml(VALUES);
     let q = f
         .symbols
@@ -479,10 +478,9 @@ fn helm_anchors_work_the_same_as_in_plain_yaml() {
 
 #[test]
 fn a_template_action_in_key_position_breaks_the_parse() {
-    // Known gap, recorded and not papered over: masking `{{ .Values.k }}: v`
-    // leaves `                : v`, and a mapping entry with a blank key is not
-    // valid YAML, so the document carries a parse error. Extraction still runs
-    // and still finds the surrounding keys, but the masked line is lost.
+    // Known gap, recorded and not papered over: masking `{{ .Values.k }}: v` leaves ` : v`. A
+    // mapping entry with a blank key is not valid YAML. So the document carries a parse error.
+    // Extraction still runs and still finds the surrounding keys, but the masked line is lost.
     let src = "before: 1\n{{ .Values.k }}: v\nafter: 2\n";
     let parsed = Parsers::new().parse(Language::Helm, src).unwrap();
     assert!(

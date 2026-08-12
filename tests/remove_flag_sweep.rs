@@ -1,24 +1,24 @@
 //! Every name in a workspace, asked to be a flag.
 //!
-//! `fr remove-flag` replaces every use of a name with `true` or `false`. Nothing about a
-//! name says it held a boolean, and the tests that existed all named a flag that did:
-//! every fixture declared `USE_NEW = true` and then checked what the cascade made of it.
-//! Sweeping instead, asking for every symbol in a real project, both values, asked the
-//! question the fixtures never did, and the answers were code no compiler accepts:
+//! `fr remove-flag` replaces every use of a name with `true` or `false`. Nothing about a name
+//! says it held a boolean, and the tests that existed all named a flag that did: every fixture
+//! declared `USE_NEW = true` and then checked what the cascade made of it. Sweeping instead,
+//! asking for every symbol in a real project, both values, asked the question the fixtures
+//! never did. The answers were code no compiler accepts:
 //!
-//! * `const DocumentScope = @import("DocumentScope.zig")` is a Zig module, and a Zig
-//!   feature flag is also a `const`. Removing it wrote `*const true`.
-//! * `pub const Position = offsets.Position` is a type, and Zig passes a type as an
-//!   argument, so `expectEqualSlices(Position, …)` became `expectEqualSlices(true, …)`.
-//! * A flag held by a function is read by calling it, and replacing the callee gave
-//!   `if true()`, which then never collapsed either.
-//! * A flag whose every use was declined still had its declaration deleted, so a shell
-//!   script that read `true` started reading the default in `${USE_NEW:-no}`.
-//! * `export async function DELETE(…)` is a Next.js route handler that nothing in the
-//!   workspace calls. Removing the "flag" removed the route.
+//! * `const DocumentScope = @import("DocumentScope.zig")` is a Zig module, and a Zig feature
+//!   flag is also a `const`. Removing it wrote `*const true`.
+//! * `pub const Position = offsets.Position` is a type, and Zig passes a type as an argument,
+//!   so `expectEqualSlices(Position, …)` became `expectEqualSlices(true, …)`.
+//! * A flag held by a function is read by calling it, and replacing the callee gave `if
+//!   true()`, which then never collapsed either.
+//! * A flag whose every use was declined still had its declaration deleted. So a shell script
+//!   that read `true` started reading the default in `${USE_NEW:-no}`.
+//! * `export async function DELETE(…)` is a Next.js route handler that nothing in the workspace
+//!   calls. Removing the "flag" removed the route.
 //!
-//! What is asserted here is not the text of any answer. It is that the tool either
-//! refuses with a reason, or writes something that still parses.
+//! What is asserted here is not the text of any answer. It is that the tool either refuses with
+//! a reason, or writes something that still parses.
 
 use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
@@ -133,9 +133,9 @@ fn sweep(root: &Path) -> Sweep {
 
 // -------------------------------------------------------- the fixture corpus
 
-/// One file per language this cascade supports, each holding the shapes the sweep found:
-/// a boolean flag, a constant that is not one, something that names a type, and a use of
-/// the flag the substitution cannot write a literal into.
+/// One file per language this cascade supports, each holding the shapes the sweep found. A
+/// boolean flag, a constant that is not one, something that names a type. A use of the flag the
+/// substitution cannot write a literal into.
 fn corpus() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -256,8 +256,8 @@ fn no_name_in_the_corpus_produces_something_that_stops_parsing() {
         result.applied,
         result.broke.join("\n\n")
     );
-    // A sweep that refused everything would also report nothing broken, so what it
-    // carried through is part of the result: every language's real flag has to be one.
+    // A sweep that refused everything would also report nothing broken. So what it carried
+    // through is part of the result: every language's real flag has to be one.
     for flag in REAL_FLAGS {
         let tmp = workspace(&corpus());
         cascade::remove_flag_in(sources(tmp.path()), flag, true)
@@ -346,9 +346,9 @@ fn a_terraform_variable_of_another_type_is_not_a_flag() {
 
 #[test]
 fn a_flag_nothing_reads_is_not_a_flag_removal() {
-    // `export async function DELETE(…)` is a route handler nothing in the workspace
-    // calls. There is no use to substitute and no conditional to collapse, so what was
-    // left was a deletion, which is a different command with different checks.
+    // `export async function DELETE(…)` is a route handler nothing in the workspace calls.
+    // There is no use to substitute and no conditional to collapse. So what was left was a
+    // deletion, which is a different command with different checks.
     let tmp = workspace(&[(
         "route.ts",
         "export async function DELETE(req: Request) {\n  \

@@ -1,10 +1,10 @@
 //! Go resolves by package, and a package is a directory.
 //!
-//! These exist because `fr refs` returned nothing for symbols that helm/helm calls
-//! from the file next door. Everything downstream believed it: `fr unused` reported
-//! 238 internal Go symbols as dead where 50 are, and a rename would have rewritten a
-//! definition while reporting the call sites it could not see. The rules below are
-//! Go's, and each test names the real symbol that exposed its absence.
+//! These exist because `fr refs` returned nothing for symbols that helm/helm calls from the
+//! file next door. Everything downstream believed it: `fr unused` reported 238 internal Go
+//! symbols as dead where 50 are. A rename would have rewritten a definition while reporting the
+//! call sites it could not see. The rules below are Go's, and each test names the real symbol
+//! that exposed its absence.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::index::Index;
@@ -218,7 +218,7 @@ fn two_types_sharing_a_private_method_name_both_stay_live() {
     // helm: `Configuration.recordRelease` and `Install.recordRelease`. `cfg.record…`
     // resolves to neither, and a list that invites deleting one of them is worse than
     // one that says it does not know.
-    // The receiver is an expression, not a typed name, so nothing here says which
+    // The receiver is an expression. It is not a typed name, so nothing here says which
     // `record` runs, the same position helm is in with `cfg.recordRelease(rl)`.
     let (_tmp, index) = workspace(&[(
         "a.go",

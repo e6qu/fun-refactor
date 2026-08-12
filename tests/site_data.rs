@@ -1,7 +1,7 @@
 //! Generates the data behind `docs/catalog.html` and `docs/translate.html`.
 //!
 //! Every before, after and diff on those pages is produced here by running the real
-//! `fr` binary over the sample files below, in a temporary directory, exactly as the
+//! `fr` binary over the sample files below, in a temporary directory, as the
 //! command printed beside it would. Nothing on either page is typed by hand, because a
 //! hand-typed "after" is a claim about the tool and not a demonstration of it, and
 //! it goes stale the first time the tool improves.
@@ -105,10 +105,9 @@ def circ(r):
 
 /// The consumer, in a file of its own.
 ///
-/// A signature change is only half a refactoring until the calls change with it, and a
-/// page that shows the declaration alone is showing the half that would break the
-/// program. Every sample whose move ripples outward keeps its callers where a reader
-/// can watch them move.
+/// A signature change is only half a refactoring until the calls change with it. A page that
+/// shows the declaration alone is showing the half that would break the program. Every sample
+/// whose move ripples outward keeps its callers where a reader can watch them move.
 const GEOMETRY_USES: &str = r#"from geometry import circ
 
 
@@ -294,8 +293,8 @@ const ENTRIES: &[Entry] = &[
         id: "extract-function",
         name: "Extract Function",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.1",
-            "Tidy First? — Kent Beck (2023), “Extract Helper”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.1",
+            "Tidy First?. Kent Beck (2023), “Extract Helper”",
         ],
         intent: "A fragment of code that can be grouped together gets its own name.",
         invariant: "The statements run in the same order, on the same values, and produce the same result; they are reached through a call now instead of being written where they run.",
@@ -316,8 +315,8 @@ const ENTRIES: &[Entry] = &[
         id: "extract-variable",
         name: "Extract Variable",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.3",
-            "Tidy First? — Kent Beck (2023), “Explaining Variables”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.3",
+            "Tidy First?. Kent Beck (2023), “Explaining Variables”",
         ],
         intent: "A sub-expression that is hard to read gets a name that says what it is.",
         invariant: "The expression is computed once instead of where it stood, and every place that used it reads the same value.",
@@ -335,8 +334,8 @@ const ENTRIES: &[Entry] = &[
         id: "inline-variable",
         name: "Inline Variable",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.4",
-            "Tidy First? — Kent Beck (2023), “One Pile”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.4",
+            "Tidy First?. Kent Beck (2023), “One Pile”",
         ],
         intent: "A name that says no more than the expression it stands for is removed.",
         invariant: "The value is computed where it is used instead of once above; the parentheses keep the operators binding the way they did.",
@@ -349,7 +348,7 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Edit,
         id: "inline-function",
         name: "Inline Function",
-        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.2"],
+        sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §6.2"],
         intent: "A function whose body is as clear as its name is replaced by its body.",
         invariant: "The callee's body runs at the call site instead of inside a call; the same expression is evaluated on the same arguments.",
         note: "The call is replaced with the callee's body, with the arguments substituted \
@@ -362,8 +361,8 @@ const ENTRIES: &[Entry] = &[
         id: "change-function-declaration",
         name: "Change Function Declaration",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.5",
-            "Tidy First? — Kent Beck (2023), “Explicit Parameters”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.5",
+            "Tidy First?. Kent Beck (2023), “Explicit Parameters”",
         ],
         intent: "A function's parameters change, and every call site changes with them.",
         invariant: "Every call passes the same values it did, plus the new one. The declaration and the call sites move together: either both change or nothing does.",
@@ -380,13 +379,13 @@ const ENTRIES: &[Entry] = &[
         id: "rename-function",
         name: "Rename Function",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.7 (Rename Variable), §6.5",
-            "Implementation Patterns — Kent Beck (2007), “Intention-Revealing Name”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.7 (Rename Variable), §6.5",
+            "Implementation Patterns. Kent Beck (2007), “Intention-Revealing Name”",
         ],
         intent: "A name that does not say what the thing is becomes one that does.",
         invariant: "Nothing but the name changes. Every call still reaches the same function, in both files.",
         note: "`circ` appears twice inside `band_width` and once in the docstring. The \
-               docstring mention is reported, not rewritten — a name in prose is not a \
+               docstring mention is reported, not rewritten, a name in prose is not a \
                reference.",
         files: &[
             ("src/geometry.py", GEOMETRY),
@@ -399,11 +398,11 @@ const ENTRIES: &[Entry] = &[
         id: "rename-variable",
         name: "Rename Variable",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.7",
-            "Implementation Patterns — Kent Beck (2007), “Intention-Revealing Name”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.7",
+            "Implementation Patterns. Kent Beck (2007), “Intention-Revealing Name”",
         ],
         intent: "A local whose name says nothing becomes one that says what it holds.",
-        invariant: "One binding is renamed and the other `width` — a different binding in a different function — is not. Every read still reads what it read.",
+        invariant: "One binding is renamed and the other `width`, a different binding in a different function, is not. Every read still reads what it read.",
         note: "There are two variables called `width` in this file and only one of them \
                is being renamed. Nothing here matches on the text `width`: the rename \
                follows the lexical scope, so the one in `area` is a different binding \
@@ -415,11 +414,11 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Edit,
         id: "rename-across-languages",
         name: "Rename, across a language boundary",
-        sources: &["Not in either catalogue — the catalogues predate the problem"],
+        sources: &["Not in either catalogue, the catalogues predate the problem"],
         intent: "A CSS class is renamed in the stylesheet and everywhere the markup names it.",
         invariant: "The stylesheet still styles the same element. The rule and the `class` attribute that reaches it are renamed together, across two grammars.",
         note: "Two files, two grammars, one name. The stylesheet declares `.nav-link` and \
-               the HTML reaches it through a `class` attribute — no import, no path, \
+               the HTML reaches it through a `class` attribute, no import, no path, \
                nothing a compiler would check. The catalogues are about one language at \
                a time, and most of a web codebase is not.",
         files: &[("web/app.css", APP_CSS), ("web/page.html", PAGE_HTML)],
@@ -430,8 +429,8 @@ const ENTRIES: &[Entry] = &[
         id: "remove-parameter",
         name: "Remove Parameter",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.5 (Change Function Declaration)",
-            "The online refactoring catalogue — Martin Fowler",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.5 (Change Function Declaration)",
+            "The online refactoring catalogue. Martin Fowler",
         ],
         intent: "A parameter nobody needs goes, and every call site loses its argument.",
         invariant: "The parameter was unused, so no call was passing anything the body read. Every call keeps the arguments the body still uses.",
@@ -448,10 +447,10 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Refused,
         id: "remove-parameter-refused",
         name: "…and the parameter that could not go",
-        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5"],
+        sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §6.5"],
         intent: "The same move, where taking the parameter away would change what runs.",
         invariant: "Nothing changes. `units` is read by the body, so removing it would \
-                    leave a name nothing supplies — a change to what the program does, \
+                    leave a name nothing supplies, a change to what the program does, \
                     which is the definition of not a refactoring.",
         note: "The rule existed for shell functions, where a parameter is `$1` and the \
                body reading `$2` is obvious, and for nothing else. `def circ(r): return \
@@ -467,8 +466,8 @@ const ENTRIES: &[Entry] = &[
         id: "reorder-parameters",
         name: "Reorder Parameters",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.5 (Change Function Declaration)",
-            "The online refactoring catalogue — Martin Fowler",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.5 (Change Function Declaration)",
+            "The online refactoring catalogue. Martin Fowler",
         ],
         intent: "Two parameters swap, and so do the arguments at every call.",
         invariant: "Each argument still arrives at the parameter it was written for, in both files: the parameters and the arguments move in step.",
@@ -485,11 +484,11 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Refused,
         id: "reorder-parameters-refused",
         name: "…and the reorder that would not run",
-        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §6.5"],
+        sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §6.5"],
         intent: "The same move, where the language will not have it.",
-        invariant: "Nothing changes, because the only change available would not preserve anything — the file would stop parsing as Python.",
+        invariant: "Nothing changes, because the only change available would not preserve anything, the file would stop parsing as Python.",
         note: "Python requires every defaulted parameter to come last, so this would \
-               produce `def circ(units=\"m\", r):` — which Python rejects outright. The \
+               produce `def circ(units=\"m\", r):`, which Python rejects outright. The \
                engine reparses every edit and would normally catch a broken result, but \
                tree-sitter parses this without complaint, so the refactoring has to \
                know the rule itself. It did not until this page was written.",
@@ -501,13 +500,13 @@ const ENTRIES: &[Entry] = &[
         id: "extract-variable-everywhere",
         name: "Extract Variable, at every occurrence",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §6.3",
-            "Tidy First? — Kent Beck (2023), “Explaining Variables”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §6.3",
+            "Tidy First?. Kent Beck (2023), “Explaining Variables”",
         ],
         intent: "One name for a repeated sub-expression, substituted everywhere it appears.",
         invariant: "Both occurrences read one binding instead of computing the same expression twice; the expression was the same, so the value is.",
         note: "Fowler's mechanics say to replace *all* occurrences, and the second one \
-               here is inside a larger expression and not alone on a line — which is \
+               here is inside a larger expression and not alone on a line, which is \
                why this matches on the parse tree and not on the text.",
         files: &[("src/pricing.py", REPEATED_PY)],
         argv: &[
@@ -521,12 +520,12 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Edit,
         id: "organize-imports",
         name: "Remove unused imports",
-        sources: &["Not in either catalogue — but it is the tidying you do after the others"],
+        sources: &["Not in either catalogue, but it is the tidying you do after the others"],
         intent: "Imports nothing uses are dropped and the rest are sorted.",
         invariant: "The same modules are imported. Only the order changes, and Python does not care about the order of independent imports.",
         note: "Read what it prints above the diff. Liveness is decided by name, so an \
                import kept for a trait, a registration side effect or a doc comment \
-               would look unused — and it says so instead of letting you find out. \
+               would look unused, and it says so instead of letting you find out. \
                This is the step a recipe puts last, with `imports where changed`.",
         files: &[("src/loader.py", UNSORTED_PY)],
         argv: &["imports", "src/loader.py"],
@@ -536,8 +535,8 @@ const ENTRIES: &[Entry] = &[
         id: "move-function",
         name: "Move Function",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §8.1",
-            "Tidy First? — Kent Beck (2023), “Cohesion Order”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §8.1",
+            "Tidy First?. Kent Beck (2023), “Cohesion Order”",
         ],
         intent: "A function moves to the module it belongs with, and its callers follow.",
         invariant: "The function is called through an import instead of from beside its caller. The same code runs on the same arguments; only where it is written moved.",
@@ -551,8 +550,8 @@ const ENTRIES: &[Entry] = &[
         id: "remove-dead-code",
         name: "Remove Dead Code",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §8.9",
-            "Tidy First? — Kent Beck (2023), “Dead Code”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §8.9",
+            "Tidy First?. Kent Beck (2023), “Dead Code”",
         ],
         intent: "Code nothing calls is deleted and not maintained.",
         invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. That is what makes the deletion safe instead of a guess.",
@@ -566,9 +565,9 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Refused,
         id: "delete-refused",
         name: "…and the one it will not delete",
-        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §8.9"],
+        sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §8.9"],
         intent: "Deleting something that is still reached is not dead-code removal.",
-        invariant: "Nothing changes. The symbol is reachable, so removing it would change what the program does — which is the definition of not a refactoring.",
+        invariant: "Nothing changes. The symbol is reachable, so removing it would change what the program does, which is the definition of not a refactoring.",
         note: "The boundary that makes `fr unused` worth acting on: whatever the list \
                says, `delete` checks again and refuses anything still referenced. The \
                two halves have to agree, and running them against each other over a \
@@ -582,8 +581,8 @@ const ENTRIES: &[Entry] = &[
         id: "guard-clauses",
         name: "Replace Nested Conditional with Guard Clauses",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §10.3",
-            "Tidy First? — Kent Beck (2023), “Guard Clauses”",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §10.3",
+            "Tidy First?. Kent Beck (2023), “Guard Clauses”",
         ],
         intent: "The special cases leave early, so the normal path is not indented.",
         invariant: "The same conditions decide the same outcome; the nesting is inverted so the exceptional cases leave early.",
@@ -596,12 +595,12 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Refused,
         id: "guard-clauses-refused",
         name: "…and where it stops",
-        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §10.3"],
+        sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §10.3"],
         intent: "Fowler's own example is an `if`/`else` nest that assigns to a result.",
         invariant: "Nothing changes. The tool could not prove the shape it needs, and a guess here would reorder the conditions.",
         note: "The tool will not do this one, and says why instead of guessing. Turning \
                an `else` into an early return means deciding what the function returns on \
-               the path that used to fall through — a judgement about the code, not a \
+               the path that used to fall through, a judgement about the code, not a \
                fact about its syntax. `invert-if` is the move it offers instead, and the \
                entry below is that same file.",
         files: &[("src/payout.py", PAYOUT)],
@@ -611,7 +610,7 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Edit,
         id: "reverse-conditional",
         name: "Reverse Conditional",
-        sources: &["The online refactoring catalogue — Martin Fowler"],
+        sources: &["The online refactoring catalogue. Martin Fowler"],
         intent: "A condition is negated and its branches swapped, when that reads better.",
         invariant: "The branches swap and the condition is negated with them, so each case still runs for the same inputs.",
         note: "Purely local: the tool does not need to resolve a single name to know this \
@@ -624,8 +623,8 @@ const ENTRIES: &[Entry] = &[
         id: "de-morgan",
         name: "Push a negation through a conjunction (De Morgan)",
         sources: &[
-            "Not in either catalogue — De Morgan's law, 1847",
-            "Tidy First? — Kent Beck (2023), “Normalize Symmetries”, in spirit",
+            "Not in either catalogue. De Morgan's law, 1847",
+            "Tidy First?. Kent Beck (2023), “Normalize Symmetries”, in spirit",
         ],
         intent: "A negated conjunction becomes a disjunction of negations, or the reverse.",
         invariant: "`not (a and b)` and `not a or not b` are the same predicate; the same readings still alert.",
@@ -640,7 +639,7 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Edit,
         id: "substitute-algorithm",
         name: "Substitute Algorithm",
-        sources: &["Refactoring, 2nd ed. — Martin Fowler (2018), §7.9"],
+        sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §7.9"],
         intent: "Every occurrence of one shape of code becomes another shape.",
         invariant: "Both bodies send the same metric for the same event. One of them now does it by calling the other.",
         note: "`$X` matches any node and substitutes back. This is the move to reach for \
@@ -659,8 +658,8 @@ const ENTRIES: &[Entry] = &[
         id: "remove-flag-argument",
         name: "Remove Flag Argument",
         sources: &[
-            "Refactoring, 2nd ed. — Martin Fowler (2018), §11.3",
-            "Feature Toggles — Martin Fowler & Pete Hodgson (2017)",
+            "Refactoring, 2nd ed., by Martin Fowler (2018), §11.3",
+            "Feature Toggles. Martin Fowler & Pete Hodgson (2017)",
         ],
         intent: "A flag that is now always one value is removed, and the branch it chose with it.",
         invariant: "The flag was constant, so only one branch could ever run. The branch that ran still runs; the one that could not is gone.",
@@ -673,12 +672,12 @@ const ENTRIES: &[Entry] = &[
         kind: Kind::Report,
         id: "tdd-refactor-step",
         name: "The refactor step of red–green–refactor",
-        sources: &["Test-Driven Development by Example — Kent Beck (2002)"],
+        sources: &["Test-Driven Development by Example. Kent Beck (2002)"],
         intent: "Once the test passes, the duplication that made it pass is removed.",
         invariant: "The test does not change, which is the whole point: it passed before the move and it passes after.",
         note: "The cycle ends with a refactoring, and the refactoring starts with seeing \
-               the duplication. These two functions share not one identifier — `bank` and \
-               `exchange`, `rate` and `ratio`, `converted` and `result` — and they are the \
+               the duplication. These two functions share not one identifier, `bank` and \
+               `exchange`, `rate` and `ratio`, `converted` and `result`, and they are the \
                same code. Structure is compared, not text, which is the copy a textual \
                search never finds. What to do about it is yours; the moves above are the menu.",
         files: &[("src/exchange.py", TDD_CYCLE)],
@@ -836,7 +835,7 @@ const TRANSLATIONS: &[Translation] = &[
         id: "python-to-typescript",
         title: "Typed Python → TypeScript",
         blurb: "The signature is the contract. Every parameter, in order, with its type \
-                and the return type — only the spelling changes, to the target's \
+                and the return type, only the spelling changes, to the target's \
                 convention.",
         files: &[("sensors.py", TYPED_PYTHON)],
         subject: "sensors.py",
@@ -881,8 +880,8 @@ const TRANSLATIONS: &[Translation] = &[
         id: "python-to-java",
         title: "Typed Python → Java",
         blurb: "The language with no top level below the type. A module has to become a \
-                class, `sensors.py` has to become `Sensors.java` — the compiler enforces \
-                that, it is not a convention — and a record that would have been public \
+                class, `sensors.py` has to become `Sensors.java`, the compiler enforces \
+                that, it is not a convention, and a record that would have been public \
                 becomes a package-private sibling, with a comment saying why.",
         files: &[("sensors.py", TYPED_PYTHON)],
         subject: "sensors.py",
@@ -895,8 +894,8 @@ const TRANSLATIONS: &[Translation] = &[
         title: "Zig → Rust",
         blurb: "Zig has no keyword for a method: `self` is the first parameter and a \
                 struct is a value bound to a `const`. Rust puts the same shape in an \
-                `impl` block, and `[]const u8` — Zig's string, which is a slice of \
-                bytes that does not change — becomes `String`.",
+                `impl` block, and `[]const u8`. Zig's string, which is a slice of \
+                bytes that does not change, becomes `String`.",
         files: &[("sensors.zig", TYPED_ZIG)],
         subject: "sensors.zig",
         target: "rust",
@@ -908,7 +907,7 @@ const TRANSLATIONS: &[Translation] = &[
         title: "Typed TypeScript → Zig",
         blurb: "The other way, into the language with the least in common with the rest. \
                 There is no `new`, no exception, no interpolated string and no block \
-                comment — so a fragment with no counterpart goes on its own line above \
+                comment, so a fragment with no counterpart goes on its own line above \
                 the statement, because `//` in Zig would swallow the semicolon.",
         files: &[("sensors.ts", TYPED_TYPESCRIPT)],
         subject: "sensors.ts",
@@ -919,7 +918,7 @@ const TRANSLATIONS: &[Translation] = &[
     Translation {
         id: "nextjs-to-fastapi",
         title: "A Next.js API route → FastAPI",
-        blurb: "Not a language translation — a *contract* one. The URL, the method and \
+        blurb: "Not a language translation, a *contract* one. The URL, the method and \
                 the path parameter come from where the file sits on disk, which is the \
                 one thing no content-only translation could recover.",
         files: &[],
@@ -999,7 +998,7 @@ recipe retire-legacy-auth {
         language: "typescript",
         teaches: "`where changed` selects the files this run has already touched.",
         note: "The second step does not name a file. It asks for the ones the first \
-               step moved, which is a question only the run itself can answer — and the \
+               step moved, which is a question only the run itself can answer, and the \
                reason `changed` is a predicate and not a path you have to keep in \
                your head.",
         files: &[("src/parse.ts", PARSE_TS), ("src/main.ts", MAIN_TS)],
@@ -1025,7 +1024,7 @@ recipe intention-revealing-name {
         language: "java",
         teaches: "A refusal is reported, and `on-refusal` decides what it costs.",
         note: "Java reaches a method through a receiver, and this tool does not track \
-               the receiver's type — so the call in `Report.java` resolves only as \
+               the receiver's type, so the call in `Report.java` resolves only as \
                `field-based`, and the rename rewrites the declaration and *says* it \
                left that one alone. Read the `left` line: this is the tool telling the \
                truth about what it knows, and a recipe that swallowed it would report a \
@@ -1054,8 +1053,8 @@ recipe clearer-method-name {
         teaches: "`limit` and the dry run, on the most dangerous step in the language.",
         note: "`rewrite` has no target in the usual sense: the selector chooses *files* \
                and the transformation applies everywhere in them that it applies. This \
-               is the step that most needs a limit — `guard-clause` was once wrong at \
-               1,258 of 1,498 sites in helm/helm — and `limit` takes the same sites \
+               is the step that most needs a limit, `guard-clause` was once wrong at \
+               1,258 of 1,498 sites in helm/helm, and `limit` takes the same sites \
                every run, so what you reviewed is what you get.",
         files: &[("pkg/services/notify.go", NOTIFY_GO)],
         recipe: r#"schema 1
@@ -1078,7 +1077,7 @@ recipe unnest-the-services {
         teaches:
             "`restructure` rewrites a shape, and `expect no-new unused` checks what that orphaned.",
         note: "The pattern *is* the selector, which is why `restructure` takes no \
-               `where` clause — a second way of choosing would contradict the first. \
+               `where` clause, a second way of choosing would contradict the first. \
                The expectation is the interesting half: replacing every call to a \
                helper leaves the helper with no callers, and a refactoring that orphans \
                a function has not finished.",
@@ -1233,10 +1232,9 @@ fn workspace(files: &[(&str, &str)]) -> tempfile::TempDir {
 
 /// Resolve a range written as the text it selects.
 ///
-/// `@path|first line|last line@` for a run of whole statements, and `@path~snippet~@`
-/// for a sub-expression. Written as the text and not as four numbers, because four
-/// numbers in a test are four numbers somebody counted, and they are wrong as soon as a
-/// sample gains a line.
+/// `@path|first line|last line@` for a run of whole statements, and `@path~snippet~@` for a
+/// sub-expression. Written as the text and not as four numbers, because four numbers in a test
+/// are four numbers somebody counted. They are wrong as soon as a sample gains a line.
 fn resolve(argument: &str, root: &Path) -> String {
     let Some(inner) = argument.strip_prefix('@').and_then(|a| a.strip_suffix('@')) else {
         return argument.to_string();
@@ -1390,10 +1388,9 @@ fn catalog_data() -> String {
             .map(|a| resolve(a, root))
             .collect::<Vec<_>>();
 
-        // Every file in the sample, not one of them. A refactoring that changes a
-        // signature has to change the callers too, and a page that shows only the
-        // declaration is showing half of the move, the half that on its own would
-        // break the program.
+        // Every file in the sample, not one of them. A refactoring that changes a signature has
+        // to change the callers too. A page that shows only the declaration is showing half of
+        // the move, the half that on its own would break the program.
         let before: Vec<String> = entry
             .files
             .iter()
@@ -1494,7 +1491,7 @@ fn translate_data() -> String {
     let mut out = String::from(
         "// Generated by `cargo test --test site_data`. Do not edit.\n\
          //\n\
-         // Every `after` is what `fr translate` actually produced. Regenerate with:\n\
+         // Every `after` is what `fr translate` produced. Regenerate with:\n\
          //   UPDATE_SITE_DATA=1 cargo test --test site_data\n\
          export const TRANSLATIONS = [\n",
     );
@@ -1564,7 +1561,7 @@ fn recipes_data() -> String {
     let mut out = String::from(
         "// Generated by `cargo test --test site_data`. Do not edit.\n\
          //\n\
-         // Every `report`, `after` and `diff` below is what `fr recipe` actually did.\n\
+         // Every `report`, `after` and `diff` below is what `fr recipe` did.\n\
          // Regenerate with:\n\
          //   UPDATE_SITE_DATA=1 cargo test --test site_data\n\
          export const LESSONS = [\n",
@@ -1679,7 +1676,7 @@ const ENDPOINTS: &[Endpoint] = &[
     Endpoint {
         route: "app/api/pets/[petId]/status/route.ts",
         shape: "A sub-resource replaced whole: PUT",
-        note: "A nullable field in the schema — `note: z.string().nullable()` — becomes \
+        note: "A nullable field in the schema, `note: z.string().nullable()`, becomes \
                `str | None`, and the contract leaves it out of `required`.",
     },
     Endpoint {
@@ -1692,7 +1689,7 @@ const ENDPOINTS: &[Endpoint] = &[
     Endpoint {
         route: "app/api/stores/[storeId]/inventory/route.ts",
         shape: "An aggregate over a different resource",
-        note: "A second root — `/stores/…` — with a path parameter of its own, to show \
+        note: "A second root, `/stores/…`, with a path parameter of its own, to show \
                the tree is not one resource deep.",
     },
     Endpoint {
@@ -1700,7 +1697,7 @@ const ENDPOINTS: &[Endpoint] = &[
         shape: "A catch-all segment",
         note: "`[...path]` matches across slashes; FastAPI spells that `{path:path}`. A \
                rewrite that emitted `{path}` would answer a strictly smaller set of \
-               URLs than the one it replaced — silently, and only for the requests with \
+               URLs than the one it replaced, silently, and only for the requests with \
                a slash in them.",
     },
 ];
@@ -1709,9 +1706,9 @@ const ENDPOINTS: &[Endpoint] = &[
 fn contract_data() -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/petstore");
     let tmp = tempfile::tempdir().expect("a temporary directory");
-    // Named, not the temporary directory itself: `fr openapi` titles the document after
-    // the workspace, and a title that is a different random string every run would make
-    // the committed page churn for no reason.
+    // Named, not the temporary directory itself: `fr openapi` titles the document after the
+    // workspace. A title that is a different random string every run would make the committed
+    // page churn for no reason.
     let workspace = tmp.path().join("petstore");
     copy(&root, &workspace);
     let workspace = workspace.as_path();
@@ -1721,9 +1718,9 @@ fn contract_data() -> String {
         contract.contains("openapi: 3.1.0"),
         "the contract is a document:\n{contract}"
     );
-    // The notes go to stderr, so what lands here is the document. Everything the
-    // document could not settle is fetched separately, because it is the other half of
-    // the story: a baseline that quietly invents an entry is worse than no baseline.
+    // The notes go to stderr, so what lands here is the document. Everything the document could
+    // not settle is fetched separately, because it is the other half of the story. A baseline
+    // that quietly invents an entry is worse than no baseline.
     let notes = run_stderr(workspace, &["openapi".into()]);
 
     let mut out = String::from(
@@ -1762,9 +1759,9 @@ fn contract_data() -> String {
             .parent()
             .unwrap()
             .to_path_buf();
-        // Read off disk and not out of the report, so it has to be scrubbed here:
-        // the header names the file it was translated from, and that path is a
-        // temporary directory whose name changes every run.
+        // Read off disk and not out of the report. So it has to be scrubbed here: the header
+        // names the file it was translated from. That path is a temporary directory whose name
+        // changes every run.
         let after = std::fs::read_dir(&directory)
             .unwrap()
             .flatten()
@@ -1787,13 +1784,13 @@ fn contract_data() -> String {
     }
     out.push_str("];\n\n");
 
-    // The crossing, checked. Every route file has been translated by now, so the same
-    // command reads the *other* side, the decorators and the signatures a FastAPI
-    // router declares, and the two documents are compared operation by operation.
+    // The crossing, checked. Every route file has been translated by now. So the same command
+    // reads the *other* side, the decorators and the signatures a FastAPI router declares. The
+    // two documents are compared operation by operation.
     //
-    // This is the check you can make without running the service, and it catches the
-    // failure the whole exercise is about: an endpoint that did not survive, or a path
-    // that quietly changed shape.
+    // This is the check you can make without running the service. It catches the failure the
+    // whole exercise is about: an endpoint that did not survive, or a path that quietly changed
+    // shape.
     for route in ENDPOINTS {
         std::fs::remove_file(workspace.join(route.route)).unwrap();
     }
@@ -1860,11 +1857,10 @@ fn contract_data() -> String {
         .filter(|o| !before.contains(o))
         .cloned()
         .collect();
-    // Not only the addressing half. The whole contract survives this crossing,
-    // including the query parameters, which neither framework declares, and asserting
-    // it here is what stops the page from going on claiming so after it stops being
-    // true. What the two documents *cannot* say is a separate matter, and is in the
-    // notes beside them.
+    // Not only the addressing half. The whole contract survives this crossing, including the
+    // query parameters, which neither framework declares. Asserting it here is what stops the
+    // page from going on claiming so after it stops being true. What the two documents *cannot*
+    // say is a separate matter, and is in the notes beside them.
     assert!(
         lost.is_empty() && gained.is_empty(),
         "the contract must survive the crossing\n  lost:   {lost:?}\n  gained: {gained:?}"

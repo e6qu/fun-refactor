@@ -15,13 +15,13 @@ use std::process::Command;
 
 /// Hold a gate to its coverage, where a hole would otherwise be invisible.
 ///
-/// Each gate file prints the tools it drove and the ones it skipped. Under `cargo test`
-/// that output is captured, so on CI nobody ever sees it: a validator that is not
-/// installed skips its cases, says so into a void, and the run goes green looking exactly
-/// like one that checked everything.
+/// Each gate file prints the tools it drove and the ones it skipped. Under `cargo test` that
+/// output is captured, so on CI nobody ever sees it. A validator that is not installed skips
+/// its cases, says so into a void. The run goes green looking exactly like one that checked
+/// everything.
 ///
-/// So the rule differs by where it runs. On a laptop a missing tool is ordinary and the
-/// line is a note. On CI it is a hole in the build, and this fails instead.
+/// So the rule differs by where it runs. On a laptop a missing tool is ordinary and the line is
+/// a note. On CI it is a hole in the build, and this fails instead.
 pub fn require_on_ci(what: &str, missing: &[String]) {
     if missing.is_empty() || std::env::var("CI").is_err() {
         return;
@@ -169,9 +169,9 @@ impl Workspace {
             Toolchain::Cargo => Command::new("cargo")
                 .args(["check", "--quiet", "--all-targets"])
                 .current_dir(self.dir.path())
-                // Its own build directory. Sharing one across the cases in this file made
-                // the result depend on what another case had just built, and the check that
-                // this gate can fail passed alone and failed in the suite.
+                // Its own build directory. Sharing one across the cases in this file made the
+                // result depend on what another case had just built. The check that this gate
+                // can fail passed alone and failed in the suite.
                 .env("CARGO_TARGET_DIR", self.dir.path().join("target"))
                 .env("RUSTFLAGS", "-A warnings")
                 .output()
@@ -544,11 +544,10 @@ pub fn must_plan(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>) {
 
 /// The other half: this case refuses today, and the refusal is the thing being pinned.
 ///
-/// Twenty-six call sites threw `gate`'s answer away. Named `…_compiles_or_refuses`, they
-/// passed on either outcome, which is a test that cannot fail: the two that refuse never
-/// reached the compiler, and a case that compiles today could start refusing without a
-/// word. Saying which outcome is expected is what makes a change in either direction
-/// visible.
+/// Twenty-six call sites threw `gate`'s answer away. Named `…_compiles_or_refuses`, they passed
+/// on either outcome, which is a test that cannot fail: the two that refuse never reached the
+/// compiler. A case that compiles today could start refusing without a word. Saying which
+/// outcome is expected makes a change in either direction visible.
 pub fn must_refuse(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>, because: &str) {
     match planned {
         Ok(edits) => {
@@ -568,7 +567,7 @@ pub fn must_refuse(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>,
     }
 }
 
-/// What a loop over language fixtures actually did, so a language that flips is visible.
+/// What a loop over language fixtures did, so a language that flips is visible.
 ///
 /// The loops call `gate` once per language and threw the answer away, so "extract a
 /// function in every language" passed while Java refused every case in it, and would

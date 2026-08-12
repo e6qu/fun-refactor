@@ -1,8 +1,8 @@
 //! Fact-extraction tests for `queries/typescript/facts.scm`.
 //!
-//! One query file backs both `Language::TypeScript` (.ts) and `Language::Tsx`
-//! (.tsx), so every shared construct is exercised against both grammars and the
-//! JSX-only constructs against Tsx alone, the .ts grammar cannot parse JSX.
+//! One query file backs both `Language::TypeScript` (.ts) and `Language::Tsx` (.tsx). So every
+//! shared construct is exercised against both grammars and the JSX-only constructs against Tsx
+//! alone, the .ts grammar cannot parse JSX.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers, span::Span};
 use std::path::Path;
@@ -184,7 +184,7 @@ fn name_span_covers_only_the_identifier() {
 #[test]
 fn full_span_of_an_exported_declaration_excludes_the_export_keyword() {
     // The `export` wrapper is a separate statement node; the symbol is the
-    // declaration itself, which is what a move or delete rewrites.
+    // declaration itself, which a move or delete rewrites.
     let f = facts(Language::TypeScript, DECLS);
     assert_eq!(
         one(&f, "plainFn").full_span.text(DECLS),
@@ -257,7 +257,7 @@ fn a_function_valued_binding_is_a_function_not_a_variable() {
         for name in ["arrowFn", "exprFn"] {
             let s = one(&f, name);
             assert_eq!(s.kind, SymbolKind::Function, "{lang}: {name}");
-            // Only the binding identifier is renameable, not the whole declarator.
+            // Only the binding identifier is renameable. It is not the whole declarator.
             assert_eq!(s.name_span.text(DECLS), name);
         }
     }
@@ -304,7 +304,7 @@ fn class_members_are_qualified_methods_and_fields() {
             assert_eq!(s.qualifier.as_deref(), Some("Widget"));
         }
 
-        // A class field holding an arrow is a method, not a field.
+        // A class field holding an arrow is a method. It is not a field.
         let handler = one(&f, "handler");
         assert_eq!(handler.kind, SymbolKind::Method, "{lang}");
         assert_eq!(handler.qualifier.as_deref(), Some("Widget"));
@@ -742,9 +742,9 @@ fn export_declare_is_captured_but_not_marked_exported() {
 
 #[test]
 fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
-    // Known limit: definitions are matched through their statement parent
-    // (`program` / `statement_block` / `export_statement`), so a declaration in
-    // a bare switch case is missed and not duplicated.
+    // Known limit: definitions are matched through their statement parent (`program` /
+    // `statement_block` / `export_statement`). So a declaration in a bare switch case is missed
+    // and not duplicated.
     let src =
         "switch (k) { case 1: { const inBlock = 1; } }\nswitch (k) { case 2: const inCase = 2; }\n";
     let f = facts(Language::TypeScript, src);

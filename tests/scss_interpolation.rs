@@ -1,14 +1,13 @@
 //! SCSS `#{ ... }`, which the grammar cannot read and the mask hands back.
 //!
-//! `tree-sitter-scss` 1.0 has no rule for interpolation in a declaration value. What
-//! makes it expensive is not the missing rule but the recovery: the ERROR node covers
-//! the rest of the file, so one interpolated value costs every fact below it. Filling
-//! the braces with an identifier keeps the declaration well formed, and the references
-//! written inside them are read back from the source afterwards.
+//! `tree-sitter-scss` 1.0 has no rule for interpolation in a declaration value. What makes it
+//! expensive is not the missing rule but the recovery: the ERROR node covers the rest of the
+//! file. So one interpolated value costs every fact below it. Filling the braces with an
+//! identifier keeps the declaration well formed, and the references written inside them are
+//! read back from the source afterwards.
 //!
-//! Measured over `twbs/bootstrap`, 99 stylesheets: 73 files failed to parse and now 59
-//! do, symbols went 1916 to 2826, references 3839 to 6277, and no file lost a
-//! reference it had before.
+//! Measured over `twbs/bootstrap`, 99 stylesheets: 73 files failed to parse and now 59 do,
+//! symbols went 1916 to 2826, references 3839 to 6277. No file lost a reference it had before.
 
 use fun_refactor::extract::Extractor;
 use fun_refactor::lang::Language;
@@ -44,8 +43,8 @@ fn an_interpolated_declaration_value_parses() {
 
 #[test]
 fn an_interpolated_value_no_longer_costs_the_rest_of_the_file() {
-    // The reason this one form was worth masking: the error did not stay in the
-    // declaration, it ran to the end of the file and took every definition with it.
+    // The reason this one form was worth masking. The error did not stay in the declaration, it
+    // ran to the end of the file and took every definition with it.
     let source = ".a {\n  color: #{$v};\n}\n\n.b { color: red; }\n\n.c { color: blue; }\n";
     let (errors, symbols, _) = parsed_and_facts(source);
     assert_eq!(errors, 0);

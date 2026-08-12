@@ -1,10 +1,9 @@
 //! Pattern restructuring across every language in the matrix.
 //!
-//! One realistic pattern per language, plus the two things that make structural
-//! matching worth having over `sed`: a similar-but-different shape must not match,
-//! and text inside a string or a comment is not code. Every rewrite is put through
-//! the same `ReparseStrict` validation the CLI uses, so a test can only pass if the
-//! rewritten file still parses.
+//! One realistic pattern per language, plus the two things that make structural matching worth
+//! having over `sed`. A similar-but-different shape must not match, and text inside a string or
+//! a comment is not code. Every rewrite is put through the same `ReparseStrict` validation the
+//! CLI uses, so a test can only pass if the rewritten file still parses.
 
 use fun_refactor::edit::{apply_to_string, plan, Validation};
 use fun_refactor::index::Index;
@@ -528,8 +527,8 @@ fn helm_does_not_match_a_value_that_is_a_template_action() {
 
 #[test]
 fn helm_does_not_match_a_value_a_template_action_continues() {
-    // `web-{{ .Values.suffix }}` parses as the scalar `web-` followed by blanks: the
-    // pair looks complete but its value is a lie, so the match must be dropped.
+    // `web-{{ .Values.suffix }}` parses as the scalar `web-` followed by blanks. The pair looks
+    // complete but its value is a lie, so the match must be dropped.
     let src = "metadata:\n  name: web-{{ .Values.suffix }}\n  team: platform\n";
     let (n, out) = restructured(
         &[

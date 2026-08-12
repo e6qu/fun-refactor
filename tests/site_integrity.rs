@@ -4,7 +4,7 @@
 //! what the tool produced. Nothing asserted the rest of it: that a link goes somewhere,
 //! that an anchor names a heading that exists, that a command the prose tells a reader
 //! to run is a command. Those are the parts that rot silently, because a dead link
-//! looks exactly like a live one until somebody clicks it.
+//! looks like a live one until somebody clicks it.
 //!
 //! Everything here reads the `docs/` tree from disk. No network: a test that needs one
 //! fails for reasons that have nothing to do with the change in front of it.
@@ -70,11 +70,11 @@ fn ids(html: &str) -> Vec<String> {
 
 /// Is this path something the frontend build writes instead of something in the tree?
 ///
-/// The playground is emitted by Vite and is not committed, so on a clean checkout every
-/// link to it points at a directory that is not there, while being perfectly live on
-/// the published site. Read from the build's own `outDir` and not written down
-/// here: a hardcoded exception is a second place to remember, and this test exists
-/// because second places to remember are how a site rots.
+/// The playground is emitted by Vite and is not committed, so on a clean checkout every link to
+/// it points at a directory that is not there, while being perfectly live on the published
+/// site. Read from the build's own `outDir` and not written down here: a hardcoded exception is
+/// a second place to remember. This test exists because second places to remember are how a
+/// site rots.
 fn built_by_the_frontend(path: &Path) -> bool {
     let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("web/vite.config.ts");
     let Ok(text) = std::fs::read_to_string(&config) else {
@@ -146,7 +146,7 @@ fn every_internal_link_goes_somewhere() {
 #[test]
 fn every_anchor_names_something_on_the_page() {
     // A table of contents pointing at a heading that was renamed scrolls nowhere, and
-    // looks exactly like one that works.
+    // looks like one that works.
     let mut broken = Vec::new();
     for (name, html) in pages() {
         let present: BTreeSet<String> = ids(&html).into_iter().collect();
@@ -167,8 +167,8 @@ fn every_anchor_names_something_on_the_page() {
 
 #[test]
 fn no_page_declares_the_same_id_twice() {
-    // Two elements with one id means every `#anchor` and `getElementById` picks one of
-    // them, and which one is a fact about source order and not about intent.
+    // Two elements with one id means every `#anchor` and `getElementById` picks one of them.
+    // Which one is a fact about source order and not about intent.
     let mut duplicated = Vec::new();
     for (name, html) in pages() {
         let mut counts: BTreeMap<String, usize> = BTreeMap::new();
@@ -262,10 +262,9 @@ fn every_page_says_what_it_was_built_from() {
 
 #[test]
 fn a_parse_failure_says_where_it_is() {
-    // "2 error node(s)" and a filename is a report nobody can act on: the whole value of
-    // knowing a file did not parse is being able to go and look at the part that did
-    // not. Found on vuejs/core, where four files failed and the report gave no position
-    // for any of them.
+    // "2 error node(s)" and a filename is a report nobody can act on. The whole value of
+    // knowing a file did not parse is being able to go and look at the part that did not. Found
+    // on vuejs/core, where four files failed and the report gave no position for any of them.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     std::fs::write(
         tmp.path().join("a.rs"),

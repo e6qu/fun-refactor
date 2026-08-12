@@ -5,16 +5,16 @@ markup, a Helm value by a template, an environment variable by a manifest and by
 program that reads it. This document maps those boundaries: which the tool crosses
 today, which it does not, and what each missing one would cost.
 
-Every number here was measured, not estimated. `examples/crosslang.rs` produced them:
+Every number here was measured. It was not estimated. `examples/crosslang.rs` produced them:
 
     cargo run --example crosslang -- /path/to/repo
     cargo run --example crosslang -- /path/to/repo "rust->zig"    # name the crossings
 
 ## The first thing the measurement changed
 
-The tool's flagship cross-language feature — a Helm value renamed across a chart,
+The tool's flagship cross-language feature, a Helm value renamed across a chart,
 **does not cross a language boundary at all.** A `values.yaml` sitting beside a
-`Chart.yaml` is detected *as* Helm, and so is the template that reads it. Measured by
+`Chart.yaml` is detected *as* Helm. So is the template that reads it. Measured by
 language, a production `ingress-nginx` chart reports zero cross-language references.
 Measured by *file role*, the same chart reports **627**.
 
@@ -25,7 +25,7 @@ Measured by *file role*, the same chart reports **627**.
 That is 627 of the 674 `.Values.*` expressions in the chart — 93%. The edge works
 very well. It is just not the kind of edge the word "language" describes.
 
-So there are two different things worth separating, and conflating them is how you
+So there are two different things worth separating. Conflating them is how you
 end up believing a feature is missing or present when it is not:
 
 | | |
@@ -52,7 +52,7 @@ And on real repositories, which are mostly monolingual and say so:
 The lesson is worth stating plainly: **on a real single-language repository,
 cross-language refactoring does nothing.** It earns its place in polyglot
 repositories, a service with a chart, a frontend with stylesheets, infrastructure
-beside the code it configures, and those are exactly the repositories where nothing
+beside the code it configures. Those are exactly the repositories where nothing
 else will do the job.
 
 ## What may cross, and why that is now a table
@@ -82,13 +82,13 @@ an edit that compiles somewhere else and breaks here.
 
 **Deliberately absent: every pair of imperative languages.** Rust cannot name a Zig
 method; Go cannot name a Python function. Where an FFI does connect them, the binding
-is declared in a build file this tool does not read, and reporting those as unresolved
+is declared in a build file this tool does not read. Reporting those as unresolved
 is the honest answer and not a guess that occasionally rewrites the wrong file.
 
 ## What does not cross, and what each would take
 
 These are edges that exist in real code and that the tool does not follow. Ordered by
-how often they appear in the repositories people actually have.
+how often they appear in the repositories people have.
 
 ### 1. CSS modules, `styles.primary` in TSX to `.primary` in a stylesheet
 
@@ -104,7 +104,7 @@ Measured: plain `class="primary"` in HTML resolves; `styles.primary` does not.
 **What it needs.** The default import of a `*.module.css` binds an object whose
 members are that file's selectors. That is a real, declared relationship, the import
 path names the file, so the edge would be `Exact`, not a guess. The work is in
-import resolution: recognise a CSS-module import, bind the local name, and resolve a
+import resolution: recognise a CSS-module import, bind the local name. Resolve a
 member access on it to a selector in the named file.
 
 **Cost.** Moderate. The import machinery already resolves paths; the new part is
@@ -155,9 +155,9 @@ The flag is declared in Go or Rust as a struct field or a clap attribute. This i
 scripts and CI break silently when a flag is renamed.
 
 **What it needs.** A flag declaration is recognisable per framework (clap attributes,
-Go's `flag` package, `argparse`), and the shell side is a word starting with `--`.
+Go's `flag` package, `argparse`). The shell side is a word starting with `--`.
 `NameOnly`, always. The catalogs are the natural home for the per-framework rules.
-They already encode "what a test looks like" per language in exactly this shape.
+They already encode "what a test looks like" per language in this shape.
 
 **Cost.** Moderate, and it grows with every framework. The catalog format keeps that
 growth out of the code.
@@ -213,7 +213,7 @@ dict[str, float]`. Declarations are idiomatic, a record is a Rust `struct` with 
 
 Everything with no counterpart, ownership, closures, macros, comprehensions, error
 propagation, is carried into the output **verbatim, inside a comment**, and counted.
-The result is a draft that says exactly how much of it is real.
+The result is a draft that says how much of it is real.
 
 See `src/transpile/` and RECIPES-style notes in that module's documentation.
 
@@ -228,18 +228,18 @@ The rule is the same one the refactorings follow: **rename what the file declare
 nothing else.** Functions, records, fields, constants, parameters and locals are the
 module's own and are re-spelled at their declaration *and* at every use. A name the
 module does not declare, `db.users.find`, `NextResponse`, a library function, is
-foreign and is left exactly as written, because re-casing it would rename somebody
+foreign and is left as written, because re-casing it would rename somebody
 else's API.
 
 One map, built once, consulted everywhere. The alternative, re-casing at each site
 with whichever helper was to hand, is how `interface User { userName }` became
-`class User: user_name` whose bodies still said `.userName`.
+`class User. User_name` whose bodies still said `.userName`.
 
 Three details that only real code surfaces:
 
 - **Acronyms.** Splitting before every capital turns `HTTPServer` into
   `h_t_t_p_server` and `MAX_RETRY` into `M_A_X__R_E_T_R_Y`. A separator goes where a
-  word actually starts.
+  word starts.
 - **Fields are their own namespace.** A Go `Reading` with an exported `sensor` field is
   `Sensor`, while a *parameter* also called `sensor` stays lowercase. One map keyed by
   name alone gave the parameter the field's spelling.
@@ -251,9 +251,9 @@ Three details that only real code surfaces:
 
 Java is the fifth, and it is the one that made the writer do something no other does.
 Every other target takes a module's items and writes them out. Java has **no top level
-below the type**: a function has to be inside a class, and a public class must be named
+below the type**: a function has to be inside a class. A public class must be named
 after its file, which is a rule the compiler enforces and not a convention. So a
-module becomes a class, `sensors.py` becomes `Sensors.java`, and a record that would
+module becomes a class, `sensors.py` becomes `Sensors.java`. A record that would
 have been public becomes a package-private sibling with a comment saying why.
 
 Reading Java is the same job in reverse: a file *is* a class, so reading one means
@@ -266,27 +266,27 @@ Zig is the sixth, and it is the far end of the range. A `struct` is not a declar
 form. It is a **value**, so `const Reading = struct { … };` is a constant whose value
 happens to be a type, and the methods live inside it. Reading one means noticing that
 the grammar reuses `variable_declaration` for an assignment too: `sum = sum + x` and
-`var sum = 0` are the same node, and only the keyword tells them apart.
+`var sum = 0` are the same node. Only the keyword tells them apart.
 
 Four things about the language shape the writer:
 
 - **No `new`, no exception, no `async`.** Failure is a value in the return type and the
-  error set is part of the type, so a `throw` arriving from Python or Java has nowhere
+  error set is part of the type. So a `throw` arriving from Python or Java has nowhere
   to go; `async` was removed in 0.11 and has not come back. Each is carried, because
   inventing an error set would be inventing the program's vocabulary of failures.
-- **No block comment.** `//` runs to the end of the line, so a carried fragment written
+- **No block comment.** `//` runs to the end of the line. So a carried fragment written
   beside an expression would swallow the rest of the statement, semicolon included. It
   goes on its own line above the statement, the only place in Zig a comment can go.
 - **`var` is an error when nothing writes to it.** Only the Rust reader records
-  mutability; every other one says "mutable" because it has nothing better to say.
+  mutability. Every other one says "mutable" because it has nothing better to say.
   Which keyword a binding takes is therefore a fact about the rest of the body, worked
   out by looking at what assigns to it.
 - **Three conventions, not two.** Types are `PascalCase`, functions are `camelCase` and
-  everything else is `snake_case`, a split no other target here makes, and one that
+  everything else is `snake_case`, a split no other target here makes. One that
   spelled every local like a function until the naming map learned to tell them apart.
 
 `error` is Go's type and Zig's keyword. It is written `@"error"`, which is how Zig
-spells an identifier that collides with one of its own words, and under it the name
+spells an identifier that collides with one of its own words. Under it the name
 still says what the source said.
 
 ### How much of this is checked
@@ -297,9 +297,9 @@ into every target:
 1. **The output parses as the language it claims to be.** The strongest check available
    without six compilers. It found nine defects the first time it ran.
 2. **Every function comes back with the parameters it left with, every field and
-   constant comes back, and no type changes shape.** A round trip, read, translate,
+   constant comes back. No type changes shape.** A round trip, read, translate,
    read the result back, compare. Parsing cannot see a dropped parameter; the file is
-   still perfectly good in the target's grammar, and the fidelity report says every
+   still perfectly good in the target's grammar. The fidelity report says every
    signature carried across intact. This has found eighteen.
 
 A type is compared as a *shape*: a list stays a list, an optional stays optional, a
@@ -307,8 +307,8 @@ named type keeps its name. Not which scalar. TypeScript has one numeric type, so
 `i64` that goes through it comes back a `number` and nothing is wrong. Not the qualifier
 . Go has room for one level of it, so `crate::model::Reference` is `model.Reference`
 there and cannot be anything else. Two things are allowed to change and both are stated
-in the report when they do: a type this tool cannot write at all is replaced by a
-placeholder, and a constructor's name, because in three of these languages "constructor"
+in the report when they do. A type this tool cannot write at all is replaced by a
+placeholder. A constructor's name, because in three of these languages "constructor"
 *is* a naming convention.
 
 ### What real code has that a fixture does not
@@ -322,8 +322,8 @@ fixture:
 - **A comment between two parameters.** A comment is an *extra* in every one of these
   grammars: it can appear between any two nodes anywhere. A reader that walks a
   parameter list positionally reads it as a parameter.
-- **A string with an escape in it.** The IR has to hold the string's *value*; holding
-  its spelling means the next writer escapes the backslash again, and a newline becomes
+- **A string with an escape in it.** The IR has to hold the string's *value*. Holding
+  its spelling means the next writer escapes the backslash again. A newline becomes
   a backslash and an `n` in a file that still parses.
 - **A doc comment quoting a glob.** `app/**/route.ts` contains `*/`, which closes the
   `/** ... */` a Java or TypeScript writer put it in.
@@ -338,10 +338,10 @@ None of these is exotic. All five are in the first file you would pick up.
 
 Two additions came out of reading real Java instead of running it.
 
-**The conditional expression** — `a ? b : c`, `b if a else c`, `if a { b } else { c }`,
-is one expression that chooses between two, and five of these six languages have it. It
+**The conditional expression**, `a ? b : c`, `b if a else c`, `if a { b } else { c }`,
+is one expression that chooses between two. Five of these six languages have it. It
 is a node and not a branch because it *is* a value: reading it as an `if` would need
-somewhere to put the result, and there is no such place inside an argument list. Go is
+somewhere to put the result. There is no such place inside an argument list. Go is
 the exception and says so.
 
 **The base class.** Three of these languages inherit and three do not. It is carried
@@ -363,28 +363,28 @@ picking one of them would be a guess.
 | Zig | `Thing.init`, returns the type |
 
 The name is not what carries; what carries is that the function **makes a value of its
-type**. The last three have no constructor at all, only a habit, so one is read as a
+type**. The last three have no constructor at all, only a habit. So one is read as a
 constructor there only when it *also returns the type*, because a `new` that returns
 something else is an ordinary function with a common name.
 
 The consequence worth knowing: **a constructor's body only travels where a receiver
-does.** The first three act on a value that already exists; the last three build one and
-return it, so a body that assigns through a receiver has nowhere to run. The tool says
+does.** The first three act on a value that already exists. The last three build one and
+return it. So a body that assigns through a receiver has nowhere to run. The tool says
 so instead of writing `self.n = n` inside a function that binds no `self`. And Java is
 the one target that overloads constructors, a second one written anywhere else keeps
-the name its source gave it, and the report says which name to call instead.
+the name its source gave it. The report says which name to call instead.
 
 ### The receiver has six names
 
 `self`, `this`, or whatever the Go author called it. The receiver is the one binding
-that is **not in the parameter list**, so it never went through the rename that every
-other name goes through, and each body kept its source's word. `this.cache` inside a
-Rust `impl` is not a typo; it is a file that cannot compile, and it was in every
+that is **not in the parameter list**. So it never went through the rename that every
+other name goes through. Each body kept its source's word. `this.cache` inside a
+Rust `impl` is not a typo; it is a file that cannot compile. It was in every
 translated method of every class until the IR started recording which word the source
 used and each writer started putting its own back on.
 
 Rust makes this sharper than the rest: `self` is the one keyword it refuses to
-raw-escape, so the escape that made every other reserved word writable turned a correct
+raw-escape. So the escape that made every other reserved word writable turned a correct
 file into `r#self`, which is a compile error.
 
 ### Typed Python and typed TypeScript
@@ -392,7 +392,7 @@ file into `r#self`, which is a compile error.
 The two languages with the closest correspondence get the closest translation.
 `list[str]` is `string[]`, `dict[str, int]` is `Record<string, number>`,
 `Optional[T]` is `T | null`, `@dataclass` is an `interface`, an f-string is a template
-literal, and a comprehension is a `.filter().map()` chain. `await` means the same
+literal. A comprehension is a `.filter().map()` chain. `await` means the same
 thing in both.
 
 Both directions of the round-trip carry **zero** constructs verbatim
@@ -427,10 +427,10 @@ one thing no content-only translation could ever do, and it is most of the value
 
 Three of those rows are worth dwelling on, because each was wrong first:
 
-- **`NextRequest` is kept, not dropped.** It is Starlette's `Request` under another
+- **`NextRequest` is kept. It is not dropped.** It is Starlette's `Request` under another
   name. Dropping it and commenting out every line that read it produced a file where
   `await request.json()`, perfectly good Python, was a comment.
-- **`context.params.id` is dropped, not carried.** It is the commonest line in a
+- **`context.params.id` is dropped. It is not carried.** It is the commonest line in a
   Next.js route and it is exactly the work FastAPI already did. Carrying it opened
   every translated handler with a line naming an object Python does not have.
 - **Nested returns are rewritten too.** An error return inside an `if` is the
@@ -439,7 +439,7 @@ Three of those rows are worth dwelling on, because each was wrong first:
 ### Measured against real projects
 
 The fixtures in `tests/nextjs.rs` and `tests/transpile.rs` are written by whoever
-writes the assertion, so `tests/corpus.rs` runs the same translations over two
+writes the assertion. So `tests/corpus.rs` runs the same translations over two
 MIT-licensed projects vendored unmodified and pinned, `fastapi/full-stack-fastapi-template`
 and `shadcn-ui/taxonomy`; see `tests/corpus/PROVENANCE.md`. Running against them found
 what 1,300 fixture tests did not:
@@ -487,4 +487,4 @@ Three things the measurements argue for:
 
 3. **The permitted table belongs beside the languages, not inside resolution.** It is
    a statement about how these languages refer to each other, which is knowledge about
-   the world and not about this program, and it should be readable as such.
+   the world and not about this program. It should be readable as such.

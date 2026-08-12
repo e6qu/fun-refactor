@@ -1,12 +1,12 @@
-//! Import liveness, one guard per language, and the two halves of the unused-symbol
-//! report that a resolver alone cannot get right.
+//! Import liveness, one guard per language, and the two halves of the unused-symbol report that
+//! a resolver alone cannot get right.
 //!
-//! Name-based liveness answers "does anything in the file spell this name?" That is the
-//! whole truth only for a value or type that has to be written where it is used. Every
-//! test here is a language construct that uses an import *without* spelling its name,
-//! paired with the case that looks the same and really is dead. The asymmetry is the
-//! point: removing a live import breaks a build silently, whereas keeping a dead one
-//! leaves a line of noise, so every guard errs towards keeping and says why.
+//! Name-based liveness answers "does anything in the file spell this name?" That is the whole
+//! truth only for a value or type that has to be written where it is used. Every test here is a
+//! language construct that uses an import *without* spelling its name, paired with the case
+//! that looks the same and really is dead. The asymmetry is the point: removing a live import
+//! breaks a build silently, whereas keeping a dead one leaves a line of noise. So every guard
+//! errs towards keeping and says why.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
@@ -142,7 +142,7 @@ fn python_a_name_re_exported_through_dunder_all_is_kept() {
 
 #[test]
 fn python_dunder_all_naming_something_else_does_not_save_an_import() {
-    // The negative half: `__all__` is consulted, not treated as blanket immunity.
+    // The negative half: `__all__` is consulted. It is not treated as blanket immunity.
     assert_eq!(
         removed_paths(
             &[
@@ -217,9 +217,9 @@ fn typescript_a_comment_merely_mentioning_the_name_does_not_keep_it() {
 
 #[test]
 fn typescript_a_type_only_import_is_kept() {
-    // Every use of a type-only import is in a type position, and the fact queries do
-    // not capture all of them (`typeof Foo` is one they miss), so the whole form is
-    // held back and not removed on incomplete evidence.
+    // Every use of a type-only import is in a type position. The fact queries do not capture
+    // all of them (`typeof Foo` is one they miss). So the whole form is held back and not
+    // removed on incomplete evidence.
     kept_because(
         &[(
             "a.ts",
@@ -248,9 +248,9 @@ fn typescript_an_inline_type_specifier_marks_the_statement_type_only() {
 
 #[test]
 fn typescript_a_value_import_used_only_under_typeof_is_kept() {
-    // `typeof Foo` is a `type_query`, and `queries/typescript/facts.scm` now captures
-    // it, so the import is kept because it is genuinely referenced, not held back by
-    // a guard. That is the better outcome: no warning is needed to explain it.
+    // `typeof Foo` is a `type_query`, and `queries/typescript/facts.scm` now captures it, so
+    // the import is kept because it is genuinely referenced. It is not held back by a guard.
+    // That is the better outcome: no warning is needed to explain it.
     let (removed, warnings) = outcome(
         &[(
             "a.ts",
@@ -326,9 +326,9 @@ fn go_a_blank_import_binds_nothing_and_is_kept() {
 
 #[test]
 fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
-    // `gopkg.in/yaml.v2` declares `package yaml`. Guessing the binding from the last
-    // path segment gives `v2`, which nothing names, and removing the import would
-    // break a build that uses `yaml.Marshal` on the next line.
+    // `gopkg.in/yaml.v2` declares `package yaml`. Guessing the binding from the last path
+    // segment gives `v2`, which nothing names. Removing the import would break a build that
+    // uses `yaml.Marshal` on the next line.
     assert!(
         removed_paths(
             &[(
@@ -344,8 +344,8 @@ fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
 
 #[test]
 fn go_an_unreadable_package_clause_holds_the_import_back() {
-    // Nothing here names `yaml` either, and the package is not in the scan, so the
-    // honest answer is that the binding is unknown and not unused.
+    // Nothing here names `yaml` either, and the package is not in the scan. So the honest
+    // answer is that the binding is unknown and not unused.
     kept_because(
         &[(
             "a.go",
@@ -359,8 +359,8 @@ fn go_an_unreadable_package_clause_holds_the_import_back() {
 
 #[test]
 fn go_a_package_clause_the_scan_can_see_is_used_instead_of_the_path() {
-    // The directory is `helper/`, the package is `helper`, and the import path ends
-    // in `helper`: the binding is a fact here, not a guess, so `helper.Do()` keeps it.
+    // The directory is `helper/`, the package is `helper`. The import path ends in `helper`:
+    // the binding is a fact here. It is not a guess, so `helper.Do()` keeps it.
     assert!(
         removed_paths(
             &[
@@ -578,11 +578,10 @@ fn dynamic_dispatch_no_longer_looks_dead() {
 
 #[test]
 fn a_name_assembled_at_runtime_remains_a_false_positive() {
-    // The part of B5 that stays open. The handler's name exists only once the pieces
-    // are concatenated, so no reference resolves to it, no string literal spells it,
-    // and no type declares it as a method for a hierarchy to fan out to. Nothing in
-    // the workspace distinguishes this from dead code, and inventing a distinction
-    // would be guessing.
+    // The part of B5 that stays open. The handler's name exists only once the pieces are
+    // concatenated. So no reference resolves to it, no string literal spells it, and no type
+    // declares it as a method for a hierarchy to fan out to. Nothing in the workspace
+    // distinguishes this from dead code, and inventing a distinction would be guessing.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "fn on_event() {}\nfn dispatch(name: &str) {}\nfn main() {\n    let name = format!(\"on_{}\", \"event\");\n    dispatch(&name);\n}\n",

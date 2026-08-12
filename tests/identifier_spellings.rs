@@ -1,19 +1,19 @@
 //! One spelling per thing.
 //!
-//! Several enums here have both a serde representation and an `as_str`, and where that
-//! `as_str` is an *identifier*, what `--json` emits, what a catalogue matches on, what a
-//! person types, the two must be the same string. Three of `SymbolKind`'s twenty-one
-//! variants disagreed: the tool wrote `"kind": "type"` and could not read it back, so its
-//! own output was not valid input to itself, and nothing was checking.
+//! Several enums here have both a serde representation and an `as_str`. Where that `as_str` is
+//! an *identifier*, what `--json` emits, what a catalogue matches on, what a person types, the
+//! two must be the same string. Three of `SymbolKind`'s twenty-one variants disagreed: the tool
+//! wrote `"kind": "type"` and could not read it back. So its own output was not valid input to
+//! itself, and nothing was checking.
 //!
-//! Not every `as_str` is an identifier. `Capability` and `Basis` return prose for a
-//! reader — "call graph", "from the literal", and are named `label` and `describe` so
-//! the difference is visible and not remembered.
+//! Not every `as_str` is an identifier. `Capability` and `Basis` return prose for a reader —
+//! "call graph", "from the literal", and are named `label` and `describe` so the difference is
+//! visible and not remembered.
 //!
-//! The spellings are read out of the `as_str` match in the source and not listed
-//! here. That match is exhaustive, so the compiler already forces a new variant to appear
-//! in it, and reading it means a new variant is covered by this test the day it is added.
-//! A list written here would be one more thing to forget.
+//! The spellings are read out of the `as_str` match in the source and not listed here. That
+//! match is exhaustive, so the compiler already forces a new variant to appear in it. Reading
+//! it means a new variant is covered by this test the day it is added. A list written here
+//! would be one more thing to forget.
 
 use fun_refactor::lang::Language;
 use fun_refactor::model::{Confidence, SymbolKind};

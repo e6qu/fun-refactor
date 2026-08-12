@@ -1,4 +1,4 @@
-//! Rust fact-extraction tests: what `queries/rust/facts.scm` actually reports.
+//! Rust fact-extraction tests: what `queries/rust/facts.scm` reports.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -23,10 +23,9 @@ fn qualified(f: &FileFacts) -> Vec<String> {
 /// A method of a generic or lifetime-parameterised type is a method of that type.
 ///
 /// The container patterns matched `type: (type_identifier)`, and `impl Ctx<'_>` puts a
-/// `generic_type` there, so the methods inside got no container at all: `run` rather
-/// than `Ctx::run`, and kind `function` and not `method`. A `self.hcl_backward(…)`
-/// then had no member to resolve to, and 43 of `provenance.rs`'s own methods read as
-/// dead code.
+/// `generic_type` there. So the methods inside got no container at all: `run` and not
+/// `Ctx::run`, and kind `function` and not `method`. A `self.hcl_backward(…)` then had no
+/// member to resolve to, and 43 of `provenance.rs`'s own methods read as dead code.
 #[test]
 fn an_impl_on_a_generic_type_still_names_its_methods() {
     let f = facts(

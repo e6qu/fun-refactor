@@ -1,8 +1,8 @@
 //! Cascading flag removal, end to end.
 //!
-//! The point of this refactoring is the chain, not the first edit: uses become
-//! constants, conditionals collapse, and whatever only the dead branch called becomes
-//! unused. These tests check the whole chain runs to a fixpoint.
+//! The point of this refactoring is the chain, not the first edit: uses become constants,
+//! conditionals collapse. Whatever only the dead branch called becomes unused. These tests
+//! check the whole chain runs to a fixpoint.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::refactor::cascade;

@@ -1,18 +1,18 @@
 //! Move to file, across the seven languages where a move can be made correct.
 //!
-//! Each language has its own answer to "what else has to change", and these tests
-//! pin the answer instead of the aspiration:
+//! Each language has its own answer to "what else has to change". These tests pin the answer
+//! instead of the aspiration:
 //!
-//! - Rust and TypeScript/Python rewrite reference sites, so those tests assert the
-//!   import lines byte for byte.
-//! - Go inside one package, HCL inside one directory and CSS anywhere change nothing
-//!   but the two files, so those tests assert that *no* third file was touched.
+//! - Rust and TypeScript/Python rewrite reference sites, so those tests assert the import lines
+//!   byte for byte.
+//! - Go inside one package, HCL inside one directory and CSS anywhere change nothing but the
+//!   two files. So those tests assert that *no* third file was touched.
 //! - Markdown repoints anchors.
 //!
-//! Every successful move is committed through `edit::plan(…, ReparseStrict)`, so a
-//! move that would break a file fails the test instead of the build. Where the tool
-//! refuses, the refusal message is asserted, because a refusal that does not say what
-//! was wrong is not much better than a wrong answer.
+//! Every successful move is committed through `edit::plan(…, ReparseStrict)`, so a move that
+//! would break a file fails the test instead of the build. Where the tool refuses, the refusal
+//! message is asserted, because a refusal that does not say what was wrong is not much better
+//! than a wrong answer.
 
 use fun_refactor::{
     edit::{self, Validation},
@@ -66,7 +66,7 @@ fn symbol_id(index: &Index, name: &str, file: Option<&Path>) -> fun_refactor::mo
 
 /// Validate the plan by reparsing every touched file, then write it.
 ///
-/// Returns the paths that actually changed, so a test can assert that a move which
+/// Returns the paths that changed, so a test can assert that a move which
 /// should touch nothing else really touched nothing else.
 fn commit(plan: &move_symbol::MovePlan) -> Vec<PathBuf> {
     let outcomes = edit::plan(&plan.edits, Validation::ReparseStrict)
@@ -138,7 +138,7 @@ fn rust_move_repoints_a_simple_use() {
         ws.read("src/store.rs"),
         "pub const LIMIT: i32 = 10;\n\npub fn shared() -> i32 {\n    2\n}\n"
     );
-    // The existing `use` is repointed, not duplicated.
+    // The existing `use` is repointed. It is not duplicated.
     assert_eq!(
         ws.read("src/app.rs"),
         "use crate::store::shared;\n\npub fn run() -> i32 {\n    shared()\n}\n"
@@ -527,7 +527,7 @@ fn go_move_warns_about_the_imports_the_code_leaves_behind_and_needs() {
     let id = symbol_id(&index, "Shared", None);
 
     let plan = move_symbol::to_file(&index, id, &ws.path("pkg/c.go")).unwrap();
-    // Nothing is edited: which import fed which name is exactly what this index knows
+    // Nothing is edited: which import fed which name is what this index knows
     // only weakly, so both directions are reported instead of guessed at.
     assert!(
         plan.warnings
@@ -1151,8 +1151,8 @@ fn python_move_inside_a_package_writes_a_relative_import() {
 
 #[test]
 fn languages_with_no_derivable_move_are_refused_by_name() {
-    // Zig, Bash and YAML gained moves; markup did not, and cannot: a document does
-    // not import another's elements, so a moved element has no reference to update.
+    // Zig, Bash and YAML gained moves; markup did not, and cannot: a document does not import
+    // another's elements. So a moved element has no reference to update.
     for (source, destination, code) in [
         ("a.html", "b.html", "<div id=\"thing\">x</div>\n"),
         ("a.xml", "b.xml", "<root><item id=\"thing\"/></root>\n"),
@@ -1225,12 +1225,12 @@ fn movable_lists_what_each_language_can_move() {
     assert_eq!(markdown, ["One"]);
 }
 
-// --------------------------------------------------------------------------
-// What moves with the code.
+// -------------------------------------------------------------------------- What moves with
+// the code.
 //
-// A move that relocates the text and nothing else leaves a file that parses and
-// does not compile: the definition is invisible to the import just written for it,
-// and everything it referenced is no longer in scope. These pin the rest of the job.
+// A move that relocates the text and nothing else leaves a file that parses and does not
+// compile. The definition is invisible to the import just written for it, and everything it
+// referenced is no longer in scope. These pin the rest of the job.
 
 #[test]
 fn a_moved_symbol_is_exported_where_something_now_imports_it() {
@@ -1391,7 +1391,7 @@ fn a_new_import_goes_after_a_multi_line_import_statement() {
 #[test]
 fn a_moved_python_symbol_takes_the_module_imports_it_uses() {
     // `import os` binds `os` without naming it in the statement, and the moved code
-    // reaches `os.path` through exactly that binding.
+    // reaches `os.path` through that binding.
     let ws = Workspace::new(&[
         ("pkg/__init__.py", ""),
         (

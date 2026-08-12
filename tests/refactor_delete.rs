@@ -221,7 +221,7 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
     assert_eq!(textual.len(), 1, "got {textual:?}");
     assert_eq!(textual[0].line, 3);
 
-    // The delete still happens, the string is reported, not obeyed.
+    // The delete still happens, the string is reported. It is not obeyed.
     assert_eq!(
         applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {\n    dispatch(\"handler\");\n}\n"
@@ -243,7 +243,7 @@ fn files_that_failed_to_parse_are_reported_as_possibly_hiding_uses() {
 
 #[test]
 fn deleting_a_lone_css_selector_removes_its_whole_rule() {
-    // A selector's `full_span` is the selector node, which is what a rename rewrites.
+    // A selector's `full_span` is the selector node, which a rename rewrites.
     // A delete has to take the rule too: a declaration block with nothing to apply to
     // is not valid CSS.
     let source = ".btn { color: red; }\n.other { padding: 1px; }\n";
@@ -341,9 +341,9 @@ fn find_unused_reports_mutual_recursion_as_a_dead_group() {
 #[test]
 fn find_unused_leaves_out_a_name_a_string_literal_spells() {
     // `on_event` is called through a name-keyed handler table the index cannot see.
-    // Reachability follows resolved edges only, so nothing leads to it, but the
-    // string is evidence that something might, and a candidate list that invites
-    // deleting live code is worse than one with a stale entry missing from it.
+    // Reachability follows resolved edges only, so nothing leads to it, but the string is
+    // evidence that something might. A candidate list that invites deleting live code is worse
+    // than one with a stale entry missing from it.
     let source = "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
@@ -492,9 +492,8 @@ fn the_underscore_convention_is_reported_as_a_reason_not_hidden() {
 
 #[test]
 fn an_exported_symbol_is_reported_but_marked_as_such() {
-    // The distinction the `--internal` flag and the `exported` column rest on: a
-    // library's public API has no caller in its own repository, and that is not
-    // evidence of anything.
+    // The distinction the `--internal` flag and the `exported` column rest on: a library's
+    // public API has no caller in its own repository. That is not evidence of anything.
     let source = "package p\n\nfunc Exported() int {\n\treturn 1\n}\n\
                   func unexported() int {\n\treturn 2\n}\n";
     let (_tmp, index) = workspace(&[("a.go", source)]);
@@ -511,12 +510,12 @@ fn an_exported_symbol_is_reported_but_marked_as_such() {
 
 // ------------------------------------------- the two halves agree, in every language
 //
-// `an_unused_symbol_from_find_unused_can_then_be_deleted` above states the invariant
-// and checks it for one Rust function. Run over a polyglot workspace it failed
-// thirteen times out of fifty-nine: a TypeScript `export const` whose declarator span
-// left `export const ;` behind, a Zig struct field, and nine CSS selectors that were
-// not dead at all, the markup used them, and the use resolved to one of the two
-// stylesheets that declared them, so the other read as unreferenced.
+// `an_unused_symbol_from_find_unused_can_then_be_deleted` above states the invariant and checks
+// it for one Rust function. Run over a polyglot workspace it failed thirteen times out of
+// fifty-nine. A TypeScript `export const` whose declarator span left `export const ;` behind, a
+// Zig struct field. Nine CSS selectors that were not dead at all, the markup used them, and the
+// use resolved to one of the two stylesheets that declared them, so the other read as
+// unreferenced.
 //
 // One symbol was never going to find that. This runs the whole loop.
 
@@ -679,10 +678,10 @@ fn refs_on_one_declaration_finds_every_use_of_the_class() {
 
 /// A package clause is not dead code, because it is not code that can die.
 ///
-/// Java classes in one package never write the package's name and nothing can import
-/// Go's `main`, so "nothing uses this" is true of every package declaration and says
-/// nothing about any of them. `spring-petclinic` reported all forty-nine of its, one per
-/// file. Removing one is a syntax error, not a refactoring.
+/// Java classes in one package never write the package's name and nothing can import Go's
+/// `main`. So "nothing uses this" is true of every package declaration and says nothing about
+/// any of them. `spring-petclinic` reported all forty-nine of its, one per file. Removing one
+/// is a syntax error. It is not a refactoring.
 #[test]
 fn a_package_clause_is_not_reported_as_unused() {
     let (_tmp, index) = workspace(&[
@@ -815,9 +814,9 @@ fn a_name_merely_starting_with_get_is_not_an_accessor() {
 
 /// An attribute value is a string the HTML grammar happens not to call one.
 ///
-/// It is also where a template names the code behind it, so the rule meant to catch
-/// exactly that — "spared because its name is spelled in a string", could not see the
-/// whole Thymeleaf, Vue and Angular way of referring to code.
+/// It is also where a template names the code behind it. So the rule meant to catch that —
+/// "spared because its name is spelled in a string", could not see the whole Thymeleaf, Vue and
+/// Angular way of referring to code.
 #[test]
 fn a_name_in_a_template_attribute_counts_as_named() {
     let (_tmp, index) = workspace(&[
@@ -850,11 +849,11 @@ fn a_name_in_a_template_attribute_counts_as_named() {
 
 /// An HCL block Terraform gives no address to.
 ///
-/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
-/// `content {}` carry no label, so nothing can reference one and every single one
-/// answers "nothing uses this". terraform-aws-vpc reported 46, all of that shape.
-/// A labelled block takes its name from a string label, so the quote before the name
-/// is the test, no list of block types to keep up with Terraform.
+/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's `content {}`
+/// carry no label. So nothing can reference one and every single one answers "nothing uses
+/// this". terraform-aws-vpc reported 46, all of that shape. A labelled block takes its name
+/// from a string label. So the quote before the name is the test, no list of block types to
+/// keep up with Terraform.
 #[test]
 fn an_unaddressable_hcl_block_is_not_reported() {
     let (_tmp, index) = workspace(&[(

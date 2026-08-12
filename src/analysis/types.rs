@@ -1,16 +1,16 @@
-//! What is known about a symbol's type: what the source declared, and what follows
-//! from what the source declared.
+//! What is known about a symbol's type: what the source declared, and what follows from what
+//! the source declared.
 //!
-//! Two answers, kept apart. **Declared** is what somebody wrote down. **Inferred** is
-//! what this module worked out, carrying the evidence that produced it: the literal, the
-//! class constructed, the return type of the function called.
+//! Two answers, kept apart. **Declared** is what somebody wrote down. **Inferred** is what this
+//! module worked out, carrying the evidence that produced it: the literal, the class
+//! constructed, the return type of the function called.
 //!
-//! Where the chain reaches outside the workspace, a library call, an unnamed object
-//! literal, the answer is that nothing is known, distinct from `Any`.
+//! Where the chain reaches outside the workspace, a library call, an unnamed object literal,
+//! the answer is that nothing is known, distinct from `Any`.
 //!
 //! What counts as the type depends on the symbol. A binding has one. A callable has a
-//! signature, so that is what this reports for one: the parameter types the source
-//! wrote, and a marker where it wrote none.
+//! signature, so that is what this reports for one: the parameter types the source wrote. A
+//! marker where it wrote none.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -78,9 +78,9 @@ pub struct Declared {
     pub declared: Option<String>,
     /// What follows from what the source declared, where the source declared nothing.
     ///
-    /// Only ever consulted when `declared` is `None`: an annotation is a contract and
-    /// this is a derivation, and where both exist the contract is the answer. Where they
-    /// disagree that is a defect in the code and not a choice for this to make.
+    /// Only ever consulted when `declared` is `None`: an annotation is a contract and this is a
+    /// derivation. Where both exist the contract is the answer. Where they disagree that is a
+    /// defect in the code and not a choice for this to make.
     pub inferred: Option<Inferred>,
     /// For a callable, each parameter's declared type in order, `None` where absent.
     pub parameters: Vec<(String, Option<String>)>,
@@ -109,18 +109,17 @@ impl Declared {
     }
 }
 
-/// What the source declared about `symbol`.
-/// Does this language have anywhere to write a type down?
+/// What the source declared about `symbol`. Does this language have anywhere to write a type
+/// down?
 ///
-/// The question this answers is "what did the source say", so it is yes wherever a
-/// language has a place to say it. Bash has no type syntax at all; markup and
-/// configuration have values and not declarations, and a key in a YAML file is not
-/// annotated with anything.
+/// The question this answers is "what did the source say", so it is yes wherever a language has
+/// a place to say it. Bash has no type syntax at all; markup and configuration have values and
+/// not declarations. A key in a YAML file is not annotated with anything.
 ///
-/// The list lived in the capability matrix and nowhere else, so the matrix said `n/a`
-/// for nine languages while [`of`] answered for all of them, with the empty answer that
-/// means "the source wrote nothing here", which is a different statement from "there is
-/// nowhere here to write".
+/// The list lived in the capability matrix and nowhere else. So the matrix said `n/a` for nine
+/// languages while [`of`] answered for all of them, with the empty answer that means "the
+/// source wrote nothing here", which is a different statement from "there is nowhere here to
+/// write".
 pub fn supports_declared_type(language: Language) -> bool {
     matches!(
         language,
@@ -155,9 +154,9 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
 
     let declared = match sym.kind.is_callable() {
         true => signature(&parsed, &source, sym),
-        // `var` and `auto` are the keyword for "not stated", so a binding written with one
-        // has no declared type and falls through to what can be worked out. Reporting the
-        // keyword answered the question with the question.
+        // `var` and `auto` are the keyword for "not stated". So a binding written with one has
+        // no declared type and falls through to what can be worked out. Reporting the keyword
+        // answered the question with the question.
         false => binding_type(&parsed, &source, sym.full_span)
             .filter(|written| !crate::parse::is_an_inferred_type(written)),
     };
@@ -169,9 +168,9 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
     let named = declared.as_deref().and_then(bare_name);
     let defined_at = named.and_then(|name| type_named(index, name, sym));
 
-    // Only where the source said nothing. An annotation is a contract and an inference
-    // is a derivation; where both exist the contract is the answer, and a disagreement
-    // between them is a defect in the code and not a choice for this to make.
+    // Only where the source said nothing. An annotation is a contract and an inference is a
+    // derivation; where both exist the contract is the answer. A disagreement between them is a
+    // defect in the code and not a choice for this to make.
     let inferred = match (&declared, sym.kind.is_callable()) {
         (None, false) => infer(index, sym, &parsed, &source, 0),
         _ => None,
@@ -211,9 +210,9 @@ fn infer(
 
 /// The expression a definition binds, where the grammar names one.
 ///
-/// The declaration itself first, through the one reader that knows every grammar's shape,
-/// and only then outwards: a Python `x: int = 1` hangs the value off the assignment and
-/// not off `x`, so the name alone is not always the declaration.
+/// The declaration itself first, through the one reader that knows every grammar's shape, and
+/// only then outwards: a Python `x: int = 1` hangs the value off the assignment and not off
+/// `x`. So the name alone is not always the declaration.
 fn assigned_value<'a>(parsed: &'a Parsed, declaration: Span, name: Span) -> Option<Node<'a>> {
     let node = parsed
         .root()
@@ -263,9 +262,8 @@ fn infer_expression(
         | "new_expression"
         | "method_invocation"
         | "object_creation_expression" => {
-            // Each grammar names the callee differently: `function` in most,
-            // `constructor` for a TypeScript `new`, and in Java `name` for a call and
-            // `type` for a construction.
+            // Each grammar names the callee differently: `function` in most, `constructor` for
+            // a TypeScript `new`. In Java `name` for a call and `type` for a construction.
             let callee = ["function", "constructor", "name", "type"]
                 .iter()
                 .find_map(|field| node.child_by_field_name(field))?;
@@ -352,10 +350,10 @@ impl Declared {
 
 /// The type a literal states about itself.
 ///
-/// An object literal is deliberately absent. `{"amount": 100}` is a `dict` and saying so
-/// is true and useless, the whole subject of this is that a dictionary is where a type
-/// should have been, and a tool that answers `dict` has agreed with the code and not
-/// described it. A list literal is the same shape of non-answer.
+/// An object literal is deliberately absent. `{"amount": 100}` is a `dict` and saying so is
+/// true and useless, the whole subject of this is that a dictionary is where a type should have
+/// been. A tool that answers `dict` has agreed with the code and not described it. A list
+/// literal is the same shape of non-answer.
 fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
     let python = matches!(language, Language::Python);
     let ts = matches!(language, Language::TypeScript | Language::Tsx);
@@ -399,9 +397,9 @@ fn last_segment(text: &str) -> &str {
 
 /// A symbol of this name that the workspace defines, in the asking symbol's language.
 ///
-/// Same file first. A name that resolves to several things in one language is ambiguous
-/// and resolves to none of them here, for the reason every other lookup in this file
-/// gives: an answer picked by indexing order is not an answer.
+/// Same file first. A name that resolves to several things in one language is ambiguous and
+/// resolves to none of them here, for the reason every other lookup in this file gives. An
+/// answer picked by indexing order is not an answer.
 fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index
         .symbols
@@ -452,9 +450,8 @@ fn is_type_like(kind: SymbolKind) -> bool {
 
 /// The outermost name in a type expression, where there is exactly one.
 ///
-/// `PaymentId` names something. `list[PaymentId]`, `Money | None` and
-/// `(int, str) -> Money` do not name *one* thing, and picking a piece of them would be
-/// answering a question nobody asked.
+/// `PaymentId` names something. `list[PaymentId]`, `Money | None` and `(int, str) -> Money` do
+/// not name *one* thing. Picking a piece of them would be answering a question nobody asked.
 fn bare_name(text: &str) -> Option<&str> {
     let trimmed = text.trim();
     let plain = trimmed

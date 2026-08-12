@@ -1,8 +1,8 @@
 //! Names the output uses that the target has to be told about.
 //!
-//! A translated file that names a type nobody imported does not compile, and the report
-//! calls the signature "carried across with its types intact", which it was. The
-//! import is a separate thing the writer has to say, and two writers were not saying it.
+//! A translated file that names a type nobody imported does not compile. The report calls the
+//! signature "carried across with its types intact", which it was. The import is a separate
+//! thing the writer has to say, and two writers were not saying it.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -71,7 +71,7 @@ fn java_imports_nothing_it_does_not_name() {
 
 #[test]
 fn objects_equals_needs_no_import() {
-    // Written out in full at its use site, which is why it is spelled that way.
+    // Written out in full at its use site, so it is spelled that way.
     let out = translated(
         "a.rs",
         "pub fn same(a: String, b: String) -> bool {\n    return a == b;\n}\n",

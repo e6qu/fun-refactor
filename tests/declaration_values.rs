@@ -138,9 +138,9 @@ fn a_java_local_declaring_several_names_keeps_the_others() {
 
 #[test]
 fn a_keyword_that_means_work_it_out_is_not_a_type() {
-    // `var` is Java's way of writing no type at all. Reporting it answered the question
-    // with the question, and hid the answer that does follow: `compute` states what it
-    // returns, so the binding's type is that.
+    // `var` is Java's way of writing no type at all. Reporting it answered the question with
+    // the question, and hid the answer that does follow. `compute` states what it returns, so
+    // the binding's type is that.
     let (_tmp, root) = workspace(&[(
         "V.java",
         "public class V {\n    static String describe() {\n        var total = compute();\n        \

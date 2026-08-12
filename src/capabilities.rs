@@ -188,8 +188,8 @@ fn absent(language: Language, structural: &'static str, missing: &'static str) -
 /// ever ran it. Set `FR_CAPABILITY_LOG` to a path and each capability appends the pair it ran
 /// with. `tools/capability-report.py` compares that log against the table.
 ///
-/// The log is a file, not a global. The test suite is many processes, and one set of pairs has
-/// to cover all of them.
+/// The log is a file. It is not a global. The test suite is many processes, and one set of
+/// pairs has to cover all of them.
 ///
 /// Without the variable this reads one `None` and returns, so it can sit on a hot path.
 pub fn record(capability: Capability, language: Language) {
@@ -373,7 +373,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         C::ChangeSignature => {
             // Bash has no declaration to edit, but a shell function's signature is its
-            // positional numbering, and that is exactly what changes at call sites.
+            // positional numbering, and that is what changes at call sites.
             if imperative || matches!(language, Language::Hcl | Language::Scss) {
                 Support::Yes
             } else {
@@ -440,8 +440,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // The contract lives in the *tree*, a Next.js route's URL is where its file
-        // sits, so this is a question about one framework and not one language.
+        // The contract lives in the *tree*, a Next.js route's URL is where its file sits, so
+        // this is a question about one framework and not one language.
         C::Openapi => match language {
             Language::TypeScript | Language::Tsx => Support::Yes,
             _ => Support::NotApplicable {

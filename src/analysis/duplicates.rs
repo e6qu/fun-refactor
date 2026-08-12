@@ -1,14 +1,14 @@
 //! Copy-paste detection: the same code, written twice.
 //!
-//! The comparison is structural and not textual: a subtree's hash comes from the
-//! node kinds it contains, so a copy whose variables were renamed still matches the
-//! original, and a textual search would not find it. [`Options::exact`] narrows to
-//! copies that also agree on every identifier and literal.
+//! The comparison is structural and not textual: a subtree's hash comes from the node kinds it
+//! contains. So a copy whose variables were renamed still matches the original, and a textual
+//! search would not find it. [`Options::exact`] narrows to copies that also agree on every
+//! identifier and literal.
 //!
-//! Two rules bound the output. A clone must be at least [`Options::min_tokens`] tokens,
-//! since every language has small shapes that repeat everywhere. And only maximal
-//! clones are reported: a duplicated function also duplicates its body, its statements
-//! and its expressions, and listing all of them buries the finding.
+//! Two rules bound the output. A clone must be at least [`Options::min_tokens`] tokens, since
+//! every language has small shapes that repeat everywhere. And only maximal clones are
+//! reported: a duplicated function also duplicates its body, its statements and its
+//! expressions, and listing all of them buries the finding.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -185,8 +185,8 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
             covered[candidate.file_index].push(candidate.span);
             let lines = LineIndex::new(source);
             let from = lines.line_col(candidate.span.start, source);
-            // The end is exclusive, so the last covered byte is one before it; the
-            // column reported is one past that, which is what a range wants.
+            // The end is exclusive, so the last covered byte is one before it. The column
+            // reported is one past that, which a range wants.
             let to = lines.line_col(candidate.span.end.saturating_sub(1), source);
             class.instances.push(Clone {
                 file: path.clone(),
@@ -221,8 +221,8 @@ fn overlaps(a: Span, b: Span) -> bool {
 
 /// Hash every subtree large enough to be worth comparing.
 ///
-/// Done bottom-up in one pass: a node's hash is built from its kind and the hashes of
-/// its children, so the whole file costs one traversal instead of one per subtree.
+/// Done bottom-up in one pass: a node's hash is built from its kind and the hashes of its
+/// children. So the whole file costs one traversal instead of one per subtree.
 fn collect(
     root: Node<'_>,
     source: &str,

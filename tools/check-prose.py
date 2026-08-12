@@ -29,17 +29,30 @@ DOCS = [
 RULES = [
     ("em-dash", r"—",
      "Use a full stop, a comma or a colon."),
-    # Only the rhetorical shapes. "bind to the inner `let x`, not the outer one" is a
-    # real contrast and carries real information, so the pattern asks for a copula:
-    # assert a thing, then negate an alternative that was never a candidate.
+    # Negate, then restate. "A dispatch edge is a candidate, not a proven call" tells a
+    # reader what a thing is not and leaves them to work out what it is.
+    #
+    # Twice narrowed, both times after reading what it caught. "the guard was
+    # file-scoped, not scope-scoped" and "Structure is compared, not text" name the
+    # thing a reader would otherwise assume, and that is the most precise sentence
+    # available. A rule against every negation deletes those. This asks for the shape
+    # where the negation carries the weight and the positive claim arrives second, or
+    # never.
     ("false-comparison",
-     r"\b(is|are|was|were)\s+[^.\n]{1,40}?,\s+not\s+|"
      r"\bis not [^.\n]{1,50}?[,;]\s*(it|they|this|that)\s+(is|are|was)\b|"
-     r"\bnot [^.\n]{1,40}? but\b|\brather than\b",
-     "Write the positive statement on its own."),
-    ("filler", r"\b(simply|merely|exactly|actually|of course|in fact|it is worth noting)\b",
+     r"\bnot [^.\n]{1,40}? but\b",
+     "Write the positive claim first, and let the negation follow it or go."),
+    # "exactly one" and "rewrites exactly the bytes of a name span" are precise, so the
+    # pattern asks for the emphatic form: `exactly` in front of a demonstrative or a
+    # wh-word, where it adds heat and no information.
+    ("filler",
+     r"\b(simply|merely|actually|of course|in fact|it is worth noting)\b|"
+     r"\bexactly\s+(what|how|this|that|why|when|where|like|as)\b",
      "Delete the word. It adds nothing."),
-    ("self-reference", r"\b(that is (why|how|what)|which is (why|how|what)|is what (makes|the))\b",
+    # "which is what `str | None = None` says" identifies a thing, and the clause is the
+    # shortest way to say it. What this asks for is the sentence that points back at the
+    # text instead of carrying it: "that is why", "is what makes".
+    ("self-reference", r"\b(that is (why|how|what)|is what (makes|the))\b",
      "State the fact. Do not point at it."),
     ("long-sentence", None,
      "Keep sentences to 25 words or fewer."),
@@ -77,6 +90,9 @@ def sentences(text: str):
 
 
 def count(text: str) -> dict:
+    # A Markdown table row is data. Its cells hold `—` for "not applicable", and reading
+    # that as prose counted 60 of them in one table.
+    text = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("|"))
     found = {name: 0 for name, _, _ in RULES}
     for name, pattern, _ in RULES:
         if pattern:

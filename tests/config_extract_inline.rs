@@ -1,13 +1,13 @@
 //! Extract and inline variable for the config languages, end to end.
 //!
-//! None of Terraform, YAML, CSS or Markdown has a binding form, so each gets the
-//! construct that names a value there, a `locals` entry, a YAML anchor, a CSS custom
-//! property, a link reference definition. These tests assert the exact resulting
-//! bytes, that everything outside the edited ranges survives untouched, that the
-//! result still parses, and that extract and inline are inverses.
+//! None of Terraform, YAML, CSS or Markdown has a binding form. So each gets the construct that
+//! names a value there, a `locals` entry, a YAML anchor, a CSS custom property, a link
+//! reference definition. These tests assert the exact resulting bytes, that everything outside
+//! the edited ranges survives untouched, that the result still parses. That extract and inline
+//! are inverses.
 //!
-//! Where a form genuinely cannot be produced with the grammars available, the refusal
-//! is asserted instead, with the reason it names.
+//! Where a form genuinely cannot be produced with the grammars available, the refusal is
+//! asserted instead, with the reason it names.
 
 use fun_refactor::{
     edit::{apply_to_string, plan, Validation},
@@ -1442,7 +1442,7 @@ fn a_go_binding_is_placed_before_the_statement_it_serves() {
     // enclosing *statement* of an expression resolved to the whole function body and
     // the new binding was inserted at the top of the function, above the declaration
     // of the variable it reads. That parses, so no reparse check would catch it; it
-    // simply does not compile.
+    // does not compile.
     let src = "package p\n\nfunc f(xs []int) {\n\titems := []int{}\n\
                \tfor _, x := range xs {\n\t\titems = append(items, x)\n\t}\n\
                \tif len(items) > 0 {\n\t\tuse(items)\n\t}\n}\n\nfunc use(x []int) {}\n";

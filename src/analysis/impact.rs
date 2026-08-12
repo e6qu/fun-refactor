@@ -1,10 +1,10 @@
 //! Blast radius: everything a change to one symbol could touch.
 //!
-//! This is the query that motivates a multi-language tool. It composes every edge
-//! layer at once, resolved references, call edges, string-keyed cross-language
-//! references and textual occurrences, and groups the result by how certain each
-//! finding is, so "what breaks if I change this" has an answer that spans the
-//! code/config boundary no single-language tool can see across.
+//! This is the query that motivates a multi-language tool. It composes every edge layer at
+//! once, resolved references, call edges, string-keyed cross-language references and textual
+//! occurrences. Groups the result by how certain each finding is. So "what breaks if I change
+//! this" has an answer that spans the code/config boundary no single-language tool can see
+//! across.
 
 use crate::analysis::call_graph::CallGraph;
 use crate::index::Index;
@@ -58,10 +58,9 @@ pub struct Impact {
     pub items: Vec<Impacted>,
     /// How many callers the depth limit stopped short of.
     ///
-    /// A bound nobody is told about reads as a complete answer, and this is the command
-    /// a person uses to decide whether a change is safe. A five-deep call chain traced
-    /// three levels reported "affects 4 site(s)" and said nothing about the two it had
-    /// not looked at.
+    /// A bound nobody is told about reads as a complete answer. This is the command a person
+    /// uses to decide whether a change is safe. A five-deep call chain traced three levels
+    /// reported "affects 4 site(s)" and said nothing about the two it had not looked at.
     pub callers_beyond_the_depth_limit: usize,
 }
 

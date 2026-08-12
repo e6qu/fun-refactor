@@ -91,7 +91,7 @@ fn renaming_a_css_class_rewrites_html_and_tsx() {
 #[test]
 fn sibling_classes_in_the_same_attribute_are_untouched() {
     // `class="btn-primary large"` names two classes; renaming one must leave the
-    // other exactly as written.
+    // other as written.
     let (tmp, index) = workspace(&[("styles.css", CSS), ("index.html", HTML)]);
     let target = index.find_symbols("btn-primary", None)[0].id;
     let plan = rename::plan(&index, target, "btn-cta").unwrap();
@@ -336,17 +336,17 @@ fn the_boundaries_that_are_real_still_resolve() {
     );
 }
 
-/// B14: a class named inside a helper call or a template literal is reported, not lost.
+/// B14: a class named inside a helper call or a template literal is reported. It is not lost.
 ///
-/// Only a plain string attribute value is captured, so `cx("btn", …)` and
-/// `` `btn ${size}` `` do not resolve to the CSS selector. Resolving them means teaching
-/// the queries which call arguments are class lists, which is a per-library convention
-/// (`clsx`, `cx`, `classnames`, `cva`) instead of a language rule.
+/// Only a plain string attribute value is captured, so `cx("btn", …)` and `` `btn ${size}` ``
+/// do not resolve to the CSS selector. Resolving them means teaching the queries which call
+/// arguments are class lists, which is a per-library convention (`clsx`, `cx`, `classnames`,
+/// `cva`) instead of a language rule.
 ///
-/// What this pins is the part that makes the gap survivable: a rename rewrites what it
-/// resolved and reports every occurrence it did not, so the result is incomplete rather
-/// than silently wrong. It is here so that a change making it silent is a failure, and so
-/// that resolving these one day fails a test naming the entry to retire.
+/// What this pins is the part that makes the gap survivable: a rename rewrites what it resolved
+/// and reports every occurrence it did not. So the result is incomplete and not silently
+/// wrong. It is here so that a change making it silent is a failure, and so that resolving
+/// these one day fails a test naming the entry to retire.
 #[test]
 fn a_class_in_a_tsx_helper_call_is_reported_rather_than_rewritten() {
     let (_tmp, index) = workspace(&[

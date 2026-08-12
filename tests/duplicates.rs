@@ -1,9 +1,8 @@
 //! Copy-paste detection.
 //!
-//! The properties that make the output worth reading: it finds copies whose names
-//! were changed, it does not report the small shapes every language repeats, and it
-//! reports the largest duplicated block instead of that block and everything inside
-//! it.
+//! The properties that make the output worth reading: it finds copies whose names were changed,
+//! it does not report the small shapes every language repeats. It reports the largest
+//! duplicated block instead of that block and everything inside it.
 
 use fun_refactor::analysis::duplicates::{self, Options};
 use fun_refactor::index::Index;

@@ -1,22 +1,20 @@
-//! Translation against code somebody actually shipped.
+//! Translation against code somebody shipped.
 //!
-//! `tests/transpile.rs` and `tests/nextjs.rs` use fixtures, and a fixture is written by
-//! the same person who writes the assertion, which is why they passed while
-//! `def create_user(*, session, user_create)` produced
-//! `export function createUser(*: unknown, …)`, a file TypeScript will not parse.
+//! `tests/transpile.rs` and `tests/nextjs.rs` use fixtures, and a fixture is written by the
+//! same person who writes the assertion, so they passed while `def create_user(*, session,
+//! user_create)` produced `export function createUser(*. Unknown, …)`, a file TypeScript will
+//! not parse.
 //!
 //! The corpus is four projects, vendored unmodified and pinned; see
-//! `tests/corpus/PROVENANCE.md`. What is asserted here is deliberately not "the output
-//! equals this string". That would freeze today's translation and break on every
-//! improvement. It is the three properties that must hold for any translation to be
-//! worth reading:
+//! `tests/corpus/PROVENANCE.md`. What is asserted here is deliberately not "the output equals
+//! this string". That would freeze today's translation and break on every improvement. It is
+//! the three properties that must hold for any translation to be worth reading:
 //!
 //! 1. **It parses as what it claims to be.** Anything else is a defect in this tool.
-//! 2. **It adopts the target's conventions.** `user_create` is `userCreate` in
-//!    TypeScript, and a file that says otherwise reads as converted and not
-//!    written.
-//! 3. **Nothing goes missing quietly.** Every construct that did not translate is in
-//!    the output verbatim and counted.
+//! 2. **It adopts the target's conventions.** `user_create` is `userCreate` in TypeScript, and
+//!    a file that says otherwise reads as converted and not written.
+//! 3. **Nothing goes missing quietly.** Every construct that did not translate is in the output
+//!    verbatim and counted.
 
 use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
@@ -24,7 +22,7 @@ use fun_refactor::transpile::{self, nextjs};
 use std::path::{Path, PathBuf};
 
 /// Copy the corpus into a temporary workspace, since translating writes beside the
-/// source and the corpus must stay exactly as vendored.
+/// source and the corpus must stay as vendored.
 fn corpus(subdirectory: &str) -> (tempfile::TempDir, PathBuf) {
     let from = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/corpus")
@@ -62,9 +60,9 @@ const FASTAPI_FILES: &[&str] = &["crud.py", "models.py", "security.py"];
 
 #[test]
 fn every_backend_file_translates_into_typescript_that_parses() {
-    // The translator checks this itself and refuses to write output that does not
-    // parse, so a failure here is `plan` returning an error, which is the defect
-    // report working, and still a defect.
+    // The translator checks this itself and refuses to write output that does not parse. So a
+    // failure here is `plan` returning an error, which is the defect report working, and still
+    // a defect.
     for name in FASTAPI_FILES {
         let (_tmp, root) = corpus("fastapi");
         let plan = transpile::plan(&root.join(name), Language::TypeScript)
@@ -115,7 +113,7 @@ fn a_python_signature_arrives_in_typescript_spelled_the_typescript_way() {
 
 #[test]
 fn a_keyword_only_marker_is_reported_rather_than_written_as_a_parameter() {
-    // `*` is a rule about the parameters around it, not a parameter. Written as one it
+    // `*` is a rule about the parameters around it. It is not a parameter. Written as one it
     // produced `createUser(*: unknown, …)`; dropped in silence the signature would
     // look carried when the way callers must invoke it had changed.
     let (_tmp, root) = corpus("fastapi");
@@ -199,8 +197,8 @@ fn the_url_survives_the_crossing_with_the_targets_conventions() {
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
     // `[postId]` is a placeholder name, not part of the URL, `/posts/{postId}` and
-    // `/posts/{post_id}` serve exactly the same requests, so it takes Python's
-    // convention like every other name FastAPI will see.
+    // `/posts/{post_id}` serve exactly the same requests. So it takes Python's convention like
+    // every other name FastAPI will see.
     assert_eq!(plan.route, "/posts/{post_id}");
     assert_eq!(plan.methods, vec!["DELETE", "PATCH"]);
     assert!(
@@ -280,7 +278,7 @@ fn a_comment_is_translated_rather_than_reported_as_a_failure() {
 #[test]
 fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
     // Destructuring, `const { params } = routeContextSchema.parse(context)`, has no
-    // Python counterpart. The promise is that it is *there*, not that it is gone.
+    // Python counterpart. The promise is that it is *there*. It is not that it is gone.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -321,8 +319,8 @@ fn optional_chaining_is_never_written_away() {
 
 #[test]
 fn a_route_that_is_a_component_is_still_refused() {
-    // The corpus has none, so this builds one beside it: the refusal is the load
-    // bearing half of the feature and must not depend on a fixture directory.
+    // The corpus has none, so this builds one beside it. The refusal is the load bearing half
+    // of the feature and must not depend on a fixture directory.
     let (_tmp, root) = corpus("nextjs");
     let path = root.join("app/api/widget/route.tsx");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();

@@ -84,10 +84,9 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
 
 #[test]
 fn an_expansion_of_two_groups_is_still_grouped() {
-    // `(p + 1) / (q - 1)` starts with a bracket and ends with one, and the check for
-    // "already bracketed" read only those two characters. So the expansion went in
-    // bare: `2 * (p + 1) / (q - 1)`, which for p = 1, q = 4 is 1 where the call
-    // returned 0.
+    // `(p + 1) / (q - 1)` starts with a bracket and ends with one. The check for "already
+    // bracketed" read only those two characters. So the expansion went in bare: `2 * (p + 1) /
+    // (q - 1)`, which for p = 1, q = 4 is 1 where the call returned 0.
     let after = inlined(
         "d.rs",
         "fn scale(a: i32, b: i32) -> i32 {\n    a / b\n}\n\nfn u(p: i32, q: i32) -> i32 {\n    \

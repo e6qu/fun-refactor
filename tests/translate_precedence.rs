@@ -1,9 +1,9 @@
 //! Arithmetic that means the same thing on the other side.
 //!
-//! A translation preserves a signature; the point of preserving one is that the body
-//! still computes what it computed. Every writer rendered a binary expression as
-//! `left op right` and nothing else, so a group the source wrote was a group the
-//! translation lost, in all six targets at once.
+//! A translation preserves a signature; the point of preserving one is that the body still
+//! computes what it computed. Every writer rendered a binary expression as `left op right` and
+//! nothing else. So a group the source wrote was a group the translation lost, in all six
+//! targets at once.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -43,7 +43,7 @@ fn a_group_the_source_wrote_survives() {
 
 #[test]
 fn a_group_that_was_never_needed_does_not_survive() {
-    // Brackets are decided from precedence, not copied from the source, so the result
+    // Brackets are decided from precedence. They are not copied from the source, so the result
     // is right where the two languages disagree, and tidy where they agree.
     for (body, unwanted) in [
         ("return (a - b) - c;", "(a - b)"),
@@ -83,10 +83,10 @@ fn a_negation_keeps_what_it_negates() {
 
 #[test]
 fn the_tail_of_a_rust_function_is_its_return() {
-    // The ordinary way to write a Rust function. Reading the tail as a plain statement
-    // dropped the return in every target at once: Python returned `None`, Zig said
-    // `_ = a + b;`, and Go, Java and TypeScript did not compile, each still declaring
-    // the return type the signature carried across.
+    // The ordinary way to write a Rust function. Reading the tail as a plain statement dropped
+    // the return in every target at once: Python returned `None`, Zig said `_ = a + b;`. Go,
+    // Java and TypeScript did not compile, each still declaring the return type the signature
+    // carried across.
     let source = "pub fn f(a: i64, b: i64) -> i64 {\n    a + b\n}\n";
     for target in TARGETS {
         let out = translated(source, *target);
@@ -115,9 +115,9 @@ fn a_body_that_ends_in_a_statement_gains_no_return() {
 
 #[test]
 fn dividing_two_integers_still_truncates_in_python() {
-    // Every other language here truncates when it divides two integers. Python's `/`
-    // gives a float and its `//` floors, so `half(7, 2)` came out as 3.5 where the
-    // source returned 3, with the report calling the signature complete.
+    // Every other language here truncates when it divides two integers. Python's `/` gives a
+    // float and its `//` floors. So `half(7, 2)` came out as 3.5 where the source returned 3,
+    // with the report calling the signature complete.
     let source = "pub fn half(a: i64, b: i64) -> i64 {\n    return a / b;\n}\n";
     let out = translated(source, Language::Python);
     assert!(out.contains("return int(a / b)"), "{out}");
@@ -156,11 +156,10 @@ fn a_division_whose_operands_have_no_declared_type_is_left_alone() {
 
 #[test]
 fn a_remainder_between_integers_is_reported_rather_than_left_quiet() {
-    // The same disagreement as division, with no readable Python form: every other
-    // language here takes the sign from the dividend and Python from the divisor, so
-    // `-7 % 2` is -1 there and 1 here. Writing it exactly means `a - b * int(a / b)`,
-    // which nobody would read twice, so the operator stays and the report says where
-    // the two differ.
+    // The same disagreement as division, with no readable Python form: every other language
+    // here takes the sign from the dividend and Python from the divisor. So `-7 % 2` is -1
+    // there and 1 here. Writing it exactly means `a - b * int(a / b)`, which nobody would read
+    // twice. So the operator stays and the report says where the two differ.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let path = tmp.path().join("a.rs");
     std::fs::write(

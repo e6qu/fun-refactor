@@ -1,15 +1,15 @@
 //! The analysis reads source through `crate::vfs` and nowhere else.
 //!
-//! This is not style. `src/vfs.rs` is what makes the crate work in a browser, where
-//! there is no filesystem: a `std::fs` call there returns nothing and a `Path::exists`
-//! returns false, and both do it quietly. That is the worst failure shape available,
-//! `fr move` in the playground refused every Rust file with "src has neither lib.rs nor
-//! main.rs" while `src/main.rs` sat right there in the loaded workspace, because
-//! `exists()` had been left pointing at a filesystem that was not there.
+//! This is not style. `src/vfs.rs` makes the crate work in a browser, where there is no
+//! filesystem. A `std::fs` call there returns nothing and a `Path::exists` returns false, and
+//! both do it quietly. That is the worst failure shape available, `fr move` in the playground
+//! refused every Rust file with "src has neither lib.rs nor main.rs" while `src/main.rs` sat
+//! right there in the loaded workspace, because `exists()` had been left pointing at a
+//! filesystem that was not there.
 //!
-//! Every read was already routed through the choke point when it was introduced; the
-//! `exists()` calls were not, and nothing noticed for a release. So the invariant is
-//! checked and not remembered.
+//! Every read was already routed through the choke point when it was introduced; the `exists()`
+//! calls were not, and nothing noticed for a release. So the invariant is checked and not
+//! remembered.
 
 use std::path::Path;
 
@@ -64,9 +64,9 @@ fn source_is_read_only_through_the_vfs() {
     rust_sources(&root, &mut files);
     assert!(!files.is_empty(), "found no Rust sources under src/");
 
-    // `create_dir_all` and `rename` are excluded deliberately: they are write-side
-    // filesystem mechanics that `edit.rs` performs only on the terminal path, and the
-    // browser never reaches them because it writes through `vfs::write`.
+    // `create_dir_all` and `rename` are excluded deliberately: they are write-side filesystem
+    // mechanics that `edit.rs` performs only on the terminal path. The browser never reaches
+    // them because it writes through `vfs::write`.
     let banned = [
         ("std::fs::read_to_string", "crate::vfs::read_to_string"),
         ("std::fs::read(", "crate::vfs::read_to_string"),

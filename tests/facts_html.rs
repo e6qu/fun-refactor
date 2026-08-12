@@ -129,8 +129,8 @@ fn in_document_anchor_hrefs_are_references() {
 
 #[test]
 fn an_href_names_something_only_when_a_fragment_says_which() {
-    // A bare file name is a document, not a symbol in it; `#` alone is the top of the
-    // page; and an absolute URL's fragment belongs to another site's document.
+    // A bare file name is a document. It is not a symbol in it. `#` alone is the top of the page; and
+    // an absolute URL's fragment belongs to another site's document.
     let src = concat!(
         "<a href=\"other.html\">x</a>",
         "<a href=\"https://example.com/p#top\">y</a>",

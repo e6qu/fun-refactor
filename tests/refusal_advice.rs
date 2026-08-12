@@ -97,9 +97,9 @@ fn flow_sends_the_caller_to_a_route_that_exists_and_answers() {
 
 #[test]
 fn every_language_flow_turns_away_is_told_one_of_exactly_two_things() {
-    // The eight languages `fr flow` refuses, asked as a set rather than as the handful a
-    // fixture happened to cover: each is either sent to provenance, and provenance has
-    // an arm for it, or told there is nothing of either kind to trace.
+    // The eight languages `fr flow` refuses, asked as a set and not as the handful a
+    // fixture happened to cover. Each is either sent to provenance. Provenance has an arm for
+    // it, or told there is nothing of either kind to trace.
     use fun_refactor::analysis::{flow, provenance};
 
     let mut routed = Vec::new();
@@ -219,7 +219,7 @@ fn inline_sends_the_caller_to_delete_and_delete_removes_it() {
 #[test]
 fn the_xml_entity_inline_refusal_names_a_command_that_takes_it() {
     // The sixth of the six `use `fr delete` if that is the intent` sites, reached
-    // through its own entry point rather than through `inline::variable`.
+    // through its own entry point and not through `inline::variable`.
     let (_tmp, root, index) = workspace(&[(
         "doc.xml",
         "<?xml version=\"1.0\"?>\n<!DOCTYPE doc [\n<!ENTITY unread \"8\">\n]>\n<doc/>\n",
@@ -296,11 +296,11 @@ fn the_css_extract_refusal_names_a_rename_that_works() {
 
 #[test]
 fn the_python_cycle_refusal_names_a_destination_that_works() {
-    // "Move the names '{}' uses as well, or move it to a file neither imports". The
-    // second half is the one a reader can act on without further thought, so it has to
-    // be true: a third file, importing nothing and imported by nothing, must take it.
-    // The cycle: `holder` still uses `width` after the move, so it would import it
-    // back, and `util` already imports from `holder`.
+    // "Move the names '{}' uses as well, or move it to a file neither imports". The second half
+    // is the one a reader can act on without further thought. So it has to be true: a third
+    // file, importing nothing and imported by nothing, must take it. The cycle: `holder` still
+    // uses `width` after the move, so it would import it back, and `util` already imports from
+    // `holder`.
     let files: &[(&str, &str)] = &[
         (
             "holder.py",
@@ -386,8 +386,8 @@ fn the_rust_module_path_refusal_names_a_destination_that_works() {
 
 #[test]
 fn the_ambiguous_flag_refusal_names_a_form_the_command_accepts() {
-    // "say which one with a position", and `fr remove-flag` took a bare name and
-    // nothing else, so the only route offered was one the command could not parse.
+    // "say which one with a position", and `fr remove-flag` took a bare name and nothing else.
+    // So the only route offered was one the command could not parse.
     use fun_refactor::refactor::cascade::{self, FlagTarget};
 
     let files: &[(&str, &str)] = &[
@@ -422,8 +422,8 @@ fn the_ambiguous_flag_refusal_names_a_form_the_command_accepts() {
         let plan = cascade::remove_flag_for(&root, &FlagTarget::At(path, offset), true)
             .unwrap_or_else(|e| panic!("the refusal named this form and it was refused: {e}"));
 
-        // Resolved to a name, not carried around as a position: everything downstream
-        // looks the flag up by name, and a plan that says `one.rs:10` found nothing.
+        // Resolved to a name, not carried around as a position: everything downstream looks the
+        // flag up by name. A plan that says `one.rs:10` found nothing.
         assert!(
             plan.rounds
                 .iter()
@@ -554,10 +554,10 @@ fn the_no_cascade_here_reason_names_two_commands_that_work() {
 
 #[test]
 fn the_bash_digit_refusal_names_a_spelling_that_works() {
-    // "`$12` is not parameter 12 … Write it as `${12}` first if that is what was meant."
-    // A shell reads `$1` then the literal `2`, so a function with twelve parameters
-    // cannot be rewritten until the author says which they meant. The advice is only
-    // worth printing if the braced spelling then goes through.
+    // "`$12` is not parameter 12 … Write it as `${12}` first if that is what was meant." A
+    // shell reads `$1` then the literal `2`. So a function with twelve parameters cannot be
+    // rewritten until the author says which they meant. The advice is only worth printing if
+    // the braced spelling then goes through.
     let many = (1..=12)
         .map(|n| format!("  local a{n}=\"${{{n}}}\"\n"))
         .collect::<String>();
@@ -631,12 +631,12 @@ fn the_helm_list_refusal_names_an_input_that_is_accepted() {
 
 #[test]
 fn the_missing_chart_refusal_names_the_file_that_unblocks_it() {
-    // "no Chart.yaml above {}, so the chart name is unknown", the route is the file it
-    // names, so adding one has to be enough.
+    // "no Chart.yaml above {}, so the chart name is unknown", the route is the file it names,
+    // so adding one has to be enough.
     //
-    // Reached through a `.tpl`, which is Helm by its extension alone. Every other Helm
-    // file is Helm *because* a Chart.yaml sits above it, so this refusal cannot arise
-    // for one: the fixture that looked obvious tested a plain YAML file instead.
+    // Reached through a `.tpl`, which is Helm by its extension alone. Every other Helm file is
+    // Helm *because* a Chart.yaml sits above it. So this refusal cannot arise for one: the
+    // fixture that looked obvious tested a plain YAML file instead.
     let template = "{{- define \"demo.labels\" -}}\napp: demo\ntier: web\n{{- end -}}\n";
     let (_tmp, root, index) = workspace(&[("templates/_helpers.tpl", template)]);
     let file = root.join("templates/_helpers.tpl");

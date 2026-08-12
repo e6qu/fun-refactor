@@ -296,10 +296,10 @@ fn bash_rewrites_still_parse() {
 
 /// Every language `rewrite::supported` claims, with an if/else and a guardable if.
 ///
-/// The gap these close: for a long time only Rust, Python and Bash were exercised,
-/// and the matrix published the rest on the strength of the language list alone.
-/// TypeScript and Zig were both broken, a negated condition lost the brackets those
-/// grammars require, and nothing said so until the tool was run on real code.
+/// The gap these close: for a long time only Rust, Python and Bash were exercised, and the
+/// matrix published the rest on the strength of the language list alone. TypeScript and Zig
+/// were both broken, a negated condition lost the brackets those grammars require. Nothing said
+/// so until the tool was run on real code.
 const EVERY_LANGUAGE: &[(&str, &str, &str)] = &[
     (
         "a.rs",
@@ -484,11 +484,11 @@ fn available_only_offers_rewrites_that_survive_a_reparse() {
 
 #[test]
 fn guard_clause_refuses_when_the_if_is_not_last_in_a_go_block() {
-    // Go puts a `statement_list` between a block and its statements. Mistaking that
-    // wrapper for a statement made every block look like a block of one, so the
-    // "is the `if` last?" check passed for an `if` with code after it and the guard
-    // hoisted that code out from under the condition. The result parses, so no
-    // reparse check would have caught it, only the meaning changes.
+    // Go puts a `statement_list` between a block and its statements. Mistaking that wrapper for
+    // a statement made every block look like a block of one. So the "is the `if` last?" check
+    // passed for an `if` with code after it and the guard hoisted that code out from under the
+    // condition. The result parses, so no reparse check would have caught it, only the meaning
+    // changes.
     let src = "package p\n\nfunc f(a bool) {\n\tif a {\n\t\tgo1()\n\t}\n\tafter()\n}\n";
     let (tmp, index) = workspace(&[("a.go", src)]);
     let path = tmp.path().join("a.go");

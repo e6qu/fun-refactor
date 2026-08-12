@@ -1,17 +1,17 @@
 //! A call written through a qualifier resolves to what the qualifier names.
 //!
-//! Three languages spell the same idea three ways, and each was resolved by a rule of its
-//! own until one of them had none. Go qualifies with a package, which is a directory. Zig
-//! qualifies with an import binding, which is a file. Java qualifies with the type's own
-//! name. Rust writes that last one `Type::m` and was the only spelling recognised, so
-//! `Widths.width(…)` fell through to the rule that asks which declaration sits nearest,
-//! and answered, inside `Holder.java`, with `Holder`'s own method, at exact confidence.
+//! Three languages spell the same idea three ways, and each was resolved by a rule of its own
+//! until one of them had none. Go qualifies with a package, which is a directory. Zig qualifies
+//! with an import binding, which is a file. Java qualifies with the type's own name. Rust
+//! writes that last one `Type::m` and was the only spelling recognised. So `Widths.width(…)`
+//! fell through to the rule that asks which declaration sits nearest, and answered, inside
+//! `Holder.java`, with `Holder`'s own method, at exact confidence.
 //!
-//! What every one of these has in common is that the source wrote the qualifier down.
-//! Nothing here is inference: the resolution is as strong as the statement, and that is
-//! why these come back `exact` or `import-qualified` and not `field-based`. A refactoring
-//! rewrites the first two and refuses the third, so the difference is the difference
-//! between a rename that works and one that leaves the callers behind.
+//! What every one of these has in common is that the source wrote the qualifier down. Nothing
+//! here is inference: the resolution is as strong as the statement, and that is why these come
+//! back `exact` or `import-qualified` and not `field-based`. A refactoring rewrites the first
+//! two and refuses the third. So the difference is the difference between a rename that works
+//! and one that leaves the callers behind.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{Confidence, SymbolId};
@@ -91,7 +91,7 @@ fn a_zig_call_through_an_import_binding_resolves_into_that_file() {
     ]);
     let index = index_of(&root);
 
-    // The free function and the method share a name, which is what made the name-matching
+    // The free function and the method share a name, which made the name-matching
     // rules answer "either" and resolve neither.
     let free = symbol(&index, "width", None);
     let method = symbol(&index, "width", Some("Holder"));
@@ -109,9 +109,9 @@ fn a_zig_call_through_an_import_binding_resolves_into_that_file() {
 
 #[test]
 fn a_zig_import_path_is_a_file_beside_this_one() {
-    // `@import("holder.zig")` has no `./` in front of it, and every path rule assumed one
-    // or a dotted module name, so the extension was read as the last segment and the
-    // import was looked up as a file called `zig`.
+    // `@import("holder.zig")` has no `./` in front of it, and every path rule assumed one or a
+    // dotted module name. So the extension was read as the last segment and the import was
+    // looked up as a file called `zig`.
     let (_tmp, root) = workspace(&[
         ("a.zig", "pub const value: u8 = 1;\n"),
         (
@@ -128,12 +128,12 @@ fn a_zig_import_path_is_a_file_beside_this_one() {
 
 #[test]
 fn a_zig_call_through_a_value_is_not_a_call_through_an_import() {
-    // A local bound to a call result. The receiver names no file, no type and no
-    // enclosing instance, so nothing about it is written down and the answer stays where
-    // it was: a member matched by name, and no stronger.
+    // A local bound to a call result. The receiver names no file, no type and no enclosing
+    // instance. So nothing about it is written down and the answer stays where it was: a member
+    // matched by name, and no stronger.
     //
-    // `self` is a different matter and resolves exactly. It is the enclosing instance,
-    // which the declaration states.
+    // `self` is a different matter and resolves exactly. It is the enclosing instance, which
+    // the declaration states.
     let (_tmp, root) = workspace(&[(
         "a.zig",
         "pub const Holder = struct {\n    items: []const u8,\n\n    \
@@ -187,8 +187,8 @@ fn a_java_static_call_resolves_to_the_class_it_names() {
         ],
         "`Widths.` says which method this is, in both files"
     );
-    // The call inside Holder.java is the one that matters most: the nearest declaration
-    // of that name is Holder's own method, and that is the answer this used to give.
+    // The call inside Holder.java is the one that matters most: the nearest declaration of that
+    // name is Holder's own method. That is the answer this used to give.
     assert!(
         references(&index, instance_method).is_empty(),
         "Holder's own method is not what `Widths.width(…)` calls"
@@ -237,8 +237,8 @@ fn one_design_written_in_two_languages_keeps_its_calls_apart() {
 
 #[test]
 fn a_go_call_into_another_package_resolves_there() {
-    // The rule this one needs already exists; it is here so the three spellings of one
-    // idea are checked in one place, and a change to any of them fails beside the others.
+    // The rule this one needs already exists; it is here so the three spellings of one idea are
+    // checked in one place. A change to any of them fails beside the others.
     let (_tmp, root) = workspace(&[
         ("go.mod", "module gate\n\ngo 1.21\n"),
         (

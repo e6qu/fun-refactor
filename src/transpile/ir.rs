@@ -1,23 +1,23 @@
 //! What a file means, said in a way no one language owns.
 //!
-//! Translation goes source → IR → source, so adding a language costs one reader and
-//! one writer instead of a pair for every language already here. Six languages is
-//! thirty ordered pairs and twelve files.
+//! Translation goes source → IR → source, so adding a language costs one reader and one writer
+//! instead of a pair for every language already here. Six languages is thirty ordered pairs and
+//! twelve files.
 //!
 //! # In it
 //!
-//! Declarations, and the parts of a body every one of these languages has and agrees
-//! about: a return, a binding, a branch, a loop over a collection, a call.
+//! Declarations, and the parts of a body every one of these languages has and agrees about. A
+//! return, a binding, a branch, a loop over a collection, a call.
 //!
 //! # Not in it
 //!
-//! Constructs whose meaning is the language: ownership, goroutines, decorators,
-//! generators, comprehensions, pattern matching, error propagation. `?` has no general
-//! translation into Python, nor a channel into TypeScript.
+//! Constructs whose meaning is the language: ownership, goroutines, decorators, generators,
+//! comprehensions, pattern matching, error propagation. `?` has no general translation into
+//! Python, nor a channel into TypeScript.
 //!
-//! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], carrying the original
-//! text. The writer emits each as a comment beside a marker, and the report leads with
-//! how many crossed that way.
+//! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], carrying the original text. The
+//! writer emits each as a comment beside a marker, and the report leads with how many crossed
+//! that way.
 
 use std::fmt;
 
@@ -28,9 +28,9 @@ pub struct Module {
     pub doc: Vec<String>,
     /// What the file is called, where a language needs to know.
     ///
-    /// Only Java does: it has no top level below the type, so every function has to be
-    /// written inside a class, and a public class must be named after its file. The
-    /// other three writers ignore this.
+    /// Only Java does: it has no top level below the type. So every function has to be written
+    /// inside a class, and a public class must be named after its file. The other three writers
+    /// ignore this.
     pub name: Option<String>,
     pub items: Vec<Item>,
 }
@@ -64,13 +64,12 @@ pub struct Function {
     pub receiver: Option<String>,
     /// What the source called the receiver inside the body.
     ///
-    /// The six languages disagree. Rust, Python and Zig say `self`, Java and
-    /// TypeScript say `this`, and Go says whatever the author called it, and the
-    /// receiver is not in the parameter list to be renamed with the rest. Recording
-    /// the word here lets a writer spell it its own way; without it every translated
-    /// method kept its source's word and referred to a name the output never binds.
-    /// `this.cache` inside a Rust `impl` is not a typo, it is a file that cannot
-    /// compile.
+    /// The six languages disagree. Rust, Python and Zig say `self`, Java and TypeScript say
+    /// `this`. Go says whatever the author called it, and the receiver is not in the parameter
+    /// list to be renamed with the rest. Recording the word here lets a writer spell it its own
+    /// way. Without it every translated method kept its source's word and referred to a name
+    /// the output never binds. `this.cache` inside a Rust `impl` is not a typo, it is a file
+    /// that cannot compile.
     pub receiver_binding: Option<String>,
     pub params: Vec<Param>,
     pub returns: Option<Type>,
@@ -81,12 +80,11 @@ pub struct Function {
     pub is_async: bool,
     /// Does this function make a value of its type?
     ///
-    /// Three of these six languages have a constructor and three have a convention:
-    /// Java names it after the class, Python calls it `__init__`, TypeScript calls it
-    /// `constructor`, and Rust, Go and Zig write `new`, `NewThing` and `init` by habit.
-    /// Which of those a target writes is a fact about the target, so the *name* is not
-    /// what carries. This is. Without it a Java constructor was a class member nothing
-    /// recognised, and it was dropped.
+    /// Three of these six languages have a constructor and three have a convention. Java names
+    /// it after the class, Python calls it `__init__`, TypeScript calls it `constructor`. Rust,
+    /// Go and Zig write `new`, `NewThing` and `init` by habit. Which of those a target writes
+    /// is a fact about the target, so the *name* is not what carries. This is. Without it a
+    /// Java constructor was a class member nothing recognised, and it was dropped.
     pub is_constructor: bool,
 }
 
@@ -126,10 +124,10 @@ pub struct Record {
     pub fields: Vec<Field>,
     /// The type it inherits from, where the source has inheritance.
     ///
-    /// Three of these six languages do and three do not, so this is carried where it
-    /// can be and *reported* where it cannot. Dropping it silently made
-    /// `class JsonPrimitive extends JsonElement` into a class that extends nothing,
-    /// which is a different type, and the output said nothing about it.
+    /// Three of these six languages do and three do not, so this is carried where it can be and
+    /// *reported* where it cannot. Dropping it silently made `class JsonPrimitive extends
+    /// JsonElement` into a class that extends nothing, which is a different type. The output
+    /// said nothing about it.
     pub extends: Option<String>,
     pub exported: bool,
     /// Methods declared on it. Rust and Go declare them apart from the type; Python
@@ -272,22 +270,20 @@ pub enum Stmt {
     Expr(Expr),
     /// A comment on its own line.
     ///
-    /// Every language here has one and they differ only in the marker. Treating a
-    /// comment as an untranslatable construct, which is what happened before this
-    /// existed, put `// Validate the route params.` in the output under a "not
-    /// translated" marker, and inflated the count of real gaps with things that were
-    /// never gaps.
+    /// Every language here has one and they differ only in the marker. Treating a comment as an
+    /// untranslatable construct, which happened before this existed, put `// Validate
+    /// the route params.` in the output under a "not translated" marker. Inflated the count of
+    /// real gaps with things that were never gaps.
     Comment(String),
     /// `raise e` / `throw e`.
     Throw(Expr),
     /// `try { } catch { } finally { }`, and Python's `try/except/finally`.
     ///
-    /// Half of these languages have it. Rust and Zig model failure in the return type
-    /// and Go returns an error value, and none of the three has any general translation
-    /// of a catch block, so those writers carry it, which is why the original text
-    /// travels with it. Python, TypeScript and Java agree closely enough to translate:
-    /// a typed `except` becomes an `instanceof` test inside one `catch`, which is
-    /// exactly how the same intent is written in the other two.
+    /// Half of these languages have it. Rust and Zig model failure in the return type and Go
+    /// returns an error value. None of the three has any general translation of a catch block,
+    /// so those writers carry it, so the original text travels with it. Python, TypeScript and
+    /// Java agree closely enough to translate. A typed `except` becomes an `instanceof` test
+    /// inside one `catch`, which is how the same intent is written in the other two.
     Try {
         body: Vec<Stmt>,
         catches: Vec<Catch>,
@@ -349,26 +345,26 @@ pub enum Expr {
     Await(Box<Expr>),
     /// `name=value` in an argument list.
     ///
-    /// Python has these and the other three do not, so a writer without them carries
-    /// the call instead of dropping the name and hoping the position is right.
+    /// Python has these and the other three do not. So a writer without them carries the call
+    /// instead of dropping the name and hoping the position is right.
     Keyword {
         name: String,
         value: Box<Expr>,
     },
     /// `x instanceof T`, `isinstance(x, T)`.
     ///
-    /// The same question in both, spelled as an operator in one and a builtin in the
-    /// other, which is why it is a node and not a call: a reader that emitted
-    /// `isinstance(...)` would be writing Python inside the TypeScript reader.
+    /// The same question in both, spelled as an operator in one and a builtin in the other, so
+    /// it is a node and not a call: a reader that emitted `isinstance(...)` would be writing
+    /// Python inside the TypeScript reader.
     InstanceOf {
         value: Box<Expr>,
         ty: Box<Expr>,
     },
     /// `new Thing(a, b)`.
     ///
-    /// Kept apart from [`Expr::Call`] because the languages disagree about whether
-    /// construction is a call: Python and Go say yes, TypeScript needs the keyword,
-    /// and Rust has no universal spelling at all.
+    /// Kept apart from [`Expr::Call`] because the languages disagree about whether construction
+    /// is a call. Python and Go say yes, TypeScript needs the keyword, and Rust has no
+    /// universal spelling at all.
     New {
         callee: Box<Expr>,
         args: Vec<Expr>,
@@ -387,26 +383,24 @@ pub enum Expr {
     },
     /// `a ?? b`, `a orelse b`, the value unless it is absent, and then the fallback.
     ///
-    /// Its own node instead of a [`BinaryOp`], because it is not an operator on values
-    /// in most of these languages: Zig spells it `orelse`, Rust reaches for
-    /// `Option::unwrap_or`, Java for a static method, and Go has nothing at all. What is
-    /// shared is the *question*, is this absent, and what then, and that is what
-    /// crosses.
+    /// Its own node instead of a [`BinaryOp`], because it is not an operator on values in most
+    /// of these languages: Zig spells it `orelse`, Rust reaches for `Option::unwrap_or`, Java
+    /// for a static method, and Go has nothing at all. What is shared is the *question*, is
+    /// this absent, and what then, and that is what crosses.
     ///
-    /// The catch is that three of the six can only say it by naming the value twice. A
-    /// value that is a call cannot be named twice without calling it twice, so those
-    /// writers say so instead of changing how many times the program does something.
+    /// The catch is that three of the six can only say it by naming the value twice. A value
+    /// that is a call cannot be named twice without calling it twice. So those writers say so
+    /// instead of changing how many times the program does something.
     Coalesce {
         value: Box<Expr>,
         fallback: Box<Expr>,
     },
     /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
     ///
-    /// One expression that chooses between two, and five of these six languages have
-    /// it, only Go does not, and Go says so instead of inventing a statement out of
-    /// an expression. It is a node and not an [`Stmt::If`] because it *is* a value:
-    /// reading it as a branch would need somewhere to put the result, and there is no
-    /// such place inside an argument list.
+    /// One expression that chooses between two, and five of these six languages have it, only
+    /// Go does not, and Go says so instead of inventing a statement out of an expression. It is
+    /// a node and not an [`Stmt::If`] because it *is* a value: reading it as a branch would
+    /// need somewhere to put the result. There is no such place inside an argument list.
     Ternary {
         condition: Box<Expr>,
         then: Box<Expr>,
@@ -494,13 +488,12 @@ impl BinaryOp {
     /// How tightly this operator binds. Higher binds tighter.
     ///
     /// One table for every target, because every target orders these the same way,
-    /// multiplication before addition, arithmetic before comparison, comparison before
-    /// `and`, `and` before `or`. Python spells two of them with words and agrees about
-    /// all of it.
+    /// multiplication before addition, arithmetic before comparison, comparison before `and`,
+    /// `and` before `or`. Python spells two of them with words and agrees about all of it.
     ///
-    /// This exists because the writers rendered `left op right` and nothing else, so a
-    /// group the source wrote was a group the translation lost: `(a + b) * c` came out
-    /// as `a + b * c` in all six languages, which is a different number.
+    /// This exists because the writers rendered `left op right` and nothing else. So a group
+    /// the source wrote was a group the translation lost. `(a + b) * c` came out as `a + b * c`
+    /// in all six languages, which is a different number.
     pub fn precedence(self) -> u8 {
         match self {
             BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => 6,
@@ -522,7 +515,7 @@ pub enum UnaryOp {
 /// What a translation managed and what it did not.
 ///
 /// The point of the exercise. A translated file is a draft, and the only way to use a
-/// draft responsibly is to know exactly where it stops being one.
+/// draft responsibly is to know where it stops being one.
 #[derive(Debug, Default, Clone)]
 pub struct Fidelity {
     pub functions: usize,

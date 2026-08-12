@@ -36,7 +36,7 @@ guarded return, de Morgan, fill-struct/switch, loop↔iterator), class-level ops
 automating catalog entries like Replace Loop with Pipeline).
 
 Notable gaps in the ecosystem we can exploit:
-- LSP has **no change-signature flow**, a CLI-native one is an advantage, not a workaround.
+- LSP has **no change-signature flow**, a CLI-native one is an advantage. It is not a workaround.
 - gopls drops comments in extract/inline ([golang/go#20744](https://github.com/golang/go/issues/20744));
   comment preservation is a known weak spot everywhere.
 
@@ -48,7 +48,7 @@ requires imports/types/dynamic dispatch; only a compiler-grade frontend gets it 
 
 **The other eight (Zig, Bash, HTML, CSS/SCSS, HCL, Helm/YAML, XML, Markdown)**. LSP support is
 weak to nonexistent (terraform-ls rename: open request
-[terraform-ls#1155](https://github.com/hashicorp/terraform-ls/issues/1155); bash-language-server
+[terraform-ls#1155](https://github.com/hashicorp/terraform-ls/issues/1155). Bash-language-server
 rename: [bash-lsp#161](https://github.com/bash-lsp/bash-language-server/issues/161); zls rename
 returns empty edits in practice, [serena#799](https://github.com/oraios/serena/issues/799);
 nothing rename-grade for HTML/CSS/XML/Markdown/Helm). But their name semantics are simple and
@@ -78,7 +78,7 @@ Key facts:
 - tree-sitter `locals.scm` captures (`@local.scope/definition/reference`) give per-file
   lexical scoping, enough for shadowing-safe renames, but no imports/types, and shipped
   query quality varies per grammar.
-- **Lossless editing**: tree-sitter CSTs keep every byte (comments included), so edits are
+- **Lossless editing**: tree-sitter CSTs keep every byte (comments included). So edits are
   byte-range splices on original source, applied descending by offset, followed by incremental
   reparse + assert-no-ERROR-nodes
   ([docs](https://tree-sitter.github.io/tree-sitter/using-parsers/3-advanced-parsing.html)).
@@ -135,7 +135,7 @@ rename safe is the Tier-0 layer of the flow graph.
 - **Call graph** (`src/analysis/call_graph.rs`): petgraph `DiGraph<FunctionNode, CallEdge>` with
   BFS `trace()`, DOT export, std-function filtering. Resolution is **pure string-name matching**:
   no scoping, no import resolution, same-named functions in different files are conflated into
-  one node; dynamic calls carry an `is_dynamic` flag but are never resolved. Good API shape
+  one node. Dynamic calls carry an `is_dynamic` flag but are never resolved. Good API shape
   (callers/callees/trace/format_tree), floor-level precision.
 - **Entrypoint detection** (`src/analysis/entrypoints.rs`): five categories (Main, Test, Cli,
   Handler, Export) via naming conventions, attributes (`#[test]`, `#[tokio::main]`,
@@ -158,7 +158,7 @@ compiler is **call boundaries**, so: intra-procedural reaching-defs everywhere, 
 tracing as query-time traversal that **downgrades confidence loudly at unresolved call edges**,
 plus Joern-style summaries for stdlib/framework functions.
 
-**Config languages get different, and fully solvable, flow semantics: substitution/override
+**Config languages get different, and fully solvable, flow semantics. Substitution/override
 provenance**, since each has a deterministic evaluation model:
 - Terraform: `var`/`local`/`module.out` substitution is a true value DAG. Checkov implements it
   completely with attribute-labeled edges and multi-pass rendering
@@ -209,7 +209,7 @@ recall on JS with no types, the single most effective technique.
 
 Every `CALLS` edge carries its resolution-confidence tag (compare Sourcegraph's
 precise vs search-based split). LSP callHierarchy stays an optional precision backend, not the
-core: whole-program extraction is O(2 requests/function), which is why Sourcegraph abandoned
+core: whole-program extraction is O(2 requests/function), so Sourcegraph abandoned
 LSP for compiler-based SCIP indexers.
 
 ### 6.5 Entrypoint catalog

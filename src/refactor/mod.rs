@@ -21,14 +21,14 @@ use std::path::PathBuf;
 
 /// Is this node kind a container whose children are statements?
 ///
-/// Shared because getting it wrong is not a cosmetic matter: several refactorings
-/// ask "is this the last statement in its block", and a wrapper node mistaken for a
-/// statement makes a block of many look like a block of one. Go's `statement_list`
-/// sits between a block and its statements and did exactly that, which let a guard
-/// clause hoist code out from under the condition that guarded it.
+/// Shared because getting it wrong is not a cosmetic matter: several refactorings ask "is this
+/// the last statement in its block". A wrapper node mistaken for a statement makes a block of
+/// many look like a block of one. Go's `statement_list` sits between a block and its statements
+/// and did that, which let a guard clause hoist code out from under the condition that guarded
+/// it.
 ///
-/// Shell function bodies are `compound_statement`, which no other grammar in the set
-/// uses, so the list is not the same as the one extraction alone would need.
+/// Shell function bodies are `compound_statement`, which no other grammar in the set uses. So
+/// the list is not the same as the one extraction alone would need.
 pub(crate) fn is_statement_container(kind: &str) -> bool {
     kind.contains("block")
         || kind.contains("body")
@@ -81,44 +81,44 @@ pub enum Refusal {
     NameCollision { existing: String, file: PathBuf },
     /// A name inside the value means something else where the value would be moved to.
     ///
-    /// Distinct from a collision, which is about the name being introduced. This is
-    /// about a name being *carried*: substituting `price_of(order)` into a scope where
-    /// `order` is a different binding changes what the code does, and saying "renaming
-    /// would shadow or collide with it" describes neither the operation nor the fault.
+    /// Distinct from a collision, which is about the name being introduced. This is about a
+    /// name being *carried*: substituting `price_of(order)` into a scope where `order` is a
+    /// different binding changes what the code does. Saying "renaming would shadow or collide
+    /// with it" describes neither the operation nor the fault.
     NameCaptured { name: String, file: PathBuf },
     /// The requested name is not a valid identifier for the language.
     InvalidName { name: String, reason: String },
-    /// The operation is not implemented for this language.
-    /// The operation has no meaning in this language.
+    /// The operation is not implemented for this language. The operation has no meaning in this
+    /// language.
     ///
-    /// `because` exists so that `language` can be the language. Without it, ten of the
-    /// fifteen sites raising this wrote `format!("{lang} — {reason}")` into a field named
-    /// `language`, and one wrote "a variable is not a flag", which is not a language at
-    /// all. The field's name and type had stopped being true.
+    /// `because` exists so that `language` can be the language. Without it, ten of the fifteen
+    /// sites raising this wrote `format!("{lang} — {reason}")` into a field named `language`.
+    /// One wrote "a variable is not a flag", which is not a language at all. The field's name
+    /// and type had stopped being true.
     Unsupported {
         operation: String,
         language: crate::lang::Language,
-        /// Why *the language* cannot, which is a property of the language and of nothing
-        /// else. `&'static str` and not `String`, because that is what makes the rule
-        /// hold: a reason about this particular input has a path or a name interpolated
-        /// into it, and an interpolated reason will not fit here.
+        /// Why *the language* cannot, which is a property of the language and of nothing else.
+        /// `&'static str` and not `String`, because that makes the rule hold. A reason about
+        /// this particular input has a path or a name interpolated into it. An interpolated
+        /// reason will not fit here.
         ///
         /// Adding `because` at all was the previous attempt. It made the mistake easier to
-        /// avoid and did not stop it: `fr move` went on to tell a Rust user that Rust was
-        /// unsupported when the fault was a destination outside `src/`, and four more
-        /// sites were doing the same with crate roots and relative paths. A field that can
-        /// be filled in correctly is not a field that cannot be filled in wrongly.
+        /// avoid and did not stop it. `fr move` went on to tell a Rust user that Rust was
+        /// unsupported when the fault was a destination outside `src/`. Four more sites were
+        /// doing the same with crate roots and relative paths. A field that can be filled in
+        /// correctly is not a field that cannot be filled in wrongly.
         because: &'static str,
     },
     /// The operation cannot be performed on *these* files, for a reason that is not the
     /// language's.
     ///
-    /// Two paths in different crates, a directory that is its own Terraform module, a
-    /// relative import that would climb out of its root. Each of these was once a
+    /// Two paths in different crates, a directory that is its own Terraform module, a relative
+    /// import that would climb out of its root. Each of these was once a
     /// [`Refusal::Unsupported`] naming the language, which said the opposite of what the
-    /// capability matrix says and of what the command does elsewhere. They are still
-    /// considered refusals, the tool declined on purpose and wrote nothing, and this is
-    /// where a considered refusal goes when the language is not what is at fault.
+    /// capability matrix says and of what the command does elsewhere. They are still considered
+    /// refusals, the tool declined on purpose and wrote nothing. This is where a considered
+    /// refusal goes when the language is not what is at fault.
     NotHere { operation: String, detail: String },
     /// Resolution was too weak to act on safely.
     TooWeak {
@@ -133,12 +133,12 @@ pub enum Refusal {
     AmbiguousDefinition { name: String, file: PathBuf },
     /// Something the tool cannot establish at all.
     ///
-    /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and
-    /// is not strong enough to act on. These are the cases where there is nothing to be
-    /// weak about: a grammar that does not expose a call as a call, a shell script that
-    /// sources a path computed at run time. Reporting them as a confidence produced
-    /// "resolution is only 'exact'", which is a sentence that contradicts itself, and
-    /// leaves the reader looking for a resolution problem that is not there.
+    /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and is not
+    /// strong enough to act on. These are the cases where there is nothing to be weak about. A
+    /// grammar that does not expose a call as a call, a shell script that sources a path
+    /// computed at run time. Reporting them as a confidence produced "resolution is only
+    /// 'exact'", which is a sentence that contradicts itself, and leaves the reader looking for
+    /// a resolution problem that is not there.
     Unknowable { detail: String },
 }
 

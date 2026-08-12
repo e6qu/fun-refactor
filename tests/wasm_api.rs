@@ -1,22 +1,21 @@
 //! Every method of the browser `Workspace` says whose files it is reading.
 //!
 //! `tests/wasm_native.rs` now drives the API itself, and `cargo check --features wasm`
-//! type-checks it, neither of which was true when this file was written. What it
-//! still cannot do is prove the invariant holds for *every* method: `enter()` is only
-//! observable when two workspaces exist at once, and a test that calls one method at a
-//! time would pass while a method that forgot it stayed broken.
+//! type-checks it, neither of which was true when this file was written. What it still cannot
+//! do is prove the invariant holds for *every* method: `enter()` is only observable when two
+//! workspaces exist at once. A test that calls one method at a time would pass while a method
+//! that forgot it stayed broken.
 //!
-//! So this reads the source. Each method must call `self.enter()` before touching
-//! source.
+//! So this reads the source. Each method must call `self.enter()` before touching source.
 //!
-//! Without it the method reads whichever workspace was created most recently. Two
-//! repositories open in one page is enough to trigger it, and the failure is silent,
-//! spans measured against one file's bytes, applied to another's. That is how the
-//! playground came to report a rewrite as unavailable at a position where applying it
-//! worked: the listing re-read the file and got a different workspace's text.
+//! Without it the method reads whichever workspace was created most recently. Two repositories
+//! open in one page is enough to trigger it, and the failure is silent, spans measured against
+//! one file's bytes, applied to another's. That is how the playground came to report a rewrite
+//! as unavailable at a position where applying it worked. The listing re-read the file and got
+//! a different workspace's text.
 //!
-//! Reading the source is a poor substitute for a type, and it is exhaustive, which the
-//! tests that call the methods are not.
+//! Reading the source is a poor substitute for a type, and it is exhaustive, which the tests
+//! that call the methods are not.
 
 use std::path::Path;
 
@@ -25,9 +24,9 @@ fn every_workspace_method_activates_its_own_files() {
     let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/wasm.rs"))
         .expect("reading src/wasm.rs");
 
-    // Every block, not the first. The methods live in one `impl` and the constructors
-    // in another, and a scan that stopped at the first `}` found four methods, said
-    // nothing, and passed.
+    // Every block, not the first. The methods live in one `impl` and the constructors in
+    // another. A scan that stopped at the first `}` found four methods, said nothing, and
+    // passed.
     let mut missing = Vec::new();
     let mut checked = 0;
     let mut blocks = 0;

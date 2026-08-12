@@ -105,7 +105,7 @@ impl Cache {
                 }
                 Some(facts)
             }
-            // A corrupt or outdated entry is a miss, not a failure.
+            // A corrupt or outdated entry is a miss. It is not a failure.
             Err(_) => {
                 let _ = std::fs::remove_file(self.entry_path(key));
                 self.misses.fetch_add(1, Ordering::Relaxed);
@@ -184,7 +184,7 @@ impl Cache {
 
 /// Where cache entries live.
 ///
-/// `FUN_REFACTOR_CACHE` overrides everything, which is what tests use. Otherwise the
+/// `FUN_REFACTOR_CACHE` overrides everything, which tests use. Otherwise the
 /// usual per-user cache location, never the workspace itself, a refactoring tool has
 /// must not write into the repository it is reading.
 fn cache_root() -> Option<PathBuf> {
@@ -262,8 +262,8 @@ mod tests {
 
     #[test]
     fn identical_content_in_another_file_reuses_the_entry() {
-        // The key is the content, so a copy costs nothing to index, but the facts
-        // must come back pointing at the file that asked for them.
+        // The key is the content, so a copy costs nothing to index. But the facts must come
+        // back pointing at the file that asked for them.
         let (_dir, cache) = scratch();
         let key = Cache::key(Language::Rust, "fn alpha() {}\n");
         cache.put(&key, &facts_for("original.rs", "alpha"));

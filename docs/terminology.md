@@ -41,7 +41,7 @@ or `@reference.call`. The extractor reads the captures and builds facts from the
 **Mask.** A copy of a source file in which some regions are replaced with other bytes of
 the same length. The parser reads the mask. Every byte offset in the tree still points at
 the original file. Two languages need a mask: Helm, because a template action is not valid
-YAML, and SCSS, because the grammar cannot read an interpolation in a declaration value.
+YAML. SCSS, because the grammar cannot read an interpolation in a declaration value.
 
 **Token tree.** The body of a Rust macro call, such as the arguments of `assert_eq!`.
 tree-sitter reports the tokens inside it and does not report their structure. A name inside
@@ -157,7 +157,7 @@ feature adds the terminal program. The `wasm` feature builds the browser library
 under one feature is invisible to a build without it, so both are checked.
 
 **Fact cache.** A store of extracted facts on disk, keyed by the bytes of a file. The key
-also includes a fingerprint of the sources that decide what a fact means, so an entry
+also includes a fingerprint of the sources that decide what a fact means. So an entry
 written by an older extractor is never read by a newer one.
 
 **Corpus.** A real repository used as test input, such as `twbs/bootstrap` for SCSS or

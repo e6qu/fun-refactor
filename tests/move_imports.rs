@@ -1,8 +1,8 @@
 //! Moving a symbol, and the imports that have to move with it.
 //!
-//! A move is behaviour-preserving in the same sense a rename is: the same code runs on
-//! the same values, and only where it is written changes. That means the destination
-//! has to keep working, which means the imports on both sides have to end up right.
+//! A move is behaviour-preserving in the same sense a rename is. The same code runs on the same
+//! values, and only where it is written changes. That means the destination has to keep
+//! working, which means the imports on both sides have to end up right.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::move_symbol;

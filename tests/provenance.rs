@@ -1,9 +1,9 @@
 //! Config-language value provenance, exercised through the public API.
 //!
-//! These languages are messy in different ways, and the point of the analysis is
-//! that it says so: every test below either pins an exact substitution/override
-//! answer, or pins the *honest* refusal to answer, an external input, a masked
-//! template action, an undecidable precedence, instead of a guess.
+//! These languages are messy in different ways, and the point of the analysis is that it says
+//! so. Every test below either pins an exact substitution/override answer, or pins the *honest*
+//! refusal to answer, an external input, a masked template action, an undecidable precedence,
+//! instead of a guess.
 
 use fun_refactor::{
     analysis::provenance::{consumers, provenance, specificity, EdgeKind, StopReason},
@@ -837,7 +837,7 @@ fn source_order_decides_a_specificity_tie_within_one_file() {
 
 #[test]
 fn a_tie_across_two_stylesheets_is_left_undecided() {
-    // Which sheet loads last is a property of the document, not of the CSS.
+    // Which sheet loads last is a property of the document. It is not of the CSS.
     let (_tmp, index) = workspace(&[
         ("ui/a.css", ".btn { color: red; }\n"),
         ("ui/b.css", ".btn { color: blue; }\n"),
@@ -1107,8 +1107,8 @@ fn specificity_is_exposed_for_callers_that_need_it() {
 
 #[test]
 fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
-    // `-var` and `*.tfvars` reach the root module only: a child module's inputs are
-    // the arguments its caller passes, so the chain must cross the module boundary.
+    // `-var` and `*.tfvars` reach the root module only: a child module's inputs are the
+    // arguments its caller passes. So the chain must cross the module boundary.
     let (_tmp, index) = workspace(&[
         (
             "infra/main.tf",

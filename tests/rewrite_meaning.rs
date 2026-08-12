@@ -27,9 +27,9 @@ fn applied(name: &str, source: &str, at: usize, which: Rewrite) -> String {
 
 #[test]
 fn inverting_a_compound_condition_negates_all_of_it() {
-    // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`,
-    // which is a different program: the negation of an `and` is an `or` of the
-    // negations, and flipping one operand cannot say that.
+    // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`, which is a
+    // different program. The negation of an `and` is an `or` of the negations. Flipping one
+    // operand cannot say that.
     for (name, source, expected) in [
         (
             "a.py",
@@ -99,9 +99,9 @@ fn an_if_that_binds_what_it_tested_is_refused() {
 
 #[test]
 fn zig_spells_its_boolean_operators_as_words() {
-    // Falling into the C arm made `a and b` invisible to every rule that looks for an
-    // operator, and `!(a and b)` is an `error_union_type` in that grammar, because
-    // `!T` is an error union where a type is expected and a negation where a value is.
+    // Falling into the C arm made `a and b` invisible to every rule that looks for an operator.
+    // `!(a and b)` is an `error_union_type` in that grammar, because `!T` is an error union
+    // where a type is expected and a negation where a value is.
     let source = "pub fn f(a: bool, b: bool) i64 {\n    if (!(a and b)) {\n        \
                   return 1;\n    }\n    return 2;\n}\n";
     let at = source.find("!(").expect("the negation");

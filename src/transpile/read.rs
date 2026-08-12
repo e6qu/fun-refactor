@@ -34,19 +34,19 @@ pub fn read(language: Language, source: &str, root: Node<'_>) -> Result<Module> 
     Ok(module)
 }
 
-/// Put every method with the type it belongs to, and bind the receiver of any that has
-/// nowhere to go.
+/// Put every method with the type it belongs to, and bind the receiver of any that has nowhere
+/// to go.
 ///
-/// Rust and Go declare methods apart from their type; Python, TypeScript, Java and Zig
-/// declare them inside it. The IR keeps them with the type, which is what lets one
-/// shape become the other, and the Rust reader said so in a comment while pushing them
-/// out as top-level functions. Every writer then wrote them as free functions, with the
-/// body still reaching through a receiver that nothing in the output binds: a Python
-/// `def label(prefix)` whose body says `self.name`.
+/// Rust and Go declare methods apart from their type; Python, TypeScript, Java and Zig declare
+/// them inside it. The IR keeps them with the type, which lets one shape become the
+/// other. The Rust reader said so in a comment while pushing them out as top-level functions.
+/// Every writer then wrote them as free functions, with the body still reaching through a
+/// receiver that nothing in the output binds. A Python `def label(prefix)` whose body says
+/// `self.name`.
 ///
-/// A method whose type is not in this file, an `impl` on somebody else's struct, has
-/// no record to join. Its receiver becomes an ordinary first parameter, which is what
-/// Go and Zig write anyway and what Python's `self` has always been.
+/// A method whose type is not in this file, an `impl` on somebody else's struct, has no record
+/// to join. Its receiver becomes an ordinary first parameter, which Go and Zig write
+/// anyway and what Python's `self` has always been.
 fn settle_methods(module: &mut Module) {
     let declared: std::collections::BTreeSet<String> = module
         .items
@@ -96,9 +96,9 @@ fn settle_methods(module: &mut Module) {
                     record.methods.push(method.clone());
                 }
             }
-            // Every method knows the type it belongs to, however it got here. A writer
-            // needs that to spell a constructor at all: three of these languages name
-            // one after its type and the other three name it by habit.
+            // Every method knows the type it belongs to, however it got here. A writer needs
+            // that to spell a constructor at all. Three of these languages name one after its
+            // type and the other three name it by habit.
             for method in record.methods.iter_mut() {
                 method.receiver = Some(record.name.clone());
             }
@@ -138,21 +138,21 @@ impl Cx<'_> {
         self.field(node, name).map(|n| self.text(n))
     }
 
-    /// Named children, which is what every reader below walks.
-    /// The named children that are part of the structure.
+    /// Named children, which every reader below walks. The named children that are part
+    /// of the structure.
     ///
-    /// **Comments are not.** Every one of these grammars makes a comment an *extra*,
-    /// which means it can appear between any two nodes anywhere in the tree, inside a
-    /// parameter list, between two struct fields, in the middle of an argument list.
-    /// Every reader here reads named children either positionally or through a
-    /// catch-all arm, and both of those read a comment as whatever they were expecting
-    /// in that position. A comment inside a Rust parameter list therefore became four
-    /// invented parameters called `// how this language separates the parts of a
-    /// qualified name`, which every target dutifully wrote into the signature.
+    /// **Comments are not.** Every one of these grammars makes a comment an *extra*, which
+    /// means it can appear between any two nodes anywhere in the tree, inside a parameter list,
+    /// between two struct fields, in the middle of an argument list. Every reader here reads
+    /// named children either positionally or through a catch-all arm. Both of those read a
+    /// comment as whatever they were expecting in that position. A comment inside a Rust
+    /// parameter list therefore became four invented parameters called `// how this language
+    /// separates the parts of a qualified name`, which every target dutifully wrote into the
+    /// signature.
     ///
-    /// So they are filtered here, once, and not in the twenty places that would
-    /// each have to remember. The one place that genuinely wants them,
-    /// [`Cx::children_with_comments`], asks for them by name.
+    /// So they are filtered here, once, and not in the twenty places that would each have to
+    /// remember. The one place that genuinely wants them, [`Cx::children_with_comments`], asks
+    /// for them by name.
     fn children<'t>(&self, node: Node<'t>) -> Vec<Node<'t>> {
         self.children_with_comments(node)
             .into_iter()
@@ -170,10 +170,9 @@ impl Cx<'_> {
 
 /// A Rust number without the type written into it.
 ///
-/// `0usize` and `1.5f64` put the width in the literal, which is a spelling only Rust
-/// has: every other target here reads it as an identifier glued to a number and
-/// refuses the file. The IR carries the type separately, so the digits are what
-/// crosses.
+/// `0usize` and `1.5f64` put the width in the literal, which is a spelling only Rust has. Every
+/// other target here reads it as an identifier glued to a number and refuses the file. The IR
+/// carries the type separately, so the digits are what crosses.
 fn unsuffixed(text: &str) -> String {
     const SUFFIXES: &[&str] = &[
         "usize", "isize", "u128", "i128", "u64", "i64", "u32", "i32", "u16", "i16", "u8", "i8",
@@ -204,7 +203,7 @@ fn is_comment(node: Node<'_>) -> bool {
 /// A call whose *callee* could not be translated is not a call this understands.
 ///
 /// Rendering it as `None()` would be syntactically valid in the target and complete
-/// nonsense, `HashMap::new()` became exactly that. Carrying the whole call instead
+/// nonsense, `HashMap::new()` became that. Carrying the whole call instead
 /// puts the original in front of whoever finishes the file.
 fn call_or_carry(cx: &Cx, node: Node<'_>, callee: Expr, args: Vec<Expr>) -> Expr {
     if matches!(callee, Expr::Unsupported(_)) {
@@ -222,11 +221,11 @@ fn call_or_carry(cx: &Cx, node: Node<'_>, callee: Expr, args: Vec<Expr>) -> Expr
 /// statements nested inside it. One bad line in a loop body should cost that line, not
 /// the loop.
 fn has_unsupported_expr(stmt: &Stmt) -> bool {
-    // Exhaustive on purpose, no `_` arm. The three cases this originally missed
-    // were `MapLit`, `Template` and `Comprehension`, and each produced a silent wrong
-    // answer instead of a gap: `session?.user.id` inside an object literal came out
-    // as `None.id`, with the original nowhere in the file. A new variant must not be
-    // able to join them quietly, so the compiler is made to ask.
+    // Exhaustive on purpose, no `_` arm. The three cases this originally missed were `MapLit`,
+    // `Template` and `Comprehension`. Each produced a silent wrong answer instead of a gap:
+    // `session?.user.id` inside an object literal came out as `None.id`, with the original
+    // nowhere in the file. A new variant must not be able to join them quietly, so the compiler
+    // is made to ask.
     fn bad(e: &Expr) -> bool {
         match e {
             Expr::Unsupported(_) => true,
@@ -331,11 +330,10 @@ fn doc_above(cx: &Cx, node: Node<'_>, markers: &[&str]) -> Vec<String> {
         for terminator in ["*/", "-->"] {
             cleaned = cleaned.strip_suffix(terminator).unwrap_or(cleaned);
         }
-        // A `/** ... */` is one node however many lines it spans, and each of its inner
-        // lines carries its own ` * ` leader. One entry per line is what a writer
-        // expects: it puts the target's marker on each of them, and a single entry with
-        // newlines in it got a marker on the first line only, leaving the rest of a
-        // paragraph sitting in the file as code.
+        // A `/** ... */` is one node however many lines it spans, and each of its inner lines
+        // carries its own ` * ` leader. One entry per line is what a writer expects: it puts
+        // the target's marker on each of them. A single entry with newlines in it got a marker
+        // on the first line only, leaving the rest of a paragraph sitting in the file as code.
         for line in cleaned.trim().lines().rev() {
             let line = line.trim();
             let stripped = line.strip_prefix("* ").or_else(|| line.strip_prefix("*"));
@@ -350,9 +348,9 @@ fn doc_above(cx: &Cx, node: Node<'_>, markers: &[&str]) -> Vec<String> {
 /// Does this function make a value of `owner`, by that language's convention?
 ///
 /// Rust, Go and Zig have no constructor: they have a habit, `Thing::new`, `NewThing`,
-/// `Thing.init`, and the habit is only a constructor when it also *returns the thing*.
-/// A `new` that returns something else is an ordinary function with a common name, and
-/// reading it as a constructor would move it somewhere it does not belong.
+/// `Thing.init`. The habit is only a constructor when it also *returns the thing*. A `new` that
+/// returns something else is an ordinary function with a common name. Reading it as a
+/// constructor would move it somewhere it does not belong.
 fn constructs(
     name: &str,
     owner: &str,
@@ -408,10 +406,10 @@ mod rust {
                 // Methods live in an `impl` block, apart from the type they belong to.
                 // The IR keeps them with the type, so they are attached here.
                 "impl_item" => {
-                    // `impl<'a> Ctx<'a>` is an impl on `Ctx`. Keeping the arguments made
-                    // the owner `Ctx<'a>`, which matches no record in the file, so the
-                    // methods of every generic type became free functions with a `self`
-                    // parameter bolted on.
+                    // `impl<'a> Ctx<'a>` is an impl on `Ctx`. Keeping the arguments made the
+                    // owner `Ctx<'a>`, which matches no record in the file. So the methods of
+                    // every generic type became free functions with a `self` parameter bolted
+                    // on.
                     let owner = cx
                         .field_text(child, "type")
                         .map(|text| match text.split_once('<') {
@@ -451,9 +449,9 @@ mod rust {
     /// A Rust identifier without the escape that made it writable.
     ///
     /// `r#where` *is* the identifier `where`: the prefix is how Rust spells a name that
-    /// collides with a keyword, and it is not part of the name. Every writer here puts
-    /// the escape on when it needs to, so leaving it on the way back in made the name
-    /// grow an `r` each time it crossed.
+    /// collides with a keyword. It is not part of the name. Every writer here puts the escape
+    /// on when it needs to. So leaving it on the way back in made the name grow an `r` each
+    /// time it crossed.
     fn plain(name: String) -> String {
         match name.strip_prefix("r#") {
             Some(rest) => rest.to_string(),
@@ -506,10 +504,10 @@ mod rust {
 
     /// A `struct` with named fields. A tuple struct is not one.
     ///
-    /// `pub struct Wrapper(Vec<T>);` has a field with no name, and a record in the IR
-    /// is a *named* product, so reading one gave a record with no fields at all, and
-    /// the payload type vanished without a word. There is no honest name to give it:
-    /// Rust calls it `0`, and no target here can spell a field called that.
+    /// `pub struct Wrapper(Vec<T>);` has a field with no name, and a record in the IR is a
+    /// *named* product. So reading one gave a record with no fields at all, and the payload
+    /// type vanished without a word. There is no honest name to give it: Rust calls it `0`, and
+    /// no target here can spell a field called that.
     fn record(cx: &Cx, node: Node<'_>) -> Option<Record> {
         if cx
             .children(node)
@@ -538,7 +536,7 @@ mod rust {
             doc: doc_above(cx, node, &["///", "//"]),
             name: plain(cx.field_text(node, "name").unwrap_or_default()),
             fields,
-            // Rust composes and not inherits: a trait is a contract, not a base.
+            // Rust composes and does not inherit: a trait is a contract. It is not a base.
             extends: None,
             exported: node
                 .children(&mut node.walk())
@@ -578,8 +576,8 @@ mod rust {
             return t;
         }
 
-        // A lifetime is not part of the type: `&'a str` is a `&str` that says how long
-        // it lives, and no other language here has anywhere to put that.
+        // A lifetime is not part of the type: `&'a str` is a `&str` that says how long it
+        // lives. No other language here has anywhere to put that.
         let mut bare = trimmed.trim_start_matches('&').trim_start();
         if let Some(rest) = bare.strip_prefix('\'') {
             bare = rest
@@ -656,15 +654,14 @@ mod rust {
 
     /// A function's body, where the last expression is the value it returns.
     ///
-    /// `fn f(a: i64) -> i64 { a + 1 }` is the ordinary way to write a Rust function and
-    /// the tail is its result. Reading it as a plain statement dropped the return in
-    /// every target at once: Python got a function that returns `None`, Zig one that
-    /// says `_ = a + 1;`, and Go, Java and TypeScript ones that do not compile, each
-    /// still declaring the return type the signature carried across.
+    /// `fn f(a: i64) -> i64 { a + 1 }` is the ordinary way to write a Rust function and the
+    /// tail is its result. Reading it as a plain statement dropped the return in every target
+    /// at once. Python got a function that returns `None`, Zig one that says `_ = a + 1;`. Go,
+    /// Java and TypeScript ones that do not compile, each still declaring the return type the
+    /// signature carried across.
     ///
-    /// Only the body's own tail. A tail inside an `if` is a return too, and reading it
-    /// as one needs the whole of Rust's block-expression rule; that is left as it was
-    /// and not half-done.
+    /// Only the body's own tail. A tail inside an `if` is a return too. Reading it as one needs
+    /// the whole of Rust's block-expression rule; that is left as it was and not half-done.
     fn function_body(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
         let mut body = block(cx, node);
         // The tail is an expression the grammar did not wrap in a statement. Anything
@@ -697,9 +694,9 @@ mod rust {
             "let_declaration" => {
                 let bound = plain(cx.field_text(node, "pattern").unwrap_or_default());
                 let value = cx.field(node, "value").map(|v| expr(cx, v));
-                // `let _ = f();` binds nothing. It is a call whose result is
-                // deliberately dropped, which every target here can say, and reading
-                // it as a binding wrote `const  = f();`, a declaration with no name.
+                // `let _ = f();` binds nothing. It is a call whose result is deliberately
+                // dropped, which every target here can say. Reading it as a binding wrote
+                // `const = f();`, a declaration with no name.
                 if bound == "_" || bound.is_empty() {
                     return match value {
                         Some(value) => Stmt::Expr(value),
@@ -816,9 +813,9 @@ mod rust {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
-            // `if a { b } else { c }` used as a value. Only where each branch is a
-            // block holding one expression and nothing else: anything longer is a
-            // statement, and there is nowhere inside an argument list to put one.
+            // `if a { b } else { c }` used as a value. Only where each branch is a block
+            // holding one expression and nothing else: anything longer is a statement. There is
+            // nowhere inside an argument list to put one.
             "if_expression" => {
                 fn branch<'t>(cx: &Cx, b: Node<'t>) -> Option<Node<'t>> {
                     let inner = match b.kind() {
@@ -856,20 +853,18 @@ mod rust {
             "integer_literal" => Expr::Int(unsuffixed(&cx.text(node))),
             "float_literal" => Expr::Float(unsuffixed(&cx.text(node))),
             "boolean_literal" => Expr::Bool(cx.text(node) == "true"),
-            // `r"\d+"` and `b"bytes"` are strings too. Reading only the plain form left
-            // every regex in the file as "no counterpart", and a constant bound to one
-            // stopped being a constant: its name lost the convention that goes with a
-            // literal value.
+            // `r"\d+"` and `b"bytes"` are strings too. Reading only the plain form left every
+            // regex in the file as "no counterpart", and a constant bound to one stopped being
+            // a constant. Its name lost the convention that goes with a literal value.
             "string_literal" | "raw_string_literal" | "char_literal" => {
                 Expr::Str(super::unquote(&cx.text(node)))
             }
             "identifier" | "self" => Expr::Name(plain(cx.text(node))),
             "field_expression" => {
                 let name = plain(cx.field_text(node, "field").unwrap_or_default());
-                // `self.0` reaches into a tuple struct, and a tuple struct is a Rust
-                // idea: no other target here has a field with a number for a name, and
-                // writing `.0` into any of them produces something that is either a
-                // syntax error or a decimal point.
+                // `self.0` reaches into a tuple struct, and a tuple struct is a Rust idea. No
+                // other target here has a field with a number for a name. Writing `.0` into any
+                // of them produces something that is either a syntax error or a decimal point.
                 if name.chars().all(|c| c.is_ascii_digit()) {
                     return Expr::Unsupported(cx.unsupported(node));
                 }
@@ -907,10 +902,9 @@ mod rust {
                     .field(node, "name")
                     .map(|n| cx.text(n))
                     .unwrap_or_default();
-                // `StopReason::Conditional { … }` builds an enum variant, not a record.
-                // No target here has a tagged union to build one in, and writing the
-                // path through produced Go that says `StopReason::Conditional{…}`,
-                // which Go does not parse.
+                // `StopReason::Conditional { … }` builds an enum variant, not a record. No
+                // target here has a tagged union to build one in. Writing the path through
+                // produced Go that says `StopReason::Conditional{…}`, which Go does not parse.
                 if ty.contains("::") {
                     return Expr::Unsupported(cx.unsupported(node));
                 }
@@ -1065,9 +1059,9 @@ mod python {
 
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
         let mut params = Vec::new();
-        // Python names the receiver in the parameter list, so what it is called is the
-        // author's choice, `self` by convention, `cls` on a classmethod, anything at
-        // all if they felt like it.
+        // Python names the receiver in the parameter list. So what it is called is the author's
+        // choice, `self` by convention, `cls` on a classmethod, anything at all if they felt
+        // like it.
         let mut receiver_name = None;
         if let Some(list) = cx.field(node, "parameters") {
             for p in cx.children(list) {
@@ -1094,11 +1088,10 @@ mod python {
                     }),
                     "identifier" => {
                         let name = cx.text(p);
-                        // Only inside a class. A module-level `def f(self, uri)` is an
-                        // ordinary function whose first parameter happens to be called
-                        // `self`, and stripping it there lost a parameter, which is
-                        // exactly what a round trip through Python did to every method
-                        // of a Zig file-struct.
+                        // Only inside a class. A module-level `def f(self, uri)` is an ordinary
+                        // function whose first parameter happens to be called `self`. Stripping
+                        // it there lost a parameter, which a round trip through Python
+                        // did to every method of a Zig file-struct.
                         if receiver.is_some() && (name == "self" || name == "cls") {
                             receiver_name = Some(name);
                             continue;
@@ -1285,9 +1278,9 @@ mod python {
             doc: docstring(cx, cx.field(node, "body")),
             name,
             fields,
-            // `class A(B):`, the bases are the class's argument list. Only a single
-            // one is carried: multiple inheritance has no counterpart in the two other
-            // languages that inherit at all, and picking one of them would be a guess.
+            // `class A(B):`, the bases are the class's argument list. Only a single one is
+            // carried: multiple inheritance has no counterpart in the two other languages that
+            // inherit at all. Picking one of them would be a guess.
             extends: cx
                 .field(node, "superclasses")
                 .map(|list| cx.children(list))
@@ -1300,10 +1293,9 @@ mod python {
 
     /// A decorated method, when the decorators only say what kind of method it is.
     ///
-    /// `@staticmethod`, `@classmethod` and `@property` describe the *shape* of the
-    /// binding. A decorator that changes behaviour, a route, a cache, a retry, is not
-    /// a method this understands, and reading one as an ordinary method would drop the
-    /// part that mattered.
+    /// `@staticmethod`, `@classmethod` and `@property` describe the *shape* of the binding. A
+    /// decorator that changes behaviour, a route, a cache, a retry, is not a method this
+    /// understands. Reading one as an ordinary method would drop the part that mattered.
     fn decorated_method(cx: &Cx, node: Node<'_>, owner: &str) -> Option<Function> {
         const SHAPE: &[&str] = &[
             "staticmethod",
@@ -1340,12 +1332,12 @@ mod python {
 
     fn constant(cx: &Cx, node: Node<'_>) -> Option<Constant> {
         let name = cx.field_text(node, "left")?;
-        // Python has no `const`, so a module-level binding is the only thing a
-        // constant can look like, and requiring SCREAMING_SNAKE meant this tool could
-        // not read back what it writes. Its own Python writer spells a constant bound to
-        // anything but a literal in lower case, on the grounds that shouting the name of
-        // `schema = z.object(...)` would be wrong; every one of those was then lost on
-        // the way home. Two rules were deciding one thing and disagreeing.
+        // Python has no `const`, so a module-level binding is the only thing a constant can
+        // look like. Requiring SCREAMING_SNAKE meant this tool could not read back what it
+        // writes. Its own Python writer spells a constant bound to anything but a literal in
+        // lower case, on the grounds that shouting the name of `schema = z.object(...)` would
+        // be wrong. Every one of those was then lost on the way home. Two rules were deciding
+        // one thing and disagreeing.
         if name.is_empty() {
             return None;
         }
@@ -1408,7 +1400,7 @@ mod python {
         let children = cx.children_with_comments(node);
         let mut out = Vec::new();
         for (i, child) in children.iter().enumerate() {
-            // The docstring is the function's doc, not its first statement.
+            // The docstring is the function's doc. It is not its first statement.
             if i == 0 && child.kind() == "expression_statement" {
                 if let Some(inner) = cx.children(*child).first() {
                     if inner.kind() == "string" {
@@ -1587,7 +1579,7 @@ mod python {
     }
 
     /// Python does not distinguish declaration from assignment. Treated as a binding
-    /// when it is a bare name, which is what a writer needs to emit `let`.
+    /// when it is a bare name, which a writer needs to emit `let`.
     fn is_new_name(cx: &Cx, assignment: Node<'_>) -> bool {
         cx.field(assignment, "left")
             .map(|l| l.kind() == "identifier")
@@ -1825,10 +1817,10 @@ mod go {
                 }),
                 "function_declaration" => {
                     let mut f = function(cx, child, None, None);
-                    // Go's constructor is a naming habit: `NewThing` that returns one.
-                    // Naming the type it makes is what puts it back with that type, a
-                    // top-level function belongs to nothing, and `NewEdit` written as
-                    // Rust would have come out `new_edit` beside the `impl`.
+                    // Go's constructor is a naming habit: `NewThing` that returns one. Naming
+                    // the type it makes is what puts it back with that type, a top-level
+                    // function belongs to nothing. `NewEdit` written as Rust would have come
+                    // out `new_edit` beside the `impl`.
                     if let Some(owner) = super::constructs(&f.name, "", f.returns.as_ref(), false) {
                         f.is_constructor = true;
                         f.receiver = Some(owner);
@@ -1972,7 +1964,7 @@ mod go {
             doc: doc_above(cx, spec, &["//"]),
             exported: name.chars().next().is_some_and(|c| c.is_uppercase()),
             name,
-            // Go embeds and not inherits.
+            // Go embeds and does not inherit.
             extends: None,
             fields,
             methods: Vec::new(),
@@ -2003,9 +1995,9 @@ mod go {
 
     /// A Go type from its text.
     ///
-    /// The entry point and the recursion are the same function. When they were not, the
-    /// value of a `map[string][]SymbolId` resolved one layer and lost the slice: the
-    /// outer map was read here and the inner type by a helper that only knew scalars.
+    /// The entry point and the recursion are the same function. When they were not, the value
+    /// of a `map[string][]SymbolId` resolved one layer and lost the slice. The outer map was
+    /// read here and the inner type by a helper that only knew scalars.
     fn ty_text(text: &str) -> Type {
         let trimmed = text.trim();
         if let Some(t) = super::scalar(trimmed) {
@@ -2052,10 +2044,10 @@ mod go {
             "comment" | "line_comment" | "block_comment" => {
                 Stmt::Comment(super::uncomment(&cx.text(node)))
             }
-            // `return x` wraps its value in an `expression_list`, the same shape that
-            // hid every function body. A single value is the only one that has a
-            // counterpart: `return a, b` is Go's multiple return and nothing else here
-            // has one, so it stays unsupported and is carried with the original.
+            // `return x` wraps its value in an `expression_list`, the same shape that hid every
+            // function body. A single value is the only one that has a counterpart: `return a,
+            // b` is Go's multiple return and nothing else here has one. So it stays unsupported
+            // and is carried with the original.
             "return_statement" => Stmt::Return(cx.children(node).first().and_then(|e| {
                 match (e.kind(), cx.children(*e).as_slice()) {
                     ("expression_list", [only]) => Some(expr(cx, *only)),
@@ -2233,13 +2225,13 @@ mod go {
 
 /// Java.
 ///
-/// The shape that makes Java different from every other language here: it has **no top
-/// level below the type**. A file is a class, and every function is a method of it, so
-/// reading a Java file means unwrapping one class to get at the module inside, and
-/// writing one means wrapping the module back up.
+/// The shape that makes Java different from every other language here: it has **no top level
+/// below the type**. A file is a class, and every function is a method of it. So reading a Java
+/// file means unwrapping one class to get at the module inside, and writing one means wrapping
+/// the module back up.
 ///
-/// A `static final` field is Java's only way to write a module constant, so it reads as
-/// one; an instance field reads as a field of the record.
+/// A `static final` field is Java's only way to write a module constant. So it reads as one; an
+/// instance field reads as a field of the record.
 mod java {
     use super::*;
 
@@ -2349,9 +2341,9 @@ mod java {
                         });
                     }
                 }
-                // A constructor is a method that makes the type and not acting on
-                // one, and every target spells it its own way, so what carries is that
-                // it *is* one, not what it is called.
+                // A constructor is a method that makes the type and not acting on one, and
+                // every target spells it its own way. So what carries is that it *is* one, not
+                // what it is called.
                 "method_declaration" | "constructor_declaration" => {
                     record.methods.push(function(cx, member))
                 }
@@ -2514,9 +2506,9 @@ mod java {
                     .into_iter()
                     .filter(|c| c.kind() == "variable_declarator")
                     .collect();
-                // `int a = 1, b = 2;` is two bindings in one statement and the IR has a
-                // place for one; carrying it whole keeps the source in front of the
-                // reader and not silently dropping the second.
+                // `int a = 1, b = 2;` is two bindings in one statement and the IR has a place
+                // for one. Carrying it whole keeps the source in front of the reader and not
+                // silently dropping the second.
                 match declarators.as_slice() {
                     [only] => Stmt::Let {
                         name: cx.field_text(*only, "name").unwrap_or_default(),
@@ -2584,10 +2576,10 @@ mod java {
                 for child in cx.children(node) {
                     match child.kind() {
                         "catch_clause" => {
-                            // `catch (IllegalStateException error)` holds a `catch_type`
-                            // and an identifier as plain children and not as named
-                            // fields, so asking for fields lost both the exception type
-                            // and the name the body uses.
+                            // `catch (IllegalStateException error)` holds a `catch_type` and an
+                            // identifier as plain children and not as named fields. So asking
+                            // for fields lost both the exception type and the name the body
+                            // uses.
                             let parameter = cx
                                 .children(child)
                                 .into_iter()
@@ -2807,25 +2799,25 @@ mod java {
 
 /// Zig.
 ///
-/// Two things shape this reader. A `variable_declaration` with no `var` or `const` in
-/// front of it is an **assignment**, not a declaration — the grammar reuses the node,
-/// so telling the two apart means reading the keyword instead of the node kind. And a
-/// type is a value: `const Reading = struct { … };` is a `variable_declaration` whose
-/// value happens to be a struct, which is where records come from.
+/// Two things shape this reader. A `variable_declaration` with no `var` or `const` in front of
+/// it is an **assignment**. It is not a declaration — the grammar reuses the node. So telling the two
+/// apart means reading the keyword instead of the node kind. And a type is a value: `const
+/// Reading = struct { … };` is a `variable_declaration` whose value happens to be a struct,
+/// which is where records come from.
 ///
-/// What deliberately does not cross: `try`, `catch`, error unions and `comptime`. Zig
-/// models failure in the return type and no other target here has anything to put
-/// there, so each is carried with the original beside it.
+/// What deliberately does not cross: `try`, `catch`, error unions and `comptime`. Zig models
+/// failure in the return type and no other target here has anything to put there. So each is
+/// carried with the original beside it.
 mod zig {
     use super::*;
 
     /// Every child, punctuation included.
     ///
-    /// `cx.children` gives the named nodes only, and in this grammar the `:` before a
-    /// type, the `=` before a value and every operator are anonymous, so the shape of
-    /// a declaration is invisible without them. Reading a binary expression by
-    /// position instead put the right operand where the operator should have been, and
-    /// every piece of arithmetic in the file came out as "no counterpart".
+    /// `cx.children` gives the named nodes only, and in this grammar the `:` before a type, the
+    /// `=` before a value and every operator are anonymous. So the shape of a declaration is
+    /// invisible without them. Reading a binary expression by position instead put the right
+    /// operand where the operator should have been. Every piece of arithmetic in the file came
+    /// out as "no counterpart".
     fn all<'t>(node: Node<'t>) -> Vec<Node<'t>> {
         let mut cursor = node.walk();
         node.children(&mut cursor).collect()
@@ -2833,9 +2825,9 @@ mod zig {
 
     /// The node after `token`, up to the next `stop` token.
     ///
-    /// Named-ness is not the test. `undefined` is an anonymous token in this grammar
-    /// and it is a perfectly good value, so requiring a named node lost every constant
-    /// this tool's own Zig writer emits for something it could not translate.
+    /// Named-ness is not the test. `undefined` is an anonymous token in this grammar and it is
+    /// a perfectly good value. So requiring a named node lost every constant this tool's own
+    /// Zig writer emits for something it could not translate.
     fn after<'t>(parts: &[Node<'t>], token: &str, stop: &str) -> Option<Node<'t>> {
         let at = parts.iter().position(|c| c.kind() == token)?;
         parts.get(at + 1).filter(|c| c.kind() != stop).copied()
@@ -2874,7 +2866,7 @@ mod zig {
         let exported = cx.text(node).trim_start().starts_with("pub");
         let value = after(&parts, "=", ";")?;
 
-        // `const std = @import("std");` is a dependency, not a constant.
+        // `const std = @import("std");` is a dependency. It is not a constant.
         if value.kind() == "builtin_function" && cx.text(value).starts_with("@import") {
             return Some(Item::Import {
                 text: cx.text(node),
@@ -3077,12 +3069,12 @@ mod zig {
                 .next_back()
                 .map(|inner| ty_of(cx, inner))
                 .unwrap_or_else(|| Type::named("anytype")),
-            // `!T` is an error union: the error set is part of the type and none of the
-            // targets has one, so the type is written through by name.
+            // `!T` is an error union: the error set is part of the type and none of the targets
+            // has one. So the type is written through by name.
             "error_union_type" => Type::named(type_text(&text)),
             // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a
             // field expression whose left side is a nullable `http`, inside out. The
-            // text is the only way back to what was actually written.
+            // text is the only way back to what was written.
             _ => from_text(&type_text(&text)),
         }
     }
@@ -3107,7 +3099,7 @@ mod zig {
             return Type::Optional(Box::new(from_text(rest)));
         }
         // A generic type here is a name *applied* to its arguments — `ArrayList(u8)`,
-        // which is what the writer emits. Reading the whole thing as one name turned
+        // which the writer emits. Reading the whole thing as one name turned
         // `HashSet(Thing)` into a type called `HashSet(Thing)`.
         // A slice is a list. The grammar gives this its own node most of the time, and
         // the rest of the time it arrives here as text.
@@ -3441,7 +3433,7 @@ mod typescript {
     /// Does this access use `?.`?
     ///
     /// The grammar makes `optional_chain` a child instead of a field, so the only way
-    /// to ask is to look. Worth asking: `a?.b` and `a.b` differ exactly where it
+    /// to ask is to look. Worth asking: `a?.b` and `a.b` differ where it
     /// matters, and the difference is invisible in the text this reader keeps.
     fn has_optional_chain(node: Node<'_>) -> bool {
         let mut cursor = node.walk();
@@ -3641,9 +3633,9 @@ mod typescript {
 
     /// Resolve a type from its text, recursing through generic arguments.
     ///
-    /// The entry point and the recursion are the same function: when they were not,
-    /// `Promise<Record<string, string>>` resolved its outer layer and left the inner
-    /// one as an opaque name, so a round trip produced `Record[str, str]` in Python.
+    /// The entry point and the recursion are the same function. When they were not,
+    /// `Promise<Record<string, string>>` resolved its outer layer and left the inner one as an
+    /// opaque name, so a round trip produced `Record[str, str]` in Python.
     fn ty_text(text: &str) -> Type {
         // `readonly string[]` is a `string[]` that says you may not write to it, and no
         // other language here has anywhere to put that. Left on, it made every
@@ -3902,7 +3894,7 @@ mod typescript {
                         return None;
                     }
                     let (filter_binding, predicate) = one_arg_arrow(cx, filter_args[0])?;
-                    // Two different names is two different scopes, not one loop.
+                    // Two different names is two different scopes. It is not one loop.
                     if filter_binding != binding {
                         return None;
                     }
@@ -3954,10 +3946,9 @@ mod typescript {
             "null" | "undefined" => Expr::Null,
             "string" => Expr::Str(super::unquote(&cx.text(node))),
             "identifier" | "property_identifier" | "this" => Expr::Name(cx.text(node)),
-            // `a?.b` is not `a.b`. Neither Python, Rust nor Go has optional
-            // chaining, and writing the plain access drops the null check silently,
-            // the translation would compile, run, and throw where the original
-            // returned undefined. Carried instead.
+            // `a?.b` is not `a.b`. Neither Python, Rust nor Go has optional chaining. Writing
+            // the plain access drops the null check silently, the translation would compile,
+            // run, and throw where the original returned undefined. Carried instead.
             "member_expression" if has_optional_chain(node) => {
                 Expr::Unsupported(cx.unsupported(node))
             }
@@ -4046,8 +4037,8 @@ mod typescript {
                 }
                 Expr::MapLit(entries)
             }
-            // `instanceof` is spelled as an operator here and as a builtin in
-            // Python; it is the same question either way, so it is its own node.
+            // `instanceof` is spelled as an operator here and as a builtin in Python. It is the
+            // same question either way, so it is its own node.
             "binary_expression"
                 if cx.field_text(node, "operator").as_deref() == Some("instanceof") =>
             {
@@ -4076,9 +4067,9 @@ mod typescript {
                         .unwrap_or(Expr::Null)
                 };
                 let operator = cx.field_text(node, "operator").unwrap_or_default();
-                // `a ?? b` asks whether the left side is absent, which is a question
-                // instead of an arithmetic operator, half these languages spell it
-                // with a word or a method, and one cannot spell it at all.
+                // `a ?? b` asks whether the left side is absent, which is a question instead of
+                // an arithmetic operator, half these languages spell it with a word or a
+                // method. One cannot spell it at all.
                 if operator == "??" {
                     return Expr::Coalesce {
                         value: Box::new(left()),
@@ -4238,11 +4229,11 @@ fn binary_op(text: &str) -> Option<BinaryOp> {
     })
 }
 
-/// The text of a string literal, without its quotes or prefix.
-/// The text of a comment, without whichever marker the source language used.
+/// The text of a string literal, without its quotes or prefix. The text of a comment, without
+/// whichever marker the source language used.
 ///
-/// The marker is the only thing that differs between them, so stripping it here
-/// and letting each writer add its own is the whole of comment translation.
+/// The marker is the only thing that differs between them. So stripping it here and letting
+/// each writer add its own is the whole of comment translation.
 fn uncomment(text: &str) -> String {
     let text = text.trim();
     let body = text

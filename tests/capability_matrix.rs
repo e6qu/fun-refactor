@@ -1,9 +1,9 @@
-//! The published matrix must match what the code actually does.
+//! The published matrix must match what the code does.
 //!
-//! This exists because the README's matrix drifted once already: capabilities gated
-//! by an explicit predicate stayed accurate while ones left to emerge from grammar
-//! shape did not, and `inline --call` was documented for six languages while working
-//! for two. A table nobody checks is a table that lies.
+//! This exists because the README's matrix drifted once already: capabilities gated by an
+//! explicit predicate stayed accurate while ones left to emerge from grammar shape did not.
+//! `inline --call` was documented for six languages while working for two. A table nobody
+//! checks is a table that lies.
 
 use fun_refactor::capabilities::{self, Capability, Support};
 use fun_refactor::lang::Language;
@@ -25,10 +25,10 @@ fn the_readme_matrix_matches_the_code() {
 
 #[test]
 fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
-    // The matrix is the tool's own claim about what it does, per language, and three
-    // commands were missing from it, `fr translate` most conspicuously, since its
-    // answer differs by language in two different ways. `fr recipe` is the one genuine
-    // exception: it composes the rows instead of adding one.
+    // The matrix is the tool's own claim about what it does, per language. Three commands were
+    // missing from it, `fr translate` most conspicuously, since its answer differs by language
+    // in two different ways. `fr recipe` is the one genuine exception: it composes the rows
+    // instead of adding one.
     let commands: Vec<&str> = Capability::ALL.iter().map(|c| c.command()).collect();
     for expected in [
         "fr rename",
@@ -130,7 +130,7 @@ fn nothing_is_merely_unimplemented() {
     // should contain none at all.
     //
     // If this fails, a capability was added without deciding what it means everywhere,
-    // which is exactly how 27 unbuilt cells once came to be reported as complete.
+    // which is how 27 unbuilt cells once came to be reported as complete.
     let mut refused: Vec<String> = Vec::new();
     for capability in Capability::ALL {
         for language in Language::ALL {
@@ -194,10 +194,10 @@ fn config_languages_carry_their_share_of_the_mutations() {
 
 #[test]
 fn the_published_totals_match_the_matrix() {
-    // The table is checked and the sentence describing it was not, so the sentence
-    // drifted: the README's rows counted 261 supported pairs while the line above them
-    // said 260, and PLAN.md was still quoting a total from before six capabilities and
-    // a language existed. A number nobody checks is a table that lies in prose.
+    // The table is checked and the sentence describing it was not, so the sentence drifted: the
+    // README's rows counted 261 supported pairs while the line above them said 260. PLAN.md was
+    // still quoting a total from before six capabilities and a language existed. A number
+    // nobody checks is a table that lies in prose.
     let mut yes = 0usize;
     let mut rest = 0usize;
     for capability in Capability::ALL {

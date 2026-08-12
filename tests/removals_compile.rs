@@ -1,16 +1,15 @@
 //! Does the code that a removal leaves behind still compile?
 //!
-//! The third and last file to drive the compile gate. `output_compiles.rs` takes the
-//! commands that move a declaration, `rewrites_compile.rs` the ones that rewrite one in
-//! place, and these are the ones that take code away: `fr delete`, `fr imports`,
-//! `fr remove-flag`, and `fr recipe`, which composes them.
+//! The third and last file to drive the compile gate. `output_compiles.rs` takes the commands
+//! that move a declaration, `rewrites_compile.rs` the ones that rewrite one in place. These are
+//! the ones that take code away: `fr delete`, `fr imports`, `fr remove-flag`, and `fr recipe`,
+//! which composes them.
 //!
-//! Taking code away has a failure mode the other two do not. The last use of an import
-//! often lives in the code being removed, and the statement stays behind. Go calls that an
-//! error outright, TypeScript does under `noUnusedLocals`, and Rust makes it a warning that
-//! a `-D warnings` build. This project's own, turns into one. **The result parses in
-//! every case**, which is why sweeping for parse errors found none of it and running a
-//! compiler found all of it.
+//! Taking code away has a failure mode the other two do not. The last use of an import often
+//! lives in the code being removed, and the statement stays behind. Go calls that an error
+//! outright, TypeScript does under `noUnusedLocals`, and Rust makes it a warning that a `-D
+//! warnings` build. This project's own, turns into one. **The result parses in every case**, so
+//! sweeping for parse errors found none of it and running a compiler found all of it.
 
 mod common;
 use common::{gate, must_plan, GateRun, Toolchain, Workspace};

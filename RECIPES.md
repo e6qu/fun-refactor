@@ -7,18 +7,18 @@ loudly.
 **Built.** `fr recipe <file>` runs one; `src/recipe/` is the implementation and
 `tests/recipe.rs` covers it. The tutorial at
 [docs/recipes.html](https://e6qu.github.io/fun-refactor/recipes.html) works five of
-them, in five languages, with the output the tool actually produced.
+them, in five languages, with the output the tool produced.
 
 What the design argued for and what got built agree. Every predicate in the table below
-is implemented, including the four that were not at first: `calls=` and `called-by=`
-come from one call graph, built only when one of them is asked for; `implements=` from
+is implemented, including the four that were not at first. `calls=` and `called-by=`
+come from one call graph, built only when one of them is asked for. `implements=` from
 the hierarchy; and `matches=` from the pattern matcher, which needs `lang=` beside it
 because the same text parses into a different tree in every language.
 
-The runner found a defect the design could not have: the refactorings read source through `crate::vfs`, so a step planned
+The runner found a defect the design could not have: the refactorings read source through `crate::vfs`. So a step planned
 after another step was measured against the file on *disk*, the text before any step
 ran. The in-memory backing that the browser build uses is now compiled everywhere and
-the runner installs the workspace on it, which is what makes "each step sees what the
+the runner installs the workspace on it, which makes "each step sees what the
 last one left" true and not intended.
 
 ```
@@ -45,7 +45,7 @@ recipe retire-legacy-auth {
 ## Why
 
 Every command in this tool acts on **one** target. That is right for a person at a
-terminal and wrong for the work people actually have:
+terminal and wrong for the work people have:
 
 - *"Retire `USE_LEGACY_AUTH`, delete what it was guarding, and tidy the imports that
   leaves behind."*, three commands, in order, each depending on the last.
@@ -53,7 +53,7 @@ terminal and wrong for the work people actually have:
   helm/helm alone. Nobody types that.
 
 Today each is a shell loop over `fr`, which means the refusals scroll past, the
-ordering is implicit, and the thing you actually did is written down nowhere a
+ordering is implicit. The thing you did is written down nowhere a
 reviewer can read. A recipe makes the *plan* the artifact. The diff is what it
 produces.
 
@@ -62,7 +62,7 @@ produces.
 **Not a programming language.** No loops, no arithmetic, no user-defined functions,
 no conditionals. The moment a recipe needs those it should be a program calling the
 CLI, and we should make that pleasant instead. Every construct below earns its place
-by appearing in a refactoring someone actually wants.
+by appearing in a refactoring someone wants.
 
 **Does not extend what the tool can do.** A recipe composes existing operations. If a
 step could not be typed as an `fr` command, it is not a step.
@@ -204,7 +204,7 @@ Two more things the prototype argued for:
   `delete on-refusal allow where unused`, an unmemorable rule that
   which buys nothing.
 
-`schema 1` is the first statement in the file and is mandatory. It is what makes the
+`schema 1` is the first statement in the file and is mandatory. It makes the
 staged answer to sharing possible: a reader can refuse a file it does not understand
 before it has parsed a single step. See *Sharing*, below.
 
@@ -248,7 +248,7 @@ delete where unused !exported kind=function in="src/adapters/"
 ```
 
 **A selector that matches nothing stops the recipe.** Silently doing nothing is the
-failure this design most wants to avoid, because it looks exactly like success. Write
+failure this design most wants to avoid, because it looks like success. Write
 `allow-empty` when a step is genuinely conditional.
 
 ## Steps
@@ -283,7 +283,7 @@ one specific piece of code. It stays positional, which means a recipe containing
 is about a file instead of a policy. A real limit, better stated than papered over.
 
 **`rename` takes a literal.** There are no computed names in v1: no captures, no case
-conversions. A convention-wide rename, `handle_*` to `on_*`, is simply not
+conversions. A convention-wide rename, `handle_*` to `on_*`, is not
 expressible, and that is deliberate. Small expression languages grow, and nobody has
 asked for this one yet.
 
@@ -304,12 +304,12 @@ decided these refusals are acceptable, permitted, visible, and attributable.
 
 ## Transactions
 
-A recipe is **one transaction**. Either every step's edits are written or none are: a
+A recipe is **one transaction**. Either every step's edits are written or none are. A
 half-applied recipe leaves a repository in a state nobody designed, the flag removed
 and its dead branches still there.
 
 Each step sees the workspace **as the previous step left it**, which means re-indexing
-between steps. `Index::build_from_sources` already does exactly this for the cascade
+between steps. `Index::build_from_sources` already does this for the cascade
 machinery: re-resolve against in-memory results instead of writing to disk to read it
 back.
 
@@ -414,7 +414,7 @@ What sharing would require, written down and not answered badly:
 
 - **Compatibility.** What does `schema 2` mean for a `schema 1` recipe, is the reader
   required to run it, refuse it, or upgrade it?
-- **Blast radius.** A shared recipe edits your source. Does it declare the paths it
+- **Blast radius.** A shared recipe edits your source, and does it declare the paths it
   may touch, and is that enforced or advisory?
 - **Provenance.** Who wrote it, what does it hash to, and does the run record that in
   the commit it produces? The repository already insists on provenance for vendored
@@ -432,7 +432,7 @@ None of these are answered here. They are the reason v1 does not fetch.
    I do not know which without watching someone use it.
 
 2. **Statement termination by reserved word.** It gives the clean multi-line `where`
-   with no punctuation, and it survived the adversarial inputs above, a mistyped
+   with no punctuation. It survived the adversarial inputs above, a mistyped
    *predicate* is caught precisely. A mistyped *step name* is the remaining ambiguity:
    `delte where unused` can only be reported as "not a step or directive", because at
    that point the parser genuinely cannot tell a bad step from a bad predicate. A

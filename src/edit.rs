@@ -177,9 +177,9 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
         if edits.is_empty() {
             continue;
         }
-        // A refactoring may create a file, moving a symbol to a new module, or
-        // writing a Helm `_helpers.tpl` that does not exist yet, so a missing
-        // destination is an empty one, not a failure.
+        // A refactoring may create a file, moving a symbol to a new module, or writing a Helm
+        // `_helpers.tpl` that does not exist yet. So a missing destination is an empty one, not
+        // a failure.
         let original = match crate::vfs::read_to_string(path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
@@ -233,17 +233,17 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
 
 /// Write planned outcomes to disk atomically across all files.
 ///
-/// Every file is staged as a temporary file next to its target and only then renamed
-/// into place, so a mid-run failure cannot leave a half-applied refactoring.
+/// Every file is staged as a temporary file next to its target and only then renamed into
+/// place. So a mid-run failure cannot leave a half-applied refactoring.
 pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
-    // Without a filesystem there is nothing to stage against: a write goes into the
-    // same in-memory workspace every read comes from, and a partial write cannot
-    // survive a failure because there is no second copy to be inconsistent with.
+    // Without a filesystem there is nothing to stage against: a write goes into the same
+    // in-memory workspace every read comes from. A partial write cannot survive a failure
+    // because there is no second copy to be inconsistent with.
     //
-    // Asked of the vfs and not of `cfg!(feature = "cli")`. Where the writes go is a
-    // fact about the active backing; the feature only says which backings exist, and
-    // a build with both would stage a temporary file beside a path that is in a
-    // browser's memory and has no directory on disk.
+    // Asked of the vfs and not of `cfg!(feature = "cli")`. Where the writes go is a fact about
+    // the active backing. The feature only says which backings exist, and a build with both
+    // would stage a temporary file beside a path that is in a browser's memory and has no
+    // directory on disk.
     if crate::vfs::is_in_memory() {
         let mut written = 0;
         for outcome in outcomes.iter().filter(|o| o.changed()) {
@@ -259,7 +259,7 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     }
 
     // A build with no filesystem support at all writes through the vfs, which is
-    // exactly what the branch above did.
+    // what the branch above did.
     #[cfg(not(feature = "cli"))]
     {
         let mut written = 0;

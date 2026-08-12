@@ -1,42 +1,41 @@
 //! Go template actions in Helm charts, parsed and not pattern-matched.
 //!
-//! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file
-//! to the YAML grammar, keeping the YAML tree well-formed and every byte offset
-//! indexing the original source, at the cost of hiding everything inside an action
-//! from the YAML queries. This module reads the spans `Parsed::masked_spans`
-//! records and turns each into a structured [`Action`], so `.Values` references,
-//! control flow and named templates are parsed, not pattern-matched.
+//! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file to the YAML
+//! grammar, keeping the YAML tree well-formed and every byte offset indexing the original
+//! source, at the cost of hiding everything inside an action from the YAML queries. This module
+//! reads the spans `Parsed::masked_spans` records and turns each into a structured [`Action`].
+//! So `.Values` references, control flow and named templates are parsed. They are not pattern-matched.
 //!
 //! What it models, following `text/template`:
 //!
-//! - **Pipelines and arguments**: `{{ .Values.x | default "y" | quote }}` and
-//!   `{{ include "c.name" . }}` both name their operands; the lexer sees tokens, so
-//!   a `.Values` path inside a function argument reads the same as a bare one.
-//! - **Control actions**: `if`/`else if`/`else`/`end`, `range`, `with`, `define`,
-//!   `block`, `template`. Each opener pairs with its `end` into a [`Region`], which
-//!   expresses "this key exists only when `.Values.resources` is set" instead of
-//!   marking the whole file render-dependent.
-//! - **Trim markers**: `{{- ` and ` -}}`, using Go's own rule that the hyphen counts
-//!   only when a space character sits between it and the content.
-//! - **Built-in objects**: `.Release`, `.Chart`, `.Capabilities`, `.Files`,
-//!   `.Template` and `.Subcharts`, kept apart from `.Values`, `.Release.Name` names
-//!   no key a values file can hold.
+//! - **Pipelines and arguments**: `{{ .Values.x | default "y" | quote }}` and `{{ include
+//!   "c.name" . }}` both name their operands; the lexer sees tokens, so a `.Values` path inside
+//!   a function argument reads the same as a bare one.
+//! - **Control actions**: `if`/`else if`/`else`/`end`, `range`, `with`, `define`, `block`,
+//!   `template`. Each opener pairs with its `end` into a [`Region`], which expresses "this key
+//!   exists only when `.Values.resources` is set" instead of marking the whole file
+//!   render-dependent.
+//! - **Trim markers**: `{{- ` and ` -}}`, using Go's own rule that the hyphen counts only when
+//!   a space character sits between it and the content.
+//! - **Built-in objects**: `.Release`, `.Chart`, `.Capabilities`, `.Files`, `.Template` and
+//!   `.Subcharts`, kept apart from `.Values`, `.Release.Name` names no key a values file can
+//!   hold.
 //!
-//! What it does not model, it reports. `.field` under a `range` is a field of the
-//! element, and the dot inside a `define` is whatever the caller passed: both resolve
-//! to [`RefRoot::Context`] with no values path. A `with` rebinds the dot to exactly
-//! one value, which does resolve ([`Template::values_path_of`]).
+//! What it does not model, it reports. `.field` under a `range` is a field of the element. The
+//! dot inside a `define` is whatever the caller passed: both resolve to [`RefRoot::Context`]
+//! with no values path. A `with` rebinds the dot to exactly one value, which does resolve
+//! ([`Template::values_path_of`]).
 //!
-//! `index .Values "a-b"` resolves, since that is how a chart reaches a key whose name
-//! is not an identifier. Only literal string arguments resolve; a computed key
-//! (`index .Values $k`) or a nested call reports through [`Action::problems`].
+//! `index .Values "a-b"` resolves, since that is how a chart reaches a key whose name is not an
+//! identifier. Only literal string arguments resolve; a computed key (`index .Values $k`) or a
+//! nested call reports through [`Action::problems`].
 //!
 //! # The command line
 //!
-//! `-f` files and `--set` assignments outrank everything in the chart, and a workspace
-//! scan sees neither. [`SetValue`] parses Helm's `--set` syntax so a caller that knows
-//! the invocation can supply it;
-//! [`crate::analysis::provenance::ValuesInputs`] applies it in precedence order.
+//! `-f` files and `--set` assignments outrank everything in the chart, and a workspace scan
+//! sees neither. [`SetValue`] parses Helm's `--set` syntax so a caller that knows the
+//! invocation can supply it; [`crate::analysis::provenance::ValuesInputs`] applies it in
+//! precedence order.
 
 use crate::parse::Parsed;
 use crate::span::Span;
@@ -101,7 +100,7 @@ pub struct Ref {
     pub path: Vec<String>,
     /// Byte span of the chain in the file the action came from.
     pub span: Span,
-    /// The chain exactly as written.
+    /// The chain as written.
     pub text: String,
 }
 
@@ -198,7 +197,7 @@ impl ActionKind {
 pub struct Action {
     /// Byte span of the whole action, delimiters included, in the original file.
     pub span: Span,
-    /// The action exactly as written.
+    /// The action as written.
     pub text: String,
     pub kind: ActionKind,
     /// `{{-` was written.
@@ -666,7 +665,7 @@ impl Template {
 /// Parse a single action from its text alone.
 ///
 /// The delimiters are optional: text with none is read as the inside of an action,
-/// which is what makes this usable on a fragment. Spans are relative to `text`.
+/// which makes this usable on a fragment. Spans are relative to `text`.
 pub fn parse_action(text: &str) -> Action {
     action_at(text, Span::new(0, text.len()))
 }
@@ -716,16 +715,16 @@ pub struct SetValue {
     pub value: String,
     /// `--set-string`: Helm keeps the value a string instead of coercing it.
     pub string: bool,
-    /// The assignment exactly as written, e.g. `image.tag=1.2`.
+    /// The assignment as written, e.g. `image.tag=1.2`.
     pub text: String,
 }
 
 impl SetValue {
     /// The mapping keys of the path, with list indices dropped.
     ///
-    /// Values-file keys are indexed by their mapping path, a key under a sequence
-    /// is qualified by the sequence's key, with no index, so `ports[0].name` and
-    /// the `name` under `ports:` are the same key path here.
+    /// Values-file keys are indexed by their mapping path, a key under a sequence is qualified
+    /// by the sequence's key, with no index. So `ports[0].name` and the `name` under `ports:`
+    /// are the same key path here.
     pub fn keys(&self) -> Vec<String> {
         self.path
             .iter()
@@ -756,12 +755,11 @@ impl std::fmt::Display for SetValue {
     }
 }
 
-/// Parse one `--set`/`--set-string` argument, which may hold several assignments
-/// separated by unescaped commas, as Helm's `strvals` does.
+/// Parse one `--set`/`--set-string` argument, which may hold several assignments separated by
+/// unescaped commas, as Helm's `strvals` does.
 ///
-/// What is not supported is refused by name and not half-applied: the `{a,b}`
-/// list literal has no single key to compete for, so it is rejected with the
-/// alternative that does work.
+/// What is not supported is refused by name and not half-applied: the `{a,b}` list literal has
+/// no single key to compete for. So it is rejected with the alternative that does work.
 pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
     if argument.trim().is_empty() {
         bail!("`--set` was given nothing to set; it takes key=value");
@@ -864,7 +862,7 @@ fn split_once_unescaped(text: &str, separator: char) -> Option<(String, String)>
 }
 
 /// Resolve Helm's `\.`, `\,`, `\=` and `\\` escapes; anything else keeps its
-/// backslash, which is what Helm does with it.
+/// backslash, which Helm does with it.
 fn unescape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut chars = text.chars();
@@ -965,8 +963,8 @@ fn action_at(source: &str, span: Span) -> Action {
     }
 
     let inner = &source[inner_start..inner_end];
-    // Text with no delimiters at all is a fragment, which is a supported input; an
-    // action that opens and never closes is a broken file, which is not.
+    // Text with no delimiters at all is a fragment, which is a supported input. An action that
+    // opens and never closes is a broken file, which is not.
     let mut problems = Vec::new();
     if text.starts_with("{{") && !text.ends_with("}}") {
         problems.push("action is never closed by `}}`".to_string());
@@ -1346,7 +1344,7 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
 /// tokens at `at` are not an `index` call at all, and are read the ordinary way.
 ///
 /// `index .Values "a-b" "c"` is `.Values.a-b.c`: each literal string argument is
-/// one path segment, which is exactly what Go's `index` does to a map. A computed
+/// one path segment, which Go's `index` does to a map. A computed
 /// key or a parenthesised sub-call names a segment the workspace does not hold, so
 /// it becomes a problem on the action and not a guessed path.
 fn index_call(
@@ -1394,9 +1392,9 @@ fn index_call(
     }
 
     if end == at + 2 {
-        // Nothing literal followed. A chain with a path of its own still names a
-        // key, `index .Values.hosts 0` reads an element of `.Values.hosts`, but a
-        // bare `.Values` indexed by a computed key names nothing at all.
+        // Nothing literal followed. A chain with a path of its own still names a key, `index
+        // .Values.hosts 0` reads an element of `.Values.hosts`. But a bare `.Values` indexed by
+        // a computed key names nothing at all.
         if base_path.is_empty() {
             let key = tokens
                 .get(at + 2)

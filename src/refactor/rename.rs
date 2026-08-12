@@ -68,7 +68,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
 
     // A heading's references are `#anchor` links, and an anchor is a slug of the
     // heading instead of the heading itself. Writing the new name into one would
-    // produce a link to nothing — `## Two Words` renamed to `Three Words` needs
+    // produce a link to nothing, `## Two Words` renamed to `Three Words` needs
     // `#three-words`.
     let reference_text = match symbol.kind {
         SymbolKind::Heading => anchor_slug(new_name),
@@ -108,15 +108,14 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // Same-named references that resolved somewhere else, or nowhere. These are not
-    // ours to touch, but a human should confirm the resolution was right.
+    // Same-named references that resolved somewhere else, or nowhere. These are not ours to
+    // touch, but a human should confirm the resolution was right.
     //
-    // "Somewhere else *weakly*" counts. Java overloads `add(int)` beside
-    // `add(String)`, and a bare `add(1)` is name-only against both — so it was
-    // attributed to whichever was written nearer and then skipped in silence, because
-    // the winner was not the symbol being renamed. The rename went through, the calls
-    // stayed behind, and the report said nothing at all. A weak resolution is a guess
-    // wherever it lands.
+    // "Somewhere else *weakly*" counts. Java overloads `add(int)` beside `add(String)`, and a
+    // bare `add(1)` is name-only against both. So it was attributed to whichever was written
+    // nearer and then skipped in silence, because the winner was not the symbol being renamed.
+    // The rename went through, the calls stayed behind, and the report said nothing at all. A
+    // weak resolution is a guess wherever it lands.
     for reference in index.unresolved_matching(symbol_id) {
         let confidently_elsewhere =
             reference.target.is_some() && reference.confidence.is_safe_to_rewrite();
@@ -136,7 +135,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // Strings and comments: invisible to any analysis, so report every hit — except
+    // Strings and comments: invisible to any analysis, so report every hit, except
     // the ones we are already rewriting. A resolved `class="btn"` lives inside a
     // string literal, and reporting it as unhandled after editing it would be wrong.
     let edited: Vec<(PathBuf, Span)> = edits
@@ -336,15 +335,14 @@ fn is_keyword(name: &str, language: Language) -> bool {
 fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), Refusal> {
     let existing = index.find_symbols(new_name, Some(&symbol.file));
     for other in existing {
-        // A collision matters when the two could be visible at the same point: the
-        // same scope *and* the same enclosing symbol, or either one at file level.
+        // A collision matters when the two could be visible at the same point: the same scope
+        // *and* the same enclosing symbol, or either one at file level.
         //
-        // The container is not decoration. A parameter is written outside the body it
-        // belongs to, so the scope it falls in is the one *around* its function — which
-        // is the file. Every parameter of every function in a file therefore shared a
-        // scope, and renaming one of them to a name used by an unrelated function was
-        // refused as a collision. Measured over the vendored corpora, that was most of
-        // the renames a real file offers.
+        // The container is not decoration. A parameter is written outside the body it belongs
+        // to. So the scope it falls in is the one *around* its function, which is the file.
+        // Every parameter of every function in a file therefore shared a scope. Renaming one of
+        // them to a name used by an unrelated function was refused as a collision. Measured
+        // over the vendored corpora, that was most of the renames a real file offers.
         let same_scope = other.scope == symbol.scope && other.container == symbol.container;
         let either_top_level = other.container.is_none() || symbol.container.is_none();
         if same_scope || (either_top_level && other.kind == symbol.kind) {
@@ -372,7 +370,7 @@ fn textual_sweep(
 ) -> Result<Vec<Warning>> {
     Ok(crate::mentions::of(index, name)?
         .into_iter()
-        // An occurrence this rename already rewrites is handled, not outstanding.
+        // An occurrence this rename already rewrites is handled. It is not outstanding.
         .filter(|m| {
             !already_edited
                 .iter()
@@ -578,7 +576,7 @@ mod tests {
         assert_eq!(textual.len(), 1, "got {textual:?}");
 
         // *Which* one, which is the whole question here. Counting alone passes if the
-        // sweep matched `helperful` and missed the bare `helper` — the behaviour this
+        // sweep matched `helperful` and missed the bare `helper`, the behaviour this
         // test is named for, exactly backwards, with the same number of findings.
         let found = textual[0];
         let column = src

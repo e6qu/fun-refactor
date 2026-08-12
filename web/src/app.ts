@@ -634,14 +634,17 @@ function drawGraph() {
     graphSubject.textContent = "Open a file and click a function.";
     return;
   }
+  // `ok()` serialises the value itself, and a failure is `{ error, refused }`. There is
+  // no envelope around a success: reading one meant every answer looked like a failure.
   const answer = JSON.parse(
     workspace.graph_around(place.path, place.line, place.col, Number(graphDepth.value)),
   );
-  if (!answer.ok) {
-    graphSubject.textContent = answer.error ?? "No symbol at the cursor.";
+  if (answer.error) {
+    graphSubject.textContent =
+      "Put the cursor on a function name, then open this tab.";
     return;
   }
-  const drawing = answer.value as Drawing;
+  const drawing = answer as Drawing;
   const root = drawing.nodes.find((n) => n.id === drawing.root);
   graphSubject.textContent =
     `${root ? root.name : "here"}: ${drawing.nodes.length} function(s), ` +

@@ -1,4 +1,4 @@
-//! Python fact-extraction tests: what `queries/python/facts.scm` actually yields.
+//! Python fact-extraction tests: what `queries/python/facts.scm` yields.
 //!
 //! Every assertion here is against real extractor output. Where the query
 //! language or the extractor cannot express something, the test documents the
@@ -191,9 +191,9 @@ fn a_top_level_function_is_not_a_method() {
 
 #[test]
 fn a_function_nested_in_a_method_inherits_the_class_qualifier() {
-    // Known behaviour, not a claim that it is ideal: the extractor qualifies by
-    // the innermost @container, and only the class is a container, so a closure
-    // inside a method is reported as a method of that class too.
+    // Known behaviour, not a claim that it is ideal: the extractor qualifies by the innermost
+    // @container, and only the class is a container. So a closure inside a method is reported
+    // as a method of that class too.
     let src = "class C:\n    def m(self):\n        def inner():\n            pass\n        return inner\n";
     let f = facts(src);
     let inner = one(&f, "inner");
@@ -429,11 +429,10 @@ fn global_and_nonlocal_names_are_references_not_definitions() {
 
 #[test]
 fn assigning_a_global_inside_a_function_still_looks_like_a_local() {
-    // Known limitation. `global CONST` makes the following assignment write the
-    // module-level name, but deciding that needs to correlate a `global`
-    // statement with an assignment elsewhere in the body, beyond what a
-    // tree-sitter pattern can express. The assignment is therefore reported as a
-    // second, function-scoped definition of the same name.
+    // Known limitation. `global CONST` makes the following assignment write the module-level
+    // name. But deciding that needs to correlate a `global` statement with an assignment
+    // elsewhere in the body, beyond what a tree-sitter pattern can express. The assignment is
+    // therefore reported as a second, function-scoped definition of the same name.
     let src = "CONST = 1\n\n\ndef f():\n    global CONST\n    CONST = 2\n";
     let f = facts(src);
     let defs: Vec<_> = f

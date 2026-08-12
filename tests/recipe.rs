@@ -1,9 +1,8 @@
 //! The recipe language: what it accepts, what it refuses, and what running one does.
 //!
-//! The design argued that a grammar alone is too permissive for these operations,
-//! `rewrite where lang=go` has no transformation, `remove-flag "F" = false where unused`
-//! has a selector it cannot use, so the interesting half of these tests is the
-//! refusals.
+//! The design argued that a grammar alone is too permissive for these operations, `rewrite
+//! where lang=go` has no transformation, `remove-flag "F" = false where unused` has a selector
+//! it cannot use. So the interesting half of these tests is the refusals.
 
 use fun_refactor::recipe::{self, Operation, Options};
 use std::collections::BTreeMap;
@@ -52,7 +51,7 @@ def modern_auth_check(user, token):
 
 #[test]
 fn the_schema_comes_first_and_is_mandatory() {
-    // It is what makes a staged answer to sharing possible: a reader can refuse a file
+    // It makes a staged answer to sharing possible: a reader can refuse a file
     // it does not understand before it has parsed a single step.
     let error = recipe::parse("recipe r { delete where unused }").unwrap_err();
     assert!(error.to_string().contains("expects `schema`"), "{error}");
@@ -171,9 +170,9 @@ fn a_mistyped_predicate_suggests_the_one_that_was_meant() {
 
 #[test]
 fn reserved_words_and_predicates_do_not_overlap() {
-    // The invariant the whole layout-free grammar rests on: a statement ends when a
-    // token appears that can only begin a new one, which is only decidable if no
-    // predicate is spelled like a step keyword.
+    // The invariant the whole layout-free grammar rests on. A statement ends when a token
+    // appears that can only begin a new one, which is only decidable if no predicate is spelled
+    // like a step keyword.
     for predicate in recipe::PREDICATES {
         assert!(
             !recipe::RESERVED.contains(predicate),
@@ -210,9 +209,9 @@ fn run(
 
 #[test]
 fn each_step_sees_what_the_previous_one_left() {
-    // The whole reason a recipe is more than a shell loop. Nothing is `unused` until
-    // the flag has gone, so step two can only match if step one has already happened
-    // *and* the index was rebuilt from its result.
+    // The whole reason a recipe is more than a shell loop. Nothing is `unused` until the flag
+    // has gone. So step two can only match if step one has already happened *and* the index was
+    // rebuilt from its result.
     let (tmp, report, after) = run(
         &[("src/auth.py", AUTH)],
         "schema 1\n\
@@ -261,7 +260,7 @@ fn two_symbols_in_one_file_do_not_produce_conflicting_edits() {
 #[test]
 fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
     // `rewrite`'s selector chooses *files*, and a file with no wrapping `if` in it
-    // simply had nothing to do. Counting that as a refusal made `on-refusal stop`,
+    // had nothing to do. Counting that as a refusal made `on-refusal stop`,
     // the default, abandon the run on the first ordinary file: over one package of
     // helm, three files of five.
     let (_tmp, report, _after) = run(
@@ -376,7 +375,7 @@ fn implements_selects_the_concrete_answers_to_an_abstraction() {
 #[test]
 fn a_selector_that_matches_nothing_stops_the_recipe() {
     // Silently doing nothing is the failure this most wants to avoid, because it looks
-    // exactly like success.
+    // like success.
     let (tmp, sources) = workspace(&[("a.py", AUTH)]);
     let file =
         recipe::parse("schema 1\nrecipe r { delete where name=\"nothing_called_this\" }").unwrap();
@@ -494,8 +493,8 @@ fn no_new_unused_notices_what_a_change_orphaned() {
 
 #[test]
 fn a_refusal_stops_the_run_and_writes_nothing() {
-    // `stop` is the default because a step that refused has not done what the recipe
-    // says it does, and the steps after it were written expecting that it had.
+    // `stop` is the default because a step that refused has not done what the recipe says it
+    // does. The steps after it were written expecting that it had.
     let (tmp, report, after) = run(
         &[(
             "a.py",

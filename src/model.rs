@@ -10,14 +10,14 @@ use std::path::PathBuf;
 
 /// What kind of thing a symbol is.
 ///
-/// Imperative and config kinds share one enum so the index, rename and reference
-/// machinery stay uniform across languages.
+/// Imperative and config kinds share one enum so the index, rename and reference machinery stay
+/// uniform across languages.
 ///
 /// [`SymbolKind::as_str`] is this kind's identifier: it is what `--json` emits, what a
-/// catalogue's `symbol_kind:` matches, and what the tables a person reads print. The
-/// serde spelling has to be the same string, and for three variants it was not, the
-/// tool emitted `"kind": "type"` and could not read it back, which is a round trip
-/// nothing was checking. Three renames below, and a test over every variant.
+/// catalogue's `symbol_kind:` matches, and what the tables a person reads print. The serde
+/// spelling has to be the same string. For three variants it was not, the tool emitted `"kind":
+/// "type"` and could not read it back, which is a round trip nothing was checking. Three
+/// renames below, and a test over every variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SymbolKind {
@@ -85,9 +85,9 @@ impl SymbolKind {
 
     /// The kind with the article that fits it, for a sentence that reads.
     ///
-    /// Nine refusals wrote `is a {kind}`, and four kinds start with a vowel: a YAML
-    /// anchor asked to be a flag was told "it is a anchor". The article belongs to the
-    /// word, so it lives with the word.
+    /// Nine refusals wrote `is a {kind}`, and four kinds start with a vowel. A YAML anchor
+    /// asked to be a flag was told "it is a anchor". The article belongs to the word, so it
+    /// lives with the word.
     pub fn with_article(&self) -> String {
         let word = self.as_str();
         let article = match word.starts_with(['a', 'e', 'i', 'o', 'u']) {
@@ -154,10 +154,10 @@ impl SymbolKind {
 
     /// May one entity of this kind legitimately have many definition sites?
     ///
-    /// A CSS class has no canonical definition: `.btn` and `.btn:hover` are both
-    /// definitions of the same class, and a custom property can be redeclared per
-    /// scope. Renaming such an entity has to rewrite every site, so these kinds are
-    /// not treated as an ambiguous choice between rival definitions.
+    /// A CSS class has no canonical definition: `.btn` and `.btn:hover` are both definitions of
+    /// the same class. A custom property can be redeclared per scope. Renaming such an entity
+    /// has to rewrite every site, so these kinds are not treated as an ambiguous choice between
+    /// rival definitions.
     pub fn allows_multiple_definitions(&self) -> bool {
         matches!(
             self,
@@ -202,12 +202,12 @@ impl Confidence {
 
 /// The confidence of a reference that exists, which only a reference can produce.
 ///
-/// [`crate::refactor::Refusal::TooWeak`] means "this resolved, and not strongly enough
-/// to act on". Five sites raised it where nothing had resolved at all, filling the field
-/// with `Confidence::NameOnly`, so a shell script that sources a computed path was
-/// refused with "resolution is only 'name-only'", sending the reader after a resolution
-/// problem that was not there. Taking this instead of a bare [`Confidence`] means the
-/// variant cannot be built without a reference to take it from.
+/// [`crate::refactor::Refusal::TooWeak`] means "this resolved, and not strongly enough to act
+/// on". Five sites raised it where nothing had resolved at all, filling the field with
+/// `Confidence::NameOnly`. So a shell script that sources a computed path was refused with
+/// "resolution is only 'name-only'", sending the reader after a resolution problem that was not
+/// there. Taking this instead of a bare [`Confidence`] means the variant cannot be built
+/// without a reference to take it from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResolvedConfidence(Confidence);
 
@@ -246,9 +246,9 @@ pub struct Symbol {
     pub container: Option<SymbolId>,
     /// Name of the enclosing type-like construct, used for qualification.
     ///
-    /// Distinct from [`Symbol::container`] because some containers are not symbols
-    /// themselves: a Rust `impl S` block qualifies its methods as `S::m`, but the `S`
-    /// it names is a *reference* to the struct, not a second definition of it.
+    /// Distinct from [`Symbol::container`] because some containers are not symbols themselves:
+    /// a Rust `impl S` block qualifies its methods as `S::m`. But the `S` it names is a
+    /// *reference* to the struct, not a second definition of it.
     pub qualifier: Option<String>,
     /// Whether the symbol is visible outside its file (`pub`, `export`, capitalised in Go…).
     pub exported: bool,
@@ -294,17 +294,17 @@ pub struct Reference {
     ///
     /// `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier: not a
     /// call, and with nothing before it. Left at that it is indistinguishable from a
-    /// call to a free function of the same name, which is what renaming the free
+    /// call to a free function of the same name, which renaming the free
     /// `scope_at` rewrote, turning four method calls into calls to a method that does
     /// not exist. The dot is still in the source even where the syntax is not.
     #[serde(default)]
     pub member_in_macro: bool,
     /// The kind of declaration this reference can name, where the syntax says so.
     ///
-    /// `class="thing"` names a CSS class and `href="#thing"` names an element id. Both
-    /// are string references to `thing`, and without this the nearer declaration won:
-    /// renaming the id `#thing` rewrote `class="thing"` as well, so the element lost the
-    /// class that styled it and gained one that nothing declares.
+    /// `class="thing"` names a CSS class and `href="#thing"` names an element id. Both are
+    /// string references to `thing`, and without this the nearer declaration won: renaming the
+    /// id `#thing` rewrote `class="thing"` as well. So the element lost the class that styled
+    /// it and gained one that nothing declares.
     #[serde(default)]
     pub expects: Option<SymbolKind>,
     /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f`,
@@ -397,8 +397,8 @@ impl ImportedName {
 
 /// GitHub's heading anchor: lowercased, punctuation dropped, spaces hyphenated.
 ///
-/// A Markdown heading is referenced by this, not by its text, so it is what resolution
-/// compares a `#fragment` against and what a rename writes into one.
+/// A Markdown heading is referenced by this. It is not by its text. So it is what resolution compares
+/// a `#fragment` against and what a rename writes into one.
 pub fn anchor_slug(heading: &str) -> String {
     let mut out = String::with_capacity(heading.len());
     for ch in heading.trim().chars() {
@@ -426,10 +426,10 @@ impl Symbol {
 
 /// A reason some of a file's content is missing from the index.
 ///
-/// A gap carries the sentence that reports it, so a new way for extraction to come up
-/// short cannot be added without also deciding what the user is told about it. The
-/// alternative, a bool meaning "trust this file less", has to pick one sentence for
-/// every reason, and grew wrong the moment a second reason existed.
+/// A gap carries the sentence that reports it. So a new way for extraction to come up short
+/// cannot be added without also deciding what the user is told about it. The alternative, a
+/// bool meaning "trust this file less", has to pick one sentence for every reason, and grew
+/// wrong the moment a second reason existed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum FactGap {
     /// The grammar produced ERROR nodes.
@@ -464,8 +464,8 @@ pub struct FileFacts {
     /// facts so a cached entry answers the question without reparsing.
     #[serde(default)]
     pub gaps: Vec<FactGap>,
-    /// Set when the file could not be read at all, so a parallel worker can report
-    /// the failure through its result instead of needing a second channel.
+    /// Set when the file could not be read at all. So a parallel worker can report the failure
+    /// through its result instead of needing a second channel.
     #[serde(skip)]
     pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,
@@ -476,9 +476,9 @@ pub struct FileFacts {
 
 /// The innermost scope containing `offset`.
 ///
-/// A free function over the scopes themselves, because two different types hold the
-/// same `Vec<Scope>`, the per-file facts before resolution and the index's view of a
-/// file after it, and the answer must not depend on which one you happen to have.
+/// A free function over the scopes themselves, because two different types hold the same
+/// `Vec<Scope>`, the per-file facts before resolution and the index's view of a file after it.
+/// The answer must not depend on which one you happen to have.
 pub fn scope_at(scopes: &[Scope], offset: usize) -> Option<ScopeId> {
     scopes
         .iter()

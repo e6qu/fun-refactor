@@ -1,8 +1,8 @@
 //! Substituting a value into an expression, without changing what it means.
 //!
-//! `b = a + 1; return b * 2` inlined to `return a + 1 * 2`, which is `a + 2`. A
-//! refactoring that changes the answer is the one thing this tool must never do, and it
-//! was doing it in every language with an expression grammar.
+//! `b = a + 1; return b * 2` inlined to `return a + 1 * 2`, which is `a + 2`. A refactoring
+//! that changes the answer is the one thing this tool must never do. It was doing it in every
+//! language with an expression grammar.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::SymbolId;

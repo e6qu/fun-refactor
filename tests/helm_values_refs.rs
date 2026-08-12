@@ -1,11 +1,10 @@
 //! `.Values` paths are references, so a values key can be renamed.
 //!
-//! A Helm template action is masked before parsing. That is what keeps the
-//! surrounding YAML parseable and the byte offsets honest, which left everything
-//! inside `{{ … }}` invisible to the index. Provenance parsed the actions separately
-//! and could show which templates read a key, but `fr refs` said zero and a rename of
-//! the key rewrote the values file and nothing else. The paths are now extracted as
-//! references, scoped to their own chart.
+//! A Helm template action is masked before parsing. That is what keeps the surrounding YAML
+//! parseable and the byte offsets honest, which left everything inside `{{ … }}` invisible to
+//! the index. Provenance parsed the actions separately and could show which templates read a
+//! key. But `fr refs` said zero and a rename of the key rewrote the values file and nothing
+//! else. The paths are now extracted as references, scoped to their own chart.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;

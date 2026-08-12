@@ -1,12 +1,12 @@
 //! Where a name appears in prose: comments, strings and template text.
 //!
-//! Nothing resolves these. A comment that names a function is not a call, and no
-//! grammar links the two. They still matter to a reader, so every command that answers
-//! "where does this name appear" reports them, and no command edits them.
+//! Nothing resolves these. A comment that names a function is not a call, and no grammar links
+//! the two. They still matter to a reader, so every command that answers "where does this name
+//! appear" reports them, and no command edits them.
 //!
 //! `fr rename` and `fr delete` warn about them. `fr usages` lists them apart from the
-//! references it resolved. The scan lived twice, once in each refactoring, and `fr
-//! usages` had no copy at all: it answered "4 uses" for a name that appeared six times.
+//! references it resolved. The scan lived twice, once in each refactoring. `fr usages` had no
+//! copy at all: it answered "4 uses" for a name that appeared six times.
 
 use crate::index::Index;
 use crate::parse::{Parsed, Parsers};

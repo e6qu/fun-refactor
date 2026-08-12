@@ -1,11 +1,11 @@
 //! Valid source the grammars cannot read.
 //!
-//! Each of these is accepted by the language's own reference implementation and produces
-//! an error node here. They are recorded and not worked around, and they are pinned
-//! and not merely written down, for two reasons pointing opposite ways: a grammar
-//! upgrade that fixes one should be noticed and the entry retired, and a grammar that
-//! starts reading one of these *without* an error node while still building the wrong
-//! tree would be worse than the error, a wrong answer with nothing to say it is one.
+//! Each of these is accepted by the language's own reference implementation and produces an
+//! error node here. They are recorded and not worked around, and they are pinned and not
+//! written down, for two reasons pointing opposite ways. A grammar upgrade that fixes one
+//! should be noticed and the entry retired. A grammar that starts reading one of these
+//! *without* an error node while still building the wrong tree would be worse than the error, a
+//! wrong answer with nothing to say it is one.
 //!
 //! Every case here has a BUGS.md entry. When a test fails, the entry is what to update.
 
@@ -22,9 +22,9 @@ fn error_nodes(language: Language, source: &str) -> usize {
 
 #[test]
 fn python_cannot_read_a_starred_literal_in_a_bare_tuple() {
-    // B233. `g = 1, *[2]` is ordinary Python. A starred *name* or *call* in the same
-    // position is read fine, so this is narrow, but `g = 1, *"ten"` appears in black's
-    // own test data, which is where it was found.
+    // B233. `g = 1, *[2]` is ordinary Python. A starred *name* or *call* in the same position
+    // is read fine. So this is narrow, but `g = 1, *"ten"` appears in black's own test data,
+    // which is where it was found.
     for source in [
         "g = 1, *[2]\n",
         "g = 1, *(2,)\n",
@@ -84,7 +84,7 @@ fn typescript_cannot_read_an_import_type() {
 
 #[test]
 fn typescript_cannot_read_a_property_called_in_after_another() {
-    // B232. Alone it is fine, which is what makes it worth pinning from both sides.
+    // B232. Alone it is fine, which makes it worth pinning from both sides.
     assert!(
         error_nodes(
             Language::TypeScript,
@@ -198,9 +198,8 @@ fn scss_can_read_these_forms() {
 
 /// B15: `tree-sitter-go` reads `new(…)` as the builtin, which takes a type.
 ///
-/// `new` is a predeclared identifier in Go, not a keyword, so a package may define its
-/// own and call it, and 177 of the 178 Go files that fail to parse in `grafana/grafana`
-/// do exactly that.
+/// `new` is a predeclared identifier in Go. It is not a keyword. So a package may define its own and
+/// call it, and 177 of the 178 Go files that fail to parse in `grafana/grafana` do that.
 #[test]
 fn go_cannot_read_a_call_to_a_user_defined_new() {
     let source = "package main\n\nfunc new(s string) string { return s }\n\n\
@@ -239,22 +238,22 @@ fn zig_cannot_read_a_struct_with_no_members() {
 
 /// Helm masking: what the YAML grammar is given where an action stood.
 ///
-/// Masking replaces `{{ … }}` with bytes of identical length so every offset in the tree
-/// still indexes the original file. Which bytes matters, and a run of spaces is not
-/// always legal YAML. Each case below cost files in `bitnami/charts`, where 48 of 92
-/// stylesheets failed to parse before these; 4 still do, all of them the key-position
-/// case the masking leaves visibly wrong on purpose.
+/// Masking replaces `{{ … }}` with bytes of identical length so every offset in the tree still
+/// indexes the original file. Which bytes matters, and a run of spaces is not always legal
+/// YAML. Each case below cost files in `bitnami/charts`, where 48 of 92 stylesheets failed to
+/// parse before these. 4 still do, all of them the key-position case the masking leaves visibly
+/// wrong on purpose.
 #[test]
 fn helm_masking_produces_parseable_yaml() {
     let cases = [
-        // An action supplying the block indented under it: the value must end up empty,
-        // not a scalar, or the deeper mapping has nothing to attach to.
+        // An action supplying the block indented under it. The value must end up empty, not a
+        // scalar, or the deeper mapping has nothing to attach to.
         (
             "an action supplying a block",
             "metadata:\n  labels: {{- include \"common.labels.standard\" . | nindent 4 }}\n    app: node\n",
         ),
-        // The first line of a block scalar: YAML rejects a leading empty line indented
-        // further than the content, and a masked action is as wide as the action was.
+        // The first line of a block scalar: YAML rejects a leading empty line indented further
+        // than the content. A masked action is as wide as the action was.
         (
             "an action on a block scalar's first line",
             "data:\n  redis.conf: |-\n    {{- $password := include \"redis.password\" . }}\n    user default on nopass\n",

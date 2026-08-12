@@ -1,13 +1,12 @@
 //! JavaScript, which the TypeScript grammar reads and the extension table did not name.
 //!
-//! `.js`, `.mjs`, `.cjs` and `.jsx` mapped to no language, so those files were not
-//! scanned, not parsed, and not in the index, silently, since an unmapped extension is
-//! indistinguishable from a PNG. The cost is not only the missing facts: a CSS class
-//! used from a `.js` file was reported by `fr unused` as having no use at all, which is
-//! the answer `fr delete` acts on.
+//! `.js`, `.mjs`, `.cjs` and `.jsx` mapped to no language. So those files were not scanned, not
+//! parsed, and not in the index, silently, since an unmapped extension is indistinguishable
+//! from a PNG. The cost is not only the missing facts. A CSS class used from a `.js` file was
+//! reported by `fr unused` as having no use at all, which is the answer `fr delete` acts on.
 //!
-//! They map onto `Language::TypeScript` and `Language::Tsx` and not to variants of
-//! their own, so that no `matches!(lang, TypeScript | Tsx)` anywhere can forget them.
+//! They map onto `Language::TypeScript` and `Language::Tsx` and not to variants of their own,
+//! so that no `matches!(lang, TypeScript | Tsx)` anywhere can forget them.
 
 use fun_refactor::extract::Extractor;
 use fun_refactor::index::Index;
@@ -58,7 +57,7 @@ fn a_module_yields_its_definitions_and_uses() {
 #[test]
 fn commonjs_is_read_as_readily_as_modules() {
     // `require` and `module.exports` are not syntax the TypeScript grammar treats
-    // specially. They are calls and assignments, which is exactly what makes them
+    // specially. They are calls and assignments, which makes them
     // readable.
     let f = facts(
         "const fs = require('fs');\nfunction read(p) { return fs.readFileSync(p); }\nmodule.exports = { read };\n",
