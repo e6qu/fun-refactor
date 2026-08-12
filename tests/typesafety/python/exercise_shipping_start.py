@@ -1,5 +1,5 @@
 # expect: passes
-# title: Two calls disagree about the argument order, and both compile
+# title: shipping_cents takes five positional arguments, three of them bool
 """Five positional parameters, three of them bool. Which of the two calls
 is right? The checker accepts both."""
 

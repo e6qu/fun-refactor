@@ -1,5 +1,5 @@
 # expect: passes
-# title: The handler receives a parsed order
+# title: pydantic and zod check the order at the door
 # improves: api_dict
 """The request body is a string. `model_validate_json` turns it into an `Order`
 or raises, once, here. Every function past this point takes an `Order`."""

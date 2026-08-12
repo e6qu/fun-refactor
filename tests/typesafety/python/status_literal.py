@@ -1,5 +1,5 @@
 # expect: passes
-# title: A literal type lists every status that exists
+# title: The Status type lists the three valid values
 # improves: status_string
 """`Literal` lists every value the type allows. The checker rejects the rest."""
 

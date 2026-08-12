@@ -1,5 +1,5 @@
 # expect: passes
-# title: The wrapper forgets the signature it wrapped
+# title: After retry, the checker forgets the signature of fetch
 """`retry` returns `Callable[..., Any]`, so the checker no longer sees the
 parameters or the result of the function inside it."""
 

@@ -1,5 +1,5 @@
 # expect: passes
-# title: NewType makes the wrong unit a type error
+# title: Seconds and Meters become types the checker can tell apart
 # improves: alias_transparent
 """`NewType` makes a distinct type from `int`. The checker tells them apart."""
 

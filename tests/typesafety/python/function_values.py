@@ -1,5 +1,5 @@
 # expect: passes
-# title: The parameter type describes the whole callback
+# title: The key's full type catches the wrong lambda
 # improves: function_any
 """`key` is a function from Order to int, and `Callable` writes that down.
 The compiler checks the lambda against it."""

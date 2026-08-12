@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: Each state carries only its own fields
+# title: Pending and Settled become separate types
 # improves: payment_optional
 """A pending payment has no receipt. As two classes, that is a fact the
 checker knows, and `match` must handle both."""

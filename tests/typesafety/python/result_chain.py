@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: A Result carries the reason a step failed
+# title: quote returns Ok with a price, or Err with the reason
 # improves: nullable_chain
 """The same three steps. `Result` holds a value or a reason, and `and_then`
 chains the steps and stops at the first failure."""

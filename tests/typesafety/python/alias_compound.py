@@ -1,5 +1,5 @@
 # expect: passes
-# title: One alias names the callback shape, and one constant names the number
+# title: RetryPolicy and DEFAULT_BACKOFF give the type and the number names
 # improves: alias_repeated
 """An alias earns its keep on a compound type: the name reads, and one edit
 changes every signature. A `Final` constant does the same for a magic number."""

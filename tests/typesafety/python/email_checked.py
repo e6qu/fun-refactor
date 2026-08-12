@@ -1,5 +1,5 @@
 # expect: passes
-# title: Every reader of the address repeats the check
+# title: Both senders check the address again
 """The address travels as a plain string, so each function checks it again.
 No function can trust that another already did."""
 

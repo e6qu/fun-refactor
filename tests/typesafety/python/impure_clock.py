@@ -1,5 +1,5 @@
 # expect: passes
-# title: The function reads the clock, so every call answers differently
+# title: remaining reads the clock, so its answer changes every second
 """A test cannot pin this function's answer down. The answer depends on when
 the test runs."""
 

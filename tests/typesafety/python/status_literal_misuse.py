@@ -1,5 +1,5 @@
 # expect: fails
-# title: The misspelled status fails to compile
+# title: The misspelled status, rejected by the checker
 # misuse-of: status_literal
 """The same `advance`, called with a misspelled status."""
 

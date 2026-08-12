@@ -1,5 +1,5 @@
 # expect: passes
-# title: The docstring carries a rule the checker never sees
+# title: The docstring says text or binary, and the checker cannot read it
 """The comment says two values are allowed. Nothing enforces it, so any string
 arrives here."""
 

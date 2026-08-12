@@ -1,5 +1,5 @@
 # expect: passes
-# title: Three failures collapse into one None
+# title: first_item returns None for three different reasons
 """Three lookups, each of which can fail. Every failure collapses into the
 same None, so the caller cannot tell what went wrong."""
 

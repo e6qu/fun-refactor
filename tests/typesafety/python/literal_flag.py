@@ -1,5 +1,5 @@
 # expect: passes
-# title: The signature itself allows two modes
+# title: The mode parameter accepts only text or binary
 # improves: flag_documented
 """The docstring used to say "mode is 'text' or 'binary'". `Literal` moves that
 sentence into the signature, where the checker reads it."""

@@ -1,5 +1,5 @@
 # expect: passes
-# title: Any string can claim to be a status
+# title: The typo never matches, and the checker cannot see it
 """One branch has a typo, so it never matches. The checker sees only strings
 and has no way to notice."""
 

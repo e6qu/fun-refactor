@@ -1,5 +1,5 @@
 # expect: passes
-# title: Each kind of account gets its own type
+# title: Tenant and landlord accounts become different types
 # improves: transfer_arguments
 """The transfer example again, with the account numbers as distinct types."""
 

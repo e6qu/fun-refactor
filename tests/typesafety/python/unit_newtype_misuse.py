@@ -1,5 +1,5 @@
 # expect: fails
-# title: Passing meters where seconds belong fails to compile
+# title: Meters where Seconds belong, rejected by the checker
 # misuse-of: unit_newtype
 """The same call as before, with a plain `int` and with `Meters`. Both are rejected."""
 

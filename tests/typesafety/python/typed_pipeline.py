@@ -1,5 +1,5 @@
 # expect: passes
-# title: Each step's output type feeds the next step's input
+# title: parse_order returns an Order, and price accepts only an Order
 # improves: pipeline_dicts
 """Each step's output type is the next step's input type. The chain compiles
 only when they meet, so a step out of order is a compile error."""

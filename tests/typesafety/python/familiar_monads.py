@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: Lists and comprehensions already follow the monad shape
+# title: flatMap and comprehensions are monads you already use
 """A list holds many results, and a comprehension over two lists is the
 list's `and_then`: apply the step to each value, and flatten. `Optional`
 narrowing plays the same role for absence, one step at a time."""

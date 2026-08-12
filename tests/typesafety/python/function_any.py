@@ -1,5 +1,5 @@
 # expect: passes
-# title: An escape-hatch callback slips past the checker
+# title: A loosely typed key accepts the wrong lambda
 """`Callable[..., int]` accepts any arguments at all, so a key function that
 takes the wrong thing still compiles, and fails at run time instead."""
 

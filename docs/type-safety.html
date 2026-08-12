@@ -48,8 +48,9 @@
       whole change between them. Every example is a real file in
       <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">this repository</a>,
       and CI checks each one with <code>mypy --strict</code> and
-      <code>tsc --strict</code>: the improved versions pass, and the calls shown as
-      type errors fail. The page only claims what the checkers confirmed.
+      <code>tsc --strict</code>. Every error on this page is a static one: the checker
+      finds it by scanning the source, before the program runs. The page only claims
+      what the checkers confirmed.
     </p>
     <ol class="ts-toc" id="toc">
       <li><a href="#simple-types">Simple types</a></li>
@@ -74,10 +75,19 @@
       claim is often smaller than what the program means.
     </p>
     <p>
-      A first example: a function that transfers money between two accounts takes both
-      account numbers as strings. Swap the two arguments at a call site and the
-      checker stays silent, because both sides of the swap have the same type. That
-      example waits in section 3, beside its fix.
+      Start with the plainest case. A function formats an order line from a name, a
+      price, a quantity and a gift flag. Written with <code>Any</code>, every call
+      compiles, including the one with all four arguments in the wrong order. Written
+      with <code>str</code>, <code>float</code>, <code>int</code> and
+      <code>bool</code>, the same wrong call fails while the checker scans the file.
+      Nothing has to run.
+    </p>
+    <div class="ts-block" data-block="typed_arguments"></div>
+    <p>
+      Simple types have limits of their own. A function that transfers money between
+      two accounts takes both account numbers as strings, so the checker accepts the
+      call that swaps them: both sides have the same type. That example waits in
+      section 3, beside its fix.
     </p>
     <p>
       A simple type can also be the wrong claim outright. <code>float</code> holds
@@ -86,8 +96,8 @@
     </p>
     <div class="ts-block" data-block="money_cents"></div>
     <p>
-      Both problems share one shape: the type accepts values the program never means.
-      The rest of this page narrows that gap.
+      All three problems share one shape: the type accepts values the program never
+      means. The rest of this page narrows that gap.
     </p>
   </div>
 </section>
@@ -110,22 +120,22 @@
     </p>
     <div class="ts-block" data-block="unit_newtype"></div>
     <p>
-      Aliases still earn their keep where the goal is naming. A compound type reads
-      better under a short name, and one edit changes every signature that uses it.
-      A named constant does the same for a magic number.
+      Aliases are still useful, for naming. A long function type reads better under a
+      short name, and one edit changes every signature that uses it. A named constant
+      does the same for a magic number.
     </p>
     <div class="ts-block" data-block="alias_compound"></div>
     <p>
-      One honest limit. A distinct type guards <em>substitution</em>, and arithmetic
-      escapes it: the sum of two branded numbers comes back as a plain number in both
-      languages. When quantities are added and multiplied, give them a small class
-      with typed operations, and the units survive the arithmetic.
+      There is a limit worth knowing. A distinct type guards <em>substitution</em>,
+      and arithmetic escapes it: the sum of two branded numbers comes back as a plain
+      number in both languages. When quantities are added and multiplied, give them a
+      small class with typed operations, and the units survive the arithmetic.
     </p>
     <div class="ts-block" data-block="unit_arithmetic"></div>
     <p>
-      Strings need the same closing move. A status held as <code>str</code> accepts
-      every string ever typed, including the misspelled ones. A literal type lists
-      the values that exist and rejects the rest.
+      Strings have the same weakness. A status held as <code>str</code> accepts every
+      string ever typed, including the misspelled ones. A literal type lists the
+      values that exist, and the checker rejects the rest during its scan.
     </p>
     <div class="ts-block" data-block="status_literal"></div>
     <p>
@@ -143,11 +153,12 @@
   <div class="shell prose">
     <h2>3. Domain types</h2>
     <p>
-      A domain type carries a fact about the problem the program solves. An email
-      address is a string that a specific check accepted. The pattern has three
-      parts: a distinct type, one function that constructs it, and no other way to
-      get one. Code that holds an <code>EmailAddress</code> can rely on the check
-      without repeating it.
+      Using raw strings and numbers for everything has a name: Scott Wlaschin calls
+      it <em>primitive obsession</em>. The cure is a domain type, a type that carries
+      a fact about the problem the program solves. An email address is a string that
+      a specific check accepted. The pattern has three parts: a distinct type, one
+      function that constructs it, and no other way to get one. Code that holds an
+      <code>EmailAddress</code> can rely on the check without repeating it.
     </p>
     <div class="ts-block" data-block="email_parse"></div>
     <p>
@@ -170,23 +181,40 @@
     <h2>4. Parse, don't validate</h2>
     <p>
       Domain types raise a question: where do they come from? The outside world hands
-      a program strings. Command lines, environment variables, HTTP bodies and files
-      all arrive untyped, and something has to check them.
+      a program text. A command line is a list of strings. An environment variable is
+      a string. An HTTP body is a string of JSON. A file is bytes. None of it carries
+      a type, and something has to turn it into the objects the program works with.
     </p>
     <p>
       <em>Validating</em> checks a value and passes it along unchanged. The knowledge
       that the check happened lives nowhere, so every reader checks again.
       <em>Parsing</em> checks a value and returns a different type. The result proves
       the check ran, the checker carries that proof to every caller, and the inner
-      checks come out. Alexis King named the rule: parse, don't validate. Do it once,
-      at the edge of the system.
+      checks come out. Alexis King named the rule, parse, don't validate, and gave it
+      a slogan worth keeping: write functions on the data you wish you had. Do the
+      parsing once, at the edge of the system.
+    </p>
+    <p>
+      The command line first. <code>argv</code> arrives as strings: the user typed
+      <code>port=8080</code>, and <code>"8080"</code> is text until something makes it
+      a number. The before version keeps the settings as a dictionary of strings, so
+      every function that needs the port converts and re-checks it. The after version
+      has one function, <code>parse_argv</code>, that reads the strings once and
+      returns a <code>Config</code>: a domain object whose <code>port</code> field is
+      an <code>int</code>, guaranteed by its type. A bad command line fails right
+      there, with a message, before the program does any work.
     </p>
     <div class="ts-block" data-block="config_parse_once"></div>
     <p>
-      The network edge works the same way, and both ecosystems have a library for it:
-      pydantic in Python, zod in TypeScript. Declare the shape once. The library
-      checks the input, reports what is wrong, and returns a value whose type the
-      checker knows.
+      The network edge works the same way. A response body is a JSON string;
+      <code>json.loads</code> and <code>JSON.parse</code> turn it into a shapeless
+      dictionary, and the shape still has to be checked. Both ecosystems have a
+      library for that step: pydantic in Python, zod in TypeScript. Declare the shape
+      once, as a schema. The library checks the input against it and returns a real
+      domain object, an <code>Order</code> with typed fields, or an error that names
+      the field and the reason. The handler below never touches the dictionary: it
+      goes from the raw body to an <code>Order</code> in one line, and every function
+      after it works with the object.
     </p>
     <div class="ts-block" data-block="api_parse"></div>
     <p>

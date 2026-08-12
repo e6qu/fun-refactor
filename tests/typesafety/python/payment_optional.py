@@ -1,5 +1,5 @@
 # expect: passes
-# title: One class with optional fields allows impossible states
+# title: This Payment type allows a settled payment with no receipt
 """Two booleans worth of shape in one class. A settled payment without a
 receipt, and a pending payment with one, both construct without complaint."""
 

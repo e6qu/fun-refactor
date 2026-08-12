@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: Integer cents keep every total exact
+# title: Integer cents add up exactly
 # improves: money_float
 """The same prices, held as integer cents. The sum is exact at any scale."""
 

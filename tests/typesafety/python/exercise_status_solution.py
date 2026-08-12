@@ -1,5 +1,5 @@
 # expect: passes
-# title: The literal type catches the typo
+# title: Status as a literal type catches the typo
 # improves: exercise_status_start
 """A closed set and an exhaustive match. The typo from the start is now a
 compile error, and so is a forgotten status."""

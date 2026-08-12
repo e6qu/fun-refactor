@@ -1,5 +1,5 @@
 # expect: passes
-# title: An alias names the intent and enforces nothing
+# title: An alias is only a name: minutes still pass as Seconds
 """`type Seconds = int` documents the parameter. It is still `int` to the checker."""
 
 type Seconds = int

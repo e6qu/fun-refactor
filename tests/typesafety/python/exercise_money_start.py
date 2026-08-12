@@ -1,5 +1,5 @@
 # expect: passes
-# title: The currency guard waits until run time
+# title: add_prices discovers the currency mix at run time
 """An amount is a float and its currency is a string beside it. Mixing
 currencies is caught at run time, at best."""
 

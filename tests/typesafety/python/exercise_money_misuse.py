@@ -1,5 +1,5 @@
 # expect: fails
-# title: Adding dollars to euros fails to compile
+# title: Usd plus Eur, rejected by the checker
 # misuse-of: exercise_money_solution
 """The mixed-currency call from the start, against the typed version."""
 

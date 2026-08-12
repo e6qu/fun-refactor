@@ -1,5 +1,5 @@
 # expect: passes
-# title: The program parses the command line once
+# title: parse_argv checks the port once, and Config carries the proof
 # improves: config_validate_everywhere
 """One function turns the argument strings into a Config, or raises. Past that
 point `port` exists and is a number, and the type says so."""

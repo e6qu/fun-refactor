@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: An IO value describes the call, and run performs it
+# title: IO describes the fetch, retry wraps it, and run performs it
 # improves: inline_retry
 """`IO` wraps a computation without running it. `and_then` composes a larger
 description, `retry` wraps any description in a policy, and nothing touches

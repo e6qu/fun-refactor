@@ -5,7 +5,7 @@
 //   UPDATE_SITE_DATA=1 cargo test --test typesafety
 export const EXAMPLES = {
   "alias_compound": {
-    title: "One alias names the callback shape, and one constant names the number",
+    title: "RetryPolicy and DEFAULT_BACKOFF give the type and the number names",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -15,7 +15,7 @@ export const EXAMPLES = {
     typescript: "// An alias earns its keep on a compound type: the name reads, and one edit\n// changes every signature. A named constant does the same for a magic number.\n\ntype Milliseconds = number;\ntype RetryPolicy = (attempt: number, error: Error) => Milliseconds;\n\nconst DEFAULT_BACKOFF: Milliseconds = 30_000;\n\nexport const fixedBackoff: RetryPolicy = () => DEFAULT_BACKOFF;\n\nexport const doublingBackoff: RetryPolicy = (attempt) => DEFAULT_BACKOFF * 2 ** attempt;\n\nexport function runWithRetries(policy: RetryPolicy): Milliseconds {\n  return policy(1, new Error(\"transient\"));\n}\n",
   },
   "alias_repeated": {
-    title: "The callback shape repeats at every signature",
+    title: "The same function type is written out three times",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -25,7 +25,7 @@ export const EXAMPLES = {
     typescript: "// The same function type is spelled out three times, and the magic number sits\n// bare where a name should be.\n\nexport const fixedBackoff: (attempt: number, error: Error) => number = () => 30_000;\n\nexport const doublingBackoff: (attempt: number, error: Error) => number = (attempt) =>\n  30_000 * 2 ** attempt;\n\nexport function runWithRetries(policy: (attempt: number, error: Error) => number): number {\n  return policy(1, new Error(\"transient\"));\n}\n",
   },
   "alias_transparent": {
-    title: "An alias names the intent and enforces nothing",
+    title: "An alias is only a name: minutes still pass as Seconds",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -34,8 +34,18 @@ export const EXAMPLES = {
     python: "\"\"\"`type Seconds = int` documents the parameter. It is still `int` to the checker.\"\"\"\n\ntype Seconds = int\n\n\ndef wait_before_retry(delay: Seconds) -> str:\n    return f\"sleeping {delay}s\"\n\n\ndef plan() -> str:\n    minutes = 5\n    # The checker accepts this call. The alias and int are the same type,\n    # so nothing points out that these are minutes.\n    return wait_before_retry(minutes)\n",
     typescript: "// `type Seconds = number` documents the parameter. It is still `number` to\n// the checker.\n\ntype Seconds = number;\n\nfunction waitBeforeRetry(delay: Seconds): string {\n  return `sleeping ${delay}s`;\n}\n\nexport function plan(): string {\n  const minutes = 5;\n  // The checker accepts this call. The alias and number are the same type,\n  // so nothing points out that these are minutes.\n  return waitBeforeRetry(minutes);\n}\n",
   },
+  "any_arguments": {
+    title: "With Any, the checker accepts the arguments in any order",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: false,
+    improves: null,
+    misuseOf: null,
+    python: "\"\"\"With `Any`, the checker accepts every call. The mistakes stay hidden until\nthe program runs, and then surface as mangled output or a crash.\"\"\"\n\nfrom typing import Any\n\n\ndef order_line(name: Any, unit_price: Any, quantity: Any, gift: Any) -> Any:\n    note = \" (gift)\" if gift else \"\"\n    return f\"{name} x{quantity} at {unit_price:.2f}{note}\"\n\n\n# Every argument is in the wrong place. The checker accepts this call, and it\n# fails at run time, when the format meets a string.\nline = order_line(3, \"tea\", True, 1.95)\n",
+    typescript: "// With `any`, the checker accepts every call. The mistakes stay hidden until\n// the program runs, and then surface as mangled output or a crash.\n\nfunction orderLine(name: any, unitPrice: any, quantity: any, gift: any): any {\n  const note = gift ? \" (gift)\" : \"\";\n  return `${name} x${quantity} at ${unitPrice.toFixed(2)}${note}`;\n}\n\n// Every argument is in the wrong place. The checker accepts this call, and it\n// fails at run time, when toFixed meets a string.\nexport const line = orderLine(3, \"tea\", true, 1.95);\n",
+  },
   "api_dict": {
-    title: "The handler digs through a dictionary and checks as it goes",
+    title: "The handler checks the order's shape by hand",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -45,7 +55,7 @@ export const EXAMPLES = {
     typescript: "// The body is parsed into a loose record, and the shape checks spread through\n// every function that reads it.\n\nfunction priceCents(order: Record<string, unknown>): number {\n  const quantity = order[\"quantity\"];\n  if (typeof quantity !== \"number\") {\n    throw new Error(\"quantity missing or not a number\");\n  }\n  return quantity * 250;\n}\n\nexport function handle(body: string): number {\n  const order: unknown = JSON.parse(body);\n  if (typeof order !== \"object\" || order === null) {\n    throw new Error(\"not an object\");\n  }\n  return priceCents(order as Record<string, unknown>);\n}\n",
   },
   "api_parse": {
-    title: "The handler receives a parsed order",
+    title: "pydantic and zod check the order at the door",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -55,7 +65,7 @@ export const EXAMPLES = {
     typescript: "// The request body is a string. `Order.parse` turns it into an `Order` or\n// throws, once, here. Every function past this point takes an `Order`.\n\nimport { z } from \"zod\";\n\nconst Order = z.object({\n  id: z.string(),\n  quantity: z.number().int(),\n  giftNote: z.string().optional(),\n});\n\ntype Order = z.infer<typeof Order>;\n\nfunction priceCents(order: Order): number {\n  // No check that `quantity` exists, and no check that it is a number.\n  // The type already says both.\n  return order.quantity * 250;\n}\n\nexport function handle(body: string): number {\n  const order = Order.parse(JSON.parse(body));\n  return priceCents(order);\n}\n",
   },
   "config_parse_once": {
-    title: "The program parses the command line once",
+    title: "parse_argv checks the port once, and Config carries the proof",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -65,7 +75,7 @@ export const EXAMPLES = {
     typescript: "// One function turns the argument strings into a Config, or throws. Past that\n// point `port` exists and is a number, and the type says so.\n\ntype Config = {\n  readonly port: number;\n  readonly verbose: boolean;\n};\n\nexport function parseArgv(argv: string[]): Config {\n  const settings = new Map<string, string>();\n  for (const pair of argv) {\n    const [key, value] = pair.split(\"=\", 2);\n    settings.set(key ?? \"\", value ?? \"\");\n  }\n  const portText = settings.get(\"port\");\n  if (portText === undefined || !/^\\d+$/.test(portText)) {\n    throw new Error(\"port missing or not a number\");\n  }\n  return { port: Number(portText), verbose: settings.get(\"verbose\") === \"true\" };\n}\n\nexport function connect(config: Config): string {\n  return `connecting on ${config.port}`; // no check, and none needed\n}\n\nexport function report(config: Config): string {\n  return `listening on ${config.port}`;\n}\n",
   },
   "config_validate_everywhere": {
-    title: "Every reader re-checks the same setting",
+    title: "connect and report both re-check the port",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -75,7 +85,7 @@ export const EXAMPLES = {
     typescript: "// Settings travel as a map of strings. Every reader re-checks the port,\n// because no reader can trust that another already did.\n\nfunction readArgv(argv: string[]): Map<string, string> {\n  const settings = new Map<string, string>();\n  for (const pair of argv) {\n    const [key, value] = pair.split(\"=\", 2);\n    settings.set(key ?? \"\", value ?? \"\");\n  }\n  return settings;\n}\n\nexport function connect(settings: Map<string, string>): string {\n  const portText = settings.get(\"port\");\n  if (portText === undefined || !/^\\d+$/.test(portText)) {\n    throw new Error(\"port missing or not a number\");\n  }\n  return `connecting on ${Number(portText)}`;\n}\n\nexport function report(settings: Map<string, string>): string {\n  const portText = settings.get(\"port\");\n  if (portText === undefined || !/^\\d+$/.test(portText)) { // the same check, again\n    throw new Error(\"port missing or not a number\");\n  }\n  return `listening on ${Number(portText)}`;\n}\n",
   },
   "email_checked": {
-    title: "Every reader of the address repeats the check",
+    title: "Both senders check the address again",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -85,7 +95,7 @@ export const EXAMPLES = {
     typescript: "// The address travels as a plain string, so each function checks it again.\n// No function can trust that another already did.\n\nfunction looksLikeEmail(raw: string): boolean {\n  return raw.includes(\"@\") && !raw.startsWith(\"@\");\n}\n\nexport function sendReceipt(to: string): string {\n  if (!looksLikeEmail(to)) {\n    throw new Error(\"bad address\");\n  }\n  return `receipt sent to ${to}`;\n}\n\nexport function sendReminder(to: string): string {\n  if (!looksLikeEmail(to)) { // the same check, again\n    throw new Error(\"bad address\");\n  }\n  return `reminder sent to ${to}`;\n}\n",
   },
   "email_parse": {
-    title: "The parse function proves the check ran",
+    title: "An EmailAddress can only come from parse_email",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -95,7 +105,7 @@ export const EXAMPLES = {
     typescript: "// `parseEmail` is the only place an `EmailAddress` is made. Any function that\n// holds one knows the check already ran.\n\ndeclare const emailBrand: unique symbol;\ntype EmailAddress = string & { readonly [emailBrand]: true };\n\nfunction parseEmail(raw: string): EmailAddress | null {\n  const candidate = raw.trim().toLowerCase();\n  if (!candidate.includes(\"@\") || candidate.startsWith(\"@\")) {\n    return null;\n  }\n  return candidate as EmailAddress;\n}\n\nfunction sendReceipt(to: EmailAddress): string {\n  // No validation here, and none needed. The type is the proof.\n  return `receipt sent to ${to}`;\n}\n\nexport function checkout(rawFormField: string): string {\n  const email = parseEmail(rawFormField);\n  if (email === null) {\n    return \"ask the user again\";\n  }\n  return sendReceipt(email);\n}\n",
   },
   "entity_ids": {
-    title: "Each kind of account gets its own type",
+    title: "Tenant and landlord accounts become different types",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -105,7 +115,7 @@ export const EXAMPLES = {
     typescript: "// The transfer example again, with the account numbers as distinct types.\n\ndeclare const tenantBrand: unique symbol;\ndeclare const landlordBrand: unique symbol;\n\ntype TenantAccount = string & { readonly [tenantBrand]: true };\ntype LandlordAccount = string & { readonly [landlordBrand]: true };\n\nfunction transfer(source: TenantAccount, target: LandlordAccount, amountCents: number): string {\n  return `move ${amountCents} from ${source} to ${target}`;\n}\n\nexport function payRent(tenant: TenantAccount, landlord: LandlordAccount): string {\n  return transfer(tenant, landlord, 95_000);\n}\n",
   },
   "entity_ids_misuse": {
-    title: "The swapped transfer fails to compile",
+    title: "The swapped transfer, rejected by the checker",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -115,7 +125,7 @@ export const EXAMPLES = {
     typescript: "// The bug from the first section, written against the typed accounts.\n\ndeclare const tenantBrand: unique symbol;\ndeclare const landlordBrand: unique symbol;\n\ntype TenantAccount = string & { readonly [tenantBrand]: true };\ntype LandlordAccount = string & { readonly [landlordBrand]: true };\n\nfunction transfer(source: TenantAccount, target: LandlordAccount, amountCents: number): string {\n  return `move ${amountCents} from ${source} to ${target}`;\n}\n\nexport function payRent(tenant: TenantAccount, landlord: LandlordAccount): string {\n  // The same swapped arguments. The checker rejects both of them.\n  return transfer(landlord, tenant, 95_000);\n}\n",
   },
   "exercise_lookup_solution": {
-    title: "Each failure carries its reason through the chain",
+    title: "Each lookup returns a Result with its own reason",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -125,7 +135,7 @@ export const EXAMPLES = {
     typescript: "// The same three steps, with a Result. Each failure carries its reason, and\n// `andThen` threads the chain.\n\ntype Ok<T> = { readonly kind: \"ok\"; readonly value: T };\ntype Err = { readonly kind: \"err\"; readonly reason: string };\ntype Result<T> = Ok<T> | Err;\n\nfunction ok<T>(value: T): Result<T> {\n  return { kind: \"ok\", value };\n}\n\nfunction err(reason: string): Result<never> {\n  return { kind: \"err\", reason };\n}\n\nfunction andThen<T, U>(result: Result<T>, step: (value: T) => Result<U>): Result<U> {\n  return result.kind === \"ok\" ? step(result.value) : result;\n}\n\nfunction findUserId(login: string): Result<string> {\n  return login === \"ada\" ? ok(\"u7\") : err(`no user for login ${login}`);\n}\n\nfunction findCart(userId: string): Result<string[]> {\n  return userId === \"u7\" ? ok([\"book\"]) : err(`no cart for ${userId}`);\n}\n\nfunction head(items: string[]): Result<string> {\n  const first = items[0];\n  return first === undefined ? err(\"the cart is empty\") : ok(first);\n}\n\nexport function firstItem(login: string): Result<string> {\n  return andThen(andThen(findUserId(login), findCart), head);\n}\n",
   },
   "exercise_lookup_start": {
-    title: "Three failures collapse into one None",
+    title: "first_item returns None for three different reasons",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -135,7 +145,7 @@ export const EXAMPLES = {
     typescript: "// Three lookups, each of which can fail. Every failure collapses into the\n// same null, so the caller cannot tell what went wrong.\n\nfunction findUserId(login: string): string | null {\n  return login === \"ada\" ? \"u7\" : null;\n}\n\nfunction findCart(userId: string): string[] | null {\n  return userId === \"u7\" ? [\"book\"] : null;\n}\n\nexport function firstItem(login: string): string | null {\n  const userId = findUserId(login);\n  if (userId === null) {\n    return null;\n  }\n  const cart = findCart(userId);\n  if (cart === null) {\n    return null;\n  }\n  return cart[0] ?? null;\n}\n",
   },
   "exercise_money_misuse": {
-    title: "Adding dollars to euros fails to compile",
+    title: "Usd plus Eur, rejected by the checker",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -145,7 +155,7 @@ export const EXAMPLES = {
     typescript: "// The mixed-currency call from the start, against the typed version.\n\ntype Currency = \"USD\" | \"EUR\";\n\ntype Money<C extends Currency> = {\n  readonly currency: C;\n  readonly cents: number;\n};\n\nfunction money<C extends Currency>(currency: C, cents: number): Money<C> {\n  return { currency, cents };\n}\n\nfunction add<C extends Currency>(a: Money<C>, b: Money<NoInfer<C>>): Money<C> {\n  return { currency: a.currency, cents: a.cents + b.cents };\n}\n\nexport function basketTotal(): Money<\"USD\"> {\n  return add(money(\"USD\", 1999), money(\"EUR\", 500)); // error: EUR is not USD\n}\n",
   },
   "exercise_money_solution": {
-    title: "The type system separates the currencies",
+    title: "Usd and Eur become types, and add takes one currency at a time",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -155,7 +165,7 @@ export const EXAMPLES = {
     typescript: "// Money carries its currency in the type, and `add` infers the currency from\n// its first argument. `NoInfer` stops the second argument from widening it.\n// Cents are integers, so the totals are exact.\n\ntype Currency = \"USD\" | \"EUR\";\n\ntype Money<C extends Currency> = {\n  readonly currency: C;\n  readonly cents: number;\n};\n\nfunction money<C extends Currency>(currency: C, cents: number): Money<C> {\n  return { currency, cents };\n}\n\nfunction add<C extends Currency>(a: Money<C>, b: Money<NoInfer<C>>): Money<C> {\n  return { currency: a.currency, cents: a.cents + b.cents };\n}\n\nexport function basketTotal(): Money<\"USD\"> {\n  return add(money(\"USD\", 1999), money(\"USD\", 500));\n}\n",
   },
   "exercise_money_start": {
-    title: "The currency guard waits until run time",
+    title: "add_prices discovers the currency mix at run time",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -165,7 +175,7 @@ export const EXAMPLES = {
     typescript: "// An amount is a number and its currency is a string beside it. Mixing\n// currencies is caught at run time, at best.\n\nfunction addPrices(\n  amountA: number,\n  currencyA: string,\n  amountB: number,\n  currencyB: string,\n): number {\n  if (currencyA !== currencyB) {\n    throw new Error(\"cannot add different currencies\");\n  }\n  return amountA + amountB;\n}\n\nexport function basketTotal(): number {\n  // Throws at run time. Nothing warned about it earlier.\n  return addPrices(19.99, \"USD\", 5.0, \"EUR\");\n}\n",
   },
   "exercise_shipping_solution": {
-    title: "Typed units and named options leave one valid call",
+    title: "Kilograms, Kilometers and a Handling record make the call readable",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -175,7 +185,7 @@ export const EXAMPLES = {
     typescript: "// Units as types, options as named fields. The call now says what every\n// value means, and swapped units are a compile error.\n\ndeclare const kilogramsBrand: unique symbol;\ndeclare const kilometersBrand: unique symbol;\n\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\ntype Kilometers = number & { readonly [kilometersBrand]: true };\n\nfunction kilograms(n: number): Kilograms {\n  return n as Kilograms;\n}\n\nfunction kilometers(n: number): Kilometers {\n  return n as Kilometers;\n}\n\ntype Handling = {\n  readonly express?: boolean;\n  readonly insured?: boolean;\n  readonly fragile?: boolean;\n};\n\nfunction shippingCents(weight: Kilograms, distance: Kilometers, handling: Handling): number {\n  const rate = handling.express ? 3 : 1;\n  const surcharge = (handling.insured ? 25 : 0) + (handling.fragile ? 40 : 0);\n  return Math.trunc(weight * distance * rate) + surcharge;\n}\n\nexport const quote = shippingCents(kilograms(2.5), kilometers(120.0), {\n  express: true,\n  fragile: true,\n});\n",
   },
   "exercise_shipping_start": {
-    title: "Two calls disagree about the argument order, and both compile",
+    title: "shipping_cents takes five positional arguments, three of them bool",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -185,7 +195,7 @@ export const EXAMPLES = {
     typescript: "// Five positional parameters, three of them boolean. Which of the two calls\n// is right? The checker accepts both.\n\nfunction shippingCents(\n  weight: number,\n  distance: number,\n  express: boolean,\n  insured: boolean,\n  fragile: boolean,\n): number {\n  const rate = express ? 3 : 1;\n  const surcharge = (insured ? 25 : 0) + (fragile ? 40 : 0);\n  return Math.trunc(weight * distance * rate) + surcharge;\n}\n\nexport const quoteA = shippingCents(2.5, 120.0, true, false, true);\nexport const quoteB = shippingCents(120.0, 2.5, true, true, false);\n",
   },
   "exercise_status_solution": {
-    title: "The literal type catches the typo",
+    title: "Status as a literal type catches the typo",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -195,7 +205,7 @@ export const EXAMPLES = {
     typescript: "// A closed set and an exhaustive switch. The typo from the start is now a\n// compile error, and so is a forgotten status.\n\ntype Status = \"received\" | \"picked\" | \"shipped\";\n\nfunction assertNever(value: never): never {\n  throw new Error(`unhandled case: ${JSON.stringify(value)}`);\n}\n\nexport function nextAction(status: Status): string {\n  switch (status) {\n    case \"received\":\n      return \"start picking\";\n    case \"picked\":\n      return \"pack the box\";\n    case \"shipped\":\n      return \"send the tracking mail\";\n    default:\n      return assertNever(status);\n  }\n}\n",
   },
   "exercise_status_start": {
-    title: "A typo hides among the status strings",
+    title: "The typo makes a branch unreachable",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -205,7 +215,7 @@ export const EXAMPLES = {
     typescript: "// Order status as plain strings. The first branch has a typo, so it never\n// matches, and the checker has no way to notice.\n\nexport function nextAction(status: string): string {\n  if (status === \"recieved\") { // typo: never matches \"received\"\n    return \"start picking\";\n  }\n  if (status === \"picked\") {\n    return \"pack the box\";\n  }\n  if (status === \"shipped\") {\n    return \"send the tracking mail\";\n  }\n  return \"unknown status\";\n}\n",
   },
   "exercise_user_json_solution": {
-    title: "One parse at the edge retires all three checks",
+    title: "One parse at the door replaces the three checks",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -215,7 +225,7 @@ export const EXAMPLES = {
     typescript: "// One parse at the edge. The three checks are gone, because past the parse\n// the fields exist and have their types.\n\nimport { z } from \"zod\";\n\nconst User = z.object({\n  name: z.string(),\n  age: z.number().int(),\n});\n\ntype User = z.infer<typeof User>;\n\nfunction greeting(user: User): string {\n  return `hello ${user.name}`;\n}\n\nfunction canVote(user: User): boolean {\n  return user.age >= 18;\n}\n\nexport function summary(body: string): string {\n  const user = User.parse(JSON.parse(body));\n  return `${greeting(user)}, can vote: ${canVote(user)}`;\n}\n",
   },
   "exercise_user_json_start": {
-    title: "Three functions re-check the same user dictionary",
+    title: "greeting, can_vote and summary all re-check the user dict",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -225,7 +235,7 @@ export const EXAMPLES = {
     typescript: "// A user arrives as JSON and travels as a loose record. Three functions\n// check it, each in its own way, and none can trust the others.\n\nfunction greeting(user: Record<string, unknown>): string {\n  const name = user[\"name\"];\n  if (typeof name !== \"string\") {\n    throw new Error(\"name missing\");\n  }\n  return `hello ${name}`;\n}\n\nfunction canVote(user: Record<string, unknown>): boolean {\n  const age = user[\"age\"];\n  if (typeof age !== \"number\") {\n    throw new Error(\"age missing\");\n  }\n  return age >= 18;\n}\n\nexport function summary(body: string): string {\n  const user: unknown = JSON.parse(body);\n  if (typeof user !== \"object\" || user === null) {\n    throw new Error(\"not an object\");\n  }\n  return `${greeting(user as Record<string, unknown>)}, can vote: ${canVote(user as Record<string, unknown>)}`;\n}\n",
   },
   "familiar_monads": {
-    title: "Lists and comprehensions already follow the monad shape",
+    title: "flatMap and comprehensions are monads you already use",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -235,7 +245,7 @@ export const EXAMPLES = {
     typescript: "// An array holds many results, and `flatMap` is its `andThen`: apply the step\n// to each value, and flatten. A `Promise` holds a later result, and `then` is\n// its `andThen`. You have been using monads all along.\n\ntype Team = { readonly name: string; readonly logins: readonly string[] };\n\nexport function allLogins(teams: Team[]): string[] {\n  // For each team, a list of logins; flatMap flattens the lists.\n  return teams.flatMap((team) => [...team.logins]);\n}\n\nexport function fetchGreeting(fetchName: (id: number) => Promise<string>): Promise<string> {\n  // `then` chains a step that returns another Promise, and flattens it.\n  return fetchName(7).then((name) => Promise.resolve(`hello ${name}`));\n}\n",
   },
   "flag_documented": {
-    title: "The docstring carries a rule the checker never sees",
+    title: "The docstring says text or binary, and the checker cannot read it",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -245,7 +255,7 @@ export const EXAMPLES = {
     typescript: "// The comment says two values are allowed. Nothing enforces it, so any string\n// arrives here.\n\n/** mode is \"text\" or \"binary\". */\nfunction readLog(path: string, mode: string): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(): number {\n  return readLog(\"app.log\", \"binry\"); // typo: silently reads as binary\n}\n",
   },
   "function_any": {
-    title: "An escape-hatch callback slips past the checker",
+    title: "A loosely typed key accepts the wrong lambda",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -255,7 +265,7 @@ export const EXAMPLES = {
     typescript: "// An `any`-taking callback accepts any arguments at all, so a key function\n// that takes the wrong thing still compiles, and fails at run time instead.\n\ntype Order = { readonly id: string; readonly totalCents: number };\n\nfunction cheapestFirst(orders: Order[], key: (...args: any[]) => number): Order[] {\n  return [...orders].sort((a, b) => key(a) - key(b));\n}\n\nexport function demo(orders: Order[]): Order[] {\n  // The checker accepts this key, and every call of it returns NaN at run\n  // time: an Order has no `[currency]`.\n  return cheapestFirst(orders, (order, currency) => Number(order[currency]));\n}\n",
   },
   "function_values": {
-    title: "The parameter type describes the whole callback",
+    title: "The key's full type catches the wrong lambda",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -265,7 +275,7 @@ export const EXAMPLES = {
     typescript: "// `key` is a function from Order to number, and the parameter type writes\n// that down. The compiler checks the arrow function against it.\n\ntype Order = {\n  readonly id: string;\n  readonly totalCents: number;\n};\n\nfunction cheapestFirst(orders: Order[], key: (order: Order) => number): Order[] {\n  return [...orders].sort((a, b) => key(a) - key(b));\n}\n\nexport function demo(orders: Order[]): Order[] {\n  return cheapestFirst(orders, (order) => order.totalCents);\n}\n",
   },
   "higher_order": {
-    title: "The wrapper keeps the signature it wrapped",
+    title: "After retry, fetch keeps its full signature",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -275,7 +285,7 @@ export const EXAMPLES = {
     typescript: "// `retry` takes a function and returns one with the same parameters and the\n// same result. The type parameters carry the whole signature through.\n\nfunction retry<A extends unknown[], R>(\n  times: number,\n  operation: (...args: A) => R,\n): (...args: A) => R {\n  return (...args: A): R => {\n    let failures = 0;\n    for (;;) {\n      try {\n        return operation(...args);\n      } catch (error) {\n        failures += 1;\n        if (failures >= times) throw error;\n      }\n    }\n  };\n}\n\nfunction fetchPage(url: string, timeout: number): string {\n  return `GET ${url} within ${timeout}s`;\n}\n\nconst patientFetch = retry(3, fetchPage);\nexport const result: string = patientFetch(\"https://example.test\", 10);\n",
   },
   "impure_clock": {
-    title: "The function reads the clock, so every call answers differently",
+    title: "remaining reads the clock, so its answer changes every second",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -285,7 +295,7 @@ export const EXAMPLES = {
     typescript: "// A test cannot pin this function's answer down. The answer depends on when\n// the test runs.\n\nexport function remaining(deadline: number): number {\n  return deadline - Date.now() / 1000;\n}\n",
   },
   "inline_retry": {
-    title: "The retry loop is pasted into the business function",
+    title: "The retry loop lives inside the business function",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -295,7 +305,7 @@ export const EXAMPLES = {
     typescript: "// The connection policy and the business logic share one body. The next\n// function that talks to the network pastes the same loop again.\n\nfunction unreliableFetch(): string {\n  throw new Error(\"try again\");\n}\n\nexport function fetchGreeting(attemptsLeft = 3): string {\n  let failures = 0;\n  for (;;) {\n    try {\n      return unreliableFetch().toUpperCase();\n    } catch (error) {\n      failures += 1;\n      if (failures >= attemptsLeft) throw error;\n    }\n  }\n}\n",
   },
   "io_actions": {
-    title: "An IO value describes the call, and run performs it",
+    title: "IO describes the fetch, retry wraps it, and run performs it",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -305,7 +315,7 @@ export const EXAMPLES = {
     typescript: "// `IO` wraps a computation without running it. `andThen` composes a larger\n// description, `retry` wraps any description in a policy, and nothing touches\n// the network until `run`. The retry logic exists once, as a combinator.\n\ntype IO<T> = { readonly run: () => T };\n\nfunction of<T>(value: T): IO<T> {\n  return { run: () => value };\n}\n\nfunction andThen<T, U>(action: IO<T>, step: (value: T) => IO<U>): IO<U> {\n  return { run: () => step(action.run()).run() };\n}\n\nfunction retry<T>(times: number, action: IO<T>): IO<T> {\n  return {\n    run: () => {\n      let failures = 0;\n      for (;;) {\n        try {\n          return action.run();\n        } catch (error) {\n          failures += 1;\n          if (failures >= times) throw error;\n        }\n      }\n    },\n  };\n}\n\n// A connection that fails twice and then answers, so the retry is observable.\nlet calls = 0;\n\nfunction flakyFetch(): string {\n  calls += 1;\n  if (calls < 3) throw new Error(\"try again\");\n  return \"payload\";\n}\n\nexport const greeting = andThen(retry(3, { run: flakyFetch }), (text) => of(text.toUpperCase()));\n// Nothing has run yet; greeting.run() answers \"PAYLOAD\" on the third call.\n// The Python twin runs these assertions in CI.\n",
   },
   "literal_flag": {
-    title: "The signature itself allows two modes",
+    title: "The mode parameter accepts only text or binary",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -315,7 +325,7 @@ export const EXAMPLES = {
     typescript: "// The docstring used to say \"mode is 'text' or 'binary'\". A literal union moves\n// that sentence into the signature, where the checker reads it.\n\nexport function readLog(path: string, mode: \"text\" | \"binary\"): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(): number {\n  return readLog(\"app.log\", \"binary\");\n}\n",
   },
   "literal_flag_misuse": {
-    title: "A plain string no longer reaches the literal parameter",
+    title: "A variable typed str, rejected at the mode parameter",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -325,7 +335,7 @@ export const EXAMPLES = {
     typescript: "// A value typed `string` could be anything, so the checker refuses to pass it\n// where only two values are allowed. Type the variable as the literal, or pass\n// the value directly.\n\nfunction readLog(path: string, mode: \"text\" | \"binary\"): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(chosen: string): number {\n  return readLog(\"app.log\", chosen); // error: string is wider than the two values\n}\n",
   },
   "logged_steps": {
-    title: "A Logged value carries its own audit trail",
+    title: "Logged pairs each result with the log that produced it",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -335,7 +345,7 @@ export const EXAMPLES = {
     typescript: "// `Logged` pairs a value with the log that produced it. `andThen` runs the\n// next step and concatenates the trails, so the log arrives with the answer,\n// as data. This shape is usually called the Writer monad.\n\ntype Logged<T> = { readonly value: T; readonly log: readonly string[] };\n\nfunction andThen<T, U>(logged: Logged<T>, step: (value: T) => Logged<U>): Logged<U> {\n  const result = step(logged.value);\n  return { value: result.value, log: [...logged.log, ...result.log] };\n}\n\nfunction double(n: number): Logged<number> {\n  return { value: n * 2, log: [`doubled ${n}`] };\n}\n\nfunction addTax(n: number): Logged<number> {\n  return { value: n + Math.floor(n / 10), log: [`taxed ${n}`] };\n}\n\nexport function total(n: number): Logged<number> {\n  return andThen(andThen({ value: n, log: [] }, double), addTax);\n}\n// total(100) is { value: 220, log: [\"doubled 100\", \"taxed 200\"] }.\n// The Python twin runs these assertions in CI.\n",
   },
   "money_cents": {
-    title: "Integer cents keep every total exact",
+    title: "Integer cents add up exactly",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -345,7 +355,7 @@ export const EXAMPLES = {
     typescript: "// The same prices, held as integer cents. The sum is exact at any scale.\n\nfunction totalCents(pricesCents: number[]): number {\n  return pricesCents.reduce((sum, price) => sum + price, 0);\n}\n\n// The same three items.\nexport const sumIsExact = totalCents([10, 10, 10]) === 30; // true\n",
   },
   "money_float": {
-    title: "Float arithmetic rounds the cents",
+    title: "Adding 0.1 three times does not equal 0.3",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -355,7 +365,7 @@ export const EXAMPLES = {
     typescript: "// Ten cents, three times, is thirty cents. The float sum misses it.\n// The Python twin runs this arithmetic in CI; the doubles are the same.\n\nfunction totalPrice(prices: number[]): number {\n  return prices.reduce((sum, price) => sum + price, 0);\n}\n\n// Three items at ten cents each.\nexport const sumIsOff = totalPrice([0.1, 0.1, 0.1]) !== 0.3; // true\n",
   },
   "newtype_arithmetic": {
-    title: "The sum of two NewType numbers comes back as a plain int",
+    title: "Seconds plus Kilograms still compiles, and the sum is a meaningless int",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -365,7 +375,7 @@ export const EXAMPLES = {
     typescript: "// A brand guards substitution and arithmetic walks around it. Both units are\n// numbers underneath, so the checker accepts the sum and the brand is gone.\n\ndeclare const secondsBrand: unique symbol;\ndeclare const kilogramsBrand: unique symbol;\n\ntype Seconds = number & { readonly [secondsBrand]: true };\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\n\nexport function nonsense(duration: Seconds, load: Kilograms): number {\n  // The checker accepts this line. The result means nothing.\n  return duration + load;\n}\n",
   },
   "nullable_chain": {
-    title: "Every failure collapses into the same None",
+    title: "quote returns None for three different reasons",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -375,7 +385,7 @@ export const EXAMPLES = {
     typescript: "// Three steps can each fail. The caller of `quote` receives null and cannot\n// say which step failed, or why.\n\nfunction parseQuantity(text: string): number | null {\n  return /^\\d+$/.test(text) ? Number(text) : null;\n}\n\nfunction checkStock(quantity: number): number | null {\n  return quantity <= 10 ? quantity : null;\n}\n\nexport function quote(text: string): number | null {\n  const quantity = parseQuantity(text);\n  if (quantity === null) {\n    return null;\n  }\n  const inStock = checkStock(quantity);\n  if (inStock === null) {\n    return null;\n  }\n  return inStock * 250;\n}\n",
   },
   "payment_optional": {
-    title: "One class with optional fields allows impossible states",
+    title: "This Payment type allows a settled payment with no receipt",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -385,7 +395,7 @@ export const EXAMPLES = {
     typescript: "// Two booleans worth of shape in one type. A settled payment without a\n// receipt, and a pending payment with one, both construct without complaint.\n\ntype Payment = {\n  readonly requestedAt: string;\n  readonly settled: boolean;\n  readonly receiptId: string | null;\n};\n\nexport const impossibleA: Payment = { requestedAt: \"09:00\", settled: true, receiptId: null };\nexport const impossibleB: Payment = { requestedAt: \"09:00\", settled: false, receiptId: \"r-42\" };\n",
   },
   "payment_states": {
-    title: "Each state carries only its own fields",
+    title: "Pending and Settled become separate types",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -395,7 +405,7 @@ export const EXAMPLES = {
     typescript: "// A pending payment has no receipt. As two members of a discriminated union,\n// that is a fact the checker knows, and `switch` must handle both.\n\ntype Pending = { kind: \"pending\"; requestedAt: string };\ntype Settled = { kind: \"settled\"; requestedAt: string; receiptId: string };\ntype Payment = Pending | Settled;\n\nfunction assertNever(value: never): never {\n  throw new Error(`unhandled case: ${JSON.stringify(value)}`);\n}\n\nexport function describe(payment: Payment): string {\n  switch (payment.kind) {\n    case \"pending\":\n      return `waiting since ${payment.requestedAt}`;\n    case \"settled\":\n      return `settled, receipt ${payment.receiptId}`;\n    default:\n      return assertNever(payment);\n  }\n}\n",
   },
   "payment_states_misuse": {
-    title: "Reading a receipt from a pending payment fails to compile",
+    title: "receipt_id on a Pending payment, rejected by the checker",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -405,7 +415,7 @@ export const EXAMPLES = {
     typescript: "// `receiptId` exists only on `Settled`, and the checker says so.\n\ntype Pending = { kind: \"pending\"; requestedAt: string };\ntype Settled = { kind: \"settled\"; requestedAt: string; receiptId: string };\ntype Payment = Pending | Settled;\n\nexport function receiptOf(payment: Payment): string {\n  return payment.receiptId; // error: Pending has no receiptId\n}\n",
   },
   "pipeline_dicts": {
-    title: "Every step re-checks the dictionary it was handed",
+    title: "Each step re-checks the dict it was handed",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -415,7 +425,7 @@ export const EXAMPLES = {
     typescript: "// The steps pass a loose record along. Each one checks the keys it needs, and\n// a step out of order fails at run time, when it fails at all.\n\nfunction parseOrder(raw: Record<string, unknown>): Record<string, unknown> {\n  const quantityText = raw[\"quantityText\"];\n  if (typeof quantityText !== \"string\") {\n    throw new Error(\"quantityText missing\");\n  }\n  return { item: raw[\"item\"], quantity: Number(quantityText) };\n}\n\nfunction price(order: Record<string, unknown>, unitCents: number): Record<string, unknown> {\n  const quantity = order[\"quantity\"];\n  if (typeof quantity !== \"number\") {\n    throw new Error(\"quantity missing\");\n  }\n  return { item: order[\"item\"], totalCents: quantity * unitCents };\n}\n\nexport function quote(raw: Record<string, unknown>): Record<string, unknown> {\n  return price(parseOrder(raw), 250);\n}\n",
   },
   "printed_steps": {
-    title: "The steps print their trail, so the trail escapes the program",
+    title: "The steps print their log, and the caller cannot read it",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -425,7 +435,7 @@ export const EXAMPLES = {
     typescript: "// Each step logs by printing. The order of lines depends on when the steps\n// run, a test has to capture the console to see them, and a caller can\n// neither inspect the trail nor attach it to the answer.\n\nfunction double(n: number): number {\n  console.log(`doubled ${n}`);\n  return n * 2;\n}\n\nfunction addTax(n: number): number {\n  console.log(`taxed ${n}`);\n  return n + Math.floor(n / 10);\n}\n\nexport function total(n: number): number {\n  return addTax(double(n));\n}\n",
   },
   "pure_clock": {
-    title: "The clock arrives as a parameter, so equal inputs give equal answers",
+    title: "remaining takes now as a parameter, so a test can pin its answer",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -435,7 +445,7 @@ export const EXAMPLES = {
     typescript: "// The function is now a table of facts. A test picks the moment and checks\n// the answer, today and every day after.\n\nexport function remaining(deadline: number, now: number): number {\n  return deadline - now;\n}\n\nexport const checked = remaining(120, 45) === 75; // true, every day\n",
   },
   "result_chain": {
-    title: "A Result carries the reason a step failed",
+    title: "quote returns Ok with a price, or Err with the reason",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: true,
@@ -445,7 +455,7 @@ export const EXAMPLES = {
     typescript: "// The same three steps. `Result` holds a value or a reason, and `andThen`\n// chains the steps and stops at the first failure.\n\ntype Ok<T> = { readonly kind: \"ok\"; readonly value: T };\ntype Err = { readonly kind: \"err\"; readonly reason: string };\ntype Result<T> = Ok<T> | Err;\n\nfunction ok<T>(value: T): Result<T> {\n  return { kind: \"ok\", value };\n}\n\nfunction err(reason: string): Result<never> {\n  return { kind: \"err\", reason };\n}\n\nfunction andThen<T, U>(result: Result<T>, step: (value: T) => Result<U>): Result<U> {\n  return result.kind === \"ok\" ? step(result.value) : result;\n}\n\nfunction parseQuantity(text: string): Result<number> {\n  return /^\\d+$/.test(text) ? ok(Number(text)) : err(`not a number: ${text}`);\n}\n\nfunction checkStock(quantity: number): Result<number> {\n  return quantity <= 10 ? ok(quantity) : err(\"only 10 in stock\");\n}\n\nexport function quote(text: string): Result<number> {\n  return andThen(andThen(parseQuantity(text), checkStock), (q) => ok(q * 250));\n}\n",
   },
   "retry_any": {
-    title: "The wrapper forgets the signature it wrapped",
+    title: "After retry, the checker forgets the signature of fetch",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -455,7 +465,7 @@ export const EXAMPLES = {
     typescript: "// `retry` returns an `any`-shaped function, so the checker no longer sees the\n// parameters or the result of the function inside it.\n\nfunction retry(times: number, operation: (...args: any[]) => any): (...args: any[]) => any {\n  return (...args: any[]) => {\n    let failures = 0;\n    for (;;) {\n      try {\n        return operation(...args);\n      } catch (error) {\n        failures += 1;\n        if (failures >= times) throw error;\n      }\n    }\n  };\n}\n\nfunction fetchPage(url: string, timeout: number): string {\n  return `GET ${url} within ${timeout}s`;\n}\n\nconst patientFetch = retry(3, fetchPage);\n// The checker accepts both of these. The second returns nonsense at run time.\nexport const fine = patientFetch(\"https://example.test\", 10);\nexport const wrong = patientFetch(10, \"https://example.test\");\n",
   },
   "status_literal": {
-    title: "A literal type lists every status that exists",
+    title: "The Status type lists the three valid values",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -465,7 +475,7 @@ export const EXAMPLES = {
     typescript: "// A union of string literals lists every value the type allows. The checker\n// rejects the rest.\n\ntype Status = \"draft\" | \"sent\" | \"paid\";\n\nexport function advance(status: Status): Status {\n  switch (status) {\n    case \"draft\":\n      return \"sent\";\n    case \"sent\":\n      return \"paid\";\n    case \"paid\":\n      return \"paid\";\n  }\n}\n",
   },
   "status_literal_misuse": {
-    title: "The misspelled status fails to compile",
+    title: "The misspelled status, rejected by the checker",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -475,7 +485,7 @@ export const EXAMPLES = {
     typescript: "// The same `advance`, called with a misspelled status.\n\ntype Status = \"draft\" | \"sent\" | \"paid\";\n\nfunction advance(status: Status): Status {\n  switch (status) {\n    case \"draft\":\n      return \"sent\";\n    case \"sent\":\n      return \"paid\";\n    case \"paid\":\n      return \"paid\";\n  }\n}\n\nexport function submit(): Status {\n  return advance(\"snet\"); // error: not one of the three statuses\n}\n",
   },
   "status_string": {
-    title: "Any string can claim to be a status",
+    title: "The typo never matches, and the checker cannot see it",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -494,8 +504,28 @@ export const EXAMPLES = {
     python: "\"\"\"Both parameters are `str`, so swapping them type-checks.\"\"\"\n\n\ndef transfer(from_account: str, to_account: str, amount_cents: int) -> str:\n    return f\"move {amount_cents} from {from_account} to {to_account}\"\n\n\ndef pay_rent(tenant_account: str, landlord_account: str) -> str:\n    # The arguments are in the wrong order. The checker accepts this call,\n    # because both parameters have the same type. The money goes the wrong way.\n    return transfer(landlord_account, tenant_account, 95_000)\n",
     typescript: "// Both parameters are `string`, so swapping them type-checks.\n\nfunction transfer(fromAccount: string, toAccount: string, amountCents: number): string {\n  return `move ${amountCents} from ${fromAccount} to ${toAccount}`;\n}\n\nexport function payRent(tenantAccount: string, landlordAccount: string): string {\n  // The arguments are in the wrong order. The checker accepts this call,\n  // because both parameters have the same type. The money goes the wrong way.\n  return transfer(landlordAccount, tenantAccount, 95_000);\n}\n",
   },
+  "typed_arguments": {
+    title: "With real types, the mixed-up call fails the type check",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: true,
+    improves: "any_arguments",
+    misuseOf: null,
+    python: "\"\"\"Plain `str`, `float`, `int` and `bool` say what each argument is. The\nmisplaced call from before now fails during the type check, before the\nprogram runs at all.\"\"\"\n\n\ndef order_line(name: str, unit_price: float, quantity: int, gift: bool) -> str:\n    note = \" (gift)\" if gift else \"\"\n    return f\"{name} x{quantity} at {unit_price:.2f}{note}\"\n\n\nassert order_line(\"tea\", 1.95, 3, gift=False) == \"tea x3 at 1.95\"\nassert order_line(\"mug\", 8.00, 1, gift=True) == \"mug x1 at 8.00 (gift)\"\n",
+    typescript: "// Plain string, number and boolean say what each argument is. The misplaced\n// call from before now fails during the type check, before the program runs\n// at all.\n\nfunction orderLine(name: string, unitPrice: number, quantity: number, gift: boolean): string {\n  const note = gift ? \" (gift)\" : \"\";\n  return `${name} x${quantity} at ${unitPrice.toFixed(2)}${note}`;\n}\n\nexport const tea = orderLine(\"tea\", 1.95, 3, false); // \"tea x3 at 1.95\"\nexport const mug = orderLine(\"mug\", 8.0, 1, true); // \"mug x1 at 8.00 (gift)\"\n",
+  },
+  "typed_arguments_misuse": {
+    title: "The mixed-up call, rejected by the checker",
+    expectPython: "fails",
+    expectTypescript: "fails",
+    runs: false,
+    improves: null,
+    misuseOf: "typed_arguments",
+    python: "\"\"\"The same wrong call as the Any version. The checker rejects it during its\nscan; nothing has to run to find the mistake.\"\"\"\n\n\ndef order_line(name: str, unit_price: float, quantity: int, gift: bool) -> str:\n    note = \" (gift)\" if gift else \"\"\n    return f\"{name} x{quantity} at {unit_price:.2f}{note}\"\n\n\nline = order_line(3, \"tea\", True, 1.95)  # rejected by the checker\n",
+    typescript: "// The same wrong call as the any version. The checker rejects it during its\n// scan; nothing has to run to find the mistake.\n\nfunction orderLine(name: string, unitPrice: number, quantity: number, gift: boolean): string {\n  const note = gift ? \" (gift)\" : \"\";\n  return `${name} x${quantity} at ${unitPrice.toFixed(2)}${note}`;\n}\n\nexport const line = orderLine(3, \"tea\", true, 1.95); // rejected by the checker\n",
+  },
   "typed_pipeline": {
-    title: "Each step's output type feeds the next step's input",
+    title: "parse_order returns an Order, and price accepts only an Order",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -505,7 +535,7 @@ export const EXAMPLES = {
     typescript: "// Each step's output type is the next step's input type. The chain compiles\n// only when they meet, so a step out of order is a compile error.\n\ntype RawOrder = { readonly item: string; readonly quantityText: string };\ntype Order = { readonly item: string; readonly quantity: number };\ntype Priced = { readonly item: string; readonly totalCents: number };\n\nfunction parseOrder(raw: RawOrder): Order {\n  return { item: raw.item, quantity: Number(raw.quantityText) };\n}\n\nfunction price(order: Order, unitCents: number): Priced {\n  return { item: order.item, totalCents: order.quantity * unitCents };\n}\n\nexport function quote(raw: RawOrder): Priced {\n  return price(parseOrder(raw), 250);\n}\n",
   },
   "unit_arithmetic": {
-    title: "Typed operations carry the unit through the sum",
+    title: "With typed addition, Seconds plus Seconds stays Seconds",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -515,7 +545,7 @@ export const EXAMPLES = {
     typescript: "// A brand stops the wrong substitution, and arithmetic escapes it: `+` on two\n// branded numbers is number + number again, and the brand is gone. TypeScript\n// has no operator overloading, so route sums through typed functions.\n\ndeclare const secondsBrand: unique symbol;\ndeclare const kilogramsBrand: unique symbol;\n\ntype Seconds = number & { readonly [secondsBrand]: true };\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\n\nfunction seconds(n: number): Seconds {\n  return n as Seconds;\n}\n\nfunction kilograms(n: number): Kilograms {\n  return n as Kilograms;\n}\n\nfunction addSeconds(a: Seconds, b: Seconds): Seconds {\n  return (a + b) as Seconds;\n}\n\nfunction addKilograms(a: Kilograms, b: Kilograms): Kilograms {\n  return (a + b) as Kilograms;\n}\n\nexport function totalWait(first: Seconds, second: Seconds): Seconds {\n  return addSeconds(first, second);\n}\n\nexport const load = addKilograms(kilograms(2.5), kilograms(1.5));\n",
   },
   "unit_arithmetic_misuse": {
-    title: "Adding seconds to kilograms fails to compile",
+    title: "Seconds plus Kilograms, rejected by the checker",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -525,7 +555,7 @@ export const EXAMPLES = {
     typescript: "// The sum of two different units means nothing, and now the checker says so.\n\ndeclare const secondsBrand: unique symbol;\ndeclare const kilogramsBrand: unique symbol;\n\ntype Seconds = number & { readonly [secondsBrand]: true };\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\n\nfunction seconds(n: number): Seconds {\n  return n as Seconds;\n}\n\nfunction kilograms(n: number): Kilograms {\n  return n as Kilograms;\n}\n\nfunction addSeconds(a: Seconds, b: Seconds): Seconds {\n  return (a + b) as Seconds;\n}\n\nexport const nonsense = addSeconds(seconds(30), kilograms(4)); // error: Kilograms is not Seconds\n",
   },
   "unit_newtype": {
-    title: "NewType makes the wrong unit a type error",
+    title: "Seconds and Meters become types the checker can tell apart",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
@@ -535,7 +565,7 @@ export const EXAMPLES = {
     typescript: "// A brand makes a distinct type from `number`. The checker tells them apart.\n\ndeclare const secondsBrand: unique symbol;\n\ntype Seconds = number & { readonly [secondsBrand]: true };\n\nfunction seconds(n: number): Seconds {\n  return n as Seconds;\n}\n\nfunction waitBeforeRetry(delay: Seconds): string {\n  return `sleeping ${delay}s`;\n}\n\nexport function plan(): string {\n  const timeout = seconds(30);\n  return waitBeforeRetry(timeout);\n}\n",
   },
   "unit_newtype_misuse": {
-    title: "Passing meters where seconds belong fails to compile",
+    title: "Meters where Seconds belong, rejected by the checker",
     expectPython: "fails",
     expectTypescript: "fails",
     runs: false,
@@ -625,6 +655,10 @@ export const DIFFS = {
   "status_literal": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,10 +1,15 @@\n-\"\"\"One branch has a typo, so it never matches. The checker sees only strings\n-and has no way to notice.\"\"\"\n+\"\"\"`Literal` lists every value the type allows. The checker rejects the rest.\"\"\"\n \n+from typing import Literal\n \n-def advance(status: str) -> str:\n-    if status == \"darft\":  # typo: never matches \"draft\"\n-        return \"sent\"\n-    if status == \"sent\":\n-        return \"paid\"\n-    return status\n+type Status = Literal[\"draft\", \"sent\", \"paid\"]\n+\n+\n+def advance(status: Status) -> Status:\n+    match status:\n+        case \"draft\":\n+            return \"sent\"\n+        case \"sent\":\n+            return \"paid\"\n+        case \"paid\":\n+            return \"paid\"\n",
     typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,12 +1,15 @@\n-// One branch has a typo, so it never matches. The checker sees only strings\n-// and has no way to notice.\n+// A union of string literals lists every value the type allows. The checker\n+// rejects the rest.\n \n-export function advance(status: string): string {\n-  if (status === \"darft\") { // typo: never matches \"draft\"\n-    return \"sent\";\n-  }\n-  if (status === \"sent\") {\n-    return \"paid\";\n+type Status = \"draft\" | \"sent\" | \"paid\";\n+\n+export function advance(status: Status): Status {\n+  switch (status) {\n+    case \"draft\":\n+      return \"sent\";\n+    case \"sent\":\n+      return \"paid\";\n+    case \"paid\":\n+      return \"paid\";\n   }\n-  return status;\n }\n",
+  },
+  "typed_arguments": {
+    python: "--- a/example.py\n+++ b/example.py\n@@ -1,14 +1,12 @@\n-\"\"\"With `Any`, the checker accepts every call. The mistakes stay hidden until\n-the program runs, and then surface as mangled output or a crash.\"\"\"\n+\"\"\"Plain `str`, `float`, `int` and `bool` say what each argument is. The\n+misplaced call from before now fails during the type check, before the\n+program runs at all.\"\"\"\n \n-from typing import Any\n \n-\n-def order_line(name: Any, unit_price: Any, quantity: Any, gift: Any) -> Any:\n+def order_line(name: str, unit_price: float, quantity: int, gift: bool) -> str:\n     note = \" (gift)\" if gift else \"\"\n     return f\"{name} x{quantity} at {unit_price:.2f}{note}\"\n \n \n-# Every argument is in the wrong place. The checker accepts this call, and it\n-# fails at run time, when the format meets a string.\n-line = order_line(3, \"tea\", True, 1.95)\n+assert order_line(\"tea\", 1.95, 3, gift=False) == \"tea x3 at 1.95\"\n+assert order_line(\"mug\", 8.00, 1, gift=True) == \"mug x1 at 8.00 (gift)\"\n",
+    typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,11 +1,11 @@\n-// With `any`, the checker accepts every call. The mistakes stay hidden until\n-// the program runs, and then surface as mangled output or a crash.\n+// Plain string, number and boolean say what each argument is. The misplaced\n+// call from before now fails during the type check, before the program runs\n+// at all.\n \n-function orderLine(name: any, unitPrice: any, quantity: any, gift: any): any {\n+function orderLine(name: string, unitPrice: number, quantity: number, gift: boolean): string {\n   const note = gift ? \" (gift)\" : \"\";\n   return `${name} x${quantity} at ${unitPrice.toFixed(2)}${note}`;\n }\n \n-// Every argument is in the wrong place. The checker accepts this call, and it\n-// fails at run time, when toFixed meets a string.\n-export const line = orderLine(3, \"tea\", true, 1.95);\n+export const tea = orderLine(\"tea\", 1.95, 3, false); // \"tea x3 at 1.95\"\n+export const mug = orderLine(\"mug\", 8.0, 1, true); // \"mug x1 at 8.00 (gift)\"\n",
   },
   "typed_pipeline": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,20 +1,34 @@\n-\"\"\"The steps pass a dict along. Each one checks the keys it needs, and a step\n-out of order fails at run time, when it fails at all.\"\"\"\n+\"\"\"Each step's output type is the next step's input type. The chain compiles\n+only when they meet, so a step out of order is a compile error.\"\"\"\n+\n+from dataclasses import dataclass\n+\n+\n+@dataclass(frozen=True)\n+class RawOrder:\n+    item: str\n+    quantity_text: str\n+\n+\n+@dataclass(frozen=True)\n+class Order:\n+    item: str\n+    quantity: int\n+\n+\n+@dataclass(frozen=True)\n+class Priced:\n+    item: str\n+    total_cents: int\n \n \n-def parse_order(raw: dict[str, object]) -> dict[str, object]:\n-    quantity_text = raw.get(\"quantity_text\")\n-    if not isinstance(quantity_text, str):\n-        raise ValueError(\"quantity_text missing\")\n-    return {\"item\": raw.get(\"item\"), \"quantity\": int(quantity_text)}\n+def parse_order(raw: RawOrder) -> Order:\n+    return Order(item=raw.item, quantity=int(raw.quantity_text))\n \n \n-def price(order: dict[str, object], unit_cents: int) -> dict[str, object]:\n-    quantity = order.get(\"quantity\")\n-    if not isinstance(quantity, int):\n-        raise ValueError(\"quantity missing\")\n-    return {\"item\": order.get(\"item\"), \"total_cents\": quantity * unit_cents}\n+def price(order: Order, unit_cents: int) -> Priced:\n+    return Priced(item=order.item, total_cents=order.quantity * unit_cents)\n \n \n-def quote(raw: dict[str, object]) -> dict[str, object]:\n+def quote(raw: RawOrder) -> Priced:\n     return price(parse_order(raw), unit_cents=250)\n",

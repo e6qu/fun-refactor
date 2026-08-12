@@ -1,5 +1,5 @@
 # expect: fails
-# title: Reading a receipt from a pending payment fails to compile
+# title: receipt_id on a Pending payment, rejected by the checker
 # misuse-of: payment_states
 """`receipt_id` exists only on `Settled`, and the checker says so."""
 

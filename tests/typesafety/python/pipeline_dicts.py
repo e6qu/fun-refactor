@@ -1,5 +1,5 @@
 # expect: passes
-# title: Every step re-checks the dictionary it was handed
+# title: Each step re-checks the dict it was handed
 """The steps pass a dict along. Each one checks the keys it needs, and a step
 out of order fails at run time, when it fails at all."""
 

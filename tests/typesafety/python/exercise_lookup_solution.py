@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: Each failure carries its reason through the chain
+# title: Each lookup returns a Result with its own reason
 # improves: exercise_lookup_start
 """The same three steps, with a Result. Each failure carries its reason, and
 `and_then` threads the chain."""

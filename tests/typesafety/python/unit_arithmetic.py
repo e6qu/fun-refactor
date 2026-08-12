@@ -1,5 +1,5 @@
 # expect: passes
-# title: Typed operations carry the unit through the sum
+# title: With typed addition, Seconds plus Seconds stays Seconds
 # improves: newtype_arithmetic
 """`NewType` stops the wrong substitution, and arithmetic escapes it: adding two
 of them is int + int again. A small class with a typed `__add__` keeps the unit

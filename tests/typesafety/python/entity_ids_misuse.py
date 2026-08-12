@@ -1,5 +1,5 @@
 # expect: fails
-# title: The swapped transfer fails to compile
+# title: The swapped transfer, rejected by the checker
 # misuse-of: entity_ids
 """The bug from the first section, written against the typed accounts."""
 

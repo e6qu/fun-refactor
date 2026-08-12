@@ -1,5 +1,5 @@
 # expect: passes
-# title: Three functions re-check the same user dictionary
+# title: greeting, can_vote and summary all re-check the user dict
 """A user arrives as JSON and travels as a dict. Three functions check it,
 each in its own way, and none can trust the others."""
 

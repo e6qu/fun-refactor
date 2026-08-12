@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: A Logged value carries its own audit trail
+# title: Logged pairs each result with the log that produced it
 # improves: printed_steps
 """`Logged` pairs a value with the log that produced it. `and_then` runs the
 next step and concatenates the trails, so the log arrives with the answer,

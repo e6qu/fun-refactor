@@ -1,5 +1,5 @@
 # expect: passes
-# title: The sum of two NewType numbers comes back as a plain int
+# title: Seconds plus Kilograms still compiles, and the sum is a meaningless int
 """`NewType` guards substitution and arithmetic walks around it. Both units
 are ints underneath, so the checker accepts the sum and the unit is gone."""
 
