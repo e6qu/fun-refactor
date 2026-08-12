@@ -310,6 +310,9 @@ check("graph_around", () => {
   for (const n of g.nodes) {
     assert(typeof n.name === "string" && n.name.length > 0, "a node has no name");
     assert(typeof n.file === "string" && typeof n.line === "number", "a node has no place");
+    // The column too: clicking a node put the cursor at column 1, on the indentation,
+    // and the status bar answered "nothing the index knows at this position".
+    assert(typeof n.col === "number" && n.col > 0, `a node has no column: ${n.name}`);
     assert(Math.abs(n.rank) <= 2, `a node sits past the depth asked for: ${n.rank}`);
   }
   const known = new Set(g.nodes.map((n) => n.id));

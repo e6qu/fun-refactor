@@ -378,6 +378,40 @@ fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
 }
 
 #[test]
+fn every_symbol_in_a_neighbourhood_can_be_pointed_at() {
+    // The browser opens a file at the node's position when a reader clicks it. The
+    // position has to be the name: a click that lands on the indentation puts the cursor
+    // where the tool knows nothing, and every action then refuses.
+    let (_root, index) = workspace();
+    let graph = CallGraph::build(index);
+    let start = index
+        .symbols
+        .iter()
+        .find(|s| !graph.callers(s.id).is_empty())
+        .expect("a called function")
+        .id;
+
+    let near = graph.neighbourhood(start, 2);
+    assert!(!near.nodes.is_empty());
+    for (id, _) in &near.nodes {
+        let symbol = index.symbol(*id).expect("a node the index holds");
+        let source = std::fs::read_to_string(&symbol.file).expect("the file");
+        let at =
+            fun_refactor::span::LineIndex::new(&source).line_col(symbol.name_span.start, &source);
+        assert!(at.col > 0, "{} has no column", symbol.name);
+        // And the position names the symbol, so the editor lands on it.
+        let found = index.definition_at(&symbol.file, symbol.name_span.start);
+        assert!(
+            found.is_some(),
+            "{} at {}:{} names nothing the index knows",
+            symbol.name,
+            at.line,
+            at.col
+        );
+    }
+}
+
+#[test]
 fn a_symbol_nothing_calls_draws_only_itself() {
     let (_root, index) = workspace();
     let graph = CallGraph::build(index);

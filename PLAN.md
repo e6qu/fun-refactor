@@ -713,8 +713,12 @@ Two things it could not do:
   with three counts. `CallGraph::neighbourhood` returns the functions within a few hops
   of one symbol and the edges between them. `graph_around` serialises that for the
   browser. The editor window has tabs now, so the drawing sits beside the source. A
-  click on a node opens the file at that line. The walk lives in the analysis and not in
+  click on a node opens the file at that name. The walk lives in the analysis and not in
   the binding, so a test reaches it without a browser.
+
+  Opening the published site and clicking a node found the next one: a node carried its
+  line and no column, so the cursor landed on the indentation and the status bar answered
+  "nothing the index knows at this position". Recorded as B352.
 
 * **Trace a value in a config language.** `fr flow` picks between dataflow and
   provenance for the caller. The browser bindings called dataflow whichever the language

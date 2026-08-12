@@ -652,7 +652,7 @@ function drawGraph() {
     (drawing.more ? ", and more beyond this depth" : "");
   graphCanvas.appendChild(draw(drawing, (node: GraphNode) => {
     showView("source");
-    jumpTo({ path: node.file, line: node.line, col: 1 });
+    jumpTo({ path: node.file, line: node.line, col: node.col });
   }));
 }
 

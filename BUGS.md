@@ -182,6 +182,16 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
+- [x] B352: **clicking a node in the call graph landed on the indentation.** The drawing
+  carried each function's line and no column, so the click put the cursor at column 1. The
+  status bar then read "nothing the index knows at this position", and every action
+  refused. `graph_around` carries the column of the name now. Found by clicking one.
+
+- [x] B351: **the fixed-defect archive was 31,000 words.** 333 entries, median 85 words,
+  for defects closed and gone. An entry needs its symptom and its fix, and git holds the
+  rest. Entries below B300 keep the symptom line alone, and the file is 9,000 words now.
+  This entry was written once and lost before the commit, which is its own small lesson.
+
 - [x] B350: **the call graph tab never drew anything.** So `graph_around` has two checks
   there now: the shape of an answer, and the shape of a refusal.
 
