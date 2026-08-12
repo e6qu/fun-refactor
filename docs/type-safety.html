@@ -103,6 +103,13 @@
     </p>
     <div class="ts-example" data-example="alias_transparent"></div>
     <p>
+      What an alias is for is naming. On a compound type, the name reads better than
+      the shape it stands for, and one edit changes every signature that uses it. The
+      same goes for a magic number: a named constant with a typed unit tells the
+      reader what <code>30_000</code> never could.
+    </p>
+    <div class="ts-example" data-example="alias_compound"></div>
+    <p>
       To make the checker enforce the name, the type has to be distinct. Python spells
       that <code>NewType</code>. TypeScript has no built-in spelling, and the common
       idiom is a <em>brand</em>: an intersection with a property that exists only in
@@ -119,12 +126,32 @@
     </p>
     <div class="ts-example" data-example="unit_newtype_misuse"></div>
     <p>
+      One honest limit: distinct types stop the wrong <em>substitution</em>, and
+      arithmetic escapes them. The sum of two branded numbers is a plain number
+      again, in both languages. When quantities are added and multiplied, give them
+      a small class with typed operations, and the units survive the arithmetic.
+    </p>
+    <div class="ts-example" data-example="unit_arithmetic"></div>
+    <div class="ts-example" data-example="unit_arithmetic_misuse"></div>
+    <p>
       Strings have the same problem in another costume. A status written as
       <code>str</code> accepts every string ever typed, including the misspelled
       ones. A literal type lists the values that exist.
     </p>
     <div class="ts-example" data-example="status_literal"></div>
     <div class="ts-example" data-example="status_literal_misuse"></div>
+    <p>
+      Literals also belong in parameters. A flag documented as "either
+      <code>text</code> or <code>binary</code>" can say so in its type, and the
+      sentence moves from the docstring into the checker.
+    </p>
+    <div class="ts-example" data-example="literal_flag"></div>
+    <p>
+      The rejection has a second edge worth knowing: a variable typed as a plain
+      string no longer reaches a literal parameter, because it could hold anything.
+      Type the variable with the literal, or pass the value directly.
+    </p>
+    <div class="ts-example" data-example="literal_flag_misuse"></div>
   </div>
 </section>
 

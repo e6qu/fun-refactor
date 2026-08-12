@@ -4,6 +4,14 @@
 // writes this file holds each one to its declared verdict. Regenerate with:
 //   UPDATE_SITE_DATA=1 cargo test --test typesafety
 export const EXAMPLES = {
+  "alias_compound": {
+    title: "An alias that names a shape, and a constant that names a number",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: false,
+    python: "\"\"\"An alias earns its keep on a compound type: the name reads, and one edit\nchanges every signature. A `Final` constant does the same for a magic number.\"\"\"\n\nfrom collections.abc import Callable\nfrom typing import Final\n\ntype Milliseconds = int\ntype RetryPolicy = Callable[[int, Exception], Milliseconds]\n\nDEFAULT_BACKOFF: Final[Milliseconds] = 30_000\n\n\ndef fixed_backoff(attempt: int, error: Exception) -> Milliseconds:\n    return DEFAULT_BACKOFF\n\n\ndef doubling_backoff(attempt: int, error: Exception) -> Milliseconds:\n    return DEFAULT_BACKOFF * (1 << attempt)\n\n\ndef run_with_retries(policy: RetryPolicy) -> Milliseconds:\n    return policy(1, ValueError(\"transient\"))\n",
+    typescript: "// An alias earns its keep on a compound type: the name reads, and one edit\n// changes every signature. A named constant does the same for a magic number.\n\ntype Milliseconds = number;\ntype RetryPolicy = (attempt: number, error: Error) => Milliseconds;\n\nconst DEFAULT_BACKOFF: Milliseconds = 30_000;\n\nexport const fixedBackoff: RetryPolicy = () => DEFAULT_BACKOFF;\n\nexport const doublingBackoff: RetryPolicy = (attempt) => DEFAULT_BACKOFF * 2 ** attempt;\n\nexport function runWithRetries(policy: RetryPolicy): Milliseconds {\n  return policy(1, new Error(\"transient\"));\n}\n",
+  },
   "alias_transparent": {
     title: "An alias names the intent and enforces nothing",
     expectPython: "passes",
@@ -164,6 +172,22 @@ export const EXAMPLES = {
     python: "\"\"\"`retry` takes a function and returns one with the same parameters and the\nsame result. The type parameters carry the whole signature through.\"\"\"\n\nfrom collections.abc import Callable\n\n\ndef retry[**P, R](times: int, operation: Callable[P, R]) -> Callable[P, R]:\n    def attempt(*args: P.args, **kwargs: P.kwargs) -> R:\n        failures = 0\n        while True:\n            try:\n                return operation(*args, **kwargs)\n            except ConnectionError:\n                failures += 1\n                if failures >= times:\n                    raise\n    return attempt\n\n\ndef fetch(url: str, timeout: int) -> str:\n    return f\"GET {url} within {timeout}s\"\n\n\npatient_fetch = retry(3, fetch)\nresult: str = patient_fetch(\"https://example.test\", 10)\n",
     typescript: "// `retry` takes a function and returns one with the same parameters and the\n// same result. The type parameters carry the whole signature through.\n\nfunction retry<A extends unknown[], R>(\n  times: number,\n  operation: (...args: A) => R,\n): (...args: A) => R {\n  return (...args: A): R => {\n    let failures = 0;\n    for (;;) {\n      try {\n        return operation(...args);\n      } catch (error) {\n        failures += 1;\n        if (failures >= times) throw error;\n      }\n    }\n  };\n}\n\nfunction fetchPage(url: string, timeout: number): string {\n  return `GET ${url} within ${timeout}s`;\n}\n\nconst patientFetch = retry(3, fetchPage);\nexport const result: string = patientFetch(\"https://example.test\", 10);\n",
   },
+  "literal_flag": {
+    title: "A parameter that takes two values, said in the type",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: false,
+    python: "\"\"\"The docstring used to say \"mode is 'text' or 'binary'\". `Literal` moves that\nsentence into the signature, where the checker reads it.\"\"\"\n\nfrom typing import Literal\n\n\ndef read_log(path: str, mode: Literal[\"text\", \"binary\"]) -> int:\n    record_size = 1 if mode == \"text\" else 8\n    return len(path) * record_size\n\n\ndef tail() -> int:\n    return read_log(\"app.log\", \"binary\")\n",
+    typescript: "// The docstring used to say \"mode is 'text' or 'binary'\". A literal union moves\n// that sentence into the signature, where the checker reads it.\n\nexport function readLog(path: string, mode: \"text\" | \"binary\"): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(): number {\n  return readLog(\"app.log\", \"binary\");\n}\n",
+  },
+  "literal_flag_misuse": {
+    title: "A plain string no longer reaches a literal parameter",
+    expectPython: "fails",
+    expectTypescript: "fails",
+    runs: false,
+    python: "\"\"\"A value typed `str` could be anything, so the checker refuses to pass it\nwhere only two values are allowed. Type the variable as the literal, or pass\nthe value directly.\"\"\"\n\nfrom typing import Literal\n\n\ndef read_log(path: str, mode: Literal[\"text\", \"binary\"]) -> int:\n    record_size = 1 if mode == \"text\" else 8\n    return len(path) * record_size\n\n\ndef tail(chosen: str) -> int:\n    return read_log(\"app.log\", chosen)  # error: str is wider than the two values\n",
+    typescript: "// A value typed `string` could be anything, so the checker refuses to pass it\n// where only two values are allowed. Type the variable as the literal, or pass\n// the value directly.\n\nfunction readLog(path: string, mode: \"text\" | \"binary\"): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(chosen: string): number {\n  return readLog(\"app.log\", chosen); // error: string is wider than the two values\n}\n",
+  },
   "money_float": {
     title: "A type that cannot hold the values you meant",
     expectPython: "passes",
@@ -243,6 +267,22 @@ export const EXAMPLES = {
     runs: false,
     python: "\"\"\"Each step's output type is the next step's input type. The chain compiles\nonly when they meet, so a step out of order is a compile error.\"\"\"\n\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass RawOrder:\n    item: str\n    quantity_text: str\n\n\n@dataclass(frozen=True)\nclass Order:\n    item: str\n    quantity: int\n\n\n@dataclass(frozen=True)\nclass Priced:\n    item: str\n    total_cents: int\n\n\ndef parse_order(raw: RawOrder) -> Order:\n    return Order(item=raw.item, quantity=int(raw.quantity_text))\n\n\ndef price(order: Order, unit_cents: int) -> Priced:\n    return Priced(item=order.item, total_cents=order.quantity * unit_cents)\n\n\ndef quote(raw: RawOrder) -> Priced:\n    return price(parse_order(raw), unit_cents=250)\n",
     typescript: "// Each step's output type is the next step's input type. The chain compiles\n// only when they meet, so a step out of order is a compile error.\n\ntype RawOrder = { readonly item: string; readonly quantityText: string };\ntype Order = { readonly item: string; readonly quantity: number };\ntype Priced = { readonly item: string; readonly totalCents: number };\n\nfunction parseOrder(raw: RawOrder): Order {\n  return { item: raw.item, quantity: Number(raw.quantityText) };\n}\n\nfunction price(order: Order, unitCents: number): Priced {\n  return { item: order.item, totalCents: order.quantity * unitCents };\n}\n\nexport function quote(raw: RawOrder): Priced {\n  return price(parseOrder(raw), 250);\n}\n",
+  },
+  "unit_arithmetic": {
+    title: "Arithmetic that keeps its units",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: false,
+    python: "\"\"\"`NewType` stops the wrong substitution, and arithmetic escapes it: adding two\nof them is int + int again. A small class with a typed `__add__` keeps the unit\nthrough the sum.\"\"\"\n\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Seconds:\n    value: float\n\n    def __add__(self, other: \"Seconds\") -> \"Seconds\":\n        return Seconds(self.value + other.value)\n\n\n@dataclass(frozen=True)\nclass Kilograms:\n    value: float\n\n    def __add__(self, other: \"Kilograms\") -> \"Kilograms\":\n        return Kilograms(self.value + other.value)\n\n\ndef total_wait(first: Seconds, second: Seconds) -> Seconds:\n    return first + second\n\n\ndef total_load(first: Kilograms, second: Kilograms) -> Kilograms:\n    return first + second\n",
+    typescript: "// A brand stops the wrong substitution, and arithmetic escapes it: `+` on two\n// branded numbers is number + number again, and the brand is gone. TypeScript\n// has no operator overloading, so route sums through typed functions.\n\ndeclare const secondsBrand: unique symbol;\ndeclare const kilogramsBrand: unique symbol;\n\ntype Seconds = number & { readonly [secondsBrand]: true };\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\n\nfunction seconds(n: number): Seconds {\n  return n as Seconds;\n}\n\nfunction kilograms(n: number): Kilograms {\n  return n as Kilograms;\n}\n\nfunction addSeconds(a: Seconds, b: Seconds): Seconds {\n  return (a + b) as Seconds;\n}\n\nfunction addKilograms(a: Kilograms, b: Kilograms): Kilograms {\n  return (a + b) as Kilograms;\n}\n\nexport function totalWait(first: Seconds, second: Seconds): Seconds {\n  return addSeconds(first, second);\n}\n\nexport const load = addKilograms(kilograms(2.5), kilograms(1.5));\n",
+  },
+  "unit_arithmetic_misuse": {
+    title: "Seconds plus kilograms does not compile",
+    expectPython: "fails",
+    expectTypescript: "fails",
+    runs: false,
+    python: "\"\"\"The sum of two different units means nothing, and now the checker says so.\"\"\"\n\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Seconds:\n    value: float\n\n    def __add__(self, other: \"Seconds\") -> \"Seconds\":\n        return Seconds(self.value + other.value)\n\n\n@dataclass(frozen=True)\nclass Kilograms:\n    value: float\n\n    def __add__(self, other: \"Kilograms\") -> \"Kilograms\":\n        return Kilograms(self.value + other.value)\n\n\ndef nonsense(duration: Seconds, load: Kilograms) -> Seconds:\n    return duration + load  # error: Seconds + Kilograms has no meaning\n",
+    typescript: "// The sum of two different units means nothing, and now the checker says so.\n\ndeclare const secondsBrand: unique symbol;\ndeclare const kilogramsBrand: unique symbol;\n\ntype Seconds = number & { readonly [secondsBrand]: true };\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\n\nfunction seconds(n: number): Seconds {\n  return n as Seconds;\n}\n\nfunction kilograms(n: number): Kilograms {\n  return n as Kilograms;\n}\n\nfunction addSeconds(a: Seconds, b: Seconds): Seconds {\n  return (a + b) as Seconds;\n}\n\nexport const nonsense = addSeconds(seconds(30), kilograms(4)); // error: Kilograms is not Seconds\n",
   },
   "unit_newtype": {
     title: "A unit the checker enforces",
