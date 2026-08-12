@@ -86,8 +86,9 @@
     <p>
       Simple types have limits of their own. A function that transfers money between
       two accounts takes both account numbers as strings, so the checker accepts the
-      call that swaps them: both sides have the same type. That example waits in
-      section 3, beside its fix.
+      call that swaps them: both sides have the same type. Code that leans on strings
+      this way is called <em>stringly typed</em>. That example waits in section 3,
+      beside its fix.
     </p>
     <p>
       A simple type can also be the wrong claim outright. <code>float</code> holds
@@ -111,7 +112,10 @@
       nothing. To make the checker enforce the name, the type has to be distinct.
       Python spells that <code>NewType</code>. TypeScript reaches the same place with
       a <em>brand</em>: an intersection with a property that exists only in the type
-      system. In both languages the distinct type costs nothing at run time.
+      system. Type theory has names for the two behaviours: TypeScript's types are
+      <em>structural</em>, where any value with the right shape fits, and a brand makes
+      one behave <em>nominally</em>, where only the declared name fits. In both
+      languages the distinct type costs nothing at run time.
     </p>
     <p>
       The 1999 Mars Climate Orbiter was lost because one system produced
@@ -122,7 +126,8 @@
     <p>
       Aliases are still useful, for naming. A long function type reads better under a
       short name, and one edit changes every signature that uses it. A named constant
-      does the same for a magic number.
+      does the same for a <em>magic number</em>: a bare literal, like
+      <code>30_000</code>, whose meaning the reader has to guess.
     </p>
     <div class="ts-block" data-block="alias_compound"></div>
     <p>
@@ -133,9 +138,10 @@
     </p>
     <div class="ts-block" data-block="unit_arithmetic"></div>
     <p>
-      Strings have the same weakness. A status held as <code>str</code> accepts every
-      string ever typed, including the misspelled ones. A literal type lists the
-      values that exist, and the checker rejects the rest during its scan.
+      Strings have the same weakness. A bare <code>"paid"</code> scattered through a
+      codebase is a <em>magic string</em>, and a status held as <code>str</code>
+      accepts every string ever typed, including the misspelled ones. A literal type
+      lists the values that exist, and the checker rejects the rest during its scan.
     </p>
     <div class="ts-block" data-block="status_literal"></div>
     <p>
@@ -157,7 +163,8 @@
       it <em>primitive obsession</em>. The cure is a domain type, a type that carries
       a fact about the problem the program solves. An email address is a string that
       a specific check accepted. The pattern has three parts: a distinct type, one
-      function that constructs it, and no other way to get one. Code that holds an
+      function that constructs it, and no other way to get one. Functional programmers
+      call that function a <em>smart constructor</em>. Code that holds an
       <code>EmailAddress</code> can rely on the check without repeating it.
     </p>
     <div class="ts-block" data-block="email_parse"></div>
@@ -170,7 +177,10 @@
       Domain types also describe <em>states</em>. A pending payment has no receipt.
       One class with an optional receipt field allows four combinations, and two of
       them describe payments that can never exist. One type per state allows the two
-      that do, and the checker makes every reader handle both.
+      that do. The pattern is a <em>tagged union</em>, which TypeScript calls a
+      discriminated union, and the goal carries Yaron Minsky's phrase: <em>make
+      illegal states unrepresentable</em>. The checker forcing every reader to handle
+      both states is <em>exhaustiveness checking</em>.
     </p>
     <div class="ts-block" data-block="payment_states"></div>
   </div>
@@ -187,7 +197,9 @@
     </p>
     <p>
       <em>Validating</em> checks a value and passes it along unchanged. The knowledge
-      that the check happened lives nowhere, so every reader checks again.
+      that the check happened lives nowhere, so every reader checks again. Security
+      researchers call the scattered version <em>shotgun parsing</em>, and it is where
+      malformed input slips through.
       <em>Parsing</em> checks a value and returns a different type. The result proves
       the check ran, the checker carries that proof to every caller, and the inner
       checks come out. Alexis King named the rule, parse, don't validate, and gave it
@@ -264,16 +276,18 @@
     <h2>6. Pure functions</h2>
     <p>
       A function is pure when the same arguments always produce the same result and
-      nothing else happens: no clock, no network, no global state. The signature
-      offers a strong hint, because a function whose answer depends only on its
-      parameters has to receive everything it needs.
+      nothing else happens: no clock, no network, no global state. The formal name is
+      <em>referential transparency</em>: any call can be replaced by its result. The
+      signature offers a strong hint, because a function whose answer depends only on
+      its parameters has to receive everything it needs.
     </p>
     <div class="ts-block" data-block="pure_clock"></div>
     <p>
       The clock became a parameter, and the function became a table of facts a test
-      can check. This pairs with section 4: parse at the edge, keep effects at the
-      edge, and let the core be pure functions between domain types. The edge stays
-      thin, and the core stays testable.
+      can check. Passing a dependency in like this is <em>dependency injection</em> in
+      its smallest form. It pairs with section 4: parse at the edge, keep effects at
+      the edge, and let the core be pure functions between domain types. Gary
+      Bernhardt named the architecture <em>functional core, imperative shell</em>.
     </p>
   </div>
 </section>
@@ -295,7 +309,9 @@
       <code>Result</code> keeps the pipeline shape with the failure inside it: it
       holds either a value or a reason, and <code>and_then</code> applies the next
       step to a value and passes a failure straight through. The chain reads like the
-      happy path, and the first failure wins.
+      happy path, and the first failure wins. Wlaschin teaches this as
+      <em>railway-oriented programming</em>: two tracks, and a failure switches the
+      train once.
     </p>
     <div class="ts-block" data-block="result_chain"></div>
     <p>
@@ -380,9 +396,10 @@
 
     <h3>Exercise 2: name the units and the flags</h3>
     <p>
-      Two call sites disagree about the argument order, and both compile. Make the
-      units distinct types and the flags named fields, so only one of the calls
-      survives.
+      Two call sites disagree about the argument order, and both compile. A row of
+      bare bools invites what Robert Harper calls <em>boolean blindness</em>: the call
+      shows true, false, true and says nothing. Make the units distinct types and the
+      flags named fields, so only one of the calls survives.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
