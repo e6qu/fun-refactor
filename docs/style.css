@@ -824,3 +824,16 @@ footer a { color: var(--ink-soft); }
 .ts-diff-added { color: var(--exact); }
 .ts-diff-removed { color: var(--refuse); }
 .ts-diff-meta { color: var(--ink-faint); }
+
+/* The tutorial's examples are two code panes side by side, and the site's shell
+   width was sized for prose. The page takes 90% of the screen; paragraphs keep
+   their measure so the text stays readable. */
+.ts-page .shell { max-width: 90vw; }
+.ts-page .prose { max-width: none; }
+.ts-page .prose > p,
+.ts-page .prose h2,
+.ts-page .prose h3,
+.ts-page .lede,
+.ts-page .ts-toc,
+.ts-page .ts-solution > p,
+.ts-page .ts-next { max-width: var(--measure); }
