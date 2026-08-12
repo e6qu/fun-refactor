@@ -1262,6 +1262,9 @@ impl Workspace {
             name: String,
             file: String,
             line: usize,
+            /// The column of the name, so a click lands on the symbol and not on the
+            /// indentation before it.
+            col: usize,
             /// Hops from the symbol the reader asked about. Negative is upwards.
             rank: i32,
         }
@@ -1291,13 +1294,13 @@ impl Workspace {
             .filter_map(|(id, at)| {
                 let symbol = self.index.symbol(*id)?;
                 let source = crate::vfs::read_to_string(&symbol.file).ok()?;
+                let at_name = LineIndex::new(&source).line_col(symbol.name_span.start, &source);
                 Some(Node {
                     id: id.0,
                     name: symbol.qualified_name(),
                     file: symbol.file.display().to_string(),
-                    line: LineIndex::new(&source)
-                        .line_col(symbol.name_span.start, &source)
-                        .line,
+                    line: at_name.line,
+                    col: at_name.col,
                     rank: *at,
                 })
             })

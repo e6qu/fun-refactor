@@ -9,6 +9,7 @@ export type GraphNode = {
   name: string;
   file: string;
   line: number;
+  col: number;
   rank: number;
 };
 
