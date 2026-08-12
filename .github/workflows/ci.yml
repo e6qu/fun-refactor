@@ -59,6 +59,22 @@ jobs:
           shellcheck --version | head -2
           xmllint --version 2>&1 | head -1
 
+      # The type-safety tutorial's examples are checked by the checkers they are
+      # about: mypy over the Python files, tsc over the TypeScript files. The gate
+      # skips when these are missing, and `require_on_ci` turns that skip into a
+      # failure here, so a hole cannot read as a pass.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install the tutorial's Python checker
+        run: pip install "mypy==1.19.0" "pydantic==2.13.4"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install the tutorial's TypeScript checker
+        run: npm ci --no-fund --no-audit
+        working-directory: tests/typesafety/typescript
+
       # The tree-sitter grammars are C, and there is one per language, so a cold
       # build is minutes and not seconds.
       - uses: Swatinem/rust-cache@v2

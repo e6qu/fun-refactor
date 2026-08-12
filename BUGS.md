@@ -20,8 +20,8 @@ if the report went away.
 ## Open
 
 Re-triaged against this branch. Every entry below still reproduces; none was found to be
-stale. Eight are limits of a published grammar, and each names the construct the grammar
-has no rule for, at the version this build pins, `tree-sitter` 0.26.11, with
+stale. Eight are limits of a published grammar. Each names the construct the grammar has no
+rule for, at the version this build pins: `tree-sitter` 0.26.11, with
 `tree-sitter-go` 0.25.0, `tree-sitter-python` 0.25.0, `tree-sitter-typescript` 0.23.2,
 `tree-sitter-zig` 1.1.2 and `tree-sitter-scss` 1.0.0. The version is part of the claim: an
 upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails when it does.
@@ -61,9 +61,8 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   implements-relationship at all, so neither has a hierarchy to read.
 
 - [ ] B13: an answer from supplied values inputs is only as complete as the
-  description of them. Given `--set` but no `-f` (or the reverse) the competition is
-  decided *given the inputs supplied* and says so, naming the channel it was never
-  told about; nothing infers an invocation. Three narrower edges: `--set ports[0].name`
+  description of them. Given `--set` but no `-f`, or the reverse, the competition is decided *given the
+inputs supplied* and says so. It names the channel it was never told about; nothing infers an invocation. Three narrower edges: `--set ports[0].name`
   and `--set ports[1].name` address the same key path, because the symbol index
   records mapping paths without list indices. `--set x=null`, which deletes a key in
   Helm, is ranked as a source that supplies it. And `{a,b}` list literals, `--set-file`
@@ -89,8 +88,8 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   `twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: 73 of 99 files failed,
   and 59 do after B280 masked the first form below.
 
-  The counts this entry used to carry were of files that *use* each form and fail, which
-  is co-occurrence, not cost, most of those files hit several forms at once. Masking one
+  The counts this entry used to carry were of files that *use* each form and fail.
+That is co-occurrence, not cost: most of those files hit several forms at once. Masking one
   form at a time and re-measuring gives what each costs:
 
   * **Interpolation in a declaration value**, `color: #{$v}`, `--x: #{$v}`. Handled by
@@ -123,8 +122,8 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   the grafana run. It parses, bare, nested, and with arguments, so the claim was either
   wrong when written or fixed upstream since, and nothing had re-checked it.
 
-- [ ] B15: `tree-sitter-go` parses `new(…)` as the builtin, which takes a *type*, so
-  a call to a user-defined function named `new` fails, `new("-10s")` and
+- [ ] B15: `tree-sitter-go` parses `new(…)` as the builtin, which takes a *type*.
+  A call to a user-defined function named `new` therefore fails: `new("-10s")` and
   `new(err.Error())` both produce error nodes. In Go `new` is a predeclared
   identifier, not a keyword, and may be shadowed, so this is an upstream grammar bug
   and not invalid source. It accounts for **177 of the 178 Go files** that fail to
