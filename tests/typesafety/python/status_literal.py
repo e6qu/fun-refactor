@@ -1,5 +1,6 @@
 # expect: passes
-# title: A closed set of strings
+# title: A literal type lists every status that exists
+# improves: status_string
 """`Literal` lists every value the type allows. The checker rejects the rest."""
 
 from typing import Literal

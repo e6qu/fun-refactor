@@ -1,5 +1,6 @@
 # expect: passes
-# title: An alias that names a shape, and a constant that names a number
+# title: One alias names the callback shape, and one constant names the number
+# improves: alias_repeated
 """An alias earns its keep on a compound type: the name reads, and one edit
 changes every signature. A `Final` constant does the same for a magic number."""
 

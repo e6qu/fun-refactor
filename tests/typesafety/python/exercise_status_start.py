@@ -1,5 +1,5 @@
 # expect: passes
-# title: Exercise 1, starting point
+# title: A typo hides among the status strings
 """Order status as plain strings. The first branch has a typo, so it never
 matches, and the checker has no way to notice."""
 

@@ -1,5 +1,6 @@
 # expect: fails
-# title: A plain string no longer reaches a literal parameter
+# title: A plain string no longer reaches the literal parameter
+# misuse-of: literal_flag
 """A value typed `str` could be anything, so the checker refuses to pass it
 where only two values are allowed. Type the variable as the literal, or pass
 the value directly."""

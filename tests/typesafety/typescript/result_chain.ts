@@ -1,8 +1,6 @@
 // expect: passes
-// `Result` is either a value or a reason. `andThen` chains steps and stops
-// at the first failure. A wrapper with `map` and `andThen` is a monad; that
-// is the whole definition. `Promise.then` and `Array.flatMap` are the two
-// you already use.
+// The same three steps. `Result` holds a value or a reason, and `andThen`
+// chains the steps and stops at the first failure.
 
 type Ok<T> = { readonly kind: "ok"; readonly value: T };
 type Err = { readonly kind: "err"; readonly reason: string };

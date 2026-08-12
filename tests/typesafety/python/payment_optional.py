@@ -1,0 +1,17 @@
+# expect: passes
+# title: One class with optional fields allows impossible states
+"""Two booleans worth of shape in one class. A settled payment without a
+receipt, and a pending payment with one, both construct without complaint."""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Payment:
+    requested_at: str
+    settled: bool
+    receipt_id: str | None
+
+
+impossible_a = Payment("09:00", settled=True, receipt_id=None)
+impossible_b = Payment("09:00", settled=False, receipt_id="r-42")

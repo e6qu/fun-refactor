@@ -1,5 +1,5 @@
 # expect: passes
-# title: The same check, repeated by every reader
+# title: Every reader re-checks the same setting
 """Settings travel as a dict of strings. Every reader re-checks the port,
 because no reader can trust that another already did."""
 

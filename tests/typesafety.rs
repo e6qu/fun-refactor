@@ -37,8 +37,11 @@ struct Example {
     expect_typescript: Expect,
     runs: bool,
     /// The id of the example this one is the improved version of, when there is one.
-    /// The page shows the diff between the two, in each language.
+    /// The page shows the two together, with the diff between them.
     improves: Option<String>,
+    /// The id of the improved example this one misuses, when there is one. The page
+    /// shows it inside that example's block, as the call the checker now rejects.
+    misuse_of: Option<String>,
     python: String,
     typescript: String,
 }
@@ -89,6 +92,7 @@ fn presentable(source: &str) -> String {
                 || line.starts_with("# run:")
                 || line.starts_with("# title:")
                 || line.starts_with("# improves:")
+                || line.starts_with("# misuse-of:")
                 || line.starts_with("// expect:"))
         })
         .collect();
@@ -149,6 +153,7 @@ fn examples() -> Vec<Example> {
                 expect_typescript: expectation(&ts_headers, ts_path),
                 runs: py_headers.get("run").map(String::as_str) == Some("yes"),
                 improves: py_headers.get("improves").cloned(),
+                misuse_of: py_headers.get("misuse-of").cloned(),
                 python: presentable(&py_source),
                 typescript: presentable(&ts_source),
                 id,
@@ -348,7 +353,7 @@ fn data_js() -> String {
     );
     for example in examples() {
         out.push_str(&format!(
-            "  {}: {{\n    title: {},\n    expectPython: {:?},\n    expectTypescript: {:?},\n    runs: {},\n    python: {},\n    typescript: {},\n  }},\n",
+            "  {}: {{\n    title: {},\n    expectPython: {:?},\n    expectTypescript: {:?},\n    runs: {},\n    improves: {},\n    misuseOf: {},\n    python: {},\n    typescript: {},\n  }},\n",
             serde_json::to_string(&example.id).expect("a JSON string"),
             serde_json::to_string(&example.title).expect("a JSON string"),
             match example.expect_python {
@@ -360,6 +365,8 @@ fn data_js() -> String {
                 Expect::Fails => "fails",
             },
             example.runs,
+            serde_json::to_string(&example.improves).expect("a JSON string"),
+            serde_json::to_string(&example.misuse_of).expect("a JSON string"),
             serde_json::to_string(&example.python).expect("a JSON string"),
             serde_json::to_string(&example.typescript).expect("a JSON string"),
         ));
@@ -395,34 +402,76 @@ fn the_tutorial_page_shows_the_checked_examples() {
 }
 
 #[test]
+fn every_example_plays_exactly_one_part() {
+    // The page shows an example as a block (an improved version, with its
+    // predecessor and the diff), as a row inside another example's block (the
+    // predecessor itself, or a misuse), or as a standalone example. Every file
+    // must land in one of those parts, or it is content nothing shows.
+    let all = examples();
+    for example in &all {
+        let improved_by = all
+            .iter()
+            .any(|e| e.improves.as_deref() == Some(&example.id));
+        let parts = [
+            example.improves.is_some(),
+            example.misuse_of.is_some(),
+            improved_by,
+        ];
+        let count = parts.iter().filter(|p| **p).count();
+        assert!(
+            count <= 1,
+            "{} plays {count} parts at once; it can be an improvement, a predecessor \
+             or a misuse, and only one of them",
+            example.id
+        );
+        if let Some(target) = &example.misuse_of {
+            let owner = all.iter().find(|e| &e.id == target);
+            assert!(
+                owner.is_some_and(|o| o.improves.is_some()),
+                "{} misuses {target}, which is not an improved example",
+                example.id
+            );
+        }
+    }
+}
+
+#[test]
 fn the_page_and_the_examples_agree() {
     // Every example placeholder on the page names a checked example, and every
     // checked example appears on the page exactly once. A file added without a
     // placeholder, or a placeholder pointing at nothing, fails here.
     let html = std::fs::read_to_string(root().join("docs/type-safety.html"))
         .expect("docs/type-safety.html");
-    let ids: Vec<String> = examples().iter().map(|e| e.id.clone()).collect();
+    let all = examples();
 
-    for id in &ids {
-        let marker = format!("data-example=\"{id}\"");
-        let count = html.matches(&marker).count();
-        assert_eq!(
-            count, 1,
-            "{id} is a checked example and appears {count} times on the page"
-        );
+    for example in &all {
+        let improved_by = all
+            .iter()
+            .any(|e| e.improves.as_deref() == Some(&example.id));
+        let expected = if example.improves.is_some() {
+            // An improved example is a block: predecessor, diff and improvement
+            // together, plus any misuse row.
+            Some(format!("data-block=\"{}\"", example.id))
+        } else if improved_by || example.misuse_of.is_some() {
+            // Shown inside the block of the example that improves on it, or that
+            // it misuses. No slot of its own.
+            None
+        } else {
+            Some(format!("data-example=\"{}\"", example.id))
+        };
+        if let Some(marker) = expected {
+            let count = html.matches(&marker).count();
+            assert_eq!(
+                count, 1,
+                "{} needs one {marker} slot, found {count}",
+                example.id
+            );
+        }
     }
-    let placeholders = html.matches("data-example=\"").count();
+    let blocks = html.matches("data-block=\"").count();
+    let afters = all.iter().filter(|e| e.improves.is_some()).count();
     assert_eq!(
-        placeholders,
-        ids.len(),
-        "the page has {placeholders} example slots and there are {} checked examples",
-        ids.len()
+        blocks, afters,
+        "{blocks} block slots for {afters} improved examples"
     );
-
-    // Every before-and-after pair also shows its diff, once.
-    for (after, _, _) in improvement_diffs(&examples()) {
-        let marker = format!("data-diff=\"{after}\"");
-        let count = html.matches(&marker).count();
-        assert_eq!(count, 1, "{after} has a diff and it appears {count} times");
-    }
 }

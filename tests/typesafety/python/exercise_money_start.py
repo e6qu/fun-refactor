@@ -1,5 +1,5 @@
 # expect: passes
-# title: Exercise 4, starting point
+# title: The currency guard waits until run time
 """An amount is a float and its currency is a string beside it. Mixing
 currencies is caught at run time, at best."""
 

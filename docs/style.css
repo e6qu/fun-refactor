@@ -820,23 +820,54 @@ footer a { color: var(--ink-soft); }
 .ts-next { margin-top: 2rem; font-weight: 600; }
 .ts-missing { color: var(--refuse); font-weight: 600; }
 
-.ts-diff { margin: 1rem 0 1.5rem; }
-.ts-diff-toggle summary {
-  display: inline-block;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.85rem;
-  padding: 0.35rem 0.9rem;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: var(--raised);
-  user-select: none;
-}
-.ts-diff-toggle summary:hover { border-color: var(--accent); color: var(--accent); }
-.ts-diff-toggle[open] summary { margin-bottom: 0.75rem; }
 .ts-diff-added { color: var(--exact); }
 .ts-diff-removed { color: var(--refuse); }
 .ts-diff-meta { color: var(--ink-faint); }
+
+/* One improvement: predecessor, the diff between them, the improved version,
+   and any call the checker now rejects. */
+.ts-block {
+  margin: 1.5rem 0 2.5rem;
+  border: 1px solid var(--rule-soft);
+  border-radius: 8px;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.ts-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.ts-block-head h4 { margin: 0; font-size: 1.05rem; }
+
+.ts-diff-button {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ts-diff-button:hover,
+.ts-diff-button[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+
+.ts-row { margin: 1rem 0; }
+.ts-row-label { font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--ink-soft); }
+.ts-row-label strong { color: var(--ink); }
+.ts-diff-row[hidden] { display: none; }
+
+/* The code colours, in both themes' variables. */
+.tok-kw { color: var(--accent); }
+.tok-str { color: var(--exact); }
+.tok-com { color: var(--ink-faint); }
+.tok-num { color: var(--weak); }
 
 /* The tutorial's examples are two code panes side by side, and the site's shell
    width was sized for prose. The page takes 90% of the screen; paragraphs keep
@@ -844,8 +875,7 @@ footer a { color: var(--ink-soft); }
 .ts-page .shell { max-width: 90vw; }
 .ts-page .prose { max-width: none; }
 .ts-page .prose > p,
-.ts-page .prose h2,
-.ts-page .prose h3,
+.ts-page .prose > ul,
 .ts-page .lede,
 .ts-page .ts-toc,
 .ts-page .ts-solution > p,

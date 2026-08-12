@@ -1,5 +1,6 @@
 # expect: fails
-# title: The swapped call no longer compiles
+# title: The swapped transfer fails to compile
+# misuse-of: entity_ids
 """The bug from the first section, written against the typed accounts."""
 
 from typing import NewType

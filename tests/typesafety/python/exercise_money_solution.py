@@ -1,5 +1,5 @@
 # expect: passes
-# title: Exercise 4, one solution
+# title: The type system separates the currencies
 # improves: exercise_money_start
 """One class per currency, and `add` constrained to a single one of them.
 Cents are integers, so the totals are exact."""

@@ -1,5 +1,5 @@
 # expect: passes
-# title: Exercise 2, starting point
+# title: Two calls disagree about the argument order, and both compile
 """Five positional parameters, three of them bool. Which of the two calls
 is right? The checker accepts both."""
 

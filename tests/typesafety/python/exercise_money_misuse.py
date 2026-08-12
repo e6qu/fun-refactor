@@ -1,5 +1,6 @@
 # expect: fails
-# title: Exercise 4, what the solution rejects
+# title: Adding dollars to euros fails to compile
+# misuse-of: exercise_money_solution
 """The mixed-currency call from the start, against the typed version."""
 
 from dataclasses import dataclass, replace

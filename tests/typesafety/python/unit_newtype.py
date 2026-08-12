@@ -1,5 +1,5 @@
 # expect: passes
-# title: A unit the checker enforces
+# title: NewType makes the wrong unit a type error
 # improves: alias_transparent
 """`NewType` makes a distinct type from `int`. The checker tells them apart."""
 

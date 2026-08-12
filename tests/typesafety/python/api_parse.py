@@ -1,5 +1,6 @@
 # expect: passes
-# title: One parse at the network edge
+# title: The handler receives a parsed order
+# improves: api_dict
 """The request body is a string. `model_validate_json` turns it into an `Order`
 or raises, once, here. Every function past this point takes an `Order`."""
 

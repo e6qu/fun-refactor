@@ -1,5 +1,6 @@
 # expect: passes
-# title: A function is a value with a type
+# title: The parameter type describes the whole callback
+# improves: function_any
 """`key` is a function from Order to int, and `Callable` writes that down.
 The compiler checks the lambda against it."""
 

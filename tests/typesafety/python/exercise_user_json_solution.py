@@ -1,5 +1,5 @@
 # expect: passes
-# title: Exercise 3, one solution
+# title: One parse at the edge retires all three checks
 # improves: exercise_user_json_start
 """One parse at the edge. The three checks are gone, because past the parse
 the fields exist and have their types."""

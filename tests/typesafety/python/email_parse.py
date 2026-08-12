@@ -1,5 +1,6 @@
 # expect: passes
-# title: A value that proves its own check
+# title: The parse function proves the check ran
+# improves: email_checked
 """`parse_email` is the only way to make an `EmailAddress`. Any function that
 holds one knows the check already ran."""
 

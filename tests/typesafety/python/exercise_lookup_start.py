@@ -1,5 +1,5 @@
 # expect: passes
-# title: Exercise 5, starting point
+# title: Three failures collapse into one None
 """Three lookups, each of which can fail. Every failure collapses into the
 same None, so the caller cannot tell what went wrong."""
 

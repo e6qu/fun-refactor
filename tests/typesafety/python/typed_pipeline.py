@@ -1,5 +1,6 @@
 # expect: passes
-# title: Steps that only fit one way
+# title: Each step's output type feeds the next step's input
+# improves: pipeline_dicts
 """Each step's output type is the next step's input type. The chain compiles
 only when they meet, so a step out of order is a compile error."""
 

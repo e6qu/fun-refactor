@@ -1,15 +1,23 @@
 // expect: passes
-// Every step can come back empty. `| null` makes each caller decide what
-// that means. Optional chaining keeps the ladder short, and it still ends
-// in one undistinguished absence.
+// Three steps can each fail. The caller of `quote` receives null and cannot
+// say which step failed, or why.
 
-type Customer = { readonly referrerId: string | null };
-
-function findCustomer(customerId: string): Customer | null {
-  return customerId === "c1" ? { referrerId: "c2" } : null;
+function parseQuantity(text: string): number | null {
+  return /^\d+$/.test(text) ? Number(text) : null;
 }
 
-export function referrerOf(customerId: string): Customer | null {
-  const referrerId = findCustomer(customerId)?.referrerId;
-  return referrerId == null ? null : findCustomer(referrerId);
+function checkStock(quantity: number): number | null {
+  return quantity <= 10 ? quantity : null;
+}
+
+export function quote(text: string): number | null {
+  const quantity = parseQuantity(text);
+  if (quantity === null) {
+    return null;
+  }
+  const inStock = checkStock(quantity);
+  if (inStock === null) {
+    return null;
+  }
+  return inStock * 250;
 }

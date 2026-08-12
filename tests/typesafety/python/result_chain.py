@@ -1,9 +1,9 @@
 # expect: passes
 # run: yes
-# title: Errors that compose
-"""`Result` is either a value or a reason. `and_then` chains steps and stops
-at the first failure. A wrapper with `map` and `and_then` is a monad; that is
-the whole definition."""
+# title: A Result carries the reason a step failed
+# improves: nullable_chain
+"""The same three steps. `Result` holds a value or a reason, and `and_then`
+chains the steps and stops at the first failure."""
 
 from collections.abc import Callable
 from dataclasses import dataclass

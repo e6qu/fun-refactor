@@ -1,6 +1,7 @@
 # expect: passes
 # run: yes
-# title: A state that cannot hold the wrong fields
+# title: Each state carries only its own fields
+# improves: payment_optional
 """A pending payment has no receipt. As two classes, that is a fact the
 checker knows, and `match` must handle both."""
 

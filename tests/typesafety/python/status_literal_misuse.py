@@ -1,5 +1,6 @@
 # expect: fails
-# title: A typo is now a type error
+# title: The misspelled status fails to compile
+# misuse-of: status_literal
 """The same `advance`, called with a misspelled status."""
 
 from typing import Literal

@@ -1,5 +1,5 @@
 # expect: passes
-# title: Two account numbers, one type
+# title: Two parameters share one type, so the checker accepts the swapped call
 """Both parameters are `str`, so swapping them type-checks."""
 
 

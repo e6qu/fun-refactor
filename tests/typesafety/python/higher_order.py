@@ -1,5 +1,6 @@
 # expect: passes
-# title: A wrapper that keeps the signature
+# title: The wrapper keeps the signature it wrapped
+# improves: retry_any
 """`retry` takes a function and returns one with the same parameters and the
 same result. The type parameters carry the whole signature through."""
 

@@ -1,26 +1,22 @@
 # expect: passes
-# title: Absence written into the type
-"""Every step can come back empty. `| None` makes each caller decide what
-that means, and the ladder of checks is the cost."""
-
-from dataclasses import dataclass
+# title: Every failure collapses into the same None
+"""Three steps can each fail. The caller of `quote` receives None and cannot
+say which step failed, or why."""
 
 
-@dataclass(frozen=True)
-class Customer:
-    referrer_id: str | None
+def parse_quantity(text: str) -> int | None:
+    return int(text) if text.isdigit() else None
 
 
-def find_customer(customer_id: str) -> Customer | None:
-    if customer_id == "c1":
-        return Customer(referrer_id="c2")
-    return None
+def check_stock(quantity: int) -> int | None:
+    return quantity if quantity <= 10 else None
 
 
-def referrer_of(customer_id: str) -> Customer | None:
-    customer = find_customer(customer_id)
-    if customer is None:
+def quote(text: str) -> int | None:
+    quantity = parse_quantity(text)
+    if quantity is None:
         return None
-    if customer.referrer_id is None:
+    in_stock = check_stock(quantity)
+    if in_stock is None:
         return None
-    return find_customer(customer.referrer_id)
+    return in_stock * 250

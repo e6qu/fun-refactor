@@ -1,5 +1,6 @@
 # expect: fails
-# title: The wrong unit is now a type error
+# title: Passing meters where seconds belong fails to compile
+# misuse-of: unit_newtype
 """The same call as before, with a plain `int` and with `Meters`. Both are rejected."""
 
 from typing import NewType

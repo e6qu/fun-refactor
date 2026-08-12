@@ -1,5 +1,6 @@
 # expect: fails
-# title: Reading a field a state does not have
+# title: Reading a receipt from a pending payment fails to compile
+# misuse-of: payment_states
 """`receipt_id` exists only on `Settled`, and the checker says so."""
 
 from dataclasses import dataclass

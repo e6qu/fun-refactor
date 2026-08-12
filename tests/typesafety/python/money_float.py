@@ -1,17 +1,12 @@
 # expect: passes
 # run: yes
-# title: A type that cannot hold the values you meant
-"""`float` cannot represent 0.1 exactly. Integer cents can represent every price."""
+# title: Float arithmetic rounds the cents
+"""Ten cents, three times, is thirty cents. The float sum misses it."""
 
 
-def total_as_float(prices: list[float]) -> float:
+def total_price(prices: list[float]) -> float:
     return sum(prices)
 
 
-def total_as_cents(prices_cents: list[int]) -> int:
-    return sum(prices_cents)
-
-
-# Three items at ten cents each. CI runs these lines.
-assert total_as_float([0.1, 0.1, 0.1]) != 0.3
-assert total_as_cents([10, 10, 10]) == 30
+# Three items at ten cents each. CI runs this line.
+assert total_price([0.1, 0.1, 0.1]) != 0.3

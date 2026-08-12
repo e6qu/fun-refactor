@@ -1,5 +1,5 @@
 # expect: passes
-# title: One type for each kind of id
+# title: Each kind of account gets its own type
 # improves: transfer_arguments
 """The transfer example again, with the account numbers as distinct types."""
 
