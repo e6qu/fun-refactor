@@ -1,19 +1,18 @@
 //! The browser API, driven by `cargo test`.
 //!
-//! It used to be reachable only through `web/test/api.mjs`, which needs a wasm
-//! toolchain, `wasm-bindgen`, a Vite build and a Node run. The cost of that was not
-//! theoretical: a struct field added at six call sites in `src/wasm.rs` and missed at
-//! one passed `cargo test` and `cargo clippy -D warnings` both, because neither
-//! compiles that file. Apple's clang cannot emit wasm, so no local build reaches it.
-//! CI found it, three minutes and one push later.
+//! It used to be reachable only through `web/test/api.mjs`, which needs a wasm toolchain,
+//! `wasm-bindgen`, a Vite build and a Node run. The cost of that was not theoretical: a struct
+//! field added at six call sites in `src/wasm.rs` and missed at one passed `cargo test` and
+//! `cargo clippy -D warnings` both, because neither compiles that file. Apple's clang cannot
+//! emit wasm, so no local build reaches it. CI found it, three minutes and one push later.
 //!
-//! Two changes made this file possible: `vfs`'s in-memory backing follows the `wasm`
-//! feature instead of the target, and `Workspace::load` takes plain Rust values so
-//! only the `JsValue` conversion is left in the constructor.
+//! Two changes made this file possible: `vfs`'s in-memory backing follows the `wasm` feature
+//! instead of the target. `Workspace::load` takes plain Rust values so only the `JsValue`
+//! conversion is left in the constructor.
 //!
-//! This does not replace `web/test/api.mjs`, which exercises the real wasm through the
-//! real bindings and is the only thing that can. It moves the cheap half of the
-//! checking to where it costs a second.
+//! This does not replace `web/test/api.mjs`, which exercises the real wasm through the real
+//! bindings and is the only thing that can. It moves the cheap half of the checking to where it
+//! costs a second.
 
 #![cfg(feature = "wasm")]
 
@@ -115,10 +114,9 @@ fn the_translation_menu_answers_for_every_language() {
 
 #[test]
 fn a_next_js_route_is_offered_as_a_framework_port() {
-    // `fastapi` is not a language, and the menu has to say so: "write this TypeScript
-    // as Python" and "serve these routes from FastAPI instead" are different
-    // questions and a menu that listed them together would make the reader work out
-    // which one they had asked for.
+    // `fastapi` is not a language, and the menu has to say so. "write this TypeScript as
+    // Python" and "serve these routes from FastAPI instead" are different questions and a menu
+    // that listed them together would make the reader work out which one they had asked for.
     let ws = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let options = json(&ws.translations("app/api/users/[id]/route.ts"));
     let fastapi = options
@@ -169,7 +167,7 @@ fn translating_writes_the_new_file_into_the_workspace() {
         "the route has to travel with the result: {applied}"
     );
 
-    // The new file is in the workspace and indexed, not merely returned.
+    // The new file is in the workspace and indexed. It is not returned.
     let files = json(&ws.files());
     assert!(
         files

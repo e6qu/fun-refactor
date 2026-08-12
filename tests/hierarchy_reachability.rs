@@ -1,15 +1,15 @@
 //! Class hierarchy analysis: what a call through an abstraction can reach.
 //!
-//! A call through a `dyn Trait`, an interface value or a base-class reference names no
-//! single definition, so resolution refuses to pick one and the call graph used to
-//! stop there, leaving every implementation looking dead. The workspace does say
-//! which types implement the abstraction, and these tests pin down what that buys,
-//! per language, and what it costs in precision.
+//! A call through a `dyn Trait`, an interface value or a base-class reference names no single
+//! definition. So resolution refuses to pick one and the call graph used to stop there, leaving
+//! every implementation looking dead. The workspace does say which types implement the
+//! abstraction, and these tests pin down what that buys, per language, and what it costs in
+//! precision.
 //!
-//! Two rules run through all of it. A hierarchy edge is never `Exact`: which
-//! implementation runs is a runtime fact and the tag has to say so. And where the
-//! syntax cannot separate an implementation from a same-named method on an unrelated
-//! type, the test asserts the over-approximation instead of pretending to precision.
+//! Two rules run through all of it. A hierarchy edge is never `Exact`: which implementation
+//! runs is a runtime fact and the tag has to say so. And where the syntax cannot separate an
+//! implementation from a same-named method on an unrelated type, the test asserts the
+//! over-approximation instead of pretending to precision.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
@@ -262,9 +262,9 @@ fn rust_an_unrelated_method_nothing_calls_is_still_reported_unused() {
 
 #[test]
 fn rust_a_method_call_that_resolves_exactly_stays_exact() {
-    // `self.helper()` names one definition. Hierarchy analysis must not touch it,
-    // and the edge must exist at all, which it did not before: Rust's queries file
-    // `x.m()` as a field access, so the call graph never saw it.
+    // `self.helper()` names one definition. Hierarchy analysis must not touch it, and the edge
+    // must exist at all, which it did not before: Rust's queries file `x.m()` as a field
+    // access. So the call graph never saw it.
     let source = "\
 struct S;
 impl S {
@@ -333,10 +333,10 @@ fn go_an_interface_call_reaches_every_type_whose_method_set_covers_it() {
 
 #[test]
 fn go_a_method_set_that_does_not_cover_the_interface_gets_no_edge() {
-    // `Ledger.Area(float64)` takes an argument, so Ledger does not implement Shape,
-    // and this is as far as syntax can separate them. A no-argument `Area()` on an
-    // unrelated type *would* get an edge, because in Go that type really does
-    // implement the interface: there is no `implements` keyword to disagree with.
+    // `Ledger.Area(float64)` takes an argument, so Ledger does not implement Shape, and this is
+    // as far as syntax can separate them. A no-argument `Area()` on an unrelated type *would*
+    // get an edge, because in Go that type really does implement the interface. There is no
+    // `implements` keyword to disagree with.
     let (_tmp, index) = workspace(&go_shapes());
     let graph = CallGraph::build(&index);
     assert!(
@@ -347,10 +347,10 @@ fn go_a_method_set_that_does_not_cover_the_interface_gets_no_edge() {
 
 #[test]
 fn go_structural_typing_over_approximates_and_the_test_says_so() {
-    // The honest half of the same coin. `Timer.Area()` never meets a Shape anywhere in
-    // this workspace, but its method set covers the interface, which is the whole of
-    // what implementing an interface means in Go. The edge is real by the language's
-    // rule even though no human would call Timer a shape, and it is tagged unproven.
+    // The honest half of the same coin. `Timer.Area()` never meets a Shape anywhere in this
+    // workspace. But its method set covers the interface, which is the whole of what
+    // implementing an interface means in Go. The edge is real by the language's rule even
+    // though no human would call Timer a shape, and it is tagged unproven.
     let mut files = go_shapes();
     files.push((
         "timer.go",
@@ -431,11 +431,11 @@ fn typescript_an_implements_clause_reaches_both_classes() {
 
 #[test]
 fn typescript_an_unrelated_class_is_reached_by_name_alone_and_labelled_that_way() {
-    // The precision cost, taken deliberately. `Ledger` implements nothing, but most
-    // TypeScript never writes `implements` at all, and bucketing call sites by method
-    // name is what buys the recall (~66-80% precision, >=85% recall. Feldthaus et
-    // al., ICSE'13). The edge exists; what keeps it honest is that it says it rests on
-    // the method name alone, where a real `implements` clause says so instead.
+    // The precision cost, taken deliberately. `Ledger` implements nothing, but most TypeScript
+    // never writes `implements` at all. Bucketing call sites by method name is what buys the
+    // recall (~66-80% precision, >=85% recall. Feldthaus et al., ICSE'13). The edge exists;
+    // what keeps it honest is that it says it rests on the method name alone, where a real
+    // `implements` clause says so instead.
     let (_tmp, index) = workspace(&ts_shapes());
     let graph = CallGraph::build(&index);
 
@@ -638,10 +638,10 @@ fn main() {
 
 // -------------------------------------- implementations of the abstraction itself
 //
-// "What are the Sinks?" is the question people ask of an interface, and it used to
-// answer nothing: `implementations_of` required a method, so pointing at the type it
-// belongs to returned an empty list instead of the three types that implement it.
-// The relationships were already known, only the direction of the question was new.
+// "What are the Sinks?" is the question people ask of an interface. It used to answer nothing:
+// `implementations_of` required a method. So pointing at the type it belongs to returned an
+// empty list instead of the three types that implement it. The relationships were already
+// known, only the direction of the question was new.
 
 /// Names of the implementations reported for the symbol called `name`.
 fn implementations(index: &Index, name: &str) -> Vec<String> {
@@ -801,11 +801,10 @@ impl Memory {
 
 // ------------------------------------ a call that resolved *to the abstraction*
 //
-// The dispatch layer looks at call sites that resolved to nothing. There is a second
-// shape it never saw: `sink.Store(r)` where `sink` is declared as the interface type
-// resolves perfectly well, to the interface's own declaration, which has no body.
-// The graph stopped there, so every implementation was unreached and every one of
-// them was reported as dead code.
+// The dispatch layer looks at call sites that resolved to nothing. There is a second shape it
+// never saw. `sink.Store(r)` where `sink` is declared as the interface type resolves perfectly
+// well, to the interface's own declaration, which has no body. The graph stopped there, so
+// every implementation was unreached and every one of them was reported as dead code.
 
 #[test]
 fn go_a_call_typed_as_the_interface_reaches_the_implementations() {

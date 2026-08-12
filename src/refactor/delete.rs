@@ -1,14 +1,14 @@
 //! Safe delete: remove a definition only when nothing provably still uses it.
 //!
-//! The refusal is the feature. Deleting something that is still called is the exact
-//! mistake this tool exists to prevent, so a reference that resolved well enough to
-//! rewrite (`exact` or `import-qualified`) stops the delete and is reported with its
-//! file, line and column. Weaker matches, a name that resolved elsewhere, a hit in a
-//! string or comment, cannot be proven to be uses, so they are surfaced as warnings
-//! instead of silently blocking or silently ignoring the delete.
+//! The refusal is the feature. Deleting something that is still called is the exact mistake
+//! this tool exists to prevent. So a reference that resolved well enough to rewrite (`exact` or
+//! `import-qualified`) stops the delete and is reported with its file, line and column. Weaker
+//! matches, a name that resolved elsewhere, a hit in a string or comment, cannot be proven to
+//! be uses. So they are surfaced as warnings instead of silently blocking or silently ignoring
+//! the delete.
 //!
-//! [`find_unused`] is the reporting half: candidates for deletion, found by combining
-//! "nothing references it" with "nothing reachable from an entry point calls it".
+//! [`find_unused`] is the reporting half: candidates for deletion, found by combining "nothing
+//! references it" with "nothing reachable from an entry point calls it".
 
 use super::{Warning, WarningKind};
 use crate::analysis::call_graph::{CallGraph, HierarchyBasis};
@@ -52,8 +52,8 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     // Every definition site of the entity, so a CSS class declared by both `.btn` and
     // `.btn:hover` goes away as a whole and not half.
     let group = index.definition_group(symbol);
-    // Some definitions cannot be removed on their own: a CSS selector leaves an
-    // orphaned rule behind, so the span is widened to what actually has to go.
+    // Some definitions cannot be removed on their own. A CSS selector leaves an orphaned rule
+    // behind, so the span is widened to what has to go.
     let parsers = crate::parse::Parsers::new();
     let mut sites: Vec<(PathBuf, Span)> = Vec::new();
     for id in &group {
@@ -127,8 +127,8 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     let mut edits = EditSet::new();
     let mut deleted: Vec<(PathBuf, Span)> = Vec::new();
     for (file, spans) in &mut deletions {
-        // Two adjacent sites can claim the same blank line; one edit per merged run
-        // keeps the edit set free of the overlaps the engine would reject.
+        // Two adjacent sites can claim the same blank line. One edit per merged run keeps the
+        // edit set free of the overlaps the engine would reject.
         spans.sort_by_key(|s| (s.start, s.end));
         for span in merge_runs(spans) {
             edits.add(
@@ -216,9 +216,9 @@ pub enum SparedReason {
     /// Its name is spelled in a string literal somewhere in the workspace, which is
     /// the only trace reflection and a name-keyed handler table leave.
     NamedInAString,
-    /// Dynamic dispatch reaches it: a call site names a method its type declares
-    /// through a trait, an interface or a base class, and this is one of the
-    /// implementations that call could pick.
+    /// Dynamic dispatch reaches it: a call site names a method its type declares through a
+    /// trait, an interface or a base class. This is one of the implementations that call could
+    /// pick.
     DynamicDispatch {
         from: SymbolId,
         basis: HierarchyBasis,
@@ -317,31 +317,30 @@ impl UnusedReport {
 ///
 /// Backs the dead-CSS-selector, unused-Terraform-variable, unused-`values.yaml`-key and
 /// unused-function reports. A symbol qualifies when no resolved reference targets it,
-/// references from inside its own definition do not count, so dead recursive code still
+/// references from inside its own definition do not count. So dead recursive code still
 /// qualifies, and the call graph cannot reach it from any entry point.
 ///
 /// Five corrections apply on top, because the raw answer errs in both directions:
 ///
-/// * Off the list: a symbol whose name appears in a **string literal** anywhere in the
-///   workspace. Reflection, a name-keyed handler table, a route string and a template
-///   all reach code through a name no resolver follows, leaving only the string.
-/// * On it: a **cycle** of symbols referencing only each other, when no member is
-///   reachable from an entry point and nothing outside the cycle references any member.
-///   Otherwise mutual recursion hides a whole dead component, since every member has an
-///   incoming reference.
-/// * Off: a method **dynamic dispatch can reach**. A call through a `dyn Trait`, an
-///   interface value or a base-class reference names no single definition, but the
-///   workspace says which types implement the abstraction and [`CallGraph`] puts an
-///   edge on each. Those edges are unproven and marked so.
+/// * Off the list. A symbol whose name appears in a **string literal** anywhere in the
+///   workspace. Reflection, a name-keyed handler table, a route string and a template all reach
+///   code through a name no resolver follows, leaving only the string.
+/// * On it: a **cycle** of symbols referencing only each other, when no member is reachable
+///   from an entry point and nothing outside the cycle references any member. Otherwise mutual
+///   recursion hides a whole dead component, since every member has an incoming reference.
+/// * Off: a method **dynamic dispatch can reach**. A call through a `dyn Trait`, an interface
+///   value or a base-class reference names no single definition. But the workspace says which
+///   types implement the abstraction and [`CallGraph`] puts an edge on each. Those edges are
+///   unproven and marked so.
 /// * Off: a **package clause**, which names where the file lives (see
 ///   [`names_where_the_file_lives`]).
-/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose
-///   property is named where the method is not.
+/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose property is
+///   named where the method is not.
 ///
-/// The result is a candidate list, not a delete list. Still invisible: a function held
-/// in a map or struct field and called through it, a name assembled at runtime, and any
-/// use inside a file that failed to parse. [`find_unused_report`] says which correction
-/// spared what. Feed each candidate to [`plan`] before acting.
+/// The result is a candidate list. It is not a delete list. Still invisible: a function held in a map
+/// or struct field and called through it, a name assembled at runtime. Any use inside a file
+/// that failed to parse. [`find_unused_report`] says which correction spared what. Feed each
+/// candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
 }
@@ -376,16 +375,14 @@ fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
 
 /// An HCL block Terraform gives no address to.
 ///
-/// `resource "aws_vpc" "this"` is addressable as `aws_vpc.this` and `output "id"` as an
-/// output; `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic`
-/// block's `content {}` are not addressable at all, so nothing can reference one and
-/// "nothing uses this" is true of every one of them. terraform-aws-vpc reported 46, all
-/// of them one of those four.
+/// `resource "aws_vpc" "this"` is addressable as `aws_vpc.this` and `output "id"` as an output;
+/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's `content {}`
+/// are not addressable at all. So nothing can reference one and "nothing uses this" is true of
+/// every one of them. terraform-aws-vpc reported 46, all of them one of those four.
 ///
-/// A labelled block takes its name from a string label; a block with no labels takes it
-/// from the block-type keyword. So the quote before the name is the whole test, and it
-/// reads the declaration instead of a list of block types that would drift as Terraform
-/// adds them.
+/// A labelled block takes its name from a string label; a block with no labels takes it from
+/// the block-type keyword. So the quote before the name is the whole test. It reads the
+/// declaration instead of a list of block types that would drift as Terraform adds them.
 fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
     if symbol.language != crate::lang::Language::Hcl || symbol.kind != SymbolKind::Block {
         return false;
@@ -398,15 +395,15 @@ fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
 
 /// Does this symbol name where the file lives, instead of something in it?
 ///
-/// Java's `package app;` and Go's `package main` are file headers. Nothing references
-/// them by name. Java classes in one package never write it, and nothing can import
-/// `main`, so "nothing uses this" is true of every one of them and means nothing.
-/// Removing one is a syntax error, not a refactoring. `spring-petclinic` reported all
-/// forty-nine of its package declarations, one per file.
+/// Java's `package app;` and Go's `package main` are file headers. Nothing references them by
+/// name. Java classes in one package never write it, and nothing can import `main`. So "nothing
+/// uses this" is true of every one of them and means nothing. Removing one is a syntax error,
+/// not a refactoring. `spring-petclinic` reported all forty-nine of its package declarations,
+/// one per file.
 ///
-/// Rust's `mod helper;` is a different construct wearing the same symbol kind: it
-/// declares a child module, and one nothing references is a real finding. So this asks
-/// the language, not the kind.
+/// Rust's `mod helper;` is a different construct wearing the same symbol kind: it declares a
+/// child module, and one nothing references is a real finding. So this asks the language, not
+/// the kind.
 fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
     symbol.kind == SymbolKind::Module
         && matches!(
@@ -434,15 +431,15 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     // Two reachability answers, because a library has no `main`.
     //
-    // Everything an exported symbol reaches is live: something outside this
-    // workspace may call it, and no amount of scanning here can rule that out.
-    // Without this, the entire tree beneath a public API reads as dead, in
-    // helm/helm that was most of `pkg/action`, where `performInstall` is called by
-    // `performInstallCtx`, called by the exported `RunWithContext`.
+    // Everything an exported symbol reaches is live: something outside this workspace may call
+    // it, and no amount of scanning here can rule that out. Without this, the entire tree
+    // beneath a public API reads as dead, in helm/helm that was most of `pkg/action`, where
+    // `performInstall` is called by `performInstallCtx`, called by the exported
+    // `RunWithContext`.
     //
-    // The exported symbols themselves are judged on the narrow answer, so an export
-    // nothing in the workspace uses is still reported, tagged as exported, since
-    // whether that is dead code or the public API is not ours to decide.
+    // The exported symbols themselves are judged on the narrow answer. So an export nothing in
+    // the workspace uses is still reported, tagged as exported, since whether that is dead code
+    // or the public API is not ours to decide.
     let exported_roots: Vec<SymbolId> = index
         .symbols
         .iter()
@@ -492,12 +489,11 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     let named_in_a_string = names_in_string_literals(index);
 
-    // A class whose methods are entry points is reached, whatever calls them. JUnit
-    // constructs a test class to run the `@Test` methods inside it, and the class itself
-    // is named nowhere, `spring-petclinic` reported eleven of them. The same holds for a
-    // Rust `mod tests` and a Python class of pytest cases, so this asks the containment
-    // chain instead of the language: if anything inside it is an entry point, something
-    // outside the workspace reaches in.
+    // A class whose methods are entry points is reached, whatever calls them. JUnit constructs
+    // a test class to run the `@Test` methods inside it, and the class itself is named nowhere,
+    // `spring-petclinic` reported eleven of them. The same holds for a Rust `mod tests` and a
+    // Python class of pytest cases, so this asks the containment chain instead of the language.
+    // If anything inside it is an entry point, something outside the workspace reaches in.
     let mut holds_an_entrypoint: HashSet<SymbolId> = HashSet::new();
     for entry in entrypoints {
         let mut at = index.symbol(*entry).and_then(|s| s.container);
@@ -524,7 +520,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let dead_cycles = dead_reference_cycles(index, &reachable);
 
     // What the answer would have been on resolved edges alone, so the difference the
-    // hierarchy layer made can be named and not merely applied. A workspace with
+    // hierarchy layer made can be named and not applied. A workspace with
     // no dispatch edges pays nothing for this.
     let (reachable_directly, dead_cycles_directly) = if call_graph.hierarchy_edge_count() == 0 {
         (reachable.clone(), dead_cycles.clone())
@@ -674,11 +670,11 @@ fn names_in_string_literals(index: &Index) -> HashSet<String> {
 
 /// Members of reference cycles that nothing outside the cycle can reach.
 ///
-/// The per-symbol check asks "does anything reference this?", which mutual recursion
-/// always answers yes to. The question a cycle needs is whether anything *outside* it
-/// references any member; if not, and no member is reachable from an entry point, the
-/// component is dead as a whole. Every symbol kind participates, not just callables: a
-/// pair of CSS classes or Terraform locals can reference each other just as happily.
+/// The per-symbol check asks "does anything reference this?", which mutual recursion always
+/// answers yes to. The question a cycle needs is whether anything *outside* it references any
+/// member. If not, and no member is reachable from an entry point, the component is dead as a
+/// whole. Every symbol kind participates, not just callables: a pair of CSS classes or
+/// Terraform locals can reference each other just as happily.
 fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSet<SymbolId> {
     let mut graph: DiGraph<SymbolId, ()> = DiGraph::new();
     let mut nodes: HashMap<SymbolId, NodeIndex> = HashMap::new();
@@ -750,24 +746,21 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
     best.map(|(_, id)| id)
 }
 
-/// The bytes a delete should actually remove.
+/// The bytes a delete should remove.
 ///
-/// When the definition is alone on its lines, the whole lines go, indentation and
-/// trailing newline included. A blank line immediately after goes too, but only when a
-/// blank line or the start of the file already preceded the definition; otherwise that
-/// blank line separates the code that stays.
-/// Widen a symbol's span to the construct that cannot survive without it.
+/// When the definition is alone on its lines, the whole lines go, indentation and trailing
+/// newline included. A blank line immediately after goes too, but only when a blank line or the
+/// start of the file already preceded the definition; otherwise that blank line separates the
+/// code that stays. Widen a symbol's span to the construct that cannot survive without it.
 ///
-/// The index keeps the span a *rename* rewrites, which is rarely the span a delete can
-/// remove. `export const defaultLimits = {…}` has the declarator as its span; removing
-/// exactly that leaves `export const ;`, which the engine's reparse check rejects, so
-/// `fr unused` named the constant and `fr delete` refused it. A CSS class has the same
-/// shape.
+/// The index keeps the span a *rename* rewrites, which is rarely the span a delete can remove.
+/// `export const defaultLimits = {…}` has the declarator as its span. Removing that leaves
+/// `export const ;`, which the engine's reparse check rejects, so `fr unused` named the
+/// constant and `fr delete` refused it. A CSS class has the same shape.
 ///
-/// One rule for both: climb while the symbol is the only child of its kind in its
-/// parent, since a parent left with none has nothing left to be. Stop at the first
-/// sibling of the same kind and take the symbol plus the separator joining them. Never
-/// climb into the root.
+/// One rule for both: climb while the symbol is the only child of its kind in its parent, since
+/// a parent left with none has nothing left to be. Stop at the first sibling of the same kind
+/// and take the symbol plus the separator joining them. Never climb into the root.
 pub(crate) fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,
@@ -781,7 +774,7 @@ pub(crate) fn widen_for_delete(
     };
     let root = parsed.root();
 
-    /// Siblings of the same kind, which is what decides whether the parent survives.
+    /// Siblings of the same kind, which decides whether the parent survives.
     fn same_kind_siblings(node: tree_sitter::Node<'_>) -> usize {
         let Some(parent) = node.parent() else {
             return 0;
@@ -805,11 +798,11 @@ pub(crate) fn widen_for_delete(
         if parent.id() == root.id() {
             break;
         }
-        // A body is not optional. "No sibling of the same kind" is true of a Java class
-        // holding one field and four methods, the methods are a different kind, so the
-        // climb went field → class_body → class_declaration and deleting one constant
-        // took the whole class with it. Stop below anything its own parent names as its
-        // body, which is the general form of "this container has to be here".
+        // A body is not optional. "No sibling of the same kind" is true of a Java class holding
+        // one field and four methods, the methods are a different kind. So the climb went field
+        // → class_body → class_declaration and deleting one constant took the whole class with
+        // it. Stop below anything its own parent names as its body, which is the general form
+        // of "this container has to be here".
         let parent_is_a_body = parent
             .parent()
             .and_then(|grandparent| grandparent.child_by_field_name("body"))
@@ -931,7 +924,7 @@ fn is_string_kind(kind: &str) -> bool {
     // it is where a template names the code behind it: `th:text="${owner.address}"`
     // reaches `Owner::getAddress`, `v-on:click="submit"` reaches `submit`. Reading only
     // nodes with "string" in their name meant the whole Thymeleaf, Vue and Angular way of
-    // referring to code was invisible to the one rule meant to catch exactly that.
+    // referring to code was invisible to the one rule meant to catch that.
     kind.contains("string") || kind.contains("char_literal") || kind.contains("attribute_value")
 }
 

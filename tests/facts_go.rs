@@ -1,4 +1,4 @@
-//! Go fact-extraction tests: what `queries/go/facts.scm` actually reports.
+//! Go fact-extraction tests: what `queries/go/facts.scm` reports.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -217,7 +217,7 @@ fn grouped_declarations_report_one_symbol_per_spec() {
     let f = go(src);
     assert_eq!(names_of(&f, SymbolKind::Constant), vec!["A", "b"]);
     assert_eq!(names_of(&f, SymbolKind::Variable), vec!["C", "d"]);
-    // The definition span is the spec, not the whole `const ( ... )` block.
+    // The definition span is the spec. It is not the whole `const ( ... )` block.
     assert_eq!(sym(&f, "A").full_span.text(src), "A = 1");
 }
 

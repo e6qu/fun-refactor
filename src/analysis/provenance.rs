@@ -1,42 +1,41 @@
-//! Config-language value provenance: where a configured value comes from, and
-//! what consumes it.
+//! Config-language value provenance: where a configured value comes from, and what consumes it.
 //!
 //! # Not [`super::flow`]
 //!
-//! Imperative dataflow approximates an execution. Config languages evaluate instead,
-//! by substitution and override, under a model each one specifies:
+//! Imperative dataflow approximates an execution. Config languages evaluate instead, by
+//! substitution and override, under a model each one specifies:
 //!
-//! - **Terraform**: `var.x`, `local.y` and `module.m.out` form a substitution DAG.
-//!   Every hop keeps its own file, line and expression text; nothing is rewritten.
-//!   (Checkov builds the same graph but substitutes in place, losing the hop chain.)
-//! - **Helm**: a values key has a defined override order, subchart defaults, then
-//!   each enclosing parent chart, then `-f` files in command-line order, then
-//!   `--set`. Every competing source in the workspace is reported with its
-//!   precedence, the winner marked, the losers kept. The last two levels live in the
-//!   invocation instead of the workspace, so a caller that knows them supplies them
-//!   as [`ValuesInputs`] and the same order then decides outright.
-//! - **CSS**: the cascade is a specified algorithm (origin → layer → specificity →
-//!   source order). Losing declarations are reported struck through, as DevTools does.
-//! - **YAML**: an alias takes its value from its anchor. Composition discards anchors,
-//!   so the index reads them off the CST.
+//! - **Terraform**: `var.x`, `local.y` and `module.m.out` form a substitution DAG. Every hop
+//!   keeps its own file, line and expression text; nothing is rewritten. (Checkov builds the
+//!   same graph but substitutes in place, losing the hop chain.)
+//! - **Helm**. A values key has a defined override order, subchart defaults, then each
+//!   enclosing parent chart, then `-f` files in command-line order, then `--set`. Every
+//!   competing source in the workspace is reported with its precedence, the winner marked, the
+//!   losers kept. The last two levels live in the invocation instead of the workspace. So a
+//!   caller that knows them supplies them as [`ValuesInputs`] and the same order then decides
+//!   outright.
+//! - **CSS**: the cascade is a specified algorithm (origin → layer → specificity → source
+//!   order). Losing declarations are reported struck through, as DevTools does.
+//! - **YAML**: an alias takes its value from its anchor. Composition discards anchors, so the
+//!   index reads them off the CST.
 //!
 //! # Where it stops
 //!
 //! Anything undetermined becomes a [`StopReason`] and not a guess:
 //!
-//! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`,
-//!   which is outside the code entirely ([`StopReason::ExternalInput`]);
-//! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`]
-//!   reads it back instead of the YAML queries: the `.Values` paths it names resolve,
-//!   and what the template engine decides, which branch renders, what the release
-//!   supplies, becomes [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
+//! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`, which is
+//!   outside the code entirely ([`StopReason::ExternalInput`]);
+//! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`] reads it back
+//!   instead of the YAML queries. The `.Values` paths it names resolve, and what the template
+//!   engine decides, which branch renders, what the release supplies, becomes
+//!   [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
 //! - a resource attribute is computed by a provider at apply time
 //!   ([`StopReason::ComputedAtApply`]);
-//! - competing sources whose relative order the workspace does not show, two `-f`
-//!   files, two `@layer`s, two stylesheets, all appear, winner undecided
+//! - competing sources whose relative order the workspace does not show, two `-f` files, two
+//!   `@layer`s, two stylesheets, all appear, winner undecided
 //!   ([`StopReason::PrecedenceUndetermined`]);
-//! - a Helm competition that caller-supplied inputs decide names which input decided
-//!   it and which channel it was never told about ([`StopReason::DecidedGivenInputs`]).
+//! - a Helm competition that caller-supplied inputs decide names which input decided it and
+//!   which channel it was never told about ([`StopReason::DecidedGivenInputs`]).
 
 use crate::helm;
 use crate::index::Index;
@@ -126,7 +125,7 @@ pub enum StopReason {
     /// before parsing and evaluated by the template engine, not by us.
     RenderDependent(String),
     /// Something renders only when a template conditional holds. The condition is
-    /// named, so this says *when* and not merely *maybe*.
+    /// named, so this says *when* and not *maybe*.
     Conditional { what: String, condition: String },
     /// A provider computes this at apply time; no configuration holds it.
     ComputedAtApply(String),
@@ -211,7 +210,7 @@ impl std::fmt::Display for StopReason {
 pub struct Hop {
     pub symbol: Option<SymbolId>,
     pub kind: EdgeKind,
-    /// The expression exactly as written at this hop.
+    /// The expression as written at this hop.
     pub text: String,
     pub file: PathBuf,
     pub span: Span,
@@ -284,16 +283,15 @@ pub struct Competition {
     pub model: String,
     /// False when the workspace does not show which of *these* sources wins.
     ///
-    /// A channel outside the workspace that could pre-empt every source listed,
-    /// `--set`, `-var`, is a [`StopReason::ExternalInput`] stop, not an undecided
-    /// competition: it replaces the answer instead of reordering the candidates.
-    /// A channel that ranks *between* two listed sources does make the competition
-    /// undecided, which is why Terraform's `TF_VAR_*` leaves one undecided and
-    /// Helm's `-f`, which outranks every values file in the chart, does not.
+    /// A channel outside the workspace that could pre-empt every source listed, `--set`,
+    /// `-var`, is a [`StopReason::ExternalInput`] stop. It is not an undecided competition. It
+    /// replaces the answer instead of reordering the candidates. A channel that ranks *between*
+    /// two listed sources does make the competition undecided. So Terraform's `TF_VAR_*` leaves
+    /// one undecided and Helm's `-f`, which outranks every values file in the chart, does not.
     ///
-    /// A Helm competition a caller's [`ValuesInputs`] settles is decided here, and
-    /// says through [`StopReason::DecidedGivenInputs`] which input settled it and
-    /// which channel it was never told about.
+    /// A Helm competition a caller's [`ValuesInputs`] settles is decided here, and says through
+    /// [`StopReason::DecidedGivenInputs`] which input settled it and which channel it was never
+    /// told about.
     pub decided: bool,
     /// Sorted strongest first.
     pub sources: Vec<CompetingSource>,
@@ -403,7 +401,7 @@ pub fn applies_to(index: &Index, file: &Path) -> bool {
 /// beside it is ever passed, in which order two `-f` files were written, or that a
 /// `--set` overrides both. Supplying that turns the undecided half of Helm's
 /// precedence order into a decided one; supplying nothing leaves every answer
-/// exactly as it was.
+/// as it was.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ValuesInputs {
     /// `-f`/`--values` files in command-line order. Later wins, as Helm merges
@@ -422,7 +420,7 @@ impl ValuesInputs {
     ///
     /// `sets` and `set_strings` arrive as two lists because that is how flags
     /// parse, and their relative order is lost in the process. That order only
-    /// matters when both set the same key, so exactly that case is refused rather
+    /// matters when both set the same key, so that case is refused rather
     /// than resolved by picking one.
     pub fn parse(files: &[PathBuf], sets: &[String], set_strings: &[String]) -> Result<Self> {
         let mut parsed: Vec<helm::SetValue> = Vec::new();
@@ -482,9 +480,9 @@ impl ValuesInputs {
         parts.join(" ")
     }
 
-    /// Resolve every `-f` path to the file the index holds, refusing anything it
-    /// cannot read: a file whose keys are invisible cannot be ranked against the
-    /// chart's, and pretending otherwise would drop an override silently.
+    /// Resolve every `-f` path to the file the index holds, refusing anything it cannot read. A
+    /// file whose keys are invisible cannot be ranked against the chart's. Pretending otherwise
+    /// would drop an override silently.
     pub fn resolve(&self, index: &Index) -> Result<Self> {
         let mut files = Vec::new();
         for given in &self.files {
@@ -607,10 +605,10 @@ pub fn consumers_with_inputs(
 
 /// Does this language have a value-substitution model to trace?
 ///
-/// The five arms of the two dispatches above, named once. The matrix claimed provenance
-/// for every non-imperative language, which is three more than the dispatch handles: an
-/// HTML, XML or Markdown symbol reached the fallback and stopped, and `fr flow`'s
-/// refusal sent callers here for an answer this cannot give.
+/// The five arms of the two dispatches above, named once. The matrix claimed provenance for
+/// every non-imperative language, which is three more than the dispatch handles: an HTML, XML
+/// or Markdown symbol reached the fallback and stopped. `fr flow`'s refusal sent callers here
+/// for an answer this cannot give.
 pub fn supports_provenance(language: Language) -> bool {
     matches!(
         language,
@@ -632,9 +630,9 @@ fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
         );
     }
     if !supports_provenance(sym.language) {
-        // The two dispatches have arms for five languages, and every other one fell
-        // through to a stop reason inside an `Ok`, an answer shaped like an answer,
-        // saying there was nothing to say. The matrix claimed those cells on that basis.
+        // The two dispatches have arms for five languages. Every other one fell through to a
+        // stop reason inside an `Ok`, an answer shaped like an answer, saying there was nothing
+        // to say. The matrix claimed those cells on that basis.
         return Err(crate::refactor::Refusal::Unsupported {
             operation: "tracing provenance".into(),
             language: sym.language,
@@ -984,7 +982,7 @@ impl Ctx<'_> {
                 model: "terraform: default < TF_VAR_* < terraform.tfvars < *.auto.tfvars < -var/-var-file"
                     .to_string(),
                 // `TF_VAR_*` ranks *between* the sources listed here, so it can
-                // change which of them supplies the value, not merely replace it.
+                // change which of them supplies the value, not replace it.
                 decided: false,
                 sources: competing,
             });
@@ -1223,9 +1221,9 @@ impl Ctx<'_> {
                         )),
                     );
                 }
-                // A trailing attribute or type label already accounted for by the
-                // address it belongs to, and function names, which transform the
-                // arguments that are followed separately.
+                // A trailing attribute or type label already accounted for by the address it
+                // belongs to. Function names, which transform the arguments that are followed
+                // separately.
                 _ => {}
             }
             i += 1;
@@ -1619,9 +1617,9 @@ fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
 
 // --------------------------------------------------------------- YAML / Helm
 
-/// Rank of a `values-*.yaml` file beside a chart: above every chart values file,
-/// because `-f` outranks all of them, and far enough above to leave room for any
-/// depth of chart nesting below it.
+/// Rank of a `values-*.yaml` file beside a chart: above every chart values file, because `-f`
+/// outranks all of them. Far enough above to leave room for any depth of chart nesting below
+/// it.
 const USER_SUPPLIED: u32 = 100;
 
 /// Rank of the first `--set`. Helm applies `--set` after every `-f`, so this sits
@@ -2067,12 +2065,12 @@ impl Ctx<'_> {
         };
         let path = self.key_path(sym);
 
-        // Normalise to the chart that actually owns the key: a `mysql.image.tag`
+        // Normalise to the chart that owns the key: a `mysql.image.tag`
         // entry in a parent chart addresses the `image.tag` of subchart `mysql`.
         let (owner, local) = self.descend_to_subchart(&chart, &path);
         let levels = chart_levels(&owner, &local);
-        // A `-f` file and a `--set` are merged into the values of the *outermost*
-        // chart, so a subchart key is theirs only under its parent's prefix.
+        // A `-f` file and a `--set` are merged into the values of the *outermost* chart. So a
+        // subchart key is theirs only under its parent's prefix.
         let addressed = levels
             .last()
             .map(|(_, level_path)| level_path.clone())
@@ -2254,9 +2252,9 @@ impl Ctx<'_> {
             effective.last().copied()
         };
 
-        // Without inputs, every `values-*.yaml` in the workspace is a file that may
-        // or may not be passed, so the answer is open however the ranks fall. With
-        // inputs, the command line is described and the order decides.
+        // Without inputs, every `values-*.yaml` in the workspace is a file that may or may not
+        // be passed. So the answer is open however the ranks fall. With inputs, the command
+        // line is described and the order decides.
         let undecided_files: Vec<String> = candidates
             .iter()
             .filter(|c| c.rank == USER_SUPPLIED && c.participates)
@@ -2557,7 +2555,7 @@ impl Ctx<'_> {
                 }
 
                 // A read inside a `define` happens wherever that template is
-                // included, so the consumers are the include sites, not the body.
+                // included, so the consumers are the include sites. They are not the body.
                 let define = template
                     .define_containing(span.start)
                     .map(|define| define.name.clone());

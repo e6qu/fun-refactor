@@ -1,11 +1,10 @@
 //! What the index does not know about a file, and how it says so.
 //!
-//! Two things stop extraction short of the file: the grammar failing, and a Helm
-//! action standing where a key belongs. Both leave the facts incomplete, and a
-//! refactoring that reads them is deciding on less than the file contains. These
-//! tests pin that each one is reported, and that neither is inferred from the other,
-//! a templated key parses cleanly about as often as not, so the parse error is not a
-//! usable signal for it.
+//! Two things stop extraction short of the file: the grammar failing, and a Helm action
+//! standing where a key belongs. Both leave the facts incomplete, and a refactoring that reads
+//! them is deciding on less than the file contains. These tests pin that each one is reported.
+//! That neither is inferred from the other, a templated key parses cleanly about as often as
+//! not. So the parse error is not a usable signal for it.
 
 use fun_refactor::extract::Extractor;
 use fun_refactor::index::Index;
@@ -52,7 +51,7 @@ fn a_templated_key_is_reported_whether_or_not_the_parse_survives_it() {
 
 #[test]
 fn a_templated_key_opening_a_sequence_entry_is_a_key_too() {
-    // `- ` is structure, not a name, so the action after it is still in key position.
+    // `- ` is structure. It is not a name, so the action after it is still in key position.
     assert_eq!(
         gaps("items:\n  - {{ $key }}: v\n"),
         [FactGap::TemplatedKeys]
@@ -61,10 +60,9 @@ fn a_templated_key_opening_a_sequence_entry_is_a_key_too() {
 
 #[test]
 fn a_templated_key_never_becomes_a_symbol() {
-    // Byte offsets index the original source, so a key masked to a scalar reports
-    // under the action's own text: a symbol named `{{ $key }}`, which rename would
-    // rewrite into broken template syntax. Absent is the honest answer, and the gap
-    // says it is absent.
+    // Byte offsets index the original source, so a key masked to a scalar reports under the
+    // action's own text. A symbol named `{{ $key }}`, which rename would rewrite into broken
+    // template syntax. Absent is the honest answer, and the gap says it is absent.
     for source in [
         "items:\n  - {{ $key }}: v\n",
         "matchLabels:\n  {{ $key | quote }}: {{ $value | quote }}\n",

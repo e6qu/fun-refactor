@@ -2,22 +2,22 @@
 //!
 //! Each of the three has a different answer to "what else has to change":
 //!
-//! - **Zig** resolves through `@import`, so a moved declaration is reached by a new
-//!   namespace. The tests assert the `const … = @import(…)` line byte for byte and
-//!   the qualifier on every use.
-//! - **Bash** has no import that binds a name — `source` splices a whole script in,
-//!   so a moved function needs its surviving callers to source its new home. What
-//!   `source` cannot say is what a computed path put in scope, and that refuses.
-//! - **YAML / Helm** address a values key by its path, and a top-level key's path
-//!   does not mention its file. Nothing needs repointing; what needs saying is that
-//!   `helm install` reads only `values.yaml`.
+//! - **Zig** resolves through `@import`. So a moved declaration is reached by a new namespace.
+//!   The tests assert the `const … = @import(…)` line byte for byte and the qualifier on every
+//!   use.
+//! - **Bash** has no import that binds a name — `source` splices a whole script in. So a moved
+//!   function needs its surviving callers to source its new home. What `source` cannot say is
+//!   what a computed path put in scope, and that refuses.
+//! - **YAML / Helm** address a values key by its path, and a top-level key's path does not
+//!   mention its file. Nothing needs repointing; what needs saying is that `helm install` reads
+//!   only `values.yaml`.
 //!
-//! HTML and XML stay refused, and there is a test for that too: an element has no
-//! name another document imports.
+//! HTML and XML stay refused, and there is a test for that too: an element has no name another
+//! document imports.
 //!
-//! Every successful move goes through `edit::plan(…, ReparseStrict)` and is then
-//! re-indexed, so a move that produces text the tool can no longer resolve fails here
-//! and not in someone's repository.
+//! Every successful move goes through `edit::plan(…, ReparseStrict)` and is then re-indexed. So
+//! a move that produces text the tool can no longer resolve fails here and not in someone's
+//! repository.
 
 use fun_refactor::{
     edit::{self, apply_to_string, Validation},
@@ -292,9 +292,9 @@ fn zig_refuses_a_destination_that_would_need_a_climbing_import_path() {
         symbol_id(&index, "thing", None),
         &ws.path("dest.zig"),
     ));
-    // `error` and not `refusal`: which two paths these are is a fact about them and not
-    // about Zig, so this is no longer a `Refusal::Unsupported` naming the language. It was
-    // one, and said Zig was unsupported when Zig moves between files perfectly well.
+    // `error` and not `refusal`: which two paths these are is a fact about them and not about
+    // Zig. So this is no longer a `Refusal::Unsupported` naming the language. It was one, and
+    // said Zig was unsupported when Zig moves between files perfectly well.
     assert!(message.contains("climbs above"), "got: {message}");
     assert!(message.contains("module root"), "got: {message}");
 }

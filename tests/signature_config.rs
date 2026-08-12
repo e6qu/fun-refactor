@@ -1,16 +1,15 @@
-//! Change-signature for the config languages: Terraform module variables and SCSS
-//! mixin parameters.
+//! Change-signature for the config languages: Terraform module variables and SCSS mixin
+//! parameters.
 //!
-//! A Terraform module is a directory. Its parameters are the `variable "x" {}` blocks
-//! declared there and its call sites are `module "m" { source = "./that/dir" }` blocks
-//! elsewhere, so a signature change has to reach both sides at once. An SCSS mixin is
-//! closer to a function, `@mixin name($a)` declares, `@include name(1)` calls, and
-//! goes through the same path a function does.
+//! A Terraform module is a directory. Its parameters are the `variable "x" {}` blocks declared
+//! there and its call sites are `module "m" { source = "./that/dir" }` blocks elsewhere. So a
+//! signature change has to reach both sides at once. An SCSS mixin is closer to a function,
+//! `@mixin name($a)` declares, `@include name(1)` calls, and goes through the same path a
+//! function does.
 //!
-//! These tests assert the exact resulting bytes, because "formatting outside the
-//! edited range survives" is only checkable against exact text. Where the SCSS grammar
-//! genuinely cannot parse a form, the test says so and pins the refusal instead of
-//! pretending the form works.
+//! These tests assert the exact resulting bytes, because "formatting outside the edited range
+//! survives" is only checkable against exact text. Where the SCSS grammar genuinely cannot
+//! parse a form, the test says so and pins the refusal instead of pretending the form works.
 
 use fun_refactor::{
     edit::{apply_to_string, plan, Validation},
@@ -555,9 +554,8 @@ fn reordering_module_variables_is_refused_as_meaningless() {
 
 #[test]
 fn a_computed_module_source_anywhere_refuses_the_change() {
-    // `source = var.where` cannot be shown *not* to call this module, and a change
-    // that updates the callers we can see is exactly the partial update that leaves
-    // Terraform broken.
+    // `source = var.where` cannot be shown *not* to call this module. A change that updates the
+    // callers we can see is exactly the partial update that leaves Terraform broken.
     let ws = Workspace::new(&[
         ("main.tf", ROOT_MAIN_TF),
         ("modules/thing/variables.tf", THING_VARIABLES_TF),
@@ -672,7 +670,7 @@ fn a_locals_entry_is_not_a_module_variable() {
 // `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call,
 // so a mixin's signature changes through exactly the same path a function's does.
 
-// `$legacy` is declared and never used, which is what makes removing it a refactoring:
+// `$legacy` is declared and never used, which makes removing it a refactoring:
 // the body does not read it, so nothing that renders today renders differently.
 const THEME_SCSS: &str =
     "@mixin theme($fg, $bg, $legacy) {\n  color: $fg;\n  background: $bg;\n}\n";

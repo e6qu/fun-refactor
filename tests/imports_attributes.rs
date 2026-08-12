@@ -1,18 +1,15 @@
 //! What an attribute above an import belongs to.
 //!
-//! Sorting moves whole lines within a run of imports. An attribute sits on its own line
-//! and is part of the item below it, so leaving it where it was hands it to whichever
-//! import sorts into its place. Run over this repository, `fr imports` did that to three
-//! of its 49 Rust files, `src/index.rs` among them:
+//! Sorting moves whole lines within a run of imports. An attribute sits on its own line and is
+//! part of the item below it. So leaving it where it was hands it to whichever import sorts
+//! into its place. Run over this repository, `fr imports` did that to three of its 49 Rust
+//! files, `src/index.rs` among them:
 //!
-//! ```text
-//!  #[cfg(feature = "cli")]
-//! +use anyhow::{Context, Result};
-//!  use crate::scan::{scan, ScanOptions, ScanResult};
-//! ```
+//! ```text #[cfg(feature = "cli")] +use anyhow::{Context, Result}; use crate::scan::{scan,
+//! ScanOptions, ScanResult}; ```
 //!
-//! which compiles under neither setting of the feature, `anyhow` disappears without it,
-//! and `crate::scan` is named unconditionally while the module it names is not.
+//! which compiles under neither setting of the feature, `anyhow` disappears without it, and
+//! `crate::scan` is named unconditionally while the module it names is not.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::imports;

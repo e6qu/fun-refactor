@@ -25,7 +25,7 @@ impl Workspace {
     }
 
     /// Re-read the tree from disk. Used after applying one refactoring so the next one
-    /// resolves against the rewritten file, which is what a round trip needs.
+    /// resolves against the rewritten file, which a round trip needs.
     fn reindex(&mut self) {
         let scanned = scan(self.tmp.path(), &ScanOptions::default()).unwrap();
         self.index = Index::build_from_scan(&scanned).unwrap();
@@ -204,7 +204,7 @@ fn bash_extract_replaces_every_occurrence_when_asked() {
 #[test]
 fn bash_extract_never_rewrites_an_occurrence_before_the_binding() {
     // The first occurrence is above the insertion point, where the variable is not
-    // set yet, so it is left exactly as it was.
+    // set yet, so it is left as it was.
     let src = "#!/bin/bash\na=$(id -u)\nb=$(id -u)\n";
     let ws = workspace(&[("run.sh", src)]);
     let path = ws.path("run.sh");
@@ -631,7 +631,7 @@ fn zig_extract_function_says_void_when_nothing_comes_back() {
 
 #[test]
 fn zig_extract_function_refuses_the_selection_whose_type_was_never_written() {
-    // Zig is refused per selection, exactly like Rust and Go: the language needing a
+    // Zig is refused per selection, like Rust and Go: the language needing a
     // written type is not the reason, the missing annotation is.
     let src = "fn run() void {\n    const width = 3;\n    log(width);\n}\n";
     let ws = workspace(&[("a.zig", src)]);

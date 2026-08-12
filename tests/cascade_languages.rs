@@ -1,16 +1,15 @@
 //! Cascading flag removal in Zig, shell and Terraform.
 //!
-//! The three languages fail differently, and the tests are arranged around that.
-//! Zig writes its `if` twice, as a statement and as an expression, so both
-//! spellings need collapsing. Shell has no booleans at all: substituting the flag
-//! leaves a *string* inside a test, and only some of the ways a script can test a
-//! string are decidable, so what is refused matters as much as what is collapsed.
-//! Terraform has no `if`: the flag reaches a resource through `count`, and removing
-//! it as false deletes the resource, which strands every address pointing at it.
+//! The three languages fail differently, and the tests are arranged around that. Zig writes its
+//! `if` twice, as a statement and as an expression, so both spellings need collapsing. Shell
+//! has no booleans at all: substituting the flag leaves a *string* inside a test, and only some
+//! of the ways a script can test a string are decidable. So what is refused matters as much as
+//! what is collapsed. Terraform has no `if`: the flag reaches a resource through `count`, and
+//! removing it as false deletes the resource, which strands every address pointing at it.
 //!
-//! Every language gets the true case, the false case, a multi-round cascade, a
-//! symbol that survives because something else still uses it, a reparse of the
-//! result, and each refusal by name.
+//! Every language gets the true case, the false case, a multi-round cascade, a symbol that
+//! survives because something else still uses it, a reparse of the result, and each refusal by
+//! name.
 
 use fun_refactor::edit::{apply_to_string, Validation};
 use fun_refactor::refactor::cascade;
@@ -109,7 +108,7 @@ fn zig_false_keeps_the_else_branch() {
 
 #[test]
 fn zig_collapses_an_if_used_as_an_expression() {
-    // `if (cond) a else b` is a value in Zig, not just a statement, and it has no
+    // `if (cond) a else b` is a value in Zig. It is not just a statement. It has no
     // `body`/`alternative` fields at all, the branches are positional.
     let tmp = workspace(&[(
         "a.zig",
@@ -185,7 +184,7 @@ fn zig_keeps_nesting_inside_the_surviving_branch() {
 
 #[test]
 fn zig_an_else_if_becomes_the_if_without_gaining_a_semicolon() {
-    // The kept branch is a whole `if` statement, not an expression, so the semicolon
+    // The kept branch is a whole `if` statement. It is not an expression, so the semicolon
     // rule for unbraced branches must not fire on it.
     let tmp = workspace(&[(
         "a.zig",
@@ -259,8 +258,8 @@ fn zig_a_payload_capture_is_refused_by_name() {
     let out = result_for(tmp.path(), "a.zig", &plan);
     assert!(out.contains("if (true) |v|"), "substitution stays:\n{out}");
     assert_eq!(plan.unfinished.len(), 1, "{}", unfinished(&plan));
-    // The line is the one in the finished file, not the one it started on: the flag's
-    // own declaration went, so everything below it moved up.
+    // The line is the one in the finished file. It is not the one it started on. The flag's own
+    // declaration went, so everything below it moved up.
     assert!(
         plan.unfinished[0].contains("payload") && plan.unfinished[0].contains("a.zig:2"),
         "{}",
@@ -473,10 +472,10 @@ fn bash_lifts_a_nested_conditional_out_intact() {
 
 #[test]
 fn bash_substitutes_inside_a_larger_string_without_stranding_the_sigil() {
-    // Replacing only the name would leave `"pre$true"`, so the expansion goes with
-    // it. A string that was nothing *but* the expansion loses its quotes too: they
-    // existed to protect a value that might have had spaces in it, and `true` is a
-    // bare word, leaving them on would hide the literal from every shell test.
+    // Replacing only the name would leave `"pre$true"`, so the expansion goes with it. A string
+    // that was nothing *but* the expansion loses its quotes too: they existed to protect a
+    // value that might have had spaces in it. `true` is a bare word, leaving them on would hide
+    // the literal from every shell test.
     let tmp = workspace(&[(
         "run.sh",
         "USE_NEW=true\n\necho \"pre$USE_NEW\" \"${USE_NEW}\"\n",
@@ -492,13 +491,13 @@ fn bash_substitutes_inside_a_larger_string_without_stranding_the_sigil() {
 
 #[test]
 fn bash_a_compound_expansion_is_refused_by_name() {
-    // `${FLAG:-no}` means more than the flag's value: the whole expansion cannot be
-    // replaced without losing the default, and the name alone cannot be replaced
-    // without producing `${true:-no}`.
+    // `${FLAG:-no}` means more than the flag's value: the whole expansion cannot be replaced
+    // without losing the default. The name alone cannot be replaced without producing
+    // `${true:-no}`.
     //
-    // The assignment is the only other place the name appears, so refusing that one use
-    // leaves nothing to do. Removing the assignment on its own would have turned a
-    // script that read `true` into a script that reads `no`.
+    // The assignment is the only other place the name appears, so refusing that one use leaves
+    // nothing to do. Removing the assignment on its own would have turned a script that read
+    // `true` into a script that reads `no`.
     let tmp = workspace(&[("run.sh", "USE_NEW=true\n\necho \"${USE_NEW:-no}\"\n")]);
 
     let error = cascade::remove_flag(tmp.path(), "USE_NEW", true)
@@ -656,8 +655,8 @@ fn bash_an_unrelated_conditional_is_not_touched() {
 
 #[test]
 fn terraform_true_drops_a_count_of_one_and_the_variable() {
-    // `count = 1` is what a resource does by default, so the argument goes with the
-    // flag instead of being left as a line of noise.
+    // `count = 1` is what a resource does by default. So the argument goes with the flag
+    // instead of being left as a line of noise.
     let tmp = workspace(&[
         (
             "variables.tf",
@@ -882,7 +881,7 @@ fn terraform_a_resource_used_elsewhere_survives_a_true_removal() {
 
 #[test]
 fn terraform_keeps_a_count_of_one_the_module_indexes_into() {
-    // `count` is not only a number: it is what makes `aws_s3_bucket.logs` a list.
+    // `count` is not only a number: it makes `aws_s3_bucket.logs` a list.
     // Deleting it would leave `[0]` indexing a single object, which will not plan.
     let tmp = workspace(&[
         ("variables.tf", "variable \"enabled\" {\n  type = bool\n}\n"),
@@ -941,8 +940,8 @@ fn terraform_keeps_a_count_of_one_that_count_index_depends_on() {
 
 #[test]
 fn terraform_a_zeroed_resource_goes_even_when_it_was_indexed() {
-    // The false case is not the same problem: the resource is gone either way, so
-    // the index has nothing to point at and is reported as dangling.
+    // The false case is not the same problem. The resource is gone either way, so the index has
+    // nothing to point at and is reported as dangling.
     let tmp = workspace(&[
         ("variables.tf", "variable \"enabled\" {\n  type = bool\n}\n"),
         (
@@ -979,9 +978,9 @@ fn terraform_reading_through_the_flag_is_refused_by_name() {
         ),
     ]);
 
-    // That one traversal is the variable's only reader, so refusing it leaves nothing to
-    // do, and deleting the declaration under it would leave `var.enabled.name` pointing
-    // at a variable Terraform no longer declares.
+    // That one traversal is the variable's only reader. So refusing it leaves nothing to do,
+    // and deleting the declaration under it would leave `var.enabled.name` pointing at a
+    // variable Terraform no longer declares.
     let error = cascade::remove_flag(tmp.path(), "enabled", true)
         .expect_err("a variable whose every use is refused cannot be removed")
         .to_string();
@@ -1042,23 +1041,22 @@ fn terraform_resolves_the_variable_across_the_module_directory() {
 
 #[test]
 fn a_language_without_a_collapse_step_refuses_rather_than_going_quiet() {
-    // This test used to assert that a substituted-but-uncollapsed YAML file is reported
-    // rather than left silent, over a fixture where `use_new: USE_NEW` was supposed to
-    // read the Python flag. It never does: YAML's only reference edge is the anchor and
-    // alias, which the query says in as many words. So `remove_flag` bailed, the whole
-    // body sat behind `if let Ok(plan)`, and the test asserted nothing from the day it
-    // was written.
+    // This test used to assert that a substituted-but-uncollapsed YAML file is reported rather
+    // than left silent, over a fixture where `use_new. USE_NEW` was supposed to read the Python
+    // flag. It never does: YAML's only reference edge is the anchor and alias, which the query
+    // says in as many words. So `remove_flag` bailed, the whole body sat behind `if let
+    // Ok(plan)`, and the test asserted nothing from the day it was written.
     //
-    // Driving it properly found the real defect. The matrix answers `supports_cascade`
-    // for this cell and the command never asked, so `n/a` was a claim with nothing
-    // behind it: an XML entity flag *was* substituted, `&use_new;` became `&true;`, an
-    // entity no document defines, and the prolog went with the declaration. The command
-    // asks the same predicate now, so the contract below is a refusal.
+    // Driving it properly found the real defect. The matrix answers `supports_cascade` for this
+    // cell and the command never asked. So `n/a` was a claim with nothing behind it: an XML
+    // entity flag *was* substituted, `&use_new;` became `&true;`, an entity no document
+    // defines. The prolog went with the declaration. The command asks the same predicate now,
+    // so the contract below is a refusal.
     //
-    // The substituted-but-uncollapsed report has no reachable input any more, and this
-    // says why rather than pretending to cover it: the definition's language is checked
-    // above, and a reference in one of these languages never resolves better than
-    // `NameOnly`, which is not safe to rewrite. All seven were tried.
+    // The substituted-but-uncollapsed report has no reachable input any more. This says why
+    // and not pretending to cover it: the definition's language is checked above. A
+    // reference in one of these languages never resolves better than `NameOnly`, which is not
+    // safe to rewrite. All seven were tried.
     let tmp = workspace(&[(
         "doc.xml",
         "<?xml version=\"1.0\"?>\n<!DOCTYPE doc [\n<!ENTITY use_new \"true\">\n]>\n\

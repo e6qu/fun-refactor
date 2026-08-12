@@ -1,7 +1,7 @@
 //! The stages of the types tutorial, measured and not asserted.
 //!
 //! The page claims that each stage knows more about its own values than the one before.
-//! That is a claim about the code in `tests/types_tutorial`, and this is what makes it
+//! That is a claim about the code in `tests/types_tutorial`, and this makes it
 //! fail the build when it stops being true.
 //!
 //! What is measured is what `fr type` answers for every binding and parameter in the
@@ -86,7 +86,7 @@ fn every_stage_parses_in_both_languages() {
 #[test]
 fn the_first_stage_has_written_down_nothing() {
     // The whole point of where it starts. Anything the tool reports here it worked out
-    // for itself, which is what the panel says beside it.
+    // for itself, which the panel says beside it.
     for language in [Language::Python, Language::TypeScript] {
         let known = known_in(STAGES[0], language);
         assert_eq!(
@@ -132,8 +132,8 @@ fn the_last_stage_leaves_almost_nothing_unknown() {
 
 #[test]
 fn the_states_carry_only_what_that_state_has() {
-    // The climax of the page, checked and not described: a failure has a reason and
-    // no capture time, and a capture has a capture time and no reason.
+    // The climax of the page, checked and not described: a failure has a reason and no capture
+    // time. A capture has a capture time and no reason.
     let index = Index::build(
         &tutorial().join("stage6_state_machine"),
         &ScanOptions::default(),

@@ -75,7 +75,7 @@ fn a_route_becomes_a_router_with_its_methods() {
     assert!(plan
         .output
         .contains("async def get(id: str, request: Request):"));
-    // An exported interface is a validated model, not a bare class.
+    // An exported interface is a validated model. It is not a bare class.
     assert!(plan.output.contains("class User(BaseModel):"));
     assert!(plan.output.contains("from fastapi import APIRouter"));
     // Docs survive the crossing.
@@ -190,8 +190,8 @@ fn the_frameworks_own_imports_are_not_listed_as_work_to_do() {
 
 #[test]
 fn the_banner_says_draft_only_when_it_is_one() {
-    // A file that carried nothing is not a draft, and a banner that says SKELETON over
-    // a complete translation is how a banner stops being read.
+    // A file that carried nothing is not a draft. A banner that says SKELETON over a complete
+    // translation is how a banner stops being read.
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let clean = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
     assert_eq!(clean.fidelity.carried_verbatim, 0);
@@ -322,11 +322,10 @@ export async function POST(request: Request) {
 
 #[test]
 fn a_zod_schema_becomes_a_pydantic_model() {
-    // Most Next.js applications declare their shapes with zod, and a zod schema is a
-    // runtime value instead of a type declaration, so nothing that reads declarations
-    // finds it. Left alone the translated service publishes a contract with no request
-    // body in it: the endpoint works and the contract is smaller than the one it
-    // replaced.
+    // Most Next.js applications declare their shapes with zod, and a zod schema is a runtime
+    // value instead of a type declaration. So nothing that reads declarations finds it. Left
+    // alone the translated service publishes a contract with no request body in it. The
+    // endpoint works and the contract is smaller than the one it replaced.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
 
@@ -360,9 +359,9 @@ fn a_zod_schema_becomes_a_pydantic_model() {
 
 #[test]
 fn a_zod_constraint_is_not_invented_into_a_type() {
-    // `.min(3).max(128)` is validation, and Pydantic spells it with `Field(...)`.
-    // Guessing one from a zod call is a guess about the part of a contract it is least
-    // safe to guess at, so the constraint is dropped and not mistranslated.
+    // `.min(3).max(128)` is validation, and Pydantic spells it with `Field(...)`. Guessing one
+    // from a zod call is a guess about the part of a contract it is least safe to guess at, so
+    // the constraint is dropped and not mistranslated.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
     assert!(!plan.output.contains("min_length"), "{}", plan.output);
@@ -424,7 +423,7 @@ fn the_openapi_baseline_states_what_the_tree_declares() {
 
 #[test]
 fn the_baseline_never_invents_a_response() {
-    // Which status an endpoint returns is a fact about its code, not its declaration.
+    // Which status an endpoint returns is a fact about its code. It is not its declaration.
     // Writing `200` for everything would be putting fiction into the file you are about
     // to diff against, which is worse than an empty one.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
@@ -436,7 +435,7 @@ fn the_baseline_never_invents_a_response() {
     assert!(responses["200"].is_null(), "{responses}");
     assert!(responses["201"].is_null(), "{responses}");
 
-    // And what it could not settle is said, not hidden.
+    // And what it could not settle is said. It is not hidden.
     assert!(
         baseline.notes.iter().any(|n| n.contains("returns status")),
         "{:?}",

@@ -1,13 +1,13 @@
 //! Navigation: go to definition, go to usages, go to implementations.
 //!
-//! These are the three questions an editor asks, and the reason they are one module
-//! is that each answer is a *set*, not a single site. A trait method has
-//! as many definitions as it has implementations. A CSS class is declared by every
-//! rule that names it. A Terraform local is one definition read from many files.
+//! These are the three questions an editor asks. The reason they are one module is that each
+//! answer is a *set*. It is not a single site. A trait method has as many definitions as it has
+//! implementations. A CSS class is declared by every rule that names it. A Terraform local is
+//! one definition read from many files.
 //!
-//! So every answer here is a list, each entry carrying the confidence of the
-//! resolution that produced it, and callers decide how much of the tail to show
-//! instead of being handed one result that looks certain.
+//! So every answer here is a list, each entry carrying the confidence of the resolution that
+//! produced it. Callers decide how much of the tail to show instead of being handed one result
+//! that looks certain.
 
 use crate::analysis::call_graph::Hierarchy;
 use crate::index::Index;
@@ -276,12 +276,11 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     });
     usages.dedup_by(|a, b| a.location == b.location);
 
-    // A call on a value whose type is not tracked resolves to none of the members
-    // that answer to the name, `c.area()` against a trait declaration and every
-    // implementation of it. Where the ambiguity is *among the things asked about*,
-    // that is a use of them, carrying the confidence that says so; it is only a
-    // coincidence of naming when the symbol has no implementations to be confused
-    // with.
+    // A call on a value whose type is not tracked resolves to none of the members that answer
+    // to the name, `c.area()` against a trait declaration and every implementation of it. Where
+    // the ambiguity is *among the things asked about*, that is a use of them, carrying the
+    // confidence that says so. It is only a coincidence of naming when the symbol has no
+    // implementations to be confused with.
     let polymorphic = targets.len() > 1;
     let mut same_name_elsewhere = Vec::new();
     for reference in index.unresolved_matching(symbol_id) {
@@ -516,10 +515,10 @@ impl Shape for Square {
         let grouped = found.by_file();
         assert!(grouped.len() >= 2, "got {grouped:?}");
 
-        // The name of this test says "in path order" and for a long time it checked
-        // only that there was more than one group. A function returning them in
-        // whatever order the hash map felt like would have passed, and the order is
-        // the whole reason a caller groups instead of reading the flat list.
+        // The name of this test says "in path order" and for a long time it checked only that
+        // there was more than one group. A function returning them in whatever order the hash
+        // map felt like would have passed. The order is the whole reason a caller groups
+        // instead of reading the flat list.
         let paths: Vec<&std::path::Path> = grouped.keys().map(|path| path.as_path()).collect();
         let mut sorted = paths.clone();
         sorted.sort();

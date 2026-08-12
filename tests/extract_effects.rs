@@ -2,7 +2,7 @@
 //!
 //! A `return`, `break` or `continue` inside the selection was refused from the day this
 //! was written, on the grounds that a call cannot reproduce a jump out of the enclosing
-//! function. Two more effects have exactly that property and were not checked.
+//! function. Two more effects have that property and were not checked.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::extract;
@@ -105,9 +105,9 @@ async fn fetch1(n: i32) -> i32 { n }
 
 #[test]
 fn a_yielding_region_is_refused() {
-    // The worst of the three, because it was silent. Python produced a generator the
-    // caller constructed and never ran, so the loop body did nothing at all; the
-    // accumulator it also mutated stayed at zero.
+    // The worst of the three, because it was silent. Python produced a generator the caller
+    // constructed and never ran. So the loop body did nothing at all; the accumulator it also
+    // mutated stayed at zero.
     let source = "\
 def run(items):
     total = 0

@@ -2,10 +2,10 @@
 //!
 //! # Why this exists
 //!
-//! A rewrite from one framework to another has to preserve the **contract**, the URLs,
-//! the methods, the path parameters and the shapes. `fr translate <route> fastapi`
-//! preserves what it can see and reports the rest, which is not a check: it cannot
-//! catch a contract that got smaller, and a smaller contract looks like a correct one.
+//! A rewrite from one framework to another has to preserve the **contract**, the URLs, the
+//! methods, the path parameters and the shapes. `fr translate <route> fastapi` preserves what
+//! it can see and reports the rest, which is not a check. It cannot catch a contract that got
+//! smaller, and a smaller contract looks like a correct one.
 //!
 //! A check needs two documents to diff. FastAPI emits one from the finished service
 //! (`/openapi.json`); this emits the other from the Next.js tree, before the rewrite.
@@ -15,13 +15,13 @@
 //! Derived from what a Next.js route declares, which is less than FastAPI declares:
 //!
 //! - **Paths, methods and path parameters**: exact, read from the tree.
-//! - **Schemas**: as good as the declaration, an exported `interface` or a zod schema.
-//!   A body validated by hand appears nowhere.
-//! - **Responses**: `default` only. Which status an endpoint returns is a fact about its
-//!   code instead of its declaration.
+//! - **Schemas**: as good as the declaration, an exported `interface` or a zod schema. A body
+//!   validated by hand appears nowhere.
+//! - **Responses**: `default` only. Which status an endpoint returns is a fact about its code
+//!   instead of its declaration.
 //!
-//! Anything undetermined goes in [`Baseline::notes`]. An invented entry would make the
-//! diff come out clean while the contract shrank.
+//! Anything undetermined goes in [`Baseline::notes`]. An invented entry would make the diff
+//! come out clean while the contract shrank.
 
 use crate::transpile::ir::Type;
 use crate::transpile::nextjs::{self, Model};
@@ -48,10 +48,10 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
     // Every shape the tree declares, wherever it is declared.
     //
     // A real Next.js application keeps its zod schemas in a module the routes import,
-    // `@/lib/schemas` here, and reading only the route file found none of them. The
-    // contract came out with an empty `components` section, which says the endpoints
-    // take no body at all: a smaller contract than the one it stands in for, and
-    // exactly the failure this document exists to catch.
+    // `@/lib/schemas` here. Reading only the route file found none of them. The contract came
+    // out with an empty `components` section, which says the endpoints take no body at all: a
+    // smaller contract than the one it stands in for, and exactly the failure this document
+    // exists to catch.
     let mut declared: std::collections::BTreeMap<String, Model> = std::collections::BTreeMap::new();
     for file in files {
         for model in nextjs::models_in(file).unwrap_or_default() {
@@ -293,14 +293,14 @@ fn json_type(ty: &Type) -> Value {
 /// The contract a FastAPI tree *declares*, read the same way FastAPI reads it.
 ///
 /// The point of a baseline is to be diffed against the finished service, and doing that
-/// properly means running the service. This is the check you can make without one: the
-/// decorators and the signatures say what the router will answer, and comparing them
-/// with the Next.js baseline catches the failure that matters, an endpoint that did
-/// not survive the crossing, or a path that quietly changed shape.
+/// properly means running the service. This is the check you can make without one. The
+/// decorators and the signatures say what the router will answer, and comparing them with the
+/// Next.js baseline catches the failure that matters, an endpoint that did not survive the
+/// crossing, or a path that quietly changed shape.
 ///
-/// It reads what is written, not what will happen. A route added at run time, a router
-/// mounted under a prefix, a dependency that rejects the request: none of those are
-/// here, and the document says so instead of pretending otherwise.
+/// It reads what is written. It is not what will happen. A route added at run time, a router mounted
+/// under a prefix, a dependency that rejects the request: none of those are here. The document
+/// says so instead of pretending otherwise.
 pub fn from_fastapi(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseline> {
     const METHODS: &[&str] = &["get", "post", "put", "patch", "delete", "head", "options"];
 
@@ -407,10 +407,9 @@ fn route_of(decorator: &str, methods: &[&str]) -> Option<(String, String)> {
 
 /// The parameters a handler declares, sorted into path and query.
 ///
-/// Which is which is decided by the path template, exactly as FastAPI decides it: a
-/// parameter whose name is a segment of the URL is a path parameter and everything else
-/// the caller supplies is a query one. `Request` and `Response` are FastAPI's own and
-/// are not part of the contract.
+/// Which is which is decided by the path template, as FastAPI decides it. A parameter whose
+/// name is a segment of the URL is a path parameter and everything else the caller supplies is
+/// a query one. `Request` and `Response` are FastAPI's own and are not part of the contract.
 fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> Vec<Value> {
     let in_path = nextjs::path_parameters(route);
     let Some(list) = function.child_by_field_name("parameters") else {
@@ -433,7 +432,7 @@ fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> V
         }
         let where_it_comes_from = match in_path.iter().any(|p| p == name) {
             true => "path",
-            // A parameter annotated with a model is the request body, not a query.
+            // A parameter annotated with a model is the request body. It is not a query.
             false if annotation.starts_with(|c: char| c.is_uppercase()) => continue,
             false => "query",
         };

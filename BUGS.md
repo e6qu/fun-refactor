@@ -12,9 +12,9 @@ Every open entry is pinned by a test, so a claim that stops being true fails a b
 instead of sitting here. B11 said `@content` was a gap after it had stopped being one, and
 nothing noticed. The eight grammar limits are pinned by `tests/known_grammar_gaps.rs`,
 from both sides, the failing form and the neighbouring forms that work. The four that are
-this tool's own behaviour are pinned by `tests/open_defects.rs`, and each asserts the
+this tool's own behaviour are pinned by `tests/open_defects.rs`. Each asserts the
 whole entry: what the tool does not do, and what it reports instead. Every one of these
-stands on the second half, and a test that checked only the first would pass just as well
+stands on the second half. A test that checked only the first would pass just as well
 if the report went away.
 
 ## Open
@@ -26,12 +26,11 @@ has no rule for, at the version this build pins, `tree-sitter` 0.26.11, with
 `tree-sitter-zig` 1.1.2 and `tree-sitter-scss` 1.0.0. The version is part of the claim: an
 upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails when it does.
 
-
 - [ ] B286: `fr inline` parenthesises by what the value is, not by where it goes, so
   `let scaled = base` with `base = w * 2 + h * 3` inlines to `let scaled = (w * 2 + h * 3)`.
   The parentheses are needed when the use site sits inside a tighter-binding expression,
-  `(w + h) * 2` is the whole point, and merely noisy when it does not, which makes
-  `fr extract` followed by `fr inline` not quite an inverse. Left alone deliberately: the
+  `(w + h) * 2` is the whole point. Noisy when it does not, which makes
+  `fr extract` followed by `fr inline` not quite an inverse, and left alone deliberately. The
   check would have to be per-use-site and per-language, and the failure modes are not
   symmetric. An extra bracket is noise; a missing one silently changes what the code
   computes.
@@ -39,10 +38,10 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 - [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
   has two syntaxes, the braced one in `.scss` files and the older whitespace-significant
   one in `.sass` files, and `tree-sitter-scss` implements the first. So a `.sass` file
-  is scanned and then fails to parse. It is visible and not silent, which is why the
+  is scanned and then fails to parse. It is visible and not silent, so the
   mapping stays: removing it would make those files vanish the way `.js` files did.
   Pinned in `tests/known_grammar_gaps.rs`. `tree-sitter-scss` 1.0.0 implements the braced
-  syntax only and has no rule set for the indented one, so this needs a second grammar
+  syntax only and has no rule set for the indented one. So this needs a second grammar
   and not a change to that one.
 
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
@@ -55,24 +54,26 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   is unsound by design and labelled `method-name` and not `declared-supertype`.
   What remains is undecidable from the source, not unimplemented: a function held in a
   map, a struct field or a variable and called through it. Nothing declares it a
-  method of any type, so there is no method set to look it up in, and a name assembled
+  method of any type, so there is no method set to look it up in. A name assembled
   at runtime from pieces no string literal spells. A symbol used only from a file that
-  failed to parse is invisible for a third reason, and `delete::plan` reports that file
+  failed to parse is invisible for a third reason. `delete::plan` reports that file
   as possibly hiding uses. Zig (comptime duck typing) and Bash declare no
   implements-relationship at all, so neither has a hierarchy to read.
+
 - [ ] B13: an answer from supplied values inputs is only as complete as the
   description of them. Given `--set` but no `-f` (or the reverse) the competition is
   decided *given the inputs supplied* and says so, naming the channel it was never
   told about; nothing infers an invocation. Three narrower edges: `--set ports[0].name`
   and `--set ports[1].name` address the same key path, because the symbol index
-  records mapping paths without list indices; `--set x=null`, which deletes a key in
-  Helm, is ranked as a source that supplies it; and `{a,b}` list literals, `--set-file`
+  records mapping paths without list indices. `--set x=null`, which deletes a key in
+  Helm, is ranked as a source that supplies it. And `{a,b}` list literals, `--set-file`
   and `--set-json` are refused by name and not half-applied.
+
 - [ ] B14: a CSS class named inside a TSX helper call or template literal,
   `className={cx("btn", active && "on")}`, `` className={`btn ${size}`} ``, is not
   resolved, because only a plain string attribute value is captured. A rename of that
-  class rewrites the plain `className="btn"` uses and leaves the helper ones; the
-  textual sweep does report each missed site as needing review, so the result is
+  class rewrites the plain `className="btn"` uses and leaves the helper ones. The
+  textual sweep does report each missed site as needing review. So the result is
   incomplete and not silently wrong. Resolving them means teaching the TSX queries
   which call arguments are class lists, which is a per-library convention (`clsx`,
   `cx`, `classnames`, `cva`, `tailwind-merge`) instead of a language rule.
@@ -90,19 +91,19 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
   The counts this entry used to carry were of files that *use* each form and fail, which
   is co-occurrence, not cost, most of those files hit several forms at once. Masking one
-  form at a time and re-measuring gives what each actually costs:
+  form at a time and re-measuring gives what each costs:
 
   * **Interpolation in a declaration value**, `color: #{$v}`, `--x: #{$v}`. Handled by
     masking (B280); the grammar still cannot read it. Worth masking because its error
-    node runs to the end of the file instead of staying in the declaration: 14 files
-    parse once it is masked, and the facts recovered are far larger than that, symbols
+    node runs to the end of the file instead of staying in the declaration. 14 files
+    parse once it is masked. The facts recovered are far larger than that, symbols
     1916 → 2826, references 3839 → 6277. Interpolation in a selector (`.a-#{$x}`) and in
     a property *name* (`--#{$p}x`) both parse unaided.
   * **Empty parentheses**, on a declaration (`@mixin m()`) or a call (`@include m();`),
     13 files.
   * **A nested rule opening with a combinator**, `.a { > .b { … } }`, and the selector
     list `> .b, > .c`. 10 files. Not in this entry until a sweep of the corpus found it,
-    which is what the counts above were hiding.
+    which the counts above were hiding.
   * **Map literals**, `$m: (a: 1, b: 2)`, nested or not.
   * **`@if` with `and` or `or`**, `@if $a == 1 and $b == 2`. A bare comparison parses.
   * **`!default`**, `$x: 1rem !default`, on every configurable variable in a Sass
@@ -139,14 +140,14 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 - [ ] B233: `tree-sitter-python` cannot read a starred *literal* in an unparenthesised
   tuple. `g = 1, *[2]` is ordinary Python, and so are the `*(2,)`, `*{2}` and `*"ab"`
-  forms; a starred *name* or *call* in the same position reads fine, and so does the
+  forms. A starred *name* or *call* in the same position reads fine, and so does the
   whole thing in brackets. Found in `psf/black`'s `expression.py`, where the line is
   `g = 1, *"ten"`. `tree-sitter-python` 0.25.0's unparenthesised tuple accepts a splat of
   a name or a call and not of a literal.
 
   Both are pinned by `tests/known_grammar_gaps.rs`, from both sides: the failing form
   and the neighbouring forms that work. A grammar upgrade that fixes one should retire
-  its entry, and one that starts reading it *without* an error node while building the
+  its entry. One that starts reading it *without* an error node while building the
   wrong tree would be worse than the error it replaced.
 
 - [ ] B232: `tree-sitter-typescript` cannot read a property called `in` when another
@@ -170,10 +171,10 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   generated declarations; found in `vuejs/core`'s compiler-sfc. `tree-sitter-typescript`
   0.23.2 has no rule for an `import` type.
 
-- [ ] B133: `tree-sitter-zig` requires at least one member in a struct, so it cannot
+- [ ] B133: `tree-sitter-zig` requires at least one member in a struct. So it cannot
   parse `const Foo = struct {};`, which is ordinary Zig, and is the only parse failure
   across 29 files of Zig's own standard library (`json/static_test.zig:465`). The tool's own check would
-  therefore refuse to write a correct file, so an empty record is written with an empty
+  therefore refuse to write a correct file. So an empty record is written with an empty
   `comptime {}` block in it, under a comment saying why. That block does nothing, both
   Zig and the grammar accept it, and the alternative was refusing to translate a type
   with no fields at all. `tree-sitter-zig` 1.1.2 requires at least one member in a
@@ -181,2536 +182,748 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
 
 ## Fixed
 
-- [x] B347: **`fr usages` left out the places a name appears in prose.** The command
-  answers "where does this name appear", and it listed only the references a grammar
-  resolved. `fr usages supports_cascade` in this repository answered four for a name
-  that appears six times, and nothing said the other two were missing. `fr rename` and
-  `fr delete` had each grown their own scan of comments and strings, and `fr usages` had
-  none. One scan now lives in `src/mentions.rs`, all three call it, and `Usages` carries
-  the mentions apart from the references. No command edits them.
+- [x] B350: **the call graph tab never drew anything.** So `graph_around` has two checks
+  there now: the shape of an answer, and the shape of a refusal.
 
-- [x] B346: **the browser could not draw the call graph.** The only graph the
-  playground could ask for was `graph`, which answers with three counts. `graph_around`
-  returns the functions within a few hops of one symbol and the edges between them, and
-  the editor window has tabs, so the drawing sits beside the source. The walk itself is
+- [x] B349: **the graph pane was on screen at all times.** `.graph-view[hidden] { display:
+  none }` settles it.
+
+- [x] B348: **PLAN.md kept a copy of the capability matrix by hand. It had drifted.** `fr
+  capabilities` computes the table from the code, and `README.md` carries the generated
+  copy, so the hand-written one is gone.
+
+- [x] B347: **`fr usages` left out the places a name appears in prose.** One scan now lives
+  in `src/mentions.rs`, all three call it. `Usages` carries the mentions apart from the
+  references.
+
+- [x] B346: **the browser could not draw the call graph.** The walk itself is
   `CallGraph::neighbourhood`, which a test can reach without a browser.
 
-- [x] B345: **the dispatch wording explained nothing.** "These are dispatch candidates,
-  matched through declared implements-relationships. Which one runs is a runtime fact"
-  tells a reader four unfamiliar terms and no fact they can use. The message now says
-  which implementations a call could reach, and that the program chooses one while it
-  runs.
+- [x] B345: **the dispatch wording explained nothing.** The message now says which
+  implementations a call could reach, and that the program chooses one while it runs.
 
-- [x] B344: **a doc comment for one function sat on top of another.** `fn support` had
-  no documentation, and `fn record` carried two summaries: the first four lines of its
-  doc described `support`. Both were run together into one block, so rustdoc showed the
-  wrong summary for `record` and none for `support`. Found while rewriting the comments
-  in that file.
+- [x] B344: **a doc comment for one function sat on top of another.** Found while rewriting
+  the comments in that file.
 
-- [x] B343: **the prose in this repository was written in a machine's voice.** Counted
-  across the source comments, the user-facing messages and the documents: 2,050
-  em-dashes, 350 filler words, 222 sentences that pointed at their own text, and 2,339
-  sentences longer than 25 words. 58 em-dashes sat in messages that users read.
+- [x] B343: **the prose in this repository was written in a machine's voice.**
+  `docs/terminology.md` holds the terms.
 
-  `docs/style.md` now holds the rules, taken from ASD-STE100 Simplified Technical
-  English. `docs/terminology.md` holds the terms. `tools/check-prose.py` counts the
-  habits and `tools/check.sh` runs it, against numbers in `tools/PROSE-DEBT` that fail
-  in both directions.
+- [x] B342: **the site could not be published for two days. Every run said `cancelled`.**
+  `cancel-in-progress: true` now, so the newest deploy takes the slot.
 
-- [x] B342: **the site could not be published for two days, and every run said
-  `cancelled`.** On 9 August a Pages `deploy` job stopped between being created and
-  running its first step, and stayed `queued`, for fifty-three hours, with no steps and
-  no error. The job holds `concurrency: pages-deploy`, which was set
-  `cancel-in-progress: false` so that a publish in flight could never be interrupted;
-  nothing evicts the holder of a group that never cancels. The twenty-four runs that
-  followed built in ninety seconds, queued behind it, and were cancelled one at a time as
-  the next push arrived, so the symptom was twenty-four cancellations and no failure
-  anywhere. The `timeout: 1800000` on `actions/deploy-pages` could not help: it is an
-  input the action reads once the step runs, and the step never ran.
+- [x] B341: **`fr flow` sent three languages to an analysis that has no arm for them.** The
+  rule that holds, no language is offered both, is what the test asserts now.
 
-  The premise was wrong as well as costly, a Pages deployment swaps its artifact in
-  atomically, so a superseded one leaves the previous version serving, which is what the
-  site did throughout. `cancel-in-progress: true` now, so the newest deploy takes the
-  slot, and `timeout-minutes: 35` on the job for a hang after it starts, which is the
-  half the action's own timeout cannot catch. The stuck run was cancelled by hand to
-  release the group; the queue drained and the site published from `accbe24` on the
-  first attempt.
+- [x] B340: **the browser never routed to provenance. So it answered questions the CLI
+  could.** Both bindings route the same way the CLI does now.
 
-- [x] B341: **`fr flow` sent three languages to an analysis that has no arm for them.**
-  The refusal named `fr provenance`, which is not a command, the command is `fr flow`,
-  which picks between dataflow and provenance itself, and it promised an answer for
-  HTML, XML and Markdown, where provenance stops at the first hop. The matrix claimed
-  provenance for all eight non-imperative languages because a unit test asserted that
-  every language gets exactly one of the two analyses, and the matrix had been shaped to
-  satisfy the rule rather than to describe the code. The dispatch has five arms;
-  `supports_provenance` is those five, the matrix asks it, and the rule that holds, no
-  language is offered both, is what the test asserts now. 269 of 384 pairs.
+- [x] B339: **`fr remove-flag` told the reader to do something the command could not do.**
+  The resolved name is fixed before the cascade starts, because everything downstream, which
+  uses are left, which imports were orphaned, what each round is called, looks the flag up
+  by name.
 
-- [x] B340: **the browser never routed to provenance, so it answered questions the CLI
-  could.** `fr flow` chooses between the two models on the caller's behalf; `flow_back`
-  and `flow_forward` in the wasm bindings called dataflow whichever the language was. A
-  YAML anchor the CLI traced came back empty in the playground, and once dataflow began
-  refusing those languages it came back as a refusal instead. Both bindings route the
-  same way the CLI does now.
-
-- [x] B339: **`fr remove-flag` told the reader to do something the command could not
-  do.** An ambiguous flag name refused with "say which one with a position", and the
-  command took a bare name and nothing else. `fr delete` and `fr rename` have taken
-  `path:line:col` all along; `fr remove-flag` does now, through the same parser, and the
-  refusal lists where the declarations are. The resolved name is fixed before the
-  cascade starts, because everything downstream, which uses are left, which imports were
-  orphaned, what each round is called, looks the flag up by name.
-
-- [x] B338: **"move it somewhere under `src/`" led to a second refusal.** Rust reaches a
-  file through a `mod` declaration and not through its directory, so a destination under
-  `src/` that nothing declares is refused too, and that second refusal named no route at
-  all. The first now says the destination has to be one the module tree already declares,
-  and the second names the line to add.
+- [x] B338: **"move it somewhere under `src/`" led to a second refusal.** The first now says
+  the destination has to be one the module tree already declares. The second names the
+  line to add.
 
 - [x] B337: **provenance's refusal named a library module.** "Use analysis::flow
   (backward/forward) instead" is not something the reader of a CLI or browser message can
   run. It names `fr flow`.
 
-- [x] B336: **the compile gate passed whether the tool worked or refused.** Twenty-six
-  call sites threw away `gate`'s answer, so every test named `…_compiles_or_refuses`
-  passed on either outcome, a test that cannot fail. Two of them (`fr move` on Go and on
-  Python) had never once reached a compiler, and any of the others could have started
-  refusing without a word. Each site now says which outcome it expects: `must_plan` where
-  it compiles, `must_refuse` with the reason where it declines, and `GateRun` for the
-  loops, which pins the set of languages that refuse and fails when nothing compiled at
-  all.
+- [x] B336: **the compile gate passed whether the tool worked or refused.** Each site now
+  says which outcome it expects: `must_plan` where it compiles, `must_refuse` with the
+  reason where it declines.
 
-- [x] B335: **licence and provenance checks passed when they checked nothing.** The
-  vendor walk swallowed an unreadable directory with `let Ok(entries) = read_dir else
-  { continue }`, so a vendor tree that had gone missing read as a tree with no stray
-  files in it; the licence-file check counted nothing; and the "nothing vendored is
-  compiled in" walk read each file with `unwrap_or_default`, so a file it could not read
-  became empty source, and empty source contains no `vendor/`. All three now count what
-  they examined and fail when the count is zero.
+- [x] B335: **licence and provenance checks passed when they checked nothing.** All three
+  now count what they examined and fail when the count is zero.
 
-- [x] B334: **nine refusals wrote their own article, and four kinds start with a vowel.**
-  `fr inline` on a Java interface said "'Shape' is a interface". The article belongs to
-  the word, so `SymbolKind::with_article` carries it, and a test asks every kind at once
-  rather than the four that happen to be wrong today.
+- [x] B334: **nine refusals wrote their own article. Four kinds start with a vowel.** A test
+  asks every kind at once and not the four that happen to be wrong today.
 
 - [x] B333: **`fr type` and `fr flow` answered for nine languages the matrix disclaims.**
-  Both returned an empty answer for Markdown, YAML, XML and the rest, which reads as
-  "the source wrote nothing here" and "nothing flows from here", when the truth is that
-  the question has no meaning there. `fr flow` already had the predicate: `applies_to`
-  was the CLI's, asked before choosing between flow and provenance, so the answer was
-  right by the route the CLI happened to take and wrong for every library caller. Both
-  now refuse by name, and the language list lives in one place each.
+  Both now refuse by name, and the language list lives in one place each.
 
-- [x] B332: **the matrix disclaimed two capabilities the tool has.** `fr extract
-  --function` writes an SCSS `@mixin` and a shell function, and has for as long as those
-  arms have existed, while the table said `n/a` for both, under a reason invented to
-  explain the gap, telling the reader that a value crosses into a shell function as a
-  positional parameter so the named parameters "have no form here". The matrix asked
-  `supports_extract_function` and the command asked
-  `supports_imperative_extract_function`; the two had drifted. One predicate now, and it
-  is the list of arms the command actually has: 272 of 384 pairs supported.
+- [x] B332: **the matrix disclaimed two capabilities the tool has.** One predicate now, and
+  it is the list of arms the command has: 272 of 384 pairs supported.
 
-- [x] B331: **`fr remove-flag` wrote XML that no parser accepts.** The matrix says `n/a`
-  for XML and the command never asked, so an entity flag was substituted anyway:
-  `&use_new;` became `&true;`, an entity no document defines, and the deletion took the
-  `<?xml?>` declaration and the whole DOCTYPE with it. `xmllint` rejects the result. The
-  command asks `supports_cascade` now, the same predicate the matrix publishes, and
-  refuses by name. Found by fixing a test that had never asserted anything: it asked
-  whether a substituted-but-uncollapsed YAML file is reported rather than left silent,
-  over a fixture where the YAML never referenced the flag, so `remove_flag` bailed and
-  the whole body sat behind an `if let Ok(plan)`.
+- [x] B331: **`fr remove-flag` wrote XML that no parser accepts.** The command asks
+  `supports_cascade` now, the same predicate the matrix publishes, and refuses by name.
 
-- [x] B330: **the scale sweep measured whatever `web/src/wasm` happened to hold.** The
-  module it drives is a build artifact, and building it needs a wasm toolchain not every
-  machine has, so a run on a stale one answers every question with old code and looks
-  exactly like a pass. A week-old module reported "no defects" for a change it had never
-  seen, which is how this was noticed. The sweep now compares the artifact's timestamp
-  against the newest `.rs` file and refuses to run when it is behind.
+- [x] B330: **the scale sweep measured whatever `web/src/wasm` happened to hold.** The sweep
+  now compares the artifact's timestamp against the newest `.rs` file and refuses to run
+  when it is behind.
 
 - [x] B329: **the scale sweep decided what counted as a refusal by reading the sentence.**
-  A list of patterns matched the message text, so a refusal that stopped saying "is not
-  supported for {language}" and started saying what was actually wrong was reclassified as
-  a defect, which is what happened to the five refusals corrected in B327 and B328. The
-  browser API reports `refused` now, from the type rather than from the prose, and the
-  patterns are the fallback for errors that do not carry it.
+  The browser API reports `refused` now, from the type and not from the prose.
 
-- [x] B328: **four more refusals blamed a language for a path.** `fr move` said Rust was
-  unsupported when two files sat under different crate roots and when a `src/` had no
-  `lib.rs`; that Terraform was unsupported when a move crossed directories; and that Zig
-  was unsupported when a relative import would climb above its own root. Every one of them
-  is a fact about the paths involved, and every one contradicted the capability matrix,
-  which claims all four languages move to a file.
+- [x] B328: **four more refusals blamed a language for a path.** `because` is `&'static str`
+  now.
 
-  These are the twelfth to fifteenth sites to write a reason that names no language into a
-  field called `language`. The first ten were found and fixed by *adding* the `because`
-  field; that made the mistake easier to avoid and did not stop the eleventh (B327) or
-  these four. `because` is `&'static str` now, so a reason with a path interpolated into it
-  does not compile, which is the difference between a field that can be filled in
-  correctly and one that cannot be filled in wrongly. The four legitimate explanations
-  survive unchanged, because a fact about a language does not need a path in it.
+- [x] B327: **`fr move` told a Rust user that Rust was unsupported.** It is the one the
+  matrix audit found, because a claim and a refusal cannot both be right.
 
-- [x] B327: **`fr move` told a Rust user that Rust was unsupported.** Moving a declaration
-  to a file outside `src/` refused with `move to file is not supported for rust`, which is
-  the opposite of what the capability matrix says and of what the command does. The fault
-  is the destination, not the language. This is the eleventh site to put a reason that is
-  not a language into a field called `language`, the refusal type's own documentation
-  describes the previous ten, and it is the one the matrix audit found, because a claim
-  and a refusal cannot both be right.
+- [x] B326: **`fr delete` left the import its deleted code was the only user of.** The
+  result parses either way. So the parse sweeps never saw it.
 
-- [x] B326: **`fr delete` left the import its deleted code was the only user of.** Deleting
-  a Go function whose body was the one caller of `strings` left `"strings" imported and not
-  used`, which Go rejects outright and Rust makes a warning that a `-D warnings` build.
-  This project's own, turns into an error. The result parses either way, which is why the
-  parse sweeps never saw it.
+- [x] B325: **`fr imports` never narrowed a statement that lost one of its names.** It
+  narrows now, by taking the dead names' clauses out of the statement and not
+  re-spelling it, because each language writes the list differently and the separator is the
+  only thing that has to be understood.
 
-- [x] B325: **`fr imports` never narrowed a statement that lost one of its names.** It drops
-  a statement nothing names and leaves `import { up, down }` intact when only `down` died,
-  which `noUnusedLocals` rejects and every linter flags, from the one command whose whole
-  job is removing imports nothing uses. It narrows now, by taking the dead names' clauses
-  out of the statement rather than re-spelling it, because each language writes the list
-  differently and the separator is the only thing that has to be understood. The test that
-  covered this asserted the old behaviour under a name that described the new one.
+- [x] B324: **`fr remove-flag` left the imports its collapsed branch had been using.** That
+  command carries a body of knowledge about uses no query can see, a Rust trait reached
+  through its methods, a JSX pragma in a comment.
 
-- [x] B324: **`fr remove-flag` left the imports its collapsed branch had been using.** The
-  cascade prunes symbols nothing uses any more and stopped there, so a dead branch holding
-  the only call to an imported package left the import behind. The cascade now defers to
-  `fr imports` for the question rather than answering it a second time: that command
-  carries a body of knowledge about uses no query can see, a Rust trait reached through
-  its methods, a JSX pragma in a comment. That a second answer would get wrong.
+- [x] B258: **closed unreproducible, with the evidence.**
 
-Driving bash, hcl, helm, xml and html by the tool that owns each one, `bash -n` with
-shellcheck and the script itself, `terraform validate`, `helm lint`, `xmllint`, added no
-entries either. Every command those five languages claim in the capability matrix was run
-and validated. Two things it did surface are recorded in PLAN.md rather than here, because
-neither is a defect in the tool: bash's `$NAME` in a restructure pattern is a metavariable
-and the documentation says so, and the gate's bash arm was too weak until it ran the script.
+- [x] B323: **a Java statement declaring several names gave each of them all three.** The
+  query captured the statement. It captures the declarator now, which the symbol is.
 
-Sweeping `fr extract`, `fr rewrite` and `fr restructure` through the compile gate's six
-languages added no entries here. Recorded because the absence is the finding: 20
-extractions, 64 rewrite positions the command itself nominated, and 14 whole-file
-restructures, each compiled by the language's own compiler, and every one of them clean.
-These three are the commands with the most property tests behind them already, and it
-shows.
+- [x] B322: **`fr type` could not read a Java call or construction.** This is the same
+  omission that once made `fr signature` refuse at every Java call site there has ever been,
+  in a second place that had not heard.
 
+- [x] B321: **`fr type` answered `var`.** It falls through to inference now, which is what
+  the keyword asks for.
 
-- [x] B258: **closed unreproducible, with the evidence.** The one observation stands:
-  during a `cargo test --all-targets`, `a_rust_number_leaves_its_width_behind` saw Rust's
-  `0usize` / `1i32` suffixes in a translated file. Re-triaged against this commit under
-  the conditions of the original failure, the whole `tests/transpile.rs` binary,
-  eight test threads, six busy loops holding the cores, **200 runs, 200 passes**, on top
-  of 40 passes of the case alone. Nothing was found to fix, so nothing is claimed fixed;
-  what is closed is the search.
+- [x] B320: **`fr inline` refused every Java local.** Java puts the name and the value
+  together in a declarator, because one statement may declare several, so the value hangs
+  off the declarator and not off the declaration.
 
-  `unsuffixed` is a pure function of the literal's text, so the writer could only have
-  produced that output from different input. The remaining way it can reach a file is the
-  other one: a statement carried over verbatim brings its own text along, marker comment
-  and all, and the assertion reads the whole file. There was no way to tell the two apart
-  from the failure message, which is why one observation left nothing to work with. The
-  test now reports the verbatim count and the notes beside it, so a recurrence names its
-  own cause instead of being a mystery a second time.
-
-- [x] B323: **a Java statement declaring several names gave each of them all three.**
-  `int a = 1, b = 2, c = 3;` produced three symbols with one span between them, the whole
-  statement, so each claimed the other two. Inlining `b` took `a`'s value and deleted the
-  line. The query captured the statement; it captures the declarator now, which is what
-  the symbol is. `fr inline` widens back to the statement where the declarator is the only
-  one in it, because `int` is not part of the symbol and leaving it behind gives `int ;`.
-
-- [x] B322: **`fr type` could not read a Java call or construction.** Java names a call
-  `method_invocation` and a construction `object_creation_expression`, and names the
-  callee `name` and `type` where every other grammar here says `function`. Asking only for
-  `function` found neither, so nothing was ever inferred from a Java expression. This is
-  the same omission that once made `fr signature` refuse at every Java call site there has
-  ever been, in a second place that had not heard.
-
-- [x] B321: **`fr type` answered `var`.** `var` is Java's keyword for "work it out", so a
-  binding written with one has no declared type, and the tool reported the keyword as
-  though it were the type the source wrote down, which answers the question with the
-  question. It falls through to inference now, which is what the keyword asks for.
-
-- [x] B320: **`fr inline` refused every Java local.** "'total' has no initialiser, so there
-  is nothing to inline", about `int total = Widths.width(h.items, 1);`. Java puts the name
-  and the value together in a declarator, because one statement may declare several, so
-  the value hangs off the declarator and not off the declaration.
-
-- [x] B319: **three readers answered "what does this declaration bind", and disagreed.**
-  One per caller, each written against the languages its author had in front of them, and
-  each missing a different grammar, which is why B320 showed in `fr inline` alone while
-  `fr type` and `fr remove-flag` were covered for by a fallback that read the declared
-  type instead. There is one reader now, `parse::declaration_value`, and
-  `tests/declaration_values.rs` names every shape it has to know.
+- [x] B319: **three readers answered "what does this declaration bind". Disagreed.** There
+  is one reader now, `parse::declaration_value`, and `tests/declaration_values.rs` names
+  every shape it has to know.
 
 - [x] B318: **`fr move` left the destination calling the symbol through the file it came
-  from.** Moving a Zig declaration into a file that already called it left
-  `holder.width(…)` in that file, naming a file that no longer has the name. The
-  destination was the one file the loop over use sites skipped, which was safe only while
-  such a call resolved to nothing. `fr move` already narrows an import the destination no
-  longer needs; the qualifier in front of a Zig call is the same thing said differently,
-  and it is dropped now.
+  from.** The qualifier in front of a Zig call is the same thing said differently, and it is
+  dropped now.
 
-- [x] B317: **`fr signature` reported call sites it had not touched.** Zig's grammar gives
-  a call's arguments no node of their own, `holder.width(a, b)` is a `call_expression`
-  whose children are the callee and then the arguments, and the code asked only for a
-  wrapper. Every Zig call therefore looked like a call that passes nothing, which took the
-  branch written for SCSS's `@include reset;` and did nothing, while the summary said
-  "updating 2 call site(s)". The two are told apart now: no argument list still means no
-  parentheses, and a grammar that wraps nothing is read on its own terms.
+- [x] B317: **`fr signature` reported call sites it had not touched.** The two are told
+  apart now: no argument list still means no parentheses. A grammar that wraps nothing
+  is read on its own terms.
 
-- [x] B316: **a Zig `@import` path resolved to nothing.** `@import("holder.zig")` names a
-  file beside this one with no `./` in front of it, and every branch of the path resolver
-  assumed a leading dot or a dotted module name, so the extension was read as the last
-  segment of a dotted path and the import was looked up as a file called `zig`. Nothing in
-  Zig that reached across a file boundary resolved, so `fr rename` rewrote the declaration
-  and left every caller naming something that is not there.
+- [x] B316: **a Zig `@import` path resolved to nothing.** So `fr rename` rewrote the
+  declaration and left every caller naming something that is not there.
 
-- [x] B315: **a Java static call resolved to the wrong method, at exact confidence.** What
-  makes a receiver a path is what it names, not how the language punctuates it: Rust
-  writes `Type::m` and Java writes `Type.m`. Only the first was recognised, so
-  `Widths.width(…)` fell through to the rule that takes the one declaration of that name
-  in this file, which, inside `Holder.java`, is `Holder`'s own method. The answer was
-  wrong and carried the strongest confidence there is. A receiver naming a type declared
-  in this workspace is a path now, in any language, and the qualifier match is filtered by
-  language as well: a workspace holding the same design in Python and in TypeScript
-  declares `Money::of` twice, and matching on the name alone called that ambiguous.
+- [x] B315: **a Java static call resolved to the wrong method, at exact confidence.** A
+  receiver naming a type declared in this workspace is a path now, in any language.
 
 - [x] B314: **the confidence cap and the rule that resolves a qualified call disagreed.**
-  Four receivers have a type the source states: the enclosing instance, a module path, an
-  import binding, and a type's own name. The cap listed three, so a Java static call found
-  the right method and then had its confidence lowered to `field-based`, which no
-  refactoring will rewrite. Both places ask one question and now ask it in one place.
+  Both places ask one question and now ask it in one place.
 
 - [x] B313: **`Language` ignored a width in a format string.** Its `Display` wrote the
   name straight out instead of going through `Formatter::pad`, so `{target:<10}` padded
   nothing and the column of targets `fr translate` prints came out ragged wherever a
   `Language` sat in it.
 
-- [x] B312: **`fr translate` offered a list that was not true.** Two entries in it. A
-  translation into TSX succeeded and no listing ever named it, because the listing walked
-  `transpile::SUPPORTED` and the request checked `transpile::supports`, which differed by
-  exactly TSX. And `fastapi`, which the command's own help documents as a target, was
-  never listed for a Next.js route, because the line that printed it sat outside the loop
-  that decides what to print. Both are one fault: two definitions of one thing. There is
-  one now, `translate::options_for`, which works each answer out by asking for it, and the
-  command prints what it returns. TSX is a target only where the source is already
-  TypeScript, since a translation writes no JSX at all. `tests/translate_sweep.rs` holds
-  the list to its word from both sides.
+- [x] B312: **`fr translate` offered a list that was not true.** `tests/translate_sweep.rs`
+  holds the list to its word from both sides.
 
-- [x] B311: **`fr move` left a star re-export naming a file the symbol had left.**
-  `export * from "./holder"` names nothing, so nothing about the statement said which
-  symbols travelled through it, and the grammar did not record it as a re-export at all.
-  Moving one out left the star pointing at a file that no longer had it, and every reader
-  of the barrel gained a second binding of the same name, which TypeScript rejects as a
-  duplicate identifier. The star is now recorded, repointed, and removed outright where
-  the move took the last thing the source exported, because TypeScript calls a file with
-  no exports "not a module" and rejects the star for that instead.
+- [x] B311: **`fr move` left a star re-export naming a file the symbol had left.** Removed
+  outright where the move took the last thing the source exported, because TypeScript calls
+  a file with no exports "not a module" and rejects the star for that instead.
 
-- [x] B310: **`fr move` dropped the names beside the one it repointed.** The index records
-  one entry per exported name, each carrying the span of the whole statement, so finding
-  the statement and gathering its names are two passes. Doing it in one collected only the
-  entries naming the moved symbol, and `export { width, Holder } from "./holder"` came
-  back as `export { width } from './util'` with `Holder` gone.
+- [x] B310: **`fr move` dropped the names beside the one it repointed.** `export { width,
+  Holder } from "./holder"` came back as `export { width } from './util'` with `Holder`
+  gone.
 
-- [x] B300: **`fr move` declined at a re-export barrel.** Moving a symbol out of a file a
-  barrel re-exports from left that line naming something the file no longer had, so the
-  move declined and said repointing an export was not something it performed. It is now.
-  Repointing an export is not repointing an import: an import binds a name for the file
-  that wrote it, and an export hands the name onward to every file reading through this
-  one, so the files that read through a barrel need no edit at all, and adding one to
-  them, as the move would have, binds the same name twice. `export * as ns from "./x"` is
-  still refused, and now says why: readers write `ns.width`, and splitting the module in
-  two cannot be followed by repointing one statement.
+- [x] B300: **`fr move` declined at a re-export barrel.** Now says why: readers write
+  `ns.width`. Splitting the module in two cannot be followed by repointing one
+  statement.
 
-- [x] B309: **`fr usages` and the reference index disagreed, and the check could not see
-  it.** A CSS custom property set in `:root` and again inside a media query is two
-  declarations of one entity, and `fr usages` answers about the entity. The agreement test
-  compared the report against the references resolving to one of the declarations, so it
-  called the other one's uses missing. Comparing a count was the mistake: the agreements
-  that hold are that the report leaves out nothing that resolved to the symbol and invents
-  no location that no reference produced, and those are what it checks now.
+- [x] B309: **`fr usages` and the reference index disagreed. The check could not see it.**
+  Those are what it checks now.
 
-- [x] B308: **a Go call into another package resolved to nothing.** Go's package is a
-  directory, and a file reaches another package by qualifying the name with what the
-  import bound: `holder.Width(…)`. Resolution looked for the declaration in the calling
-  file's own directory, which is the one place it is not. Every cross-package call was
-  therefore unresolved, `fr rename` rewrote the declaration and left every caller naming
-  a function that no longer exists, and `fr signature` moved a parameter without touching
-  a single cross-package argument list. Both produced trees that `go build` rejects. The
-  import statement names the package, so which declaration a qualified call means is
-  written down; resolution now reads it, and the reference comes back `import-qualified`,
-  which is strong enough to rewrite.
+- [x] B308: **a Go call into another package resolved to nothing.** The import statement
+  names the package. So which declaration a qualified call means is written down; resolution
+  now reads it.
 
-- [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Moving
-  a symbol into a file that already imports the file it came from makes each import the
-  other. Go rejects that outright (`import cycle not allowed`). Python evaluates a module
-  top to bottom the first time it is imported, so the second import in the cycle reaches
-  a module that has defined nothing yet and raises `ImportError`. Python's half carried a
-  warning that said the cycle "may fail on it"; it always does. Both are refused now,
-  naming the two files and what each would import.
+- [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Both are
+  refused now, naming the two files and what each would import.
 
-- [x] B306: **`fr move` wrote a relative import into a file that is in no package.** A
-  leading dot means "relative to the package I am in", and a Python file in a directory
-  with no `__init__.py` is in no package. `from .util import width` in a flat directory
-  parses, compiles, and raises `attempted relative import with no known parent package`
-  the moment anything imports it. The import is written relative inside a package and
-  absolute outside one.
+- [x] B306: **`fr move` wrote a relative import into a file that is in no package.** The
+  import is written relative inside a package and absolute outside one.
 
-- [x] B305: **`fr remove-flag` deleted a declaration whose readers it had refused.** The
-  substitution left `${USE_NEW:-no}` alone, correctly, and then removed `USE_NEW=true`
-  anyway, so a script that read `true` started reading `no`. Nothing was reported as
-  wrong: the refusal appeared under "left undone" beside a diff that had already broken
-  the script. The declaration goes only when every use of it went. A cascade that changes
-  nothing is now a refusal carrying the reasons, and not a plan of zero edits.
+- [x] B305: **`fr remove-flag` deleted a declaration whose readers it had refused.** A
+  cascade that changes nothing is now a refusal carrying the reasons, and not a plan of zero
+  edits.
 
-- [x] B304: **`fr remove-flag` replaced the callee of a call instead of the call.** The
-  code carried a comment saying "a call to a flag-returning function is replaced along
-  with its parentheses", and only the Bash and Terraform paths did it. Everywhere else
-  `if is_on()` became `if true()`, which no compiler accepts and which the collapse step
-  then skipped, because `true()` is not a boolean literal. A rule that is documented and
-  never runs is the same defect shape as B296.
+- [x] B304: **`fr remove-flag` replaced the callee of a call instead of the call.** A rule
+  that is documented and never runs is the same defect shape as B296.
 
-- [x] B303: **`fr remove-flag` wrote a boolean into a type position.** `pub const
-  Position = offsets.Position` is a type, and Zig passes types as values, so
-  `expectEqualSlices(Position, …)` is grammatically an ordinary argument. Substituting
-  produced `pub fn tokenToPosition(…) true` and `position: true`. A name means one thing
-  everywhere it is written, so one use in a position only a type can occupy settles what
-  the name is; the whole operation is refused, naming that use.
+- [x] B303: **`fr remove-flag` wrote a boolean into a type position.** So one use in a
+  position only a type can occupy settles what the name is. The whole operation is refused,
+  naming that use.
 
-- [x] B302: **`fr remove-flag` treated every constant as a possible flag.** A Zig module
-  import and a Zig feature flag are both `const`, and the check asked only about the
-  symbol's kind. Sweeping every name in the vendored corpus, both values, found 234 asks
-  that produced a plan, among them `const DocumentScope = @import("DocumentScope.zig")`,
-  which was rewritten to `*const true`. The declaration says what the kind cannot: the
-  operation is refused where the source states a type or binds a value that rules a
-  boolean out, and where nothing reads the name at all, which is `fr delete` and not this.
-  `tests/remove_flag_sweep.rs` is the sweep, kept.
+- [x] B302: **`fr remove-flag` treated every constant as a possible flag.** Sweeping every
+  name in the vendored corpus, both values, found 234 asks that produced a plan, among them
+  `const DocumentScope = @import("DocumentScope.zig")`, which was rewritten to `*const
+  true`.
 
-- [x] B301: **`fr restructure` rewrote files when asked for no change.** Running it with
-  the same pattern and template over this repository changed files for every one of eight
-  shapes tried. Three causes, none of them the shape the user asked about.
+- [x] B301: **`fr restructure` rewrote files when asked for no change.** Eight identity
+  rewrites over `src/`: eight changed files before, none now.
 
-  * A metavariable was bracketed because the *template* binds it. `grouped` is documented
-    as bracketing "a binding the template will bind more tightly than its source did", and
-    nothing read the source: `$X.len()` → `$X.len()` came back as `("a * b").len()`. The
-    two are compared now, and only the difference is bracketed.
-  * `is_atomic` decided by scanning characters, so the `*` inside `"price * quantity"`
-    read as an operator and the string was bracketed. A double-quoted string is one thing
-    now. Single quotes are left alone: they open a character in Rust and Zig and mark a
-    lifetime in Rust, where `&'a str` has no closing one.
-  * A template is written on one line, so substituting it over a receiver the author put
-    on its own line pulled the line up, and a trailing comma inside a call was dropped.
-    Neither is the shape being rewritten, and D2 says this tool never pretty-prints. A
-    replacement that differs from what it matched only in layout or in a comma before a
-    closing bracket is not written.
-
-  None of the three broke a build. All three wrote to files nobody asked to change.
-
-  Eight identity rewrites over `src/`: eight changed files before, none now. A template
-  that binds tighter still brackets, so `double($X)` → `$X * 2` still gives `(a + 1) * 2`.
-
-- [x] B300: **a use reached through a re-export barrel resolved by name alone.**
-  `export { width } from "./holder";` was recorded as an import of `./holder` with no
-  names, so a file writing `import { width } from "./index"` found no definition in
-  `index.ts` and fell back to a name match across the workspace. Barrels are how a
-  TypeScript package is usually arranged, so this was the common case.
-
-  `fr rename` left the barrel naming a symbol that no longer existed:
-
-      src/index.ts(1,10): error TS2305: Module '"./holder"' has no exported member 'width'
-
-  The query records the names a re-export carries now, and `Import::re_export` marks the
-  statement, so resolution follows the chain to the file that declares the name. Eight
-  hops, because two files can re-export from each other. Across this repository: resolved
-  references 86,655 → 86,729, safe to rewrite 70,288 → 70,351.
-
-  `fr move` declines instead. Moving a symbol a barrel exports makes that line name
-  something the old file no longer has, and every file importing through the barrel keeps
-  a binding the move then adds a second import for. Repointing an export is a different
-  operation from repointing an import, and the move says so instead of writing both
-  faults. That repointing is the work left here.
+- [x] B300: **a use reached through a re-export barrel resolved by name alone.** Repointing
+  an export is a different operation from repointing an import. The move says so instead
+  of writing both faults.
 
 - [x] B263: **a Terraform input variable and a local sharing a name were one symbol.**
-  `var.thing` and `local.thing` are two addresses. Both declarations are variables to the
-  index, so `fr refs` on the `variable` block returned the use of the local as well, and
-  the local itself had no uses at all. Both answers were tagged `field-based`, which kept
-  `fr rename` from acting on them and left the reader with a wrong list.
 
-  Resolution said the block each was written in "is not something this layer carries". It
-  carries it: a local's container is the `locals` block, and a variable has none. The
-  namespace comes from that. Each declaration now returns its own use, `exact`.
+- [x] B299: **a CSS class and an element id sharing a name were one symbol.**
+  `Reference::expects` holds it.
 
-- [x] B299: **a CSS class and an element id sharing a name were one symbol.** `class="thing"`
-  names a class and `href="#thing"` names an element id. Both are string references to
-  `thing`, and the nearer declaration won, so `class="thing"` resolved to the id in the
-  same file. Renaming the id rewrote the class attribute with it:
-
-      -<div class="thing">a</div>
-      +<div class="renamed">a</div>
-
-  The element lost the class that `.thing { … }` styles and gained one that nothing
-  declares, at `exact` confidence.
-
-  Markup writes the namespace in the attribute, so the query says which kind of
-  declaration a reference can name and resolution honours it. `Reference::expects` holds
-  it.
-
-  Checked and sound already: Go, where a bare call cannot name a method; Rust, where an
-  inherent method beside a trait method needs types and is reported `field-based`; and
-  YAML, where an anchor and a key of one name resolve separately.
-
-- [x] B298: **four reports stopped early and said nothing.** A list that ends at twenty
-  with no word about the rest reads as the whole answer. `fr impact` printed "… and N
-  more" under its first heading and nothing under the second, in the same report. The
-  browser API dropped every translation note past the twentieth, and a note is the record
-  of what the translation could not do. `fr unused` showed the five commonest kinds as
-  though they were all of them. `fr graph` and `fr refs` listed ten and twenty of a set
-  whose size they had just printed. Each one now states how many it left out.
+- [x] B298: **four reports stopped early and said nothing.** Each one now states how many it
+  left out.
 
 - [x] B296: **`fr rewrite guard-clause` wrote `return;` in a function that returns a
-  value.** The check for what an early exit should be walked up four ancestors and then
-  fell through to `return`. An `if` inside a `match` arm or a nested block is further from
-  its function than that, so the check for a declared return value never ran. The
-  transformation is correct and the guard was correct; the search for the function gave up
-  first, and the answer it defaulted to is the unsafe one. It walks every ancestor now and
-  stops at the innermost loop or function, which is what `return` and `continue` mean.
+  value.**
 
-  Applying one guard clause per file across `src/`, 32 files: three did not compile before,
-  none do now.
+- [x] B297: **`fr extract` placed a binding where the names in it do not exist.**
 
-- [x] B297: **`fr extract` placed a binding where the names in it do not exist.** The
-  binding goes at the start of the enclosing statement, and that statement can be outside
-  the construct the expression sits in:
+- [x] B292: **`fr move` imported the symbol it had just moved.** `Symbol::is_top_level` now
+  asks about both.
 
-      // before
-      self.items.iter().filter(|i| i.confidence.is_safe() && i.kind != Textual).collect()
+- [x] B293: **`fr move` wrote a workspace it knew would not build.**
 
-      // after
-      let extracted = i.confidence.is_safe() && i.kind != Textual;
-      self.items.iter().filter(|i| extracted).collect()
+- [x] B294: **an import path resolved to a method of the same name.**
 
-  `i` is the closure's parameter and does not exist where the binding was put. The same
-  happens for a loop variable and for a name bound by a `match` arm.
+- [x] B295: **a call inside a macro was ambiguous with a method of the same name.**
 
-  The check asks which scope each name in the expression is *written* in, and refuses when
-  the binding's position cannot reach it. Asking the declaration instead would not work: a
-  closure parameter is not recorded as one, so those references resolve to nothing.
+- [x] B290: **a bare Rust call resolved to a method or a field.**
 
-  Extracting one expression per file across `src/`, 46 files: 18 compile errors before,
-  none now, with 56 sites refused that were silently wrong.
+- [x] B291: **a dotted name inside a macro resolved to a free function.**
 
-- [x] B292: **`fr move` imported the symbol it had just moved.** A method has no
-  container, because an `impl` block is not a declaration the index records. It carries
-  the type as its qualifier. The check for "which symbols of this file can another file
-  name" asked only about the container, so `Holder::width` counted as a top-level item of
-  `holder.rs`, and moving the free function `width` out of that file wrote
-  `use crate::holder::width;` into the file it moved `width` into. That names a function
-  which is no longer there. `Symbol::is_top_level` now asks about both.
+- [x] B288: **`fr move` refused every move in this workspace, over a doc comment.**
 
-- [x] B293: **`fr move` wrote a workspace it knew would not build.** A use site that does
-  not resolve conclusively cannot be repointed, so after the move it names a definition
-  that is no longer there. The move reported each one in a warning and proceeded.
-  `fr signature` already declines in the same situation, with the same reason. `fr move`
-  now declines and names the sites. `tests/move_languages.rs` pinned the old behaviour and
-  its comment weighed two bad outcomes, a warning and a wrong `use`, without considering
-  a third.
+- [x] B289: **`fr move` wrote `use crate::…` into files that are not in the crate.**
 
-- [x] B294: **an import path resolved to a method of the same name.** `use crate::holder::{width, Holder}`
-  had two candidates when a `Holder::width` existed beside the free `width`, so it
-  resolved weakly. `fr rename` then left the import naming the function it had just
-  renamed. An import path names an item that a module exports and never names a method or
-  a field, so a member is no longer a candidate inside one.
+- [x] B287: **`fr imports` moved an import out from under its `#[cfg]`.**
 
-- [x] B295: **a call inside a macro was ambiguous with a method of the same name.** The
-  other half of B291. A macro body is tokens, so `assert_eq!(width(&h.items, 1), 3)` gives
-  a bare identifier and not a call, and the rule that a call with no receiver is not a
-  method never applied. The parenthesis is in the source where the syntax is not, so a
-  name applied to arguments inside a token tree is read as the call it is.
-
-  All four were found by the compile gate on its first run.
-
-- [x] B290: **a bare Rust call resolved to a method or a field.** Rust was left out of
-  `members_always_have_a_receiver`, so nothing stopped `width(&self.items, n)` inside an
-  `impl` from resolving to the `width` method enclosing it. Rust has no implicit self:
-  that call is the free function, always.
-
-  The stated reason for the exclusion was that `Foo::new()` reaches an associated
-  function "through a path, which is not a receiver and is not recorded as one". It is
-  recorded, `receiver = Some("Foo")`, `receiver_is_path = true`, so those calls were
-  never bare and never at risk. The comment described a state of the code that no longer
-  held, and nothing re-checked it.
-
-  Across this repository, bare Rust calls resolving to a member: **150 → 0** (33 methods,
-  117 fields). Fourteen found their real target; the rest are honestly unresolved.
-  `fr signature` on the free `model::scope_at` updated **0 call sites** before and
-  reports 1 now, which is how many it has.
-
-- [x] B291: **a dotted name inside a macro resolved to a free function.** A macro body is
-  tokens: tree-sitter offers `token_tree` and no structure within it, so
-  `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier, not a call,
-  and with no receiver. Resolution had nothing to tell it from a call to the free
-  function of that name, and called it `Exact`.
-
-      $ fr rename src/model.rs:401:8 scope_at_free
-      -        assert_eq!(f.scope_at(30), Some(ScopeId(2)));
-      +        assert_eq!(f.scope_at_free(30), Some(ScopeId(2)));
-
-  Four method calls on `FileFacts`, rewritten to a method that does not exist.
-
-  The dot is still in the source where the syntax is not, so a reference written after
-  one inside a token tree is treated as the member access it is. Only the dotted ones:
-  distrusting every token in every macro would have left 12,989 references in this
-  repository unrewritable to fix four, and `assert_eq!(helper(), 1)` names `helper`
-  whether the grammar parsed the call or not.
-
-  Repository-wide: resolved 86,587 → 85,869, safe to rewrite 70,479 → 69,637, and
-  symbols with no detected use 2,099 → 2,097, two methods stopped looking dead once
-  their call sites were attributed to them.
-
-- [x] B288: **`fr move` refused every move in this workspace, over a doc comment.** The
-  check for `#[path]` module redirection searched each file's text for `#[path`, and
-  `src/analysis/entrypoints.rs` documents an unrelated function with
-
-      /// Is `symbol` annotated with `name`, `#[name]`, `#[path::name]` or `@name`?
-
-  One match anywhere under `src/` refuses every cross-file move, so the answer was
-  workspace-wide and named a file that carries no such attribute. Read from the tree now,
-  and only `#[path = …]` counts, not `#[path::name]` in prose, and not `#[pathological]`.
-  Over a sample of 64 candidates in this repository: 0 moves possible before, 11 after,
-  with the other 53 refused for reasons that are actually true of them.
-
-- [x] B289: **`fr move` wrote `use crate::…` into files that are not in the crate.** An
-  integration test, an example and a benchmark are each their own crate and reach the
-  library by its package name. The import statement was built once from
-  `CrateModule::use_prefix`, whose own documentation says it names the module "from
-  anywhere in the crate", and then used for every consumer, so moving `scan` in this
-  repository rewrote `tests/anchor_links.rs` to `use crate::cache::scan;`, naming a
-  module of the test binary. Those files no longer compile.
-
-  The prefix is worked out per consumer now: `crate::` inside the crate's `src/`, and the
-  package name from Cargo.toml outside it. When the package name cannot be read, no
-  import is written and the file is named in a warning, instead of writing `crate::` and
-  hoping.
-
-  Found by applying each planned move to a copy of the workspace and counting resolved
-  references: every consumer outside `src/` lost the two or three that the broken import
-  had bound.
-
-- [x] B287: **`fr imports` moved an import out from under its `#[cfg]`.** Sorting
-  reorders whole lines within a run of imports, and an attribute occupies its own line.
-  Left where it was, it lands on whichever import sorts into its place. Run over this
-  repository, `fr imports` did that to 3 of its 49 Rust files. `src/index.rs`:
-
-      #[cfg(feature = "cli")]
-      -use crate::scan::{scan, ScanOptions, ScanResult};
-      -use anyhow::{Context, Result};
-      +use anyhow::{Context, Result};
-      +use crate::scan::{scan, ScanOptions, ScanResult};
-
-  The result compiles under neither setting of the feature: `anyhow` disappears without
-  it, and `crate::scan` is named unconditionally while the module it names is not. The
-  edit engine's reparse check cannot catch this, the file still parses, it just no
-  longer means what it did.
-
-  A statement's lines now cover the attributes above it, read from the tree so a
-  multi-line attribute is one span and a `#[` inside a string is not an attribute. The
-  "is anything else on this line" test still reads the statement's own line: run against
-  the extended one, every attributed import looked like shared code and its whole block
-  stopped sorting.
-
-  3 of 49 files affected before, 0 after.
-
-- [x] B284: **`fr inline` refused on any name reused elsewhere in the file.** The
-  rebinding check asked whether another symbol of that name appeared later in the same
-  file and stopped there, so two functions each declaring `let s` counted as one variable
-  assigned twice. Reusing a local name across functions is the common case: 6,166 of this
-  repository's 9,147 locals share a name with another local in the same file.
-
-  Over those locals, before and after: inlinable **3,001 → 7,399**, refused as a
-  rebinding **4,940 → 487**. The remaining 487 are same-scope rebindings, which still
-  refuse, in Rust because a second `let` shadows, and in Python and shell because the
-  language has no second binding and both uses read one symbol whose value changed.
-
-  `Symbol` already carried the scope it was declared in, so the check compares those.
+- [x] B284: **`fr inline` refused on any name reused elsewhere in the file.**
 
 - [x] B285: **`fr inline` panicked on a declaration longer than one line.**
-  `tight_removal_span` read the text before the construct and the text after it from the
-  same line, the one containing `inner.start`. An HCL local holding a multi-line object
-  ends several lines below, so the slice was `source[end..start]`:
 
-      byte range starts at 617 but ends at 564
+- [x] B282: **JavaScript files were not source files.**
 
-  `web/sample/infra/main.tf`, shipped in this repository as playground sample data, is
-  such a file, and the sweep over every local found it. It reads the first line from
-  `inner.start` and the last from `inner.end` now, which is the same span whenever the
-  construct is one line.
-
-- [x] B282: **JavaScript files were not source files.** `.js`, `.mjs`, `.cjs` and `.jsx`
-  mapped to no language, so they were not scanned, not parsed and not in the index, and
-  silently, since an unmapped extension is indistinguishable from a PNG. The TypeScript
-  grammar this build already carries is a superset of JavaScript and reads all of it:
-  the 19 `.js`/`.mjs` files tracked in this repository parse with **0 errors**, as does
-  CommonJS, ESM, private class fields and optional chaining.
-
-  The cost was not only the missing facts. A CSS class used from a `.js` file had no use
-  anywhere the index could see, so `fr unused` reported it dead, which is the answer
-  `fr delete` acts on.
-
-  The extensions map onto `Language::TypeScript` and `Language::Tsx` and not to
-  variants of their own. A `Language::JavaScript` would read better in `fr scan` output
-  and would turn each of the twelve `matches!(lang, TypeScript | Tsx)` arms in the
-  codebase into a place JavaScript could be forgotten; sharing the variant makes that
-  divergence unrepresentable.
-
-  This repository, before and after: files 256 → 275, symbols 21,771 → 22,402,
-  references 140,648 → 143,877, of which resolved 84,350 → 86,148.
-
-- [x] B281: **a link to a heading resolved to nothing, and renaming the heading broke it.**
-  `queries/markdown/facts.scm` and `queries/html/facts.scm` both said the engine strips
-  the `#` when it resolves a fragment. It could not. `resolve_by_evidence` opens with a
-  verbatim lookup of the reference name, and `#beta` is nobody's name, so it returned
-  before reaching the branch that would have stripped it. That branch had never run for
-  a name beginning with `#`, which is every fragment.
-
-  What it cost: `fr refs` on a heading reported 0 references however many links pointed
-  at it, `fr unused` listed every heading in the workspace, and `fr rename Beta Zeta`
-  rewrote `# Beta` while leaving `[jump](#beta)` pointing at an anchor that no longer
-  existed, reporting one site changed and no warning.
-
-  Four parts:
-
-  * The fragment is separated at extraction now and not at resolution, so the
-    reference is named `beta` and its span covers `beta`. A rename writing over the old
-    span would have taken the `#` with it.
-  * A heading is referenced by its *slug*, so `#two-words` matches the heading
-    `Two Words` only if both sides are slugged. `slug` moved out of `move_symbol.rs`,
-    where it was private, to `model::anchor_slug`, so the two agree by construction.
-  * Renaming a heading writes the slug of the new name into each link. Writing the name
-    itself would have produced `#Three Big Words`.
-  * `validate_name` refused any whitespace for every markup language, so a heading could
-    not be renamed to `Getting Started`, a heading with a space in it being the ordinary
-    case. Headings now take any single non-blank line.
-
-  Cross-document links (`guide.md#intro`, `other.html#sec`) were excluded by all three
-  queries as "not resolvable here" and now resolve, since a string-keyed reference already
-  resolves workspace-wide. XML's `href` was relaxed the same way, since the extraction
-  change is language-agnostic and leaving the query behind would have made XML the one
-  markup language that disagreed. An absolute URL is dropped and not resolved: its
-  fragment names another document's heading, and before this it would have entered the
-  index as a reference named `https://example.com/p#top`.
-
-  `move_symbol` repointed same-document anchors by matching `reference.name` against a
-  leading `#`, which stopped matching anything the moment the name lost it, moving a
-  Markdown section left `[usage](#usage)` behind instead of repointing it to the new
-  file. It reads destinations from the text now, through the same `link_destinations`
-  the cross-document pass beside it already used, so it does not depend on the reference
-  spelling at all. Caught by the suite, not by review.
+- [x] B281: **a link to a heading resolved to nothing. Renaming the heading broke it.**
 
 - [x] B280: **one SCSS interpolation cost every fact below it in the file.**
-  `tree-sitter-scss` 1.0 has no rule for `#{...}` in a declaration value, and the ERROR
-  node it produces is not the expression. It runs to the end of the file. `_accordion.scss`
-  in `twbs/bootstrap` is 5050 bytes and the error span was 0..5050, so a stylesheet with
-  one interpolated value yielded almost nothing.
-
-  `Parsers::parse` now fills interpolations with an identifier, the same
-  length-preserving trick Helm uses, so the declaration is well formed and every offset
-  still indexes the original source. What the filler hides, the variables and calls
-  written between the braces, is read back by `interpolation_references`, so masking
-  changes the parse and nothing else.
-
-  Over the 99 stylesheets: files failing to parse 73 → 59, symbols 1916 → 2826,
-  references 3839 → 6277, and **no file lost a reference name it had before** (0 lost,
-  983 gained, compared per file). One custom property changed name, from
-  `#{$prefix}border-radius-pill` to `--#{$prefix}border-radius-pill`, which is the `--`
-  every other custom property in that file already reported.
-
-  `Parsed::template_actions` is now `masked_spans`, since Helm actions are no longer the
-  only thing in it. The fact cache needed no schema bump: `src/parse.rs` and
-  `src/extract.rs` are already fingerprint inputs, so the entries moved namespace by
-  themselves.
 
 - [x] B279: **a Helm action in key position left the entry out of the index, silently.**
-  `{{ $key | quote }}: {{ $value | quote }}` names an entry the mask cannot read, so the
-  mask blanks it and no capture matches. Whether that also fails the parse depends on
-  what surrounds it: of the 7 files in three `bitnami/charts` charts that write such a
-  key, **3 parse cleanly** and 4 do not, so the parse error was reporting the same
-  construct as a problem in 4 files and as nothing at all in 3.
 
-  The mask disagreed with itself too. After `- ` the action was not read as key position
-  and took the scalar filler, and since offsets index the original source, the entry
-  reached the index as a symbol *named* `{{ $key }}`, a rename target that would rewrite
-  template syntax into nonsense. One predicate now decides key position for the mask and
-  for the report, so the two cannot drift.
+- [x] B278: **Helm masking produced YAML that does not parse, four ways.**
 
-  `FileFacts::had_parse_errors: bool` became `gaps: Vec<FactGap>`, an enum whose variants
-  each carry the cause they report. A gap that reaches the index without a sentence to
-  say so does not compile, and `Index::add_file` no longer takes the flag beside the
-  facts that already hold it. Two sites want syntax errors specifically instead of any
-  gap, `duplicates::unparsed` lists files the report skipped, and a templated key is
-  analysed, not skipped, which the bool could not express. `WarningKind::ParseErrors` is
-  now `IncompleteFacts`, since it names files that have none.
-
-- [x] B278: **Helm masking produced YAML that does not parse, four ways.** Masking replaces
-  `{{ … }}` with bytes of identical length so every offset still indexes the original
-  file. Which bytes matters, and a run of spaces or of scalar characters is not always
-  legal YAML. Across three `bitnami/charts` charts, **48 of 92 files failed to parse**;
-  4 do now, all of them actions in key position, which B279 covers.
-
-  * An action **supplying the block indented under it**,
-    `labels: {{- include … | nindent 4 }}`, took the scalar filler, leaving
-    `labels: xxxx` above a deeper mapping, which has nothing to attach to. The filler is
-    chosen by the indentation of the next line with content on it.
-  * An action on the **first line of a block scalar** masked to a run of spaces as wide
-    as the action, and YAML rejects a leading empty line indented further than the
-    content. A `#` there is ordinary block content at the indentation the block wants.
-    Only there: elsewhere a `#` at a lower indentation would end the scalar, which is
-    what `health-configmap.yaml` writes deliberately, and I broke it that way before
-    narrowing the rule.
-  * The same, for a block scalar opened by a **sequence item** (`- |`) instead of a key.
-  * An action **spanning two lines** gave the scalar filler to its continuation, which
-    lands at column zero and ends the block. Only the line the action starts on takes it.
-  * A **template comment** is opaque: `{{- /* #j={{ $j }} */}}` is one action, and
-    stopping at the first `}}` left ` */}}` as text the grammar then had to interpret.
-
-  Each case is pinned in `tests/known_grammar_gaps.rs`, along with the key-position case
-  that still fails. Verified against the before-and-after failure sets instead of the
-  counts, so a file that started failing would show up even while the total fell.
-
-
-- [x] B277: **the language filter had two names.** Five commands took `--lang` and two
-  took `--language`, for the same filter, with nothing to say which was which. It cost
-  two mistyped invocations while writing tests during this sweep, which is how it was
-  found. `--lang` is the name now, on all seven; `--language` is an alias, so anything
-  already written keeps working. The docs used both and now use one.
-
+- [x] B277: **the language filter had two names.** The docs used both and now use one.
 
 - [x] B276: **`fr duplicates` crashed on a multi-byte character.**
-  `fr duplicates --language python` over `psf/black` panicked: "end byte index 691 is not
-  a char boundary; it is inside '𨉟'". `LineIndex::line_col` slices the line by a byte
-  offset the caller computed, and `span.end - 1`, the last byte a region covers, lands
-  inside the character whenever the region ends with a multi-byte one. `line_col` clamps
-  to a boundary now, which also covers `full_line_span` and so `fr delete`,
-  `fr imports` and `fr move`, all of which reach it by the same arithmetic. Black's 135
-  duplicate groups report where the command used to die.
 
 - [x] B275: **`fr duplicates --json` reported a language spelling no other command uses.**
-  It serializes its result struct, so `Language`'s derived serde names applied, `"Go"`
-  where every other command prints `Language::name()`, `"go"`. A consumer filtering on
-  `language == "go"` got nothing from this one command, and `Language::from_name` could
-  not read it back. B247 was this defect on `SymbolKind`; the test written for it asked
-  whether `from_name(name())` round-trips, which it always did, and never asked serde.
-  The test does now, and the cache schema is bumped because facts carry a language.
 
-- [x] B274: **`fr duplicates` gave lines and no columns.** `fr extract` takes
-  `path:line:col-line:col`, so the range had to be finished by opening the file and
-  measuring the line, the work the report existed to save. Instances carry `start_col`
-  and `end_col` now, and a range built straight from the JSON reaches `fr extract`'s own
-  refusals instead of a parse error.
+- [x] B274: **`fr duplicates` gave lines and no columns.**
 
+- [x] B273: **`fr unused` named a symbol and would not say where it was.**
 
-- [x] B273: **`fr unused` named a symbol and would not say where it was.** The next command
-  after it is `fr delete`, and a name does not name a symbol: in `helm/helm`, 34 of the
-  first 40 candidates are defined twice, so `fr delete <name>` answers "defined 2 times;
-  name one of these, or give a position", which the list had no way to give. `--json`
-  carried name, file, kind, language and exported, and no position, so a script could not
-  construct one either. Both renderings report `file:line:col` now; 12 of 12 sampled
-  candidates go straight through to `fr delete`, where 6 of 40 did before. `fr
-  entrypoints` had the same shape and the same fix.
+- [x] B271: **the published site shipped HTML the tool cannot parse.**
 
-  The invariant itself held throughout: nothing `fr unused` reported was refused by
-  `fr delete`. Only the handover was missing.
+- [x] B272: **the same gap one node deeper: a type named by its path.** Rust was alone in
+  both.
 
-
-- [x] B271: **the published site shipped HTML the tool cannot parse.** Two raw `&&` in
-  `docs/demo.html`, an unterminated entity reference, which browsers recover from and
-  `fr parse` reports. It was the only parse error in this workspace, found by running the
-  tool over its own repository. Nothing checked: `site_integrity` follows links and checks
-  command names, both of which pass on a file that does not parse. It now parses every
-  page with the tool's own parser, verified to fail when an ampersand is unescaped.
-
-- [x] B272: **the same gap one node deeper: a type named by its path.** `impl inner::Deep`
-  puts a `scoped_type_identifier` where the container patterns want a bare name, and
-  `impl<T> other::Wrapped<T>` wraps that in a `generic_type` again, so B270's fix did not
-  reach either. Four patterns cover the remaining combinations. This does not occur in
-  this repository, every `impl a::B for C` here has a bare type and already worked, so
-  it was found by asking what other shapes the node can take and not by a run.
-
-  Checked and correct without changes: generics in Java, TypeScript, Go and Python
-  (`Box<T>`, `Holder<T>`, `Stack[T any]`, `Generic[T]`), and nested types in Java,
-  TypeScript and Python. Rust was alone in both.
-
-- [x] B270: **a method of a generic type was not a method of anything.** The Rust
-  container patterns matched `type: (type_identifier)`, and `impl Ctx<'_>` or
-  `impl<T> Generic<T>` puts a `generic_type` there, so neither matched and the methods
-  inside got no container: `run` and not `Ctx::run`, kind `function` and not
-  `method`. Consequences beyond the name, `self.hcl_backward(…)` had no member to
-  resolve to, so 43 of `provenance.rs`'s own methods read as dead code; two unrelated
-  types with a `run` were one indistinguishable pair in `fr symbols`; and hierarchy
-  dispatch could not see them. Two patterns added for the generic form, one of them
-  covering `impl Trait for Generic<T>`. This repository's internal dead-code count goes
-  from 92 to 49, and the 49 are fields and parameters and not phantom functions.
-
+- [x] B270: **a method of a generic type was not a method of anything.**
 
 - [x] B269: **`Refusal::Unsupported`'s `language` field held a language in five of fifteen
-  cases.** The variant is `{operation} is not supported for {language}` and has nowhere to
-  say *why*, so ten sites wrote the reason into the language:
-  `format!("{lang} — {why}")`, `format!("rust — {} is not under a `src/` directory…")`,
-  and one that named no language at all — "a variable is not a flag". A field called
-  `language`, typed `String`, that usually holds a paragraph.
+  cases.**
 
-  It takes a `because` now, and `language` is the `Language` enum, so a sentence there
-  does not compile. Fifteen sites, each of which already had both pieces and was
-  concatenating them. The messages improve as a side effect: "move to file is not
-  supported for java: a public type must live in a file named after it…" reads in the
-  order a reader needs, where before the reason sat between the subject and the verb.
+- [x] B268: **five more refusals reported a resolution that had not happened.**
 
-
-- [x] B268: **five more refusals reported a resolution that had not happened.** B266 fixed
-  one site; sweeping every `Refusal::TooWeak` found five others of the same shape, each
-  identifiable by what it filled the field with. A site reporting a real reference writes
-  `confidence: reference.confidence`; these five wrote `Confidence::NameOnly` because no
-  reference existed to ask. Their own text says so — "sources a path that is not a
-  literal, so what is in scope there cannot be known", "a call site inside a syntax error
-  is invisible to the index", and the wrapper prefixed each with "resolution is only
-  'name-only'". `Refusal::Unknowable`'s doc comment names "a shell script that sources a
-  path computed at run time" as its example, which is two of these five verbatim.
-
-  `TooWeak` now takes a `ResolvedConfidence`, whose field is private to `model` and which
-  only `Reference::resolved_confidence` produces, so the variant cannot be built without
-  a reference to take a confidence from. Verified the compiler refuses:
-  `ResolvedConfidence(Confidence::NameOnly)` outside `model` is
-  "private tuple struct constructor". `signature.rs` no longer names `Confidence` at all.
-
-
-- [x] B267: **a remedy was offered where it would not work.** Every indeterminate-argument
-  refusal ended with "quote it to make it one argument", which is true of an unquoted
-  `$x` and false of `$@`, quoting that gives one word per parameter, the same problem
-  again, as the function's own comment says. The advice now travels with the problem that
-  earns it, so `$@` gets none and a glob gets "quote it to stop the shell expanding it".
+- [x] B267: **a remedy was offered where it would not work.**
 
 - [x] B266: **an argument the shell decides at run time was reported as weak resolution.**
-  `f $x two` refused with "resolution is only 'name-only'", but the call resolved; what
-  is unknown is how many words `$x` becomes. `Refusal::Unknowable` exists for exactly
-  this and its doc comment names the symptom — "resolution is only 'exact'", a sentence
-  that contradicts itself, so the fix was already written down and this site had not
-  been changed. Two clauses composed by two functions also garbled the sentence: the
-  remedy landed mid-sentence, leaving "so the position of everything after it is only
-  known at run time" attached to the fix instead of the problem.
 
-- [x] B265: **a signature change refused by talking about renaming.** Two bash functions
-  of one name make every call site ambiguous, which is a reason to refuse, but it raised
-  `Refusal::NameCollision`, whose message is "'f' is already defined in …; renaming would
-  shadow or collide with it". Nothing is renamed and nothing is introduced; both
-  definitions were there. `Refusal::AmbiguousDefinition` says what is actually wrong, and
-  `NameCollision`'s own wording no longer says "renaming" either, since `extract` and
-  `fr signature add` raise it while introducing a name instead of changing one. An
-  existing test asserted the old wording, so it had pinned a message that was wrong.
+- [x] B265: **a signature change refused by talking about renaming.**
 
-
-- [x] B264: **`zig-test` matched a test's description, not the construct.** Zig writes a
-  test as `test "any prose you like" { … }`, and the query makes that description the
-  symbol's name, so `name_prefix: test` matched the tests whose description happens to
-  begin with "test": 12 of the 495 in Zig's own standard library. The other 483 were
-  reported as dead code, along with everything only they called. Matchers gained
-  `declaration_keyword`, which reads the declaration's opening keyword and requires it to
-  end there, so `const testing = …` does not match. Entry points 12 → 472; dead-code
-  findings over that corpus 643 → 204, and 538 → 99 with `--internal`. The other five
-  repositories are unchanged.
-
-  This is the third catalogue predicate that is not a property of a name, after Python's
-  `__main__` guard and Next.js's `"use server"`.
-
+- [x] B264: **`zig-test` matched a test's description, not the construct.**
 
 - [x] B262: **`fr unused` reported HCL blocks Terraform gives no address to.**
-  `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's
-  `content {}` carry no label, so nothing in the language can reference one and every one
-  of them answers "nothing uses this". `terraform-aws-vpc` reported 46, all of those four
-  shapes, out of 46 block findings. A labelled block takes its name from a string label
-  and an unlabelled one from the block-type keyword, so the quote before the name settles
-  it, no list of block types to keep up with as Terraform adds them. The repository's
-  answer drops from 369 to 323, and what remains is Markdown headings.
 
-
-- [x] B261: **two capability predicates returned `true` for every language, behind
-  branches that could not run.** `delete::reports_unused` and `duplicates::supported`
-  both ignored their `language` argument and answered `true`. Each caller in
-  `capabilities.rs` tested it and had an `else` arm building a `Support::NotApplicable`
-  with a refusal message — "nothing in this language declares a name that something else
-  could fail to use". That nothing could ever print. The matrix read as computed per
-  language where it was constant. Both predicates and both branches are gone; the two
-  cells state `Support::Yes` with the reason in a comment. `fr capabilities` still
-  reports 270 supported.
+- [x] B261: **two capability predicates returned `true` for every language, behind branches
+  that could not run.**
 
 - [x] B260: **three commands took two or three bare booleans in a row.**
-  `cmd_extract(&cli, range, name, *function, *all, *write)` passes three, and the clap
-  field names differ from the parameter names, so any two could swap and compile. Each
-  now has a type: `Extract::{Variable, Function}`, `Occurrences::{First, All}`,
-  `Inline::{Variable, Call}`, and `FlagValue(bool)` for the value a removed flag is fixed
-  at, which sits beside `write` in `cmd_remove_flag`. No two parameters of any of the
-  three share a type now. The other 23 functions taking `write: bool` keep it: `write` is
-  their only boolean, so nothing can swap with it.
 
-- [x] B259: **line and column travelled as a bare `(usize, usize)` in six places.**
-  `LineIndex::line_col` returns `LineCol`, and six helpers took that value apart and
-  returned the pair, `delete.rs` built a `LineCol` and immediately destructured it. A
-  caller reading the two in the wrong order gets a position that looks plausible and
-  points somewhere else. All six return `LineCol` now. `Cache::stats` returned hits and
-  misses the same way and returns `CacheStats`.
-
+- [x] B259: **line and column travelled as a bare `(usize, usize)` in six places.** All six
+  return `LineCol` now.
 
 - [x] B256: **`fr unused` did not treat an HTML attribute value as a string.**
-  `is_string_kind` matched node kinds containing "string"; the HTML grammar names an
-  attribute value `attribute_value`. Templates name code there, `th:text="${owner.address}"`,
-  `v-on:click="submitOrder"`, `class="table-striped"`, so the correction that spares
-  names spelled in strings missed all of them. spring-petclinic: 80 CSS classes reported
-  dead while its templates used them.
 
-- [x] B255: **`fr unused` reported containers of entry points.** JUnit constructs a test
-  class to run its `@Test` methods; nothing names the class. spring-petclinic: 11
-  reported. The check walks the containment chain instead of testing the language, so it
-  covers Rust `mod tests` and Python classes of pytest cases too. A dead method beside a
-  live test still reports.
+- [x] B255: **`fr unused` reported containers of entry points.** A dead method beside a live
+  test still reports.
 
 - [x] B254: **`fr unused` reported JavaBean accessors reached by their property.**
-  `Owner::getAddress` reported dead; the template writes `${owner.address}`, the tests
-  write `param("address", …)`, nothing writes `getAddress`. Java templates, JSON mappers
-  and Spring's binder all reach a getter by the property name. An accessor whose property
-  is named where the method is not is now spared, with the reason. The rule requires an
-  uppercase letter after the prefix, so `gettysburg` is not an accessor for `tysburg`.
 
-- [x] B253: **three Spring conventions missing from the catalogue.** `@InitBinder`,
-  `@ModelAttribute` and `@Configuration`: the container calls them, the source does not,
-  same as the eight callbacks B236 added. B236 came from enumerating what Spring calls;
-  these came from running the tool over spring-petclinic.
+- [x] B253: **three Spring conventions missing from the catalogue.**
 
-- [x] B252: **`fr unused` reported every package clause, one per file.** Java classes in
-  one package never write the package name, and nothing imports Go's `main`, so no
-  package declaration ever has a reference. spring-petclinic: all 49 reported. Removing
-  one is a syntax error. Rust's `mod helper;` shares the symbol kind and differs: a child
-  module nothing references is a finding, so the exclusion tests the language, not the
-  kind.
+- [x] B252: **`fr unused` reported every package clause, one per file.**
 
-  B252-B256 together take spring-petclinic's code findings from 35 to 3: a constructor
-  Spring calls, a testcontainers `@Container` field, a nested `@TestConfiguration`.
+- [x] B257: **`fr unused` printed a count without a breakdown.**
 
-- [x] B257: **`fr unused` printed a count without a breakdown.** spring-petclinic: 3,554
-  findings, 3,439 of them in one vendored stylesheet, with nothing in the output saying
-  so. An answer of 50 or more now lists its top five kinds, plus the file holding the
-  findings when one file holds over half. vuejs/core: 1,640 keys in `pnpm-lock.yaml`.
-  Nothing is excluded from the analysis.
+- [x] B251: **a recipe's misspelled predicate value blamed the repository.**
 
+- [x] B250: **three matcher conditions did not count as conditions. An empty matcher matched
+  nothing without saying so.**
 
-- [x] B251: **a recipe's misspelled predicate value blamed the repository.** `kind=functoin`
-  matched nothing and the step failed with "matched nothing. That is not success", true,
-  and unhelpful: nothing in the workspace was wrong. The predicate's *name* has been
-  checked with a suggestion and the full vocabulary all along, for exactly this reason;
-  its value was not. `kind` is now checked by parsing the value into `SymbolKind`, so the
-  vocabulary comes from the type instead of a list kept beside it, and serde's error
-  names the alternatives, which reads correctly only because B247 made those spellings
-  the same as the ones the tool prints. `lang` gets the same treatment via
-  `Language::from_name`, with the "did you mean" the predicate names already had.
+- [x] B249: **`fr type --json` answered with numbers nobody can use.** Both now say the same
+  thing.
 
-- [x] B250: **three matcher conditions did not count as conditions, and an empty matcher
-  matched nothing without saying so.** The empty-matcher guard listed `is_some()` checks
-  that had drifted from the fields that exist; `symbol_kind`, `exported` and `top_level`
-  were absent, so a rule using only one of those counted as empty and matched nothing.
-  The guard returned false instead of reporting. Now one method on `Matcher`
-  destructures the struct, so a new field fails to compile instead of being omitted.
-  Two callers: the loader refuses such a catalogue and names the rule; `rule_applies`
-  keeps returning false as a backstop for a `Catalog` assembled directly and not
-  loaded.
-
-- [x] B249: **`fr type --json` answered with numbers nobody can use.** It serialized the
-  analysis struct directly, so `"symbol": 1` and `"defined_at": 0` were `SymbolId`s,
-  positions in one run's index, meaningless to whoever reads the output, and unstable
-  between runs. `defined_at` read like a line number. Every other command answers with a
-  qualified name and a place, and the text rendering of this one resolved them all along;
-  only the machine-readable half did not. Both now say the same thing.
-
-- [x] B248: **`as_str` named two different things.** On `SymbolKind`, `Confidence`,
-  `EntryKind` and `HierarchyBasis` it returns an identifier: a token that goes into JSON,
-  into a catalogue, into a command line. On `Capability`, `Basis` and `DefinitionRole` it
-  returns display text — "call graph", "from the literal", "also declared here". Nothing
-  separated the two, so nothing said which had to match their serde spelling; B247 is the
-  consequence. The display three are now `label()` and `describe()`. A round-trip test
-  covers the identifier ones, reading the spellings out of the exhaustive `as_str` match
-  so a new variant needs no list updated.
+- [x] B248: **`as_str` named two different things.** The display three are now `label()` and
+  `describe()`.
 
 - [x] B247: **the tool's JSON could not be read back into the tool's own types.**
-  `SymbolKind` derives serde with `rename_all = "snake_case"` and has a hand-written
-  `as_str` that the output actually uses, and three of twenty-one variants disagreed:
-  `as_str` gave `type`, `link-def` and `element-id` where serde expected `type_alias`,
-  `link_def` and `element_id`. So `fr symbols --json` emitted `"kind": "type"` and
-  deserializing it failed. Nothing was checking, because nothing had reason to think two
-  spellings existed. Three per-variant renames, and the cache schema is bumped because
-  cached facts carry the old spelling.
 
 - [x] B246: **a misspelled value in a catalogue loaded and matched nothing.**
-  `deny_unknown_fields` rejects a misspelled *key*; a misspelled *value* was accepted,
-  because `symbol_kind` was a `String` and `languages` a `Vec<String>` compared against
-  the real enums by name. `symbol_kind: functoin` and `languages: [pyhton]` both parsed,
-  loaded and never fired, indistinguishable from a rule that is present and simply never
-  true, which is the failure mode the `annotation_argument_prefix` check was added for one
-  PR earlier. Both are parsed into the type they denote now, so the error arrives at load
-  with the line, the column and the values that would have worked. `*` keeps meaning every
-  language, as `AppliesTo::Any` instead of a magic string.
 
-  `Rule.provenance` went with them: a `String` field defaulting to `"manual"`, set by no
-  catalogue and read by nothing, a distinction the type promised and the code never made.
+- [x] B245: **the same overclaim, one branch up. B243's fix did not reach it.**
 
-- [x] B245: **the same overclaim, one branch up, and B243's fix did not reach it.** Step 1
-  settles a name by lexical scope, and let itself settle a *member* access too whenever
-  only one member in the workspace had that name, reasoning in its comment that there is
-  then "nothing to be wrong about". There is: the workspace does not contain every type.
-  With the call written inside the declaring class, `client.total()` on an unannotated
-  parameter was still `exact` and still rewritten after B243. The two branches held the
-  same belief and fixing one left the other, which is what a rule kept at its use sites
-  does. There are twenty-eight places in the resolver pairing a symbol with a tier, and
-  each is a chance to disagree with the others. The rule now lives in one place:
-  `resolve_one` resolves, then caps what the answer may claim, and the branches below it
-  no longer decide. Three receivers stay known, `this`/`self`, a module path, and an
-  import binding, because each names something the source declared. A further 26 of
-  black's exact edges and 77 of vuejs/core's move to field-based, on top of B243's.
+- [x] B243: **a member access claimed to know a receiver it had never seen.**
 
-  The related illegal state, `(None, Exact)` — "I cannot say what this is, and I am
-  certain", is representable in the same pair and is what `call_graph.rs`'s
-  `resolved.is_some() && confidence.is_safe_to_rewrite()` is guarding against. No branch
-  produces it. That is now asserted over whole workspaces and not by reading the
-  branches, since reading the branches is what missed the receiver overclaim twice.
+- [x] B244: **the list of commands named 28 of 32.**
 
-- [x] B243: **a member access claimed to know a receiver it had never seen.** A single
-  definition of a name in a file resolved any use of that name to it, at `Exact`, and
-  that rule did not exclude member accesses. So one class declaring `total` made
-  `client.total()` exact for any `client` whatever, and since only the top two tiers are
-  rewritten, `fr rename total sum` silently turned a call on a boto3 client into
-  `client.sum()`. `Confidence::FieldBased` is defined as "matched by member name without
-  knowing the receiver's type, plausible but unproven; refactorings must not silently
-  rewrite these", which is this case exactly: the tier already existed and was not being
-  used. Uniqueness is evidence about a *name*; a member access is a question about a
-  *receiver*, and nothing at that layer knows one. Calls through `self` and `this` are
-  unaffected, lexical scope settles those a step earlier, and they are the large and
-  legitimate category. It costs 60 of black's 881 exact edges and 67 of vuejs/core's
-  2384; those are now reported for review instead of rewritten unasked.
+- [x] B242: **`fr type --help` said the command does not do what the command does.**
 
-- [x] B244: **the list of commands named 28 of 32.** `usages`, `implementations`,
-  `recipe` and `translate` had all shipped without reaching PLAN.md's closing list. A
-  summary line is never wrong about what it says, only about what it leaves out, so a
-  test now compares it against the binary's own list of commands, the mirror of the
-  existing check that every command the site names still exists.
+- [x] B241: **passing locally and passing in CI meant different things.**
 
-- [x] B242: **`fr type --help` said the command does not do what the command does.** The
-  help read "Nothing is inferred. A binding with no annotation is reported as having
-  none", which was true when it was written and stopped being true when inference landed
-, the command's own output says "The source wrote no type here. The above was worked
-  out from the evidence named". A reader consulting `--help` would conclude the tool
-  cannot do the thing it had just done. The text now describes both answers and why they
-  are kept apart.
+- [x] B240: **entry-point detection read every file once per rule.** The cache cannot change
+  an answer: a miss re-reads.
 
-- [x] B241: **passing locally and passing in CI meant different things.** The `check` job
-  listed formatting, clippy and the tests as separate steps, and there was no single
-  command that ran them. A local pass over a subset, clippy and the tests but not
-  `cargo fmt --all --check`, reported green for a branch CI then rejected, which is
-  exactly what happened to the change above. `tools/check.sh` holds the commands and the
-  workflow calls it, so the two cannot drift; the wasm feature set, which neither default
-  clippy nor the default test run compiles, is part of it.
+- [x] B239: **a decorator's name is not unique across libraries.**
 
-- [x] B240: **entry-point detection read every file once per rule.** Three of the matcher's
-  predicates need the file's text, and each asked for it independently, so the whole file
-  was read and allocated once for every rule in the catalogue that reached it. It went
-  unnoticed while no `annotated_with` rule applied to TypeScript; adding the NestJS rules
-  made `fr entrypoints` on `vuejs/core` take 17.3s against an 8.3s index, with 3.9s of it
-  in the kernel. Reading once per symbol, the index groups a file's symbols together, so
-  remembering the last one suffices, brings it to 9.4s with 0.25s system time, which is
-  faster than before the rules were added. The cache cannot change an answer: a miss
-  re-reads.
+- [x] B238: **a modifier between the annotation and the declaration ended the run.**
 
-- [x] B239: **a decorator's name is not unique across libraries.** Adding a rule for
-  FastAPI's `@app.patch` tagged twenty-two of `psf/black`'s test methods as remotely
-  reachable HTTP routes, and one of its `self` parameters, because `@patch` is
-  `unittest.mock`'s far more often than it is FastAPI's. Matching harder on the name
-  cannot separate them, `@mock.patch` is as qualified as `@app.patch`. What separates
-  them is what the decorator *names*: a route names a URL path, a mock names a module.
-  Matchers gained `annotation_argument_prefix`, and the Python route rules ask for `/`.
-  Black's twenty-two false positives go and its two real `@app.get("/path/")` handlers
-  stay. A path held in a constant, `@app.get(PETS)`, is not matched, which the
-  catalogue says and not hides. Asking for the argument without naming the
-  annotation is now rejected when the catalogue loads: `deny_unknown_fields` catches a
-  misspelled key, and this catches a well-spelled one in a combination that has no
-  meaning, which would otherwise parse, load and match nothing, indistinguishable from
-  a framework that is covered and simply absent.
+- [x] B237: **a dot in an annotation's arguments hid the annotation.**
 
-- [x] B238: **a modifier between the annotation and the declaration ended the run.** The
-  search for an annotation above a symbol walked back through whole lines, so for
-  `export class C` the line before the declaration was `export`, which is not an
-  annotation and stopped the walk before it reached the decorator. `export class` is how
-  TypeScript writes almost every class, so `annotated_with` did not work on exported
-  classes at all, a NestJS `@Controller`, the class the framework is organised around,
-  matched nothing while a bare `class C` matched. What precedes a symbol on its own line
-  is part of the declaration, not a line before it, so the walk now starts at the
-  beginning of the declaration's line, unless that text opens or closes something, in
-  which case the symbol is nested inside whatever the annotation above annotates and does
-  not carry it. Both halves are load-bearing and both are pinned: `fn outer() { fn inner()`
-  must not let `inner` inherit `outer`'s `#[test]`, and the `payload` in
-  `@KafkaListener void consume(String payload)` is not itself a queue consumer. That
-  second one was a false positive this fix introduced, which the full suite passed over
-  and re-running the fixtures caught.
+- [x] B236: **route handlers, queue consumers and scheduled jobs were dead code.**
 
-- [x] B237: **a dot in an annotation's arguments hid the annotation.** The name was read
-  by stripping the qualifier first and cutting the argument list off second, so the last
-  dotted piece of an *argument* became the name: `@ExceptionHandler(RuntimeException.class)`
-  read as `class` and `@GetMapping(Routes.PETS)` as `PETS`. The visible symptom was a
-  version number in a route path, `@app.route("/v1.0/status")` matched nothing while
-  `@app.route("/status")` matched, so a live handler turned into dead code on a detail of
-  its URL. Cutting the arguments off first and stripping the qualifier second fixes both;
-  the qualified and bracketed spellings this ordering was written for (`#[tokio::test]`,
-  `@org.junit.jupiter.api.Test`) still hold, and are now pinned by a test.
+- [x] B235: **a Next.js server action was dead code.**
 
-- [x] B236: **route handlers, queue consumers and scheduled jobs were dead code.** Asking
-  the question B235 raised — what does each framework call that the source never does?,
-  of every framework the catalogues claim, instead of waiting for a repository to surface
-  it. FastAPI and Flask route handlers, Celery tasks, Django signal receivers, Spring's
-  `@Scheduled`, `@EventListener`, `@KafkaListener`, `@PostConstruct` and the method-level
-  `@GetMapping` family all reported no detected use, as did NestJS controllers and their
-  handlers, and actix-web and Rocket route attributes. Two things made it hard to see. Java
-  covered `@RestController` and `@RequestMapping` but not the specific mappings modern
-  code actually writes, so the coverage looked complete from the class down. And a Flask
-  handler is often saved by accident: `@app.route("/health")` above `def health` spells the
-  name in a string literal, which `fr unused` deliberately skips, rename the route to
-  `/status` and the handler dies, and actix-web's `#[get("/health")]` above `fn health`
-  was covered by exactly the same coincidence. Rules added across `python.yaml`,
-  `java.yaml`, `typescript.yaml` and `rust.yaml`, which also gives `queue-consumer`,
-  `websocket` and `scheduled-job` their first rules: three `EntryKind` variants that were
-  declared, matched on and printed by name, but that nothing could previously emit.
+- [x] B230: **a parse failure said how many and never where.**
 
-  `fr translate <route> fastapi` emits `@router.get(...)` handlers, so the tool's own
-  output fed back in reported its handler as having no detected use, the same shape as
-  the enum-variant struct literals in B214.
+- [x] B229: **a Go type implemented an interface it does not implement.**
 
-- [x] B235: **a Next.js server action was dead code.** `"use server"` marks an exported
-  function the framework makes reachable over the network, called by nothing in the
-  source, the same case as Java's `@RestController` and pytest's fixtures, both of which
-  the catalogue already covers. It was missed because every other Next.js rule matches a
-  *filename*: `page.tsx`, `layout.tsx`, `route.ts`. A server action lives in a file called
-  whatever you like, and in `vercel/commerce` it is `components/cart/actions.ts`, five
-  live network endpoints, all reported as having no detected use. Catalogs gained
-  `file_directive`, which reads the first statement of a file or of a function body, so
-  both spellings are covered and a mention of the words in a comment is not.
-
-- [x] B230: **a parse failure said how many and never where.** `fr parse` named the file
-  and the number of error nodes and stopped, so the one thing a reader wants from
-  "this file did not parse", which part, was the one thing missing. The spans were
-  already computed; only the printing dropped them. Every position is reported now, up to
-  four per file, because a file with two hundred error nodes is one the grammar cannot
-  read at all and listing them would say so two hundred times.
-
-- [x] B229: **a Go type implemented an interface it does not implement.** The hierarchy
-  pass compared a method's *name and arity*, under a comment saying a covered method set
-  "is the whole of what implementing an interface means there", which is true of Go and
-  was not true of the code. `Run() string` therefore satisfied an interface asking for
-  `Run() error`, and in helm/helm that produced 5,936 dispatch edges between types that
-  do not implement each other, 29% of the layer. Signatures are compared where both are
-  legible, and the arity answer stands where either is not, because a dropped edge here
-  becomes a live method reported as dead code. Package qualifiers are dropped first:
-  `kube.ResourceList` from outside a package and `ResourceList` from inside are the same
-  type, and comparing them as written refused seven implementations helm plainly has,
-  a fault introduced by the first version of this fix and caught by measuring dead code
-  before and after and not by trusting the edge count to have gone the right way.
-
-- [x] B228: **the tool printed names it would not accept.** Every listing gives a
-  qualified name, `Box::size`, `HookEvent::String`, and `resolve_target` matched on the
-  bare name only, so the spelling the tool shows you everywhere was the one spelling that
-  came back "no symbol named". It mattered at scale: in helm, `String` is twenty methods,
-  and the only route through was a line and column somebody had to go and look up. A
-  qualified name is tried first now, and where one is still ambiguous, two packages both
-  declaring `HookEvent`, the files are named. The message for an ambiguous *bare* name
-  lists the qualified names that would select each candidate, so the fix is to copy a
-  line instead of going to find a line number.
+- [x] B228: **the tool printed names it would not accept.**
 
 - [x] B227: **three tests counted what came back and never looked at it.**
-  `textual_sweep_respects_word_boundaries` found one occurrence and did not check which,
-  in a test whose entire subject is telling `helper` from `helperful`.
-  `cross_language_references_are_labelled_as_such` found two and did not check they were
-  the HTML and the TSX, so the CSS definition mislabelled with the TSX missed would have
-  satisfied it. `unreadable_files_are_skipped_and_reported` counted one skip without
-  asking which file or why, and a skip that says neither is a count and not a report.
-  All three now name what they expect.
 
-- [x] B226: **a test named for path order never checked the order.**
-  `usages_group_by_file_in_path_order` asserted that more than one group came back and
-  stopped there. The grouping is a `BTreeMap`, so the order held by construction, and
-  swapping it for a `HashMap`, which is the obvious thing somebody does to a map that
-  looks like it only needs lookup, would have broken the documented behaviour with every
-  test still green. The order is asserted now.
+- [x] B226: **a test named for path order never checked the order.** The order is asserted
+  now.
 
 - [x] B225: **the entry-point coverage report was checked for having names in it.**
-  `coverage_gaps_are_reportable` asserted that each gap's name was a non-empty string,
-  which is true of every `&'static str` in the enum: it would have passed had the
-  function returned nothing, everything, or the wrong languages. What the report says is
-  which languages have no rules, and it is worth printing only if it agrees with which
-  languages have none, so it is compared against `has_rules_for` in both directions, and
-  refuses a list that is empty or complete, since either makes the comparison vacuous.
-  Verified by gutting the function and watching the test fail.
 
-- [x] B224: **the cache's own claim was tested for stability and not for meaning.** The
-  cache tells every reader that "editing a query file makes every stale entry unreachable
-  and not wrong", and the only test of that asserted the fingerprint was the same
-  twice and sixteen characters long. A function that ignored the queries entirely and
-  hashed a constant would have passed it, and the claim would have been false in the
-  worst direction, returning confident answers computed by code that no longer exists.
-  The fingerprint is now recomputed over a set with one query altered, once per language,
-  and the answer has to differ each time; the language's name has to matter too, so two
-  languages swapping queries is a different set. Verified by removing the name from the
-  recipe and watching the test fail.
+- [x] B224: **the cache's own claim was tested for stability and not for meaning.**
 
-- [x] B223: **`fr duplicates` named its threshold only when it found nothing.** An empty
-  answer said "No duplication of 60 tokens or more", which states what was looked for; a
-  non-empty one said "3 duplicated block(s)" and stopped, which reads as all of them.
-  The non-empty answer is the one somebody acts on. Both now name the threshold, and the
-  footer says outright that smaller copies exist in most codebases and are not counted.
+- [x] B223: **`fr duplicates` named its threshold only when it found nothing.**
 
-- [x] B222: **the published site was three commits behind and said nothing.** Five Pages
-  deploys in a row aborted with "Timeout reached" while the deployment sat in
-  `deployment_queued`; the build succeeded every time and the artifact uploaded, so
-  everything a person looks at stayed green while the site served an older version. The
-  types tutorial was a 404 for half a day. The deploy now waits thirty minutes instead
-  of ten, and every page states the commit it was built from in its footer, so a stale
-  site can be recognised by looking at it. `site_integrity` asserts the stamp is present
-  on every page.
+- [x] B222: **the published site was three commits behind and said nothing.**
 
-- [x] B221: **`fr type` answered half the question.** It reported what a symbol was
-  declared with and stopped, so every unannotated binding came back identical whether the
-  source had lost track of the value or merely not written the type down. It now derives
-  a type from the six steps that follow from something stated, a literal, a class
-  constructed, a declared return type, another binding, a record's field, and names the
-  step and the evidence for each. A declaration still wins over a derivation, and the two
-  are reported apart. A call outside the workspace and an object literal both yield
-  nothing, deliberately: the chain stops where the evidence does, and answering `dict`
-  for a dictionary agrees with the code instead of describing it.
+- [x] B221: **`fr type` answered half the question.**
 
 - [x] B220: **the published site was checked by hand and by nothing else.**
-  `cargo test --test site_data` asserts that every result shown on the site is what the
-  tool produced; nothing asserted that a link goes somewhere, that an anchor names a
-  heading that exists, that an `id` is unique, or that a command the prose tells a reader
-  to type is a command. A full browser pass over the deployed site found no defect, and
-  found that finding one would have depended on somebody looking. Now four checks over
-  the `docs/` tree, offline, with the command list asked of the parser and not
-  written down beside it. The first version of the link check failed in CI and was right
-  to: every page links to `playground/`, which Vite emits and which is not committed, so
-  it is present locally and on the published site and absent from a clean checkout. A
-  link into the frontend's build output is live by construction, and which directory that
-  is comes from the build's own `outDir` instead of a name written down again.
 
-- [x] B219: **`fr impact` reported a bounded search as a complete answer.** The caller
-  walk stops at `--caller-depth`, which defaults to 3, and said nothing when it did, so
-  a five-deep call chain produced "l0 affects 4 site(s)" and a list of four, with two
-  functions it had never looked at. A definite count of an incomplete search, from the
-  command a person uses to decide whether a change is safe. `fr flow` has said "depth
-  limit reached; more may lie beyond" since it was written; the call-graph walk recorded
-  cycles "and not silently pruning them" and did not record this. The frontier is
-  recorded on the same footing as a cycle now, and both `fr impact` and the call-graph
-  tree say what the bound excluded. Nothing is said when the walk finished, because a
-  note nobody needs is how a note somebody needs gets missed.
+- [x] B219: **`fr impact` reported a bounded search as a complete answer.**
 
-- [x] B218: **every hop of a forward flow was printed twice.** The use and the binding
-  it initialises are the same line, and both were pushed, so `parsed = int(cleaned)`
-  appeared at one indent and again at the next, all the way down, and each duplicate
-  spent a level of depth on a line the reader had already seen. The chain now costs one
-  level per hop, which is also twice as far before the depth limit.
+- [x] B218: **every hop of a forward flow was printed twice.**
 
-- [x] B217: **forward flow stopped at the first hop in Rust.** The search for what a use
-  initialises walks outward looking for a node whose value contains the reference, and
-  gave up entirely the moment it found one that named nothing. Rust's `cleaned as i64`
-  is a `type_cast_expression` whose `value` is the reference, and `raw.len()` is a
-  `field_expression` whose `value` is the receiver, so it gave up on the `let` two
-  levels further out, every time. It keeps walking now.
+- [x] B217: **forward flow stopped at the first hop in Rust.** It keeps walking now.
 
-- [x] B216: **a value was reported as flowing into the function around it.** Having
-  found the name a use assigns to, the search accepted any symbol whose `name_span`
-  matched **or** whose `full_span` merely contained it, and took the first in
-  declaration order. Every enclosing function's span contains everything, and functions
-  are declared first, so `parsed = int(cleaned)` said the value flowed into `load`, and
-  `fr flow fwd` went one hop and then wandered off into the callers, looking for all the
-  world like it had traced something. An exact name is the answer where the grammar
-  gives one; otherwise it is the *smallest* binding whose span holds the name, and never
-  a function.
+- [x] B216: **a value was reported as flowing into the function around it.**
 
 - [x] B215: **a constructor body that builds and returns was thrown away for three
-  targets.** Rust, Go and Zig have no constructor, only a function that returns the
-  type, and the writer cleared the body for all three under a rule about bodies that
-  *assign through a receiver*, which a Rust constructor's does not. Its body already
-  builds a value and returns it, which is the shape those three want. Kept now when the
-  source's constructor took no receiver, and cleared with the same note as before when
-  it took one. The mirror case is also handled: a body that builds and returns becomes
-  field assignments for Python, Java and TypeScript, because an `__init__` that returns
-  a value raises and a Java constructor that returns one does not compile.
+  targets.**
 
-- [x] B214: **an enum variant was read as a record.** `StopReason::Conditional { … }`
-  builds a tagged union, which no target here has, and writing the path through produced
-  Go that says `StopReason::Conditional{…}`. Caught by the round-trip sweep over the
-  tool's own source before it shipped; a struct literal whose type is a path is refused
-  as it was before B213.
+- [x] B214: **an enum variant was read as a record.**
 
-- [x] B213: **a Rust struct literal was not read at all.** `Counter { value: 0, step }`
-  is the one way Rust builds a record and the line every constructor is made of, and
-  nothing read it, so every constructor body came out as "not translated" in all five
-  targets. The IR gained a record literal with its fields still named, because four of
-  these languages construct one that way and two do not, and a positional list assembled
-  at read time would be in the source's declaration order, a fact about the source
-  and not about any constructor a caller will call. Written exactly by Rust, Python,
-  Go and Zig; turned into field assignments inside a constructor for Java and
-  TypeScript, and reported elsewhere for those two.
+- [x] B213: **a Rust struct literal was not read at all.**
 
-- [x] B212: **a Zig method that changed its own object did not compile.** Four of these
-  languages hand a method a reference and let it assign through it. Zig hands it a
-  value, and a value parameter there is const, so `pub fn bump(self: Counter)` with
-  `self.value = …` in the body is not a slow method, it is a file the compiler rejects,
-  from a source that said `&mut self` and a report that said every signature carried
-  across with its types intact. The receiver is a pointer when the body assigns through
-  it and a value when it does not, recognised by whatever the source called it: `self`
-  in Rust and Python, `this` in TypeScript. Go already took a pointer receiver for every
-  method, which is safe, and is untouched.
+- [x] B212: **a Zig method that changed its own object did not compile.**
 
-- [x] B211: **the Java output named types the file had never imported.** `List`, `Map`
-  and `Optional` are the three names this writer reaches for that Java does not have in
-  scope, and it emitted all three and imported none, so a signature the report called
-  "carried across with its types intact", which it was, named a type the file had never
-  heard of. The published translation example on the site was one of them. Read from the
-  IR instead of the finished text, because an import has to be written before the class
-  that uses it and because a `List` inside a string literal is not a use. This is the
-  same defect as B209, one language over: the fix for that one was found by asking
-  whether the Zig output bound the `std` it reached for, and nobody asked Java the same
-  question.
+- [x] B211: **the Java output named types the file had never imported.**
 
-- [x] B210: **joining two strings produced Zig that does not compile.** Java, Go, Python
-  and TypeScript all concatenate with `+`, and so did the source; Zig has no `+` for
-  slices, because joining them means allocating and the allocator is a parameter the
-  function does not have. Inventing one would change the signature every caller was
-  written against, so the operation is refused and not guessed at, as an
-  `@compileError` naming the reason, which is a value anywhere one is expected and
-  cannot be mistaken for code that works, where an empty slice quietly could. Zig has no
-  block comment, so a marker beside the value would have swallowed the rest of the line.
+- [x] B210: **joining two strings produced Zig that does not compile.**
 
-- [x] B209: **the Zig output named a standard library it had never bound.** Comparing
-  two strings there is `std.mem.eql`, and nothing in the writer emitted
-  `const std = @import("std");`, so the fix for B208 produced a file that referred to
-  `std` out of nowhere. The binding is written when the module reaches for it and not
-  otherwise, decided from the IR and not from the finished text, because it has to
-  be written before the code that uses it.
+- [x] B209: **the Zig output named a standard library it had never bound.**
 
-- [x] B208: **comparing two strings meant something else in Java, and nothing at all in
-  Zig.** Every writer rendered `==` as `==`. Rust, Go, Python and TypeScript compare a
-  string's contents that way, and so did the source. Java compares *references*, so the
-  translation was quietly false for two equal strings that were built and not
-  interned; Zig will not compile `==` on a `[]const u8` at all, so the output looked
-  like the other five and did not build. Written as `java.util.Objects.equals(a, b)`,
-  which answers for null on either side, where `a.equals(b)` throws, and
-  `std.mem.eql(u8, a, b)`. Integers keep `==` everywhere, and the four languages that
-  already agreed are untouched.
+- [x] B208: **comparing two strings meant something else in Java. Nothing at all in Zig.**
 
-- [x] B207: **`a %% b` on two integers meant something else in Python, silently.** The
-  same disagreement as division, found by asking the same question of the next operator
-  in the table: every other language here takes the remainder's sign from the dividend
-  and Python takes it from the divisor, so `-7 %% 2` is -1 on one side and 1 on the
-  other. Unlike division there is no readable Python form, writing it exactly means
-  `a - b * int(a / b)`, so the idiomatic operator is kept and the difference is
-  reported, with the expression quoted and the exact condition named. Float remainders
-  agree and are not reported, because a note nobody needs is how a note somebody needs
-  gets missed.
+- [x] B207: **`a %% b` on two integers meant something else in Python, silently.**
 
-- [x] B206: **`a / b` on two integers became float division in Python.** Rust, Go, Java
-  and Zig all truncate; Python's `/` produces a float and its `//` floors, so neither
-  operator means what the source meant. `half(7, 2)` returned 3 on one side and 3.5 on
-  the other, with the report calling the signature complete and the annotation still
-  saying `-> int`. Written as `int(a / b)` now, which truncates toward zero and is
-  exactly what the source said. Nothing is inferred: a binding whose type the source
-  never wrote down is not known to be an integer and its division is left as it was,
-  because guessing would be the same mistake pointing the other way.
+- [x] B206: **`a / b` on two integers became float division in Python.**
 
 - [x] B205: **a Rust function's tail expression translated to nothing.**
-  `pub fn f(a: i64, b: i64) -> i64 { a + b }` is the ordinary way to write one, and the
-  tail is its result. Reading it as a plain statement dropped the return in every target
-  at once: Python got a function returning `None`, Zig one saying `_ = a + b;`, and Go,
-  Java and TypeScript ones that do not compile, each still declaring the return type
-  the signature carried across faithfully. Only the body's own tail is read as a return;
-  a tail inside an `if` needs the whole of Rust's block-expression rule and is left as
-  it was and not half-done.
 
-- [x] B204: **every translation dropped the brackets.** All six writers rendered a
-  binary expression as `left op right` and nothing else, so `(a + b) * c` came out as
-  `a + b * c`, `a - (b - c)` as `a - b - c`, and `!(a && b)` as `!a && b`, in Python,
-  TypeScript, Go, Java and Zig, in both directions, for the most ordinary expression
-  there is. Brackets are decided from precedence now and not copied from the source,
-  so the result is right where two languages disagree about binding and a group that was
-  never needed does not survive the trip either.
+- [x] B204: **every translation dropped the brackets.**
 
-- [x] B203: **the grouping nearly went into CSS.** The node kinds that bind their
-  operands are recognised by substring, because six grammars name the same thing six
-  ways, and CSS names a `descendant_selector` and an `attribute_selector`, which read
-  as operator kinds and are nothing of the sort. Bracketing a selector is not a
-  grouping, it is a syntax error. Caught by the reparse guard before it shipped;
-  grouping is now asked of the same predicate `inline` asks, so there is one answer to
-  "does this language group with brackets" instead of two.
+- [x] B203: **the grouping nearly went into CSS.**
 
-- [x] B202: **`fr restructure` changed what the code computes.** A captured expression
-  is substituted as text, so `double($X)` → `$X * 2` turned `double(x + 1)` into
-  `x + 1 * 2`, which is `x + 2`. And the replacement itself is dropped where the match
-  was, so `2 * double(y)` with a template of `$X / 2` gave `2 * y / 2`, which for
-  integers is not `2 * (y / 2)`. Both halves are the defect already fixed twice in
-  `inline`; this is the third place an expression is moved into a context it was not
-  written for, and the one whose whole purpose is moving expressions. A capture the
-  template will bind is bracketed, and a replacement that binds is bracketed where it
-  lands, neither when the text is a single thing already.
+- [x] B202: **`fr restructure` changed what the code computes.** Both halves are the defect
+  already fixed twice in `inline`.
 
-- [x] B201: **a move left behind what the moved code needed, in every language with its
-  own move path.** The generic path. TypeScript and Python, writes an import pointing
-  back at a name the source file *defines* and the moved code still uses. Rust, Zig and
-  Go have their own paths, and those looked only at what the source file *imported*, never
-  at what it declared. So a Rust function using a `const` beside it landed in a file
-  where that name means nothing: `cargo check` answered `cannot find value PI in this
-  scope` and suggested the exact `use` the tool should have written, and `fr move`
-  reported no warning at all. Rust now writes it, and makes the item `pub` where it was
-  not, since a private item is invisible from another module. Zig imports a module and
-  qualifies instead of binding a name, so there is no import to write and the reference
-  itself would have to change; that is reported and not guessed at. A Go move inside
-  one package is one scope and needs nothing.
+- [x] B201: **a move left behind what the moved code needed, in every language with its own
+  move path.**
 
-- [x] B200: **deleting a lone Java field deleted the class around it.** The widening
-  climbs while the symbol is the only child of its kind in its parent, on the grounds
-  that a parent left with none of them has nothing left to be. That is true of a CSS rule
-  set whose last selector goes, which is what it was written for. It is false of a Java
-  class body, whose other members are methods, a *different* kind, so the test passed
-  and the climb went field → class_body → class_declaration. One unused constant took the
-  class and every method in it. The climb now stops below anything its own parent names
-  as its body, which is the general form of "this container is not optional".
+- [x] B200: **deleting a lone Java field deleted the class around it.**
 
-- [x] B199: **`fr remove-flag` never worked on a TypeScript file.** It deleted the flag's
-  own span, which there is the declarator inside the declaration: taking
-  `NEW_UI = true` out of `const NEW_UI = true;` leaves `const ;`. The edit guard caught
-  it every time, the file was never damaged, the command simply always failed, in a
-  language where four others succeeded. It removes the definition through the same two
-  steps `fr delete` takes now, because it is the same question. A side effect visible in
-  the published examples: the flag no longer leaves a blank line where it was.
+- [x] B199: **`fr remove-flag` never worked on a TypeScript file.**
 
 - [x] B198: **extracting a region that awaited produced code that does not compile.**
-  The body kept its `await` in a function that is not async, `tsc` says `TS1308`,
-  CPython says `SyntaxError: 'await' outside async function`, and the call site handed
-  back a promise where the code after it expected a number. The extracted function is
-  marked async now and the call awaits it. Rust writes `.await` as a postfix, so there
-  is no keyword to move; that is refused and not half-done.
 
-- [x] B197: **extracting a region containing `yield` silently did nothing.** In Python
-  the call constructed a generator and never ran it, so the loop body had no effect at
-  all and the accumulator it also updated stayed at zero; in TypeScript the result is a
-  `yield` outside a generator, which `tsc` rejects. `return`, `break` and `continue`
-  were refused from the day this was written, on the grounds that a call cannot
-  reproduce a jump the enclosing function can see. A `yield` has exactly that property
-  and was not among them.
+- [x] B197: **extracting a region containing `yield` silently did nothing.**
 
-- [x] B196: **an expansion of two bracketed halves was left unbracketed.** The check for
-  "this is already inside brackets" read the first and last character, and
-  `(p + 1) / (q - 1)` starts with one and ends with one. So `2 * scale(p + 1, q - 1)`
-  expanded to `2 * (p + 1) / (q - 1)`, which for `p = 1, q = 4` is 1 where the call
-  returned 0. The check balances the brackets now.
+- [x] B196: **an expansion of two bracketed halves was left unbracketed.** The check
+  balances the brackets now.
 
 - [x] B195: **`fr inline --call` changed what the program computes, in all seven
-  languages.** The body binds its parameters at whatever precedence it was written with
-  and the argument arrives as text, so `n * 2` with `x + 1` for `n` produced
-  `x + 1 * 2`, `double(x + 1)` returning `x + 2`. Inlining a *variable* was fixed for
-  exactly this in an earlier pass; inlining a *call* substitutes in the other direction
-  and never was. The grouping test was reached through
-  `extract::supports_imperative_extract`, which is a different question with a mostly
-  overlapping answer, and the overlap is where the wrong ones live: Java groups with
-  parentheses like every other C-shaped language here and is absent from that list
-  because it has no inferred declaration to extract into. It now asks whether the
-  language groups with parentheses, which is what it wanted to know.
+  languages.**
 
-- [x] B194: **a pytest fixture and a `unittest` fixture matched no rule.** Nothing calls
-  either by name, pytest injects a fixture by matching the parameter, and `unittest`
-  calls `setUp` itself, which is the same reasoning the Java catalog already gives for
-  `@Bean` and `@Component`. A fixture in `conftest.py`, where the shared ones live,
-  matched nothing at all: neither the file nor the function is named `test_*`. The ones
-  in a `test_*.py` file were found only by the file rule, so they looked covered.
+- [x] B194: **a pytest fixture and a `unittest` fixture matched no rule.**
 
-- [x] B193: **a Python script with a `__main__` guard reported no entry point.** Every
-  other catalog says `name: main`, because every other language here agrees that a
-  program starts in a function so called. Python's starts in a *statement*, and what it
-  calls can be named anything, so the rule that works everywhere else answered nothing
-  for an ordinary script, from the command whose only job is that question. The report
-  named css, scss and yaml as the languages without rules, which said Python was
-  covered. Catalogs gained `called_from_main_guard`, the first predicate here that is
-  not a property of a name.
+- [x] B193: **a Python script with a `__main__` guard reported no entry point.**
 
-- [x] B192: **a type argument was read as a supertype.** The heritage reader took every
-  type name under an `extends`/`implements` clause, so `implements Holder<Pet>` filed the
-  class under `Pet`. A call that reached it by method name alone was then reported as
-  reaching it through a relationship somebody had declared, the same edge, presented on
-  evidence that did not exist. Found while adding Java, and the helper's doc comment had
-  claimed the opposite of what it did since it was written.
+- [x] B192: **a type argument was read as a supertype.**
 
-- [x] B191: **class hierarchy analysis skipped Java.** `Family::of` mapped Rust, Go,
-  TypeScript and Python, and everything else fell into a `_ => None` documented as being
-  about Zig's comptime duck typing and Bash's lack of methods. Java has neither excuse:
-  it states its hierarchy in as many words, and it was the one language here whose
-  hierarchy went unread. A call through an interface reached no implementation, so
-  `fr callers` on an overriding method answered with nothing at all while the same code
-  in TypeScript answered correctly. Reading three vendored gson files now yields 80
-  hierarchy edges where it yielded none.
+- [x] B191: **class hierarchy analysis skipped Java.**
 
-- [x] B190: **the number describing the matrix was not checked, and had drifted.** The
-  table is regenerated and asserted against the code; the sentence above it counting the
-  cells was prose, and said 260 supported where the rows it introduced counted 261.
-  PLAN.md was staler still, quoting a total from before six capabilities and a language
-  existed. Now asserted in all four places it is published, against the same computation
-  that produces the table.
+- [x] B190: **the number describing the matrix was not checked, and had drifted.**
 
-- [x] B189: **a shell function was told it needs a return type and modifiers.** The
-  fallback reason for an absent capability is chosen by language *class*, so every
-  imperative language gets the same sentence, which was written for Java. The same
-  defect was fixed once before, when the reasons had been written for markup and told
-  Java it was a stylesheet; a second imperative language landing on the same arm brought
-  it back. The reason-check test now carries a word-to-language table instead of one
-  list of markup words, so a sentence describing a different language fails the build.
+- [x] B189: **a shell function was told it needs a return type and modifiers.**
 
-- [x] B188: **the capability row for `fr stitch` was a transcription of the accessor
-  table, and it had drifted from it.** `support()` documents that every arm asks the
-  refactoring's own predicate; this one listed the languages by hand. It now asks
-  `stitch::reads_environment`, which is the list.
+- [x] B188: **the capability row for `fr stitch` was a transcription of the accessor table.
+  It had drifted from it.**
 
 - [x] B187: **`fr stitch` could not see a Java or Zig program read its configuration.**
-  The accessor table was written for the first five languages and never revisited. A
-  Helm chart feeding a Java service therefore reported every variable as configuration
-  with no consumer, the exact finding the command exists to produce, produced
-  backwards. Zig needed more than a new prefix: `getEnvVarOwned` takes the allocator
-  first, and the reader assumed the name was the first argument, so it read `allocator`,
-  which the upper-case filter then dropped without a word. Accessors now carry how many
-  arguments stand before the name.
 
-- [x] B186: **a reference in an argument position could be mistaken for the call.** The
-  hunt for a call walks up to eight parents from the reference, and once it stopped
-  filtering on the recorded kind (B185) a type named inside somebody *else's* argument
-  list, `register(Pet.class, 7)`, found that enclosing call and would have reordered
-  its arguments as though they belonged to `Pet`. Found while fixing B185, before it
-  could ship. The walk now requires the reference to sit before the argument list of the
-  call it lands on, which is what "this reference names the thing being called" means.
+- [x] B186: **a reference in an argument position could be mistaken for the call.**
 
-- [x] B185: **a constructor's parameters were reordered and every `new` left as it
-  was.** `new Thing(1, "x")` is written down as a reference to the *type*, which it
-  also is, and the call-site loop skipped everything whose recorded kind was not
-  `Call`. So the declaration changed, thirteen construction sites did not, and nothing
-  warned: the same silently-partial result already fixed for `rename`. The grammar now
-  decides whether a reference is a call, not the kind the extractor wrote down. A
-  mention that really is not a call, the `C` in `static C make()`, has no arguments to
-  change and is passed over; a recorded call the grammar will not show as one is still
-  refused.
+- [x] B185: **a constructor's parameters were reordered and every `new` left as it was.**
 
-- [x] B184: **`fr signature` refused at every Java call site there has ever been.** The
-  lookup matched on `kind().contains("call")` plus one named exception, under a comment
-  claiming SCSS's `include_statement` was "the one call form whose kind does not say
-  call", true of the languages it was written against. Java spells a call a
-  `method_invocation` and a construction an `object_creation_expression`, so both were
-  invisible and the refusal came out as a sentence about resolution strength for a
-  reference that had resolved exactly. The message for a call the grammar genuinely
-  will not expose is now a `Refusal::Unknowable`, which says what is actually wrong
-  instead of blaming a confidence that was never the problem.
+- [x] B184: **`fr signature` refused at every Java call site there has ever been.**
 
-- [x] B183: **the imports a moved symbol needs were written above the code and not
-  where imports go.** Prepending them to the moved text put an `import` statement in the
-  middle of the destination, legal in Python, a syntax error in half the other targets,
-  and wrong-looking in all of them.
+- [x] B183: **the imports a moved symbol needs were written above the code and not where
+  imports go.**
 
 - [x] B182: **moving a symbol into a file that imported it left the import behind.**
-  `from .b import area` in the file `area` is moving *into* points at a file that no
-  longer defines the name, so the destination fails on the line that used to make it
-  work. Nothing was adding that import, so nothing was removing it either. An import
-  naming several things is narrowed and not deleted: the rest are still over there.
 
-- [x] B181: **an `if` that binds what it tested could be inverted.** Zig writes
-  `if (maybe) |value| { … }`: the condition is an optional and the payload binds what
-  was inside it. Inverting gave `if (!maybe) |value|`, which is not a program, the
-  binding has nothing to bind and `!optional` is not a boolean there. The reader had
-  refused the same shape for the same reason since it was written; the rewrites had not.
+- [x] B181: **an `if` that binds what it tested could be inverted.**
 
-- [x] B180: **Zig fell into the C arm of the boolean spelling table.** It writes `and`
-  and `or` as words, as Python does, and negates with a sigil, as C does, so it matched
-  neither and every rule that looks for a boolean operator was blind to it. `!(a and b)`
-  is also an `error_union_type` in that grammar, because `!T` is an error union where a
-  type is expected and a negation where a value is, so De Morgan could not find the
-  negation either.
+- [x] B180: **Zig fell into the C arm of the boolean spelling table.**
 
 - [x] B179: **`invert-if` negated half a condition and swapped the branches anyway.**
-  `if a == 1 and b == 2` became `if a != 1 and b == 2`, a different program that
-  compiles, parses and answers differently. The guard excluded `&&` and `||` and knew
-  nothing of the languages that spell them as words, and the comparison it flipped was
-  the first one found in the text instead of the one the condition makes: `g(a == 1) ==
-  2` flipped the inner one. The negation is only simplified when the comparison is the
-  whole of the condition and sits at the top level; otherwise it goes round the outside,
-  which is what De Morgan is there to distribute afterwards.
 
-- [x] B178: **a shorthand object property refused the whole object.** `{ species }`
-  means `{ species: species }` and is how every modern TypeScript file is written;
-  reading it as something unrecognised refused the object, and refusing the object
-  refused the statement the object was in. In the pet store that cost `GET /pets` its
-  entire body.
+- [x] B178: **a shorthand object property refused the whole object.**
 
-- [x] B177: **`??` had no counterpart in the IR**, so every nullish coalescing in every
-  TypeScript file was carried verbatim, and in the pet store it took a whole `const`
-  statement with it, which is how a query parameter went missing from both sides of a
-  crossing that otherwise agreed perfectly. It asks whether a value is absent, which is
-  a question instead of an arithmetic operator: Zig spells it `orelse`, Rust reaches
-  for `Option::unwrap_or`, Java for a static method, Python has to name the value twice,
-  and Go cannot say it at all. The two that must name the value twice refuse when naming
-  it twice would call it twice.
+- [x] B177: **`??` had no counterpart in the IR**
 
-- [x] B176: **a query parameter did not survive the crossing.** Next.js has no
-  declaration for one, a handler reads it out of the URL, so the translated router
-  said it took no query, and a caller sending `?species=cat` was outside a contract that
-  claimed to describe it. The parameter is declared now, `str | None = None`, which is
-  exactly what `searchParams.get()` returns; every read of it in the body becomes that
-  name; and the binding that was doing the reading is dropped, because a binding of a
-  name to itself is a statement that does nothing. The whole contract now survives, and
-  the build asserts it.
+- [x] B176: **a query parameter did not survive the crossing.**
 
-- [x] B175: **the contract could only be derived from one side of the crossing.** The
-  method says to diff the baseline against the finished service, and half of that check
-  needs no server: a FastAPI router declares its contract on the decorators and in the
-  signatures, which is where FastAPI itself reads it. Run over the pet store, thirteen
-  operations go in and thirteen come out with every URL, method and path parameter
-  identical, and the one thing that does not survive, a query parameter the translated
-  handler still reads off the request object, shows up as a line of diff instead of as
-  nothing at all.
+- [x] B175: **the contract could only be derived from one side of the crossing.**
 
-- [x] B174: **a handler's inline `context.params.petId` was left naming an object
-  Python does not have.** Dropping the *statement* `const id = context.params.id` was
-  only half of it: a handler that reads the path parameter inline, inside a `where`
-  clause, inside a call, kept the Next.js spelling, so the translated endpoint answered
-  every request with a `NameError`. The path parameter arrives by a different route in
-  FastAPI and every use of it now arrives with it.
+- [x] B174: **a handler's inline `context.params.petId` was left naming an object Python
+  does not have.**
 
-- [x] B173: **the contract had no query parameters at all.** Next.js declares none,
-  a handler reads them out of the URL, so a document built from declarations said the
-  endpoints take no query, and a caller passing `?species=cat` was outside a contract
-  that claimed to describe it. Read from `searchParams.get("…")` now; and where a
-  statement could not be read at all, the document says a query parameter inside it may
-  be missing, because a gap nothing mentions is the failure this is all about.
+- [x] B173: **the contract had no query parameters at all.** Read from
+  `searchParams.get("…")` now.
 
-- [x] B172: **the contract listed schemas that nothing referred to.** A `components`
-  section with no `requestBody` pointing at it says every endpoint takes no body. The
-  link comes from the `petCreateSchema.parse(json)` call inside the handler, which is
-  the only place a Next.js route records it.
+- [x] B172: **the contract listed schemas that nothing referred to.**
 
-- [x] B171: **a zod schema declared in another module was invisible.** A real Next.js
-  application keeps its shapes in something like `lib/schemas.ts` and imports them, and
-  only the route file was read, so the contract came out with an empty `components`
-  section. Every `.ts` file in the tree is read now.
+- [x] B171: **a zod schema declared in another module was invisible.**
 
-- [x] B170: **removing a parameter the body still reads.** `def f(a, b): return a + b`
-  with `remove:1` produced `def f(a): return a + b`, which names something nothing
-  supplies. The rule existed for shell functions — "the body still reads `$2`", and for
-  nothing else. Two SCSS tests were asserting the broken output.
+- [x] B170: **removing a parameter the body still reads.**
 
-- [x] B169: **extracting an expression that *is* its statement left a statement that
-  only names the binding.** `zzx;` is a parse error in Zig, an unused value in Go, and
-  nothing at all in the other three. The value is already being computed for its effect,
-  so there is nothing to hoist; the extraction is refused with that reason.
+- [x] B169: **extracting an expression that *is* its statement left a statement that only
+  names the binding.**
 
-- [x] B168: **`inline` refused every Zig binding there has ever been**, while the
-  capability matrix said it worked. tree-sitter-zig names nothing on a
-  `variable_declaration`, the `=` is an anonymous token with the value after it, and
-  the lookup asked only for a `value` or `right` field.
+- [x] B168: **`inline` refused every Zig binding there has ever been**
 
-- [x] B167: **`inline` changed what the code does.** `b = a + 1; return b * 2` became
-  `return a + 1 * 2`, which is `a + 2`. Every language with an expression grammar, since
-  the operation was written. A refactoring that changes the answer is the one thing this
-  tool must never do. The substituted value is parenthesised now unless nothing
-  surrounding it could split it, a name, a literal, a call, a field, an index. That errs
-  toward a redundant pair, which is the price of not keeping a precedence table per
-  grammar; such a table is wrong somewhere, silently, in exactly this way.
+- [x] B167: **`inline` changed what the code does.**
 
-- [x] B166: **an overload set was resolved by proximity, at `Exact`.** Two methods
-  declared in one class body are equally plausible targets for a bare call, and the
-  nearer one is a coin flip, so Java's `add(int)` beside `add(String)` sent both
-  `add(...)` calls to whichever was written second, with the highest confidence there
-  is. Renaming that one rewrote calls belonging to the other. Proximity is evidence for
-  a binding, where it reads as shadowing, and not for a callable.
+- [x] B166: **an overload set was resolved by proximity, at `Exact`.**
 
-- [x] B165: **a rename that left a call behind said nothing at all.** Same-named
-  references were reported only when they resolved to *nothing*; one that resolved
-  weakly to some other symbol was skipped in silence, because the winner was not the
-  symbol being renamed. The rename went through, the calls stayed, and the warning list
-  was empty. A weak resolution is a guess wherever it lands.
+- [x] B165: **a rename that left a call behind said nothing at all.**
 
-- [x] B164: **a member access was resolved through the lexical scope chain.** `c.run(1)`
-  names a member of whatever `c` is, and the scope chain has nothing to say about that,
-  but it answered anyway, at `Exact`, by picking whichever same-named method sat in an
-  enclosing scope. With two classes declaring `run` in one file, a call on one was
-  attributed to the other. The chain still answers where it can settle it: a receiver
-  that *is* the enclosing instance, or a name only one member in the workspace has.
+- [x] B164: **a member access was resolved through the lexical scope chain.**
 
-- [x] B163: **the rename collision guard was file-scoped, not scope-scoped.** A parameter
-  is written outside the body it belongs to, so the scope it falls in is the one *around*
-  its function, the file. Every parameter of every function therefore shared a scope,
-  and renaming one to a name used by an unrelated function was refused as a collision.
-  Measured over the vendored corpora, that was most of the renames a real file offers.
+- [x] B163: **the rename collision guard was file-scoped. It was not scope-scoped.**
 
-- [x] B162: **a Go type's recursion was not its entry point.** The value of a
-  `map[string][]SymbolId` resolved one layer and lost the slice: the outer map was read
-  by one rule and the inner type by a helper that only knew scalars. The same lesson was
-  already written down for TypeScript, in a comment, one reader away.
+- [x] B162: **a Go type's recursion was not its entry point.**
 
-- [x] B161: **a Rust reference was stripped after the containers were checked**, so
-  `&HashMap<K, V>`, `&Vec<T>` and `&Option<T>`, which in Rust is most of them, were
-  read as names and not as what they are. `&'a str` kept its lifetime and became a
-  type this tool could not write; `Node<'_>` read the lifetime as a type argument and
-  produced a type with an empty name; and generic arguments were split on the first
-  comma, so `HashMap<String, Vec<A, B>>` split in the wrong place.
+- [x] B161: **a Rust reference was stripped after the containers were checked**
 
-- [x] B160: **`readonly string[]` was read as an array of `readonly string`.** No other
-  language here has anywhere to put "you may not write to it".
+- [x] B160: **`readonly string[]` was read as an array of `readonly string`.**
 
-- [x] B159: **every Zig type read from text was read wrong.** The grammar binds `?`
-  tighter than `.`, so `?http.Request` arrives as a field expression whose left side is
-  a nullable `http`, inside out. A generic type is a name *applied* to its arguments,
-  and reading `std.StringHashMap([]const u8)` as one name turned a dictionary into a
-  type with that name. Zig's own scalar names were recognised only on a `builtin_type`
-  node, so an `i64` read from text stayed an `i64`. And a type's text can span lines and
-  hold doc comments, which went into the name: two hundred characters of prose where a
-  type should be.
+- [x] B159: **every Zig type read from text was read wrong.**
 
-- [x] B158: **the Zig reader required a named node after `=`**, and `undefined` is an
-  anonymous token, so every constant this tool's own Zig writer emits for something it
-  could not translate was lost on the way home.
+- [x] B158: **the Zig reader required a named node after `=`**
 
-- [x] B157: **the Python reader would not read back what the Python writer writes.** It
-  required SCREAMING_SNAKE for a module constant; the writer spells a constant bound to
-  anything but a literal in lower case, on the grounds that shouting the name of
-  `schema = z.object(...)` would be wrong. Two rules deciding one thing, disagreeing.
+- [x] B157: **the Python reader would not read back what the Python writer writes.**
 
-- [x] B156: **the round trip checked functions and not data.** A field that vanishes is
-  exactly as bad as a parameter that vanishes, and nothing was looking. Fields,
-  constants and now parameter and return *types* are compared, as shapes, since
-  TypeScript has one numeric type and Go writes nothing at all for a function that
-  returns nothing.
+- [x] B156: **the round trip checked functions and not data.**
 
-- [x] B150: **the methods of every generic Rust type became free functions.** An
-  `impl<'a> Ctx<'a>` was read as an impl on `Ctx<'a>`, which matches no record in the
-  file, so its methods never joined their type, and each one gained a `self` parameter
-  bolted on by the rule that binds an orphaned receiver.
+- [x] B150: **the methods of every generic Rust type became free functions.**
 
-- [x] B149: **a constructor had no counterpart in the IR at all.** Three of these six
-  languages have one and three have a habit — `Thing::new`, `NewThing`, `Thing.init`,
-  and none of the six could carry it, so a Java constructor was a class member nothing
-  recognised. What carries is now that it *is* one; the name is the target's business.
-  The habit is read as a constructor only when the function also **returns the type**,
-  since a `new` that returns something else is an ordinary function with a common name.
+- [x] B149: **a constructor had no counterpart in the IR at all.**
 
-- [x] B148: **a constructor's own name claimed a spelling in the naming map.** Java
-  names it after the class, so every Java class translated came out named after its
-  constructor: `class a` where the source said `class A`.
+- [x] B148: **a constructor's own name claimed a spelling in the naming map.**
 
-- [x] B147: **a Rust raw identifier grew an `r` every time it crossed.** `r#where` *is*
-  the identifier `where`, the prefix is how Rust spells a name that collides with a
-  keyword, and every writer here puts it on when it needs to. Leaving it on the way back
-  in meant a round trip produced `r#r#where`.
+- [x] B147: **a Rust raw identifier grew an `r` every time it crossed.**
 
-- [x] B146: **Python's `self` was stripped from free functions too.** It is a convention
-  inside a class and an ordinary name outside one, so stripping it everywhere lost a
-  parameter from every module-level `def f(self, …)`, which is what every method of a
-  Zig file-struct becomes after a round trip through Python.
+- [x] B146: **Python's `self` was stripped from free functions too.**
 
-- [x] B145: **a `@staticmethod` disappeared from its class.** The Python reader handled
-  decorated definitions at module level and not inside a class body, so a decorated
-  method fell to the member loop's catch-all. It was dropped and the report still said
-  every signature had carried across intact, including for the `@staticmethod` this
-  tool's own Python writer emits.
+- [x] B145: **a `@staticmethod` disappeared from its class.**
 
-- [x] B144: **every reader's record member loop ended with `_ => {}`.** A member that is
-  not understood is not a member that is not there; a record has no room for a construct
-  it cannot translate, so it is carried beside the type and counted. Java constructors
-  were the largest thing this had been swallowing.
+- [x] B144: **every reader's record member loop ended with `_ => {}`.**
 
-- [x] B143: **there was no round-trip check at all.** "The output parses" cannot see a
-  parameter that vanished or a function that did not come back, the file is still
-  perfectly good in the target's grammar. `tests/round_trip.rs` translates every real
-  source in the repository into every target, reads the result back, and compares which
-  functions exist and what their parameters are called. It found four of the five
-  defects above on its first run.
+- [x] B143: **there was no round-trip check at all.**
 
-- [x] B142: **a note was reported only when something else had gone wrong.** Not every
-  note is about a carried construct, a type the source never wrote down, a name the
-  target reserves, a base class a language without inheritance cannot keep, and the
-  report printed them only when `carried_verbatim > 0`. A translation that lost a
-  supertype and nothing else gave a clean bill.
+- [x] B142: **a note was reported only when something else had gone wrong.**
 
-- [x] B141: **a base class was dropped without a word.** Three of these six languages
-  have inheritance and three do not, and the IR had no room for one at all, so
-  `class JsonPrimitive extends JsonElement` became a class that extends nothing. It is
-  a different type. Carried into Java, Python and TypeScript now, and reported for the
-  three that cannot say it.
+- [x] B141: **a base class was dropped without a word.**
 
-- [x] B140: **there was no conditional expression in the IR**, so `a > 0 ? 1 : 2` was
-  carried verbatim by all six writers, including the five languages that have one.
-  Every ordered pair among Python, TypeScript, Rust, Java and Zig translates it now; Go
-  is the only target without one, and turning an expression into an `if` statement
-  needs somewhere to put the result, which does not exist inside an argument list.
+- [x] B140: **there was no conditional expression in the IR**
 
-- [x] B139: **`_` was put through the naming convention.** It is the word for "no name"
-  in four of these languages, and asking what the empty word is called in `camelCase`
-  returned the empty string, so `_ = x;` in a Zig file came out as ` = x;`. A rename
-  that produces nothing is not a rename.
+- [x] B139: **`_` was put through the naming convention.** A rename that produces nothing is
+  not a rename.
 
-- [x] B138: **a Zig `comptime` parameter was read as an ordinary one.** `comptime T:
-  type` is how Zig writes generics: the parameter is a *type*, supplied where another
-  language writes `<T>`. Read as a value it produced
-  `func Lazy(comptime type, comptime type) type`, a signature that means something
-  else in every target. Refused and carried.
+- [x] B138: **a Zig `comptime` parameter was read as an ordinary one.**
 
 - [x] B137: **a Zig destructuring kept the first name and dropped the rest.**
-  `const a, const b = pair;` binds two names and the IR binds one, so `b` vanished
-  without a word.
 
-- [x] B136: **Zig optionals and pointers were never read.** The grammar calls `?T` a
-  `nullable_type`, so the arm written for `optional_type` matched nothing and every
-  optional crossed as a foreign type spelled `?T`; a pointer had no arm at all, so
-  `*Analyser` became `Unwritable_Analyser`. A pointer is how Zig writes a reference,
-  and the languages without pointers still have the thing being pointed at.
+- [x] B136: **Zig optionals and pointers were never read.**
 
-- [x] B135: **a Rust raw or byte string was not read as a string.** `r"\d+"` fell to
-  the catch-all, so every regex in a file lost its value *and* its constant-ness: a
-  `const` bound to something the reader did not understand stops looking like a
-  constant, and its name loses the convention that goes with one.
+- [x] B135: **a Rust raw or byte string was not read as a string.**
 
-- [x] B134: **a parse error with no position reported none at all.** The self-check
-  walks for the innermost error node; an empty Zig struct holds a zero-width missing
-  identifier that `Node::children` does not yield, so the message came out with no
-  line and no column. `error_spans` walks with a cursor and does find it, so it is the
-  fallback instead of a second opinion, two walks were deciding one thing and
-  disagreeing.
+- [x] B134: **a parse error with no position reported none at all.**
 
-- [x] B132: **a comment inside a parameter list was read as a parameter.** A comment is
-  an *extra* in every one of these grammars, so it can appear between any two nodes
-  anywhere; every reader reads a parameter list either positionally or through a
-  catch-all arm, and both read a comment as whatever they expected in that position. A
-  four-line comment between two parameters of `generic()` became four parameters named
-  after the sentence, in every target. Fixed at the choke point: `Cx::children` returns
-  the children that are part of the structure, and the one place that wants comments,
-  a statement block, asks for them by name.
+- [x] B132: **a comment inside a parameter list was read as a parameter.**
 
-- [x] B131: **every string escape was doubled on every crossing.** The IR held the
-  source's *spelling* instead of the string's value, so a writer escaped the backslash
-  again on the way out and `"line\nline"` crossed as `"line\\nline"`, a literal
-  backslash and an `n` where there had been a newline. The output parsed, so nothing
-  caught it. The reader decodes escapes now and each writer puts its own back on;
-  `{:?}` was doing that job for all six, and it is Rust's spelling. It emits
-  `\u{...}`, which is a syntax error in Python, Java, TypeScript and Go.
+- [x] B131: **every string escape was doubled on every crossing.**
 
-- [x] B130: **a method was written as a free function whose body reached through a
-  receiver nothing bound.** Rust and Go declare methods apart from their type; the IR
-  keeps them with the type, which is what lets one shape become the other, and the
-  Rust reader said exactly that in a comment while pushing them out as top-level
-  functions. Every writer then produced `def label(prefix)` whose body says `self.name`.
-  A method whose type is not in the file gets its receiver as an ordinary first
-  parameter, which is what Go and Zig write anyway.
+- [x] B130: **a method was written as a free function whose body reached through a receiver
+  nothing bound.**
 
-- [x] B129: **a method with no receiver was written as one with a receiver.** Rust's
-  `impl` holds `fn new() -> Self` beside `fn len(&self)`; one `bool` was answering both
-  "is it inside the type" and "does it take a receiver". Python lost `@staticmethod`
-  and TypeScript wrote `export function` inside a class body.
+- [x] B129: **a method with no receiver was written as one with a receiver.**
 
-- [x] B128: **a multi-line comment got its marker on the first line only.** A
-  `/* ... */` is one node however many lines it spans, so the rest of a JSDoc paragraph
-  arrived in the output as code, asterisks and all. Fixed in three places that are each
-  the only place for it: the reader strips the ` * ` leader from every line, a doc
-  comment is one entry per line, and `Out::line` indents each line it is given.
+- [x] B128: **a multi-line comment got its marker on the first line only.**
 
-- [x] B127: **a doc comment could end itself early.** `*/` closes a block comment, and a
-  doc comment quoting `app/**/route.ts` carries that sequence mid-sentence. Java and
-  TypeScript wrote it through, so the comment ended and the rest of the sentence was
-  parsed as code, three words, two template strings and an optional chain, none of
-  which the author wrote.
+- [x] B127: **a doc comment could end itself early.**
 
-- [x] B126: **`0usize` was carried into every target.** A Rust literal writes its width
-  into itself, which no other language here reads; the IR carries the type separately,
-  so the digits are what crosses. `r"\d+"` and `b"bytes"` were not read as strings at
-  all, which cost every regex in a file its value *and* its constant-ness.
+- [x] B126: **`0usize` was carried into every target.**
 
-- [x] B125: **a Rust tuple struct silently lost its payload.** A record in the IR is a
-  named product and a tuple struct's field has no name, so reading one gave a record
-  with no fields and `Vec<SymbolId>` vanished without a word. Refused and carried
-  instead; `self.0` is refused for the same reason, since no target here has a field
-  with a number for a name.
+- [x] B125: **a Rust tuple struct silently lost its payload.**
 
-- [x] B124: **`let _ = f();` declared something with no name.** It binds nothing. It is
-  a call whose result is deliberately dropped, which every target can say, and reading
-  it as a binding wrote `const  = f();`.
+- [x] B124: **`let _ = f();` declared something with no name.**
 
-- [x] B123: **a TypeScript class member is public unless it says otherwise, and every
-  one of them was read as private.** A free function and a class member have opposite
-  defaults, and reading both the same way made every translated method `private` in
-  Java and unreachable in Go, Rust and Zig, while making every `private` field public,
-  which is the same mistake pointing the other way.
+- [x] B123: **a TypeScript class member is public unless it says otherwise. Every one of
+  them was read as private.**
 
-- [x] B122: **Python's `x = 1` is a declaration the first time and an assignment every
-  time after, and all of them were read as declarations.** `total = total + x` inside a
-  loop became `let total = total + x;` in Rust, which *shadows* and not
-  accumulates, so the value outside the loop never changed. It parses, it type-checks,
-  and it is the wrong program. Python's scope is the function and not the block, so
-  one set of bound names carried through the body in order is exactly its rule.
+- [x] B122: **Python's `x = 1` is a declaration the first time and an assignment every time
+  after. All of them were read as declarations.**
 
-- [x] B121: **the receiver had six names and the IR recorded none of them.** `self`,
-  `this`, or whatever the Go author called it, and because the receiver is the one
-  binding that is *not* in the parameter list, it never went through the rename every
-  other name goes through. Every translated method kept its source's word and referred
-  to a name the output never binds. The IR records the word the source used and each
-  writer puts its own back on.
+- [x] B121: **the receiver had six names and the IR recorded none of them.**
 
-- [x] B120: **`self` is the one keyword Rust refuses to raw-escape.** The escape that
-  makes every other reserved word writable produced `r#self`, which is a compile error,
-  so a method body that was correct became a file that does not build. The same is true
-  of `crate`, `super` and `Self`, which take a suffix instead.
+- [x] B120: **`self` is the one keyword Rust refuses to raw-escape.**
 
-- [x] B119: **Go's `error` is Zig's keyword for an error set**, so a signature carrying
-  the type across by name did not parse. Written `@"error"`. Zig's own spelling for an
-  identifier that collides with one of its words, under which the name still says what
-  the source said.
+- [x] B119: **Go's `error` is Zig's keyword for an error set**
 
-- [x] B118: **the Zig reader read named children only, and in that grammar the `:`
-  before a type, the `=` before a value and every operator are anonymous.** Every field
-  and parameter lost its type, `var sum = 0` declared a variable called `var`, `a * b`
-  put the right operand where the operator should have been, and every `else` branch
-  was silently dropped. Found by running the translation and not by reading it.
+- [x] B118: **the Zig reader read named children only, and in that grammar the `:` before a
+  type, the `=` before a value and every operator are anonymous.**
 
-- [x] B117: **a `for` over two sequences, and an `if`/`while` that unwraps an optional,
-  were read as if they were the one-binding form.** `for (xs, ys) |x, y|` and
-  `if (maybe) |value|` bind things the IR has no room for, and reading them as the
-  simple form dropped half of what the loop said. Refused instead.
+- [x] B117: **a `for` over two sequences. An `if`/`while` that unwraps an optional, were
+  read as if they were the one-binding form.**
 
-- [x] B116: **Zig rejects a `var` nothing writes to.** Only the Rust reader records
-  mutability at all; every other one says "mutable" because it has nothing better to
-  say. Taking that at its word turned a `const` file into one that will not build.
-  Which keyword a binding takes is worked out from what assigns to it.
+- [x] B116: **Zig rejects a `var` nothing writes to.**
 
-- [x] B115: **Zig has no block comment**, so a carried-over fragment written beside an
-  expression swallowed the rest of the statement, semicolon included. Carried text is
-  queued and flushed as whole-line comments above the statement instead.
+- [x] B115: **Zig has no block comment**
 
-- [x] B114: **the ordered-pair translation test covered sixteen of twenty pairs and
-  asserted twelve.** Four source files for five languages, with the expected count
-  written as a literal, so adding a language quietly shrank the fraction of the matrix
-  under test. The count comes from `SUPPORTED` now and a missing source fails there.
+- [x] B114: **the ordered-pair translation test covered sixteen of twenty pairs and asserted
+  twelve.**
 
-- [x] B113: **`generic()`'s path separator reads as an argument separator.** It is the
-  `::` in Rust's `std::fmt` and the `.` in everyone else's, and it sits in the signature
-  directly after `args`. The Java writer was written on the natural misreading and
-  turned `sync.Mutex` into `sync, Mutex`. Renamed to `path_separator`.
+- [x] B113: **`generic()`'s path separator reads as an argument separator.** Renamed to
+  `path_separator`.
 
-- [x] B112: **Java was missing from the transpiler's reserved-word table**, so a Python
-  `defaultdict(float)` wrote the keyword `float` into an expression position and the
-  output would not parse.
+- [x] B112: **Java was missing from the transpiler's reserved-word table**
 
 - [x] B111: **a Java catch clause lost both its exception type and its binding.**
-  `catch (IllegalStateException error)` holds a `catch_type` and an identifier as plain
-  children and not as named fields, so asking for fields returned nothing and the
-  body referred to a name the `except` never bound.
 
-- [x] B110: **`d[k] = v` translated into Java as `d.get(k) = v`,** which is not a
-  statement in the language. Java has no assignable subscript on a collection; it is
-  `d.put(k, v)`.
+- [x] B110: **`d[k] = v` translated into Java as `d.get(k) = v`,**
 
-- [x] B109: **the entry-points reason called YAML a stylesheet.** Found by the test
-  written for the last round of this, a reason naming a language other than its own is
-  the tell, and it is now asserted for every capability × language pair and not
-  spotted by eye.
+- [x] B109: **the entry-points reason called YAML a stylesheet.**
 
 - [x] B108: **`fr remove-flag` refused every Java flag, and then refused to fold it.**
-  Two causes, one after the other. `SymbolKind::Field` is a struct member in Go and Rust
-  and never a flag, but Java has no top level below the type, so `public static final
-  boolean NEW_CHECKOUT` *is* the idiomatic flag and there is nowhere else to put it. And
-  once the constant was substituted, `if (true)` did not collapse: Java names an `if`'s
-  condition as the *parenthesised* expression, so the literal arrived as `(true)`.
 
-- [x] B107: **`fr imports` told a reader that Bash "has no import statements to
-  organize"** while `queries/bash/facts.scm` extracts every `source`. The true answer is
-  structural and stronger: `source` *runs* the other file instead of declaring a
-  dependency on it, so order carries meaning and a file sourced only for a side effect
-  looks unused. The operation and the capability table each kept their own copy of the
-  reason and had drifted; `why_not_organizable` is now the single authority.
+- [x] B107: **`fr imports` told a reader that Bash "has no import statements to organize"**
 
 - [x] B106: **`fr translate` and `fr openapi` were missing from the capability matrix.**
-  The matrix is the tool's own claim about what it does per language, and translation's
-  answer differs by language in two ways, a containment rewrite is the same bytes under
-  another grammar, a translation between programming languages is a draft. A test now
-  fails if a command with a per-language answer is left out.
 
-- [x] B105: **`fr translate` denied a capability the tool has.** Refusing a Java file it
-  said *"it needs a semantic model of both, and this tool has neither… Nothing here can
-  do it, so nothing here pretends to"*, true when written and false since the
-  transpiler landed, which translates between Rust, Go, Python and TypeScript. A message
-  that denies a capability the tool has is worse than none, because the reader believes
-  it and stops looking. It now names the four and says what adding a fifth costs.
+- [x] B105: **`fr translate` denied a capability the tool has.**
 
-- [x] B104: **the browser scale sweep covered fourteen of sixteen languages while
-  claiming all of them.** `.java` was missing from its `PARSEABLE` set, so the two Java
-  files in the bundled sample were invisible to it. Adding the extension and asserting
-  the claim then showed the gap was older and larger: `html` and `scss` were never
-  probed either, because they hold few definitions and the stride falls past them.
-  Raising the probe count would have fixed today and broken the next time a language
-  was added, so one probe per language goes in first and the stride fills the rest,
-  coverage as a property of the sampling and not of a tuned constant. The claim
-  itself is now an assertion that names what it missed.
+- [x] B104: **the browser scale sweep covered fourteen of sixteen languages while claiming
+  all of them.**
 
-- [x] B103: **the playground's own UI said "fifteen languages"** in three places,
-  including the line printed under the file tree every time the bundled sample loads.
-  The documentation sweep had covered `docs/*.html` and not `web/src/`, which is the
-  half of the site that is compiled and not served.
+- [x] B103: **the playground's own UI said "fifteen languages"**
 
-- [x] B102: **two pages disagreed about the same measurement.** `16,525 Grafana files
-  across 13 languages` counts what *Grafana* contains, not what this tool supports, and
-  a find-and-replace over "13 languages" changed it on both pages. It was caught on
-  `index.html` and missed on `why.html`, so the two then disagreed, which is how the
-  error announced itself. Also stale there: the test count (1,267, now 1,376) and the
-  not-applicable count.
+- [x] B102: **two pages disagreed about the same measurement.**
 
 - [x] B101: **the README's status section stated a fixed bug as current, twice over.**
-  It carried two "known limitations" paragraphs that contradicted each other, and the
-  second said Helm `.Values` references "are not yet resolved", which B7 fixed. The
-  capability counts were stale too (`216 of 300`, when the matrix is `245 of 336`), and
-  `fr recipe`, `fr openapi` and `fr translate` were missing from the command list.
 
-- [x] B100: **the bundled playground sample had no Java file,** so the one language
-  added most recently was the one language the playground could not demonstrate. Two
-  files under `web/sample/agent/`, chosen to exercise what only an annotated language
-  reaches: a `main` the JVM is pointed at, a `@RestController` Spring calls, and a
-  private method that is genuinely dead.
+- [x] B100: **the bundled playground sample had no Java file,** A private method that is
+  genuinely dead.
 
-- [x] B99: **`annotated_with` only looked *above* a definition.** Rust and Python put an
-  annotation on its own line above; Java puts it *inside* the declaration, in the
-  `modifiers` node, which is within the symbol's own span. Reading only above it made
-  every `@Test` method in the language look like dead code, and the same rule answers a
-  recipe's `annotated-with=`, so it was wrong in two places at once.
+- [x] B99: **`annotated_with` only looked *above* a definition.**
 
-- [x] B98: **the capability table claimed `inline --call` for every imperative
-  language.** It was the one cell derived from the language's *class* and not from
-  the operation's own predicate, so adding a language to the enum claimed the capability
-  before a line was written. `enclosing_call` also matched only node kinds containing
-  "call", and Java's is `method_invocation`, so the table promised something the
-  operation could not find a single instance of. Both fixed; `inline::supports_call` is
-  now the authority.
+- [x] B98: **the capability table claimed `inline --call` for every imperative language.**
+  Both fixed; `inline::supports_call` is now the authority.
 
-- [x] B97: **the capability table and `move` disagreed about Java.** The table said it
-  could be moved and the operation refused it, the table lying about the tool in the
-  tool's own words, because `supports_move` was a blocklist and the refusal was a match
-  arm somewhere else. `why_not_move` is now the single authority and both ask it.
+- [x] B97: **the capability table and `move` disagreed about Java.**
 
-- [x] B96: **six capability reasons were false about Java.** The fallback strings were
-  written when every unsupported language was markup or configuration, and they say so:
-  `extract variable` told a reader that **Java** "has no binding form: a reusable value
-  here is a CSS custom property", and `entry points` told them Java "is a stylesheet". A
-  reason untrue about the language it is given for is worse than no reason, because the
-  whole point of the table is that the empty cells explain themselves. Reasons are now
-  chosen by language class, and four of the six turned out to be capabilities Java
-  simply had: micro-rewrites, organize imports, inline call and entry points all work
-  and are now claimed.
+- [x] B96: **six capability reasons were false about Java.**
 
-- [x] B95: **a recipe computed both workspace analyses whether or not an expectation
-  asked for either.** `find_unused` and `duplicates` ran over the whole workspace,
-  twice, before and after, for every recipe, including ones with no `expect no-new`
-  in them. Over helm that was most of a minute answering a question nobody asked.
+- [x] B95: **a recipe computed both workspace analyses whether or not an expectation asked
+  for either.**
 
-- [x] B94: **a recipe step rebuilt the whole index after every subject.** Correct and
-  unusable: five files of helm took two minutes forty, because each subject re-indexed
-  all five hundred and thirty-nine. It is needed exactly when a previous edit could
-  have moved the text this subject is about, when its own file has already been
-  edited, or once an operation has edited a file other than its subject's, as a rename
-  does. Otherwise one index does for all of them. Same result, 48 seconds.
+- [x] B94: **a recipe step rebuilt the whole index after every subject.** Same result, 48
+  seconds.
 
-- [x] B93: **`rewrite` treated a file it had nothing to do in as a refusal.** The
-  selector chooses *files*, so a file with no wrapping `if` is one that needed no work
-, but it was reported as refused, and `on-refusal stop` is the default, so a run
-  abandoned itself on the first ordinary file. Over one package of helm that was three
-  of five. It also means `applied` now counts *sites*, which is the unit `limit` is
-  about for this step.
+- [x] B93: **`rewrite` treated a file it had nothing to do in as a refusal.**
 
-- [x] B92: **applying a micro-rewrite across a file asked at every byte offset.** Each
-  ask reparses, so it was O(bytes × parse) where it wanted to be O(anchors × parse).
-  All three transformations anchor on a conditional or a negation, and those offsets
-  come from one parse of the file.
+- [x] B92: **applying a micro-rewrite across a file asked at every byte offset.**
 
 - [x] B91: **`fr signature move` could produce Python the interpreter rejects.**
-  Reordering `def circ(r, units="m")` to `def circ(units="m", r)` puts a defaulted
-  parameter before a required one, which Python refuses with *"parameter without a
-  default follows parameter with a default"*, and tree-sitter parses it without
-  complaint, so the engine's reparse check could not see it. The refactoring has to
-  know the rule itself; it now refuses for Python and TypeScript, naming what would
-  break, and leaves the languages with no defaults alone.
 
-- [x] B90: **every Go function body was carried into a translation as a single
-  comment.** tree-sitter-go puts a `statement_list` between a block and its statements,
-  so the reader saw one unknown node where a body should be. Invisible to the
-  round-trip tests, because a body that is entirely a comment still parses, found by
-  translating a Go file to Rust for a demo page. `return x` was the same shape a second
-  time: the value is wrapped in an `expression_list`. Rust → Go now carries nothing at
-  all for an ordinary function.
+- [x] B90: **every Go function body was carried into a translation as a single comment.**
 
-- [x] B89: **the recipe runner planned each step against the file on disk.** The
-  refactorings read source through `crate::vfs`, not from the runner's in-memory
-  workspace, so a plan made after one step was measured against the text before *any*
-  step ran: `edit at 1..301 extends past end of file (226 bytes)`. The in-memory
-  backing was gated to the browser build although nothing in it is wasm-specific; it is
-  compiled everywhere now, and the runner installs the workspace on it before each
-  step. `vfs::use_filesystem()` hands it back before anything is written.
+- [x] B89: **the recipe runner planned each step against the file on disk.**
 
 - [x] B88: **the recipe runner planned every selected symbol against one snapshot.**
-  Two deletions in one file produced `conflicting edits: 0..396 overlaps 26..170`,
-  because one deletion moves every span after it. Subjects are named and not
-  identified by `SymbolId`, an id does not survive a rebuild, and each is planned
-  against an index built from what the previous one left.
 
-- [x] B87: **the recipe report dropped the warnings its steps produced.** `fr rename`
-  prints what it left alone, a reference that resolved too weakly to rewrite, and the
-  recipe swallowed it, so a step that left work behind reported a clean run. That is
-  the accept-and-ignore this codebase bans elsewhere. Warnings are now a field of the
-  step report and print under `left`.
+- [x] B87: **the recipe report dropped the warnings its steps produced.**
 
-- [x] B86: **a Java method call resolved to nothing.** `receiver_of` decided the
-  receiver positionally — "the member is the last child", which holds for Go's
-  `selector_expression` and not for Java's `method_invocation`, where the argument list
-  follows the name. Every method call in the language had no receiver and so never
-  reached even `field-based`. It now prefers the field the grammar names (`object`,
-  `operand`, `receiver`) and falls back to the positional rule.
+- [x] B86: **a Java method call resolved to nothing.**
 
 - [x] B85: **`fr signature` and the CLI each had their own copy of the change parser,**
-  and the same for `path:line:col-line:col`. Both moved beside what they produce,
-  `Change::parse` and `span::parse_range`, because a recipe's `signature "…"` and
-  `extract … at "…"` write the same syntax and two parsers for one syntax is two
-  chances to disagree.
 
-- [x] B84: **a bare `xs.filter(p)` did not translate, and a comprehension that kept
-  every element it selected wrote out an identity `map`.** The TypeScript reader
-  recognised `xs.filter(p).map(f)` and nothing else, so the commoner of the two came
-  out as a comment; the writer emitted `xs.filter(p).map((x) => x)` for
-  `[x for x in xs if p(x)]`, which is the same thing with three extra words. Both sides
-  of the pair the translation page showcases.
+- [x] B84: **a bare `xs.filter(p)` did not translate. A comprehension that kept every
+  element it selected wrote out an identity `map`.**
 
 - [x] B83: **inlining a variable was refused whenever any name in its value appeared
-  anywhere else in the file.** The capture check asked "does this name mean the same
-  thing at the use site?" by taking the first reference with that name starting within
-  *two hundred bytes* of the use site, not a question about scope at all. In a
-  seven-line file every reference is within two hundred bytes, so
-  `total = price_of(order)` could not be inlined because the *other* function's
-  parameter is also called `order`. The index records lexical scopes and
-  `definition_at` was being computed on the line above and discarded (`let _ = at_use;`).
-  Now both sites resolve the name through their own scope chain. A genuine capture is
-  still refused, and it has its own refusal, `NameCaptured`, because "renaming would
-  shadow or collide with it" described neither the operation nor the fault.
+  anywhere else in the file.**
 
-- [x] B82: **`fr signature X 'add:1:flag: bool:false'`, the example in the tool's own
-  error message, did not work.** `splitn(4, ':')` handed the parser only the first
-  word of the declaration and dropped the rest, so any declaration containing a colon,
-  which is to say any typed one, failed with the message that recommends it. Three
-  fields, not four: everything after the position is one field and the argument comes
-  off its end.
+- [x] B82: **`fr signature X 'add:1:flag: bool:false'`, the example in the tool's own error
+  message, did not work.**
 
 - [x] B81: **the catalogue page's report pane dropped three quarters of what the tool
-  said.** `docs/panes.js` separated the diff from the report by matching diff lines
-  with a pattern, and a diff context line starts with a space, as does every indented
-  line of a report, which is most of one. Split by position instead.
+  said.** Split by position instead.
 
-- [x] B80: **`commit` chose how to write by feature flag and not by where the
-  writes go.** `#[cfg(feature = "cli")]` selected filesystem staging, so a build with
-  both `cli` and `wasm` compiled in staged a temporary file beside a path that exists
-  only in a browser's memory and has no directory on disk, every refactoring in that
-  build would fail to apply. Neither shipped build has both, so it was latent; it
-  surfaced the moment the two feature sets were compiled together, which is now what
-  CI does. Where a write lands is a fact about the active backing, and the question
-  moved to `vfs::is_in_memory()`.
+- [x] B80: **`commit` chose how to write by feature flag and not by where the writes go.**
 
-- [x] B79: **`src/wasm.rs` could not be compiled without a wasm toolchain, so every
-  edit to the browser API was checked only by CI.** `vfs::Handle`, `new_handle` and
-  `activate` were gated on `target_arch = "wasm32"` although nothing in the in-memory
-  backing is wasm-specific, and the constructor called the libc shim unconditionally.
-  The cost was paid: a field added to a struct at six call sites was missed at one,
-  `cargo test` and `cargo clippy -D warnings` both passed, and the playground job found
-  it three minutes later. The backing now follows the *feature*, with the memory map
-  shadowing the filesystem while a workspace is handed over, so `activate` is not a
-  silent no-op on a host, and `Workspace::load` takes plain Rust values so only the
-  `JsValue` conversion is left in the constructor. `tests/wasm_native.rs` drives nine
-  cases through the API under `cargo test`, and CI runs clippy and the suite with
-  `--features wasm`. It also turned up B80 and a clippy lint in `src/wasm.rs` that
-  nothing had ever compiled.
+- [x] B79: **`src/wasm.rs` could not be compiled without a wasm toolchain. So every edit to
+  the browser API was checked only by CI.**
 
 - [x] B78: **a foreign name that is a keyword in the target made the whole file
-  unwritable.** `select` is a name sqlmodel exports and a keyword in Go, so
-  `select(User)` was output Go's grammar rejects and the translator refused the file
-  outright, correct, and useless: the reader gets nothing instead of a draft with one
-  line to fix. Reserved words are now escaped (`r#select` in Rust, a suffix elsewhere)
-  and every escape is reported.
+  unwritable.**
 
 - [x] B77: **Python's `*`, `/`, `*args` and `**kwargs` were read as ordinary
   parameters.** `def create_user(*, session, user_create)` produced
   `export function createUser(*: unknown, …)`, which TypeScript will not parse, caught
   by the translator's own parse check, on real code, in a file 1,300 fixture tests had
-  never seen. A `*` is a rule about the parameters around it, and dropping it silently
+  never seen. A `*` is a rule about the parameters around it. Dropping it silently
   would be worse: the signature would look carried when the way callers must invoke it
   had changed. `ParamKind` now models all four and `signatures_with_changed_calls`
   counts the difference.
 
-- [x] B76: **an optional chain was written away.** `session?.user.id` came out as
-  `session.user.id` and then, inside an object literal, as **`None.id`**, code that
-  compiles, runs, and throws where the original returned undefined. Two causes: the
-  reader ignored `optional_chain`, and `has_unsupported_expr` did not look inside
-  `MapLit`, `Template` or `Comprehension`, so a statement containing an untranslatable
-  sub-expression was written anyway. That check is now exhaustive with no `_` arm, so
-  a new variant cannot join them quietly.
+- [x] B76: **an optional chain was written away.**
 
-- [x] B75: **a TypeScript type assertion became `None`.** `params.postId as string` was
-  an unhandled node and fell to the catch-all. `as`, `satisfies` and `!` are assertions
-  to the type checker with no runtime effect whatever, so the translation is exact
-  instead of a gap.
+- [x] B75: **a TypeScript type assertion became `None`.**
 
-- [x] B74: **comments were reported as untranslatable constructs.** Every one of these
-  languages has comments and only the marker differs. Reading one as a failure put
-  ordinary prose in the output under a "not translated" marker and counted it among the
-  real gaps, which is how a fidelity count stops being read.
+- [x] B74: **comments were reported as untranslatable constructs.**
 
-- [x] B73: **`try`/`catch` had no counterpart in the IR, so whole handler bodies came
-  out as one comment.** Python and TypeScript both have it. A typed `except` becomes an
-  `instanceof` test inside TypeScript's single `catch`, with a trailing `throw` so an
-  unmatched error still propagates; Rust and Go carry it, since neither has anything a
-  catch block translates into. `instanceof`/`isinstance` and `throw`/`raise` came with
-  it. On the hardest route in the corpus this took the count of carried constructs from
-  15 to 3.
+- [x] B73: **`try`/`catch` had no counterpart in the IR. So whole handler bodies came out as
+  one comment.**
 
-- [x] B72: **the Python writer decided "did I write anything" in each match arm.** A new
-  arm that forgot `wrote = true` left a stray `raise NotImplementedError` after a
-  perfectly good body, which is exactly how the `try` arm arrived broken. It is a
-  property of the statement and is now asked once.
+- [x] B72: **the Python writer decided "did I write anything" in each match arm.**
 
 - [x] B71: **the naming convention was applied at declarations and not at uses.**
-  `interface User { userName }` became `class User: user_name` whose bodies still said
-  `.userName`, because each site re-cased with whichever helper was to hand. One map,
-  built from the declarations and consulted everywhere. Three things fell out of it:
-  a name the module does not declare is foreign and is never re-cased; record fields
-  are a separate namespace, since a Go `Reading` with an exported `sensor` field is
-  `Sensor` while a parameter of the same name stays lowercase; and `snake_always` split
-  before every capital, turning `HTTPServer` into `h_t_t_p_server` and `MAX_RETRY_COUNT`
-  into `M_A_X__R_E_T_R_Y_C_O_U_N_T`.
 
-- [x] B70: **the Next.js route matcher required a leading slash, so no relative path
-  was ever a route.** `is_api_route` and `route_for` both tested
-  `path.contains("/pages/api/")`, and the leading slash was there to stop `capi/`
-  matching. The cost was that `pages/api/users.ts`, exactly what a caller who has a
-  workspace-relative path hands over, was refused as "not a Next.js API route", while
-  `route_for` happened to answer correctly for the App Router by accident. Both now
-  match on path *components*, which is the thing the rule was always about: a `pages`
-  directory immediately followed by `api`, or the last `api` above a `route.ts`.
+- [x] B70: **the Next.js route matcher required a leading slash. So no relative path was
+  ever a route.**
 
-- [x] B69: **`await` was not in the IR, so every line containing one was carried
-  verbatim.** Three of the four languages have it and mean the same thing by it; only
-  the spelling differs, prefix in Python and TypeScript and postfix in Rust. `const
-  body = await request.json()`, a line with an exact Python counterpart, came out as
-  a comment. `Expr::Await` now carries it, and the Go writer, which has no
-  counterpart, carries it instead of dropping the keyword and turning a suspension
-  point into a plain call.
+- [x] B69: **`await` was not in the IR. So every line containing one was carried verbatim.**
 
-- [x] B68: **the Next.js translation counted handler signatures as failures and
-  overwrote the helper count.** `fidelity.functions = handlers.len()` discarded
-  whatever the ordinary writer had counted for the file's non-handler functions, and
-  `signatures_complete` was never incremented for a handler at all, so a translation
-  that got every signature right reported `0/2 complete`.
+- [x] B68: **the Next.js translation counted handler signatures as failures and overwrote
+  the helper count.**
 
-- [x] B67: **the Next.js translation printed a Rust `Debug` dump where the source
-  should have been.** A statement that read the request or context object was replaced
-  with `Unsupported { source: format!("{stmt:?}") }`, so the output carried
-  `# Let { name: "id", ty: None, value: Some(Field { .. }) }` instead of
-  `# const id = context.params.id;`. The IR's `Stmt` has no source text and inventing
-  one from its `Debug` form shows the reader less than the translation does. Root
-  cause was the premise: those statements are not untranslatable. `context.params.id`
-  is *redundant*. FastAPI supplies the path parameter, so it is dropped with a note,
-  and the request object is *kept*, because `NextRequest` is Starlette's `Request`.
+- [x] B67: **the Next.js translation printed a Rust `Debug` dump where the source should
+  have been.**
 
 - [x] B65: **a template metavariable the pattern never bound was caught by the wrong
-  check.** `restructure 'len($X) == 0' 'not $Y'` produced the literal text `$Y` in the
-  source, and the engine's reparse check rejected the result with "parses cleanly now
-  but would not after the change", true, and silent about the actual mistake. The
-  pattern and template are now compared before anything is rewritten: *"$Y is not bound
-  by the pattern, so there is nothing to put there, the pattern binds $X."*
+  check.**
 
-- [x] B66: **`?repo=` picked the workspace for the JSON renderings and was ignored by
-  the page.** One parameter meaning two different things depending on `render_as` is a
-  trap for anyone sharing a link.
+- [x] B66: **`?repo=` picked the workspace for the JSON renderings and was ignored by the
+  page.**
 
-- [x] B64: **a Rust method call resolved to a Zig method, and a rename rewrote it.**
-  Resolution matched candidates by name across the whole workspace without asking what
-  language they were written in, so `out.push(…)` in Rust, a `Vec::push`, resolved to
-  `Ring.push` in a `.zig` file at `import-qualified`, a tier the tool rewrites.
-  Renaming the Zig method turned the Rust call into `out.pushReading(…)`: two
-  languages, no relationship, an ordinary-looking diff. `lang::may_resolve_across` now
-  enumerates the boundaries a reference may cross, markup to stylesheet, TSX to
-  TypeScript, template to values, and no pair of imperative languages is among them.
-  Found by measuring every crossing in the bundled sample and not by a test that
-  thought to look.
+- [x] B64: **a Rust method call resolved to a Zig method. A rename rewrote it.**
 
-- [x] B63: **`fr refs` under-reported for anything declared more than once.** A CSS
-  class written in a stylesheet and again in a theme is one class; references resolve
-  to one of those sites, and `references_to` counted per site. So `fr refs` on the
-  second declaration of `.sensor-table` found nothing while `fr rename` at the same
-  position changed five sites. You look before you leap, see nothing, and five things
-  move. `usages` already followed the definition group; `refs`, the browser and the
-  call graph did not. Fixed in the index, so all of them agree.
+- [x] B63: **`fr refs` under-reported for anything declared more than once.**
 
-- [x] B62: **a rename buried its success under twelve thousand warnings.** Renaming a
-  YAML key called `path` reports every string and comment in the workspace containing
-  that word — 12,032 of them across `psf/requests`, one per list item, which is a
-  wall of "left unchanged" that reads as a failed rename instead of a finished one
-  with a long footnote. They are now grouped by kind, explained, capped at
-  twenty-five, and the count is stated exactly: *"118 × textual-occurrence … and 93
-  more, not listed"*.
+- [x] B62: **a rename buried its success under twelve thousand warnings.**
 
-- [x] B61: **an edit re-parsed every file in the workspace.** `Workspace::apply`
-  rebuilt the index from source after every change, so a rename touching one file
-  re-parsed the other four hundred and thirty-seven: 3.1 seconds in `zod`, which is
-  long enough that a person concludes the button did not work. Extraction is per-file
-  and parsing dominates it; resolution is global and cheap. Splitting the two,
-  `Index::build_from_facts`, and per-file facts kept in the workspace, makes an edit
-  cost the files it wrote. zod 3144ms → 624ms, ripgrep 860ms → 149ms.
+- [x] B61: **an edit re-parsed every file in the workspace.** zod 3144ms → 624ms, ripgrep
+  860ms → 149ms.
 
-- [x] B60: **a file a refactoring created was never indexed.** `fr move` to a new
-  module wrote the file into the virtual filesystem, and the re-index walked only the
-  paths present at load, so the destination had no symbols, did not appear in the file
-  list, and was invisible to every later question. The move reported success.
+- [x] B60: **a file a refactoring created was never indexed.** The move reported success.
 
-- [x] B59: **a message rendered the workspace root as nothing.** `Path::display` on
-  the parent of a top-level file is the empty string, so `fr move` to a file at the
-  root printed *"no .go file in declares a package"*. Fifteen messages across move,
-  signature and provenance interpolate a directory this way; `vfs::describe_dir` now
-  names it.
+- [x] B59: **a message rendered the workspace root as nothing.**
 
-- [x] B58: **the coordinate button claimed a copy that had not happened.** The
-  clipboard is unavailable over plain http on any origin but localhost, and
-  `writeText` rejects when the page is not focused. Both were swallowed by an
-  optional call, and the button said "copied" regardless. It now says what happened
-  and shows the coordinate to select by hand.
+- [x] B58: **the coordinate button claimed a copy that had not happened.**
 
-- [x] B57: **the status bar reparsed the open file on every keystroke.** Answering
-  "what is the cursor on" parsed the whole file — 17ms on `requests/models.py`, paid
-  on every arrow key, which is a dropped frame each time one repeats. The parse is
-  memoised for the one file that is open, keyed by the source text, so there is
-  nothing to invalidate: an edit changes the text and the next question misses. 3ms.
+- [x] B57: **the status bar reparsed the open file on every keystroke.** 3ms.
 
-- [x] B56: **`DefinitionRole` serialised as a Rust variant name.** `--json` and the
-  browser printed `Primary` where every other enum here emits a kebab-case token and
-  the terminal printed the prose "definition". Now `primary`, and the view renders
-  the same words the terminal does.
+- [x] B56: **`DefinitionRole` serialised as a Rust variant name.**
 
-- [x] B55: **`fr unused` named symbols `fr delete` could not remove.** The span the
-  index keeps is the span a *rename* rewrites. For `export const defaultLimits = {…}`
-  that is the declarator, so deleting exactly it left `export const ;` and the
-  engine's reparse check rejected the whole edit, loudly, but the report had
-  promised something the tool could not do. Zig and TypeScript struct fields had the
-  same shape. It had been fixed once for CSS as a special case; it is one rule, and
-  generalising it (climb while the symbol is the only child of its kind; take the
-  separator when it is not) let the CSS-specific code go.
+- [x] B55: **`fr unused` named symbols `fr delete` could not remove.**
 
-- [x] B54: **a CSS class used by the markup was reported as dead.** A class declared
-  in both a stylesheet and a theme is one class, but uses were counted per
-  declaration site: the markup's reference resolves to one, so every other
-  declaration read as unreferenced. `.nav-link`, worn by three anchors, was reported
-  dead twice, while `fr delete` refused to remove it and named those same three
-  uses. Kinds that admit several declaration sites are now counted as one entity.
-  Found by running `find_unused` and `delete` against each other over a polyglot
-  workspace: thirteen disagreements out of fifty-nine, now zero, and checked across
-  nine languages instead of one Rust function.
+- [x] B54: **a CSS class used by the markup was reported as dead.**
 
 - [x] B53: **the browser reported symbols dead that the terminal reported live.**
-  `find_unused` takes the roots reachability starts from, and the browser API passed
-  `&[]` where the terminal passed a detected catalog. Both type-checked; the empty
-  slice means "nothing runs", so every `#[test]`, every HTTP handler and everything
-  they reach read as dead, twenty extra findings in a twenty-four-file workspace.
-  The roots are now a type, `Entrypoints`, with no way to end up empty by omission:
-  `detect` runs the catalogs, `exactly` takes a list on purpose, `none` says so.
 
-- [x] B52: **two workspaces in one page shared one set of bytes.** The browser's
-  virtual filesystem was a single thread-local map that each new `Workspace`
-  overwrote. An older handle then answered from the newer one's text: spans measured
-  against one file applied to another. It surfaced as a rewrite that `rewrites_at`
-  said was unavailable at a position where `rewrite` applied it. Each `Workspace` now
-  owns its files and installs them before every call, which `tests/wasm_api.rs`
-  checks, because the compiler cannot.
+- [x] B52: **two workspaces in one page shared one set of bytes.**
 
-- [x] B51: **`Path::exists` bypassed the virtual filesystem.** Every *read* went
-  through `crate::vfs`; the six `exists()` calls did not, and on wasm there is no
-  filesystem, so each quietly answered false. `fr move` refused every Rust file in the
-  playground with "src has neither lib.rs nor main.rs" while `src/main.rs` sat in the
-  loaded workspace. Helm chart detection had the same hole. `tests/vfs_choke_point.rs`
+- [x] B51: **`Path::exists` bypassed the virtual filesystem.** `tests/vfs_choke_point.rs`
   now fails the build on a new one.
 
 - [x] B50: **a call that resolved to an interface method reached no implementation.**
-  The hierarchy layer fans out call sites that resolved to *nothing*. A Go
-  `sink.Store(r)` where `sink` is typed as the interface resolves exactly, to a
-  declaration with no body, so the fan-out never ran and every implementation of
-  every interface was unreached, and reported as dead code. A resolved call to an
-  abstraction now also yields one `field-based` edge per implementation.
 
-- [x] B49: **`fr implementations` answered nothing for an interface.** It required a
-  method, so pointing at the type that declares them returned an empty list and the
-  message "nothing declares it as an abstraction", about a Go interface with three
-  implementors. Asking of the type now returns the implementing types: declared
-  subtypes for Rust, TypeScript and Python, method-set coverage for Go. An empty Go
-  interface still names nothing, because every type satisfies it.
+- [x] B49: **`fr implementations` answered nothing for an interface.**
 
-- [x] B47: **a new import was written inside a multi-line import statement.** The
-  insertion point was found by scanning lines for an `import` prefix and stopping at
-  the first line that is not one, so given `from typing import (` / `    Any,` /
-  `)`, it stopped at `Any,` and inserted the new statement between the parentheses.
-  psf/requests writes its typing imports exactly that way, so every `fr move` out of
-  `utils.py` produced a file that would not parse. The index knows where each
-  statement ends, and is now asked.
+- [x] B47: **a new import was written inside a multi-line import statement.**
 
 - [x] B48: a moved Python symbol left its module imports behind. `import os` binds
-  `os` without naming it in the statement, so the name-based check that carries named
+  `os` without naming it in the statement. So the name-based check that carries named
   imports never matched it, and the moved code lost `os.path`. Also carried now:
   `from __future__ import annotations`, which binds nothing at all and decides how
   every annotation in the file is read, `str | None` stops parsing without it below
-  Python 3.10, and which is placed first, where the language requires it.
+  Python 3.10. Which is placed first, where the language requires it.
 
-
-- [x] B46: **a guard clause exited the wrong construct.** The rewrite emitted
-  `return` for any `if` last in its block, including one last in a *loop* body,
-  ripgrep's `find_program` ends a `for` body that way, and the rewrite left the loop
-  entirely instead of continuing it. It also emitted a bare `return` regardless of
-  the enclosing function's return type, which in that same function
-  (`-> Result<PathBuf>`) does not compile. The exit now fits the block: `continue`
-  in a loop, `return` in a function that returns nothing, and a refusal where the
-  function owes a value, since what to return early is the author's decision.
-
+- [x] B46: **a guard clause exited the wrong construct.**
 
 - [x] B45: a statement pattern was impossible in Python, shell and YAML. Those
   languages wrap a `fr restructure` fragment in nothing, so the statement the pattern
-  writes is the outermost node, and the descent that strips wrapper-introduced
+  writes is the outermost node. The descent that strips wrapper-introduced
   statement containers stripped that one too, leaving the fragment starting six bytes
   inside itself and every such pattern rejected as "not a valid fragment". Descending
   is only correct when the child begins where the container does; `raise` does not.
   `fr restructure 'raise InvalidURL($X)' 'raise InvalidURL($X) from None'` now works
   on psf/requests.
 
+- [x] B44: **a Terraform traversal ignored its namespace.**
 
-- [x] B44: **a Terraform traversal ignored its namespace.** `var.azs`, `local.azs`
-  and `module.azs` name three different declarations, and an `output "azs"` beside
-  them names a fourth that no traversal reaches, but all four are just `azs` in one
-  directory, and the directory-scoped rule picked whichever came first. In
-  terraform-aws-vpc, `var.azs` resolved to the module's own `output "azs"`: a rename
-  would have rewritten the output and all 41 uses of the variable. The namespace is
-  written down in the source, so it is now recorded as the reference's receiver and
-  the kind it implies is required of the target.
-
-
-- [x] B41: **the cache reused facts produced by a different extractor.** Entries are
-  keyed by file content and by the query set, which is correct only while "the
-  extractor" is a constant, and it is not. Adding a field to `Reference` changes
-  what a cached fact means, while `#[serde(default)]` lets yesterday's entry
-  deserialize cleanly into today's struct. The result is a cache that looks healthy
-  and answers wrongly: it turned seven unrelated TypeScript import tests red and cost
-  an afternoon of bisecting code that was not at fault. `build.rs` now hashes the
-  sources that define extraction into the cache namespace, so editing any of them
-  makes every stale entry unreachable and not wrong.
+- [x] B41: **the cache reused facts produced by a different extractor.**
 
 - [x] B42: Rust reached nothing through a path. `super::render_custom_markup(…)` and
   `Patterns::from_low_args(…)` both resolved to nothing, because the prefix of a
@@ -2718,7 +931,7 @@ shows.
   instead of a value, a path names a type or a module and can be matched against a
   symbol's own qualifier with no type inference, since the type was written down.
   This rule runs before every other: ripgrep declares four `from_low_args` methods in
-  one file, so the nearest-in-file rule would otherwise pick whichever sat closest and
+  one file. So the nearest-in-file rule would otherwise pick whichever sat closest and
   leave the other three looking dead.
 
 - [x] B43: a Rust test looked like dead code. Tests declare themselves with `#[test]`,
@@ -2728,66 +941,30 @@ shows.
   `#[bench]`. Detected test entry points in ripgrep went from 141 to 516, and its
   internal dead-code report from 643 findings to 317.
 
+- [x] B40: **`fr extract` put a Go binding above the declaration it read.** All three copies
+  are now one.
 
-- [x] B40: **`fr extract` put a Go binding above the declaration it read.** Extracting
-  `len(totalItems)` from an `if` inserted `itemCount := len(totalItems)` at the top of
-  the function, before `totalItems` existed. The result parses, so the reparse check
-  saw nothing wrong; it simply does not compile. The cause was a *third* private copy
-  of the "is this a statement container" predicate, this one still not knowing about
-  Go's `statement_list`, so the enclosing statement of an expression resolved to the
-  whole function body. All three copies are now one.
-
-
-- [x] B39: **a Helm values key could not be renamed.** A template action is masked
-  before parsing, which is what keeps the surrounding YAML parseable and the byte
-  offsets honest, so everything inside `{{ … }}` was invisible to the index.
-  Provenance parsed the actions separately and could say which templates read a key,
-  but `fr refs` on that key answered zero and a rename rewrote `values.yaml` and
-  nothing else, listing every template use as a textual occurrence to check by hand.
-  The `.Values` paths are now extracted as references spanning the final segment
-  only, so renaming `image.tag` rewrites `tag` and leaves `image` alone.
-
-  Resolution is scoped to the chart, because two charts in one workspace routinely
-  declare `image` or `name` and a global match would point a template at a
-  neighbour's values file. The segment before the key is carried as the reference's
-  receiver, which is what distinguishes `image.tag` from an unrelated top-level
-  `tag`, and only files named `values*.yaml` are candidates, every template in the
-  chart is YAML with keys of its own. `{{ .Release.Name }}` is still reported as a
-  textual occurrence and not rewritten, because it is not a values key.
-
+- [x] B39: **a Helm values key could not be renamed.**
 
 - [x] B35: **`--path` filters matched nothing, and reported that as nothing found.**
-  They were built by joining the default root `.`, giving `./pkg/action`, which
-  starts-with-matches no absolute path in the index. Every filtered report came back
-  empty and read as a clean bill of health. Filters are now resolved against the
-  workspace root and canonicalised, and a path that does not exist is an error.
 
 - [x] B36: a relative path in a target was read from the shell's working directory
   instead of the workspace `-C` names, so `fr -C ../helm refs pkg/x.go:3:6` failed
   with "reading pkg/x.go: No such file". Four sites had their own
   `canonicalize().unwrap_or(…)`, which kept the unusable path and let the failure
-  surface two frames later; they now share one resolver that says where it looked.
+  surface two frames later. They now share one resolver that says where it looked.
 
 - [x] B37: a field access resolved to a local variable. `i.provData` bound to a
   `provData, err := …` two lines up, because the nearest-definition rule ran before
   anything checked that a member access can only name a member. The field then had no
   references at all and was reported as dead.
 
-- [x] B38: nothing tested the command line. Every test called the library directly,
-  which is why B35 and B36, both entirely in the layer between an argument and that
+- [x] B38: nothing tested the command line. Every test called the library directly,,
+so B35 and B36, both entirely in the layer between an argument and that
   library, were invisible. `tests/cli.rs` runs the binary: argument parsing, path
   resolution, exit codes, and the text a person reads.
 
-
-- [x] B26: **Go resolved nothing across files in a package.** A package in Go is a
-  directory, a function in `a.go` is called from `b.go` with no import and no
-  qualifier, and only Terraform was treated that way. `fr refs` returned *zero*
-  references for symbols helm/helm calls from the file next door, `fr unused`
-  reported 238 internal Go symbols as dead where 50 are, and a rename rewrote the
-  definition while listing the call sites it could not see as "unresolved". Package
-  scope is now the directory, restricted to top-level declarations, `qualifier`,
-  not `container`, since a Go method's receiver type is declared elsewhere and so the
-  method links to no containing symbol.
+- [x] B26: **Go resolved nothing across files in a package.**
 
 - [x] B27: a method call resolved to a package-level function of the same name.
   `w.contextWithTimeout(…)` and `time.Now()` are one syntax in Go, and the grammars
@@ -2796,15 +973,11 @@ shows.
   binding before the dot is what tells the two apart. Without it the method read as
   dead while the function absorbed its call sites.
 
-- [x] B28: **file proximity decided which method a call meant.** Two types declaring
-  the same method in one file are equally plausible targets; resolution picked the one
-  written nearer the call and reported it as a resolved edge, which made the other
-  look dead. Proximity is no longer evidence for a member access, the answer is
-  "either", and both stay live.
+- [x] B28: **file proximity decided which method a call meant.**
 
 - [x] B29: a binding resolved inside its own initialiser. helm's
   `templatesDirExists := run(…, templatesDirExists(path))` calls the package function
-  and *then* shadows it; resolving the call to the variable being declared made the
+  and *then* shadows it. Resolving the call to the variable being declared made the
   function look dead. The rule holds in Rust (`let x = x + 1`) and Python (`x = f(x)`)
   as well, and is now applied in all of them.
 
@@ -2819,11 +992,7 @@ shows.
   reported the other as dead; picking one would rewrite half a pair and break the
   other build. Both are now reported as ambiguous and spared.
 
-- [x] B32: **the public API of a library rooted nothing.** With no `main`, everything
-  beneath an exported symbol read as dead, in helm that was most of `pkg/action`,
-  where `performInstall` is reached only through the exported `RunWithContext`.
-  Exported symbols now seed reachability, while being judged on their own uses, so an
-  export nothing calls is still listed and tagged and not hidden.
+- [x] B32: **the public API of a library rooted nothing.**
 
 - [x] B33: two types sharing a private method name made both look dead, because the
   call resolved to neither. They are now spared with that stated, except where the
@@ -2831,11 +1000,10 @@ shows.
   one and stands.
 
 - [x] B34: `fr unused` had no way to narrow its report. On a polyglot repository every
-  Markdown heading drowned the code findings, and `-C` could not be used to narrow
+  Markdown heading drowned the code findings. `-C` could not be used to narrow
   because a smaller index invents dead symbols instead of hiding them. Added
   `--lang`, `--path` and `--internal`, which filter the report and not the index,
   with an unknown language name refused against the known list.
-
 
 - [x] B16: micro-rewrites were published for seven languages and tested on three.
   `invert-if` and `guard-clause` negated the whole condition node, which in the C
@@ -2848,45 +1016,27 @@ shows.
   Found by running the tool on grafana/grafana, where 63 of 65 real if/else sites
   now invert cleanly and both refusals are genuine `else if` chains.
 
-- [x] B17: **`guard-clause` silently changed what Go programs do.** Go's grammar puts
-  a `statement_list` between a block and its statements; counted as a statement, it
-  made every block look like a block of one, so the "is this `if` last?" check passed
-  for an `if` with code after it and the guard hoisted that code out from under the
-  condition guarding it. The result parses, so the reparse check never saw it.
-  Measured over 250 files of grafana/grafana's `pkg/services`: **1,258 of 1,498
-  applications (84%) were wrong**; after the fix those are refused and the remaining
-  240 apply. Fixed at the class instead of the site, `is_statement_container` was
-  duplicated in two modules and had already drifted, and is now one shared predicate.
+- [x] B17: **`guard-clause` silently changed what Go programs do.**
 
 - [x] B18: `invert-if` accepted an `else if` chain and produced unparseable output.
-  The second condition is only tested when the first is false, so swapping the
+  The second condition is only tested when the first is false. So swapping the
   branches changes which tests run; it is now refused with that reason. Also fixed:
   `else_body_of` returned the whole `else` clause when it did not recognise the body
   shape, splicing the `else` keyword into the consequence position.
 
-- [x] B19: **de Morgan dropped the grouping its own result needs.** `!(a && b)` is one
-  operand; `!a || !b` is two, and the brackets that held it together left with the
-  negation. Inside another operator that rebinds silently: `x && !(a && b)` became
-  `x && !a || !b`, which parses and means something else. Now bracketed whenever the
-  parent binds operands; in shell, where `( … )` opens a subshell, it is refused.
+- [x] B19: **de Morgan dropped the grouping its own result needs.**
 
 - [x] B20: `extract --function` emitted `function helper(x: : number)` for TypeScript.
   The C-family grammars fold the `:` into the annotation node, and the renderer added
   another. The type is now read bare and each language spells its own punctuation, so
-  Go gets `x int` and not `x: int`, and its call site loses the C semicolon,
+  Go gets `x int` and not `x: int`. Its call site loses the C semicolon,
   `gofmt -d` reports no diff on the result.
 
-- [x] B21: **a move produced files that parse and do not compile.** The definition was
-  relocated and nothing else: it was left unexported while an import was written for
-  it, its own imports stayed behind, and whatever it still needed from its old file
-  was unreachable. A move now carries the imports the moved code uses, narrowed to
-  the names it actually mentions, `type` modifiers intact, imports back what stayed
-  behind, exports that too, and exports the moved symbol. A Python back-import makes
-  a run-time cycle and says so.
+- [x] B21: **a move produced files that parse and do not compile.**
 
 - [x] B22: a move given a destination spelled differently from the indexed path, a
   relative path, or `/var` where the index holds `/private/var`, wrote imports like
-  `'../../../../../../../var/folders/…'`, and in the relative case silently added no
+  `'../../../../../../../var/folders/…'`. In the relative case silently added no
   import at all. `canonicalize()` had failed on a file that does not exist yet and the
   result was passed through unchanged. The destination is now resolved through its
   parent directory, and a missing directory is an error. The matching silent skip in
@@ -2907,41 +1057,45 @@ shows.
   One real file contributed eight. They are now spared with that stated reason rather
   than dropped quietly.
 
-
 - [x] B10: Helm values precedence stopped at the command line, whether a
-  `values-*.yaml` is passed with `-f`, the order of several `-f` files, and every
+  `values-*.yaml` is passed with `-f`, the order of several `-f` files. Every
   `--set` were invisible and reported undecided. That was a missing input, not a
   limit: `fr flow back <target> -f values-prod.yaml --set a.b=c` supplies the
   invocation, and Helm's order (chart `values.yaml` < each enclosing parent chart <
   each `-f` in the order given < `--set`) then decides it, winner marked and every
   loser, including a values file the caller says is *not* passed, still listed.
-  With nothing supplied the answer is exactly what it was.
+  With nothing supplied the answer is what it was.
 
 - [x] B12: Terraform lost the third and later step past an index traversal. A query
-  cannot say "every sibling after this one", so each step needs its own pattern; six
-  are now written, which is far past anything Terraform expresses, and a test asserts
+  cannot say "every sibling after this one". So each step needs its own pattern; six
+  are now written, which is far past anything Terraform expresses. A test asserts
   the bound so it stays a decision instead of an accident.
 
 - [x] B0a: `LineIndex` invented a phantom trailing line for files ending in a newline,
   so `"a\nb\n"` counted 3 lines and an EOF offset reported a column past the last
   character, `src/span.rs`. Fixed: a trailing newline terminates the final line;
   columns clamp to the line end.
+
 - [x] B0b: `.gitignore` was ignored outside a git repository, so scans of worktrees
   and exported trees walked `target/`, `node_modules/` etc, `src/scan.rs`. Fixed with
   `WalkBuilder::require_git(false)`.
+
 - [x] B1: SCSS was parsed with the plain CSS grammar, so `$variables`, `@mixin`,
   `@include` and `@use` were all parse errors. Fixed at the root by adding the
   `tree-sitter-scss` grammar. A test asserts the CSS grammar still rejects SCSS
   syntax, so the split is real and not cosmetic.
+
 - [x] B2: a Helm template action in a structural position yielded a YAML tree
   reflecting no single rendering. Fixed for the analyses that reason about values: a
-  key wrapped in `{{- if }}` now produces a stop naming the exact condition, and the
+  key wrapped in `{{- if }}` now produces a stop naming the exact condition. The
   condition's own `.Values` key resolves. Masking itself is unchanged by design. It
   is what keeps byte offsets valid, so the symbol index still shows guarded keys
   unconditionally; only provenance and stitch consult the guards.
+
 - [x] B3: deleting a CSS selector left its `{ ... }` block orphaned. The delete widens
   the selector's span to the whole rule when it is alone on it, or to that selector
   and its comma when the rule has others.
+
 - [x] B4: import liveness was name-based, so anything a language brings into scope
   invisibly looked unused. Per-language guards now hold back and report: Python
   `__future__` imports, `__all__` re-exports and dotted registration imports;
@@ -2949,16 +1103,20 @@ shows.
   Go blank imports and packages whose clause name cannot be derived from the path.
   Zig was verified to need none. Two real false positives fell out of it: Python
   `import a.b` binds `a`, not `b`, and `gopkg.in/yaml.v2` binds `yaml`, not `v2`.
+
 - [x] B6: consecutive standalone Go `import "x"` lines were not sorted, because the
   `import` keyword sits outside the `import_spec` span and looked like unrelated code
   ending the block.
+
 - [x] B7: Helm `.Values` references lived inside masked actions and were invisible.
   Fixed by parsing the actions: paths resolve through pipelines, function arguments,
   `with` scopes, `$.` and into `define` bodies reached by `include`. Fields of a dot
   bound by `range`, values reached via `index .Values "a-b"`, and computed template
   names are named as unresolved and not resolved.
+
 - [x] B8: Terraform splat traversals lost their trailing segments. `[*].id` and
   `.*.id` now capture every following attribute; B12 records what an index traversal
   still loses.
-- [x] B9: `.tfvars` top-level attributes now produce `Key` symbols, so values files
+
+- [x] B9: `.tfvars` top-level attributes now produce `Key` symbols. So values files
   are in the index instead of needing provenance to walk the tree itself.

@@ -1,22 +1,20 @@
 //! Rewriting a file as another language.
 //!
-//! Not a source-to-source translator: this tool parses to syntax trees and splices byte
-//! ranges, with no type system and no semantic model. It refuses every pair of
-//! imperative languages by name, with the reason. (`src/transpile` is the separate,
-//! IR-based path for those.)
+//! Not a source-to-source translator: this tool parses to syntax trees and splices byte ranges,
+//! with no type system and no semantic model. It refuses every pair of imperative languages by
+//! name, with the reason. (`src/transpile` is the separate, IR-based path for those.)
 //!
-//! Some languages contain others: SCSS is a superset of CSS, TSX is TypeScript with
-//! JSX, a Helm template is YAML with actions, XHTML is both HTML and XML. For a file
-//! using no feature the target lacks, converting between those is a rename plus two
-//! checks:
+//! Some languages contain others. SCSS is a superset of CSS, TSX is TypeScript with JSX, a Helm
+//! template is YAML with actions, XHTML is both HTML and XML. For a file using no feature the
+//! target lacks, converting between those is a rename plus two checks:
 //!
-//! 1. The pair appears in [`targets`], a declared relationship between the two
-//!    grammars. Without it an empty file would "convert" to anything.
-//! 2. The text parses cleanly under the target grammar. SCSS using nesting does not
-//!    parse as CSS, and the refusal says where.
+//! 1. The pair appears in [`targets`], a declared relationship between the two grammars.
+//!    Without it an empty file would "convert" to anything.
+//! 2. The text parses cleanly under the target grammar. SCSS using nesting does not parse as
+//!    CSS, and the refusal says where.
 //!
-//! The result goes beside the original, same stem, target's extension. The original
-//! stays: a conversion that deletes its input cannot be reversed from the diff.
+//! The result goes beside the original, same stem, target's extension. The original stays: a
+//! conversion that deletes its input cannot be reversed from the diff.
 
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
@@ -26,9 +24,9 @@ use std::path::{Path, PathBuf};
 
 /// What a file of this language can be rewritten as.
 ///
-/// Only relationships where one grammar contains the other. The direction matters:
-/// every CSS file is SCSS, but only some SCSS files are CSS, which is why the parse
-/// in [`plan`] is not optional in either direction.
+/// Only relationships where one grammar contains the other. The direction matters: every CSS
+/// file is SCSS, but only some SCSS files are CSS. So the parse in [`plan`] is not optional in
+/// either direction.
 pub fn targets(from: Language) -> &'static [Language] {
     use Language::*;
     match from {
@@ -62,11 +60,11 @@ pub struct Option_ {
 
 /// Everything `path` could be rewritten as, worked out by asking for each one.
 ///
-/// The list and the answer come from the same call, which is what keeps them from
-/// disagreeing. They were two: the listing walked one set of languages and the request
-/// checked another, so `fr translate x.py tsx` succeeded while nothing ever offered it.
+/// The list and the answer come from the same call, which keeps them from disagreeing.
+/// They were two: the listing walked one set of languages and the request checked another, so
+/// `fr translate x.py tsx` succeeded while nothing ever offered it.
 ///
-/// A target that would fail is left out, and the reason is available from
+/// A target that would fail is left out. The reason is available from
 /// [`crate::transpile::plan`] or [`plan`] for a caller that asks for it by name.
 pub fn options_for(path: &Path) -> Vec<Option_> {
     let Some(from) = crate::lang::detect(path) else {
@@ -131,11 +129,10 @@ pub fn why_not(from: Language, to: Language) -> String {
 pub fn why_nothing(from: Language) -> String {
     use crate::lang::LanguageClass;
     if from.class() == LanguageClass::Imperative {
-        // This used to say "nothing here can do it, so nothing here pretends to",
-        // which was true when it was written and became false the day the transpiler
-        // landed: Rust, Go, Python and TypeScript translate into one another. A message
-        // that denies a capability the tool has misinforms, because the
-        // reader believes it and stops looking.
+        // This used to say "nothing here can do it. So nothing here pretends to", which was
+        // true when it was written and became false the day the transpiler landed: Rust, Go,
+        // Python and TypeScript translate into one another. A message that denies a capability
+        // the tool has misinforms, because the reader believes it and stops looking.
         let supported: Vec<String> = crate::transpile::SUPPORTED
             .iter()
             .map(|language| language.to_string())
@@ -172,9 +169,8 @@ pub fn destination_for(path: &Path, to: Language) -> Result<PathBuf> {
     let Some(stem) = path.file_stem() else {
         bail!("{} has no file name", path.display());
     };
-    // Java ties the file's name to the public class inside it, so `sensors.py` has to
-    // become `Sensors.java`, not `sensors.java`, which will not compile whatever is
-    // written in it.
+    // Java ties the file's name to the public class inside it. So `sensors.py` has to become
+    // `Sensors.java`, not `sensors.java`, which will not compile whatever is written in it.
     let stem = match to {
         Language::Java => pascal_case(&stem.to_string_lossy()),
         _ => stem.to_string_lossy().to_string(),

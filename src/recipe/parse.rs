@@ -1,11 +1,11 @@
 //! The recipe grammar, and the signature table that finishes the job.
 //!
-//! The grammar alone is permissive where the operations are not: a production reading
-//! `operation , [selector] , {modifier}` cannot say that `rewrite` needs a name, that
-//! `rename` needs a target, or that `remove-flag` acts on the whole workspace and has
-//! no use for a `where` clause. Accepting a selector and ignoring it is exactly the
-//! accept-and-ignore this codebase bans, so [`Operation::check`] rejects each case by
-//! name, immediately after the parse.
+//! The grammar alone is permissive where the operations are not. A production reading
+//! `operation , [selector] , {modifier}` cannot say that `rewrite` needs a name, that `rename`
+//! needs a target, or that `remove-flag` acts on the whole workspace and has no use for a
+//! `where` clause. Accepting a selector and ignoring it is exactly the accept-and-ignore this
+//! codebase bans, so [`Operation::check`] rejects each case by name, immediately after the
+//! parse.
 
 use super::lex::{lex, Spanned, Token};
 use anyhow::{bail, Result};

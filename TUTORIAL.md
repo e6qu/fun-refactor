@@ -20,7 +20,7 @@ $ cargo install --path ../fun-refactor    # or: cargo build --release
 ## 1. What is in here?
 
 Start by asking what the tool can read. Nothing is indexed until you ask for
-something, so this is also the cheapest way to find out whether a language you care
+something. So this is also the cheapest way to find out whether a language you care
 about is being parsed at all.
 
 ```console
@@ -36,9 +36,9 @@ yaml              83        0        0
 `ERRORS` is the number of files that did not parse cleanly. Those thirteen Helm files
 are chart fixtures that hold broken templates on purpose. Helm tests its own
 error messages with them. This matters more than it looks: **a file that does not
-parse is invisible to every analysis below**, so a report that ignores parse failures
+parse is invisible to every analysis below**. So a report that ignores parse failures
 is quietly incomplete. Commands that depend on complete information say so; `fr
-rename` will tell you that references may be missing, and `fr duplicates` lists the
+rename` will tell you that references may be missing. `fr duplicates` lists the
 files it skipped.
 
 ## 2. Naming the thing you mean
@@ -58,7 +58,7 @@ $ fr refs writeToFile
 $ fr refs pkg/action/action.go:725:6
 ```
 
-The position is 1-based in both line and column, and it must land on the symbol's
+The position is 1-based in both line and column. It must land on the symbol's
 identifier, and not the `func` keyword or the opening brace. Any occurrence works:
 the definition or any use of it, since the tool resolves whatever is under the
 cursor and then works from the symbol it found. That makes the form
@@ -154,7 +154,7 @@ Two flags matter here.
 
 `--lang go` narrows the *report*, not the index. That distinction is the whole
 point: you could scan only `pkg/` with `-C pkg`, but then the index cannot see the
-callers in `cmd/`, and everything they call would be reported as dead. Filters here
+callers in `cmd/`. Everything they call would be reported as dead. Filters here
 never invent a finding.
 
 `--internal` hides exported symbols. Helm is a library, and the public API of one
@@ -203,7 +203,7 @@ copy worth finding, because a textual search will never turn it up. `--exact` fo
 the identifiers and literals back in when you want the stricter question.
 
 Only the largest duplicated block of each finding is listed. A duplicated function
-duplicates its body, its loop and each of its statements; printing all of them is one
+duplicates its body, its loop and each of its statements. Printing all of them is one
 finding said five times with the useful one buried.
 
 Across all of helm: **337 duplicated blocks, 64,530 redundant tokens**, in 3.6
@@ -351,7 +351,7 @@ declaration Name: my-alpine  (pkg/cmd/testdata/testcharts/alpine/values.yaml:1)
 ```
 
 The **Stopped at** section records what it could not resolve. A values key can always be overridden
-by `-f` and `--set`, and the tool cannot know your `helm install` command, so
+by `-f` and `--set`. The tool cannot know your `helm install` command, so
 tell it, and the answer sharpens:
 
 ```console
@@ -401,7 +401,7 @@ $ gh pr create --fill
 Two habits worth keeping:
 
 - **Commit the refactor alone.** A mechanical change that touches five files is
-  trivial to review when it is only that, and impossible when it is mixed with a
+  trivial to review when it is only that. Impossible when it is mixed with a
   behavioural one.
 - **Paste the refusals into the PR description.** If the tool listed six unparseable
   files or four weakly-resolved sites, a reviewer should check them,
@@ -425,12 +425,12 @@ would cost more than re-parsing the handful of files any single command needs.
 
 Positions are byte offsets, never line/column pairs, everywhere except the command
 line. Line and column are a display format; a UTF-8 file with an emoji in a comment
-makes them ambiguous, and a refactoring tool that miscounts a column corrupts a file.
+makes them ambiguous. A refactoring tool that miscounts a column corrupts a file.
 
 Helm gets one extra step. The tool *masks* a template action before it parses, and
 replaces it with filler of the same byte length. The surrounding YAML then has valid
 structure and every offset in the file stays correct. Whether the filler is spaces or
-`x` characters depends on where the action sits: an action alone on its line has to
+`x` characters depends on where the action sits. An action alone on its line has to
 vanish structurally, while one inside a value has to become scalar text. The actions
 themselves are then parsed separately, so `.Values.image.tag` becomes a
 reference to a values key.
@@ -440,7 +440,7 @@ reference to a values key.
 Extraction produces facts per file. The index joins them and resolves each reference
 to the symbol it names, trying in order: the lexical scope chain, the same file, an
 import binding in that file, a string key (CSS classes, Helm values), a member of a
-value, the enclosing package or directory, and finally a unique exported name
+value, the enclosing package or directory. Finally a unique exported name
 anywhere. The first rule that answers wins, and the report names *which rule answered*, which is the
 confidence:
 
@@ -452,7 +452,7 @@ confidence:
 | `name-only` | nothing but the name matched | no |
 
 A refactoring rewrites the top two and reports the rest. This is the single design
-decision the whole tool rests on: **it would rather hand you a list to check than
+decision the whole tool rests on. **it would rather hand you a list to check than
 change a line it cannot justify.**
 
 ### The cache

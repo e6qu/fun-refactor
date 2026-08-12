@@ -1,20 +1,19 @@
 //! A refusal that names a language must be about that language.
 //!
-//! `Refusal::Unsupported` says "{operation} is not supported for {language}". Ten sites
-//! once wrote a reason naming no language into the field called `language`; they were
-//! found, and the fix was to add a `because` field so the language field could be the
-//! language. That made the mistake easier to avoid and did not stop it. Five more sites
-//! were doing it afterwards:
+//! `Refusal::Unsupported` says "{operation} is not supported for {language}". Ten sites once
+//! wrote a reason naming no language into the field called `language`; they were found. The fix
+//! was to add a `because` field so the language field could be the language. That made the
+//! mistake easier to avoid and did not stop it. Five more sites were doing it afterwards:
 //!
 //! * `fr move` told a Rust user that Rust was unsupported when the destination was outside
-//!   `src/`, found by the capability audit, because a `✓` in the matrix and a refusal
-//!   naming the language cannot both be right.
-//! * Four more interpolated a path into the reason: two crate roots, a missing `lib.rs`,
-//!   a Terraform directory, a Zig relative path.
+//!   `src/`, found by the capability audit, because a `✓` in the matrix and a refusal naming
+//!   the language cannot both be right.
+//! * Four more interpolated a path into the reason: two crate roots, a missing `lib.rs`, a
+//!   Terraform directory, a Zig relative path.
 //!
-//! The field is `&'static str` now, so a reason with a path in it does not compile. That
-//! is what makes this hold rather than what documents it. These tests check the property
-//! the type cannot: that the pairs the code actually refuses agree with the matrix.
+//! The field is `&'static str` now, so a reason with a path in it does not compile. That makes
+//! this hold and not what documents it. These tests check the property the type cannot:
+//! that the pairs the code refuses agree with the matrix.
 
 use fun_refactor::capabilities::{support, Capability};
 use fun_refactor::index::Index;
@@ -121,10 +120,10 @@ fn a_terraform_move_between_directories_does_not_blame_terraform() {
 
 #[test]
 fn a_language_that_really_cannot_still_says_so() {
-    // The other half. Removing the free text would have been the easy fix and would have
-    // thrown away the explanations that are true: `fr signature` on a Terraform variable
-    // is refused because Terraform's arguments are named, and that is a fact about
-    // Terraform and belongs in the sentence.
+    // The other half. Removing the free text would have been the easy fix and would have thrown
+    // away the explanations that are true. `fr signature` on a Terraform variable is refused
+    // because Terraform's arguments are named. That is a fact about Terraform and belongs in
+    // the sentence.
     let (_tmp, _root, index) = workspace(&[(
         "main.tf",
         "variable \"enabled\" {\n  type = bool\n}\n\noutput \"e\" {\n  value = var.enabled\n}\n",

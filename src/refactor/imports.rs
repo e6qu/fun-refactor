@@ -40,10 +40,10 @@ pub struct ImportsPlan {
     pub sorted_blocks: usize,
     /// What each touched statement's lines become, with no reordering in it.
     ///
-    /// [`ImportsPlan::edits`] carries the reordering too, which is right for the command
-    /// and wrong for a caller that only wants the dead names gone: a flag removal must not
-    /// also sort somebody's imports. A dropped statement maps to nothing, and a narrowed
-    /// one to the same statement without the names that died.
+    /// [`ImportsPlan::edits`] carries the reordering too, which is right for the command and
+    /// wrong for a caller that only wants the dead names gone. A flag removal must not also
+    /// sort somebody's imports. A dropped statement maps to nothing, and a narrowed one to the
+    /// same statement without the names that died.
     pub replacements: Vec<(Span, String)>,
 }
 
@@ -102,9 +102,9 @@ impl InvisibleUses {
                         });
                     }
                     "import_statement" => {
-                        // The `type` modifier of `import type {...}` and of an inline
-                        // `{ type X }` is an anonymous token, so a named-node pattern
-                        // cannot see it but a full cursor walk can.
+                        // The `type` modifier of `import type {...}` and of an inline `{ type X
+                        // }` is an anonymous token. So a named-node pattern cannot see it but a
+                        // full cursor walk can.
                         let mut type_only = false;
                         for_each_node(node, |inner| {
                             if inner.kind() == "type" && !inner.is_named() {
@@ -126,11 +126,11 @@ impl InvisibleUses {
 
 /// Why an import that nothing names is kept anyway, or `None` if it can go.
 ///
-/// Every arm answers the same question for one language: is there a way this binding
-/// could be in use that no reference records? The Rust arm is the oldest and states the
-/// principle, a trait is used through its methods, so its name never appears at the
-/// call site, and the rest follow it. A returned reason is reported verbatim as a
-/// warning, so it has to say which binding and why.
+/// Every arm answers the same question for one language: is there a way this binding could be
+/// in use that no reference records? The Rust arm is the oldest and states the principle, a
+/// trait is used through its methods. So its name never appears at the call site, and the rest
+/// follow it. A returned reason is reported verbatim as a warning, so it has to say which
+/// binding and why.
 fn hold_back_reason(
     language: Language,
     statement: &Statement,
@@ -232,11 +232,10 @@ fn hold_back_reason(
             None
         }
 
-        // A Go import binds the imported package's *package clause*, which is a fact
-        // about the other package's source. When that source is outside the scan the
-        // binding can only be guessed from the path, and the guess is wrong for
-        // `gopkg.in/yaml.v2` (package `yaml`), `.../v2` version suffixes and any
-        // hyphenated path.
+        // A Go import binds the imported package's *package clause*, which is a fact about the
+        // other package's source. When that source is outside the scan the binding can only be
+        // guessed from the path. The guess is wrong for `gopkg.in/yaml.v2` (package `yaml`),
+        // `.../v2` version suffixes and any hyphenated path.
         Language::Go if !statement.explicit_binding && !statement.binding_certain => Some(format!(
             "'{}' is a Go import whose local name is its package clause, and that \
                  package is not in the scan; '{}' is only a guess from the path, so the \
@@ -312,8 +311,8 @@ fn braced_identifiers(comment: &str) -> Vec<String> {
 
 /// The name a JSX pragma comment gives, e.g. the `h` of `/** @jsx h */`.
 ///
-/// Every JSX element in the file compiles into a call to that factory, so the import
-/// binding it names is used by code that does not exist until after compilation.
+/// Every JSX element in the file compiles into a call to that factory. So the import binding it
+/// names is used by code that does not exist until after compilation.
 fn jsx_pragma_names(comment: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut rest = comment;
@@ -337,12 +336,12 @@ fn jsx_pragma_names(comment: &str) -> Vec<String> {
     out
 }
 
-/// Is a Go import path's last segment usable as the package name without seeing the
-/// package clause?
+/// Is a Go import path's last segment usable as the package name without seeing the package
+/// clause?
 ///
-/// A plain identifier almost always is. A version suffix (`.../v2`), a `gopkg.in`
-/// style `name.vN` segment and anything with a hyphen in it are not: the package clause
-/// says something else, and only the imported package's own source can say what.
+/// A plain identifier almost always is. A version suffix (`.../v2`), a `gopkg.in` style
+/// `name.vN` segment and anything with a hyphen in it are not. The package clause says
+/// something else, and only the imported package's own source can say what.
 fn go_binding_is_certain(path: &str) -> bool {
     let Some(last) = path.rsplit('/').find(|segment| !segment.is_empty()) else {
         return false;
@@ -356,11 +355,11 @@ fn go_binding_is_certain(path: &str) -> bool {
 
 /// The package clause of an imported Go package, when the scan can see it.
 ///
-/// The directory a Go package lives in is named by the tail of its import path, but the
-/// module prefix (`example.com/app`) lives in `go.mod` and not on disk, so the only
-/// thing to match on is how many trailing components agree. The longest agreement wins;
-/// two equally good directories disagreeing about the package name means the answer is
-/// unknown, not whichever was found first.
+/// The directory a Go package lives in is named by the tail of its import path, but the module
+/// prefix (`example.com/app`) lives in `go.mod` and not on disk. So the only thing to match on
+/// is how many trailing components agree. The longest agreement wins; two equally good
+/// directories disagreeing about the package name means the answer is unknown, not whichever
+/// was found first.
 fn workspace_package_name(index: &Index, import_path: &str) -> Option<String> {
     let wanted: Vec<&str> = import_path
         .split('/')
@@ -418,17 +417,17 @@ pub struct RemovedImport {
 
 /// Work out how to organize the imports of one file.
 ///
-/// Refuses for languages that have no import statement to organize, and for files with
-/// syntax errors: a use hidden inside an unparsed region would make a removal look
-/// safe when it is not.
+/// Refuses for languages that have no import statement to organize, and for files with syntax
+/// errors. A use hidden inside an unparsed region would make a removal look safe when it is
+/// not.
 ///
-/// Liveness is decided by name. That is exact for a value or type that must be spelled
-/// where it is used, and blind to anything a language brings into scope invisibly: a
-/// Rust trait imported only so its methods resolve, a Python module imported for its
-/// registration side effects under a name that is never mentioned again, a TypeScript
-/// type used only in a JSDoc comment. Every such form `hold_back_reason` knows about
-/// keeps its import and produces a warning saying which binding and why; check the
-/// [`ImportsPlan::removed`] list before committing all the same.
+/// Liveness is decided by name. That is exact for a value or type that must be spelled where it
+/// is used, and blind to anything a language brings into scope invisibly. A Rust trait imported
+/// only so its methods resolve, a Python module imported for its registration side effects
+/// under a name that is never mentioned again, a TypeScript type used only in a JSDoc comment.
+/// Every such form `hold_back_reason` knows about keeps its import and produces a warning
+/// saying which binding and why; check the [`ImportsPlan::removed`] list before committing all
+/// the same.
 pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     // The index first. Reading the file before asking answers "no such file" about a path
     // whose real problem is that nothing indexed it, which is a different thing to fix.
@@ -441,10 +440,10 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 
 /// [`plan`] over source already held in memory.
 ///
-/// The cascade rewrites in memory and re-indexes each round, so the text on disk is the
-/// text before it started. Asking this question against that text would answer about the
-/// wrong file, and the question is the same one, which is why it is asked here and not
-/// answered a second time somewhere else.
+/// The cascade rewrites in memory and re-indexes each round, so the text on disk is the text
+/// before it started. Asking this question against that text would answer about the wrong file,
+/// and the question is the same one. So it is asked here and not answered a second time
+/// somewhere else.
 pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<ImportsPlan> {
     if let Some(info) = index.file(file) {
         crate::capabilities::record(
@@ -479,9 +478,9 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
 
     let parsed = Parsers::new().parse(info.language, source)?;
     let mut statements = statements(info.imports.iter(), source, info.language, &parsed);
-    // A Go import binds the imported package's package clause. When that package is in
-    // the scan its real name is a fact and not a guess, so record it as a binding
-    // and stop treating the path as the last word on the subject.
+    // A Go import binds the imported package's package clause. When that package is in the scan
+    // its real name is a fact and not a guess. So record it as a binding and stop treating the
+    // path as the last word on the subject.
     if info.language == Language::Go {
         for statement in &mut statements {
             if statement.explicit_binding {
@@ -563,9 +562,9 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         {
             continue;
         }
-        // Nothing names it, which for some constructs means nothing *can* name it.
-        // Removing one of those leaves a file that still parses but no longer builds,
-        // which the reparse check cannot catch, so it is kept and reported instead.
+        // Nothing names it, which for some constructs means nothing *can* name it. Removing one
+        // of those leaves a file that still parses but no longer builds, which the reparse
+        // check cannot catch. So it is kept and reported instead.
         if let Some(detail) = hold_back_reason(info.language, statement, &invisible) {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
@@ -598,8 +597,8 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
             .named
             .iter()
             .filter(|name| !live.contains(name.local.as_str()))
-            // A name that would be held back on its own is held back here too: the
-            // question is the same one, asked of one binding instead of all of them.
+            // A name that would be held back on its own is held back here too. The question is
+            // the same one, asked of one binding instead of all of them.
             .filter(|name| {
                 let alone = Statement {
                     bindings: vec![name.local.clone()],
@@ -704,16 +703,15 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
 
 /// Does this language have import statements worth organizing?
 ///
-/// CSS and SCSS are excluded on purpose even though they have `@import`: order there
-/// is semantic, a later rule beats an earlier one and `@import` must precede all other
-/// rules, so sorting would change what the stylesheet means. The markup and config
-/// languages have no import construct at all, and Bash `source` is an executed
-/// statement instead of a declaration.
-/// Why imports cannot be organized in this language, if they cannot.
+/// CSS and SCSS are excluded on purpose even though they have `@import`. Order there is
+/// semantic, a later rule beats an earlier one and `@import` must precede all other rules. So
+/// sorting would change what the stylesheet means. The markup and config languages have no
+/// import construct at all, and Bash `source` is an executed statement instead of a
+/// declaration. Why imports cannot be organized in this language, if they cannot.
 ///
-/// The single authority. The capability table and this operation each kept their own
-/// reason, and they drifted: the table told a reader that Bash "has no import
-/// statements to organize" while `queries/bash/facts.scm` extracts every `source`.
+/// The single authority. The capability table and this operation each kept their own reason,
+/// and they drifted. The table told a reader that Bash "has no import statements to organize"
+/// while `queries/bash/facts.scm` extracts every `source`.
 pub fn why_not_organizable(language: Language) -> Option<&'static str> {
     if organizable(language) {
         return None;
@@ -724,9 +722,9 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
              one's in the cascade, and @import must precede all other rules, so \
              sorting or removing them would change which styles apply"
         }
-        // Not a declaration but a command that *runs* the other file: a later `source`
-        // may depend on a variable an earlier one set, and a file may be sourced purely
-        // for a side effect no name here refers to.
+        // Not a declaration but a command that *runs* the other file: a later `source` may
+        // depend on a variable an earlier one set. A file may be sourced purely for a side
+        // effect no name here refers to.
         Language::Bash => {
             "`source` runs the other file instead of declaring a dependency on it, so \
              order carries meaning and a file sourced only for its side effects looks \
@@ -806,13 +804,13 @@ fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
 
 /// The edits that drop imports a set of edits would leave with nothing naming them.
 ///
-/// Removing code often removes the last use of an import, and the statement stays behind:
-/// `go build` calls that an error and Rust a warning that a `-D warnings` build turns into
-/// one. The result parses either way, which is why a sweep for parse errors never sees it.
+/// Removing code often removes the last use of an import. The statement stays behind: `go
+/// build` calls that an error and Rust a warning that a `-D warnings` build turns into one. The
+/// result parses either way, so a sweep for parse errors never sees it.
 ///
-/// Asked by applying the edits to a copy and re-reading, because the question is about the
-/// file as it will be and not as it is. Only imports that were live before are touched,
-/// one that was already dead is `fr imports`, not this.
+/// Asked by applying the edits to a copy and re-reading, because the question is about the file
+/// as it will be and not as it is. Only imports that were live before are touched, one that was
+/// already dead is `fr imports`. It is not this.
 pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
     let mut out = EditSet::new();
     for (file, file_edits) in edits.iter() {
@@ -853,7 +851,7 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
             }
             // The span indexes the file as it will be, and the edit set is applied to the
             // file as it is. Every edit that lands before this statement moves it, so the
-            // move is undone here rather than two coordinate systems being mixed.
+            // move is undone here and not two coordinate systems being mixed.
             let Some(original) = before_the_edits(span, file_edits) else {
                 continue;
             };
@@ -920,11 +918,11 @@ fn statements<'a>(
             let last = full_line_span(source, span.end - 1);
             let lines = Span::new(first.start, last.end.max(first.end).max(span.end));
             let lines = with_attributes(source, lines, &attributes);
-            // A statement owns its line if nothing but its own introducing keyword
-            // sits before it. Go records `import "os"` as the spec alone, so without
-            // this the keyword looks like unrelated code and ends the block.
-            // From the statement's own line, not from the attributes above it: an
-            // attribute is part of this import, so it does not make the line shared.
+            // A statement owns its line if nothing but its own introducing keyword sits before
+            // it. Go records `import "os"` as the spec alone, so without this the keyword looks
+            // like unrelated code and ends the block. From the statement's own line, not from
+            // the attributes above it: an attribute is part of this import. So it does not make
+            // the line shared.
             let before = source[first.start..span.start].trim();
             let line_exclusive = (before.is_empty() || is_import_keyword(before, language))
                 && source[span.end..lines.end].trim().is_empty();
@@ -972,16 +970,16 @@ fn statements<'a>(
 
 /// The name a whole-module import binds without naming it.
 ///
-/// The three languages that have such a form disagree about which segment it is.
-/// `use std::fmt;` binds the last one. `import "net/http"` binds the imported package's
-/// package clause, which the path can only suggest, hence the version-suffix and
-/// `gopkg.in` handling here and the certainty check in [`go_binding_is_certain`].
-/// Python's `import a.b` binds `a`, the *first* segment: the statement makes the whole
-/// package reachable, and `b` is only spelled through it.
+/// The three languages that have such a form disagree about which segment it is. `use
+/// std::fmt;` binds the last one. `import "net/http"` binds the imported package's package
+/// clause, which the path can only suggest, hence the version-suffix and `gopkg.in` handling
+/// here and the certainty check in [`go_binding_is_certain`]. Python's `import a.b` binds `a`,
+/// the *first* segment: the statement makes the whole package reachable, and `b` is only
+/// spelled through it.
 ///
-/// TypeScript and Zig have no such form: an import with no named binding there is a
-/// side-effect import and binds nothing, so guessing a name from the path would invent
-/// a binding that does not exist.
+/// TypeScript and Zig have no such form: an import with no named binding there is a side-effect
+/// import and binds nothing. So guessing a name from the path would invent a binding that does
+/// not exist.
 pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String> {
     let segment = match language {
         Language::Rust => path.rsplit("::").find(|segment| !segment.is_empty())?,
@@ -1009,19 +1007,18 @@ pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String>
 
 /// Split statements into runs of directly consecutive import lines.
 ///
-/// A blank line, a comment or any other statement between two imports leaves a gap in
-/// the line coverage, which ends the run.
-/// A statement's lines, extended over the attributes written above it.
+/// A blank line, a comment or any other statement between two imports leaves a gap in the line
+/// coverage, which ends the run. A statement's lines, extended over the attributes written
+/// above it.
 ///
-/// An attribute is part of the item, not a neighbour of it: `#[cfg(feature = "cli")]`
-/// above a `use` decides whether that import exists. Sorting moves whole lines, so an
-/// attribute left where it was lands on whichever import sorts into its place. This
-/// crate's own `src/index.rs` came out of `fr imports` with `use anyhow::…` behind the
-/// `cfg` and `use crate::scan::…` unconditional, which compiles under neither setting of
-/// the feature.
+/// An attribute is part of the item, not a neighbour of it: `#[cfg(feature = "cli")]` above a
+/// `use` decides whether that import exists. Sorting moves whole lines, so an attribute left
+/// where it was lands on whichever import sorts into its place. This crate's own `src/index.rs`
+/// came out of `fr imports` with `use anyhow::…` behind the `cfg` and `use crate::scan::…`
+/// unconditional, which compiles under neither setting of the feature.
 ///
-/// Read from the tree and not by looking for `#[`, so a multi-line attribute is one
-/// span and a `#[` inside a string is not an attribute at all.
+/// Read from the tree and not by looking for `#[`. So a multi-line attribute is one span and a
+/// `#[` inside a string is not an attribute at all.
 fn with_attributes(source: &str, lines: Span, attributes: &[Span]) -> Span {
     let mut start = lines.start;
     loop {
@@ -1061,15 +1058,14 @@ fn sorted<'a>(statements: &[&'a Statement]) -> Vec<&'a Statement> {
 
 /// Rebuild a block from the original bytes of the statements that survive.
 ///
-/// Each statement contributes its own line text verbatim, so indentation, spacing and
-/// the exact spelling of the statement are carried across untouched. Nothing is
-/// regenerated from the parsed import.
-/// The bytes a name occupies in an import list, alias and all.
+/// Each statement contributes its own line text verbatim, so indentation, spacing and the exact
+/// spelling of the statement are carried across untouched. Nothing is regenerated from the
+/// parsed import. The bytes a name occupies in an import list, alias and all.
 ///
-/// The index records where a name is *bound*, which for `down as lower` is `lower`. Taking
-/// only that out leaves `down as` behind, so the span is widened to the clause the grammar
-/// wraps it in, `import_specifier` in TypeScript, `aliased_import` in Python,
-/// `use_as_clause` in Rust, stopping before it could swallow the statement itself.
+/// The index records where a name is *bound*, which for `down as lower` is `lower`. Taking only
+/// that out leaves `down as` behind. So the span is widened to the clause the grammar wraps it
+/// in, `import_specifier` in TypeScript, `aliased_import` in Python, `use_as_clause` in Rust,
+/// stopping before it could swallow the statement itself.
 fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
     let Some(node) = parsed
         .root()

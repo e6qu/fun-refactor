@@ -293,6 +293,40 @@ check("callees", () => {
   return `${t.tree.split("\n").length} lines`;
 });
 
+// The playground reads this answer directly. It reported "No symbol at the cursor" for
+// every function, because the view expected an `{ ok, value }` envelope that `ok()` does
+// not write: a success is the value itself. Nothing tested the shape from JavaScript.
+check("graph_around", () => {
+  const p = at("src/ingest.rs", "validate");
+  const g = json(workspace.graph_around(p.path, p.line, p.col, 2));
+  assert(Array.isArray(g.nodes) && g.nodes.length > 0, "no nodes");
+  assert(Array.isArray(g.edges), "no edges array");
+  assert(typeof g.root === "number", "no root id");
+  assert(typeof g.more === "boolean", "no `more` flag");
+  assert(
+    g.nodes.some((n) => n.id === g.root),
+    "the root is not among the nodes",
+  );
+  for (const n of g.nodes) {
+    assert(typeof n.name === "string" && n.name.length > 0, "a node has no name");
+    assert(typeof n.file === "string" && typeof n.line === "number", "a node has no place");
+    assert(Math.abs(n.rank) <= 2, `a node sits past the depth asked for: ${n.rank}`);
+  }
+  const known = new Set(g.nodes.map((n) => n.id));
+  for (const e of g.edges) {
+    assert(known.has(e.from) && known.has(e.to), "an edge leaves the drawing");
+    assert(e.kind === "call" || e.kind === "dispatch", `unknown edge kind ${e.kind}`);
+  }
+  return `${g.nodes.length} node(s), ${g.edges.length} edge(s)`;
+});
+
+// A position that names nothing has to say so in the one shape the view checks.
+check("graph_around refuses a position with no symbol", () => {
+  const g = json(workspace.graph_around("src/ingest.rs", 1, 1, 2), { allowError: true });
+  assert(typeof g.error === "string", "a failure must carry `error`");
+  return g.error;
+});
+
 check("flow_back", () => {
   const p = at("src/ingest.rs", "celsius", 2);
   const f = json(workspace.flow_back(p.path, p.line, p.col), { allowError: true });

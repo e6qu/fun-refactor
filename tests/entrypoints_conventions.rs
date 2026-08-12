@@ -279,10 +279,10 @@ fn the_annotation_is_found_however_it_is_spelled() {
     }
 }
 
-/// `export class` is how TypeScript writes almost every class, and the word `export`
-/// sits between the decorator and the declaration. Reading it as a preceding line ended
-/// the run of annotations before it reached the decorator, so a NestJS controller, the
-/// class the whole framework is organised around, matched nothing.
+/// `export class` is how TypeScript writes almost every class, and the word `export` sits
+/// between the decorator and the declaration. Reading it as a preceding line ended the run of
+/// annotations before it reached the decorator. So a NestJS controller, the class the whole
+/// framework is organised around, matched nothing.
 #[test]
 fn a_modifier_between_the_annotation_and_the_declaration_is_not_a_line_before_it() {
     let found = entry_kinds(&[
@@ -352,10 +352,10 @@ fn a_rust_route_attribute_is_an_entry_point() {
     );
 }
 
-/// A decorator's name is not unique across libraries. `@patch` is `unittest.mock`'s far
-/// more often than it is FastAPI's, and matching the name alone tagged twenty-two of
-/// `psf/black`'s test methods as remotely reachable HTTP routes, including, once, a
-/// `self` parameter. A route decorator names a URL path; a mock names a module.
+/// A decorator's name is not unique across libraries. `@patch` is `unittest.mock`'s far more
+/// often than it is FastAPI's. Matching the name alone tagged twenty-two of `psf/black`'s test
+/// methods as remotely reachable HTTP routes, including, once, a `self` parameter. A route
+/// decorator names a URL path; a mock names a module.
 #[test]
 fn a_route_rule_requires_the_path_and_not_just_the_name() {
     let found = entry_kinds(&[(
@@ -375,7 +375,7 @@ fn a_route_rule_requires_the_path_and_not_just_the_name() {
 }
 
 /// A rule asking for an annotation's argument without naming the annotation matches
-/// nothing, which reads exactly like a framework that is covered and simply absent.
+/// nothing, which reads like a framework that is covered and absent.
 #[test]
 fn a_rule_that_cannot_mean_anything_is_rejected_when_it_loads() {
     let dir = tempfile::tempdir().expect("a temporary directory");
@@ -433,9 +433,9 @@ fn a_parameter_does_not_carry_its_method_s_annotation() {
 /// A catalogue's enum-valued fields are enums.
 ///
 /// `deny_unknown_fields` rejects a misspelled key. A misspelled *value* was accepted:
-/// `symbol_kind: functoin` and `languages: [pyhton]` both parsed, loaded, and matched
-/// nothing, indistinguishable from a rule that is present and simply never true. Both
-/// are parsed into the type they denote now, so the mistake is a message at load.
+/// `symbol_kind: functoin` and `languages: [pyhton]` both parsed, loaded. Matched nothing,
+/// indistinguishable from a rule that is present and never true. Both are parsed into the type
+/// they denote now, so the mistake is a message at load.
 #[test]
 fn a_misspelled_value_in_a_catalogue_is_rejected_when_it_loads() {
     let cases = [
@@ -508,12 +508,11 @@ fn a_rule_can_apply_to_every_language() {
 
 /// A rule that says nothing matched nothing, quietly.
 ///
-/// The comment on the old check said an empty matcher "is never what a catalog author
-/// means" and then returned false, which is also not what they meant, silently doing
-/// the opposite of the dangerous thing is still silent. And the list of what counted as
-/// a condition had drifted from the fields that exist: `symbol_kind`, `exported` and
-/// `top_level` were not on it, so a rule whose only condition was one of those counted
-/// as saying nothing and matched nothing.
+/// The comment on the old check said an empty matcher "is never what a catalog author means"
+/// and then returned false, which is also not what they meant, silently doing the opposite of
+/// the dangerous thing is still silent. And the list of what counted as a condition had drifted
+/// from the fields that exist: `symbol_kind`, `exported` and `top_level` were not on it. So a
+/// rule whose only condition was one of those counted as saying nothing and matched nothing.
 #[test]
 fn a_rule_that_names_no_condition_is_rejected_when_it_loads() {
     let dir = tempfile::tempdir().expect("a temporary directory");
@@ -556,12 +555,12 @@ fn a_kind_or_an_export_is_a_condition_by_itself() {
     assert_eq!(found, vec!["handler".to_string()], "a kind is a condition");
 }
 
-/// A Zig test is a construct, not a name.
+/// A Zig test is a construct. It is not a name.
 ///
-/// `test "any prose you like" { … }` makes the description the symbol's name, so a rule
-/// asking for `name_prefix: test` matches only the tests whose description happens to
-/// begin with "test" — 12 of the 495 in Zig's own standard library. The other 483 were
-/// reported as dead code, and so was anything only they called.
+/// `test "any prose you like" { … }` makes the description the symbol's name. So a rule asking
+/// for `name_prefix: test` matches only the tests whose description happens to begin with
+/// "test" — 12 of the 495 in Zig's own standard library. The other 483 were reported as dead
+/// code, and so was anything only they called.
 #[test]
 fn a_zig_test_block_is_an_entry_point_whatever_it_is_called() {
     let found = entry_kinds(&[(

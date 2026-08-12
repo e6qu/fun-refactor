@@ -1,7 +1,7 @@
 # API contracts, the invariant when the language changes
 
 A refactoring preserves *behaviour*. A translation preserves a *signature*. Rewriting a
-service in another language has to preserve something else again, and it is the only
+service in another language has to preserve something else again. It is the only
 thing anyone outside the repository can see: the **contract**.
 
 ```
@@ -33,7 +33,7 @@ Six things, and they do not all travel together:
 | **Status codes** | `204`, `403`, `422` | the returned object |
 
 The first three are *addressing* and the last three are *shape*. This tool carries the
-addressing half exactly and the shape half only partly, and the purpose of this
+addressing half exactly and the shape half only partly. The purpose of this
 document is to say which is which, because a rewrite that gets addressing right and
 shape wrong looks finished.
 
@@ -51,7 +51,7 @@ implicit in `route.ts`, and where it is written down at all it is in a zod schem
 So the two directions are not mirror images:
 
 - **Next.js → FastAPI** *gains* a machine-readable contract where none existed. That is
-  worth a great deal, and it is also the trap: the generated OpenAPI is exactly as
+  worth a great deal, and it is also the trap. The generated OpenAPI is as
   complete as what carried across, and it does not look incomplete.
 - **FastAPI → Next.js** *loses* one. Nothing in the target will regenerate it, so it
   would have to be exported before the rewrite and asserted against afterwards. This
@@ -114,7 +114,7 @@ and says what will happen if you leave them where they are.
 ### Reading zod
 
 Most Next.js applications declare their shapes with zod, not with `interface`. A zod
-schema is a *runtime value*, not a type declaration, so nothing that reads declarations
+schema is a *runtime value*. It is not a type declaration. So nothing that reads declarations
 finds it, and left alone it arrives as an ordinary constant, producing a service whose
 published contract has no request body in it at all.
 
@@ -150,7 +150,7 @@ from the other would be guessing at the part of a contract it is least safe to g
 A nested `z.object` is `dict` for the same reason: Python wants it to be its own model,
 and naming one would be inventing a name.
 
-## How you would actually check a rewrite
+## How you would check a rewrite
 
 The tool preserves what it can see and reports the rest. It does **not** verify the
 contract, and no amount of reading one side can. The check is a comparison:
@@ -165,7 +165,7 @@ contract, and no amount of reading one side can. The check is a comparison:
 
 Step 1 is `fr openapi`. It walks the tree, finds every API route, and emits an
 OpenAPI 3.1 document from what the source *declares*, as JSON, or as YAML with
-`--yaml`, which is what a contract kept beside the code is usually written in:
+`--yaml`, which a contract kept beside the code is usually written in:
 
 ```sh
 fr openapi --yaml > before.yaml   # from the Next.js tree
@@ -176,12 +176,12 @@ diff <(yq -P -S . before.yaml) <(yq -P -S . after.json)
 
 Paths, methods and path parameters are exact, because they come from the tree. Schemas
 are as good as what was declared. **Responses are `default` only**, which status an
-endpoint returns is a fact about its code and not its declaration, and writing
+endpoint returns is a fact about its code and not its declaration. Writing
 `200` for everything would be putting fiction into the file you are about to diff
 against; an empty entry does not.
 
 Everything it could not settle is printed beside the document and not guessed at,
-because a baseline that quietly invents an entry is the worst possible outcome: the
+because a baseline that quietly invents an entry is the worst possible outcome. The
 diff comes out clean and the contract still shrank.
 
 ## A worked example: the pet store
@@ -214,7 +214,7 @@ curl -s localhost:8000/openapi.json > after.json
 #                                            4. diff, and argue about every difference
 ```
 
-Step 1 is the one teams skip, and skipping it is what makes the rest unfalsifiable. A
+Step 1 is the one teams skip, and skipping it makes the rest unfalsifiable. A
 rewrite with no baseline cannot be shown to have preserved anything.
 
 ### What has to be read that nobody declared
@@ -227,13 +227,13 @@ and each one is a different kind of reading:
   can recover it, however well it reads TypeScript. This is most of the value.
 - **`[...path]` is a catch-all**, matching across slashes. FastAPI spells that
   `{path:path}`; emitting `{path}` produces a service that answers a strictly smaller
-  set of URLs than the one it replaced, silently, and only for the requests with a
+  set of URLs than the one it replaced, silently. Only for the requests with a
   slash in them.
 - **The method is the exported function's name.** `export async function PATCH` is
   `@router.patch`.
 - **The request body is a zod schema in another module.** `lib/schemas.ts` here, which
   is where a real application keeps them. Reading only the route file finds nothing, so
-  the schemas are collected from anywhere in the tree, and the *link* between an
+  the schemas are collected from anywhere in the tree. The *link* between an
   operation and its body comes from the `petCreateSchema.parse(json)` call inside the
   handler. A `components` section nothing refers to is not a contract; it says every
   endpoint takes no body.
@@ -269,14 +269,14 @@ the query parameters the handlers read. What it deliberately does *not* have:
 - **Status codes.** They carry into the *code* and are reported for the *contract*,
   see below, because this is the sharp edge.
 - **Required-ness of a query parameter.** A handler that defaults it and a handler that
-  rejects the request without it read the same way, so every query parameter is
+  rejects the request without it read the same way. So every query parameter is
   optional in the baseline and the diff will tell you which ones are not.
 
 ### Checking the crossing without running anything
 
 Step 4 says to run the finished service and diff its `/openapi.json` against the
 baseline. Half of that check needs no server: **`fr openapi` reads a FastAPI router
-too**, off the decorators and the signatures, so the same command answers the same
+too**, off the decorators and the signatures. So the same command answers the same
 question about the code the rewrite produced.
 
 ```sh
@@ -291,7 +291,7 @@ every method, every path parameter and every query parameter identical. Nothing 
 nothing invented, and the test suite asserts it, so a translation that started dropping
 endpoints would fail the build.
 
-**That the two documents agree does not mean the contract is complete**, and the
+**That the two documents agree does not mean the contract is complete**. The
 difference matters more than the agreement: both sides can be missing the same thing and
 agree perfectly. So the baseline says what it could not read:
 
@@ -307,22 +307,22 @@ does not is what this document exists to prevent.
 The pet store's count has been two and is now zero. The two were
 `const limit = Number(… ?? "50")`, `??` had no counterpart in the IR, and
 `{ where: species ? { species } : {} }`, where `{ species }` is the shorthand every
-modern TypeScript file is written in and refusing it refused the whole object, and with
+modern TypeScript file is written in and refusing it refused the whole object. With
 it the statement the object was in.
 
 What this cannot see, because it reads what is written and not what will happen: a
 router mounted under a prefix, a route added at run time, a dependency that rejects the
-request. For those you need the server, which is why step 4 is still step 4.
+request. For those you need the server, so step 4 is still step 4.
 
 ## What this is not
 
 **Not a proof.** Preserving the addressing half of a contract is a syntactic property
 and the tool can be held to it. Preserving the shape half requires knowing what the
-handlers do, and the handlers are the part that is carried into the output as comments
+handlers do. The handlers are the part that is carried into the output as comments
 for a person to finish.
 
 **Not a migration.** Authentication, database access, middleware ordering and every
-library the route imported have no counterpart and are reported, not translated. What
+library the route imported have no counterpart and are reported. They are not translated. What
 the tool does is the mechanical, error-prone half, the half where a mistyped path
 segment costs you a week and a missing `:path` costs you the requests nobody reports.
 
@@ -332,7 +332,7 @@ segment costs you a week and a missing `:path` costs you the requests nobody rep
   the tool
 - `tests/petstore/`, the source it is worked from
 - `CROSS_LANGUAGE.md`, what crosses between languages and what does not
-- `src/transpile/nextjs.rs`, the implementation, and what it refuses
+- `src/transpile/nextjs.rs`, the implementation. What it refuses
 - `tests/nextjs.rs`, `tests/corpus.rs`, including the refusal for a `.tsx` file
   containing JSX, because a React component renders a user interface and a FastAPI
-  endpoint answers HTTP, and there is no translation between them
+  endpoint answers HTTP. There is no translation between them

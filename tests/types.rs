@@ -1,8 +1,8 @@
 //! The type a symbol was declared with, in each language that writes one down.
 //!
-//! Nothing here is inferred, and that is the point and not a limitation. `x = 5`
-//! has no declared type; answering `int` would be a different claim from the one the
-//! source made, and a tool that quietly fills the gap in cannot show the gap closing.
+//! Nothing here is inferred, and that is the point and not a limitation. `x = 5` has no
+//! declared type; answering `int` would be a different claim from the one the source made. A
+//! tool that quietly fills the gap in cannot show the gap closing.
 
 use fun_refactor::analysis::types;
 use fun_refactor::index::Index;
@@ -52,9 +52,9 @@ const subtotal: Money = { minorUnits: 0 };
 
 #[test]
 fn a_binding_with_no_annotation_says_so() {
-    // `declared` stays `None` however much is worked out from elsewhere: the two are
-    // different claims, and the whole subject of annotating a codebase is the gap
-    // between them. What the reader is shown names which one they are looking at.
+    // `declared` stays `None` however much is worked out from elsewhere: the two are different
+    // claims. The whole subject of annotating a codebase is the gap between them. What the
+    // reader is shown names which one they are looking at.
     for (files, inferred) in [
         (&[("a.py", PY)][..], "int (from the literal)"),
         (&[("a.ts", TS)][..], "number (from the literal)"),
@@ -250,9 +250,9 @@ fn a_field_gives_what_its_record_declared() {
 
 #[test]
 fn an_object_literal_is_not_answered_with_dict() {
-    // `{"amount": 100}` is a dict and saying so is true and useless: a dictionary is
-    // where a type should have been, and a tool that answers `dict` has agreed with the
-    // code and not described it.
+    // `{"amount": 100}` is a dict and saying so is true and useless: a dictionary is where a
+    // type should have been. A tool that answers `dict` has agreed with the code and not
+    // described it.
     for (files, name) in [
         (&[("a.py", PY_INFER)][..], "bag"),
         (&[("a.ts", TS_INFER)][..], "bag"),
@@ -274,9 +274,9 @@ fn a_call_out_of_the_workspace_yields_nothing() {
 
 #[test]
 fn a_declaration_wins_over_a_derivation() {
-    // An annotation is a contract and an inference is a derivation. Where both could
-    // apply the contract is the answer, and a disagreement is a defect in the code
-    // instead of a choice for this to make.
+    // An annotation is a contract and an inference is a derivation. Where both could apply the
+    // contract is the answer. A disagreement is a defect in the code instead of a choice for
+    // this to make.
     let source = "\
 class Money:
     pass
@@ -290,10 +290,10 @@ subtotal: int = Money()
 
 /// `--json` answers with names and places, like every other command.
 ///
-/// It used to serialize the analysis struct directly, so it emitted `"symbol": 1` and
-/// `"defined_at": 0`, `SymbolId`s, which are positions in one run's index and mean
-/// nothing to whoever reads the output. `defined_at` read like a line number. The text
-/// rendering resolved them all along; only the machine-readable half did not.
+/// It used to serialize the analysis struct directly, so it emitted `"symbol". 1` and
+/// `"defined_at": 0`, `SymbolId`s, which are positions in one run's index and mean nothing to
+/// whoever reads the output. `defined_at` read like a line number. The text rendering resolved
+/// them all along; only the machine-readable half did not.
 #[test]
 fn the_json_names_what_it_points_at() {
     let tmp = tempfile::tempdir().expect("a temporary directory");

@@ -29,7 +29,7 @@ impl Default for ScanOptions {
             respect_ignore: true,
             languages: Vec::new(),
             // Tree-sitter parse cost grows with file size; multi-megabyte files are
-            // almost always vendored or generated. Skipping them is reported, not silent.
+            // almost always vendored or generated. Skipping them is reported. It is not silent.
             max_file_bytes: 4 * 1024 * 1024,
         }
     }

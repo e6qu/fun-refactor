@@ -169,7 +169,7 @@ spec:
 
 /// XML's own binding forms, which are narrower than they look: an `id` attribute, an
 /// `xmlns:` prefix, and a DTD entity. A `name="timeout"` attribute declares nothing,
-/// only a DTD could say that it does, and reading one is a gap this records rather than
+/// only a DTD could say that it does, and reading one is a gap this records and not
 /// guesses at.
 const XML: &str = "\
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
@@ -188,9 +188,8 @@ const XML: &str = "\
 </configuration>
 ";
 
-/// HTML declares element ids and refers to them; a `class` is a *reference* to a
-/// selector some stylesheet declares, so a fixture with no stylesheet has nothing to
-/// rename there.
+/// HTML declares element ids and refers to them; a `class` is a *reference* to a selector some
+/// stylesheet declares. So a fixture with no stylesheet has nothing to rename there.
 const HTML: &str = "\
 <!DOCTYPE html>
 <html>
@@ -590,7 +589,7 @@ fn every_validator_reports_a_workspace_it_should_reject() {
             continue;
         }
         // No broken counterpart written for this language yet, which is a gap in the
-        // table above rather than a fact about the validator.
+        // table above and not a fact about the validator.
         let Some((_, file, content)) = broken.iter().find(|(l, _, _)| *l == fixture.language)
         else {
             run.skip(fixture.language.name());

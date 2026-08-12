@@ -89,9 +89,9 @@ func save(s Store) error {
 
 #[test]
 fn a_parameter_name_is_not_part_of_the_question() {
-    // Go compares types, not names. Refusing an implementation because it called its
-    // parameter something else would drop a true edge, and a dropped edge here becomes
-    // a live method reported as dead code.
+    // Go compares types, not names. Refusing an implementation because it called its parameter
+    // something else would drop a true edge. A dropped edge here becomes a live method reported
+    // as dead code.
     let source = "\
 package main
 

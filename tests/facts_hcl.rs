@@ -139,7 +139,7 @@ fn locals_attributes_are_variables() {
 
 #[test]
 fn attributes_outside_locals_are_not_definitions() {
-    // `bucket` and `region` are provider-defined arguments, not addresses.
+    // `bucket` and `region` are provider-defined arguments. They are not addresses.
     let f = hcl(MAIN_TF);
     assert!(
         !f.symbols.iter().any(|s| s.name == "bucket"),
@@ -172,7 +172,7 @@ fn resource_and_data_carry_the_terraform_address() {
 #[test]
 fn type_label_of_a_resource_is_not_a_second_symbol() {
     // Renaming a resource must have exactly one definition site. The type label
-    // is a container, not a definition, exactly as Rust's `impl S` is.
+    // is a container. It is not a definition, as Rust's `impl S` is.
     let f = hcl(MAIN_TF);
     assert!(
         !f.symbols.iter().any(|s| s.name == "aws_s3_bucket"),
@@ -265,7 +265,7 @@ fn declaration_labels_are_not_also_references() {
 #[test]
 fn interpolated_references_are_found_inside_strings() {
     // `"${local.prefix}-${var.bucket_name}"` is where most Terraform references
-    // actually live.
+    // live.
     let f = hcl(MAIN_TF);
     let interp = MAIN_TF.find("\"${local.prefix}").unwrap();
     let end = MAIN_TF[interp..].find('\n').unwrap() + interp;
@@ -311,7 +311,7 @@ fn managed_resource_address_splits_into_type_and_name() {
 #[test]
 fn data_address_resolves_the_name_one_segment_further_along() {
     // `data.TYPE.NAME.attr` is one segment longer than a managed resource
-    // address; the renameable segment is the third, not the second.
+    // address; the renameable segment is the third. It is not the second.
     let f = hcl(MAIN_TF);
     let expr = MAIN_TF
         .find("data.aws_caller_identity.current.account_id")
@@ -501,7 +501,7 @@ fn a_splat_keeps_its_trailing_segments() {
     // `aws_instance.web[*].id` hangs the trailing steps off a `splat` node instead of
     // continuing the flat `get_attr` run, so the sibling-anchored patterns stop at the
     // address. Matching inside the splat recovers the attribute read; it is a field,
-    // exactly as it would be without the `[*]`.
+    // as it would be without the `[*]`.
     let src = "output \"ids\" {\n  value = aws_instance.web[*].id\n}\n";
     let f = hcl(src);
     let web = refs(&f, "web");
@@ -537,9 +537,9 @@ fn a_splat_keeps_every_trailing_segment_not_just_the_first() {
 
 #[test]
 fn an_index_keeps_the_segments_that_follow_it() {
-    // `x.y[0].z` does leave `.z` as a flat sibling, but the `index` node between it
-    // and the root breaks the anchored run, so the address resolved and the attribute
-    // read did not. `y` must stay the renameable identifier, not become a field.
+    // `x.y[0].z` does leave `.z` as a flat sibling, but the `index` node between it and the
+    // root breaks the anchored run. So the address resolved and the attribute read did not. `y`
+    // must stay the renameable identifier, not become a field.
     let src = "output \"a\" {\n  value = x.y[0].z\n}\n";
     let f = hcl(src);
     let y = refs(&f, "y");

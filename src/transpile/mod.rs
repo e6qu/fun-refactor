@@ -31,9 +31,9 @@ mod write;
 
 /// What a file says, in the form no one language owns.
 ///
-/// The first half of [`plan`], on its own. A caller that wants to *compare* two files
-/// written in different languages has nowhere else to stand: the only thing they have
-/// in common is what this returns.
+/// The first half of [`plan`], on its own. A caller that wants to *compare* two files written
+/// in different languages has nowhere else to stand. The only thing they have in common is what
+/// this returns.
 pub fn read_file(path: &Path) -> Result<ir::Module> {
     let Some(language) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
@@ -179,8 +179,8 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     }
 
     let mut module = read::read(from, &source, parsed.root())?;
-    // Java has no top level below the type, so its writer needs a class to put the
-    // module in, and a public class must be named after its file.
+    // Java has no top level below the type. So its writer needs a class to put the module in,
+    // and a public class must be named after its file.
     module.name = destination
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string());
@@ -233,8 +233,8 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
 /// first construct is wrong, tree-sitter's outermost `ERROR` starts at byte zero, and
 /// reporting that says "line 1, column 1" and prints the banner, which tells whoever
 /// reads the defect report nothing at all. The innermost error is where the parser
-/// actually gave up, and a `MISSING` node beats an `ERROR` at the same depth because
-/// it names what was expected and not merely where.
+/// gave up, and a `MISSING` node beats an `ERROR` at the same depth because
+/// it names what was expected and not where.
 fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![(parsed.root(), 0usize)];
@@ -258,10 +258,10 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::spa
             stack.push((child, depth + 1));
         }
     }
-    // A parse can report an error that this walk does not find: an empty Zig struct
-    // holds a zero-width missing identifier that `Node::children` does not yield, and
-    // the message came out with no position at all. `error_spans` walks with a cursor
-    // and does find it, so it is the fallback and not a second opinion.
+    // A parse can report an error that this walk does not find. An empty Zig struct holds a
+    // zero-width missing identifier that `Node::children` does not yield, and the message came
+    // out with no position at all. `error_spans` walks with a cursor and does find it, so it is
+    // the fallback and not a second opinion.
     let at = match best {
         Some((_, _, at)) => at,
         None => parsed.error_spans().first().map(|span| span.start)?,

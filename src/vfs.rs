@@ -1,18 +1,17 @@
 //! Where source text comes from.
 //!
-//! Every analysis in this crate re-reads a file's bytes when it needs them, the
-//! index keeps facts and spans, not contents, so a span is only useful against the
-//! source it was measured on. Until now each of those reads went straight to
-//! `std::fs`, which is correct in a terminal and impossible in a browser.
+//! Every analysis in this crate re-reads a file's bytes when it needs them, the index keeps
+//! facts and spans, not contents. So a span is only useful against the source it was measured
+//! on. Until now each of those reads went straight to `std::fs`, which is correct in a terminal
+//! and impossible in a browser.
 //!
-//! This is the one place that decides. On a normal build it delegates to the
-//! filesystem and costs nothing. On `wasm32` there is no filesystem, so it reads
-//! from a map the host loaded, a repository fetched from GitHub, say, and writes
-//! back into the same map, which is what makes a refactoring in the playground a
-//! real edit against real bytes instead of a rendering of one.
+//! This is the one place that decides. On a normal build it delegates to the filesystem and
+//! costs nothing. On `wasm32` there is no filesystem, so it reads from a map the host loaded, a
+//! repository fetched from GitHub, say, and writes back into the same map, which makes a
+//! refactoring in the playground a real edit against real bytes instead of a rendering of one.
 //!
-//! Having a single choke point is worth something on native too: it is now possible
-//! to say exactly what this crate reads, and to answer it from somewhere else.
+//! Having a single choke point is worth something on native too: it is now possible to say what
+//! this crate reads. To answer it from somewhere else.
 
 use std::io;
 use std::path::Path;
@@ -83,9 +82,9 @@ mod memory {
 
     /// Go back to reading the disk.
     ///
-    /// The recipe runner plans against an in-memory workspace and then writes the
-    /// result to the real one; without this the write would land back in the map it
-    /// had just finished reading.
+    /// The recipe runner plans against an in-memory workspace and then writes the result to the
+    /// real one. Without this the write would land back in the map it had just finished
+    /// reading.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn deactivate() {
         HANDED_OVER.with(|h| *h.borrow_mut() = false);
@@ -169,12 +168,12 @@ mod backing {
 
 /// Run this against the handed-over workspace instead of the disk, where there is one.
 ///
-/// Only a host build compiled with the browser API has both backings; on wasm there is
-/// no disk and on an ordinary build there is no handing over, so in both of those this
-/// expands to nothing at all.
+/// Only a host build compiled with the browser API has both backings. On wasm there is no disk
+/// and on an ordinary build there is no handing over, so in both of those this expands to
+/// nothing at all.
 ///
-/// A macro instead of a function because the two backings share their names and only
-/// one of them exists in most configurations.
+/// A macro instead of a function because the two backings share their names and only one of
+/// them exists in most configurations.
 macro_rules! through_memory {
     ($call:ident($($arg:expr),*)) => {{
         #[cfg(not(target_arch = "wasm32"))]
@@ -186,12 +185,11 @@ macro_rules! through_memory {
 
 /// Are reads and writes going to a workspace held in memory and not to the disk?
 ///
-/// The question every caller that cares about *how* a write lands has to ask, and it
-/// is a fact about the active backing and not about which features were compiled.
-/// Asking `cfg!(feature = "cli")` instead is what made `commit` stage temporary files
-/// beside a path that exists only in a browser's memory, on any build with both
-/// features, a failure that could not happen in either build shipped today and was
-/// waiting for the first one that had both.
+/// The question every caller that cares about *how* a write lands has to ask. It is a fact
+/// about the active backing and not about which features were compiled. Asking `cfg!(feature =
+/// "cli")` instead is what made `commit` stage temporary files beside a path that exists only
+/// in a browser's memory, on any build with both features, a failure that could not happen in
+/// either build shipped today and was waiting for the first one that had both.
 pub fn is_in_memory() -> bool {
     #[cfg(target_arch = "wasm32")]
     {
@@ -229,7 +227,7 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()
 /// Is there a file here?
 ///
 /// Used for the questions a language asks of its neighbours, whether a `Chart.yaml`
-/// sits beside a YAML file, which is what makes it a Helm template and not plain
+/// sits beside a YAML file, which makes it a Helm template and not plain
 /// YAML.
 pub fn exists(path: impl AsRef<Path>) -> bool {
     let path = path.as_ref();
@@ -269,11 +267,11 @@ pub fn activate(handle: &Handle) {
 
 /// A directory, as a sentence can name it.
 ///
-/// `Path::display` renders the workspace root, the parent of a top-level file, as
-/// the empty string, so a message built from it comes out with a hole in it: *"no .go
-/// file in declares a package"*. That is what `fr move x.go` to a file at the root
-/// actually printed. Fifteen messages across move, signature and provenance
-/// interpolate a directory this way, and any of them can be handed the root.
+/// `Path::display` renders the workspace root, the parent of a top-level file, as the empty
+/// string. So a message built from it comes out with a hole in it: *"no .go file in declares a
+/// package"*. That is what `fr move x.go` to a file at the root printed. Fifteen messages
+/// across move, signature and provenance interpolate a directory this way, and any of them can
+/// be handed the root.
 pub fn describe_dir(path: impl AsRef<Path>) -> String {
     let path = path.as_ref();
     if path.as_os_str().is_empty() || path == Path::new(".") {

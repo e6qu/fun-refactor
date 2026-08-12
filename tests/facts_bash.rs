@@ -1,4 +1,4 @@
-//! Bash fact-extraction tests: what `queries/bash/facts.scm` actually yields.
+//! Bash fact-extraction tests: what `queries/bash/facts.scm` yields.
 //!
 //! Bash is dynamically scoped and has no declarations to lean on, so several of
 //! these tests pin down deliberate heuristics and not language guarantees.
@@ -91,9 +91,9 @@ fn rich_sample_parses_without_errors() {
 
 #[test]
 fn no_definition_is_captured_twice() {
-    // `local x=1` is both a declaration and an assignment: the declaration
-    // patterns and the plain-assignment patterns must not both claim it, or a
-    // rename would emit two edits over the same bytes.
+    // `local x=1` is both a declaration and an assignment. The declaration patterns and the
+    // plain-assignment patterns must not both claim it, or a rename would emit two edits over
+    // the same bytes.
     let f = facts(RICH);
     let mut spans: Vec<_> = f.symbols.iter().map(|s| s.name_span).collect();
     let before = spans.len();
@@ -241,9 +241,8 @@ fn a_c_style_for_loop_binds_its_initializer() {
 
 #[test]
 fn positional_parameters_are_not_captured() {
-    // `$1` is a variable_name node, but it has no definition site and cannot be
-    // renamed, so it is deliberately left out and not reported as a use of a
-    // variable called "1".
+    // `$1` is a variable_name node, but it has no definition site and cannot be renamed. So it
+    // is deliberately left out and not reported as a use of a variable called "1".
     let src = "f() {\n  local name=$1\n  echo \"$2 $name\"\n}\n";
     let f = facts(src);
     let names: Vec<_> = f.references.iter().map(|r| r.name.as_str()).collect();
@@ -314,9 +313,9 @@ fn quoted_source_paths_lose_their_quotes() {
 
 #[test]
 fn a_concatenated_source_path_is_captured_but_not_unquoted_cleanly() {
-    // Known shortcoming, in the extractor instead of the query: Import paths are
-    // unquoted by trimming quote characters off the ends, which cannot handle a
-    // path built from several pieces. The import itself, and its span, are right.
+    // Known shortcoming, in the extractor instead of the query. Import paths are unquoted by
+    // trimming quote characters off the ends, which cannot handle a path built from several
+    // pieces. The import itself, and its span, are right.
     let src = "source \"$DIR\"/lib.sh\n";
     let f = facts(src);
     assert_eq!(f.imports.len(), 1);
@@ -336,8 +335,8 @@ fn a_command_named_source_is_also_a_call_reference() {
 
 #[test]
 fn function_bodies_and_subshells_are_scopes() {
-    // Bash scoping is dynamic, so this tree is a lexical approximation: a name
-    // used in a function may at run time resolve to a caller's variable.
+    // Bash scoping is dynamic, so this tree is a lexical approximation. A name used in a
+    // function may at run time resolve to a caller's variable.
     let src = "outer() {\n  inside=1\n}\ntoplevel=2\n( subshelled=3 )\n";
     let f = facts(src);
     let body = f.scope_at(src.find("inside=1").unwrap()).unwrap();

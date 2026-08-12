@@ -184,11 +184,11 @@ methods or variables. helm has very little dead code.
 
 🔎 The same command reported **238** candidates before this exercise. The difference
 is eight resolution bugs, the largest being that a Go package is a directory and only
-Terraform was treated that way, so `fr refs` returned nothing for symbols helm calls
+Terraform was treated that way. So `fr refs` returned nothing for symbols helm calls
 from the file next door.
 
 `--internal` matters for a library: `--lang go` alone reports 199 exported
-symbols, which is the public API, not dead code.
+symbols, which is the public API. It is not dead code.
 
 ---
 
@@ -223,7 +223,7 @@ Not changed — review these yourself:
     alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged
 ```
 
-🔎 `{{ … }}` is masked before parsing, so everything inside it was invisible to the
+🔎 `{{ … }}` is masked before parsing. So everything inside it was invisible to the
 index: this rewrote `values.yaml` and nothing else, listing every template use as a
 textual occurrence to fix by hand.
 
@@ -239,7 +239,7 @@ $ fr extract pkg/action/install.go:221:5-221:20 itemCount
 
 🔎 This put the binding at the top of the function, above the declaration of
 `totalItems`, until the third private copy of "is this a statement container" was
-merged with the other two. It parses, so no reparse check caught it; it simply does
+merged with the other two. It parses, so no reparse check caught it; it does
 not compile.
 
 ### `fr move`, a symbol, with what it needs
@@ -298,7 +298,7 @@ $ fr rewrite crates/cli/src/decompress.rs:477:9 guard-clause
 ```
 
 🔎 That `continue` was `return` until this example was written. The `if` ends a `for`
-body inside a function returning `Result<PathBuf>`, so `return` left the loop
+body inside a function returning `Result<PathBuf>`. So `return` left the loop
 entirely *and* returned nothing from a function that owes a value. The exit now
 follows from the block, and a function that owes a value is refused outright, what
 to return early is the author's decision.
@@ -366,9 +366,9 @@ what is missing says more about a tool than the list of what it has.
 | **Split a class or module** | The tool can *find* the case for it, `fr duplicates` and `fr graph` show cohesion, but performing the split is a sequence of moves a human should direct. |
 
 The common thread: everything above needs types, and this tool is built on syntax. It
-stops where the syntax stops and says so, which is why a reference it cannot prove is
+stops where the syntax stops and says so, so a reference it cannot prove is
 reported and not rewritten. A refactoring that needs the type of an arbitrary
-expression belongs in a language server; one that needs only what is written down
+expression belongs in a language server. One that needs only what is written down
 belongs here, across all sixteen languages at once.
 
 ---

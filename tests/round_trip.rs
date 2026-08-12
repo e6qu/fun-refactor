@@ -1,19 +1,19 @@
 //! A signature that goes out and comes back must be the same signature.
 //!
-//! "The output parses" is the weakest objective bar and it found nine defects. This is
-//! the next one up, and it asks a question parsing cannot: **did anything go missing on
-//! the way?** A translation that drops a parameter, or invents one, or loses a function
-//! altogether, produces a file the target's grammar is perfectly happy with.
+//! "The output parses" is the weakest objective bar and it found nine defects. This is the next
+//! one up, and it asks a question parsing cannot. **did anything go missing on the way?** A
+//! translation that drops a parameter, or invents one, or loses a function altogether, produces
+//! a file the target's grammar is perfectly happy with.
 //!
-//! The check is a round trip. Read the source into the IR, translate it, read the
-//! *result* back into the IR, and compare. The IR is the only place two files written
-//! in different languages can be compared at all.
+//! The check is a round trip. Read the source into the IR, translate it, read the *result* back
+//! into the IR, and compare. The IR is the only place two files written in different languages
+//! can be compared at all.
 //!
-//! What is compared is deliberately narrow: **which functions exist, and what their
-//! parameters are called.** Types are where the legitimate differences live. Go writes
-//! `struct{}` for nothing at all, Zig writes a slice where TypeScript writes an array,
-//! and a check that argued about those would spend its life growing exceptions. A
-//! parameter appearing or vanishing is never legitimate.
+//! What is compared is deliberately narrow: **which functions exist, and what their parameters
+//! are called.** Types are where the legitimate differences live. Go writes `struct{}` for
+//! nothing at all, Zig writes a slice where TypeScript writes an array. A check that argued
+//! about those would spend its life growing exceptions. A parameter appearing or vanishing is
+//! never legitimate.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -59,9 +59,9 @@ fn signature(f: &Function) -> (String, Vec<String>) {
         .filter(|p| p.kind == ParamKind::Normal)
         .map(|p| format!("{}: {}", plain(&p.name), shape(p.ty.as_ref())))
         .collect();
-    // A constructor's name is not information: Java names it after the class, Python
-    // calls it `__init__`, and Rust, Go and Zig call it `new`, `NewThing` and `init` by
-    // habit. Comparing those would be comparing the two targets, not the translation.
+    // A constructor's name is not information: Java names it after the class, Python calls it
+    // `__init__`. Rust, Go and Zig call it `new`, `NewThing` and `init` by habit. Comparing
+    // those would be comparing the two targets, not the translation.
     let name = match f.is_constructor {
         true => "<constructor>".to_string(),
         false => plain(&f.name),
@@ -78,10 +78,10 @@ fn signatures(module: &Module) -> Vec<(String, Vec<String>)> {
 
 /// A type with the target's spelling taken back off.
 ///
-/// Which scalar is not compared: TypeScript has one numeric type, so an `i64` that goes
-/// through it comes back a `number` and there is nothing wrong with that. What is
-/// compared is the *shape*, a list stays a list, an optional stays optional, a named
-/// type keeps its name, because none of those can change for a good reason.
+/// Which scalar is not compared: TypeScript has one numeric type. So an `i64` that goes through
+/// it comes back a `number` and there is nothing wrong with that. What is compared is the
+/// *shape*, a list stays a list, an optional stays optional, a named type keeps its name,
+/// because none of those can change for a good reason.
 fn shape(ty: Option<&Type>) -> String {
     match ty {
         // Go writes nothing at all for a function that returns nothing, so "returns
@@ -117,10 +117,9 @@ fn shape(ty: Option<&Type>) -> String {
         {
             "number".to_string()
         }
-        // The last segment only. A qualified name says where a type came from, and Go
-        // has room for exactly one level of that, `crate::model::Reference` is
-        // `model.Reference` there and cannot be anything else. What must not change is
-        // which type it is.
+        // The last segment only. A qualified name says where a type came from. Go has room for
+        // exactly one level of that, `crate::model::Reference` is `model.Reference` there and
+        // cannot be anything else. What must not change is which type it is.
         Some(Type::Named { name, args }) => {
             let last = name.rsplit([':', '.']).next().unwrap_or(name);
             format!("{}/{}", plain(last), args.len())
@@ -130,7 +129,7 @@ fn shape(ty: Option<&Type>) -> String {
 
 /// Every field of every record, and every module constant.
 ///
-/// A field that vanishes is exactly as bad as a parameter that vanishes, and nothing
+/// A field that vanishes is as bad as a parameter that vanishes, and nothing
 /// was checking. They are listed with the type they belong to, since two records may
 /// both have a `name`.
 fn fields(module: &Module) -> Vec<(String, String)> {
@@ -142,9 +141,9 @@ fn fields(module: &Module) -> Vec<(String, String)> {
                     out.push((plain(&r.name), plain(&field.name)));
                 }
             }
-            // Java has no top level below the type, so a module constant is written as
-            // a `static final` field of the file's class and read back as one. Which
-            // side of that line it sits on is the translation working.
+            // Java has no top level below the type. So a module constant is written as a
+            // `static final` field of the file's class and read back as one. Which side of that
+            // line it sits on is the translation working.
             Item::Constant(c) => out.push((String::new(), plain(&c.name))),
             _ => {}
         }
@@ -203,17 +202,14 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             }
             let there = there_and_back(file, *to);
             let after = signatures(&there);
-            // The whole list at once, sorted, instead of each name looked up in turn:
-            // a name is not unique. Java overloads `add(Boolean)` beside
-            // `add(Character)`, and Zig writes a `deinit` in every struct in the file,
-            // so looking one up by name compares two different functions and calls the
-            // difference a defect.
-            // A placeholder stands for a type that could not be written, so it
-            // compares equal to whatever it replaced.
-            // A parameter's name always has to match. Its type has to match unless one
-            // side holds a placeholder for something this tool cannot write, a tuple,
-            // a closure, a union, because the placeholder *is* the loss, and the
-            // fidelity report is where it is stated.
+            // The whole list at once, sorted, instead of each name looked up in turn: a name is
+            // not unique. Java overloads `add(Boolean)` beside `add(Character)`, and Zig writes
+            // a `deinit` in every struct in the file. So looking one up by name compares two
+            // different functions and calls the difference a defect. A placeholder stands for a
+            // type that could not be written, so it compares equal to whatever it replaced. A
+            // parameter's name always has to match. Its type has to match unless one side holds
+            // a placeholder for something this tool cannot write, a tuple, a closure, a union,
+            // because the placeholder *is* the loss. The fidelity report is where it is stated.
             let same_parameters = |a: &[String], b: &[String]| {
                 a.len() == b.len()
                     && a.iter().zip(b.iter()).all(|(x, y)| {
@@ -236,14 +232,14 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 .iter()
                 .filter(|s| !before.iter().any(|t| alike(s, t)))
                 .collect();
-            // A constructor may change its name in either direction, because in three
-            // of these languages "constructor" *is* a naming convention. Java overloads
-            // them and nobody else does, so a second one written elsewhere keeps its
-            // source's name and the report says so; and a Rust `new_handle` that returns
-            // a `Handle` is written `NewHandle` in Go, which is exactly how Go spells a
-            // constructor, so it comes back as `Handle::new`. Both are the signature
-            // surviving under the target's own convention, which is the promise. What is
-            // never allowed is the parameters changing.
+            // A constructor may change its name in either direction, because in three of these
+            // languages "constructor" *is* a naming convention. Java overloads them and nobody
+            // else does, so a second one written elsewhere keeps its source's name and the
+            // report says so. And a Rust `new_handle` that returns a `Handle` is written
+            // `NewHandle` in Go, which is how Go spells a constructor, so it comes back as
+            // `Handle::new`. Both are the signature surviving under the target's own
+            // convention, which is the promise. What is never allowed is the parameters
+            // changing.
             loop {
                 let pair = missing.iter().enumerate().find_map(|(at, (name, params))| {
                     let constructor = name == "<constructor>";

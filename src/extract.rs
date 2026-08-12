@@ -127,7 +127,7 @@ fn reference_expects(name: &str) -> Option<SymbolKind> {
     })
 }
 
-/// Narrow a captured span to the bytes that actually name something.
+/// Narrow a captured span to the bytes that name something.
 ///
 /// Grammars vary in how tightly they bound a name. Some expose only a quoted string
 /// node (tree-sitter-xml's attribute values have no inner text node at all), and
@@ -163,17 +163,17 @@ fn refine_name_span(span: Span, source: &str, lang: Language) -> Span {
 
 /// Strip the Markdown syntax the grammar leaves inside a name.
 ///
-/// A link label is a single node that includes its brackets (`[label]`), and an ATX
-/// heading's content includes the optional closing marker (`## Title ##`). A rename
-/// rewrites exactly the name span, so leaving either in would write `new: /a` for a
-/// link reference definition, or leave a stray `##` on a renamed heading.
+/// A link label is a single node that includes its brackets (`[label]`), and an ATX heading's
+/// content includes the optional closing marker (`## Title ##`). A rename rewrites exactly the
+/// name span, so leaving either in would write `new. /a` for a link reference definition, or
+/// leave a stray `##` on a renamed heading.
 fn trim_markdown_syntax(span: Span, source: &str) -> Span {
     let text = span.text(source);
     if text.len() > 1 && text.starts_with('[') && text.ends_with(']') {
         return Span::new(span.start + 1, span.end - 1);
     }
     // CommonMark only reads a trailing run of `#` as a closing marker when a space
-    // precedes it, which is what keeps `# C#` naming the heading `C#`.
+    // precedes it, which keeps `# C#` naming the heading `C#`.
     let without_marker = text.trim_end_matches('#');
     if without_marker.len() < text.len() && without_marker.ends_with(char::is_whitespace) {
         return Span::new(span.start, span.start + without_marker.trim_end().len());
@@ -206,17 +206,16 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
 
 /// What a reference was written against, if it was written as a member of something.
 ///
-/// `w.contextWithTimeout(…)` yields `w`; `time.Now()` yields `time`; a bare
-/// `helper()` yields nothing. Read from the tree and not captured by a query,
-/// because every grammar spells the shape differently but all of them put the
-/// receiver first and the member last.
-/// Was this name written as `name(` inside a macro's token tree?
+/// `w.contextWithTimeout(…)` yields `w`; `time.Now()` yields `time`; a bare `helper()` yields
+/// nothing. Read from the tree and not captured by a query, because every grammar spells the
+/// shape differently but all of them put the receiver first and the member last. Was this name
+/// written as `name(` inside a macro's token tree?
 ///
 /// The same problem as `member_in_macro` from the other side. A macro body is tokens, so
-/// `assert_eq!(width(&h.items, 1), 3)` gives a bare identifier and not a call. Resolution
-/// then cannot apply the rule that a call with no receiver is not a method, so a
-/// same-named method stays a candidate and the answer is ambiguous. The parenthesis is in
-/// the source where the syntax is not.
+/// `assert_eq!(width(&h.items, 1), 3)` gives a bare identifier and not a call. Resolution then
+/// cannot apply the rule that a call with no receiver is not a method. So a same-named method
+/// stays a candidate and the answer is ambiguous. The parenthesis is in the source where the
+/// syntax is not.
 fn call_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
     if !inside_token_tree(root, span) {
         return false;
@@ -226,14 +225,14 @@ fn call_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
 
 /// Was this reference written as `something.name` inside a macro's token tree?
 ///
-/// A macro body is tokens, not syntax: tree-sitter offers `token_tree` and no structure
-/// within it, so `assert_eq!(f.scope_at(30), …)` yields a bare identifier with no
-/// receiver. Resolution then cannot tell it from a call to a free function of the same
-/// name, and renaming that function rewrote the method call.
+/// A macro body is tokens, not syntax: tree-sitter offers `token_tree` and no structure within
+/// it, so `assert_eq!(f.scope_at(30), …)` yields a bare identifier with no receiver. Resolution
+/// then cannot tell it from a call to a free function of the same name, and renaming that
+/// function rewrote the method call.
 ///
-/// Only the dotted ones. A plain `assert_eq!(helper(), 1)` names `helper` whether the
-/// grammar parsed the call or not, and treating every token in every macro as suspect
-/// would leave 12,989 references in this repository unrewritable for nothing.
+/// Only the dotted ones. A plain `assert_eq!(helper(), 1)` names `helper` whether the grammar
+/// parsed the call or not. Treating every token in every macro as suspect would leave 12,989
+/// references in this repository unrewritable for nothing.
 fn member_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
     inside_token_tree(root, span) && source[..span.start].trim_end().ends_with('.')
 }
@@ -260,11 +259,11 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
         "scoped_identifier",
         "scoped_type_identifier",
     ];
-    // What the member was read from, where the grammar names it. Preferred over the
-    // positional rule below, which assumes the member is the last child: Java's
-    // `a.m(x)` is one `method_invocation` whose children are the object, the name and
-    // the *argument list*, so the member is not last and the positional rule saw no
-    // receiver at all, leaving every method call in the language unresolved.
+    // What the member was read from, where the grammar names it. Preferred over the positional
+    // rule below, which assumes the member is the last child. Java's `a.m(x)` is one
+    // `method_invocation` whose children are the object, the name and the *argument list*, so
+    // the member is not last and the positional rule saw no receiver at all, leaving every
+    // method call in the language unresolved.
     const RECEIVER_FIELDS: &[&str] = &["object", "operand", "receiver"];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
@@ -290,8 +289,8 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
 
     for field in RECEIVER_FIELDS {
         if let Some(receiver) = parent.child_by_field_name(field) {
-            // Only when this node really is the member of that receiver, not the
-            // receiver itself: `a.b` names `a` once as an object and once as a member.
+            // Only when this node really is the member of that receiver, not the receiver
+            // itself. `a.b` names `a` once as an object and once as a member.
             if Span::from(receiver) != span {
                 return Some(Span::from(receiver).text(source).to_string());
             }
@@ -309,11 +308,11 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     Some(Span::from(children[0]).text(source).to_string())
 }
 
-/// What a string reference actually names: its fragment, itself, or nothing.
+/// What a string reference names: its fragment, itself, or nothing.
 ///
-/// `None` drops the reference. An absolute URL is somebody else's document, and the
-/// grammars capture the destination whole, so without this every `href` with a fragment
-/// would enter the index under a name no file can define.
+/// `None` drops the reference. An absolute URL is somebody else's document, and the grammars
+/// capture the destination whole. So without this every `href` with a fragment would enter the
+/// index under a name no file can define.
 fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Span> {
     if kind != ReferenceKind::StringRef {
         return Some(span);
@@ -335,10 +334,10 @@ fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Spa
 
 /// The variables and calls written inside SCSS `#{ ... }`.
 ///
-/// The filler that makes the declaration parse is an identifier, so everything between
-/// the braces reaches the query as one word. These are the same two shapes the SCSS
-/// query matches outside interpolation, `$name`, and a name applied to arguments, read
-/// from the source the mask replaced.
+/// The filler that makes the declaration parse is an identifier, so everything between the
+/// braces reaches the query as one word. These are the same two shapes the SCSS query matches
+/// outside interpolation, `$name`. A name applied to arguments, read from the source the mask
+/// replaced.
 fn interpolation_references(
     source: &str,
     parsed: &Parsed,
@@ -393,10 +392,10 @@ fn interpolation_references(
 
 /// The `.Values` paths a Helm template names, as references to the values file.
 ///
-/// One reference per path, spanning the *last* segment only: renaming the key `tag`
-/// under `image` must rewrite `tag` in `{{ .Values.image.tag }}` and leave `image`
-/// alone. The segment before it is recorded as the receiver, which is what lets
-/// resolution tell `image.tag` from a `tag` under something else.
+/// One reference per path, spanning the *last* segment only. Renaming the key `tag` under
+/// `image` must rewrite `tag` in `{{ .Values.image.tag }}` and leave `image` alone. The segment
+/// before it is recorded as the receiver, which lets resolution tell `image.tag` from a
+/// `tag` under something else.
 fn values_references(
     source: &str,
     parsed: &Parsed,
@@ -692,7 +691,7 @@ impl Extractor {
         }
 
         // Pass 4: references. A capture that coincides with a definition's identifier
-        // is the definition itself, not a use of it.
+        // is the definition itself. It is not a use of it.
         let def_name_spans: std::collections::HashSet<Span> =
             symbols.iter().map(|s| s.name_span).collect();
         let mut references = Vec::new();

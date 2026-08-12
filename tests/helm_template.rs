@@ -1,11 +1,10 @@
 //! Go template parsing for Helm charts, and what it lets the analyses say.
 //!
-//! Two halves. The first parses action text directly: a template action is a small
-//! language, and the tests pin what each construct means and not what a
-//! substring happens to contain. The second drives the public API over a realistic
-//! chart, subchart, `_helpers.tpl`, `include`, a `{{- if }}`-wrapped block and a
-//! `{{ if }}`-guarded environment variable, and pins either the resolved answer or
-//! the honest statement of what is left undecidable.
+//! Two halves. The first parses action text directly: a template action is a small language.
+//! The tests pin what each construct means and not what a substring happens to contain. The
+//! second drives the public API over a realistic chart, subchart, `_helpers.tpl`, `include`, a
+//! `{{- if }}`-wrapped block and a `{{ if }}`-guarded environment variable. Pins either the
+//! resolved answer or the honest statement of what is left undecidable.
 
 use fun_refactor::{
     analysis::provenance::{consumers, provenance, StopReason},
@@ -31,8 +30,8 @@ fn path(segments: &[&str]) -> Vec<String> {
     segments.iter().map(|s| s.to_string()).collect()
 }
 
-/// Parse a whole file the way the analyses do: the action spans come from the
-/// parser that masks them, so the two views can never drift apart.
+/// Parse a whole file the way the analyses do: the action spans come from the parser that masks
+/// them. So the two views can never drift apart.
 fn template(source: &str) -> helm::Template {
     let parsed = Parsers::new()
         .parse(Language::Helm, source)
@@ -135,7 +134,7 @@ fn trim_markers_are_recognised_by_gos_own_rule() {
     let right = action("{{ .Values.x -}}");
     assert!(!right.trim_left && right.trim_right);
 
-    // A hyphen with no space beside it is a minus sign, not a trim marker.
+    // A hyphen with no space beside it is a minus sign. It is not a trim marker.
     let negative = action("{{-3}}");
     assert!(!negative.trim_left, "`{{-3}}` is the number -3");
     assert!(negative.problems.is_empty(), "{:?}", negative.problems);
@@ -334,8 +333,8 @@ fn a_with_block_resolves_the_fields_written_under_it() {
 
 #[test]
 fn a_field_under_a_range_is_not_invented_as_a_values_key() {
-    // The dot inside a `range` is an element of the collection; no values file has
-    // a key for it, and guessing one would send provenance looking for nothing.
+    // The dot inside a `range` is an element of the collection; no values file has a key for
+    // it. Guessing one would send provenance looking for nothing.
     let source = "{{- range .Values.hosts }}\n- host: {{ .name }}\n{{- end }}\n";
     let template = template(source);
     let index = template
@@ -563,7 +562,7 @@ fn a_key_wrapped_in_an_if_is_reported_with_its_condition() {
         "got {:?}",
         stops(&result)
     );
-    // And the condition's own values key is resolved, not merely named.
+    // And the condition's own values key is resolved. It is not named.
     assert!(
         result.hops.iter().any(|h| h.text.contains("enabled: true")),
         "got {:?}",
@@ -573,7 +572,7 @@ fn a_key_wrapped_in_an_if_is_reported_with_its_condition() {
 
 #[test]
 fn an_unguarded_key_is_not_reported_as_conditional() {
-    // The other half of the same claim: only what is actually guarded is guarded.
+    // The other half of the same claim: only what is guarded is guarded.
     let (_tmp, index) = chart();
     let kind = key_with_path(&index, "deployment.yaml", "kind");
     let result = provenance(&index, kind, 4).unwrap();
@@ -609,7 +608,7 @@ fn a_value_from_an_include_is_followed_into_the_define() {
         "the answer lives in another file, and says so: {:?}",
         result.hops.iter().map(|h| &h.file).collect::<Vec<_>>()
     );
-    // `.Chart.Name` is the fallback, and comes from the release, not the workspace.
+    // `.Chart.Name` is the fallback, and comes from the release. It is not the workspace.
     assert!(
         result.stopped_because(|r| matches!(
             r,

@@ -1,6 +1,6 @@
 //! The cache must be invisible: an index built from cached facts has to be
 //! indistinguishable from one built by parsing every file. These tests compare the
-//! two directly, because a cache that is merely *fast* is worthless if it is wrong.
+//! two directly, because a cache that is *fast* is worthless if it is wrong.
 
 use fun_refactor::cache::Cache;
 use fun_refactor::index::Index;
@@ -254,15 +254,14 @@ fn a_missing_cache_directory_is_not_an_error() {
 
 #[test]
 fn the_cache_namespace_includes_the_extractor_that_produced_the_facts() {
-    // The cache is keyed by file content and by the query set. That is only correct
-    // while "the extractor" is a constant, and it is not. Adding a field to
-    // `Reference` changes what a cached fact means, while `#[serde(default)]` lets
-    // yesterday's entry deserialize cleanly into today's struct. The result is a
-    // cache that looks healthy and answers wrongly; it cost an afternoon of bisecting
-    // a test failure that was not in the code being bisected.
+    // The cache is keyed by file content and by the query set. That is only correct while "the
+    // extractor" is a constant, and it is not. Adding a field to `Reference` changes what a
+    // cached fact means, while `#[serde(default)]` lets yesterday's entry deserialize cleanly
+    // into today's struct. The result is a cache that looks healthy and answers wrongly. It
+    // cost an afternoon of bisecting a test failure that was not in the code being bisected.
     //
-    // build.rs hashes the sources that define extraction into the namespace, so an
-    // edit to any of them makes every stale entry unreachable and not wrong.
+    // build.rs hashes the sources that define extraction into the namespace, so an edit to any
+    // of them makes every stale entry unreachable and not wrong.
     let fingerprint = env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT");
     assert_eq!(
         fingerprint.len(),

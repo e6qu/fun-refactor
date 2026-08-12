@@ -1,10 +1,9 @@
 //! Running a recipe: select, act, re-index, and say what happened.
 //!
-//! A recipe is **one transaction**. Every step's edits are applied to an in-memory
-//! copy of the workspace and the index is rebuilt from it, so each step sees what the
-//! previous one left; nothing reaches disk until the whole run has succeeded. A
-//! half-applied recipe leaves a repository in a state nobody designed, the flag
-//! removed and its dead branches still there.
+//! A recipe is **one transaction**. Every step's edits are applied to an in-memory copy of the
+//! workspace and the index is rebuilt from it. So each step sees what the previous one left;
+//! nothing reaches disk until the whole run has succeeded. A half-applied recipe leaves a
+//! repository in a state nobody designed, the flag removed and its dead branches still there.
 
 use super::parse::{Expect, OnRefusal, Operation, Predicate, Recipe, Requirement, Step};
 use crate::analysis::entrypoints::Entrypoints;
@@ -41,11 +40,11 @@ pub struct StepReport {
     pub refusals: Vec<Refusal>,
     /// What the operation left alone and said so about.
     ///
-    /// A refusal is the operation declining; a warning is it succeeding and telling
-    /// you what it could not verify, a reference that resolved too weakly to rewrite,
-    /// a name in a comment. Dropping these on the floor is the accept-and-ignore this
-    /// codebase bans elsewhere: `fr rename` prints them and a recipe was swallowing
-    /// them, so a step that left work behind reported a clean run.
+    /// A refusal is the operation declining; a warning is it succeeding and telling you what it
+    /// could not verify, a reference that resolved too weakly to rewrite, a name in a comment.
+    /// Dropping these on the floor is the accept-and-ignore this codebase bans elsewhere: `fr
+    /// rename` prints them and a recipe was swallowing them. So a step that left work behind
+    /// reported a clean run.
     pub warnings: Vec<String>,
     pub files_changed: usize,
 }
@@ -80,13 +79,13 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
     let mut index = reindex(&sources)?;
     check_requirements(recipe, &index, &sources)?;
 
-    // Files this run has already touched, which is what `where changed` selects on.
+    // Files this run has already touched, which `where changed` selects on.
     let mut changed: BTreeSet<PathBuf> = BTreeSet::new();
     let mut steps = Vec::new();
     let mut total_refusals = 0usize;
     let mut stopped = None;
 
-    // Only what an expectation actually asks for. Both analyses run over the whole
+    // Only what an expectation asks for. Both analyses run over the whole
     // workspace and both ran twice, before and after, even for a recipe with no
     // `expect no-new` in it at all, which over helm is most of a minute spent
     // answering a question nobody asked.
@@ -103,8 +102,8 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
     for step in &recipe.steps {
         let report = run_step(step, &index, &sources, &changed, options)?;
 
-        // `stop` is the default because a step that refused has not done what the
-        // recipe says it does, and the steps after it were written expecting it had.
+        // `stop` is the default because a step that refused has not done what the recipe says
+        // it does. The steps after it were written expecting it had.
         if step.on_refusal == OnRefusal::Stop && !report.report.refusals.is_empty() {
             let first = &report.report.refusals[0];
             stopped = Some(format!(
@@ -194,9 +193,9 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
 
 /// Rebuild the index, and hand the same text to everything that reads a file.
 ///
-/// The refactorings read source through [`crate::vfs`], not from this map, so without
-/// installing it a plan made after one step is measured against the file on disk,
-/// which is the text before *any* step ran.
+/// The refactorings read source through [`crate::vfs`], not from this map. So without
+/// installing it a plan made after one step is measured against the file on disk, which is the
+/// text before *any* step ran.
 fn reindex(sources: &Sources) -> Result<Index> {
     let handle = crate::vfs::new_handle(
         sources
@@ -416,16 +415,16 @@ fn run_step(
                 None => chosen,
             };
 
-            // Each subject is planned against the workspace the previous one left,
-            // but rebuilding the index after every one of them is what makes a step
-            // unusable at scale: five files of helm took two minutes because each
-            // subject re-indexed all five hundred and thirty-nine.
+            // Each subject is planned against the workspace the previous one left, but
+            // rebuilding the index after every one of them makes a step unusable at scale. Five
+            // files of helm took two minutes because each subject re-indexed all five hundred
+            // and thirty-nine.
             //
-            // It is needed exactly when a previous edit could have moved the text this
-            // subject is about. That is true when its own file has already been edited,
-            // and true for everything once an operation has edited a file other than
-            // its subject's, a rename rewrites call sites elsewhere. Otherwise the
-            // subjects are independent and one index does for all of them.
+            // It is needed when a previous edit could have moved the text this subject is
+            // about. That is true when its own file has already been edited. True for
+            // everything once an operation has edited a file other than its subject's, a rename
+            // rewrites call sites elsewhere. Otherwise the subjects are independent and one
+            // index does for all of them.
             let mut running = sources.clone();
             let mut current = reindex(&running)?;
             let mut touched: BTreeSet<PathBuf> = BTreeSet::new();
@@ -483,7 +482,7 @@ fn run_step(
     };
 
     // A selector that matches nothing stops the recipe. Silently doing nothing is the
-    // failure this most wants to avoid, because it looks exactly like success.
+    // failure this most wants to avoid, because it looks like success.
     if matched == 0 && !step.allow_empty {
         bail!(
             "line {}: `{}` matched nothing. That is not success. Write `allow-empty` if \
@@ -558,7 +557,7 @@ impl Subject {
 /// What an operation did, what it left alone, and how many sites it touched.
 ///
 /// The count is 1 for anything acting on a symbol and however many sites a `rewrite`
-/// found in one file, the unit that matters there is the site, not the file, which is
+/// found in one file, the unit that matters there is the site. It is not the file, which is
 /// what `limit` is for.
 type Outcome = (EditSet, Vec<String>, usize);
 
@@ -645,11 +644,11 @@ fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<(EditSet, usiz
         bail!("{} is not in the index", path.display());
     };
 
-    // Candidate positions come from one parse of the file. Asking at *every byte
-    // offset* worked and took two minutes forty over five files of helm, because each
-    // ask reparses: it is O(bytes × parse) where it wants to be O(anchors × parse).
-    // All three transformations anchor on a conditional or on a negation, so those are
-    // the only offsets worth asking about.
+    // Candidate positions come from one parse of the file. Asking at *every byte offset* worked
+    // and took two minutes forty over five files of helm, because each ask reparses. It is
+    // O(bytes × parse) where it wants to be O(anchors × parse). All three transformations
+    // anchor on a conditional or on a negation, so those are the only offsets worth asking
+    // about.
     let parsers = crate::parse::Parsers::new();
     let parsed = parsers.parse(language, &source)?;
     let mut anchors: Vec<usize> = Vec::new();
@@ -694,7 +693,7 @@ fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<(EditSet, usiz
         }
     }
     // A file where the transformation applies nowhere is not a refusal. The selector
-    // chose *files*; a file with no wrapping `if` in it simply had nothing to do, and
+    // chose *files*; a file with no wrapping `if` in it had nothing to do, and
     // treating that as a failure made `on-refusal stop`, the default, abandon the run
     // on the first ordinary file. Over one package of helm that was three of five.
     Ok((edits, applied))
@@ -742,9 +741,9 @@ pub const PREDICATES: &[&str] = &[
 
 /// The workspace-wide answers a selector needed, computed once per step.
 ///
-/// Each is an existing analysis and not new machinery, and each is only run when a
-/// predicate asks for it: the call graph over helm is not something to build for a
-/// selector that says `name="x"`.
+/// Each is an existing analysis and not new machinery. Each is only run when a predicate asks
+/// for it. The call graph over helm is not something to build for a selector that says
+/// `name="x"`.
 #[derive(Default)]
 struct Facts {
     unused: BTreeSet<SymbolId>,
@@ -781,14 +780,14 @@ fn select(
                 PREDICATES.join(", ")
             );
         }
-        // `kind` and `lang` take a value from a closed set, and a misspelled one used to
-        // be answered by the codebase and not by the recipe: `kind=functoin` matched
-        // nothing, and the step failed saying it had matched nothing, which blames the
-        // repository for a typo in the file. The predicate's own name is checked above
-        // for exactly this reason; its value deserves the same.
+        // `kind` and `lang` take a value from a closed set, and a misspelled one used to be
+        // answered by the codebase and not by the recipe: `kind=functoin` matched nothing, and
+        // the step failed saying it had matched nothing, which blames the repository for a typo
+        // in the file. The predicate's own name is checked above for this reason; its value
+        // deserves the same.
         //
-        // `kind` is checked by parsing it, so the vocabulary comes from the type rather
-        // than from a list kept beside it, and serde's own error names the alternatives.
+        // `kind` is checked by parsing it, so the vocabulary comes from the type and not
+        // from a list kept beside it. Serde's own error names the alternatives.
         if let Predicate::Equals { field, value } = predicate {
             match field.as_str() {
                 "kind" => {
@@ -977,9 +976,8 @@ fn symbol_matches(
             "in" => path.contains(value.trim_end_matches('/')),
             "file" => path.ends_with(value.as_str()),
             "annotated-with" => annotated(symbol, value),
-            // These four are answered by an analysis and not by the symbol, so the
-            // value has already been used to compute the set and only membership is
-            // left to check.
+            // These four are answered by an analysis and not by the symbol. So the value has
+            // already been used to compute the set and only membership is left to check.
             "calls" => facts.calls.contains(&symbol.id),
             "called-by" => facts.called_by.contains(&symbol.id),
             "implements" => facts.implements.contains(&symbol.id),

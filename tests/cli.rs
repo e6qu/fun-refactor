@@ -1,15 +1,14 @@
 //! End-to-end tests: the binary, invoked the way a person invokes it.
 //!
-//! Every other test in this suite calls the library directly, which leaves the layer
-//! between a command line and that library untested. Two real bugs lived there and
-//! neither was visible from below: `--path` filters were built by joining the default
-//! root `.`, so they never matched the absolute paths in the index and every filtered
-//! report came back empty, a clean bill of health that meant "the filter matched
-//! nothing". A refactoring tool that reports "no findings" when it means "I looked in
-//! the wrong place" is worse than one that crashes.
+//! Every other test in this suite calls the library directly, which leaves the layer between a
+//! command line and that library untested. Two real bugs lived there and neither was visible
+//! from below. `--path` filters were built by joining the default root `.`, so they never
+//! matched the absolute paths in the index and every filtered report came back empty, a clean
+//! bill of health that meant "the filter matched nothing". A refactoring tool that reports "no
+//! findings" when it means "I looked in the wrong place" is worse than one that crashes.
 //!
-//! So these run `fr` itself: argument parsing, path resolution, exit codes and the
-//! text a person actually reads.
+//! So these run `fr` itself: argument parsing, path resolution, exit codes and the text a
+//! person reads.
 
 use std::path::Path;
 use std::process::Command;
@@ -317,10 +316,10 @@ fn a_long_unused_report_says_what_it_is_mostly_made_of() {
 
 #[test]
 fn what_unused_reports_can_be_given_to_delete() {
-    // The next command after `fr unused` is `fr delete`, and a name is not enough to
-    // name a symbol with: in `helm/helm`, 34 of the first 40 candidates are defined
-    // twice, so `fr delete <name>` answered "defined 2 times; give a position", which
-    // the list had no way to provide. It reports `file:line:col` now, in both renderings.
+    // The next command after `fr unused` is `fr delete`. A name is not enough to name a symbol
+    // with: in `helm/helm`, 34 of the first 40 candidates are defined twice. So `fr delete
+    // <name>` answered "defined 2 times; give a position", which the list had no way to
+    // provide. It reports `file:line:col` now, in both renderings.
     let ws = Workspace::new(&[
         ("a/one.go", "package a\n\nfunc Shared() int {\n\treturn 1\n}\n"),
         (

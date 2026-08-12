@@ -101,9 +101,9 @@ fn every_vendored_file_has_provenance() {
     let queries = vendor_root().join("tree-sitter-queries");
     let mut stack = vec![queries.clone()];
     while let Some(dir) = stack.pop() {
-        // A directory that cannot be read is not a directory with nothing in it. The
-        // whole walk used to pass by finding nothing, so a vendor tree that had gone
-        // missing read as a vendor tree with no stray files in it.
+        // A directory that cannot be read is not a directory with nothing in it. The whole walk
+        // used to pass by finding nothing. So a vendor tree that had gone missing read as a
+        // vendor tree with no stray files in it.
         let entries = std::fs::read_dir(&dir)
             .unwrap_or_else(|e| panic!("{} cannot be read: {e}", dir.display()));
         for entry in entries.flatten() {
@@ -232,10 +232,9 @@ fn nothing_vendored_is_compiled_into_the_binary() {
 
 /// `tests/corpus/`, real files from real projects, kept for the translation tests.
 ///
-/// Described by `PROVENANCE.md` instead of a manifest, because it is a document a
-/// person reads. That makes it exactly as rot-prone as `MANIFEST.toml` and it needs
-/// the same check: a file that changes without its checksum changing is a file whose
-/// provenance is a claim and not a fact.
+/// Described by `PROVENANCE.md` instead of a manifest, because it is a document a person reads.
+/// That makes it as rot-prone as `MANIFEST.toml` and it needs the same check. A file that
+/// changes without its checksum changing is a file whose provenance is a claim and not a fact.
 fn corpus_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")

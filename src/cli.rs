@@ -100,7 +100,7 @@ enum Command {
         #[arg(long)]
         stats: bool,
     },
-    /// Show where a symbol is defined, every definition, not just one.
+    /// Show where a symbol is defined, every definition. It is not just one.
     ///
     /// A trait or interface method has as many definitions as implementations, and a
     /// CSS class is declared by every rule that names it.
@@ -242,9 +242,9 @@ enum Command {
         catalogs: Option<PathBuf>,
         /// Only report symbols in this language. Repeatable.
         ///
-        /// Filters the report, not the index: reachability is still worked out
-        /// across the whole workspace, so narrowing here cannot invent a dead
-        /// symbol the way scanning a subdirectory would.
+        /// Filters the report, not the index: reachability is still worked out across the whole
+        /// workspace. So narrowing here cannot invent a dead symbol the way scanning a
+        /// subdirectory would.
         #[arg(long = "lang", alias = "language", value_name = "LANG")]
         languages: Vec<String>,
         /// Only report symbols under this path prefix. Repeatable.
@@ -305,7 +305,7 @@ enum Command {
     /// Only where one grammar contains the other. CSS as SCSS, a manifest as a Helm
     /// template, TypeScript as TSX, and only when the file parses cleanly as the
     /// target. Omit the language to list what this file could be. Rewriting one
-    /// programming language as another is a translation, not a refactoring, and is
+    /// programming language as another is a translation. It is not a refactoring, and is
     /// refused with the reason.
     ///
     /// Prints a diff by default; pass --write to apply it.
@@ -827,15 +827,14 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
 
 /// The destination file, spelled the way the index spells its paths.
 ///
-/// A move works out an import path by comparing the destination against the file
-/// that needs the import, so the two have to be written the same way. They are not
-/// by default: the destination is whatever the caller typed, while indexed paths are
-/// canonical, and on macOS `/var` and `/private/var` name the same directory. Left
-/// alone that produced imports like `'../../../../../../../var/folders/…'`.
+/// A move works out an import path by comparing the destination against the file that needs the
+/// import. So the two have to be written the same way. They are not by default: the destination
+/// is whatever the caller typed, while indexed paths are canonical. On macOS `/var` and
+/// `/private/var` name the same directory. Left alone that produced imports like
+/// `'../../../../../../../var/folders/…'`.
 ///
-/// The file itself need not exist yet, a move usually creates it, so it is the
-/// parent directory that is resolved, and a missing one is an error and not a
-/// path passed through untouched.
+/// The file itself need not exist yet, a move usually creates it. So it is the parent directory
+/// that is resolved, and a missing one is an error and not a path passed through untouched.
 fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::path::PathBuf> {
     let absolute = if destination.is_absolute() {
         destination.to_path_buf()
@@ -905,12 +904,11 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 
 /// A path the caller typed, spelled the way the index spells its paths.
 ///
-/// Relative paths resolve against the workspace root, not the shell's working
-/// directory: `-C` says which workspace to operate on, and `fr -C ../helm refs
-/// pkg/x.go:3:6` means that file in that workspace. Canonical, because the index is,
-/// and a path that does not exist is an error, resolving it to itself and letting
-/// the file read fail two frames later says "reading pkg/x.go: No such file", which
-/// is true and unhelpful.
+/// Relative paths resolve against the workspace root, not the shell's working directory: `-C`
+/// says which workspace to operate on. `fr -C ../helm refs pkg/x.go:3:6` means that file in
+/// that workspace. Canonical, because the index is, and a path that does not exist is an error,
+/// resolving it to itself and letting the file read fail two frames later says "reading
+/// pkg/x.go. No such file", which is true and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     let joined = if path.is_absolute() {
@@ -1089,10 +1087,10 @@ fn cmd_unused(
         .filter(|id| index.symbol(*id).is_some_and(keep))
         .collect();
 
-    // The position, because the next command a reader runs is `fr delete`, and a name is
-    // not enough to name a symbol with: 34 of the first 40 candidates in `helm/helm` are
-    // defined twice, so `fr delete <name>` answers "defined 2 times; give a position".
-    // The list said which symbol it meant and had no way to say it.
+    // The position, because the next command a reader runs is `fr delete`. A name is not enough
+    // to name a symbol with: 34 of the first 40 candidates in `helm/helm` are defined twice, so
+    // `fr delete <name>` answers "defined 2 times; give a position". The list said which symbol
+    // it meant and had no way to say it.
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
     let mut locate = |symbol: &crate::model::Symbol| {
         let source = sources
@@ -1145,11 +1143,10 @@ fn cmd_unused(
         );
     }
 
-    // What a long answer is mostly made of. `spring-petclinic` reports 3,554, of which
-    // 3,395 are CSS selectors in one vendored stylesheet, true, and useless as read,
-    // because the fourteen methods a person came for are somewhere in the scroll. The
-    // count alone does not say that; a reader should not have to pipe it through `sort`
-    // to find out what they are looking at.
+    // What a long answer is mostly made of. `spring-petclinic` reports 3,554, of which 3,395
+    // are CSS selectors in one vendored stylesheet, true. Useless as read, because the fourteen
+    // methods a person came for are somewhere in the scroll. The count alone does not say that;
+    // a reader should not have to pipe it through `sort` to find out what they are looking at.
     if unused.len() >= 50 {
         let mut by_kind: BTreeMap<&str, usize> = BTreeMap::new();
         let mut by_file: BTreeMap<&std::path::Path, usize> = BTreeMap::new();
@@ -1280,9 +1277,9 @@ fn cmd_translate(
         return Ok(());
     };
 
-    // `fastapi` is a framework and not a language, and the translation into it
-    // reads the file's *path* as well as its text, a Next.js route's URL is where it
-    // sits on disk. It is therefore its own target instead of a flavour of Python.
+    // `fastapi` is a framework and not a language. The translation into it reads the file's
+    // *path* as well as its text, a Next.js route's URL is where it sits on disk. It is
+    // therefore its own target instead of a flavour of Python.
     if language.eq_ignore_ascii_case("fastapi") {
         return cmd_translate_fastapi(cli, &path, write);
     }
@@ -1315,11 +1312,10 @@ fn cmd_translate(
             "  signatures: {} complete, {} mentioning a type this tool does not know",
             f.signatures_complete, f.signatures_with_foreign_types
         );
-        // Not every note is about a carried construct. A type the source never wrote
-        // down, a name the target reserves, a base class a language without
-        // inheritance cannot keep. Those were computed and then printed only
-        // when something *else* had gone wrong, so a translation that lost a supertype
-        // and nothing else reported a clean bill.
+        // Not every note is about a carried construct. A type the source never wrote down, a
+        // name the target reserves, a base class a language without inheritance cannot keep.
+        // Those were computed and then printed only when something *else* had gone wrong. So a
+        // translation that lost a supertype and nothing else reported a clean bill.
         if f.carried_verbatim > 0 {
             println!(
                 "  {} construct(s) had no counterpart and are in the output as comments:",
@@ -1405,11 +1401,10 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "workspace".to_string());
-    // Either side of the crossing. A Next.js tree declares nothing and the contract is
-    // inferred from where the files sit; a FastAPI tree declares everything and the
-    // contract is read off the decorators. Which one is here decides which is read, and
-    // the report says which it was, because a document that does not say where it came
-    // from cannot be argued with.
+    // Either side of the crossing. A Next.js tree declares nothing and the contract is inferred
+    // from where the files sit. A FastAPI tree declares everything and the contract is read off
+    // the decorators. Which one is here decides which is read. The report says which it was,
+    // because a document that does not say where it came from cannot be argued with.
     let mut baseline = crate::openapi::from_routes(&title, &root, &files)?;
     let mut side = "Next.js route tree";
     if baseline.routes.is_empty() {
@@ -1502,7 +1497,7 @@ fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBu
             print_recipe_report(&report);
         }
 
-        // The recipe is one transaction: the diff is the whole run, not a step.
+        // The recipe is one transaction: the diff is the whole run. It is not a step.
         let mut edits = crate::edit::EditSet::new();
         for (path, (_, text)) in &after {
             let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
@@ -2226,11 +2221,10 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         });
     }
 
-    // A qualified name, `Box::size`, the spelling every listing prints, before a bare
-    // one. The tool printed these everywhere and then refused them as input, so the
-    // obvious way to name one of twenty `String` methods was the one way that did not
-    // work, and the only alternative offered was a line and column somebody had to go
-    // and look up.
+    // A qualified name, `Box::size`, the spelling every listing prints, before a bare one. The
+    // tool printed these everywhere and then refused them as input. So the obvious way to name
+    // one of twenty `String` methods was the one way that did not work. The only alternative
+    // offered was a line and column somebody had to go and look up.
     let matches = match target.contains("::") {
         true => index
             .symbols
@@ -2264,8 +2258,8 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         _ => {
             // Ambiguity is reported, never resolved by guessing.
             let mut listing = String::new();
-            // Each candidate is listed by the name that would select it, so the fix is
-            // to copy a line and not to go and find a line number.
+            // Each candidate is listed by the name that would select it. So the fix is to copy
+            // a line and not to go and find a line number.
             for symbol in &matches {
                 listing.push_str(&format!(
                     "\n  {} ({}) in {}",
@@ -2903,9 +2897,9 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
     }
 
     let mut per_language: BTreeMap<&'static str, Tally> = BTreeMap::new();
-    // The count and where. A file named with "2 error node(s)" and no position is a
-    // report somebody cannot act on: the whole value of knowing a file did not parse is
-    // being able to go and look at the part that did not.
+    // The count and where. A file named with "2 error node(s)" and no position is a report
+    // somebody cannot act on. The whole value of knowing a file did not parse is being able to
+    // go and look at the part that did not.
     let mut failures: Vec<(PathBuf, Vec<LineCol>)> = Vec::new();
 
     for file in &result.files {

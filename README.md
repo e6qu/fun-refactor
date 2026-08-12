@@ -126,7 +126,7 @@ Every command takes `--json`. Every mutation prints a diff and changes nothing
 unless you add `--write`, and a multi-file change is applied atomically.
 
 Files are indexed in parallel, and extracted facts are cached by file content and
-query set, so a repeated command re-reads only what changed, roughly 1.7× faster
+query set. So a repeated command re-reads only what changed, roughly 1.7× faster
 cold and 3–5× warm. `--no-cache` bypasses the cache; `fr cache --clear` empties it.
 
 ## What it will not do
@@ -167,7 +167,7 @@ and a pass there mean the same thing.
 `vendor/` holds the upstream tree-sitter query files the rules in `queries/` were
 derived from, each with its licence and a checksum in `vendor/MANIFEST.toml`. Nothing
 there is compiled. It is reference material, and evidence of where the rules came
-from. `cargo test --test vendor` fails in three cases: a file changed and its manifest
+from. `cargo test --test vendor` fails in three cases. A file changed and its manifest
 entry did not, a file arrived with no record of its source, or a licence arrived that
 AGPL-3.0-or-later cannot include.
 
@@ -186,7 +186,7 @@ framework, add data.
 ## Status
 
 Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
-backend, and every capability a language can meaningfully support is built:
+backend. Every capability a language can meaningfully support is built:
 **269 of 384 capability × language pairs supported, 115 not applicable, none refused.**
 The matrix above is generated, and `fr capabilities` prints the reason behind every
 cell that is not a ✓.
@@ -203,7 +203,7 @@ each of those would take.
 Three documents cover the parts that are not one language at a time:
 [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) for what a name crossing a language boundary
 can and cannot prove, [API_CONTRACTS.md](API_CONTRACTS.md) for rewriting a service
-while preserving the contract its callers see, and [RECIPES.md](RECIPES.md) for the
+while preserving the contract its callers see. [RECIPES.md](RECIPES.md) for the
 recipe language `fr recipe` runs.
 
 [BUGS.md](BUGS.md) tracks the open limitations. The tool reports each one to you

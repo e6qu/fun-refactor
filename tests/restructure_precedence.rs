@@ -87,8 +87,8 @@ fn a_capture_in_an_argument_gains_nothing() {
 #[test]
 fn a_replacement_that_binds_is_grouped_where_it_lands() {
     // The other half: the match sat where a call sat, and the template is an operator
-    // expression, so whatever the call was an operand of now binds into it.
-    // `2 * double(y)` → `2 * y / 2` is not `2 * (y / 2)` for integers.
+    // expression. So whatever the call was an operand of now binds into it. `2 * double(y)` →
+    // `2 * y / 2` is not `2 * (y / 2)` for integers.
     let after = restructured(
         "a.rs",
         "fn f(y: i32) -> i32 {\n    2 * double(y)\n}\n",
@@ -101,10 +101,10 @@ fn a_replacement_that_binds_is_grouped_where_it_lands() {
 
 #[test]
 fn a_language_that_does_not_group_with_brackets_gets_none() {
-    // A CSS selector's parent is an `attribute_selector` or a `descendant_selector`,
-    // which read as operator kinds by name and are nothing of the sort. Bracketing
-    // there is not a grouping, it is a syntax error, and the reparse guard caught it,
-    // which is how this was found before it shipped.
+    // A CSS selector's parent is an `attribute_selector` or a `descendant_selector`, which read
+    // as operator kinds by name and are nothing of the sort. Bracketing there is not a
+    // grouping, it is a syntax error. The reparse guard caught it, which is how this was found
+    // before it shipped.
     let after = restructured(
         "a.css",
         ".old-name {\n  color: red;\n}\n",

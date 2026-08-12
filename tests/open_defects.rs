@@ -1,15 +1,15 @@
 //! The open entries in BUGS.md, held to what they say.
 //!
 //! Eight of the thirteen are limits of the published grammars, and
-//! `tests/known_grammar_gaps.rs` pins every one of those from both sides. The rest are
-//! this tool's own behaviour, and until now they were prose: a description of what
-//! happens, with nothing to notice when it stopped happening. B11 said `@content` was a
-//! gap after it had stopped being one, and nothing noticed for months.
+//! `tests/known_grammar_gaps.rs` pins every one of those from both sides. The rest are this
+//! tool's own behaviour, and until now they were prose: a description of what happens, with
+//! nothing to notice when it stopped happening. B11 said `@content` was a gap after it had
+//! stopped being one, and nothing noticed for months.
 //!
-//! Each test here asserts the *whole* of its entry, both what the tool does not do and
-//! what it does instead, because every one of these stands on the second half. An
-//! incomplete answer that says so is a different thing from a wrong one, and a test that
-//! checked only the incompleteness would pass just as well if the report went away.
+//! Each test here asserts the *whole* of its entry, both what the tool does not do and what it
+//! does instead, because every one of these stands on the second half. An incomplete answer
+//! that says so is a different thing from a wrong one. A test that checked only the
+//! incompleteness would pass just as well if the report went away.
 //!
 //! A failure here means the entry is out of date. The entry is what to update.
 
@@ -58,14 +58,14 @@ fn applied(root: &Path, file: &str, edits: &fun_refactor::edit::EditSet) -> Stri
 
 #[test]
 fn inline_brackets_by_the_value_and_not_by_the_destination() {
-    // B286, and it is a decision rather than an oversight. The bracket is needed when the
-    // use site binds more tightly than the value does, and noise when it does not. The
-    // check would have to be per-use-site and per-language, and the two failure modes are
-    // not symmetric: an extra bracket is noise, a missing one changes the arithmetic.
+    // B286, and it is a decision and not an oversight. The bracket is needed when the use
+    // site binds more tightly than the value does, and noise when it does not. The check would
+    // have to be per-use-site and per-language. The two failure modes are not symmetric: an
+    // extra bracket is noise, a missing one changes the arithmetic.
     //
-    // Both halves are asserted, because the entry only stands while the needed bracket is
-    // still there. A fix that dropped brackets everywhere would satisfy half of this and
-    // silently change what code computes.
+    // Both halves are asserted, because the entry only stands while the needed bracket is still
+    // there. A fix that dropped brackets everywhere would satisfy half of this and silently
+    // change what code computes.
     let (_tmp, root) = workspace(&[(
         "a.rs",
         "fn f(w: usize, h: usize) -> usize {\n    let base = w * 2 + h * 3;\n    \
@@ -98,11 +98,10 @@ fn inline_brackets_by_the_value_and_not_by_the_destination() {
 
 #[test]
 fn dispatch_is_followed_as_far_as_the_source_declares_it() {
-    // B5. A call through a trait object resolves to no implementation, so reachability
-    // fans it out to every type that declares itself an implementation. What is left is
-    // undecidable and not unimplemented: a function held in a struct field and called
-    // through it is declared a method of nothing, so there is no method set to look it up
-    // in.
+    // B5. A call through a trait object resolves to no implementation, so reachability fans it
+    // out to every type that declares itself an implementation. What is left is undecidable and
+    // not unimplemented: a function held in a struct field and called through it is declared a
+    // method of nothing. So there is no method set to look it up in.
     let (_tmp, root) = workspace(&[
         (
             "a.rs",
@@ -143,7 +142,7 @@ fn dispatch_is_followed_as_far_as_the_source_declares_it() {
 fn a_class_named_inside_a_helper_call_is_reported_and_not_rewritten() {
     // B14. Only a plain string attribute value is captured, so `cx("btn", …)` is not a
     // resolved use of the class. The rename is therefore incomplete, and it says so,
-    // naming the file and position of every site it left, which is what keeps it from
+    // naming the file and position of every site it left, which keeps it from
     // being silently wrong.
     let (_tmp, root) = workspace(&[
         ("s.css", ".btn {\n  color: red;\n}\n"),
@@ -181,8 +180,8 @@ fn a_class_named_inside_a_helper_call_is_reported_and_not_rewritten() {
 #[test]
 fn a_values_answer_names_the_channel_it_was_never_told_about() {
     // B13. Given some of the inputs and not others, the competition is decided *given the
-    // inputs supplied*, and the answer names the channel that was left out. Given none,
-    // nothing is decided at all. Neither one infers an invocation.
+    // inputs supplied*. The answer names the channel that was left out. Given none, nothing is
+    // decided at all. Neither one infers an invocation.
     let (_tmp, root) = workspace(&[
         ("Chart.yaml", "name: chart\nversion: 0.1.0\n"),
         ("values.yaml", "replicas: 1\n"),

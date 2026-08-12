@@ -44,10 +44,10 @@ fn read_once(app: &str, code: &str) -> String {
 
 #[test]
 fn java_reads_the_environment() {
-    // `System.getenv` is how a Java service reads its configuration, and the accessor
-    // table did not have it, so a Helm chart feeding a Java service reported every
-    // variable as configuration with no consumer, which is the finding `fr stitch`
-    // exists to produce and here it was produced backwards.
+    // `System.getenv` is how a Java service reads its configuration. The accessor table did not
+    // have it, so a Helm chart feeding a Java service reported every variable as configuration
+    // with no consumer, which is the finding `fr stitch` exists to produce and here it was
+    // produced backwards.
     let text = read_once(
         "Main.java",
         "public class Main {\n    static String url() { return System.getenv(\"DATABASE_URL\"); }\n}\n",

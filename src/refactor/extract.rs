@@ -1,10 +1,9 @@
 //! Extract a subexpression into a named binding.
 //!
-//! The insertion point matters as much as the extraction: the binding goes at the
-//! start of the statement containing the expression, at that statement's own
-//! indentation, so the result reads like hand-written code. The expression's
-//! original bytes are reused verbatim and not reprinted, so any comments and
-//! spacing inside it survive.
+//! The insertion point matters as much as the extraction. The binding goes at the start of the
+//! statement containing the expression, at that statement's own indentation. So the result
+//! reads like hand-written code. The expression's original bytes are reused verbatim and not
+//! reprinted, so any comments and spacing inside it survive.
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
@@ -122,11 +121,11 @@ pub fn variable(
     })?;
     let statement_span = Span::from(statement);
 
-    // Every name the expression uses has to mean the same thing where the binding goes.
-    // A closure parameter, a loop variable and a `match` binding exist only inside the
-    // construct that introduces them, and the statement the binding is placed in front of
-    // can be outside it. `self.items.iter().filter(|i| i.kind != K)` is one statement, and
-    // `i` does not exist at the start of it.
+    // Every name the expression uses has to mean the same thing where the binding goes. A
+    // closure parameter, a loop variable and a `match` binding exist only inside the construct
+    // that introduces them. The statement the binding is placed in front of can be outside it.
+    // `self.items.iter().filter(|i| i.kind != K)` is one statement, and `i` does not exist at
+    // the start of it.
     if let Some(unreachable) =
         a_name_that_does_not_reach(index, info, expr_span, statement_span.start)
     {
@@ -236,14 +235,14 @@ fn expression_at<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
     Some(best)
 }
 
-/// The statement the expression belongs to: the ancestor whose parent is a block.
-/// A name in the expression that is written in a scope the binding cannot reach.
+/// The statement the expression belongs to: the ancestor whose parent is a block. A name in the
+/// expression that is written in a scope the binding cannot reach.
 ///
-/// The binding goes at the start of the enclosing statement, and that statement can be
-/// outside the construct the expression sits in: `self.items.iter().filter(|i| i.kind != K)`
-/// is one statement, and `i` exists only inside the closure. Asking which scope each name
-/// is *written* in answers this without needing the declaration, which matters because a
-/// closure parameter is not recorded as one.
+/// The binding goes at the start of the enclosing statement. That statement can be outside the
+/// construct the expression sits in: `self.items.iter().filter(|i| i.kind != K)` is one
+/// statement, and `i` exists only inside the closure. Asking which scope each name is *written*
+/// in answers this without needing the declaration, which matters because a closure parameter
+/// is not recorded as one.
 fn a_name_that_does_not_reach(
     index: &Index,
     info: &crate::index::FileInfo,
@@ -742,10 +741,9 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             .and_then(|s| declared_type(&parsed, &source, s.full_span))
     });
 
-    // Languages that require types on parameters cannot have them invented. Where a
-    // binding's type was never written down there is nothing to recover, so the
-    // extraction is refused with the names instead of emitting code that will not
-    // compile.
+    // Languages that require types on parameters cannot have them invented. Where a binding's
+    // type was never written down there is nothing to recover. So the extraction is refused
+    // with the names instead of emitting code that will not compile.
     if requires_explicit_types(language) {
         let untyped: Vec<&str> = parameters
             .iter()
@@ -842,10 +840,10 @@ fn requires_explicit_types(language: Language) -> bool {
 
 /// Languages whose extraction goes through the generic data-flow path.
 ///
-/// Zig is here on the same footing as Rust and Go: all three require a written type
-/// on every parameter, and none of them is refused for that in the abstract. What is
-/// refused is the individual selection whose parameter or return type was never
-/// written down — [`requires_explicit_types`] names the bindings and stops there.
+/// Zig is here on the same footing as Rust and Go: all three require a written type on every
+/// parameter. None of them is refused for that in the abstract. What is refused is the
+/// individual selection whose parameter or return type was never written down —
+/// [`requires_explicit_types`] names the bindings and stops there.
 fn supports_imperative_extract_function(language: Language) -> bool {
     matches!(
         language,
@@ -860,13 +858,12 @@ fn supports_imperative_extract_function(language: Language) -> bool {
 
 /// Can a region be extracted into something callable in this language?
 ///
-/// Three languages get there by a route of their own, a Helm named template in
-/// `_helpers.tpl`, an SCSS `@mixin`, a shell function, rather than a function with
-/// parameters and a returned value, so this cannot ask the imperative predicate alone.
-/// It named Helm and not the other two, and the matrix reads this: `fr extract
-/// --function` has been writing `@mixin`/`@include` and shell functions for languages
-/// the table told the reader it could not do, under a reason invented to explain the
-/// gap. The arms in [`function`] are the list, and this is that list.
+/// Three languages get there by a route of their own, a Helm named template in `_helpers.tpl`,
+/// an SCSS `@mixin`, a shell function, and not a function with parameters and a returned
+/// value. So this cannot ask the imperative predicate alone. It named Helm and not the other
+/// two. The matrix reads this: `fr extract --function` has been writing `@mixin`/`@include` and
+/// shell functions for languages the table told the reader it could not do, under a reason
+/// invented to explain the gap. The arms in [`function`] are the list, and this is that list.
 pub fn supports_extract_function(language: Language) -> bool {
     supports_imperative_extract_function(language)
         || matches!(language, Language::Helm | Language::Bash | Language::Scss)
@@ -946,21 +943,21 @@ fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> 
 
 /// Does the region `yield`?
 ///
-/// A `yield` belongs to the function whose iteration the caller is driving, and a call
-/// cannot hand that back. Extracting one produced a Python generator that was
-/// constructed and never run, the loop body silently did nothing, and TypeScript that
-/// `tsc` rejects. `return`, `break` and `continue` were refused for the same reason from
-/// the day this was written; `yield` was not, and it is the one whose failure is silent.
+/// A `yield` belongs to the function whose iteration the caller is driving, and a call cannot
+/// hand that back. Extracting one produced a Python generator that was constructed and never
+/// run, the loop body silently did nothing, and TypeScript that `tsc` rejects. `return`,
+/// `break` and `continue` were refused for the same reason from the day this was written;
+/// `yield` was not. It is the one whose failure is silent.
 fn yields_to_caller(parsed: &Parsed, region: Span) -> bool {
     node_in_region(parsed, region, |kind| kind.contains("yield"))
 }
 
 /// Does the region `await`?
 ///
-/// Unlike a `yield`, this one a call *can* reproduce: the extracted function is async
-/// and the call awaits it. Without that the body kept an `await` in a function that is
-/// not async, `TS1308`, and `SyntaxError: 'await' outside async function`, and the
-/// call site handed back a promise where the code expected a number.
+/// Unlike a `yield`, this one a call *can* reproduce: the extracted function is async and the
+/// call awaits it. Without that the body kept an `await` in a function that is not async,
+/// `TS1308`. `SyntaxError: 'await' outside async function`, and the call site handed back a
+/// promise where the code expected a number.
 fn awaits(parsed: &Parsed, region: Span) -> bool {
     node_in_region(parsed, region, |kind| kind.contains("await"))
 }
@@ -982,11 +979,11 @@ fn node_in_region(parsed: &Parsed, region: Span, wanted: impl Fn(&str) -> bool) 
     false
 }
 
-/// Does this language write `await` as a prefix keyword, so an extracted region that
-/// uses one can be carried across by marking the new function async?
+/// Does this language write `await` as a prefix keyword. So an extracted region that uses one
+/// can be carried across by marking the new function async?
 ///
-/// Rust writes `.await` as a postfix and Go and Zig have no such thing, so the
-/// question is per-language instead of a property of the region.
+/// Rust writes `.await` as a postfix and Go and Zig have no such thing. So the question is
+/// per-language instead of a property of the region.
 fn awaits_with_a_keyword(language: Language) -> bool {
     matches!(
         language,
@@ -1040,14 +1037,13 @@ fn references_within<'a>(
 
 /// The type written at a declaration site, if the source states one.
 ///
-/// There is no type inference here: a binding whose type the programmer left to the
-/// compiler has none to recover, so the caller is told and nothing is guessed.
-/// The type a declaration states, as a bare type with no punctuation.
+/// There is no type inference here: a binding whose type the programmer left to the compiler
+/// has none to recover. So the caller is told and nothing is guessed. The type a declaration
+/// states, as a bare type with no punctuation.
 ///
-/// The C-family grammars make the `:` part of the annotation node, so the text of
-/// the `type` field is `: number` and not `number`. Every caller wants the type
-/// alone and re-spells the punctuation its own language needs, so it is stripped
-/// here and not in each of them.
+/// The C-family grammars make the `:` part of the annotation node, so the text of the `type`
+/// field is `: number` and not `number`. Every caller wants the type alone and re-spells the
+/// punctuation its own language needs, so it is stripped here and not in each of them.
 fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
     let node = parsed
         .root()
@@ -1093,9 +1089,9 @@ fn render_call(
 
 /// How the file being edited is indented.
 ///
-/// `outer` is what the extracted region already carries; `unit` is one level as this
-/// file writes it, which is read from the source and not assumed so a two-space
-/// or tab-indented file does not come back with four spaces.
+/// `outer` is what the extracted region already carries. `unit` is one level as this file
+/// writes it, which is read from the source and not assumed so a two-space or tab-indented file
+/// does not come back with four spaces.
 #[derive(Clone, Copy)]
 struct Indentation<'a> {
     outer: &'a str,
@@ -1209,11 +1205,11 @@ fn render_function(
 
 // ------------------------------------------------------- config languages
 //
-// None of these languages has a binding form, so "extract variable" means the
-// construct that plays the same role: name a value once and refer to it. What that
-// construct is differs per language, and so does where it has to be written, but the
-// shape of the work is identical everywhere, splice a declaration in, replace the
-// occurrences with a reference to it, touch nothing else.
+// None of these languages has a binding form. So "extract variable" means the construct that
+// plays the same role: name a value once and refer to it. What that construct is differs per
+// language, and so does where it has to be written. But the shape of the work is identical
+// everywhere, splice a declaration in, replace the occurrences with a reference to it, touch
+// nothing else.
 
 /// Every node in the tree, in source order, that `keep` accepts.
 fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> Vec<Node<'a>> {
@@ -1448,9 +1444,8 @@ fn hcl_module_collision(index: &Index, file: &Path, name: &str) -> Option<std::p
 
 /// Extract a repeated YAML scalar into an anchor plus aliases.
 ///
-/// YAML requires an anchor to precede its aliases, so the *first* occurrence in the
-/// document carries `&name` and every later one becomes `*name`, whichever occurrence
-/// was selected.
+/// YAML requires an anchor to precede its aliases. So the *first* occurrence in the document
+/// carries `&name` and every later one becomes `*name`, whichever occurrence was selected.
 fn yaml_anchor(
     index: &Index,
     file: &Path,
@@ -1936,8 +1931,8 @@ fn markdown_link_definition(
 
 /// The Markdown node kinds that are links.
 ///
-/// All four live in the inline grammar: the block grammar leaves a paragraph's text
-/// opaque, so a link is only ever a node in an inline sub-tree.
+/// All four live in the inline grammar: the block grammar leaves a paragraph's text opaque. So
+/// a link is only ever a node in an inline sub-tree.
 const MARKDOWN_LINK_KINDS: [&str; 4] = [
     "inline_link",
     "full_reference_link",
@@ -2162,16 +2157,15 @@ fn helm_helpers_path(file: &Path, chart_root: &Path) -> std::path::PathBuf {
 
 // -------------------------------------------------------------------------- Bash
 //
-// Shell has bindings, so "extract variable" means what it means everywhere else. What
-// is different is that the *spelling of a reference decides its semantics*: `"$name"`
-// is exactly one word whatever it holds, while a bare `$name` is split on `$IFS` and
-// then glob-expanded. Neither spelling is right everywhere, so the one that reproduces
-// what the selected bytes already did is the one written, see `bash_reference`.
+// Shell has bindings, so "extract variable" means what it means everywhere else. What is
+// different is that the *spelling of a reference decides its semantics*. `"$name"` is exactly
+// one word whatever it holds, while a bare `$name` is split on `$IFS` and then glob-expanded.
+// Neither spelling is right everywhere, so the one that reproduces what the selected bytes
+// already did is the one written, see `bash_reference`.
 //
-// Shell also has no block scope. A variable assigned anywhere is visible from that
-// point to the end of the shell, which is why the binding goes on its own line
-// immediately before the statement it came out of and why an extraction can never
-// need parameter analysis.
+// Shell also has no block scope. A variable assigned anywhere is visible from that point to the
+// end of the shell. So the binding goes on its own line immediately before the statement it
+// came out of and why an extraction can never need parameter analysis.
 
 /// A shell variable or function name: a letter or underscore, then word characters.
 fn is_shell_name(name: &str) -> bool {
@@ -2198,16 +2192,15 @@ const BASH_VALUE_KINDS: &[&str] = &[
 
 /// Extract a command substitution or literal into a shell variable.
 ///
-/// The binding is written `name=<value bytes>` on its own line directly before the
-/// statement the value came from, at that statement's indentation, and the selection
-/// becomes a reference to it.
+/// The binding is written `name=<value bytes>` on its own line directly before the statement
+/// the value came from, at that statement's indentation. The selection becomes a reference to
+/// it.
 ///
-/// Quoting is the whole difficulty, and the reference is spelled to reproduce what the
-/// original bytes did and not to look tidy: `${name}` when the selection was
-/// already inside double quotes, `"$name"` wherever quoting cannot change the result,
-/// and a bare `$name` only where the original expansion really was subject to word
-/// splitting and globbing. There, `"$name"` would collapse several words into one and
-/// silently change the command's arguments.
+/// Quoting is the whole difficulty, and the reference is spelled to reproduce what the original
+/// bytes did and not to look tidy. `${name}` when the selection was already inside double
+/// quotes, `"$name"` wherever quoting cannot change the result. A bare `$name` only where the
+/// original expansion really was subject to word splitting and globbing. There, `"$name"` would
+/// collapse several words into one and silently change the command's arguments.
 fn bash_variable(
     index: &Index,
     file: &Path,
@@ -2441,17 +2434,17 @@ fn bash_would_split(node: Node<'_>, source: &str) -> bool {
 
 /// Extract statements into a shell function.
 ///
-/// The function is written before the one the selection came from, or at the top of
-/// the script when the selection is not in a function, either way, before the call,
-/// which is what the shell requires: a function has to have been *defined* by the time
-/// the call runs, and definition happens in file order.
+/// The function is written before the one the selection came from, or at the top of the script
+/// when the selection is not in a function, either way, before the call, which the
+/// shell requires. A function has to have been *defined* by the time the call runs, and
+/// definition happens in file order.
 ///
-/// There is no parameter analysis, and there is none to do. Shell has no block scope:
-/// every name a shell function reads is either global or a caller's `local`, both of
-/// which stay readable from the new function, so no binding has to cross the boundary.
-/// The one thing that does not survive the move is the positional parameters, `$1`
-/// inside a function is that function's first argument, not the enclosing one's, so a
-/// region that reads them is refused instead of silently rebound.
+/// There is no parameter analysis, and there is none to do. Shell has no block scope: every
+/// name a shell function reads is either global or a caller's `local`, both of which stay
+/// readable from the new function. So no binding has to cross the boundary. The one thing that
+/// does not survive the move is the positional parameters, `$1` inside a function is that
+/// function's first argument, not the enclosing one's. So a region that reads them is refused
+/// instead of silently rebound.
 fn bash_function(
     index: &Index,
     file: &Path,
@@ -2674,8 +2667,8 @@ fn bash_enclosing_function(parsed: &Parsed, offset: usize) -> Option<Node<'_>> {
     .min_by_key(|n| Span::from(*n).len())
 }
 
-/// Where a definition may be written at the top of a script: after the shebang and any
-/// leading comments, which are the one thing that has to stay first.
+/// Where a definition may be written at the top of a script. After the shebang and any leading
+/// comments, which are the one thing that has to stay first.
 fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
     let root = parsed.root();
     let mut cursor = root.walk();
@@ -2692,16 +2685,15 @@ fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
 
 /// Extract declarations into an SCSS `@mixin`, called back through `@include`.
 ///
-/// A mixin is defined at the top level of the stylesheet, so it can no longer see
-/// anything the rule it came from had in scope. Sass resolves a `$variable` where the
-/// mixin is *defined*, not where it is included, so every `$variable` the selection
-/// reads from outside itself becomes a parameter and is passed at the include site;
-/// that is what keeps the meaning identical whether the variable was a file-level one
-/// or declared inside the rule.
+/// A mixin is defined at the top level of the stylesheet. So it can no longer see anything the
+/// rule it came from had in scope. Sass resolves a `$variable` where the mixin is *defined*,
+/// not where it is included. So every `$variable` the selection reads from outside itself
+/// becomes a parameter and is passed at the include site. That is what keeps the meaning
+/// identical whether the variable was a file-level one or declared inside the rule.
 ///
-/// Sass also evaluates a stylesheet top-down, so the definition goes above every rule
-/// and not beside the one it came from, a mixin included before it is declared is
-/// an error, not a forward reference.
+/// Sass also evaluates a stylesheet top-down, so the definition goes above every rule and not
+/// beside the one it came from, a mixin included before it is declared is an error, not a
+/// forward reference.
 fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
     if name.is_empty()
         || !name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
@@ -2780,8 +2772,8 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
     }
     let region = Span::new(first.start_byte(), last.end_byte());
 
-    // A `$variable` the selection declares itself travels with it; every other one has
-    // to be handed in, because the mixin is defined where the rule's scope is not.
+    // A `$variable` the selection declares itself travels with it. Every other one has to be
+    // handed in, because the mixin is defined where the rule's scope is not.
     let declared_inside: Vec<String> = collect_nodes(parsed.root(), |n| {
         n.kind() == "property_name"
             && region.contains(Span::from(n))
@@ -2863,11 +2855,10 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
 
 /// Extract repeated text into an internal-subset entity.
 ///
-/// XML's one binding form is the general entity: `<!ENTITY name "value">` inside the
-/// `<!DOCTYPE …[ … ]>` internal subset, referred to as `&name;`. The subset is created
-/// when the document has none, which is why the root element's name has to be known,
-/// a `<!DOCTYPE>` names the root element and a document whose doctype names something
-/// else is not well-formed.
+/// XML's one binding form is the general entity: `<!ENTITY name "value">` inside the `<!DOCTYPE
+/// …[ … ]>` internal subset, referred to as `&name;`. The subset is created when the document
+/// has none. So the root element's name has to be known, a `<!DOCTYPE>` names the root element
+/// and a document whose doctype names something else is not well-formed.
 fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Result<ExtractPlan> {
     if !is_xml_name(name) {
         return Err(invalid(
@@ -2916,7 +2907,7 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
         )
     })?;
 
-    // The selection is clipped to the text it lands in, so a selection that takes the
+    // The selection is clipped to the text it lands in. So a selection that takes the
     // attribute's quotes with it still names the value between them.
     let start = span.start.max(inner.start);
     let end = span.end.min(inner.end).max(start);
@@ -3049,9 +3040,9 @@ fn is_xml_name(name: &str) -> bool {
 
 /// The text a node holds: an attribute value without its quotes, or character data.
 ///
-/// tree-sitter-xml matches the characters between an `AttValue`'s quotes with an
-/// anonymous rule, so they never become a node of their own and the byte range has to
-/// be worked out from the quotes instead.
+/// tree-sitter-xml matches the characters between an `AttValue`'s quotes with an anonymous
+/// rule. So they never become a node of their own and the byte range has to be worked out from
+/// the quotes instead.
 fn xml_text_extent(node: Node<'_>) -> Option<Span> {
     let span = Span::from(node);
     match node.kind() {

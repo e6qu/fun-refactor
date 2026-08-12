@@ -1,9 +1,9 @@
 //! Where a value goes, asked of the same program in four languages.
 //!
-//! `fr flow back` follows a chain of assignments to its source. `fr flow fwd` is the
-//! same question pointed the other way and answered a different, shorter question: it
-//! went one hop and stopped, while continuing into the enclosing function and its
-//! callers, so the answer looked like it had gone somewhere.
+//! `fr flow back` follows a chain of assignments to its source. `fr flow fwd` is the same
+//! question pointed the other way and answered a different, shorter question. It went one hop
+//! and stopped, while continuing into the enclosing function and its callers. So the answer
+//! looked like it had gone somewhere.
 
 use fun_refactor::analysis::flow;
 use fun_refactor::index::Index;

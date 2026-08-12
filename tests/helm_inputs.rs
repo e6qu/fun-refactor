@@ -1,14 +1,13 @@
 //! Helm values precedence when the caller supplies the command line.
 //!
-//! A workspace scan sees a chart, its subcharts and whatever `values-*.yaml` files
-//! sit beside them. It cannot see the invocation: whether a values file is passed
-//! with `-f` at all, in which order two of them were written, or that a `--set`
-//! overrides both. That is not an inherent limit, it is a missing input, so these
-//! tests supply it, and pin both halves: what the same query answers with nothing
-//! supplied (unchanged), and what it answers when told.
+//! A workspace scan sees a chart, its subcharts and whatever `values-*.yaml` files sit beside
+//! them. It cannot see the invocation: whether a values file is passed with `-f` at all, in
+//! which order two of them were written, or that a `--set` overrides both. That is not an
+//! inherent limit, it is a missing input, so these tests supply it. Pin both halves: what the
+//! same query answers with nothing supplied (unchanged), and what it answers when told.
 //!
-//! Every assertion below is of what the code does, including where it still
-//! refuses: an answer from a partial command line says it is partial.
+//! Every assertion below is of what the code does, including where it still refuses: an answer
+//! from a partial command line says it is partial.
 
 use fun_refactor::{
     analysis::provenance::{
@@ -143,8 +142,8 @@ fn stops(result: &provenance::Provenance) -> Vec<String> {
 
 #[test]
 fn with_no_inputs_the_command_line_still_decides_nothing() {
-    // The baseline this whole feature is additive to: two values files beside the
-    // chart both set the key, and which one applies is the invocation's business.
+    // The baseline this whole feature is additive to: two values files beside the chart both
+    // set the key. Which one applies is the invocation's business.
     let (_tmp, index) = chart();
     let tag = key_with_path(&index, "charts/mysql/values.yaml", "image.tag");
     let result = provenance(&index, tag, 5).unwrap();
@@ -163,7 +162,7 @@ fn with_no_inputs_the_command_line_still_decides_nothing() {
             .collect::<Vec<_>>(),
         vec![
             // Same rank, so the display order is the file name reversed: neither
-            // outranks the other, which is exactly what leaves this undecided.
+            // outranks the other, which leaves this undecided.
             "user-supplied -f values-stage.yaml".to_string(),
             "user-supplied -f values-prod.yaml".to_string(),
             "parent chart values (app)".to_string(),
@@ -272,9 +271,9 @@ fn a_values_file_that_sets_nothing_for_the_key_leaves_the_chart_value_standing()
 
 #[test]
 fn a_key_only_a_file_that_is_not_passed_sets_is_unset_in_this_invocation() {
-    // The other half of "which file is passed": a key whose only source is a file
-    // the caller did not list is not a competition anyone wins. It is unset, and
-    // the file that would supply it is named.
+    // The other half of "which file is passed". A key whose only source is a file the caller
+    // did not list is not a competition anyone wins. It is unset, and the file that would
+    // supply it is named.
     let (tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         ("app/values.yaml", "replicaCount: 1\n"),
@@ -596,8 +595,8 @@ fn set_paths_follow_helms_own_syntax() {
     assert_eq!(dotted[0].value, "1.2");
     assert!(!dotted[0].string);
 
-    // A list index addresses an element; the values index records mapping keys
-    // only, so the index is kept in the text and dropped from the key path.
+    // A list index addresses an element; the values index records mapping keys only. So the
+    // index is kept in the text and dropped from the key path.
     let indexed = helm::parse_set("ports[0].name=http", false).unwrap();
     assert_eq!(
         indexed[0].path,
@@ -615,7 +614,7 @@ fn set_paths_follow_helms_own_syntax() {
     assert_eq!(several[1].keys(), vec!["b", "c"]);
     assert_eq!(several[1].text, "b.c=2");
 
-    // An escaped dot is part of the key, not a separator.
+    // An escaped dot is part of the key. It is not a separator.
     let escaped = helm::parse_set(r"annotations.example\.com/team=infra", false).unwrap();
     assert_eq!(escaped[0].keys(), vec!["annotations", "example.com/team"]);
 
@@ -650,8 +649,8 @@ fn unsupported_set_syntax_is_refused_by_name() {
 
 #[test]
 fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
-    // Helm applies --set and --set-string in the order they were written; two flag
-    // lists cannot say what that was, so the one case where it matters is refused.
+    // Helm applies --set and --set-string in the order they were written; two flag lists cannot
+    // say what that was. So the one case where it matters is refused.
     let clash = ValuesInputs::parse(
         &[],
         &["image.tag=1".to_string()],

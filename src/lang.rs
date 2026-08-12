@@ -13,12 +13,11 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
 
-/// A source language, at the granularity that matters for parsing and refactoring.
-/// `name()` is this language's identifier. It appears in `--json`, in a catalogue's
-/// `languages:` list, and after `--language` on a command line. The serde spelling has to
-/// be the same string: without this attribute it was the variant name, so
-/// `fr duplicates --json` reported `"Go"` where every other command reported `"go"`, and
-/// `Language::from_name` could not read it back.
+/// A source language, at the granularity that matters for parsing and refactoring. `name()` is
+/// this language's identifier. It appears in `--json`, in a catalogue's `languages:` list, and
+/// after `--language` on a command line. The serde spelling has to be the same string. Without
+/// this attribute it was the variant name, so `fr duplicates --json` reported `"Go"` where
+/// every other command reported `"go"`. `Language::from_name` could not read it back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
@@ -118,11 +117,10 @@ impl Language {
             Language::Go => &["go"],
             Language::Zig => &["zig"],
             Language::Java => &["java"],
-            // JavaScript is parsed by the TypeScript grammar, which is a superset of
-            // it, and read by the same queries. Mapping the extensions onto these two
-            // instead of adding variants is what keeps the two from drifting: every
-            // `matches!(lang, TypeScript | Tsx)` in the codebase would otherwise be a
-            // place JavaScript could be left out of.
+            // JavaScript is parsed by the TypeScript grammar, which is a superset of it, and
+            // read by the same queries. Mapping the extensions onto these two instead of adding
+            // variants is what keeps the two from drifting. Every `matches!(lang, TypeScript |
+            // Tsx)` in the codebase would otherwise be a place JavaScript could be left out of.
             Language::TypeScript => &["ts", "mts", "cts", "js", "mjs", "cjs"],
             Language::Tsx => &["tsx", "jsx"],
             Language::Python => &["py", "pyi"],
@@ -152,21 +150,20 @@ impl Language {
 
     /// Is every member of a value reached through a receiver written before it?
     ///
-    /// Where this holds, a call with no receiver cannot be a method, which is what
-    /// stops a bare `contextWithTimeout(…)` from resolving to the `statusWaiter`
-    /// method of that name sitting four lines above it.
+    /// Where this holds, a call with no receiver cannot be a method, which stops a bare
+    /// `contextWithTimeout(…)` from resolving to the `statusWaiter` method of that name sitting
+    /// four lines above it.
     ///
-    /// Rust holds. It was once excluded on the grounds that `Foo::new()` reaches an
-    /// associated function through a path "which is not recorded as a receiver"; it is
-    /// recorded, as a receiver with `receiver_is_path` set, so those calls are not bare
-    /// and were never at risk. What the exclusion did instead was let a bare
-    /// `width(&self.items, n)` inside an `impl` resolve to the method of that name
-    /// enclosing it, which is not something Rust can mean: there is no implicit self.
+    /// Rust holds. It was once excluded on the grounds that `Foo::new()` reaches an associated
+    /// function through a path "which is not recorded as a receiver". It is recorded, as a
+    /// receiver with `receiver_is_path` set. So those calls are not bare and were never at
+    /// risk. What the exclusion did instead was let a bare `width(&self.items, n)` inside an
+    /// `impl` resolve to the method of that name enclosing it, which is not something Rust can
+    /// mean: there is no implicit self.
     ///
-    /// Java is excluded, and for a real reason: inside a class, `helper()` calls the
-    /// enclosing class's method with no receiver at all, so requiring one made every
-    /// unqualified call in the language unresolvable and every method it named look
-    /// dead.
+    /// Java is excluded, and for a real reason: inside a class, `helper()` calls the enclosing
+    /// class's method with no receiver at all. So requiring one made every unqualified call in
+    /// the language unresolvable and every method it named look dead.
     pub fn members_always_have_a_receiver(&self) -> bool {
         matches!(
             self,
@@ -183,7 +180,7 @@ impl Language {
     /// unqualified from every file beside them?
     ///
     /// Go's package is the directory. A function in `a.go` is called from `b.go` with
-    /// no import and no qualifier, which is why resolution cannot stop at the file.
+    /// no import and no qualifier, so resolution cannot stop at the file.
     /// This is narrower than [`Self::resolves_by_directory`]: only *top-level*
     /// declarations are in package scope, so methods and struct fields are not.
     pub fn packages_by_directory(&self) -> bool {
@@ -241,9 +238,9 @@ fn is_helm_path(path: &Path) -> bool {
         return true;
     }
 
-    // Any YAML sitting beside a Chart.yaml belongs to that chart, charts routinely
-    // carry values-prod.yaml and friends, and treating them as plain YAML would give
-    // them different provenance rules than the values.yaml next to them.
+    // Any YAML sitting beside a Chart.yaml belongs to that chart, charts routinely carry
+    // values-prod.yaml and friends. Treating them as plain YAML would give them different
+    // provenance rules than the values.yaml next to them.
     if let Some(dir) = path.parent() {
         if crate::vfs::exists(dir.join("Chart.yaml")) || crate::vfs::exists(dir.join("chart.yaml"))
         {
@@ -298,18 +295,18 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
 
 /// Which language boundaries a reference may resolve across.
 ///
-/// Resolution matches candidates by name across the whole workspace. Without this it
-/// ignored language: a Rust `out.push(…)` resolved to a Zig `Ring.push` at
-/// `import-qualified`, a tier the tool rewrites, so renaming the Zig method turned a
-/// `Vec::push` call in Rust into `out.pushReading(…)`.
+/// Resolution matches candidates by name across the whole workspace. Without this it ignored
+/// language: a Rust `out.push(…)` resolved to a Zig `Ring.push` at `import-qualified`, a tier
+/// the tool rewrites. So renaming the Zig method turned a `Vec::push` call in Rust into
+/// `out.pushReading(…)`.
 ///
-/// A cross-language edge is real only where the two languages have a mechanism for
-/// naming each other's declarations. This enumerates those mechanisms instead of
-/// inferring them: a wrong one produces an edit that compiles elsewhere and breaks here.
+/// A cross-language edge is real only where the two languages have a mechanism for naming each
+/// other's declarations. This enumerates those mechanisms instead of inferring them: a wrong
+/// one produces an edit that compiles elsewhere and breaks here.
 ///
-/// Absent: every pair of imperative languages. Rust cannot name a Zig method, Go cannot
-/// name a Python function, and an FFI that connects them declares the binding in a build
-/// file this tool does not read. Those resolve to nothing.
+/// Absent: every pair of imperative languages. Rust cannot name a Zig method, Go cannot name a
+/// Python function, and an FFI that connects them declares the binding in a build file this
+/// tool does not read. Those resolve to nothing.
 pub fn may_resolve_across(from: Language, to: Language, t: crate::model::SymbolKind) -> bool {
     use crate::model::SymbolKind as K;
     use Language::*;

@@ -212,10 +212,10 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
 
 #[test]
 fn a_rust_trait_imported_only_for_its_methods_is_kept() {
-    // `Write` is never spelled at the call site, only `write_str` is, so name-based
-    // liveness sees an unused import. Removing it would leave a file that still parses
-    // but no longer compiles, which the reparse check cannot catch, so any
-    // upper-camel-case Rust binding is held back and reported instead.
+    // `Write` is never spelled at the call site, only `write_str` is, so name-based liveness
+    // sees an unused import. Removing it would leave a file that still parses but no longer
+    // compiles, which the reparse check cannot catch. So any upper-camel-case Rust binding is
+    // held back and reported instead.
     let (plan, updated, _) = organize(
         &[(
             "a.rs",
@@ -259,7 +259,7 @@ fn sorts_a_block_by_path() {
 #[test]
 fn sorting_reorders_bytes_and_never_rewrites_them() {
     // Odd spacing, a trailing comment-free tail and a non-canonical `;` position all
-    // have to come through untouched: statements are moved, not regenerated.
+    // have to come through untouched: statements are moved. They are not regenerated.
     let (_plan, updated, _) = organize(
         &[(
             "a.rs",

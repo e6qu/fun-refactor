@@ -1,14 +1,13 @@
 //! Does the code that a refactoring writes still compile?
 //!
 //! The edit engine parses a file before an edit and after it, and rejects an edit that
-//! introduces a syntax error. Four defects passed that check and reached the repository:
-//! an attribute separated from the import it guarded, an integration test that imported
-//! the library as `crate::`, a signature that changed with no call site updated, and a
-//! method call renamed to a method that does not exist. Every one of them parses.
+//! introduces a syntax error. Four defects passed that check and reached the repository: an
+//! attribute separated from the import it guarded, an integration test that imported the
+//! library as `crate::`, a signature that changed with no call site updated. A method call
+//! renamed to a method that does not exist. Every one of them parses.
 //!
-//! This runs the compiler for the language over the result. A language whose compiler is
-//! absent is named in the output of the run, so a pass cannot mean that nothing was
-//! checked.
+//! This runs the compiler for the language over the result. A language whose compiler is absent
+//! is named in the output of the run, so a pass cannot mean that nothing was checked.
 
 mod common;
 use common::{
@@ -228,8 +227,8 @@ fn tsc_is_available() -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
-/// The same shapes as the Rust fixture, in TypeScript: a free function and a method of
-/// one name, an import of the function from another module, and a caller of both.
+/// The same shapes as the Rust fixture, in TypeScript. A free function and a method of one
+/// name, an import of the function from another module, and a caller of both.
 fn typescript() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -631,9 +630,9 @@ fn inlining_a_python_variable_compiles_or_refuses() {
 /// The same shapes again in Zig: a free function and a method of one name, a second file
 /// importing the first, and a root that calls both.
 ///
-/// The root matters more here than in the other languages. Zig analyses what it can reach
-/// from the file it is given and leaves the rest alone, so a declaration nothing calls is
-/// never type-checked and a gate pointed at it would pass on anything.
+/// The root matters more here than in the other languages. Zig analyses what it can reach from
+/// the file it is given and leaves the rest alone. So a declaration nothing calls is never
+/// type-checked and a gate pointed at it would pass on anything.
 fn zig_files() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -736,8 +735,8 @@ fn inlining_a_zig_variable_compiles_or_refuses() {
 
 // ----------------------------------------------------------------- Java
 
-/// The same shapes in Java, where they land differently: a class has no top level, so the
-/// free function is a static method on a class of its own and the method is on the record.
+/// The same shapes in Java, where they land differently: a class has no top level. So the free
+/// function is a static method on a class of its own and the method is on the record.
 fn java_files() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -888,7 +887,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
 
     if Toolchain::Python.is_available() {
         // Python compiles a name that does not exist and fails when it is read, which is
-        // exactly why this toolchain runs the fixture as well as compiling it.
+        // why this toolchain runs the fixture as well as compiling it.
         let python = Workspace::python(&python_files());
         std::fs::write(
             python.path("util.py"),
