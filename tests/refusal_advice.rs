@@ -2,8 +2,8 @@
 //!
 //! Nearly every refusal ends with a route: `fr delete` removes a declaration nothing
 //! uses, `fr provenance` answers this instead, rename the file to `.scss` if that is
-//! what was meant. The sentence is the whole value of the refusal — it is what turns a
-//! "no" into a next step — and it was the one part of the message no test drove.
+//! what was meant. The sentence is the whole value of the refusal. It is what turns a
+//! "no" into a next step, and it was the one part of the message no test drove.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -229,7 +229,7 @@ fn the_xml_entity_inline_refusal_names_a_command_that_takes_it() {
     let refusal = fun_refactor::refactor::inline::xml_entity(&file, "unread")
         .expect_err("nothing references it")
         .to_string();
-    assert!(refusal.contains("use `fr delete`"), "{refusal}");
+    assert!(refusal.contains("Use `fr delete`"), "{refusal}");
 
     let plan = fun_refactor::refactor::delete::plan(&index, symbol(&index, "unread"))
         .expect("the refusal named `fr delete`, so `fr delete` has to take it");
@@ -238,7 +238,7 @@ fn the_xml_entity_inline_refusal_names_a_command_that_takes_it() {
 
 #[test]
 fn the_guard_clause_refusal_names_a_rewrite_that_applies() {
-    // "this `if` has an `else`; invert it instead of guarding" — so `InvertIf` has to
+    // "this `if` has an `else`; invert it instead of guarding", so `InvertIf` has to
     // accept the very position `GuardClause` just turned away.
     let (_tmp, root, index) = workspace(&[(
         "a.rs",
@@ -270,7 +270,7 @@ fn the_guard_clause_refusal_names_a_rewrite_that_applies() {
 
 #[test]
 fn the_css_extract_refusal_names_a_rename_that_works() {
-    // "rename {} to `.scss` if that is what was meant" — the same bytes under the SCSS
+    // "rename {} to `.scss` if that is what was meant", the same bytes under the SCSS
     // grammar have to extract, or the advice sends the reader in a circle.
     let content = ".card {\n  color: red;\n  padding: 4px;\n}\n";
     let (_tmp, root, index) = workspace(&[("a.css", content)]);
@@ -283,7 +283,7 @@ fn the_css_extract_refusal_names_a_rename_that_works() {
     let refusal = fun_refactor::refactor::extract::function(&index, &file, span, "lifted")
         .expect_err("plain CSS has nothing to extract into")
         .to_string();
-    assert!(refusal.contains("rename"), "{refusal}");
+    assert!(refusal.contains("Rename"), "{refusal}");
     assert!(refusal.contains(".scss"), "{refusal}");
 
     // Same bytes, the name the refusal asked for.
@@ -351,7 +351,7 @@ fn the_rust_module_path_refusal_names_a_destination_that_works() {
         "the advice has to say what `src/` alone does not give you: {refusal}"
     );
 
-    // Following the old advice exactly — a path under `src/` — landed on a second
+    // Following the old advice exactly, a path under `src/`, landed on a second
     // refusal, because Rust reaches a file through a `mod` declaration and not through
     // its directory. That refusal now names the missing line.
     let second =
@@ -359,7 +359,7 @@ fn the_rust_module_path_refusal_names_a_destination_that_works() {
             .expect_err("nothing declares `mod moved;`")
             .to_string();
     assert!(
-        second.contains("add `mod moved;`"),
+        second.contains("Add `mod moved;`"),
         "the second refusal names no route either: {second}"
     );
 
@@ -386,7 +386,7 @@ fn the_rust_module_path_refusal_names_a_destination_that_works() {
 
 #[test]
 fn the_ambiguous_flag_refusal_names_a_form_the_command_accepts() {
-    // "say which one with a position" — and `fr remove-flag` took a bare name and
+    // "say which one with a position", and `fr remove-flag` took a bare name and
     // nothing else, so the only route offered was one the command could not parse.
     use fun_refactor::refactor::cascade::{self, FlagTarget};
 
@@ -501,7 +501,7 @@ fn the_unread_flag_refusal_names_a_command_that_takes_it() {
 fn the_no_cascade_here_reason_names_two_commands_that_work() {
     // The matrix's reason for every language without conditionals: "removing one is a
     // rename or a delete instead of a cascade". Two commands named to a reader who
-    // cannot have the third — so both have to be there for that language.
+    // cannot have the third, so both have to be there for that language.
     use fun_refactor::capabilities::{support, Capability};
 
     let cases: &[Case] = &[
@@ -631,7 +631,7 @@ fn the_helm_list_refusal_names_an_input_that_is_accepted() {
 
 #[test]
 fn the_missing_chart_refusal_names_the_file_that_unblocks_it() {
-    // "no Chart.yaml above {}, so the chart name is unknown" — the route is the file it
+    // "no Chart.yaml above {}, so the chart name is unknown", the route is the file it
     // names, so adding one has to be enough.
     //
     // Reached through a `.tpl`, which is Helm by its extension alone. Every other Helm

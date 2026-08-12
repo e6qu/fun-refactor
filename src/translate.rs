@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 /// What a file of this language can be rewritten as.
 ///
 /// Only relationships where one grammar contains the other. The direction matters:
-/// every CSS file is SCSS, but only some SCSS files are CSS — which is why the parse
+/// every CSS file is SCSS, but only some SCSS files are CSS, which is why the parse
 /// in [`plan`] is not optional in either direction.
 pub fn targets(from: Language) -> &'static [Language] {
     use Language::*;
@@ -85,7 +85,7 @@ pub fn options_for(path: &Path) -> Vec<Option_> {
     }
 
     // Plus every language this can be translated into, which is a different and much
-    // weaker promise — a draft instead of the same bytes.
+    // weaker promise, a draft instead of the same bytes.
     if crate::transpile::can_be_read(from) {
         for target in crate::transpile::SUPPORTED {
             if *target == from || out.iter().any(|o| o.target == *target) {
@@ -143,7 +143,7 @@ pub fn why_nothing(from: Language) -> String {
         format!(
             "{from} is a programming language, and there is no reader or writer for it \
              here. Translating between programming languages needs one of each, and this \
-             build has both for {}. Adding {from} means writing that pair — see \
+             build has both for {}. Adding {from} means writing that pair. See \
              `src/transpile/`.",
             supported.join(", ")
         )
@@ -173,7 +173,7 @@ pub fn destination_for(path: &Path, to: Language) -> Result<PathBuf> {
         bail!("{} has no file name", path.display());
     };
     // Java ties the file's name to the public class inside it, so `sensors.py` has to
-    // become `Sensors.java` — not `sensors.java`, which will not compile whatever is
+    // become `Sensors.java`, not `sensors.java`, which will not compile whatever is
     // written in it.
     let stem = match to {
         Language::Java => pascal_case(&stem.to_string_lossy()),
@@ -232,7 +232,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
     let parsed = parsers.parse(to, &source)?;
     if parsed.has_errors() {
         let where_ = first_error(&parsed, &source)
-            .map(|at| format!(" — first at line {}, column {}", at.line, at.col))
+            .map(|at| format!(". First at line {}, column {}", at.line, at.col))
             .unwrap_or_default();
         bail!(
             "this file uses {from} the {to} grammar does not accept{where_}. Rewriting it \

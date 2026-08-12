@@ -40,7 +40,7 @@ fn changed(files: &[(&str, &str)], symbol: &str, file: &str, change: Change) -> 
 fn a_java_call_is_a_method_invocation() {
     // The lookup matched on `kind().contains("call")`, and Java spells a call a
     // `method_invocation`. Its own comment said SCSS's `include_statement` was "the one
-    // call form whose kind does not say call" — true of the languages it was written
+    // call form whose kind does not say call", true of the languages it was written
     // against, and it meant `fr signature` refused at every Java call site there has
     // ever been, with a message about resolution.
     let source = "public class A {\n    int add(int a, String b) { return a; }\n    \
@@ -57,7 +57,7 @@ fn a_java_call_is_a_method_invocation() {
 
 #[test]
 fn a_constructor_call_is_a_call_whatever_it_was_written_down_as() {
-    // `new Thing(1, "x")` is recorded as a reference to the *type* — which it also is —
+    // `new Thing(1, "x")` is recorded as a reference to the *type* — which it also is,
     // so filtering on the recorded kind skipped it, and a constructor's parameters
     // could be reordered while every `new` was left exactly as it was.
     let source = "public class B {\n    B(int a, String b) { }\n    \
@@ -86,7 +86,7 @@ fn a_mention_that_is_not_a_call_is_passed_over() {
 #[test]
 fn a_type_named_in_an_argument_is_not_the_call() {
     // Dropping the kind filter meant every mention took the walk up the tree looking
-    // for a call — and a type named inside somebody else's argument list finds one.
+    // for a call, and a type named inside somebody else's argument list finds one.
     // `register(Pet.class)` would have had *its* arguments reordered as though they
     // belonged to `Pet`'s constructor.
     let source = "public class D {\n    D(int a, String b) { }\n    \

@@ -138,7 +138,7 @@ fn an_href_names_something_only_when_a_fragment_says_which() {
     );
     assert!(refs(&facts(src)).is_empty(), "got {:?}", refs(&facts(src)));
 
-    // With a fragment, it names the id — in this document or another one.
+    // With a fragment, it names the id, in this document or another one.
     let src = "<a href=\"other.html#sec\">x</a>\n";
     assert_eq!(refs(&facts(src)), ["sec"]);
 }

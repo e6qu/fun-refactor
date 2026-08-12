@@ -1,7 +1,7 @@
 //! Renaming a symbol and renaming it back leaves the workspace where it started.
 //!
 //! A rename touches every file that references the symbol, and the edits are byte
-//! splices instead of a reformat, so the inverse ought to restore the tree exactly —
+//! splices instead of a reformat, so the inverse ought to restore the tree exactly,
 //! including the files it decided not to touch. Anything else means the first rename
 //! wrote something the second could not find, or found something the first did not.
 //!

@@ -26,7 +26,7 @@
 //! The handler bodies are TypeScript, translated by the ordinary reader with the
 //! ordinary limits: `NextResponse.json(...)`, `await request.json()` and database calls
 //! have no Python counterpart and land in the output as comments. The result is a
-//! FastAPI skeleton — routes, methods, path parameters, models — with the logic beside
+//! FastAPI skeleton, routes, methods, path parameters, models, with the logic beside
 //! it to port by hand.
 
 use super::ir::*;
@@ -63,13 +63,13 @@ pub struct RoutePlan {
     /// The query parameters each handler reads.
     ///
     /// `(method, name)`, from `req.nextUrl.searchParams.get("limit")`. Next.js declares
-    /// nothing about them — they are read out of the URL by hand — so a contract built
+    /// nothing about them. They are read out of the URL by hand, so a contract built
     /// without them says the endpoint takes no query at all, and a caller passing
     /// `?limit=10` is outside a contract that claims to describe it.
     pub queries: Vec<(String, String)>,
 }
 
-/// A named shape a route declares — from an exported `interface` or a zod schema.
+/// A named shape a route declares, from an exported `interface` or a zod schema.
 #[derive(Debug, Clone)]
 pub struct Model {
     pub name: String,
@@ -82,7 +82,7 @@ pub struct Model {
 /// Both routers, matched on path *components*: an `api` directory somewhere above an
 /// App Router `route.ts`, or a `pages/api` pair for the Pages Router. Component-wise
 /// and not by substring, because a substring rule needs a leading slash to avoid
-/// matching `capi/`, and requiring one silently rejects every relative path — which is
+/// matching `capi/`, and requiring one silently rejects every relative path, which is
 /// what a caller who passes `pages/api/users.ts` hands over.
 fn route_segments(path: &Path) -> Option<Vec<String>> {
     let parts: Vec<String> = path
@@ -99,12 +99,12 @@ fn route_segments(path: &Path) -> Option<Vec<String>> {
         return None;
     }
 
-    // `pages/api/...` — the pair has to be adjacent, or `pages/foo/api` would count.
+    // `pages/api/...`, the pair has to be adjacent, or `pages/foo/api` would count.
     let pages = parts
         .windows(2)
         .position(|w| w[0] == "pages" && w[1] == "api")
         .map(|at| at + 2);
-    // `app/**/api/**/route.ts` — the last `api` above the file, since a route may
+    // `app/**/api/**/route.ts`, the last `api` above the file, since a route may
     // legitimately be at `app/api/api/route.ts`.
     let app = (stem == "route")
         .then(|| {
@@ -151,7 +151,7 @@ pub fn route_for(path: &Path) -> String {
     }
 }
 
-/// Does this file contain JSX — that is, is it a component instead of a route?
+/// Does this file contain JSX. That is, is it a component instead of a route?
 fn has_jsx(source: &str, language: Language) -> Result<bool> {
     let parsers = Parsers::new();
     let parsed = parsers.parse(language, source)?;
@@ -170,8 +170,8 @@ fn has_jsx(source: &str, language: Language) -> Result<bool> {
 
 /// `[id]` → `{id}`, `[...path]` → `{path:path}`, anything else unchanged.
 fn translate_segment(segment: &str) -> String {
-    // The placeholder's name is internal — `/posts/{postId}` and `/posts/{post_id}`
-    // serve exactly the same URLs — so it takes the target's convention like every
+    // The placeholder's name is internal, `/posts/{postId}` and `/posts/{post_id}`
+    // serve exactly the same URLs, so it takes the target's convention like every
     // other name FastAPI will see.
     let Some(inner) = segment.strip_prefix('[').and_then(|s| s.strip_suffix(']')) else {
         return segment.to_string();
@@ -216,8 +216,8 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
     if !is_api_route(path) {
         bail!(
             "{} is not a Next.js API route. Those are `app/**/api/**/route.ts` or \
-             anything under `pages/api/`, and the URL comes from where the file sits — \
-             which is why this needs the path and not just the contents.",
+             anything under `pages/api/`. The URL comes from where the file sits, so this \
+             command needs the path and not only the contents.",
             path.display()
         );
     }
@@ -323,7 +323,7 @@ impl ThenOr for String {
 /// Turn a zod schema into a record, so a request body reaches FastAPI as a model.
 ///
 /// Most Next.js applications declare their shapes with zod and not with an
-/// `interface`, and a zod schema is a *runtime value* — nothing that reads type
+/// `interface`, and a zod schema is a *runtime value*. Nothing that reads type
 /// declarations will find it. Left alone it arrives as an ordinary constant and the
 /// translated service publishes an OpenAPI document with no request body in it at all:
 /// the endpoint works and the contract it advertises is smaller than the one it
@@ -381,7 +381,7 @@ fn models_of(module: &Module) -> Vec<Model> {
 /// Which query parameters each handler reads out of the URL.
 ///
 /// `req.nextUrl.searchParams.get("limit")`, and the two other spellings of the same
-/// thing. Next.js has no declaration for these — the handler reaches into the URL — so
+/// thing. Next.js has no declaration for these, the handler reaches into the URL, so
 /// a reader that only looks at declarations finds nothing and the contract comes out
 /// claiming the endpoint takes no query.
 fn read_queries(module: &Module) -> Vec<(String, String)> {
@@ -487,7 +487,7 @@ fn read_queries(module: &Module) -> Vec<(String, String)> {
 
 /// Which schema each handler parses its body with.
 ///
-/// A Next.js handler validates by hand — `const body = petCreateSchema.parse(json)` —
+/// A Next.js handler validates by hand — `const body = petCreateSchema.parse(json)`,
 /// so the link between an operation and its request body is a *call* and not a
 /// declaration. Reading it is what lets the contract say `requestBody` instead of
 /// listing a shape under `components` that nothing points at.
@@ -642,8 +642,8 @@ fn is_zod(callee: &Expr, method: &str) -> bool {
 
 /// The type a zod builder chain describes.
 ///
-/// A chain is left-nested — `z.string().min(3).optional()` is `optional(max(min(string)))`
-/// — so this walks to the base call and collects the modifiers on the way past. The
+/// A chain is left-nested, `z.string().min(3).optional()` is `optional(max(min(string)))`,
+/// so this walks to the base call and collects the modifiers on the way past. The
 /// constraints (`.min`, `.max`, `.email`) are *not* carried: Pydantic spells them with
 /// `Field(...)` and inventing one from a zod call is a guess about validation, which is
 /// the part of a contract it is least safe to guess at.
@@ -743,7 +743,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         source.display()
     ));
     out.push_str(&format!(
-        "# Route: {route} — {} handler(s): {}\n",
+        "# Route: {route}, {} handler(s): {}\n",
         handlers.len(),
         methods.join(", ")
     ));
@@ -775,7 +775,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
     let parameters = path_parameters(route);
 
     // Which imports the file will need. Collected while writing the handlers, because
-    // that is when it becomes known, and emitted into the header afterwards — the
+    // that is when it becomes known, and emitted into the header afterwards, the
     // alternative is importing `Request` and `JSONResponse` unconditionally, and an
     // unused import in generated code is a thing the reader has to decide about.
     let mut takes_request = false;
@@ -794,7 +794,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         // The query parameters this handler reads out of the URL, declared.
         //
         // Next.js has no declaration for them, so a translation that left the handler
-        // reaching into the request produced a router that says it takes no query — and
+        // reaching into the request produced a router that says it takes no query, and
         // a caller sending `?species=cat` is then outside a contract that claims to
         // describe it. `searchParams.get()` returns `string | null`, which is what
         // `str | None = None` says, so the endpoint answers exactly the URLs it did.
@@ -803,7 +803,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
             .filter(|(m, _)| m.eq_ignore_ascii_case(&handler.name))
             .map(|(_, key)| (key.clone(), super::snake_always(key)))
             .filter(|(key, name)| {
-                // A key that is not a name — `page-size`, `filter[]` — cannot be
+                // A key that is not a name, `page-size`, `filter[]`, cannot be
                 // declared, and inventing a spelling for it would answer a different
                 // URL. Those stay where they are and are reported.
                 let spellable = !name.is_empty()
@@ -826,7 +826,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
 
         // A Next.js handler takes `(request, context)`. The two arguments fare
         // differently, and treating them alike was wrong: `NextRequest` **is**
-        // Starlette's `Request` — same headers, same `await .json()` — so it is kept
+        // Starlette's `Request`, same headers, same `await .json()`, so it is kept
         // under its own name and typed, which makes every line that reads it correct
         // and not commented out. `context` genuinely has no counterpart, because
         // FastAPI passes path parameters directly.
@@ -851,8 +851,8 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
 
         // A Next.js handler receives `(request, context)`; FastAPI passes path
         // parameters directly and has neither object. A statement that *reads* one of
-        // them cannot be translated — `const id = context.params.id` became
-        // `id = context.params.id`, referring to something that does not exist — so it
+        // them cannot be translated, `const id = context.params.id` became
+        // `id = context.params.id`, referring to something that does not exist, so it
         // is carried with the rest.
         let dropped: Vec<String> = handler
             .params
@@ -860,7 +860,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
             .filter(|p| !is_the_request(p))
             .map(|p| p.name.clone())
             .collect();
-        // `const id = context.params.id` is not untranslatable — it is *redundant*.
+        // `const id = context.params.id` is not untranslatable. It is *redundant*.
         // Pulling a path parameter off the context object is exactly the work FastAPI
         // does for you, so the line is dropped and not carried, and the report says
         // why. It is the single most common statement in a Next.js route, and carrying
@@ -933,7 +933,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         if !uses_dropped.is_empty() {
             let warning = vec![
                 format!(
-                    "    # fun-refactor: this handler read {} — a Next.js object with no",
+                    "    # fun-refactor: this handler read {}. A Next.js object with no",
                     uses_dropped
                         .iter()
                         .map(|n| format!("`{n}`"))
@@ -970,7 +970,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
 
     // `+=`, not `=`: a route file may declare helpers beside its handlers, and the
     // ordinary writer already counted those. A handler's own signature is complete by
-    // construction — its parameters are the route's, and every one of them is typed —
+    // construction — its parameters are the route's, and every one of them is typed,
     // so it counts as one, which is what stops the report reading `0/2 complete` for a
     // translation that got every signature right.
     // What the handlers turned out to need. Written last and patched in, because it is
@@ -997,7 +997,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         extra.push("RedirectResponse");
     }
     // A model derived from `z.date()` is annotated `datetime`, and a name the output
-    // uses is a name the output has to import — generated code that references
+    // uses is a name the output has to import, generated code that references
     // something undefined is worse than generated code that admits a gap.
     if out.contains("datetime") && !out.contains("from datetime import") {
         out = out.replace(
@@ -1019,8 +1019,8 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         VERDICT,
         if fidelity.carried_verbatim == 0 {
             "# Routes, methods, path parameters, models and handler bodies all carried\n\
-             # across. What remains foreign is your own dependencies — the database\n\
-             # calls and helpers this file imported — which no translation could supply.\n\n"
+             # across. What remains foreign is your own dependencies. The database\n\
+             # calls and helpers this file imported, which no translation could supply.\n\n"
         } else {
             "# The routes, methods, path parameters and models are translated. Some of\n\
              # the handler bodies had no Python counterpart and are below as comments,\n\
@@ -1037,7 +1037,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
     // The status codes are the half of the contract FastAPI will not read back.
     if !responses.statuses.is_empty() {
         fidelity.notes.push(format!(
-            "returns status {} — FastAPI documents the status on the decorator, not the \
+            "returns status {}. FastAPI documents the status on the decorator, not the \
              one on a returned Response, so the generated OpenAPI will say 200 for these \
              endpoints unless you add `status_code=` to `@router.…` and `responses={{…}}` \
              for the rest",
@@ -1068,7 +1068,7 @@ struct Responses {
     /// Every status code a handler returns, in the order they were met.
     ///
     /// Collected because FastAPI does not read them. Its OpenAPI document takes the
-    /// status from the *decorator* — `@router.delete("…", status_code=204)` — and a
+    /// status from the *decorator*, `@router.delete("…", status_code=204)`, and a
     /// status on a returned `Response` changes what the endpoint does without changing
     /// what it says it does. A rewrite that preserves the behaviour and quietly
     /// shrinks the published contract is the one failure this whole exercise is for.
@@ -1090,7 +1090,7 @@ impl Responses {
 
 /// Is this handler argument the request, instead of the route context?
 ///
-/// By type where there is one — `Request`, `NextRequest` — and by name otherwise,
+/// By type where there is one, `Request`, `NextRequest`, and by name otherwise,
 /// since `(req, res)` and `(request, context)` are the two spellings Next.js uses.
 fn is_the_request(param: &Param) -> bool {
     if let Some(Type::Named { name, .. }) = &param.ty {
@@ -1102,7 +1102,7 @@ fn is_the_request(param: &Param) -> bool {
 /// Rewrite the Next.js response helpers as their FastAPI equivalents.
 ///
 /// These are not approximations. Returning a value from a FastAPI handler *is*
-/// `NextResponse.json` — the framework serialises it — so `return NextResponse.json(x)`
+/// `NextResponse.json`, the framework serialises it, so `return NextResponse.json(x)`
 /// is `return x` and nothing is lost. Where a status or a redirect is involved FastAPI
 /// has a named class for it, which is the idiom and not a workaround.
 fn as_fastapi(stmt: Stmt, needs: &mut Responses) -> Stmt {
@@ -1285,7 +1285,7 @@ fn binds_itself(stmt: &Stmt) -> Option<String> {
 ///
 /// The same move as the path parameters, one level out: the value arrives by a
 /// different route and every use of it has to arrive with it. Leaving the read in place
-/// would be worse than not declaring the parameter at all — `req.nextUrl` is a Next.js
+/// would be worse than not declaring the parameter at all, `req.nextUrl` is a Next.js
 /// object and Starlette's `Request` does not have it, so the line would not run.
 fn supply_query_parameters(stmt: Stmt, declared: &[String]) -> Stmt {
     fn reaches_search_params(e: &Expr) -> bool {
@@ -1442,13 +1442,13 @@ fn supply_query_parameters(stmt: Stmt, declared: &[String]) -> Stmt {
 /// Read every `context.params.petId` as the parameter FastAPI already supplies.
 ///
 /// Dropping the *statement* `const id = context.params.id` was only half of it: a
-/// handler that writes `context.params.petId` inline — inside a `where` clause, inside
-/// a call — kept naming an object Python does not have. The path parameter arrives by
+/// handler that writes `context.params.petId` inline, inside a `where` clause, inside
+/// a call, kept naming an object Python does not have. The path parameter arrives by
 /// a different route in FastAPI and every use of it has to arrive with it, which is
 /// what makes the endpoint answer the same URL with the same value.
 fn supply_path_parameters(stmt: Stmt, dropped: &[String], parameters: &[String]) -> Stmt {
     fn in_expr(e: Expr, dropped: &[String], parameters: &[String]) -> Expr {
-        // `<context>.params.<field>` — and nothing else with that shape.
+        // `<context>.params.<field>`, and nothing else with that shape.
         if let Expr::Field { of, name: field } = &e {
             if let Expr::Field {
                 of: object,

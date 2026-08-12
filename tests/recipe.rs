@@ -1,8 +1,8 @@
 //! The recipe language: what it accepts, what it refuses, and what running one does.
 //!
-//! The design argued that a grammar alone is too permissive for these operations —
+//! The design argued that a grammar alone is too permissive for these operations,
 //! `rewrite where lang=go` has no transformation, `remove-flag "F" = false where unused`
-//! has a selector it cannot use — so the interesting half of these tests is the
+//! has a selector it cannot use, so the interesting half of these tests is the
 //! refusals.
 
 use fun_refactor::recipe::{self, Operation, Options};
@@ -132,7 +132,7 @@ fn an_operation_that_needs_an_argument_says_so() {
 #[test]
 fn a_step_with_no_selector_is_refused() {
     // A step with no selector would act on everything, which is never what anyone
-    // means — and silently acting on everything is the worst failure available.
+    // means, and silently acting on everything is the worst failure available.
     let error = recipe::parse("schema 1\nrecipe r { delete }")
         .unwrap_err()
         .to_string();
@@ -166,7 +166,7 @@ fn a_mistyped_predicate_suggests_the_one_that_was_meant() {
     )
     .unwrap_err()
     .to_string();
-    assert!(error.contains("did you mean `exported`"), "{error}");
+    assert!(error.contains("Did you mean `exported`"), "{error}");
 }
 
 #[test]
@@ -261,8 +261,8 @@ fn two_symbols_in_one_file_do_not_produce_conflicting_edits() {
 #[test]
 fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
     // `rewrite`'s selector chooses *files*, and a file with no wrapping `if` in it
-    // simply had nothing to do. Counting that as a refusal made `on-refusal stop` —
-    // the default — abandon the run on the first ordinary file: over one package of
+    // simply had nothing to do. Counting that as a refusal made `on-refusal stop`,
+    // the default, abandon the run on the first ordinary file: over one package of
     // helm, three files of five.
     let (_tmp, report, _after) = run(
         &[
@@ -513,8 +513,8 @@ fn a_refusal_stops_the_run_and_writes_nothing() {
 
 /// A misspelled predicate *value* blamed the repository.
 ///
-/// `kind=functoin` matched nothing, and the step failed saying it had matched nothing —
-/// "That is not success" — which is true and unhelpful: nothing in the workspace was
+/// `kind=functoin` matched nothing, and the step failed saying it had matched nothing.
+/// "That is not success", which is true and unhelpful: nothing in the workspace was
 /// wrong. The predicate's own name has been checked with a suggestion all along, and
 /// its value now is too. The kind vocabulary comes from parsing the value into
 /// `SymbolKind`, so it cannot drift from the kinds that exist.
@@ -525,7 +525,7 @@ fn a_misspelled_predicate_value_names_itself() {
         (
             "delete where lang=pyhton",
             "pyhton",
-            "did you mean `python`",
+            "Did you mean `python`",
         ),
     ];
 

@@ -18,8 +18,8 @@
 //!    what Bash, SCSS and Helm sources contain.
 //! 2. Try the encoded fragment inside each of the per-language [`fragment_wrappers`] in
 //!    order, until one parses without errors *and* yields a node starting exactly at the
-//!    fragment. One fragment can be several shapes in the same language — a CSS pattern
-//!    may be a rule, a declaration or a selector — and the wrapper that parses picks one.
+//!    fragment. One fragment can be several shapes in the same language, a CSS pattern
+//!    may be a rule, a declaration or a selector, and the wrapper that parses picks one.
 //! 3. Match that node structurally against every node of every target file.
 //!
 //! A wrapper can contribute trailing punctuation the fragment did not write: the CSS
@@ -164,7 +164,7 @@ pub fn apply(
 
     // A metavariable the pattern never binds has nothing to substitute, so the
     // template would emit the literal text `$Y`. The engine's reparse check catches
-    // the result — but it reports "would not parse", which is true and says nothing
+    // the result, but it reports "would not parse", which is true and says nothing
     // about the mistake. Named here, where the mistake is.
     let bound = metavariable_names(pattern);
     let unbound: Vec<String> = metavariable_names(template)
@@ -187,7 +187,7 @@ pub fn apply(
             name: template.to_string(),
             reason: format!(
                 "{listed} is not bound by the pattern, so there is nothing to put there \
-                 — {known}. Write `$${}` for a literal dollar sign.",
+. {known}. Write `$${}` for a literal dollar sign.",
                 unbound[0]
             ),
         }
@@ -198,12 +198,12 @@ pub fn apply(
     // match site.
     // Only where `( … )` groups a sub-expression. A CSS selector's parent is an
     // `attribute_selector` or a `descendant_selector`, which look exactly like operator
-    // kinds by name and are nothing of the sort — bracketing there is not a grouping,
+    // kinds by name and are nothing of the sort, bracketing there is not a grouping,
     // it is a syntax error.
     let groups = crate::refactor::inline::groups_with_parentheses(language);
     // Bracket a metavariable only where the template binds it more tightly than the
     // pattern already did. Reading the template alone bracketed `$X.len()` → `$X.len()`,
-    // because a method call binds its receiver — and so did the pattern. An identity
+    // because a method call binds its receiver, and so did the pattern. An identity
     // rewrite has to be a rewrite of nothing.
     let tight = match groups {
         true => {
@@ -299,8 +299,8 @@ fn parse_fragment(
         let Some(root) = fragment_root(&parsed, offset, encoded.len()) else {
             continue;
         };
-        // The node must begin where the fragment begins — a node that starts inside
-        // the wrapper is the wrapper's, not the pattern's — and may reach past the
+        // The node must begin where the fragment begins, a node that starts inside
+        // the wrapper is the wrapper's, not the pattern's, and may reach past the
         // fragment only into punctuation the wrapper itself supplied.
         if root.start_byte() != offset
             || root.end_byte() < end
@@ -384,7 +384,7 @@ fn fragment_root<'a>(parsed: &'a Parsed, offset: usize, len: usize) -> Option<No
     // to the shape, and a statement container is punctuation the wrapper asked for.
     //
     // Only when the child starts where the container does. A container whose child
-    // begins later has leading syntax of its own — `raise` in `raise Invalid(x)` —
+    // begins later has leading syntax of its own — `raise` in `raise Invalid(x)`,
     // and that syntax is the pattern, not the wrapper. Descending past it left the
     // fragment starting six bytes into itself, so every statement pattern in a
     // language with an empty wrapper (Python, shell, YAML) was rejected as unparseable.
@@ -437,14 +437,14 @@ struct Metavariable {
 ///
 /// Two spellings are recognised. A node whose text is `FrMetaX` is the ordinary case.
 /// A *leaf* whose text is `"FrMetaX"` is the quoted case, which exists because some
-/// grammars never break a quoted value into a node — tree-sitter-xml's `AttValue` is
+/// grammars never break a quoted value into a node, tree-sitter-xml's `AttValue` is
 /// one token, quotes included, so `id="$X"` has nothing else to bind to. The quoted
 /// spelling is deliberately restricted to leaves: where a grammar does expose the
 /// text inside the quotes, that inner node is what a metavariable binds, and a
 /// pattern string stays a pattern string instead of matching any node at all.
 fn metavariable(node: Node<'_>, source: &str) -> Option<Metavariable> {
-    // Some grammars fold padding into a node — tree-sitter-yaml keeps the space
-    // after a `-` sequence marker inside the item — so compare trimmed.
+    // Some grammars fold padding into a node, tree-sitter-yaml keeps the space
+    // after a `-` sequence marker inside the item, so compare trimmed.
     let text = Span::from(node).text(source).trim();
     if let Some(name) = meta_name(text) {
         return Some(Metavariable {
@@ -520,8 +520,8 @@ fn find_matches(
     }
 
     results.sort_by_key(|(span, _)| *span);
-    // A node can appear in two trees at once — Markdown's `inline` is the block
-    // grammar's opaque leaf and the inline grammar's root — and one match rewritten
+    // A node can appear in two trees at once. Markdown's `inline` is the block
+    // grammar's opaque leaf and the inline grammar's root, and one match rewritten
     // twice is an overlapping edit the engine rejects.
     results.dedup_by_key(|(span, _)| *span);
     results
@@ -542,8 +542,8 @@ fn touches_template_action(actions: &[Span], span: Span) -> bool {
 
 /// The span a match rewrites.
 ///
-/// When the pattern's wrapper supplied trailing punctuation — the `;` that turns
-/// `color: $X` into a CSS declaration — the target's equivalent punctuation is not
+/// When the pattern's wrapper supplied trailing punctuation, the `;` that turns
+/// `color: $X` into a CSS declaration, the target's equivalent punctuation is not
 /// part of what the pattern asked for, so the match stops at the last named child.
 fn match_span(node: Node<'_>, trim_trailing: bool) -> Span {
     if !trim_trailing {
@@ -1036,7 +1036,7 @@ mod tests {
     fn a_pattern_string_stays_a_string_where_the_grammar_exposes_its_text() {
         // The quoted-metavariable spelling exists for grammars that make a quoted
         // value one opaque token. Rust is not one of those, so `f("$X")` must keep
-        // matching strings only — not every argument that happens to be there.
+        // matching strings only, not every argument that happens to be there.
         let src = "fn f() {\n    g(\"one\");\n    g(2);\n}\n";
         let (tmp, index) = workspace(&[("a.rs", src)]);
         let plan = apply(&index, Language::Rust, "g(\"$X\")", "h($X)").unwrap();

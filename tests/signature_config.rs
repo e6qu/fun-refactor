@@ -4,7 +4,7 @@
 //! A Terraform module is a directory. Its parameters are the `variable "x" {}` blocks
 //! declared there and its call sites are `module "m" { source = "./that/dir" }` blocks
 //! elsewhere, so a signature change has to reach both sides at once. An SCSS mixin is
-//! closer to a function — `@mixin name($a)` declares, `@include name(1)` calls — and
+//! closer to a function, `@mixin name($a)` declares, `@include name(1)` calls, and
 //! goes through the same path a function does.
 //!
 //! These tests assert the exact resulting bytes, because "formatting outside the
@@ -208,7 +208,7 @@ fn removing_a_variable_the_module_still_reads_refuses() {
 #[test]
 fn a_caller_that_omitted_a_defaulted_argument_needs_no_edit() {
     // Nothing to remove there, and the result is still valid Terraform, so this is
-    // not a partial update — it is a complete one that happens to touch one file.
+    // not a partial update. It is a complete one that happens to touch one file.
     let ws = Workspace::new(&[
         (
             "main.tf",

@@ -72,7 +72,7 @@ pub enum HierarchyBasis {
     /// Rust: an `impl Trait for Type` block names the trait outright.
     ImplementedTrait,
     /// Go: the type's method set covers the interface's. Go has no `implements`
-    /// keyword — covering the method set *is* implementing the interface — so
+    /// keyword, covering the method set *is* implementing the interface, so
     /// name-and-arity matching is the language's own rule, not a guess.
     InterfaceMethodSet,
     /// A declared supertype: TypeScript `implements` / `extends`, Python
@@ -127,13 +127,24 @@ pub enum Direction2 {
     Callees,
 }
 
+/// A bounded piece of the call graph, ready to be drawn.
+#[derive(Debug, Clone)]
+pub struct Neighbourhood {
+    pub start: SymbolId,
+    /// Every function reached, with its distance. Callers are negative.
+    pub nodes: Vec<(SymbolId, i32)>,
+    /// From, to, and whether the edge is a dispatch candidate.
+    pub edges: Vec<(SymbolId, SymbolId, bool)>,
+    pub more: bool,
+}
+
 impl CallGraph {
     /// Build a call graph from a resolved index.
     ///
     /// This runs both layers: resolved references first, then the hierarchy
     /// fan-out for every method call site the first layer could not pin down. The
     /// second layer costs one parse per imperative file, which is what it takes to
-    /// see an `impl Trait for T` or an `implements` clause — the index keeps a
+    /// see an `impl Trait for T` or an `implements` clause, the index keeps a
     /// method's owning type but not the abstraction that type answers to.
     pub fn build(index: &Index) -> Self {
         let hierarchy = Hierarchy::scan(index);
@@ -195,7 +206,7 @@ impl CallGraph {
                         },
                     );
                     // Resolving is not the same as arriving. `sink.Store(r)` where
-                    // `sink` is a `Sink` resolves exactly — to the interface's own
+                    // `sink` is a `Sink` resolves exactly, to the interface's own
                     // declaration, which has no body. Stopping there left every
                     // implementation of every interface unreached, and so reported as
                     // dead code: seven methods in a twenty-four-file workspace.
@@ -242,8 +253,8 @@ impl CallGraph {
     /// Two things happen here. A method call whose query set files it as a field
     /// access instead of a call (Rust `x.m()`) still resolved, and becomes the
     /// ordinary resolved edge it always was. And a site that resolved to nothing, or
-    /// to a candidate too weak to rewrite, gets one edge per plausible implementation
-    /// — never replacing a proven answer, only filling in where there was none.
+    /// to a candidate too weak to rewrite, gets one edge per plausible implementation,
+    /// never replacing a proven answer, only filling in where there was none.
     fn add_dispatch_edges(
         &mut self,
         index: &Index,
@@ -265,7 +276,7 @@ impl CallGraph {
                 // on since the index was built would silently put every offset in the
                 // wrong place. The reference standing at the call site has to be the
                 // same name, or the two views disagree and this file gets no dispatch
-                // edges — reported, not assumed away.
+                // edges, reported, not assumed away.
                 let Some(reference) = reference.filter(|r| r.name == site.name) else {
                     let gap = (
                         file.clone(),
@@ -319,8 +330,8 @@ impl CallGraph {
                             CallEdge {
                                 offset: site.offset,
                                 file: file.clone(),
-                                // Plausible, never proven: which implementation runs
-                                // is a runtime fact.
+                                // The program picks the implementation while it runs,
+                                // so this edge is possible and unproven.
                                 confidence: Confidence::FieldBased,
                                 origin: EdgeOrigin::Hierarchy(*basis),
                             },
@@ -501,7 +512,64 @@ impl CallGraph {
         }
     }
 
-    /// Callables with no incoming edges — potential entry points or dead code.
+    /// Callables with no incoming edges, potential entry points or dead code.
+    /// The functions within `depth` hops of `start`, and the edges between them.
+    ///
+    /// Callers are ranked negative, callees positive, and `start` is zero. A whole
+    /// workspace holds thousands of functions, so a drawing of all of them says less
+    /// than a drawing of the neighbourhood a reader asked about.
+    ///
+    /// `more` is true when the walk stopped at `depth` with further nodes to reach.
+    pub fn neighbourhood(&self, start: SymbolId, depth: usize) -> Neighbourhood {
+        let depth = depth.clamp(1, 8) as i32;
+        let mut rank: HashMap<SymbolId, i32> = HashMap::new();
+        rank.insert(start, 0);
+        let mut edges: Vec<(SymbolId, SymbolId, bool)> = Vec::new();
+        let mut more = false;
+
+        for upwards in [true, false] {
+            let mut frontier = vec![start];
+            for step in 1..=depth {
+                let mut next = Vec::new();
+                for &id in &frontier {
+                    let neighbours = match upwards {
+                        true => self.callers(id),
+                        false => self.callees(id),
+                    };
+                    for (other, edge) in neighbours {
+                        let (from, to) = match upwards {
+                            true => (other, id),
+                            false => (id, other),
+                        };
+                        edges.push((from, to, edge.origin.is_hierarchy()));
+                        if let std::collections::hash_map::Entry::Vacant(slot) = rank.entry(other) {
+                            slot.insert(if upwards { -step } else { step });
+                            next.push(other);
+                        }
+                    }
+                }
+                if step == depth && !next.is_empty() {
+                    more = true;
+                }
+                frontier = next;
+            }
+        }
+
+        // An edge to a node the walk never ranked would draw from nowhere.
+        edges.retain(|(from, to, _)| rank.contains_key(from) && rank.contains_key(to));
+        edges.sort_by_key(|(from, to, hierarchy)| (from.0, to.0, *hierarchy));
+        edges.dedup();
+
+        let mut nodes: Vec<(SymbolId, i32)> = rank.into_iter().collect();
+        nodes.sort_by_key(|(id, at)| (*at, id.0));
+        Neighbourhood {
+            start,
+            nodes,
+            edges,
+            more,
+        }
+    }
+
     pub fn roots(&self) -> Vec<SymbolId> {
         let mut roots: Vec<SymbolId> = self
             .graph
@@ -663,7 +731,7 @@ pub struct TraceResult {
     ///
     /// The walk is bounded and the bound is a choice, so what it excluded is part of
     /// the answer. Without this a five-deep chain traced three levels reported "affects
-    /// 4 site(s)" — a definite count of an incomplete search.
+    /// 4 site(s)", a definite count of an incomplete search.
     pub unexplored: Vec<SymbolId>,
 }
 
@@ -743,7 +811,7 @@ impl Family {
     /// at all; neither declares an implements-relationship anything could read.
     ///
     /// Java is not one of those, and used to fall into the same silent `_` as though
-    /// it were — so the one language here that states its hierarchy in as many words
+    /// it were, so the one language here that states its hierarchy in as many words
     /// was the one whose hierarchy went unread.
     fn of(language: Language) -> Option<Family> {
         match language {
@@ -787,8 +855,8 @@ struct CallSite {
 /// string literals.
 ///
 /// Nothing here is inferred. Every entry is a declaration someone wrote: an `impl
-/// Trait for Type`, an `implements` clause, a `class C(Base)` line, or — in Go, where
-/// no `implements` keyword exists — a method set that covers an interface's, which is
+/// Trait for Type`, an `implements` clause, a `class C(Base)` line, or, in Go, where
+/// no `implements` keyword exists, a method set that covers an interface's, which is
 /// the whole of what implementing an interface means there.
 #[derive(Debug, Default)]
 pub struct Hierarchy {
@@ -804,7 +872,7 @@ pub struct Hierarchy {
     /// signature nobody could read leaves the arity answer standing, so a method this
     /// cannot parse widens the answer instead of narrowing it to nothing.
     signatures: HashMap<TypeKey, BTreeMap<String, String>>,
-    /// Which abstractions declare a given method name — the reverse of `declares`,
+    /// Which abstractions declare a given method name, the reverse of `declares`,
     /// so a call site asks about its own name instead of walking every type.
     declarers: HashMap<(Family, String), BTreeSet<String>>,
     /// Subtypes, keyed by the supertype they name: `impl T for X`, `implements`,
@@ -826,7 +894,7 @@ pub struct Hierarchy {
 ///
 /// The declaration was resolved, so the relationship is whatever the language uses to
 /// express implementing: an `impl Trait for T`, a covered method set, an `implements`
-/// clause. Never [`HierarchyBasis::MethodName`] — that tier is for a receiver whose
+/// clause. Never [`HierarchyBasis::MethodName`]. That tier is for a receiver whose
 /// type is unknown, and here the callee's own declaration named the abstraction.
 fn basis_for(language: Language) -> HierarchyBasis {
     match Family::of(language) {
@@ -899,7 +967,7 @@ impl Hierarchy {
     /// The concrete types that implement an abstraction.
     ///
     /// Pointing at the interface and not at one of its methods is the question
-    /// people actually ask — "what are the Sinks?" — and it used to answer nothing at
+    /// people actually ask — "what are the Sinks?", and it used to answer nothing at
     /// all, on the grounds that only a method has implementations. The relationships
     /// were already known; nothing was reading them from this direction.
     fn implementors_of_type(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
@@ -1019,7 +1087,7 @@ impl Hierarchy {
                         note(implementor, HierarchyBasis::InterfaceMethodSet);
                     }
                 }
-                // The declaring class is reached by its own name alone — that is the
+                // The declaring class is reached by its own name alone. That is the
                 // field-based heuristic and it is labelled as such. Its subclasses
                 // are reached by a declared relationship, which is stronger.
                 // Java sits here for the same reason instead of a stronger one: it
@@ -1144,7 +1212,7 @@ impl Hierarchy {
                         }
                     }
                 }
-                // `trait Circle: Shape` — implementing Circle implements Shape.
+                // `trait Circle: Shape`, implementing Circle implements Shape.
                 if let Some(bounds) = node.child_by_field_name("bound") {
                     for supertrait in type_identifiers(bounds, source) {
                         self.add_supertype(key.clone(), supertrait);
@@ -1406,7 +1474,7 @@ fn methods_by_owner(index: &Index) -> HashMap<(Family, String, String), Vec<Symb
     methods
 }
 
-/// Visit every node of a tree, iteratively — a deeply nested expression must not
+/// Visit every node of a tree, iteratively, a deeply nested expression must not
 /// depend on the stack depth of the analysis.
 fn walk(root: Node, visit: &mut impl FnMut(Node)) {
     let mut cursor = root.walk();
@@ -1455,7 +1523,7 @@ fn push_site(accessor: Node, field: &str, source: &str, family: Family, sites: &
 ///
 /// `fmt::Display` names `Display` and a Go receiver `(a *A)` names `A`: the module
 /// path and the binding are not type names, and only the grammar's `type_identifier`
-/// nodes are. A generic argument *is* one — `Wrapper<T>` yields `Wrapper` then `T` —
+/// nodes are. A generic argument *is* one — `Wrapper<T>` yields `Wrapper` then `T`,
 /// so a caller after the type being named takes the first and no more.
 fn type_identifiers(node: Node, source: &str) -> Vec<String> {
     let mut names = Vec::new();
@@ -1472,7 +1540,7 @@ fn type_identifiers(node: Node, source: &str) -> Vec<String> {
 ///
 /// One name per entry, and the outermost one: `implements Iterable<JsonElement>` names
 /// `Iterable`. Taking every `type_identifier` under the clause instead makes the type
-/// argument a supertype too — which put `JsonArray` under `JsonElement` for the wrong
+/// argument a supertype too, which put `JsonArray` under `JsonElement` for the wrong
 /// reason and would put a `Comparator<Foo>` under `Foo` for no reason at all.
 fn java_supertypes(clause: Node, source: &str) -> Vec<String> {
     let entries: Vec<Node> = named_children(clause)
@@ -1506,8 +1574,8 @@ fn go_signature(node: Node<'_>, source: &str) -> Option<String> {
     /// from inside the package, and comparing them as text refused
     /// `PrintingKubeClient` as an implementation of an interface it plainly satisfies.
     /// Two same-named types in different packages now match where they did not before,
-    /// which is the direction to be wrong in: a spurious dispatch candidate is labelled
-    /// as one, and a missing edge is a live method reported as dead.
+    /// which is the safer way to be wrong. An extra candidate is labelled as a
+    /// candidate. A missing edge reports a live method as dead.
     fn unqualified(written: &str) -> String {
         let mut out = String::with_capacity(written.len());
         let mut run = String::new();
@@ -1592,7 +1660,7 @@ fn is_arrow_field(node: Node) -> bool {
 
 /// How many parameters a declaration takes.
 ///
-/// Only Go compares these — implementing an interface there is a structural fact —
+/// Only Go compares these — implementing an interface there is a structural fact,
 /// but every family records them, because the number is what the syntax shows and
 /// dropping it would leave Go's rule half-expressed.
 fn arity(node: Node) -> usize {
@@ -1779,7 +1847,7 @@ mod tests {
     #[test]
     fn a_file_the_hierarchy_pass_cannot_read_is_reported() {
         // The dispatch layer reads files itself. One it cannot read yields no edges,
-        // which widens the unused list instead of narrowing it — but pretending the
+        // which widens the unused list instead of narrowing it, but pretending the
         // file simply had no hierarchy would hide the difference.
         let (tmp, index) = workspace(&[(
             "a.rs",

@@ -1,7 +1,7 @@
 //! Cascading flag removal in Zig, shell and Terraform.
 //!
 //! The three languages fail differently, and the tests are arranged around that.
-//! Zig writes its `if` twice — as a statement and as an expression — so both
+//! Zig writes its `if` twice, as a statement and as an expression, so both
 //! spellings need collapsing. Shell has no booleans at all: substituting the flag
 //! leaves a *string* inside a test, and only some of the ways a script can test a
 //! string are decidable, so what is refused matters as much as what is collapsed.
@@ -110,7 +110,7 @@ fn zig_false_keeps_the_else_branch() {
 #[test]
 fn zig_collapses_an_if_used_as_an_expression() {
     // `if (cond) a else b` is a value in Zig, not just a statement, and it has no
-    // `body`/`alternative` fields at all — the branches are positional.
+    // `body`/`alternative` fields at all, the branches are positional.
     let tmp = workspace(&[(
         "a.zig",
         "const USE_NEW = true;\n\
@@ -364,7 +364,7 @@ fn bash_false_keeps_the_else_branch() {
 #[test]
 fn bash_collapses_the_bare_command_form() {
     // `if $FLAG; then` runs the variable's value as a command, so substituting gives
-    // `if true; then` — the shell builtin, which is decidable.
+    // `if true; then`, the shell builtin, which is decidable.
     let tmp = workspace(&[(
         "run.sh",
         "USE_NEW=true\n\
@@ -476,7 +476,7 @@ fn bash_substitutes_inside_a_larger_string_without_stranding_the_sigil() {
     // Replacing only the name would leave `"pre$true"`, so the expansion goes with
     // it. A string that was nothing *but* the expansion loses its quotes too: they
     // existed to protect a value that might have had spaces in it, and `true` is a
-    // bare word — leaving them on would hide the literal from every shell test.
+    // bare word, leaving them on would hide the literal from every shell test.
     let tmp = workspace(&[(
         "run.sh",
         "USE_NEW=true\n\necho \"pre$USE_NEW\" \"${USE_NEW}\"\n",

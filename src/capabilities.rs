@@ -1,13 +1,7 @@
-//! What this tool can do, per language, derived from the code that decides it.
+//! What this tool can do, for each language.
 //!
-//! The feature × language matrix used to live only in the README, transcribed by
-//! hand. It drifted: operations gated by an explicit predicate stayed accurate, while
-//! the ones left to emerge from grammar shape quietly did not — inline-call was
-//! documented for six languages and worked for two.
-//!
-//! So the table is computed here by asking each refactoring's own predicate, and a
-//! test checks the published matrix against it. A capability cannot be claimed unless
-//! the code agrees.
+//! Each entry asks the predicate that the command itself uses, so the table and the command
+//! cannot disagree. A test checks the published table against this code.
 
 use crate::lang::{Language, LanguageClass};
 use serde::Serialize;
@@ -138,7 +132,7 @@ impl Capability {
 pub enum Support {
     /// Implemented and tested.
     Yes,
-    /// Meaningless for this language — there is nothing the operation could do.
+    /// Meaningless for this language. There is nothing the operation could do.
     NotApplicable { because: &'static str },
     /// Meaningful in principle, refused in practice, with the blocking reason.
     Refused { because: &'static str },
@@ -173,19 +167,11 @@ const NO_CALLABLES: &str = "this language has no functions, so there is nothing 
 const NO_SUBSTITUTION: &str =
     "this language executes and not substitutes, so dataflow answers this instead";
 
-/// Why a capability is absent, said about *this* language.
+/// Why a capability is absent, for this language.
 ///
-/// The fallback reasons here were written when every unsupported language was markup
-/// or configuration, and they say so. Adding an imperative language made six of them
-/// false at once: `extract variable` told a reader that **Java** "has no binding form:
-/// a reusable value here is a CSS custom property", and `entry points` told them that
-/// Java "is a stylesheet". A reason that is untrue about the language it is given for
-/// is worse than no reason: the table exists so that the
-/// empty cells explain themselves.
-///
-/// `structural` is why the operation is *meaningless* — the right answer for a
-/// language that genuinely has no such construct. `missing` is what it would take for
-/// one that has the construct and is simply not wired up yet.
+/// `structural` says the operation has no meaning here. Use it for a language that has no such
+/// construct. `missing` says the construct exists and the tool does not handle it yet. A reason
+/// that is untrue of the language it is given for is worse than none.
 fn absent(language: Language, structural: &'static str, missing: &'static str) -> Support {
     if language.class() == LanguageClass::Imperative {
         Support::NotApplicable { because: missing }
@@ -196,25 +182,16 @@ fn absent(language: Language, structural: &'static str, missing: &'static str) -
     }
 }
 
-/// Does `capability` apply to `language`?
+/// Record that a capability ran against a language.
 ///
-/// Every arm either calls the predicate the refactoring itself uses, or states why the
-/// operation is meaningless. Nothing here is a transcription.
-/// Record that a capability actually ran against a language.
+/// A mark in the table says the command accepts the language. It does not say that any test
+/// ever ran it. Set `FR_CAPABILITY_LOG` to a path and each capability appends the pair it ran
+/// with. `tools/capability-report.py` compares that log against the table.
 ///
-/// The matrix is computed from each refactoring's own predicate, so a `✓` means "this
-/// command would accept this language" and not "this has ever worked". Those are different
-/// claims, and the difference is where this project's defects live: a rule that is
-/// documented and never runs, a gap recorded after it stopped being one, a language driven
-/// by a gate that was never installed.
+/// The log is a file, not a global. The test suite is many processes, and one set of pairs has
+/// to cover all of them.
 ///
-/// So the claim is measured instead of assumed. With `FR_CAPABILITY_LOG` set to a path,
-/// every capability appends the pair it was invoked with, and the audit compares what ran
-/// against what is advertised. Without the variable this is a load of a `None` and a
-/// return, which is why it can sit on the hot path.
-///
-/// A file and not a global, because the test suite is many processes and one set has to
-/// span all of them.
+/// Without the variable this reads one `None` and returns, so it can sit on a hot path.
 pub fn record(capability: Capability, language: Language) {
     use std::io::Write;
     use std::sync::OnceLock;
@@ -235,16 +212,12 @@ pub fn record(capability: Capability, language: Language) {
     }
 }
 
-/// Does this capability take a whole workspace rather than one thing in one language?
+/// Does this capability take a whole workspace, and not one thing in one language?
 ///
-/// The difference decides what an `n/a` cell promises. Asked about a symbol, a span or a
-/// file, `n/a` means the command refuses: the caller pointed at something and is owed an
-/// answer about it. Asked about a workspace, the language is a filter and not an
-/// argument — a call graph over a tree holding Markdown is not refused, it simply has no
-/// Markdown in it — so `n/a` means the language contributes nothing.
-///
-/// It was implicit before, in which of the two recording functions a call site happened
-/// to use, and a test that wanted to hold the two promises apart had no way to ask.
+/// The answer decides what `n/a` promises. For a symbol, a span or a file, `n/a` means the
+/// command refuses: the caller pointed at something and is owed an answer about it. For a
+/// workspace, the language is a filter. A call graph over a tree that holds Markdown is not
+/// refused, and it holds no Markdown, so `n/a` means the language adds nothing.
 pub fn is_whole_workspace(capability: Capability) -> bool {
     use Capability as C;
     matches!(
@@ -253,12 +226,10 @@ pub fn is_whole_workspace(capability: Capability) -> bool {
     )
 }
 
-/// Record a capability that runs over a whole workspace rather than one file.
+/// Record a capability that runs over a whole workspace.
 ///
-/// The languages the index actually holds, narrowed to the ones the matrix claims: a call
-/// graph built over a tree containing Markdown did not thereby build a call graph for
-/// Markdown, and recording that would make the audit agree with itself by inventing what
-/// it set out to check.
+/// Only the languages the index holds, and only those the table claims. A call graph built over
+/// a tree that holds Markdown did not build a call graph for Markdown.
 pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
     debug_assert!(
         is_whole_workspace(capability),
@@ -278,6 +249,10 @@ pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
     }
 }
 
+/// Does `capability` apply to `language`?
+///
+/// Every arm calls the predicate that the refactoring uses, or states why the
+/// operation has no meaning for the language.
 pub fn support(capability: Capability, language: Language) -> Support {
     use Capability as C;
     let imperative = language.class() == LanguageClass::Imperative;
@@ -353,10 +328,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
             if crate::refactor::extract::supports_extract_function(language) {
                 Support::Yes
             } else {
-                // Java is the only language with something callable that is still
-                // refused, and the reason is Java's. Bash was carrying an arm here that
-                // explained why a shell function could not be written, while `fr
-                // extract --function` was writing them.
+                // Java is the only language left with something callable, so the reason below
+                // is Java's.
                 absent(
                     language,
                     "this language has nothing callable to extract into",
@@ -445,17 +418,17 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // Two routes, and they promise different things. A *containment* rewrite is
-        // the same bytes under another grammar — CSS as SCSS — and loses nothing. A
-        // *translation* between programming languages is a draft: signatures carry and
-        // anything with no counterpart is carried into the output as a comment.
+        // Two routes with different promises. Containment writes the same bytes under another
+        // grammar, such as CSS as SCSS, and loses nothing. Translation between programming
+        // languages produces a draft. It carries anything with no counterpart into the output
+        // as a comment.
         C::Translate => {
             let containment = !crate::translate::targets(language).is_empty();
             if crate::transpile::can_be_read(language) || containment {
                 Support::Yes
             } else if language.class() == LanguageClass::Imperative {
                 Support::NotApplicable {
-                    because: "there is no reader or writer for this language yet — a \
+                    because: "there is no reader or writer for this language yet. A \
                               translation needs one of each, and until both exist the \
                               honest answer is that it cannot be written as anything",
                 }
@@ -467,8 +440,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // The contract lives in the *tree* — a Next.js route's URL is where its file
-        // sits — so this is a question about one framework and not one language.
+        // The contract lives in the *tree*, a Next.js route's URL is where its file
+        // sits, so this is a question about one framework and not one language.
         C::Openapi => match language {
             Language::TypeScript | Language::Tsx => Support::Yes,
             _ => Support::NotApplicable {
@@ -478,19 +451,15 @@ pub fn support(capability: Capability, language: Language) -> Support {
         },
 
         C::MoveToFile => match crate::refactor::move_symbol::why_not_move(language) {
-            // Asked of the operation and not restated here. The table said Java
-            // could be moved and the operation refused it, which is the table lying
-            // about the tool in the tool's own words.
+            // Asked of the operation, and not restated here.
             None => Support::Yes,
             Some(because) => Support::NotApplicable { because },
         },
 
-        // Every language here declares names something else can reference — a function,
-        // a values key, a CSS class, a Markdown heading — and one reference index
-        // answers the question for all of them. What varies is how much evidence there
-        // is, which the report states per finding. This used to consult a predicate that
-        // returned `true` for every language, behind an `else` branch that produced a
-        // refusal message nothing could print.
+        // Every language here declares names that something else can reference: a function, a
+        // values key, a CSS class, a Markdown heading. One reference index answers the question
+        // for all of them. The strength of the evidence varies, and the report states it for
+        // each finding.
         C::DeadCode => Support::Yes,
 
         // Every language here is parsed into a tree of named nodes, and comparing
@@ -510,9 +479,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
         }
 
         C::Stitch => {
-            // A manifest declares the variables; a program reads them. The reading half
-            // asks the analysis instead of repeating its list, which is how this row
-            // came to claim that Java and Zig do not read the environment.
+            // A manifest declares the variables and a program reads them. The reading half asks
+            // the analysis, and does not repeat its list.
             if matches!(language, Language::Helm | Language::Yaml)
                 || crate::analysis::stitch::reads_environment(language)
             {
@@ -629,12 +597,8 @@ mod tests {
 
     #[test]
     fn no_language_is_offered_both_dataflow_and_provenance() {
-        // This asserted that every language gets *exactly* one, and the matrix was
-        // shaped to satisfy it: provenance was claimed for every non-imperative
-        // language, which is three more than the analysis has arms for. The rule that
-        // holds is the one about overlap. Neither is a real answer for a language whose
-        // values are written where they are used, and `fr flow`'s refusal used to send
-        // those three readers to provenance for an answer it cannot give.
+        // The rule that holds is about overlap. Three languages get neither analysis, because
+        // their values are written where they are used.
         let mut neither = Vec::new();
         for language in Language::ALL {
             let flow = support(Capability::Flow, *language).is_yes();

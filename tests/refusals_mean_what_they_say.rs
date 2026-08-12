@@ -7,7 +7,7 @@
 //! were doing it afterwards:
 //!
 //! * `fr move` told a Rust user that Rust was unsupported when the destination was outside
-//!   `src/` — found by the capability audit, because a `✓` in the matrix and a refusal
+//!   `src/`, found by the capability audit, because a `✓` in the matrix and a refusal
 //!   naming the language cannot both be right.
 //! * Four more interpolated a path into the reason: two crate roots, a missing `lib.rs`,
 //!   a Terraform directory, a Zig relative path.

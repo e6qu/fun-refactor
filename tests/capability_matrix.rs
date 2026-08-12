@@ -26,7 +26,7 @@ fn the_readme_matrix_matches_the_code() {
 #[test]
 fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
     // The matrix is the tool's own claim about what it does, per language, and three
-    // commands were missing from it — `fr translate` most conspicuously, since its
+    // commands were missing from it, `fr translate` most conspicuously, since its
     // answer differs by language in two different ways. `fr recipe` is the one genuine
     // exception: it composes the rows instead of adding one.
     let commands: Vec<&str> = Capability::ALL.iter().map(|c| c.command()).collect();
@@ -129,8 +129,8 @@ fn nothing_is_merely_unimplemented() {
     // now been either built or shown to mean nothing in that language, so the matrix
     // should contain none at all.
     //
-    // If this fails, a capability was added without deciding what it means everywhere
-    // — which is exactly how 27 unbuilt cells once came to be reported as complete.
+    // If this fails, a capability was added without deciding what it means everywhere,
+    // which is exactly how 27 unbuilt cells once came to be reported as complete.
     let mut refused: Vec<String> = Vec::new();
     for capability in Capability::ALL {
         for language in Language::ALL {

@@ -1,7 +1,7 @@
 //! A method that changes the thing it was called on.
 //!
 //! Four of these languages hand a method a reference and let it assign through it. Zig
-//! hands it a value, and a value parameter there is const — so a method that assigns to
+//! hands it a value, and a value parameter there is const, so a method that assigns to
 //! a field is not a slow method, it is a file that does not compile.
 
 use fun_refactor::lang::Language;

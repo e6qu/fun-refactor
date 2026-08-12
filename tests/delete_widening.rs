@@ -73,7 +73,7 @@ fn removing_a_typescript_flag_takes_its_whole_declaration() {
     // `fr remove-flag` deleted the symbol's own span, which for TypeScript is the
     // declarator inside the declaration: `NEW_UI = true` out of `const NEW_UI = true;`
     // leaves `const ;`. The edit guard caught it every time, so the command did not
-    // damage a TypeScript file — it simply never worked on one.
+    // damage a TypeScript file. It simply never worked on one.
     let source = "const NEW_UI = true;\n\nfunction render(x: number): number {\n    \
                   if (NEW_UI) {\n        return 1;\n    }\n    return 2;\n}\n";
     let (tmp, _index) = workspace(&[("c.ts", source)]);

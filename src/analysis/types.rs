@@ -5,8 +5,8 @@
 //! what this module worked out, carrying the evidence that produced it: the literal, the
 //! class constructed, the return type of the function called.
 //!
-//! Where the chain reaches outside the workspace — a library call, an unnamed object
-//! literal — the answer is that nothing is known, distinct from `Any`.
+//! Where the chain reaches outside the workspace, a library call, an unnamed object
+//! literal, the answer is that nothing is known, distinct from `Any`.
 //!
 //! What counts as the type depends on the symbol. A binding has one. A callable has a
 //! signature, so that is what this reports for one: the parameter types the source
@@ -86,8 +86,8 @@ pub struct Declared {
     pub parameters: Vec<(String, Option<String>)>,
     /// Where the type itself is defined, when it names something in this workspace.
     ///
-    /// A type that resolves nowhere is a type from outside the tree — `int`, `str`,
-    /// `Promise` — and that is not a gap in the answer.
+    /// A type that resolves nowhere is a type from outside the tree, `int`, `str`,
+    /// `Promise`, and that is not a gap in the answer.
     pub defined_at: Option<SymbolId>,
 }
 
@@ -118,7 +118,7 @@ impl Declared {
 /// annotated with anything.
 ///
 /// The list lived in the capability matrix and nowhere else, so the matrix said `n/a`
-/// for nine languages while [`of`] answered for all of them — with the empty answer that
+/// for nine languages while [`of`] answered for all of them, with the empty answer that
 /// means "the source wrote nothing here", which is a different statement from "there is
 /// nowhere here to write".
 pub fn supports_declared_type(language: Language) -> bool {
@@ -353,7 +353,7 @@ impl Declared {
 /// The type a literal states about itself.
 ///
 /// An object literal is deliberately absent. `{"amount": 100}` is a `dict` and saying so
-/// is true and useless — the whole subject of this is that a dictionary is where a type
+/// is true and useless, the whole subject of this is that a dictionary is where a type
 /// should have been, and a tool that answers `dict` has agreed with the code and not
 /// described it. A list literal is the same shape of non-answer.
 fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
@@ -422,7 +422,7 @@ fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<Symb
 /// Same file first, then the same language. Never another language: a Python class
 /// called `Money` and a TypeScript interface called `Money` are two types that share a
 /// spelling, and the first written version of this pointed a TypeScript binding at the
-/// Python one — a `find` over every symbol in the workspace, answering with whichever
+/// Python one, a `find` over every symbol in the workspace, answering with whichever
 /// happened to be indexed first.
 ///
 /// Several in one language is ambiguous, and nothing is reported instead of picking.

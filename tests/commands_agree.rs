@@ -133,8 +133,8 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
         .collect();
 
     // Two agreements, and not a count. Some declarations are one of several for the
-    // same entity — a CSS custom property set in `:root` and again inside a media
-    // query — and `fr usages` answers about the entity, so counting against one of the
+    // same entity, a CSS custom property set in `:root` and again inside a media
+    // query, and `fr usages` answers about the entity, so counting against one of the
     // declarations calls the other one's uses missing. What has to hold is that the
     // report leaves nothing out and invents nothing.
     //
@@ -252,4 +252,143 @@ fn a_report_that_stops_early_says_how_many_it_left_out() {
             );
         }
     }
+}
+
+#[test]
+fn usages_reports_the_name_where_it_appears_in_prose() {
+    // `fr usages` answers "where does this name appear". It listed only the references
+    // a grammar resolved, so a name written in a comment was missing from the answer and
+    // nothing said so: `fr usages supports_cascade` said four for a name that appeared
+    // six times. `fr rename` and `fr delete` had each grown their own scan for exactly
+    // these, and `fr usages` had none.
+    let (_root, index) = workspace();
+    let symbol = index
+        .symbols
+        .iter()
+        .find(|s| !index.references_to(s.id).is_empty())
+        .expect("a symbol something uses");
+    let name = symbol.name.clone();
+
+    let found = fun_refactor::navigate::usages_of(index, symbol.id);
+    for mention in &found.in_text {
+        assert_eq!(
+            mention.kind,
+            fun_refactor::model::ReferenceKind::Textual,
+            "a mention is not a resolved reference"
+        );
+        let text = std::fs::read_to_string(&mention.location.file).expect("the file");
+        assert!(
+            text.contains(&name),
+            "{} was reported as holding '{name}' and does not",
+            mention.location.file.display()
+        );
+    }
+
+    // The two lists never overlap: a mention is not counted as a use.
+    for mention in &found.in_text {
+        assert!(
+            !found.usages.iter().any(|u| u.location == mention.location),
+            "{}:{} is reported as both a use and a mention",
+            mention.location.file.display(),
+            mention.location.line
+        );
+    }
+}
+
+#[test]
+fn a_comment_naming_a_symbol_is_reported_by_usages() {
+    // The case the sweep of this repository found.
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    std::fs::write(
+        dir.path().join("a.rs"),
+        "pub fn width() -> usize {\n    4\n}\n\n// width() is the one to call here.\npub fn area() -> usize {\n    width() * 2\n}\n",
+    )
+    .expect("write");
+    let scanned = fun_refactor::scan::scan(dir.path(), &fun_refactor::scan::ScanOptions::default())
+        .expect("scan");
+    let index = fun_refactor::index::Index::build_from_scan(&scanned).expect("index");
+    let width = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "width" && s.kind == fun_refactor::model::SymbolKind::Function)
+        .expect("width")
+        .id;
+
+    let found = fun_refactor::navigate::usages_of(&index, width);
+    assert_eq!(found.usages.len(), 1, "one call resolves");
+    assert_eq!(
+        found.in_text.len(),
+        1,
+        "and the comment that names it is reported: {:?}",
+        found.in_text
+    );
+    assert_eq!(found.in_text[0].location.line, 5);
+}
+
+#[test]
+fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
+    // What the playground draws. `graph` answers with three counts, which says how big
+    // the call graph is and nothing about its shape, so the browser had nothing to draw.
+    let (_root, index) = workspace();
+    let graph = CallGraph::build(index);
+
+    let start = index
+        .symbols
+        .iter()
+        .find(|s| !graph.callers(s.id).is_empty() && !graph.callees(s.id).is_empty())
+        .expect("a function with a caller and a callee")
+        .id;
+
+    let near = graph.neighbourhood(start, 2);
+    assert_eq!(near.start, start);
+    assert_eq!(
+        near.nodes.iter().filter(|(id, _)| *id == start).count(),
+        1,
+        "the symbol asked about appears once"
+    );
+    assert_eq!(
+        near.nodes.iter().find(|(id, _)| *id == start).unwrap().1,
+        0,
+        "and sits at distance zero"
+    );
+
+    for (_, rank) in &near.nodes {
+        assert!(
+            rank.abs() <= 2,
+            "the walk went past the depth it was given: {rank}"
+        );
+    }
+    for (from, to, _) in &near.edges {
+        assert!(
+            near.nodes.iter().any(|(id, _)| id == from)
+                && near.nodes.iter().any(|(id, _)| id == to),
+            "an edge joins a node the walk never reached"
+        );
+    }
+
+    // Depth one is a subset of depth two: a bound cannot add nodes.
+    let one = graph.neighbourhood(start, 1);
+    for (id, _) in &one.nodes {
+        assert!(
+            near.nodes.iter().any(|(other, _)| other == id),
+            "a node at depth 1 vanished at depth 2"
+        );
+    }
+    assert!(one.nodes.len() <= near.nodes.len());
+}
+
+#[test]
+fn a_symbol_nothing_calls_draws_only_itself() {
+    let (_root, index) = workspace();
+    let graph = CallGraph::build(index);
+    let lonely = index
+        .symbols
+        .iter()
+        .find(|s| graph.callers(s.id).is_empty() && graph.callees(s.id).is_empty())
+        .expect("a symbol with no edges");
+
+    let near = graph.neighbourhood(lonely.id, 3);
+    assert_eq!(near.nodes.len(), 1, "itself and nothing else");
+    assert!(near.edges.is_empty());
+    assert!(!near.more, "nothing lies beyond the depth");
 }

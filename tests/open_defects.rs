@@ -7,7 +7,7 @@
 //! gap after it had stopped being one, and nothing noticed for months.
 //!
 //! Each test here asserts the *whole* of its entry, both what the tool does not do and
-//! what it does instead — because every one of these stands on the second half. An
+//! what it does instead, because every one of these stands on the second half. An
 //! incomplete answer that says so is a different thing from a wrong one, and a test that
 //! checked only the incompleteness would pass just as well if the report went away.
 //!
@@ -142,7 +142,7 @@ fn dispatch_is_followed_as_far_as_the_source_declares_it() {
 #[test]
 fn a_class_named_inside_a_helper_call_is_reported_and_not_rewritten() {
     // B14. Only a plain string attribute value is captured, so `cx("btn", …)` is not a
-    // resolved use of the class. The rename is therefore incomplete — and it says so,
+    // resolved use of the class. The rename is therefore incomplete, and it says so,
     // naming the file and position of every site it left, which is what keeps it from
     // being silently wrong.
     let (_tmp, root) = workspace(&[

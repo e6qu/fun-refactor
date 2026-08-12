@@ -16,7 +16,7 @@ the hierarchy; and `matches=` from the pattern matcher, which needs `lang=` besi
 because the same text parses into a different tree in every language.
 
 The runner found a defect the design could not have: the refactorings read source through `crate::vfs`, so a step planned
-after another step was measured against the file on *disk* — the text before any step
+after another step was measured against the file on *disk*, the text before any step
 ran. The in-memory backing that the browser build uses is now compiled everywhere and
 the runner installs the workspace on it, which is what makes "each step sees what the
 last one left" true and not intended.
@@ -48,7 +48,7 @@ Every command in this tool acts on **one** target. That is right for a person at
 terminal and wrong for the work people actually have:
 
 - *"Retire `USE_LEGACY_AUTH`, delete what it was guarding, and tidy the imports that
-  leaves behind."* — three commands, in order, each depending on the last.
+  leaves behind."*, three commands, in order, each depending on the last.
 - *"Turn every wrapping `if` in `pkg/services` into a guard clause."* — 1,498 sites in
   helm/helm alone. Nobody types that.
 
@@ -72,16 +72,16 @@ not a purpose.
 
 ## The cost of a bespoke syntax, and how it gets paid
 
-This is a third mini-language in one repository — after the entry-point catalogs and
+This is a third mini-language in one repository, after the entry-point catalogs and
 the `$META` patterns in `restructure`. That is a real cost and it buys terseness. To
 be worth it, three things have to ship *with* the parser and not after it:
 
 1. **Errors that name the mistake and where it is**, with a caret and a suggestion
    from the closed vocabulary. `unknown predicate 'exportd'` with `did you mean
    'exported'?` is the difference between a language and a chore.
-2. **`fr recipe fmt`** — one canonical layout, so nobody argues about alignment and a
+2. **`fr recipe fmt`**, one canonical layout, so nobody argues about alignment and a
    diff of a recipe is a diff of its meaning.
-3. **`fr recipe explain`** — print what a recipe would select and do, in prose,
+3. **`fr recipe explain`**, print what a recipe would select and do, in prose,
    without running it. A terse language earns its terseness only if you can ask it
    what it means.
 
@@ -92,7 +92,7 @@ Anything less and the YAML we did not write would have been the better choice.
 | | |
 | --- | --- |
 | Comments | `#` to end of line |
-| Identifiers | `[a-z][a-z0-9-]*` — kebab-case, matching the CLI (`remove-flag`, `on-refusal`) |
+| Identifiers | `[a-z][a-z0-9-]*`, kebab-case, matching the CLI (`remove-flag`, `on-refusal`) |
 | Strings | `"…"` with `\"` and `\\`; or `'…'` raw, with no escapes at all |
 | Numbers | non-negative integers |
 | Booleans | `true`, `false` |
@@ -104,7 +104,7 @@ their own delimiter; use the other form.
 
 Statements are **not** terminated. A statement ends when the parser meets a token that
 can only begin a new one. That works because **step keywords are reserved and no
-predicate shares a name with one** — an invariant a test enforces, not a hope. It is
+predicate shares a name with one**, an invariant a test enforces, not a hope. It is
 what lets a `where` clause run across as many lines as it needs with no punctuation:
 
 ```
@@ -160,7 +160,7 @@ comparison  = "=" | ">" | "<" | ">=" | "<=" ;
 
 I wrote a throwaway lexer and parser for the above and ran the examples through it.
 Every example parses, every step form parses, and a mistyped predicate produces
-`unknown predicate 'exportd' — did you mean 'exported'?`. Three inputs parsed happily
+`unknown predicate 'exportd', did you mean 'exported'?`. Three inputs parsed happily
 that should not have:
 
 | Input | What happened |
@@ -173,7 +173,7 @@ All three are the same mistake: **the grammar is permissive where the operations
 not.** A production that says `operation , [selector] , {modifier}` cannot express
 that `rewrite` needs a name, that `rename` needs a target, or that `remove-flag` acts
 on the whole workspace and a `where` clause is meaningless to it. The third is the
-worst — silently accepting a selector and ignoring it is exactly the accept-and-ignore
+worst, silently accepting a selector and ignoring it is exactly the accept-and-ignore
 this codebase bans elsewhere.
 
 The fix is not a bigger grammar. It is a **signature table**, checked immediately
@@ -228,7 +228,7 @@ in `src/analysis/entrypoints.rs` and already carries rules for thirteen language
 Reusing it means a recipe's selector and an entry-point rule mean the same thing by
 construction, and the matcher gains from being used twice.
 
-A recipe adds predicates that only make sense against a whole workspace — each one an
+A recipe adds predicates that only make sense against a whole workspace, each one an
 existing analysis, not new machinery:
 
 | Predicate | Meaning | Comes from |
@@ -272,18 +272,18 @@ extract function at "report.py:24:5-31:20" as "accumulate"
 What it becomes sits next to the verb; the selector, which can be long, trails. Two
 steps need comment.
 
-**`rewrite`** has no target in the usual sense — it applies at a position. The
+**`rewrite`** has no target in the usual sense. It applies at a position. The
 selector chooses *files*, and the step applies the transformation everywhere it
 applies. This is the most dangerous statement in the language: `guard-clause` was once
 wrong at 1,258 of 1,498 sites in helm/helm. It is the one that most needs `limit`,
 the dry run, and an `expect`.
 
-**`extract`** takes a range, and a range cannot be selected — it is a judgement about
+**`extract`** takes a range, and a range cannot be selected. It is a judgement about
 one specific piece of code. It stays positional, which means a recipe containing one
 is about a file instead of a policy. A real limit, better stated than papered over.
 
 **`rename` takes a literal.** There are no computed names in v1: no captures, no case
-conversions. A convention-wide rename — `handle_*` to `on_*` — is simply not
+conversions. A convention-wide rename, `handle_*` to `on_*`, is simply not
 expressible, and that is deliberate. Small expression languages grow, and nobody has
 asked for this one yet.
 
@@ -296,16 +296,16 @@ what it does with them is the decision that matters most here.
 | --- | --- |
 | `stop` (default) | abandon the run; nothing is written |
 | `report` | record it, apply the rest, exit non-zero |
-| `allow` | record it, apply the rest, exit zero — the refusals were expected |
+| `allow` | record it, apply the rest, exit zero, the refusals were expected |
 
 There is deliberately no `ignore`. A refusal is always in the report; the only
 question is what it does to the exit code. `allow` has to be typed by a person who has
-decided these refusals are acceptable — permitted, visible, and attributable.
+decided these refusals are acceptable, permitted, visible, and attributable.
 
 ## Transactions
 
 A recipe is **one transaction**. Either every step's edits are written or none are: a
-half-applied recipe leaves a repository in a state nobody designed — the flag removed
+half-applied recipe leaves a repository in a state nobody designed, the flag removed
 and its dead branches still there.
 
 Each step sees the workspace **as the previous step left it**, which means re-indexing
@@ -328,7 +328,7 @@ expect refusals = 0
 refactoring that removes a call and orphans three functions has not finished, and this
 is how a recipe says so.
 
-Every edit is reparse-checked by the engine regardless — that is not an expectation
+Every edit is reparse-checked by the engine regardless. That is not an expectation
 you opt into.
 
 ## Output
@@ -361,7 +361,7 @@ Nothing written. Re-run with --write to apply.
 
 ## Worked examples
 
-A policy, run everywhere — no positions, no file names, it is about a shape:
+A policy, run everywhere, no positions, no file names, it is about a shape:
 
 ```
 schema 1
@@ -387,7 +387,7 @@ recipe rename-parse-url {
 }
 ```
 
-A clean-up that expects to be refused — some of this is public API:
+A clean-up that expects to be refused, some of this is public API:
 
 ```
 schema 1
@@ -400,7 +400,7 @@ recipe drop-dead-adapters {
 }
 ```
 
-## Sharing — staged, and honest about it
+## Sharing, staged, and honest about it
 
 v1 recipes are **local**: a file beside the code it changes, run as
 `fr recipe recipes/retire-legacy-auth.fr --write`. No registry, no fetching, no
@@ -412,7 +412,7 @@ understand.
 
 What sharing would require, written down and not answered badly:
 
-- **Compatibility.** What does `schema 2` mean for a `schema 1` recipe — is the reader
+- **Compatibility.** What does `schema 2` mean for a `schema 1` recipe, is the reader
   required to run it, refuse it, or upgrade it?
 - **Blast radius.** A shared recipe edits your source. Does it declare the paths it
   may touch, and is that enforced or advisory?
@@ -432,7 +432,7 @@ None of these are answered here. They are the reason v1 does not fetch.
    I do not know which without watching someone use it.
 
 2. **Statement termination by reserved word.** It gives the clean multi-line `where`
-   with no punctuation, and it survived the adversarial inputs above — a mistyped
+   with no punctuation, and it survived the adversarial inputs above, a mistyped
    *predicate* is caught precisely. A mistyped *step name* is the remaining ambiguity:
    `delte where unused` can only be reported as "not a step or directive", because at
    that point the parser genuinely cannot tell a bad step from a bad predicate. A

@@ -1,4 +1,4 @@
-//! Safe delete: what it removes, and — more importantly — what it refuses to remove.
+//! Safe delete: what it removes, and, more importantly, what it refuses to remove.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
@@ -221,7 +221,7 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
     assert_eq!(textual.len(), 1, "got {textual:?}");
     assert_eq!(textual[0].line, 3);
 
-    // The delete still happens — the string is reported, not obeyed.
+    // The delete still happens, the string is reported, not obeyed.
     assert_eq!(
         applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {\n    dispatch(\"handler\");\n}\n"
@@ -319,8 +319,8 @@ fn find_unused_finds_dead_recursive_code() {
 #[test]
 fn find_unused_reports_mutual_recursion_as_a_dead_group() {
     // `ping` and `pong` reference each other, so neither has zero incoming references
-    // and the per-symbol check clears both. Asking the question of the cycle instead —
-    // does anything *outside* it reference a member? — finds the whole component dead.
+    // and the per-symbol check clears both. Asking the question of the cycle instead,
+    // does anything *outside* it reference a member?, finds the whole component dead.
     let source = "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
@@ -341,7 +341,7 @@ fn find_unused_reports_mutual_recursion_as_a_dead_group() {
 #[test]
 fn find_unused_leaves_out_a_name_a_string_literal_spells() {
     // `on_event` is called through a name-keyed handler table the index cannot see.
-    // Reachability follows resolved edges only, so nothing leads to it — but the
+    // Reachability follows resolved edges only, so nothing leads to it, but the
     // string is evidence that something might, and a candidate list that invites
     // deleting live code is worse than one with a stale entry missing from it.
     let source = "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n";
@@ -515,7 +515,7 @@ fn an_exported_symbol_is_reported_but_marked_as_such() {
 // and checks it for one Rust function. Run over a polyglot workspace it failed
 // thirteen times out of fifty-nine: a TypeScript `export const` whose declarator span
 // left `export const ;` behind, a Zig struct field, and nine CSS selectors that were
-// not dead at all — the markup used them, and the use resolved to one of the two
+// not dead at all, the markup used them, and the use resolved to one of the two
 // stylesheets that declared them, so the other read as unreferenced.
 //
 // One symbol was never going to find that. This runs the whole loop.
@@ -723,7 +723,7 @@ fn an_unreferenced_rust_module_is_still_reported() {
 /// A class whose methods are entry points is reached, whatever calls them.
 ///
 /// JUnit constructs a test class to run the `@Test` methods in it, and the
-/// class itself is named nowhere — `spring-petclinic` reported eleven of them. The rule
+/// class itself is named nowhere, `spring-petclinic` reported eleven of them. The rule
 /// asks the containment chain instead of the language, so a Rust `mod tests` and a
 /// Python class of pytest cases are covered by the same sentence.
 #[test]
@@ -755,7 +755,7 @@ fn a_container_of_an_entry_point_is_not_dead() {
 /// A JavaBean accessor is reached by its property, never by its name.
 ///
 /// `${owner.address}` in a template reaches `Owner::getAddress`. The property was in the
-/// string index already; only the question was missing. Java only — there the convention
+/// string index already; only the question was missing. Java only. There the convention
 /// is a specification that template engines, JSON mappers and Spring's binder all follow.
 #[test]
 fn a_bean_accessor_named_only_by_its_property_is_spared() {
@@ -816,7 +816,7 @@ fn a_name_merely_starting_with_get_is_not_an_accessor() {
 /// An attribute value is a string the HTML grammar happens not to call one.
 ///
 /// It is also where a template names the code behind it, so the rule meant to catch
-/// exactly that — "spared because its name is spelled in a string" — could not see the
+/// exactly that — "spared because its name is spelled in a string", could not see the
 /// whole Thymeleaf, Vue and Angular way of referring to code.
 #[test]
 fn a_name_in_a_template_attribute_counts_as_named() {
@@ -854,7 +854,7 @@ fn a_name_in_a_template_attribute_counts_as_named() {
 /// `content {}` carry no label, so nothing can reference one and every single one
 /// answers "nothing uses this". terraform-aws-vpc reported 46, all of that shape.
 /// A labelled block takes its name from a string label, so the quote before the name
-/// is the test — no list of block types to keep up with Terraform.
+/// is the test, no list of block types to keep up with Terraform.
 #[test]
 fn an_unaddressable_hcl_block_is_not_reported() {
     let (_tmp, index) = workspace(&[(

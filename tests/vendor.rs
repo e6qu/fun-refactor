@@ -2,8 +2,8 @@
 //!
 //! Vendored material rots in two directions: a file changes and the manifest still
 //! claims its old checksum, or a file appears with no provenance at all. Both are
-//! failures of the same promise — that everything here can be traced to a source and
-//! a licence — so both fail the build.
+//! failures of the same promise. That everything here can be traced to a source and
+//! a licence, so both fail the build.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -230,7 +230,7 @@ fn nothing_vendored_is_compiled_into_the_binary() {
 
 // ------------------------------------------------------- the translation corpus
 
-/// `tests/corpus/` — real files from real projects, kept for the translation tests.
+/// `tests/corpus/`, real files from real projects, kept for the translation tests.
 ///
 /// Described by `PROVENANCE.md` instead of a manifest, because it is a document a
 /// person reads. That makes it exactly as rot-prone as `MANIFEST.toml` and it needs

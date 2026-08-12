@@ -1,7 +1,7 @@
 //! What a name means in Rust depends on what is written before it.
 //!
 //! Two ways the index claimed `Exact` where the syntax cannot support it. A bare call
-//! resolved to a method — Rust has no implicit self, so `width(…)` inside an `impl`
+//! resolved to a method. Rust has no implicit self, so `width(…)` inside an `impl`
 //! cannot mean `self.width(…)`. And a dotted name inside a macro resolved to a free
 //! function, because a macro body is tokens: `assert_eq!(f.scope_at(30), …)` reaches the
 //! query as a bare identifier with no receiver at all.

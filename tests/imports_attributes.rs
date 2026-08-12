@@ -11,7 +11,7 @@
 //!  use crate::scan::{scan, ScanOptions, ScanResult};
 //! ```
 //!
-//! which compiles under neither setting of the feature — `anyhow` disappears without it,
+//! which compiles under neither setting of the feature, `anyhow` disappears without it,
 //! and `crate::scan` is named unconditionally while the module it names is not.
 
 use fun_refactor::index::Index;

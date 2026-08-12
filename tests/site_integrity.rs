@@ -71,7 +71,7 @@ fn ids(html: &str) -> Vec<String> {
 /// Is this path something the frontend build writes instead of something in the tree?
 ///
 /// The playground is emitted by Vite and is not committed, so on a clean checkout every
-/// link to it points at a directory that is not there — while being perfectly live on
+/// link to it points at a directory that is not there, while being perfectly live on
 /// the published site. Read from the build's own `outDir` and not written down
 /// here: a hardcoded exception is a second place to remember, and this test exists
 /// because second places to remember are how a site rots.
@@ -291,7 +291,7 @@ fn the_plan_s_closing_list_names_every_command() {
     // The other direction from the test above: not "does this named command exist" but
     // "is any command missing from the list that claims to enumerate them". `usages`,
     // `implementations`, `recipe` and `translate` had all been shipped and none of them
-    // reached the list, which is the failure mode a summary line invites — it is never
+    // reached the list, which is the failure mode a summary line invites. It is never
     // wrong about what it says, only about what it leaves out.
     let plan =
         std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("PLAN.md"))
@@ -319,7 +319,7 @@ fn the_plan_s_closing_list_names_every_command() {
 
 #[test]
 fn every_published_page_parses() {
-    // The site is HTML this tool claims to read, and it shipped two raw `&&` in text —
+    // The site is HTML this tool claims to read, and it shipped two raw `&&` in text,
     // an unterminated entity reference, which browsers recover from and the tool's own
     // parser reports. Nothing checked: the tests here follow links and check command
     // names, which both pass on a file that does not parse.

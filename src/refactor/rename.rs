@@ -10,7 +10,6 @@ use crate::edit::{Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
 use crate::model::{anchor_slug, Symbol, SymbolId, SymbolKind};
-use crate::parse::Parsers;
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
 use std::collections::HashMap;
@@ -362,59 +361,33 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
 ///
 /// These are exactly the references that defeat both syntax analysis and language
 /// servers, so they are surfaced for review and never edited automatically.
+/// Find the old name inside string literals and comments across the workspace.
+///
+/// These defeat both syntax analysis and language servers, so they are surfaced for
+/// review and never edited automatically.
 fn textual_sweep(
     index: &Index,
     name: &str,
     already_edited: &[(PathBuf, Span)],
 ) -> Result<Vec<Warning>> {
-    let parsers = Parsers::new();
-    let mut warnings = Vec::new();
-
-    for (path, info) in index.files() {
-        let Ok(source) = crate::vfs::read_to_string(path) else {
-            continue;
-        };
-        if !source.contains(name) {
-            continue;
-        }
-        let parsed = parsers.parse(info.language, &source)?;
-        let line_index = LineIndex::new(&source);
-
-        for span in string_and_comment_spans(&parsed) {
-            let text = span.text(&source);
-            for (offset, _) in text.match_indices(name) {
-                if !is_word_boundary(text, offset, name.len()) {
-                    continue;
-                }
-                let absolute = Span::new(span.start + offset, span.start + offset + name.len());
-                // An occurrence this rename is already rewriting is handled, not
-                // outstanding.
-                if already_edited
-                    .iter()
-                    .any(|(f, s)| f == path && s.overlaps(absolute))
-                {
-                    continue;
-                }
-                let pos = line_index.line_col(absolute.start, &source);
-                warnings.push(Warning {
-                    kind: WarningKind::TextualOccurrence,
-                    file: path.clone(),
-                    line: pos.line,
-                    col: pos.col,
-                    detail: format!("'{name}' appears in a string or comment; left unchanged"),
-                });
-            }
-        }
-    }
-    Ok(warnings)
+    Ok(crate::mentions::of(index, name)?
+        .into_iter()
+        // An occurrence this rename already rewrites is handled, not outstanding.
+        .filter(|m| {
+            !already_edited
+                .iter()
+                .any(|(file, edited)| file == &m.file && edited.overlaps(m.span))
+        })
+        .map(|m| Warning {
+            kind: WarningKind::TextualOccurrence,
+            file: m.file,
+            line: m.line,
+            col: m.col,
+            detail: format!("'{name}' appears in a string or comment; left unchanged"),
+        })
+        .collect())
 }
 
-/// Why a reference resolved too weakly to rewrite, in terms a reader can act on.
-///
-/// The tier alone says how much to trust the answer. It does not say what to look at.
-/// This tool has no type information by design, so the commonest cause is a member read
-/// from a value, and saying so turns "check this" into "check whether this is the same
-/// declaration".
 fn why_it_was_left(reference: &crate::model::Reference) -> &'static str {
     if reference.receiver.is_some() && !reference.receiver_is_path {
         return "it is read from a value whose type is not known here, so it may name \
@@ -427,53 +400,6 @@ fn why_it_was_left(reference: &crate::model::Reference) -> &'static str {
 }
 
 /// Spans of string literals, comments and Helm template actions.
-fn string_and_comment_spans(parsed: &crate::parse::Parsed) -> Vec<Span> {
-    let mut spans: Vec<Span> = parsed.masked_spans.clone();
-    let mut cursor = parsed.root().walk();
-    let mut recurse = true;
-
-    loop {
-        let node = cursor.node();
-        let kind = node.kind();
-        // Grammars name these differently: string_literal, raw_string_literal,
-        // interpreted_string_literal, line_comment, block_comment, comment…
-        if kind.contains("string") || kind.contains("comment") || kind.contains("char_literal") {
-            spans.push(Span::from(node));
-            recurse = false;
-        }
-        if recurse && cursor.goto_first_child() {
-            continue;
-        }
-        recurse = true;
-        if cursor.goto_next_sibling() {
-            continue;
-        }
-        loop {
-            if !cursor.goto_parent() {
-                spans.sort();
-                spans.dedup();
-                return spans;
-            }
-            if cursor.goto_next_sibling() {
-                break;
-            }
-        }
-    }
-}
-
-/// Is the match at `offset` a whole word and not part of a longer one?
-fn is_word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
-    let before_ok = haystack[..offset]
-        .chars()
-        .next_back()
-        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-    let after_ok = haystack[offset + len..]
-        .chars()
-        .next()
-        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-    before_ok && after_ok
-}
-
 fn locate_warning(kind: WarningKind, file: &PathBuf, offset: usize, detail: String) -> Warning {
     let (line, col) = match crate::vfs::read_to_string(file) {
         Ok(source) => {

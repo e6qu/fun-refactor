@@ -49,7 +49,7 @@ pub struct Definition {
 pub enum DefinitionRole {
     /// The definition the reference resolves to.
     Primary,
-    /// Another site declaring the same entity — a second CSS rule for one class.
+    /// Another site declaring the same entity, a second CSS rule for one class.
     SameEntity,
     /// A concrete implementation of the abstract thing asked about.
     Implementation,
@@ -72,7 +72,7 @@ pub struct Usage {
     pub location: Location,
     pub kind: ReferenceKind,
     pub confidence: Confidence,
-    /// The enclosing function or type, when there is one — the context a reader wants.
+    /// The enclosing function or type, when there is one, the context a reader wants.
     pub within: Option<String>,
 }
 
@@ -108,6 +108,9 @@ pub struct Usages {
     /// Occurrences sharing the name that resolved elsewhere or not at all. Reported
     /// separately so a caller never mistakes them for uses of this symbol.
     pub same_name_elsewhere: Vec<Usage>,
+    /// The name written in a comment or a string. Nothing resolves these, and no
+    /// command edits them, so they are listed apart from the references.
+    pub in_text: Vec<Usage>,
 }
 
 impl Usages {
@@ -217,7 +220,7 @@ pub fn definitions_with(hierarchy: &Hierarchy, index: &Index, symbol_id: SymbolI
 /// Concrete implementations of an abstract declaration.
 ///
 /// This is the same question the call graph asks at a dispatch site, answered through
-/// the same [`Hierarchy`] — a Rust `impl Trait for Type`, a Go interface whose method
+/// the same [`Hierarchy`], a Rust `impl Trait for Type`, a Go interface whose method
 /// set a type covers, a TypeScript `implements` clause, a Python base class. Sharing
 /// it means navigation and the graph cannot disagree about what implements what.
 ///
@@ -274,7 +277,7 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     usages.dedup_by(|a, b| a.location == b.location);
 
     // A call on a value whose type is not tracked resolves to none of the members
-    // that answer to the name — `c.area()` against a trait declaration and every
+    // that answer to the name, `c.area()` against a trait declaration and every
     // implementation of it. Where the ambiguity is *among the things asked about*,
     // that is a use of them, carrying the confidence that says so; it is only a
     // coincidence of naming when the symbol has no implementations to be confused
@@ -310,10 +313,32 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     });
     usages.dedup_by(|a, b| a.location == b.location);
 
+    // The name written in a comment or a string. No grammar links these to the
+    // declaration, so no resolver finds them, and a reader asking "where does this
+    // name appear" still wants them. Reported apart, and never counted as a use.
+    let name = index
+        .symbol(symbol_id)
+        .map(|s| s.name.clone())
+        .unwrap_or_default();
+    let in_text = match name.is_empty() {
+        true => Vec::new(),
+        false => crate::mentions::of(index, &name)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|m| Usage {
+                location: locate(&m.file, m.span),
+                kind: crate::model::ReferenceKind::Textual,
+                confidence: Confidence::NameOnly,
+                within: enclosing_name(index, &m.file, m.span.start),
+            })
+            .collect(),
+    };
+
     Usages {
         query,
         usages,
         same_name_elsewhere,
+        in_text,
     }
 }
 
@@ -493,7 +518,7 @@ impl Shape for Square {
 
         // The name of this test says "in path order" and for a long time it checked
         // only that there was more than one group. A function returning them in
-        // whatever order the hash map felt like would have passed — and the order is
+        // whatever order the hash map felt like would have passed, and the order is
         // the whole reason a caller groups instead of reading the flat list.
         let paths: Vec<&std::path::Path> = grouped.keys().map(|path| path.as_path()).collect();
         let mut sorted = paths.clone();

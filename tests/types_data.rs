@@ -1,7 +1,7 @@
 //! The data behind the types tutorial, produced by running the tool over its stages.
 //!
 //! The page shows code, and beside each symbol what the tool says about it: the type,
-//! where it is defined, what calls it. None of that is written by hand — it is asked of
+//! where it is defined, what calls it. None of that is written by hand. It is asked of
 //! the same index `fr type`, `fr def` and `fr callers` ask, so the panel a reader clicks
 //! is the tool's answer and not a transcription of one.
 //!

@@ -381,7 +381,7 @@ fn bash_inline_refuses_an_exported_variable() {
 
 #[test]
 fn bash_inline_refuses_when_the_name_appears_inside_single_quotes() {
-    // The shell expands nothing between single quotes, so that text is not a use —
+    // The shell expands nothing between single quotes, so that text is not a use,
     // and deleting the assignment would leave it reading like one.
     let src = "#!/bin/bash\nmsg=hello\necho \"$msg\"\necho 'literal $msg'\n";
     let ws = workspace(&[("run.sh", src)]);

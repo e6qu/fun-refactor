@@ -62,7 +62,7 @@ pub struct Index {
 ///
 /// The parsers and the extractor are passed in, not made here, because
 /// [`Extractor::new`] compiles the whole query set. Building one per file turned a
-/// 2.9-second index of `zod` into a 19-second one — the same mistake the parallel
+/// 2.9-second index of `zod` into a 19-second one, the same mistake the parallel
 /// path avoids by noting that "query compilation is the cost here and it is paid once
 /// per thread, not once per file".
 pub fn extract_facts(
@@ -328,8 +328,8 @@ impl Index {
     ///
     /// It is enforced here and not in the branches because there are twenty-eight
     /// places pairing a symbol with a tier, and each one was an opportunity to disagree.
-    /// Two of them did, with the same reasoning — one definition of the name means
-    /// "there is nothing to be wrong about" — and it is wrong the same way both times:
+    /// Two of them did, with the same reasoning, one definition of the name means
+    /// "there is nothing to be wrong about", and it is wrong the same way both times:
     /// the workspace does not contain every type. A `boto3` client and an `aws-sdk`
     /// instance both have members this tool has never seen, and `fr rename` edited calls
     /// on them. Fixing the first branch left the second, which is what a rule living at
@@ -428,8 +428,8 @@ impl Index {
         let bare_call = reference.kind == ReferenceKind::Call
             && reference.receiver.is_none()
             && reference.language.members_always_have_a_receiver();
-        // Written as a member of something — either `x.field` or a call on a value.
-        // Written as a member of something — either `x.field`, a call on a value, or a
+        // Written as a member of something, either `x.field` or a call on a value.
+        // Written as a member of something, either `x.field`, a call on a value, or a
         // dotted name inside a macro, where the grammar recorded the tokens and not the
         // receiver.
         let member_access = reference.kind == ReferenceKind::Field
@@ -494,7 +494,7 @@ impl Index {
         // 0a. A Terraform namespace. `var.azs`, `local.azs` and `module.azs` name
         //     three different declarations, and an `output "azs"` beside them names a
         //     fourth that no traversal ever reaches. The namespace is written down,
-        //     so the kind it implies is not a guess — without it, `var.azs` in
+        //     so the kind it implies is not a guess, without it, `var.azs` in
         //     terraform-aws-vpc resolved to the module's `output "azs"`.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
@@ -532,7 +532,7 @@ impl Index {
         // 0. A path prefix that names a type: `Patterns::from_low_args(…)` in Rust
         //     reaches an associated function through the type it belongs to. The
         //     prefix is recorded as the receiver, and a symbol carries the same name
-        //     as its qualifier, so the two match directly — no type inference needed,
+        //     as its qualifier, so the two match directly, no type inference needed,
         //     because the type was written down.
         //
         //     This runs before every other rule: ripgrep declares four
@@ -542,7 +542,7 @@ impl Index {
         //
         //     A path is what the receiver *means*, not how it is punctuated. Rust writes
         //     `Type::m` and Java writes `Type.m`, and only the first was recognised, so
-        //     every static call in Java fell through to the nearest-in-file rule below —
+        //     every static call in Java fell through to the nearest-in-file rule below,
         //     which answered `Widths.width(…)` inside `Holder.java` with `Holder`'s own
         //     method, at exact confidence. A receiver that names a type in this workspace
         //     is a path however the language spells it.
@@ -554,7 +554,7 @@ impl Index {
                 .filter_map(|id| self.symbol(*id))
                 // The language too. A workspace holding the same design in Python and in
                 // TypeScript declares `Money::of` twice, and matching on the qualifier
-                // alone called that ambiguous — so a call that had always resolved
+                // alone called that ambiguous, so a call that had always resolved
                 // stopped, and `Money::plus` vanished from its callers.
                 .filter(|s| {
                     s.language == reference.language && s.qualifier.as_deref() == Some(prefix)
@@ -633,14 +633,14 @@ impl Index {
 
         // A member access is a scope lookup only where the scope chain can settle it.
         // `c.run(1)` names a member of whatever `c` is, and the lexical scope has
-        // nothing to say about that — but it was answering anyway, with `Exact`, by
+        // nothing to say about that, but it was answering anyway, with `Exact`, by
         // picking whichever same-named method sat in an enclosing scope. With two
         // classes declaring `run`, a call on one was attributed to the other, and
         // renaming that one rewrote the call and left the real one behind.
         //
         // Two things keep the scope chain in play, and between them they cover the
-        // cases where it is not a guess: a receiver that *is* the enclosing instance —
-        // `this.run`, `self.run` mean a member of the type this code is written in —
+        // cases where it is not a guess: a receiver that *is* the enclosing instance,
+        // `this.run`, `self.run` mean a member of the type this code is written in,
         // and a name only one member in the workspace has, where there is nothing to
         // be wrong about. Anything else falls through to step 5, which says "either".
         let receiver_is_self = reference
@@ -688,7 +688,7 @@ impl Index {
             // twice in one block is shadowing, and the nearer one is the answer; two
             // methods declared in one class body are an overload set, and the nearer
             // one is a coin flip. Java's `add(int)` beside `add(String)` resolved both
-            // bare `add(...)` calls to whichever was written second, at `Exact` — so a
+            // bare `add(...)` calls to whichever was written second, at `Exact`, so a
             // rename rewrote calls belonging to the other one.
             let callable = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method);
             let tied = in_file
@@ -709,7 +709,7 @@ impl Index {
         //    use, or a sibling scope for languages that hoist).
         //
         //
-        //    Naming a plausible target for a member access is useful — it is the tier
+        //    Naming a plausible target for a member access is useful. It is the tier
         //    that says how much to trust it, and `resolve_one` caps that for every
         //    branch at once instead of each branch remembering to.
         if in_file.len() == 1 {
@@ -725,7 +725,7 @@ impl Index {
         }
         // For a member access, proximity is not evidence. Two types declaring the
         // same method in one file are equally plausible targets, and picking the one
-        // written nearer the call is a coin flip that reads as an answer — it made
+        // written nearer the call is a coin flip that reads as an answer. It made
         // the other method look dead. Step 5 says "either" instead.
 
         // 3. Bound by an import in this file: resolve into the imported file when the
@@ -819,8 +819,8 @@ impl Index {
                 match in_chart.len() {
                     1 => return (Some(in_chart[0].id), Confidence::Exact),
                     0 => {}
-                    // A chart declaring one key twice — in values.yaml and a
-                    // values-prod.yaml beside it — is normal, and which one wins is
+                    // A chart declaring one key twice, in values.yaml and a
+                    // values-prod.yaml beside it, is normal, and which one wins is
                     // the question `fr flow back` answers with the invocation.
                     _ => return (Some(in_chart[0].id), Confidence::FieldBased),
                 }
@@ -834,8 +834,8 @@ impl Index {
         //    CSS class rename reach HTML and TSX.
         if reference.kind == ReferenceKind::StringRef {
             // A heading is referenced by its anchor, which is a slug of its text and
-            // rarely equal to it. Everything else string-keyed — an element id, a CSS
-            // class, a link reference definition — is named as written.
+            // rarely equal to it. Everything else string-keyed, an element id, a CSS
+            // class, a link reference definition, is named as written.
             let name = reference.name.as_str();
             let targets: Vec<&Symbol> = self
                 .symbols
@@ -924,7 +924,7 @@ impl Index {
         // 6b. Package-scoped languages. Go's package is the directory: a top-level
         //    declaration in one file is visible, unqualified, from every file beside
         //    it, with no import to record the fact. Only top-level declarations are
-        //    in that scope — a method or a struct field is reached through a value,
+        //    in that scope, a method or a struct field is reached through a value,
         //    which step 5 handles.
         //
         //    "Top-level" is `qualifier`, not `container`: a Go method's receiver type
@@ -948,7 +948,7 @@ impl Index {
                 1 => return (Some(siblings[0].id), Confidence::Exact),
                 0 => {}
                 // A package can declare one name twice, under mutually exclusive
-                // build tags — Go's `//go:build windows` and `//go:build !windows`.
+                // build tags. Go's `//go:build windows` and `//go:build !windows`.
                 // Which definition a call means depends on the build, so choosing
                 // one would rewrite half of a pair and break the other build.
                 _ => return (None, Confidence::FieldBased),
@@ -1025,7 +1025,7 @@ impl Index {
 
     /// The directory a package import path names, where this workspace holds it.
     ///
-    /// Go writes an import path from the module root — `gate/holder` — and the module
+    /// Go writes an import path from the module root, `gate/holder`, and the module
     /// root is wherever `go.mod` sits, which is a file this does not read. Matching the
     /// longest suffix of the path that names one directory in the tree resolves it
     /// without the module file, and answers nothing where two directories would do,
@@ -1091,7 +1091,7 @@ impl Index {
         }
 
         // Dotted module paths (Python `pkg.mod`, Rust `crate::mod`) map to a file
-        // whose stem matches the final segment — accepted only when unambiguous.
+        // whose stem matches the final segment, accepted only when unambiguous.
         let last = import_path
             .rsplit(['/', ':', '.'])
             .find(|s| !s.is_empty())?;
@@ -1111,7 +1111,7 @@ impl Index {
     ///
     /// Some kinds are declared in several places and are still one thing: a CSS class
     /// written in a stylesheet and again in a theme. A reference resolves to one of
-    /// those sites, so counting per site under-reports — `fr refs` on the second
+    /// those sites, so counting per site under-reports, `fr refs` on the second
     /// declaration of `.sensor-table` found nothing while `fr rename` on the same
     /// position changed five sites. You look before you leap, see nothing, and five
     /// things move. `definition_group` is the identity here, and it returns just this
@@ -1138,8 +1138,8 @@ impl Index {
 
     /// Every definition site of the entity `symbol` belongs to.
     ///
-    /// Usually just the symbol itself. For kinds with no canonical definition — CSS
-    /// classes, custom properties — it is every site that declares the same name, so
+    /// Usually just the symbol itself. For kinds with no canonical definition. CSS
+    /// classes, custom properties. It is every site that declares the same name, so
     /// a rename rewrites all of them and not half.
     pub fn definition_group(&self, symbol: SymbolId) -> Vec<SymbolId> {
         let Some(sym) = self.symbol(symbol) else {
@@ -1237,7 +1237,7 @@ impl Index {
         }
     }
 
-    /// Names defined more than once across the workspace — the cases where
+    /// Names defined more than once across the workspace, the cases where
     /// name-based resolution would be wrong.
     pub fn ambiguous_names(&self) -> Vec<(&str, usize)> {
         let mut counts: HashMap<&str, HashSet<&Path>> = HashMap::new();

@@ -2,7 +2,7 @@
 //!
 //! One query file backs both `Language::TypeScript` (.ts) and `Language::Tsx`
 //! (.tsx), so every shared construct is exercised against both grammars and the
-//! JSX-only constructs against Tsx alone — the .ts grammar cannot parse JSX.
+//! JSX-only constructs against Tsx alone, the .ts grammar cannot parse JSX.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers, span::Span};
 use std::path::Path;
@@ -480,7 +480,7 @@ fn calls_are_recorded_as_calls() {
         let method = refs_named(&f, "methodTarget");
         assert_eq!(method[0].kind, ReferenceKind::Call, "{lang}");
 
-        // Documented choice: `new X()` is a call — it invokes a constructor.
+        // Documented choice: `new X()` is a call. It invokes a constructor.
         let ctor = refs_named(&f, "Klass");
         assert_eq!(ctor[0].kind, ReferenceKind::Call, "{lang}");
     }
@@ -592,7 +592,7 @@ fn jsx_component_names_are_references_and_html_tags_are_not() {
     assert_eq!(helper.len(), 1, "{helper:?}");
     assert_eq!(helper[0].kind, ReferenceKind::Identifier);
 
-    // Lowercase tags are HTML, not symbols — the identifier catch-all is scoped
+    // Lowercase tags are HTML, not symbols, the identifier catch-all is scoped
     // to expression positions precisely so these never appear.
     for tag in ["div", "span", "p"] {
         assert!(
@@ -695,8 +695,8 @@ export const store = new Store<User>();
     assert!(one(&f, "Profile").exported);
     assert_eq!(one(&f, "add").qualified_name(), "Store::add");
     assert_eq!(one(&f, "DEFAULT_NAME").kind, SymbolKind::Constant);
-    // A binding whose initialiser is a *call* — `useCallback(() => …)` and every
-    // other higher-order wrapper — holds a value, not a literal function, so it
+    // A binding whose initialiser is a *call*, `useCallback(() => …)` and every
+    // other higher-order wrapper, holds a value, not a literal function, so it
     // is a Constant. Only a directly-bound function literal reads as a function.
     assert_eq!(one(&f, "save").kind, SymbolKind::Constant);
     let css: Vec<&str> = f
@@ -755,7 +755,7 @@ fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
 #[test]
 fn a_typeof_type_query_names_the_value_it_reads() {
     // `typeof Foo` reads a *value's* type. The catch-all identifier pattern already
-    // recorded the use, but as a plain identifier, which understates it — and an
+    // recorded the use, but as a plain identifier, which understates it, and an
     // import bound only this way looks value-unused.
     let src = "const Foo = { a: 1 };\nlet x: typeof Foo;\n";
     let f = facts(Language::TypeScript, src);

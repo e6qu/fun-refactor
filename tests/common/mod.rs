@@ -1,7 +1,7 @@
 //! The compile gate's harness: a workspace on disk, and the rule every case obeys.
 //!
 //! Shared because two files drive it. `output_compiles.rs` puts the commands that move a
-//! declaration through it — rename, signature, move, inline — and `rewrites_compile.rs`
+//! declaration through it, rename, signature, move, inline, and `rewrites_compile.rs`
 //! puts the commands that rewrite one in place. One harness, so a language added to it is
 //! added for both, and the rule about what may reach disk is stated once.
 
@@ -242,8 +242,8 @@ impl Workspace {
                     .output()
                     .expect("javac runs")
             }
-            // Three passes. The shell's own parser and shellcheck at error severity —
-            // a warning is style and an error is a script that will not run — and then
+            // Three passes. The shell's own parser and shellcheck at error severity,
+            // a warning is style and an error is a script that will not run, and then
             // the script itself, because neither of the first two can see a call to a
             // function that moved to another file. `fr move` writes the `source` line
             // that makes it work, and only running the thing checks that it did.

@@ -15,7 +15,7 @@ use std::path::PathBuf;
 ///
 /// [`SymbolKind::as_str`] is this kind's identifier: it is what `--json` emits, what a
 /// catalogue's `symbol_kind:` matches, and what the tables a person reads print. The
-/// serde spelling has to be the same string, and for three variants it was not — the
+/// serde spelling has to be the same string, and for three variants it was not, the
 /// tool emitted `"kind": "type"` and could not read it back, which is a round trip
 /// nothing was checking. Three renames below, and a test over every variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -178,7 +178,7 @@ pub enum Confidence {
     /// Resolved through an explicit import or qualified path. Safe to edit.
     ImportQualified,
     /// Matched by field/member name without knowing the receiver's type.
-    /// Plausible but unproven — refactorings must not silently rewrite these.
+    /// Plausible but unproven, refactorings must not silently rewrite these.
     FieldBased,
     /// Matched by bare name only. Weakest tier; report, never rewrite.
     NameOnly,
@@ -204,7 +204,7 @@ impl Confidence {
 ///
 /// [`crate::refactor::Refusal::TooWeak`] means "this resolved, and not strongly enough
 /// to act on". Five sites raised it where nothing had resolved at all, filling the field
-/// with `Confidence::NameOnly` — so a shell script that sources a computed path was
+/// with `Confidence::NameOnly`, so a shell script that sources a computed path was
 /// refused with "resolution is only 'name-only'", sending the reader after a resolution
 /// problem that was not there. Taking this instead of a bare [`Confidence`] means the
 /// variant cannot be built without a reference to take it from.
@@ -294,7 +294,7 @@ pub struct Reference {
     ///
     /// `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier: not a
     /// call, and with nothing before it. Left at that it is indistinguishable from a
-    /// call to a free function of the same name — which is what renaming the free
+    /// call to a free function of the same name, which is what renaming the free
     /// `scope_at` rewrote, turning four method calls into calls to a method that does
     /// not exist. The dot is still in the source even where the syntax is not.
     #[serde(default)]
@@ -307,7 +307,7 @@ pub struct Reference {
     /// class that styled it and gained one that nothing declares.
     #[serde(default)]
     pub expects: Option<SymbolKind>,
-    /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f` —
+    /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f`,
     /// and not as a value.
     ///
     /// A path names a type or a module, so it can be matched against a symbol's own
@@ -340,6 +340,9 @@ pub enum ReferenceKind {
     /// A reference inside a string, template or attribute (Helm `.Values.x`,
     /// HTML `class="btn"`, Markdown `#anchor`).
     StringRef,
+    /// The name written in a comment or a string, which no grammar links to the
+    /// declaration. `fr usages` lists these apart. No command edits them.
+    Textual,
 }
 
 /// A lexical scope.
@@ -425,7 +428,7 @@ impl Symbol {
 ///
 /// A gap carries the sentence that reports it, so a new way for extraction to come up
 /// short cannot be added without also deciding what the user is told about it. The
-/// alternative — a bool meaning "trust this file less" — has to pick one sentence for
+/// alternative, a bool meaning "trust this file less", has to pick one sentence for
 /// every reason, and grew wrong the moment a second reason existed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum FactGap {
@@ -474,8 +477,8 @@ pub struct FileFacts {
 /// The innermost scope containing `offset`.
 ///
 /// A free function over the scopes themselves, because two different types hold the
-/// same `Vec<Scope>` — the per-file facts before resolution and the index's view of a
-/// file after it — and the answer must not depend on which one you happen to have.
+/// same `Vec<Scope>`, the per-file facts before resolution and the index's view of a
+/// file after it, and the answer must not depend on which one you happen to have.
 pub fn scope_at(scopes: &[Scope], offset: usize) -> Option<ScopeId> {
     scopes
         .iter()

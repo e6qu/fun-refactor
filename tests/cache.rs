@@ -214,7 +214,7 @@ fn cross_language_resolution_survives_caching() {
 fn entries_do_not_store_a_path_per_item() {
     // Every symbol and reference in a file shares one path. Storing it per item made
     // entries several times larger than the source they describe, so it is dropped on
-    // write and restored on read — this test guards the size, not just the behaviour.
+    // write and restored on read. This test guards the size, not just the behaviour.
     let big = (0..200u32)
         .map(|i| format!("pub fn f{i}() {{ f{}(); }}\n", i.saturating_sub(1)))
         .collect::<String>();
@@ -255,7 +255,7 @@ fn a_missing_cache_directory_is_not_an_error() {
 #[test]
 fn the_cache_namespace_includes_the_extractor_that_produced_the_facts() {
     // The cache is keyed by file content and by the query set. That is only correct
-    // while "the extractor" is a constant — and it is not. Adding a field to
+    // while "the extractor" is a constant, and it is not. Adding a field to
     // `Reference` changes what a cached fact means, while `#[serde(default)]` lets
     // yesterday's entry deserialize cleanly into today's struct. The result is a
     // cache that looks healthy and answers wrongly; it cost an afternoon of bisecting

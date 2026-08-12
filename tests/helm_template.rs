@@ -3,8 +3,8 @@
 //! Two halves. The first parses action text directly: a template action is a small
 //! language, and the tests pin what each construct means and not what a
 //! substring happens to contain. The second drives the public API over a realistic
-//! chart — subchart, `_helpers.tpl`, `include`, a `{{- if }}`-wrapped block and a
-//! `{{ if }}`-guarded environment variable — and pins either the resolved answer or
+//! chart, subchart, `_helpers.tpl`, `include`, a `{{- if }}`-wrapped block and a
+//! `{{ if }}`-guarded environment variable, and pins either the resolved answer or
 //! the honest statement of what is left undecidable.
 
 use fun_refactor::{
@@ -720,7 +720,7 @@ fn two_chart_values_files_have_a_decided_winner() {
         "nothing here is undetermined: {:?}",
         stops(&result)
     );
-    // The external channel is still reported — it replaces the answer instead of
+    // The external channel is still reported. It replaces the answer instead of
     // reordering these two.
     assert!(
         result.stopped_because(|r| matches!(

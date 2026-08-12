@@ -1,7 +1,7 @@
 //! Refactorings.
 //!
-//! Every refactoring returns a *plan* — an [`crate::edit::EditSet`] plus whatever it
-//! could not do — instead of touching files. The caller renders a diff or commits.
+//! Every refactoring returns a *plan*, an [`crate::edit::EditSet`] plus whatever it
+//! could not do, instead of touching files. The caller renders a diff or commits.
 //! Nothing is ever half-applied, and nothing that could not be verified is rewritten
 //! silently (PLAN.md D8).
 
@@ -117,7 +117,7 @@ pub enum Refusal {
     /// relative import that would climb out of its root. Each of these was once a
     /// [`Refusal::Unsupported`] naming the language, which said the opposite of what the
     /// capability matrix says and of what the command does elsewhere. They are still
-    /// considered refusals — the tool declined on purpose and wrote nothing — and this is
+    /// considered refusals, the tool declined on purpose and wrote nothing, and this is
     /// where a considered refusal goes when the language is not what is at fault.
     NotHere { operation: String, detail: String },
     /// Resolution was too weak to act on safely.
@@ -137,7 +137,7 @@ pub enum Refusal {
     /// is not strong enough to act on. These are the cases where there is nothing to be
     /// weak about: a grammar that does not expose a call as a call, a shell script that
     /// sources a path computed at run time. Reporting them as a confidence produced
-    /// "resolution is only 'exact'", which is a sentence that contradicts itself — and
+    /// "resolution is only 'exact'", which is a sentence that contradicts itself, and
     /// leaves the reader looking for a resolution problem that is not there.
     Unknowable { detail: String },
 }
@@ -180,7 +180,7 @@ impl std::fmt::Display for Refusal {
             },
             Refusal::TooWeak { confidence, detail } => write!(
                 f,
-                "resolution is only '{}' — {detail}. Refusing to rewrite what cannot be verified",
+                "resolution is only '{}'. {detail}. Refusing to rewrite what cannot be verified",
                 confidence.get().as_str()
             ),
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),

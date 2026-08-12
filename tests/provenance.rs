@@ -2,8 +2,8 @@
 //!
 //! These languages are messy in different ways, and the point of the analysis is
 //! that it says so: every test below either pins an exact substitution/override
-//! answer, or pins the *honest* refusal to answer — an external input, a masked
-//! template action, an undecidable precedence — instead of a guess.
+//! answer, or pins the *honest* refusal to answer, an external input, a masked
+//! template action, an undecidable precedence, instead of a guess.
 
 use fun_refactor::{
     analysis::provenance::{consumers, provenance, specificity, EdgeKind, StopReason},
@@ -740,7 +740,7 @@ button.btn { color: green; }
 
 #[test]
 fn the_cascade_orders_competing_declarations_by_specificity() {
-    // #id beats .class beats element, and every loser stays visible — this is the
+    // #id beats .class beats element, and every loser stays visible. This is the
     // DevTools struck-through view, not a single answer.
     let (_tmp, index) = workspace(&[("ui/app.css", STYLES)]);
     let btn = id_in(&index, "app.css", "btn");

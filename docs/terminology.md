@@ -106,9 +106,11 @@ lists these and states the limits of the answer.
 
 **Call graph.** The edges between functions that call each other. `fr graph` exports it.
 
-**Dispatch.** A call whose target depends on a value at run time, through a trait object,
-an interface value or a base class. The call graph records these edges apart from resolved
-calls, because a name and an arity are weaker evidence than a resolved reference.
+**Dispatch.** A call whose target depends on a value while the program runs, through a
+trait object, an interface value or a base class. The tool cannot say which implementation
+the call reaches, so it lists every implementation that the declaration could reach. The
+call graph keeps these edges apart from resolved calls, because a matching name and
+argument count are weaker evidence than a resolved reference.
 
 ## Refactorings
 
@@ -163,3 +165,39 @@ written by an older extractor is never read by a newer one.
 
 **Sweep.** A run of one command over every candidate in a repository, with the results
 counted. A sweep finds defects that a single example does not.
+
+**Compile gate.** A test that applies a refactoring to a copy of a workspace and then
+runs the real compiler on the result. A plan that parses but does not compile fails the
+gate. `tests/output_compiles.rs` and three sibling files hold these tests.
+
+**Validator.** The tool that judges a language with no compiler, such as `bash -n` for
+shell, `terraform validate` for Terraform and `xmllint` for XML. A validator plays the
+part of the compiler in the gate.
+
+**Toolchain.** The compiler or validator for one language, and the check that says
+whether the machine has it. A missing toolchain skips a gate test. On CI it fails the
+run, because a skipped check reads the same as a passed one.
+
+**Capability.** One thing the tool can do to one language, such as "rename a symbol" or
+"organise imports". `fr capabilities` lists them.
+
+**Capability matrix.** The table of every capability against every language. A cell holds
+either a mark for supported or `n/a` with the reason. Each cell is computed from the
+predicate the command itself asks, so the table and the command cannot disagree.
+
+**Cascade.** The repeated rounds that `fr remove-flag` runs. Round one replaces the flag
+with its value. Later rounds collapse conditionals that are now constant and delete what
+nothing reads. The rounds repeat until nothing changes.
+
+**Recipe.** A file that names what to find, what to do to it, and what must be true
+afterwards. `fr recipe` runs one.
+
+**Translate.** Rewrite a file as another language. The output is a draft, and it names
+every construct that did not carry across.
+
+**Playground.** The browser build of the tool, served from `docs/playground`. It uses
+the same library as the terminal program, compiled to WebAssembly.
+
+**Budget file.** A file that holds a count that may only go down, such as
+`tools/PROSE-DEBT`. A check fails when the count rises above the number, and fails again
+when the count falls below it until the number is lowered. Both directions are recorded.

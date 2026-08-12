@@ -1,7 +1,7 @@
 //! Inline call: the strictest refactoring in the set.
 //!
 //! Every precondition here exists because breaking it changes behaviour while still
-//! compiling — the worst possible failure for a refactoring tool. Each one is a
+//! compiling, the worst possible failure for a refactoring tool. Each one is a
 //! refusal that names what blocked it.
 
 use fun_refactor::edit::apply_to_string;

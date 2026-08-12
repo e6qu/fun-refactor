@@ -1,8 +1,8 @@
 //! Java's class hierarchy, which the call graph did not read.
 //!
 //! Class hierarchy analysis answers "who could this call reach?" for a call through an
-//! abstraction. Java states that hierarchy more plainly than any other language here —
-//! `implements` is a keyword — and it was the one language whose hierarchy went unread,
+//! abstraction. Java states that hierarchy more plainly than any other language here,
+//! `implements` is a keyword, and it was the one language whose hierarchy went unread,
 //! because it fell into the same catch-all as Zig and Bash, which genuinely have none.
 
 use fun_refactor::analysis::call_graph::{CallGraph, HierarchyBasis};
@@ -122,7 +122,7 @@ fn a_type_argument_is_not_a_supertype() {
     // `implements Holder<Pet>` says nothing about Pet. Taking every type name under
     // the clause made the argument a supertype too, so a call reaching `Box::name` by
     // its name alone was reported as reaching it through a relationship somebody
-    // declared — a guess presented as a fact, which is the one thing this layer must
+    // declared, a guess presented as a fact, which is the one thing this layer must
     // not do. The edge is the same either way; the evidence for it is not.
     let source = "\
 interface Holder<T> {

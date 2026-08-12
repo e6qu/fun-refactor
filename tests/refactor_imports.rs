@@ -194,7 +194,7 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
     );
 
     // `./m` binds two names and only one is used, so the statement stays and `b` goes.
-    // It used to stay whole, which left a binding nothing named — an error under
+    // It used to stay whole, which left a binding nothing named, an error under
     // `noUnusedLocals` and a lint failure everywhere else, from the command whose whole
     // job is removing imports nothing uses. The name this test already had says so.
     assert_eq!(
@@ -212,7 +212,7 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
 
 #[test]
 fn a_rust_trait_imported_only_for_its_methods_is_kept() {
-    // `Write` is never spelled at the call site — only `write_str` is — so name-based
+    // `Write` is never spelled at the call site, only `write_str` is, so name-based
     // liveness sees an unused import. Removing it would leave a file that still parses
     // but no longer compiles, which the reparse check cannot catch, so any
     // upper-camel-case Rust binding is held back and reported instead.

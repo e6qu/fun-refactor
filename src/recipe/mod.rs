@@ -11,8 +11,8 @@
 //! reviewer can read. A recipe makes the *plan* the artifact; the diff is what it
 //! produces.
 //!
-//! It deliberately is not a programming language — no loops, no arithmetic, no
-//! conditionals — and it does not extend what the tool can do. If a step could not be
+//! It deliberately is not a programming language, no loops, no arithmetic, no
+//! conditionals, and it does not extend what the tool can do. If a step could not be
 //! typed as an `fr` command, it is not a step. See RECIPES.md for the design and what
 //! it argues about.
 

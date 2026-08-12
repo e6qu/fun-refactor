@@ -86,7 +86,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "'{}' has no uses; inlining would only delete it — use `fr delete` if that is the intent",
+            "'{}' has no uses; inlining would only delete it. Use `fr delete` if that is the intent",
             sym.name
         );
     }
@@ -144,7 +144,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // Remove the binding, taking its whole line when nothing else is on it.
     //
     // A Java declarator is the symbol and the `int` in front of it is not, so removing
-    // the symbol's own span left `int ;` behind. The statement goes too — but only where
+    // the symbol's own span left `int ;` behind. The statement goes too, but only where
     // this declarator is the only one in it, because `int a = 1, b = 2, c = 3;` declares
     // three and inlining one must leave the other two alone.
     let binding = sole_declarator_statement(&parsed, sym.full_span).unwrap_or(sym.full_span);
@@ -175,7 +175,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 /// The rule errs toward a parenthesis: a pair around an expression never changes its
 /// meaning, whereas deciding precedence properly needs a per-grammar operator table
 /// that would be wrong somewhere, silently. Left bare: the things no surrounding
-/// operator can split — a name, a literal, a call, a field, an index, and anything
+/// operator can split, a name, a literal, a call, a field, an index, and anything
 /// already wrapped.
 ///
 /// Languages without an expression grammar are untouched. A YAML value is not an
@@ -277,8 +277,8 @@ fn other_assignment(
 /// Which symbol does this name mean, read from inside this scope?
 ///
 /// The innermost enclosing scope that declares it wins, which is what "lexical scope"
-/// means. `None` says no scope on the chain declares it — a module-level name, an
-/// import, a builtin — and two `None`s agree with each other: the name means whatever
+/// means. `None` says no scope on the chain declares it, a module-level name, an
+/// import, a builtin, and two `None`s agree with each other: the name means whatever
 /// it means everywhere in the file.
 fn meaning_of(
     index: &Index,
@@ -437,7 +437,7 @@ mod tests {
         assert_eq!(plan.use_sites, 2);
         // Parenthesised at every site, including the two where nothing could have
         // bound tighter. Knowing that would mean a precedence table per grammar, and a
-        // table like that is wrong somewhere — silently, and by changing the answer.
+        // table like that is wrong somewhere, silently, and by changing the answer.
         assert_eq!(
             apply(&plan, &path),
             "fn f() {\n    p((a + b));\n    q((a + b));\n}\n"
@@ -572,8 +572,8 @@ pub struct InlineCallPlan {
 ///
 /// Only calls whose result is provably identical are inlined. gopls's inliner exists
 /// to preserve evaluation order, effects and shadowing across arbitrary bodies; this
-/// one takes the conservative half of that problem — a single-expression callee whose
-/// arguments cannot be duplicated unsafely — and refuses everything else by name.
+/// one takes the conservative half of that problem, a single-expression callee whose
+/// arguments cannot be duplicated unsafely, and refuses everything else by name.
 pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<InlineCallPlan> {
     if let Some(info) = index.file(file) {
         crate::capabilities::record(crate::capabilities::Capability::InlineCall, info.language);
@@ -912,7 +912,7 @@ fn word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
 /// Is the whole expression inside one pair of brackets?
 ///
 /// `(a + b)` is. `(a + 1) / (b - 1)` is not, and reading only the first and last
-/// character says it is — which left `2 * scale(p + 1, q - 1)` expanding to
+/// character says it is, which left `2 * scale(p + 1, q - 1)` expanding to
 /// `2 * (p + 1) / (q - 1)`. For `p = 1, q = 4` the call returns 0 and the expansion
 /// is 1.
 fn wrapped_in_one_group(text: &str) -> bool {
@@ -990,7 +990,7 @@ fn named_children_of_kind<'a>(node: Node<'a>, kind: &str) -> Vec<Node<'a>> {
 /// The span to delete for a construct that owns whole lines: the lines it covers,
 /// plus the blank lines directly after it.
 ///
-/// This is what makes an extraction reversible — the blank line an extraction wrote
+/// This is what makes an extraction reversible, the blank line an extraction wrote
 /// to separate its new block from the rest of the file goes away with the block.
 fn block_removal_span(source: &str, inner: Span) -> Span {
     let first = full_line_span(source, inner.start);
@@ -1022,7 +1022,7 @@ fn block_removal_span(source: &str, inner: Span) -> Span {
 ///
 /// A construct need not fit on one line. An HCL local holding a multi-line object
 /// begins on the line its name is on and ends several lines below, so the line before
-/// it and the line after it are two different lines — reading both from `inner.start`
+/// it and the line after it are two different lines, reading both from `inner.start`
 /// asked for `source[end..start]` and panicked.
 fn tight_removal_span(source: &str, inner: Span) -> Span {
     let end = inner.end.min(source.len());
@@ -1124,7 +1124,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "local.{} has no uses; inlining would only delete it — use `fr delete` if \
+            "local.{} has no uses; inlining would only delete it. Use `fr delete` if \
              that is the intent",
             sym.name
         );
@@ -1134,7 +1134,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             return Err(Refusal::TooWeak {
                 confidence: reference.resolved_confidence(),
                 detail: format!(
-                    "a use of local.{} at {}:{} did not resolve conclusively — the \
+                    "a use of local.{} at {}:{} did not resolve conclusively. The \
                      module declares more than one thing by that name",
                     sym.name,
                     reference.file.display(),
@@ -1418,7 +1418,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             "{} does not parse cleanly{}; the declaration cannot be located reliably",
             sym.file.display(),
             if sym.language == Language::Scss {
-                " — check for SCSS syntax its grammar does not yet cover, such as \
+                ". Check for SCSS syntax its grammar does not yet cover, such as \
                  empty `@mixin m()` parentheses or a namespaced `@include t.m(…)`"
             } else {
                 ""
@@ -1437,7 +1437,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "'{}' has no `var()` uses; inlining would only delete it — use `fr delete` \
+            "'{}' has no `var()` uses; inlining would only delete it. Use `fr delete` \
              if that is the intent",
             sym.name
         );
@@ -1586,7 +1586,7 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "'[{}]' has no reference links; inlining would only delete it — use \
+            "'[{}]' has no reference links; inlining would only delete it. Use \
              `fr delete` if that is the intent",
             sym.name
         );
@@ -1664,7 +1664,7 @@ fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
 }
 
 /// The lines a link reference definition occupies, plus the blank line before it when
-/// it is the last thing in the document — the separator an extraction wrote.
+/// it is the last thing in the document, the separator an extraction wrote.
 fn markdown_definition_removal(source: &str, definition: Span) -> Span {
     let line = full_line_span(source, definition.start);
     let mut start = line.start;
@@ -1714,7 +1714,7 @@ fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 ///   every later use sees; one substitution cannot serve both.
 /// * Every child process this script starts reads an `export`ed variable, and nothing
 ///   in the workspace shows whether one wants it.
-/// * `'$name'` inside single quotes is not a use — the shell expands nothing there — so
+/// * `'$name'` inside single quotes is not a use, the shell expands nothing there, so
 ///   deleting the assignment would leave text that looks like a use. Reported.
 ///
 /// Quoting decides the substitution, mirroring the extraction: a use inside double
@@ -1749,7 +1749,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .filter(|a| Span::from(*a) == sym.full_span)
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "`{}` is not bound by an assignment — a `for` loop variable and a bare \
+                "`{}` is not bound by an assignment. A `for` loop variable and a bare \
                  `local {}` have no value to substitute",
                 sym.name,
                 sym.name
@@ -1790,9 +1790,9 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     if let Some(quoted) = bash_single_quoted_mention(&parsed, &source, &sym.name) {
         anyhow::bail!(
-            "`{}` at bytes {} is inside single quotes, where the shell expands nothing — \
-             that text is a literal `${}`, not a use. Removing the assignment would \
-             leave it reading like one",
+            "`{}` at bytes {} is inside single quotes, where the shell expands nothing. \
+             That text is a literal `${}` and not a use. Removing the assignment \
+             would leave it reading like one",
             Span::from(quoted).text(&source),
             Span::from(quoted),
             sym.name
@@ -1802,7 +1802,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "`{}` has no uses; inlining would only delete it — use `fr delete` if that \
+            "`{}` has no uses; inlining would only delete it. Use `fr delete` if that \
              is the intent",
             sym.name
         );
@@ -1849,7 +1849,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         let (target, replacement) = match bash_redundant_quotes(expansion, &source, &sym.name) {
             // `x="$name"` on the right of an assignment is one word however it is
             // written, so the quotes may go with the expansion and the value keeps
-            // its own — which is what makes an extraction reversible byte for byte.
+            // its own, which is what makes an extraction reversible byte for byte.
             Some(quoted) => (quoted, Span::from(value).text(&source).to_string()),
             None => (
                 Span::from(expansion),
@@ -1974,8 +1974,8 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
 /// but this expansion, standing on the right of an assignment, where the shell splits
 /// nothing whatever the value turns out to be.
 ///
-/// Everywhere else the quotes are load-bearing — `"$name"` as a command argument is
-/// one word and the value alone might not be — so this returns `None` and the value
+/// Everywhere else the quotes are load-bearing, `"$name"` as a command argument is
+/// one word and the value alone might not be, so this returns `None` and the value
 /// is spliced inside the quotes instead.
 fn bash_redundant_quotes(expansion: Node<'_>, source: &str, name: &str) -> Option<Span> {
     let string = expansion.parent().filter(|p| p.kind() == "string")?;
@@ -2040,7 +2040,7 @@ fn bash_substitution(
                     "`{name}` holds `{verbatim}` and this use is unquoted, where the \
                      shell splits on `$IFS` and expands globs. `\"$` `{name}\"` never \
                      did either, so there is no substitution here that keeps the \
-                     meaning — quote the use site first"
+                     meaning. Quote the use site first"
                 )
             }
         }
@@ -2144,7 +2144,7 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     if uses.is_empty() {
         anyhow::bail!(
             "`&{name};` is never referenced; inlining would only delete the declaration \
-             — use `fr delete` if that is the intent"
+. Use `fr delete` if that is the intent"
         );
     }
 

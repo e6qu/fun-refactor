@@ -9,6 +9,10 @@
 #
 # The browser API is a separate feature set that neither default clippy nor the
 # default test run compiles, so it gets its own pass.
+#
+# `check-prose.py` counts the writing habits listed in `docs/style.md` against the
+# numbers in `tools/PROSE-DEBT`. It fails when a count rises, and when a count falls
+# without the number being lowered.
 
 set -euo pipefail
 
@@ -33,6 +37,9 @@ run cargo clippy --all-targets -- -D warnings
 FR_CAPABILITY_LOG="$log" run cargo test --all-targets
 run cargo clippy --all-targets --features wasm -- -D warnings
 run cargo test --all-targets --features wasm
+
+printf '\n\033[1m==> writing\033[0m\n'
+python3 tools/check-prose.py
 
 printf '\n\033[1m==> capability coverage\033[0m\n'
 cargo run --quiet --features cli --bin fr -- capabilities --json > "$matrix"

@@ -112,7 +112,7 @@ fn prefixed_element_and_attribute_names_are_references() {
     let f = facts(src);
     let mut r = refs(&f);
     r.sort();
-    // Start tag name, attribute name and end tag name — every occurrence a
+    // Start tag name, attribute name and end tag name, every occurrence a
     // prefix rename has to visit. Each span is the whole `prefix:local` token.
     assert_eq!(r, ["foo:attr", "foo:child", "foo:child"]);
     assert!(f

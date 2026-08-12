@@ -316,7 +316,7 @@ fn adding_to_a_call_that_passes_nothing_starts_the_argument_list() {
 
 #[test]
 fn a_declaration_is_reported_rather_than_written_anywhere() {
-    // Bash has nothing to declare, so the field cannot be honoured — but silently
+    // Bash has nothing to declare, so the field cannot be honoured, but silently
     // dropping text the caller supplied would be worse than saying so.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$1\"\n}\nf a\n")]);
     let index = ws.index();
@@ -414,7 +414,7 @@ fn braced_references_are_renumbered_in_place() {
 
 #[test]
 fn renumbering_past_nine_has_to_start_bracing() {
-    // `$10` is not parameter 10 — the shell reads it as `${1}0` — so a reference
+    // `$10` is not parameter 10, the shell reads it as `${1}0`, so a reference
     // pushed past nine must gain braces or the rewrite would change its meaning.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$9\"\n}\nf 1 2 3 4 5 6 7 8 9\n")]);
     let index = ws.index();
@@ -806,7 +806,7 @@ fn the_summary_names_the_positional_parameter() {
 /// A refusal names the operation the caller asked for.
 ///
 /// Two shell functions of one name make every call site ambiguous, which is a reason to
-/// refuse a signature change — but it reused the refusal `rename` and `extract` raise
+/// refuse a signature change, but it reused the refusal `rename` and `extract` raise
 /// when a *new* name would collide, so the message said "renaming would shadow or
 /// collide with it" to somebody who had asked to move a parameter. Nothing is being
 /// renamed and nothing is being introduced; two definitions were already there.

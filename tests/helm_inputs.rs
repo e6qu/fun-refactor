@@ -3,7 +3,7 @@
 //! A workspace scan sees a chart, its subcharts and whatever `values-*.yaml` files
 //! sit beside them. It cannot see the invocation: whether a values file is passed
 //! with `-f` at all, in which order two of them were written, or that a `--set`
-//! overrides both. That is not an inherent limit, it is a missing input — so these
+//! overrides both. That is not an inherent limit, it is a missing input, so these
 //! tests supply it, and pin both halves: what the same query answers with nothing
 //! supplied (unchanged), and what it answers when told.
 //!
@@ -273,7 +273,7 @@ fn a_values_file_that_sets_nothing_for_the_key_leaves_the_chart_value_standing()
 #[test]
 fn a_key_only_a_file_that_is_not_passed_sets_is_unset_in_this_invocation() {
     // The other half of "which file is passed": a key whose only source is a file
-    // the caller did not list is not a competition anyone wins — it is unset, and
+    // the caller did not list is not a competition anyone wins. It is unset, and
     // the file that would supply it is named.
     let (tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),

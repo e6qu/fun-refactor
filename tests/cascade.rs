@@ -166,7 +166,7 @@ fn the_result_still_parses() {
 #[test]
 fn deleted_definitions_leave_no_blank_debris() {
     // A multi-line definition must be removed lines and all, together with the blank
-    // line that separated it — otherwise a cascade leaves a widening gap.
+    // line that separated it, otherwise a cascade leaves a widening gap.
     let tmp = workspace(&[(
         "a.rs",
         "const USE_NEW: bool = true;\n\nfn only_old() {\n    helper();\n}\n\nfn run() {\n    if USE_NEW {\n        keep();\n    } else {\n        only_old();\n    }\n}\n",

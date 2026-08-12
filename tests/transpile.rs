@@ -42,7 +42,7 @@ pub struct Reading {
 #[test]
 fn a_signature_survives_the_crossing() {
     // The whole promise in one test: every parameter, in order, with its type, and
-    // the return type — in the target's spelling and nothing else changed.
+    // the return type, in the target's spelling and nothing else changed.
     for (target, expected) in [
         (
             Language::Python,
@@ -146,7 +146,7 @@ pub fn shout(names: Vec<String>) -> Vec<String> {
 #[test]
 fn an_interpolated_string_keeps_interpolating() {
     // `f"{c} below"` flattened to the literal text `{c} below` is not a gap, it is a
-    // wrong answer — and it was one this found in its own output. Each target spells
+    // wrong answer, and it was one this found in its own output. Each target spells
     // interpolation its own way and every one of them must still substitute.
     let source = "\
 def describe(celsius: float) -> str:
@@ -415,7 +415,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
     // Six languages, and the receiver is not in the parameter list to be renamed with
     // the rest: Rust, Python and Zig say `self`, Java and TypeScript say `this`, and Go
     // says whatever the author called it. Every body used to keep its *source's* word,
-    // so a translated method referred to a name the output never binds — `this.cache`
+    // so a translated method referred to a name the output never binds, `this.cache`
     // inside a Rust `impl` is not a typo, it is a file that cannot compile.
     for (name, source) in METHODS {
         let from = fun_refactor::lang::detect(std::path::Path::new(name)).unwrap();
@@ -454,7 +454,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
 #[test]
 fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
     // The opposite of what a free function does, and reading both the same way made
-    // every translated method private in Java and unreachable everywhere else — while
+    // every translated method private in Java and unreachable everywhere else, while
     // making every `private` field public, which is the same mistake pointing the
     // other way.
     let source = "export class Guard {\n  private secret: string;\n  token: string;\n\n  \
@@ -482,7 +482,7 @@ fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
 #[test]
 fn zig_says_var_only_where_something_writes() {
     // Zig rejects a `var` nothing writes to, and only the Rust reader records
-    // mutability at all — every other one says "mutable" because it has nothing better
+    // mutability at all, every other one says "mutable" because it has nothing better
     // to say. Taking that at its word turned a `const` file into one that will not
     // build.
     let source = "def tally(xs: list[int]) -> int:\n    total = 0\n    label = \"n\"\n    \
@@ -538,7 +538,7 @@ fn a_string_keeps_its_escapes_and_does_not_gain_any() {
     // The IR holds what the string *is*, not how the source spelled it. Carrying the
     // spelling meant every writer escaped the backslash again on the way out, so a
     // newline crossed as a backslash and an `n`. The output parsed, so nothing caught
-    // it — and every string with an escape in it came out meaning something else.
+    // it, and every string with an escape in it came out meaning something else.
     let source = "pub const A: &str = \"one\\ntwo\\tthree\";\n\
                   pub const B: &str = \"quote \\\" and back \\\\ slash\";\n";
     for (target, first, second) in [
@@ -581,7 +581,7 @@ fn a_comment_between_two_parameters_is_not_a_third() {
     // A comment is an *extra* in every one of these grammars, so it can appear between
     // any two nodes anywhere. Every reader reads a parameter list either positionally
     // or through a catch-all arm, and both read a comment as whatever they expected to
-    // find there — so a comment inside a parameter list became a parameter named after
+    // find there, so a comment inside a parameter list became a parameter named after
     // the sentence.
     let source =
         "pub fn f(\n    a: i64,\n    // Why b is what it is.\n    b: i64,\n) -> i64 {\n    \
@@ -610,7 +610,7 @@ fn a_comment_between_two_parameters_is_not_a_third() {
 fn a_method_is_written_with_its_type() {
     // Rust and Go declare methods apart from their type and the others declare them
     // inside it. The IR keeps them with the type, which is what lets one shape become
-    // the other — and the Rust reader said exactly that in a comment while pushing
+    // the other, and the Rust reader said exactly that in a comment while pushing
     // them out as top-level functions. Every writer then wrote a free function whose
     // body reached through a receiver nothing in the output binds.
     let source = "pub struct Repo {\n    pub name: String,\n}\n\n\
@@ -649,7 +649,7 @@ fn a_method_is_written_with_its_type() {
 fn a_rust_number_leaves_its_width_behind() {
     // `0usize` writes the type into the literal, which is a spelling only Rust has.
     //
-    // This failed once, during one full run, and has not repeated since — see B258. The
+    // This failed once, during one full run, and has not repeated since, see B258. The
     // suffix can reach the output two ways, and the message says which: the writer wrote
     // it, or the statement was carried over verbatim and brought its own text along. Last
     // time there was no way to tell them apart, and a recurrence should not be a mystery
@@ -742,7 +742,7 @@ const TERNARY: &[(&str, &str)] = &[
 #[test]
 fn a_conditional_expression_crosses_between_the_five_that_have_one() {
     // One expression that chooses between two. Go is the only target here without it,
-    // and turning one into an `if` statement needs somewhere to put the result — which
+    // and turning one into an `if` statement needs somewhere to put the result, which
     // does not exist inside an argument list, so Go says so instead.
     for (name, source) in TERNARY {
         for (target, expected) in [
@@ -774,7 +774,7 @@ fn a_conditional_expression_crosses_between_the_five_that_have_one() {
 fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
     // Three of these six languages have inheritance and three do not. Dropping the
     // base silently made `class JsonPrimitive extends JsonElement` into a class that
-    // extends nothing — a different type, with the output saying nothing about it.
+    // extends nothing, a different type, with the output saying nothing about it.
     let source = "export class Primitive extends Element {\n  value: string;\n\n  \
                   read(): string {\n    return this.value;\n  }\n}\n";
     for (target, expected) in [
@@ -800,7 +800,7 @@ fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
 #[test]
 fn zig_pointers_and_optionals_are_read_as_what_they_are() {
     // The grammar calls `?T` a `nullable_type`, which is not what it looks like it
-    // should be called — so the arm written for `optional_type` matched nothing and
+    // should be called, so the arm written for `optional_type` matched nothing and
     // every optional in every Zig file crossed as a foreign type spelled `?T`.
     let source = "pub const Store = struct {\n    n: i64,\n};\n\n\
                   pub fn find(store: *Store, key: ?[]const u8) ?i64 {\n    return 1;\n}\n";
@@ -870,7 +870,7 @@ fn a_note_is_reported_even_when_nothing_was_carried() {
 #[test]
 fn a_decorated_method_is_still_a_method() {
     // `@staticmethod` describes the shape of the binding, not its behaviour. Reading it
-    // as something unrecognised dropped the method — including the ones this tool's own
+    // as something unrecognised dropped the method, including the ones this tool's own
     // Python writer emits, so a round trip lost every associated function in the file
     // while the report said every signature had carried across intact.
     let source =
@@ -899,7 +899,7 @@ fn a_decorator_that_changes_behaviour_is_not_read_as_a_plain_method() {
 #[test]
 fn a_class_member_that_is_not_understood_is_not_a_member_that_is_not_there() {
     // Every reader ended its member loop with `_ => {}`. A Java static initialiser runs
-    // once when the class is loaded, which nothing else here has — and being unable to
+    // once when the class is loaded, which nothing else here has, and being unable to
     // say it is not a reason to pretend it was never written.
     let source = "public class A {\n    static { System.loadLibrary(\"x\"); }\n    \
                   public int get() { return 1; }\n}\n";
@@ -924,7 +924,7 @@ fn a_rust_raw_identifier_is_the_name_without_the_escape() {
 #[test]
 fn a_module_level_parameter_called_self_is_still_a_parameter() {
     // Python's `self` is a convention inside a class and an ordinary name outside one.
-    // Stripping it everywhere lost a parameter from every free function that had one —
+    // Stripping it everywhere lost a parameter from every free function that had one,
     // which is what a Zig file-struct becomes after a round trip through Python.
     let source = "def deinit(self: Store, uri: str) -> None:\n    return None\n";
     let (output, _) = translate(&[("s.py", source)], "s.py", Language::TypeScript);
@@ -937,7 +937,7 @@ fn a_module_level_parameter_called_self_is_still_a_parameter() {
 #[test]
 fn a_constructor_is_spelled_the_way_each_target_spells_one() {
     // Three of these six languages have a constructor and three have a habit. What
-    // carries is that it *is* one — the name is the type's in Java, a fixed word in
+    // carries is that it *is* one, the name is the type's in Java, a fixed word in
     // Python and TypeScript, and `new`/`NewThing`/`init` in the other three.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
     for (target, expected) in [
@@ -974,7 +974,7 @@ fn a_constructor_body_that_assigns_through_a_receiver_says_so() {
 
 #[test]
 fn only_a_function_that_returns_the_type_is_read_as_making_one() {
-    // Rust, Go and Zig have no constructor, only a habit — and the habit is a
+    // Rust, Go and Zig have no constructor, only a habit, and the habit is a
     // constructor only when it also returns the thing. A `new` that returns something
     // else is an ordinary function with a common name.
     let source = "pub struct Store {\n    pub n: i64,\n}\n\n\
@@ -988,7 +988,7 @@ fn only_a_function_that_returns_the_type_is_read_as_making_one() {
 #[test]
 fn a_generic_impl_still_belongs_to_its_type() {
     // `impl<'a> Ctx<'a>` is an impl on `Ctx`. Keeping the arguments made the owner
-    // `Ctx<'a>`, which matches no record in the file — so the methods of every generic
+    // `Ctx<'a>`, which matches no record in the file, so the methods of every generic
     // type became free functions with a `self` parameter bolted on.
     let source = "pub struct Ctx<'a> {\n    pub name: &'a str,\n}\n\n\
                   impl<'a> Ctx<'a> {\n    pub fn label(&self) -> String {\n        \
@@ -1003,8 +1003,8 @@ fn a_generic_impl_still_belongs_to_its_type() {
 #[test]
 fn a_container_passed_by_reference_is_still_a_container() {
     // The reference has to come off *first*. Checking the containers before stripping
-    // the `&` meant every map, list and option passed by reference — which in Rust is
-    // most of them — was read as a name instead of as what it is.
+    // the `&` meant every map, list and option passed by reference, which in Rust is
+    // most of them, was read as a name instead of as what it is.
     let source =
         "pub fn f(by_name: &HashMap<String, Vec<i64>>, xs: &[i64], s: &'a str) -> i64 {\n    \
                   return 1;\n}\n";
@@ -1041,7 +1041,7 @@ fn a_nested_container_keeps_every_layer() {
 #[test]
 fn a_zig_optional_of_a_qualified_type_is_still_optional() {
     // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a field
-    // expression whose left side is a nullable `http` — inside out. Read as written, it
+    // expression whose left side is a nullable `http`, inside out. Read as written, it
     // became a type this tool could not write at all.
     let source = "pub fn f(r: ?http.Request) void {\n    return;\n}\n";
     let (output, _) = translate(&[("q.zig", source)], "q.zig", Language::TypeScript);
@@ -1081,7 +1081,7 @@ fn a_readonly_array_is_an_array() {
 #[test]
 fn a_python_module_binding_is_a_constant_whatever_it_is_called() {
     // Python has no `const`, so a module-level binding is the only thing a constant can
-    // look like — and requiring SCREAMING_SNAKE meant this tool could not read back
+    // look like, and requiring SCREAMING_SNAKE meant this tool could not read back
     // what it writes: its own Python writer spells a constant bound to anything but a
     // literal in lower case.
     let source = "actions = [1, 2]\nMAX = 3\n";
@@ -1115,7 +1115,7 @@ fn a_coalesce_crosses_as_the_question_it_asks() {
 #[test]
 fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
     // Python and Java can only ask "is this absent" by naming the value, and naming a
-    // call twice calls it twice — which would make the program do more than it did.
+    // call twice calls it twice, which would make the program do more than it did.
     let source = "export function f(): number {\n  const a = get(\"x\") ?? 5;\n  return a;\n}\n";
     for target in [Language::Python, Language::Java] {
         let (output, fidelity) = translate(&[("d.ts", source)], "d.ts", target);
@@ -1133,7 +1133,7 @@ fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
 
 #[test]
 fn a_shorthand_property_is_a_property() {
-    // `{ species }` means `{ species: species }` — the shorthand every modern
+    // `{ species }` means `{ species: species }`, the shorthand every modern
     // TypeScript file is written in. Refusing it refused the whole object, and with it
     // the statement the object was in.
     let source = "export function f(species: string, take: number): object {\n  \

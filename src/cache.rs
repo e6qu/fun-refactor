@@ -3,7 +3,7 @@
 //! Extraction is the expensive half of indexing, and its result depends on exactly
 //! two things: the bytes of the file and the queries used to read them. So entries are
 //! keyed by a hash of the content and stored under a directory named for a hash of the
-//! query set — change a query file and every stale entry becomes unreachable rather
+//! query set, change a query file and every stale entry becomes unreachable rather
 //! than wrong.
 //!
 //! Because the key is the content, two files with identical bytes share one entry, and
@@ -50,7 +50,7 @@ impl Cache {
     pub fn open_at(base: &Path) -> Option<Cache> {
         // Three things decide whether an entry is still meaningful: the schema, the
         // queries that produced the facts, and the extractor that interpreted them.
-        // The third is a compile-time hash of the sources that define extraction —
+        // The third is a compile-time hash of the sources that define extraction,
         // see build.rs for why leaving it out is not survivable.
         let root = base.join(format!(
             "v{SCHEMA_VERSION}-{}-{}",
@@ -185,7 +185,7 @@ impl Cache {
 /// Where cache entries live.
 ///
 /// `FUN_REFACTOR_CACHE` overrides everything, which is what tests use. Otherwise the
-/// usual per-user cache location, never the workspace itself — a refactoring tool has
+/// usual per-user cache location, never the workspace itself, a refactoring tool has
 /// must not write into the repository it is reading.
 fn cache_root() -> Option<PathBuf> {
     if let Some(explicit) = std::env::var_os("FUN_REFACTOR_CACHE") {
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn identical_content_in_another_file_reuses_the_entry() {
-        // The key is the content, so a copy costs nothing to index — but the facts
+        // The key is the content, so a copy costs nothing to index, but the facts
         // must come back pointing at the file that asked for them.
         let (_dir, cache) = scratch();
         let key = Cache::key(Language::Rust, "fn alpha() {}\n");
@@ -339,7 +339,7 @@ mod tests {
         // The one above checks the fingerprint is *stable*. A function that ignored the
         // queries entirely and hashed a constant would pass it, and the cache tells
         // every reader that "editing a query file makes every stale entry unreachable
-        // and not wrong" — which would then be false, and false in the direction
+        // and not wrong", which would then be false, and false in the direction
         // that returns confident answers computed by code that no longer exists.
         //
         // The queries are compiled in, so this cannot edit one. What it can do is

@@ -70,7 +70,7 @@ fn rust_an_import_nothing_names_goes() {
 
 #[test]
 fn rust_a_trait_used_through_its_methods_is_kept() {
-    // `Write` is never spelled at the call site — only `write_str` is.
+    // `Write` is never spelled at the call site, only `write_str` is.
     kept_because(
         &[(
             "a.rs",
@@ -249,7 +249,7 @@ fn typescript_an_inline_type_specifier_marks_the_statement_type_only() {
 #[test]
 fn typescript_a_value_import_used_only_under_typeof_is_kept() {
     // `typeof Foo` is a `type_query`, and `queries/typescript/facts.scm` now captures
-    // it — so the import is kept because it is genuinely referenced, not held back by
+    // it, so the import is kept because it is genuinely referenced, not held back by
     // a guard. That is the better outcome: no warning is needed to explain it.
     let (removed, warnings) = outcome(
         &[(
@@ -327,7 +327,7 @@ fn go_a_blank_import_binds_nothing_and_is_kept() {
 #[test]
 fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
     // `gopkg.in/yaml.v2` declares `package yaml`. Guessing the binding from the last
-    // path segment gives `v2`, which nothing names — and removing the import would
+    // path segment gives `v2`, which nothing names, and removing the import would
     // break a build that uses `yaml.Marshal` on the next line.
     assert!(
         removed_paths(

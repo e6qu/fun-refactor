@@ -107,7 +107,7 @@ pub enum Operation {
 }
 
 impl Operation {
-    /// What this reads as in a report — the command it composes.
+    /// What this reads as in a report, the command it composes.
     pub fn describe(&self) -> String {
         match self {
             Operation::Rename { to } => format!("rename to \"{to}\""),
@@ -157,7 +157,7 @@ impl Operation {
                  it and follows what that exposes, wherever those are"
             }
             Operation::Restructure { .. } => {
-                "restructure's pattern *is* its selector — it rewrites every occurrence \
+                "restructure's pattern *is* its selector. It rewrites every occurrence \
                  of the shape, and a second way of choosing would contradict the first"
             }
             _ => "",
@@ -168,7 +168,7 @@ impl Operation {
     fn check(&self, step: &Step) -> Result<()> {
         if !self.takes_a_selector() && !step.selector.is_empty() {
             bail!(
-                "line {}: `{}` takes no `where` clause — {}",
+                "line {}: `{}` takes no `where` clause. {}",
                 step.line,
                 self.describe(),
                 self.why_no_selector()
@@ -193,7 +193,7 @@ pub enum OnRefusal {
     Stop,
     /// Record it, apply the rest, exit non-zero.
     Report,
-    /// Record it, apply the rest, exit zero — the refusals were expected.
+    /// Record it, apply the rest, exit zero, the refusals were expected.
     Allow,
 }
 
@@ -468,7 +468,7 @@ impl Parser {
             let what = self.want_ident("`expect no-new`")?;
             if !matches!(what.as_str(), "unused" | "duplicates") {
                 bail!(
-                    "line {}: `expect no-new {what}` — this build can re-run `unused` and \
+                    "line {}: `expect no-new {what}`. This build can re-run `unused` and \
                      `duplicates` afterwards and compare. It has nothing called '{what}'.",
                     self.line()
                 );
@@ -496,7 +496,7 @@ impl Parser {
             }
             "refusals" => Ok(Expect::Refusals { how, count }),
             other => bail!(
-                "line {}: `expect {other}` — the expectations are `no-new`, `changed` \
+                "line {}: `expect {other}`. The expectations are `no-new`, `changed` \
                  and `refusals`.",
                 self.line()
             ),
@@ -548,7 +548,7 @@ impl Parser {
                     "report" => OnRefusal::Report,
                     "allow" => OnRefusal::Allow,
                     other => bail!(
-                        "line {line}: `on-refusal {other}` — it takes `stop`, `report` or \
+                        "line {line}: `on-refusal {other}`. It takes `stop`, `report` or \
                          `allow`. There is deliberately no `ignore`: a refusal is always \
                          in the report, and the only question is the exit code."
                     ),
@@ -600,7 +600,7 @@ impl Parser {
                 "variable" => Ok(Operation::Inline { call: false }),
                 "call" => Ok(Operation::Inline { call: true }),
                 other => bail!(
-                    "line {}: `inline {other}` — it takes `variable` or `call`.",
+                    "line {}: `inline {other}`. It takes `variable` or `call`.",
                     self.line()
                 ),
             };
@@ -615,7 +615,7 @@ impl Parser {
                 "variable" => Ok(Operation::ExtractVariable { at, name }),
                 "function" => Ok(Operation::ExtractFunction { at, name }),
                 other => bail!(
-                    "line {}: `extract {other}` — it takes `variable` or `function`.",
+                    "line {}: `extract {other}`. It takes `variable` or `function`.",
                     self.line()
                 ),
             };
@@ -632,8 +632,8 @@ impl Parser {
                 _ => {
                     self.at -= 1;
                     bail!(
-                        "line {}: `remove-flag \"{flag}\"` expects `= true` or `= false` — \
-                         the value the flag is now assumed to have always had.",
+                        "line {}: `remove-flag \"{flag}\"` expects `= true` or `= false`. Give the \
+                         value the flag is now assumed to have always had.",
                         self.line()
                     )
                 }
@@ -681,8 +681,8 @@ impl Parser {
                     self.want_ident("`rewrite`")?
                 }
                 _ => bail!(
-                    "line {}: `rewrite` needs the transformation to apply — \
-                     `invert-if`, `de-morgan` or `guard-clause` — found {}",
+                    "line {}: `rewrite` needs the transformation to apply: `invert-if`, \
+                     `de-morgan` or `guard-clause`. Found {}",
                     self.line(),
                     self.found()
                 ),

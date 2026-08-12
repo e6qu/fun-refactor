@@ -2,7 +2,7 @@
 //!
 //! # Why this exists
 //!
-//! A rewrite from one framework to another has to preserve the **contract** — the URLs,
+//! A rewrite from one framework to another has to preserve the **contract**, the URLs,
 //! the methods, the path parameters and the shapes. `fr translate <route> fastapi`
 //! preserves what it can see and reports the rest, which is not a check: it cannot
 //! catch a contract that got smaller, and a smaller contract looks like a correct one.
@@ -15,7 +15,7 @@
 //! Derived from what a Next.js route declares, which is less than FastAPI declares:
 //!
 //! - **Paths, methods and path parameters**: exact, read from the tree.
-//! - **Schemas**: as good as the declaration — an exported `interface` or a zod schema.
+//! - **Schemas**: as good as the declaration, an exported `interface` or a zod schema.
 //!   A body validated by hand appears nowhere.
 //! - **Responses**: `default` only. Which status an endpoint returns is a fact about its
 //!   code instead of its declaration.
@@ -47,8 +47,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
 
     // Every shape the tree declares, wherever it is declared.
     //
-    // A real Next.js application keeps its zod schemas in a module the routes import —
-    // `@/lib/schemas` here — and reading only the route file found none of them. The
+    // A real Next.js application keeps its zod schemas in a module the routes import,
+    // `@/lib/schemas` here, and reading only the route file found none of them. The
     // contract came out with an empty `components` section, which says the endpoints
     // take no body at all: a smaller contract than the one it stands in for, and
     // exactly the failure this document exists to catch.
@@ -65,7 +65,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             Err(e) => {
                 // A route this cannot read is a hole in the baseline, and the diff it
                 // is for would silently pass over it.
-                notes.push(format!("{}: not read — {e}", relative(root, file)));
+                notes.push(format!("{} could not be read: {e}", relative(root, file)));
                 continue;
             }
         };
@@ -139,7 +139,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                     }
                     false => notes.push(format!(
                         "{}: {method} validates its body with `{schema}`, which is declared \
-                         nowhere this document can see — the body is not in the contract",
+                         nowhere this document can see. The body is not in the contract",
                         relative(root, file)
                     )),
                 }
@@ -149,7 +149,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
 
         if !plan.models.is_empty() {
             notes.push(format!(
-                "{}: declares {} — which operation consumes it is not written down, so it \
+                "{}: declares {}. Which operation consumes it is not written down, so it \
                  is in `components` and referenced by nothing",
                 relative(root, file),
                 plan.models
@@ -162,8 +162,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
 
         // A handler this could not read whole may be reaching into the URL in the part
         // it could not read. `Number(req.nextUrl.searchParams.get("limit") ?? "50")`
-        // uses `??`, which the IR has no node for, so the statement is carried verbatim
-        // — and `limit` never reaches this document. Saying so is the difference
+        // uses `??`, which the IR has no node for, so the statement is carried verbatim,
+        // and `limit` never reaches this document. Saying so is the difference
         // between a contract with a gap and a contract that looks complete.
         if plan.fidelity.carried_verbatim > 0 {
             notes.push(format!(
@@ -245,7 +245,7 @@ fn schema_of(model: &Model, notes: &mut Vec<String>) -> Value {
     for (name, ty) in &model.fields {
         let Some(ty) = ty else {
             notes.push(format!(
-                "{}.{name}: no declared type, so it is `{{}}` — anything at all",
+                "{}.{name}: no declared type, so it is `{{}}`, which means anything",
                 model.name
             ));
             properties.insert(name.clone(), json!({}));
@@ -295,7 +295,7 @@ fn json_type(ty: &Type) -> Value {
 /// The point of a baseline is to be diffed against the finished service, and doing that
 /// properly means running the service. This is the check you can make without one: the
 /// decorators and the signatures say what the router will answer, and comparing them
-/// with the Next.js baseline catches the failure that matters — an endpoint that did
+/// with the Next.js baseline catches the failure that matters, an endpoint that did
 /// not survive the crossing, or a path that quietly changed shape.
 ///
 /// It reads what is written, not what will happen. A route added at run time, a router
@@ -374,8 +374,8 @@ pub fn from_fastapi(title: &str, root: &Path, files: &[PathBuf]) -> Result<Basel
             "version": "0.0.0",
             "description":
                 "Derived from a FastAPI router by fun-refactor, by reading the decorators \
-                 and the signatures. What a router does at run time — a prefix, a \
-                 dependency, a route added dynamically — is not here.",
+                 and the signatures. What a router does at run time is not here: a \
+                 prefix, a dependency, or a route added at run time.",
         },
         "paths": Value::Object(paths),
         "components": { "schemas": {} },
@@ -388,7 +388,7 @@ pub fn from_fastapi(title: &str, root: &Path, files: &[PathBuf]) -> Result<Basel
     })
 }
 
-/// `@router.get("/pets/{pet_id}")` — the method and the path it answers.
+/// `@router.get("/pets/{pet_id}")`, the method and the path it answers.
 fn route_of(decorator: &str, methods: &[&str]) -> Option<(String, String)> {
     let after_dot = decorator.rsplit_once('.')?.1;
     let (verb, rest) = after_dot.split_once('(')?;

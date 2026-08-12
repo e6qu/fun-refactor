@@ -1,7 +1,7 @@
 //! Every `✓` in the capability matrix, asked to prove itself.
 //!
 //! `fr capabilities` computes the matrix from each refactoring's own predicate, so a `✓`
-//! means "this command would accept this language" — not "this has ever worked". Those are
+//! means "this command would accept this language", not "this has ever worked". Those are
 //! different claims, and the gap between them is where this project's defects live: a rule
 //! that is documented and never runs, a gap recorded after it had stopped being one, a
 //! language driven by a gate that was never installed.
@@ -11,8 +11,8 @@
 //! contradiction a wrong `✓` produces, and nothing else in the suite would notice it.
 //!
 //! What this deliberately does not assert is that the answer is *good*. A capability may
-//! refuse for a reason about this particular input — a symbol with no callers, an
-//! expression in a place a binding cannot go — and that is a real answer. The gates in
+//! refuse for a reason about this particular input, a symbol with no callers, an
+//! expression in a place a binding cannot go, and that is a real answer. The gates in
 //! `output_compiles.rs`, `rewrites_compile.rs`, `removals_compile.rs` and
 //! `validators_accept.rs` are what check the answers are right; this checks the claims are
 //! true.
@@ -201,7 +201,7 @@ impl Fixture {
 ///
 /// The three are not two. A fixture that offers no symbol and no span drives nothing,
 /// and folding that into "it worked" is how a cell gets counted as checked without
-/// having been run — which is what both tests below were doing.
+/// having been run, which is what both tests below were doing.
 #[derive(Debug)]
 enum Outcome {
     /// The fixture had nothing for this capability to take.
@@ -452,7 +452,7 @@ fn the_matrix_and_this_file_agree_on_how_many_cells_there_are() {
 fn every_unsupported_capability_refuses_the_language_it_disclaims() {
     // The mirror of the test above, and the half nothing was asking. An `n/a` cell is a
     // promise too: the command does not do this here. Nothing drove those cells, so the
-    // promise was unfalsifiable — and `fr remove-flag` was breaking it on XML, rewriting
+    // promise was unfalsifiable, and `fr remove-flag` was breaking it on XML, rewriting
     // `&use_new;` into `&true;` and deleting the prolog, output no parser accepts.
     //
     // Proceeding is the failure. An error is fine whatever it says, because a refusal

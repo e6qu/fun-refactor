@@ -40,7 +40,7 @@ fn workspace(files: &[(&str, &str)]) -> Workspace {
 /// Rewrite `file` and return (matches in that file, rewritten text).
 ///
 /// Matches are counted per file because a workspace can hold more than one file of
-/// the language under test — a Helm chart always carries its `Chart.yaml`.
+/// the language under test, a Helm chart always carries its `Chart.yaml`.
 ///
 /// The edit set is also run through `ReparseStrict`, so any pattern that produced a
 /// syntactically broken file fails here and not in review.
@@ -633,7 +633,7 @@ fn scss_restructures_plain_css_and_scss_only_syntax_alike() {
     assert_eq!(n, 1);
     assert_eq!(out, ".btn {\n  color: var(--red);\n}\n");
 
-    // `$$brand` is an escaped literal `$brand` — SCSS variable syntax, which now
+    // `$$brand` is an escaped literal `$brand`. SCSS variable syntax, which now
     // parses and so can be rewritten like anything else.
     let (n, out) = one(
         Language::Scss,
@@ -1101,7 +1101,7 @@ fn a_statement_pattern_works_where_the_wrapper_is_empty() {
     // Python, shell and YAML wrap a fragment in nothing at all, so the statement the
     // pattern writes is the outermost node. The descent that strips wrapper-introduced
     // statement containers used to strip that one too, leaving the fragment starting
-    // six bytes inside itself — every statement pattern in those languages was
+    // six bytes inside itself, every statement pattern in those languages was
     // rejected as unparseable. Descending is only right when the child begins where
     // the container does; `raise` does not.
     let src = "\

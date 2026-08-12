@@ -5,7 +5,7 @@
 //! - **Zig** resolves through `@import`, so a moved declaration is reached by a new
 //!   namespace. The tests assert the `const … = @import(…)` line byte for byte and
 //!   the qualifier on every use.
-//! - **Bash** has no import that binds a name — `source` splices a whole script in —
+//! - **Bash** has no import that binds a name — `source` splices a whole script in,
 //!   so a moved function needs its surviving callers to source its new home. What
 //!   `source` cannot say is what a computed path put in scope, and that refuses.
 //! - **YAML / Helm** address a values key by its path, and a top-level key's path

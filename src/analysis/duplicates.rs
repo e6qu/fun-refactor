@@ -39,7 +39,7 @@ pub struct Clone {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct CloneClass {
     pub language: Language,
-    /// Tokens in each instance — the size of the duplication.
+    /// Tokens in each instance, the size of the duplication.
     pub tokens: usize,
     /// Every occurrence, in scan order. Always two or more.
     pub instances: Vec<Clone>,
@@ -71,8 +71,8 @@ impl Default for Options {
     fn default() -> Self {
         Options {
             // Around a dozen lines of ordinary code. Below this the matches are
-            // language boilerplate — an import block, a struct literal, a `for` over
-            // a slice — which repeat by nature and are not duplication anyone can act
+            // language boilerplate, an import block, a struct literal, a `for` over
+            // a slice, which repeat by nature and are not duplication anyone can act
             // on.
             min_tokens: 60,
             exact: false,

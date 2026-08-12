@@ -1,13 +1,13 @@
 //! Translation against code somebody actually shipped.
 //!
 //! `tests/transpile.rs` and `tests/nextjs.rs` use fixtures, and a fixture is written by
-//! the same person who writes the assertion — which is why they passed while
+//! the same person who writes the assertion, which is why they passed while
 //! `def create_user(*, session, user_create)` produced
 //! `export function createUser(*: unknown, …)`, a file TypeScript will not parse.
 //!
 //! The corpus is four projects, vendored unmodified and pinned; see
 //! `tests/corpus/PROVENANCE.md`. What is asserted here is deliberately not "the output
-//! equals this string" — that would freeze today's translation and break on every
+//! equals this string". That would freeze today's translation and break on every
 //! improvement. It is the three properties that must hold for any translation to be
 //! worth reading:
 //!
@@ -63,7 +63,7 @@ const FASTAPI_FILES: &[&str] = &["crud.py", "models.py", "security.py"];
 #[test]
 fn every_backend_file_translates_into_typescript_that_parses() {
     // The translator checks this itself and refuses to write output that does not
-    // parse, so a failure here is `plan` returning an error — which is the defect
+    // parse, so a failure here is `plan` returning an error, which is the defect
     // report working, and still a defect.
     for name in FASTAPI_FILES {
         let (_tmp, root) = corpus("fastapi");
@@ -107,7 +107,7 @@ fn a_python_signature_arrives_in_typescript_spelled_the_typescript_way() {
         "the signature did not carry with the target's conventions:\n{}",
         plan.output
     );
-    // Locals too, not only the declaration — a file whose declarations are renamed and
+    // Locals too, not only the declaration, a file whose declarations are renamed and
     // whose bodies are not is worse than one that renames nothing.
     assert!(plan.output.contains("let extraData"), "{}", plan.output);
     assert!(plan.output.contains("dbUser: User"), "{}", plan.output);
@@ -198,8 +198,8 @@ fn the_url_survives_the_crossing_with_the_targets_conventions() {
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
-    // `[postId]` is a placeholder name, not part of the URL — `/posts/{postId}` and
-    // `/posts/{post_id}` serve exactly the same requests — so it takes Python's
+    // `[postId]` is a placeholder name, not part of the URL, `/posts/{postId}` and
+    // `/posts/{post_id}` serve exactly the same requests, so it takes Python's
     // convention like every other name FastAPI will see.
     assert_eq!(plan.route, "/posts/{post_id}");
     assert_eq!(plan.methods, vec!["DELETE", "PATCH"]);
@@ -226,7 +226,7 @@ fn real_error_handling_carries_across() {
         "{}",
         plan.output
     );
-    // `error instanceof z.ZodError` is `isinstance` — the same question, spelled as an
+    // `error instanceof z.ZodError` is `isinstance`, the same question, spelled as an
     // operator in one language and a builtin in the other.
     assert!(
         plan.output.contains("isinstance(error, z.ZodError)"),
@@ -247,7 +247,7 @@ fn real_error_handling_carries_across() {
         plan.output
     );
     // A helper declared in the same file is renamed at its uses, not only where it is
-    // declared — the handler bodies are written as their own modules and used to be
+    // declared, the handler bodies are written as their own modules and used to be
     // spelled without the rest of the file in view.
     assert!(
         plan.output
@@ -279,7 +279,7 @@ fn a_comment_is_translated_rather_than_reported_as_a_failure() {
 
 #[test]
 fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
-    // Destructuring — `const { params } = routeContextSchema.parse(context)` — has no
+    // Destructuring, `const { params } = routeContextSchema.parse(context)`, has no
     // Python counterpart. The promise is that it is *there*, not that it is gone.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
@@ -303,7 +303,7 @@ fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
 fn optional_chaining_is_never_written_away() {
     // `session?.user.id` is not `session.user.id`. No target here has optional
     // chaining, and the plain access compiles, runs, and throws where the original
-    // returned undefined — a silent wrong answer, the one outcome worse than a gap.
+    // returned undefined, a silent wrong answer, the one outcome worse than a gap.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 

@@ -1,7 +1,7 @@
 //! Micro-rewrites: the small, local transformations editors offer as code actions.
 //!
-//! Each one is a pure syntactic rewrite of a single construct — no cross-file
-//! reasoning, no type information — which is why they are cheap enough to offer a
+//! Each one is a pure syntactic rewrite of a single construct, no cross-file
+//! reasoning, no type information, which is why they are cheap enough to offer a
 //! menu of. [`available`] answers "what applies here", the shape an editor needs.
 //!
 //! Negation is the shared hard part: `!(a && b)` and `a != b` are the same idea
@@ -255,7 +255,7 @@ fn continues_into_another_if(clause: Node<'_>) -> bool {
 ///
 /// Zig writes `if (maybe) |value| { … }`: the condition is an optional and the payload
 /// binds what was inside it. Negating that condition leaves a binding with nothing to
-/// bind — `if (!maybe) |value|` is not a program — and `!optional` is not a boolean
+/// bind, `if (!maybe) |value|` is not a program, and `!optional` is not a boolean
 /// there in the first place. The reader refuses the same shape for the same reason.
 fn binds_a_payload(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
@@ -297,8 +297,8 @@ fn invert_if(
     let text = whole.text(source);
     let mut out = String::with_capacity(text.len());
 
-    // Rebuild by splicing the three parts, so everything between them — spacing,
-    // keywords, comments — survives exactly.
+    // Rebuild by splicing the three parts, so everything between them, spacing,
+    // keywords, comments, survives exactly.
     let base = whole.start;
     let cond = parts.condition;
     let cons = parts.consequence;
@@ -343,7 +343,7 @@ fn de_morgan(
     // tree-sitter-zig reads `!(a and b)` as an `error_union_type`: `!T` is an error
     // union where a type is expected and a negation where a value is, and the grammar
     // resolves it the first way. Inside a condition there is no type, so the node is a
-    // negation whatever it is called — and the checks below still have to agree, since
+    // negation whatever it is called, and the checks below still have to agree, since
     // an error union that really is one has no boolean operator to distribute over.
     let unary = enclosing_kind(parsed, offset, |k| {
         k.contains("unary") || k.contains("not_operator") || k == "error_union_type"
@@ -379,8 +379,8 @@ fn de_morgan(
 
     // `!(a && b)` is one operand; `!a || !b` is two, and the brackets that used to
     // hold it together are gone with the negation. Inside another operator that
-    // silently rebinds the expression — `x && !(a && b)` would become
-    // `x && !a || !b` — so the grouping has to come back.
+    // silently rebinds the expression, `x && !(a && b)` would become
+    // `x && !a || !b`, so the grouping has to come back.
     if unary.parent().is_some_and(|p| binds_operands(p.kind())) {
         if language == Language::Bash {
             anyhow::bail!(
@@ -450,8 +450,8 @@ fn guard_clause(
     let body = strip_block(parts.consequence, source);
     let indent = crate::edit::line_indent(source, Span::from(node).start);
 
-    // Reuse the source's own header — everything from the `if` keyword up to the
-    // body — with the condition negated in place. Whatever the language spells
+    // Reuse the source's own header. Everything from the `if` keyword up to the
+    // body, with the condition negated in place. Whatever the language spells
     // around the condition, brackets in Zig and the C family, `:` in Python, `; then`
     // in shell, is preserved and not reinvented per language.
     let start = Span::from(node).start;
@@ -463,7 +463,7 @@ fn guard_clause(
     let header = header.trim_end();
 
     // The body is already indented one level past the `if`, so the file's own unit
-    // is the difference — tabs in Go, two spaces in most TypeScript. Guessing four
+    // is the difference, tabs in Go, two spaces in most TypeScript. Guessing four
     // spaces would reindent every guard this touches.
     let unit = crate::edit::indent_unit(source);
     let guard = match language {
@@ -502,7 +502,7 @@ fn guard_clause(
         .collect::<Vec<_>>()
         .join("\n");
 
-    // The guard ends in a newline, so every body line — including the first — needs
+    // The guard ends in a newline, so every body line, including the first, needs
     // the indentation it was given above.
     Ok((Span::from(node), format!("{guard}{body_text}")))
 }
@@ -520,7 +520,7 @@ fn guard_clause(
 fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'static str> {
     // Every ancestor, and not the first few. A bounded walk stops before it reaches the
     // function whenever the `if` sits inside a `match` arm or a nested block, and the
-    // answer it falls through to is `return` — which is the unsafe one. `src/cli.rs` and
+    // answer it falls through to is `return`, which is the unsafe one. `src/cli.rs` and
     // `src/extract.rs` both have an `if` deep enough to reach it, and a bare `return`
     // there does not compile in a function that returns a value.
     let mut current = block;
@@ -616,7 +616,7 @@ fn boolean_spelling(language: Language) -> (&'static str, &'static str, &'static
         Language::Python => ("not ", "and", "or"),
         // Zig spells the two logical operators as words, as Python does, and negates
         // with a sigil, as C does. Falling into the C arm made `a and b` invisible to
-        // every rule that looks for an operator — so inverting `if (a == 1 and b == 2)`
+        // every rule that looks for an operator, so inverting `if (a == 1 and b == 2)`
         // flipped the first comparison and left the `and`, which is a different program.
         Language::Zig => ("!", "and", "or"),
         // Shell negates a command with `! cmd`, so the sigil needs its space.
@@ -654,13 +654,13 @@ fn negate(expression: &str, language: Language) -> String {
         return strip_outer_parentheses(inner).to_string();
     }
 
-    // A comparison flips to its opposite instead of gaining a `!` — but only when the
+    // A comparison flips to its opposite instead of gaining a `!`, but only when the
     // comparison is the whole of the condition, and only at the top level.
     //
     // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`,
     // which is a different program: the negation of an `and` is an `or` of the
     // negations, and flipping one operand cannot say that. Where there is a boolean
-    // operator at the top level the negation goes round the outside — which De Morgan
+    // operator at the top level the negation goes round the outside, which De Morgan
     // is there to distribute afterwards, if that is what the reader wants.
     if split_boolean(trimmed, and_op, or_op).is_none() {
         let mut flips: Vec<(&str, &str)> = vec![
@@ -690,7 +690,7 @@ fn negate(expression: &str, language: Language) -> String {
         }
     }
 
-    // A compound expression needs brackets so the negation binds to all of it —
+    // A compound expression needs brackets so the negation binds to all of it,
     // except in shell, where `( … )` opens a subshell. Negating a command there is
     // just `! cmd`, and adding brackets would change what the code does.
     if language != Language::Bash && trimmed.contains(' ') && !is_parenthesised(trimmed) {

@@ -1,4 +1,4 @@
-//! fun-refactor — multi-language refactoring and code intelligence on tree-sitter.
+//! fun-refactor, multi-language refactoring and code intelligence on tree-sitter.
 //!
 //! Layering (see PLAN.md):
 //! - [`span`] / [`lang`]: byte-native positions and language identity
@@ -24,6 +24,7 @@ pub mod extract;
 pub mod helm;
 pub mod index;
 pub mod lang;
+pub mod mentions;
 pub mod model;
 pub mod navigate;
 pub mod openapi;

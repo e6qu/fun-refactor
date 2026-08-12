@@ -10,8 +10,8 @@
 //! in different languages can be compared at all.
 //!
 //! What is compared is deliberately narrow: **which functions exist, and what their
-//! parameters are called.** Types are where the legitimate differences live — Go writes
-//! `struct{}` for nothing at all, Zig writes a slice where TypeScript writes an array —
+//! parameters are called.** Types are where the legitimate differences live. Go writes
+//! `struct{}` for nothing at all, Zig writes a slice where TypeScript writes an array,
 //! and a check that argued about those would spend its life growing exceptions. A
 //! parameter appearing or vanishing is never legitimate.
 
@@ -50,7 +50,7 @@ fn plain(name: &str) -> String {
 /// What must survive: the function's name, and the name of every ordinary parameter.
 ///
 /// `*args`, `**kwargs` and a bare `*` are left out on purpose. Only Python has them, so
-/// a round trip through anywhere else loses the calling convention — which the fidelity
+/// a round trip through anywhere else loses the calling convention, which the fidelity
 /// report already says, in those words.
 fn signature(f: &Function) -> (String, Vec<String>) {
     let params = f
@@ -80,8 +80,8 @@ fn signatures(module: &Module) -> Vec<(String, Vec<String>)> {
 ///
 /// Which scalar is not compared: TypeScript has one numeric type, so an `i64` that goes
 /// through it comes back a `number` and there is nothing wrong with that. What is
-/// compared is the *shape* — a list stays a list, an optional stays optional, a named
-/// type keeps its name — because none of those can change for a good reason.
+/// compared is the *shape*, a list stays a list, an optional stays optional, a named
+/// type keeps its name, because none of those can change for a good reason.
 fn shape(ty: Option<&Type>) -> String {
     match ty {
         // Go writes nothing at all for a function that returns nothing, so "returns
@@ -95,7 +95,7 @@ fn shape(ty: Option<&Type>) -> String {
             format!("map<{},{}>", shape(Some(key)), shape(Some(value)))
         }
         Some(Type::Optional(inner)) => format!("option<{}>", shape(Some(inner))),
-        // A name this tool cannot write at all — a Python `str | Any`, a Rust closure —
+        // A name this tool cannot write at all — a Python `str | Any`, a Rust closure,
         // is replaced by a placeholder, which is a rename and the one exception this
         // check has to allow. The fidelity report is where that loss is stated.
         Some(Type::Named { name, .. }) if name.starts_with("Unwritable") => {
@@ -118,7 +118,7 @@ fn shape(ty: Option<&Type>) -> String {
             "number".to_string()
         }
         // The last segment only. A qualified name says where a type came from, and Go
-        // has room for exactly one level of that — `crate::model::Reference` is
+        // has room for exactly one level of that, `crate::model::Reference` is
         // `model.Reference` there and cannot be anything else. What must not change is
         // which type it is.
         Some(Type::Named { name, args }) => {
@@ -211,8 +211,8 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             // A placeholder stands for a type that could not be written, so it
             // compares equal to whatever it replaced.
             // A parameter's name always has to match. Its type has to match unless one
-            // side holds a placeholder for something this tool cannot write — a tuple,
-            // a closure, a union — because the placeholder *is* the loss, and the
+            // side holds a placeholder for something this tool cannot write, a tuple,
+            // a closure, a union, because the placeholder *is* the loss, and the
             // fidelity report is where it is stated.
             let same_parameters = |a: &[String], b: &[String]| {
                 a.len() == b.len()
@@ -241,7 +241,7 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             // them and nobody else does, so a second one written elsewhere keeps its
             // source's name and the report says so; and a Rust `new_handle` that returns
             // a `Handle` is written `NewHandle` in Go, which is exactly how Go spells a
-            // constructor — so it comes back as `Handle::new`. Both are the signature
+            // constructor, so it comes back as `Handle::new`. Both are the signature
             // surviving under the target's own convention, which is the promise. What is
             // never allowed is the parameters changing.
             loop {

@@ -3,7 +3,7 @@
 //! `fr remove-flag` replaces every use of a name with `true` or `false`. Nothing about a
 //! name says it held a boolean, and the tests that existed all named a flag that did:
 //! every fixture declared `USE_NEW = true` and then checked what the cascade made of it.
-//! Sweeping instead — asking for every symbol in a real project, both values — asked the
+//! Sweeping instead, asking for every symbol in a real project, both values, asked the
 //! question the fixtures never did, and the answers were code no compiler accepts:
 //!
 //! * `const DocumentScope = @import("DocumentScope.zig")` is a Zig module, and a Zig

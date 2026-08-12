@@ -3,8 +3,7 @@
 Everything below was run against [helm/helm](https://github.com/helm/helm) at commit
 [`a8ab76e`](https://github.com/helm/helm/commit/a8ab76e), a 539-file Go codebase that
 also carries 669 Helm templates, 95 Markdown documents and 83 plain YAML files. The
-outputs are copied from those runs, not written by hand. Where a number looks odd,
-it is because that is what the tool said.
+outputs are copied from those runs. Where a number looks odd, the tool said it.
 
 You will need the repository and the binary:
 
@@ -35,7 +34,7 @@ yaml              83        0        0
 ```
 
 `ERRORS` is the number of files that did not parse cleanly. Those thirteen Helm files
-are chart fixtures deliberately containing broken templates — helm tests its own
+are chart fixtures that hold broken templates on purpose. Helm tests its own
 error messages with them. This matters more than it looks: **a file that does not
 parse is invisible to every analysis below**, so a report that ignores parse failures
 is quietly incomplete. Commands that depend on complete information say so; `fr
@@ -60,9 +59,9 @@ $ fr refs pkg/action/action.go:725:6
 ```
 
 The position is 1-based in both line and column, and it must land on the symbol's
-identifier — not the `func` keyword, not the opening brace. Any occurrence works:
+identifier, and not the `func` keyword or the opening brace. Any occurrence works:
 the definition or any use of it, since the tool resolves whatever is under the
-cursor and then works from the symbol it found. That is what makes the form
+cursor and then works from the symbol it found. That makes the form
 editor-friendly; it is the same information an editor has when you right-click.
 
 Relative paths are read **relative to the workspace root**, which is the current
@@ -108,8 +107,8 @@ $ fr refs pkg/action/action.go:725:6
 ```
 
 The tag on each line is the **confidence**, and it is the most important thing in the
-output. `exact` means the tool proved this reference resolves to that symbol — the
-scope chain, the import, or the package says so. The other tiers are
+output. `exact` means the tool proved this reference resolves to that symbol, because the
+scope chain, the import or the package says so. The other tiers are
 `import-qualified`, `field-based` and `name-only`, in descending order of evidence.
 Only `exact` and `import-qualified` are rewritten by a refactoring; everything weaker
 is reported for you to look at. Section 8 explains what earns each tier.
@@ -131,7 +130,7 @@ determineReleaseSSApplyMethod
 `fr callees` walks it downward, `fr graph --dot` prints the whole thing, and
 `fr impact` answers "what could a change here touch" across all of it.
 
-`fr entrypoints` finds the roots — the places execution starts, which is what makes
+`fr entrypoints` finds the roots: the places where execution starts. That makes
 reachability mean anything:
 
 ```console
@@ -158,7 +157,7 @@ point: you could scan only `pkg/` with `-C pkg`, but then the index cannot see t
 callers in `cmd/`, and everything they call would be reported as dead. Filters here
 never invent a finding.
 
-`--internal` hides exported symbols. In a library — which helm is — the public API
+`--internal` hides exported symbols. Helm is a library, and the public API of one
 has no caller inside its own repository, and that is not evidence of anything. Run
 without the flag and you get them, tagged:
 
@@ -166,14 +165,14 @@ without the flag and you get them, tagged:
 method       Chart::SetDependencies             exported  internal/chart/v3/chart.go
 
 199 of these are exported. In a library that is the public
-API, which nothing in this repository can be expected to call — pass
+API, which nothing in this repository can be expected to call. Pass
 --internal to list only what is definitely dead here.
 ```
 
 On helm the internal report is 47 findings, and none of them are functions, methods
 or variables: 39 unused parameters and 8 unused struct fields. That is a real
-result — helm has very little dead code — and it took eight bug fixes to be able to
-say it. Before them the same command reported 238 candidates, nearly all of which
+result, and it took eight bug fixes to be able to say it. Helm has very little dead
+code. Before them the same command reported 238 candidates, nearly all of which
 were live code the tool could not see.
 
 The report also tells you what it *declined* to list and why. A symbol whose name
@@ -185,13 +184,13 @@ reached only through an interface the tool cannot prove the receiver of.
 
 ```console
 $ fr duplicates --lang go --path pkg/cmd --path pkg/action --min-tokens 100
-5 copies, 107 tokens each (428 redundant) — go
+5 copies, 107 tokens each (428 redundant): go
   pkg/cmd/show.go:79-98
   pkg/cmd/show.go:100-119
   pkg/cmd/show.go:121-140
   pkg/cmd/show.go:142-161
   pkg/cmd/show.go:163-182
-3 copies, 180 tokens each (360 redundant) — go
+3 copies, 180 tokens each (360 redundant): go
   pkg/cmd/get_hooks_test.go:1-51
   pkg/cmd/get_manifest_test.go:1-51
   pkg/cmd/get_notes_test.go:1-51
@@ -209,14 +208,14 @@ finding said five times with the useful one buried.
 
 Across all of helm: **337 duplicated blocks, 64,530 redundant tokens**, in 3.6
 seconds. The largest is `internal/release/v2/info_test.go` against
-`pkg/release/v1/info_test.go` — 377 lines whose only differences are the package
+`pkg/release/v1/info_test.go`: 377 lines whose only differences are the package
 clause and one blank line.
 
 ## 5. Making the change
 
 `determineReleaseSSApplyMethod` is a poor name: `SS` is "server-side", which nothing
 about the identifier says. It is unexported, used from four files in one package, and
-covered by a test — a good first refactor.
+covered by a test, and a good first refactor.
 
 Every mutating command prints a diff and changes nothing until you pass `--write`.
 
@@ -246,13 +245,13 @@ $ fr rename pkg/action/action.go:725:6 releaseApplyMethod
 
 …and the same for `install.go`, `rollback.go` and `upgrade.go`. Note what the tool
 did **not** do: `TestDetermineReleaseSSAApplyMethod` keeps its name. It is a different
-identifier that merely contains the old one, and renaming by text would have caught
+identifier that contains the old one, and renaming by text would have caught
 it.
 
 The run also ends with a section worth reading every time:
 
 ```
-Not changed — review these yourself:
+Not changed. Review these yourself:
   incomplete-facts (13):
     internal/chart/v3/lint/rules/testdata/malformed-template/templates/bad.yaml:1:1  file has syntax errors; references in it may be missing
     …
@@ -280,7 +279,7 @@ ok  	helm.sh/helm/v4/pkg/action	0.543s
 
 ### The other mutating commands
 
-All of them follow the same shape — diff by default, `--write` to apply, a refusal
+All of them follow the same shape: a diff by default, `--write` to apply, a refusal
 with a reason when they cannot do it safely:
 
 ```console
@@ -302,7 +301,7 @@ $ fr imports pkg/action/install.go        # drop unused imports, sort the rest
 ```
 
 `fr rewrite` with no transformation named lists the ones that apply at that position,
-which is how an editor builds a code-action menu:
+which an editor uses to build a code-action menu:
 
 ```console
 $ fr rewrite pkg/action/install.go:224:3
@@ -311,7 +310,7 @@ invert-if      swap the branches and negate the condition
 $ fr rewrite pkg/action/install.go:224:3 invert-if
 ```
 
-Only the transformations whose result actually reparses are offered, so the menu
+The menu offers a transformation only when its result reparses, so the menu
 never lists something that applying it would then refuse.
 
 `fr delete` is the one that refuses most often, and usefully:
@@ -329,7 +328,7 @@ Remove or repoint these uses first; nothing was changed.
 ## 6. Configuration is code too
 
 This is where the tool differs from a language server. helm ships charts, and a chart
-is a values file plus templates that read it — a dataflow the Go compiler never sees.
+is a values file and the templates that read it. The Go compiler never sees that path.
 
 Ask where a rendered value comes from:
 
@@ -352,7 +351,7 @@ declaration Name: my-alpine  (pkg/cmd/testdata/testcharts/alpine/values.yaml:1)
 ```
 
 The **Stopped at** section records what it could not resolve. A values key can always be overridden
-by `-f` and `--set`, and the tool cannot know your `helm install` invocation — so
+by `-f` and `--set`, and the tool cannot know your `helm install` command, so
 tell it, and the answer sharpens:
 
 ```console
@@ -372,7 +371,7 @@ $ fr rename pkg/cmd/testdata/testcharts/alpine/values.yaml:1:1 appName
 -    values: {{.Values.Name}}
 +    values: {{.Values.appName}}
 
-Not changed — review these yourself:
+Not changed. Review these yourself:
   textual-occurrence (1):
     …/alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged
 ```
@@ -382,7 +381,7 @@ a different thing.
 
 ## 7. Opening the pull request
 
-Nothing about this step is special — the point is that the change is ordinary git
+Nothing about this step is special. The change is ordinary git
 work, reviewable line by line, with no tool-specific artifacts in it:
 
 ```console
@@ -405,7 +404,7 @@ Two habits worth keeping:
   trivial to review when it is only that, and impossible when it is mixed with a
   behavioural one.
 - **Paste the refusals into the PR description.** If the tool listed six unparseable
-  files or four weakly-resolved sites, that is exactly what a reviewer should check,
+  files or four weakly-resolved sites, a reviewer should check them,
   and they cannot know to look unless you say so.
 
 ---
@@ -415,8 +414,8 @@ Two habits worth keeping:
 ### Parsing, and where the trees live
 
 Every file is parsed with [tree-sitter](https://tree-sitter.github.io/), one grammar
-per language, into a concrete syntax tree that keeps every byte — including comments
-and whitespace. That is what makes losslessness possible: an edit is a byte-range
+per language, into a syntax tree that keeps every byte, including comments
+and whitespace. Nothing is lost, because an edit is a byte-range
 splice, so anything outside the range is untouched by construction.
 
 **The trees are not stored.** They exist for the duration of one file's extraction and
@@ -428,12 +427,12 @@ Positions are byte offsets, never line/column pairs, everywhere except the comma
 line. Line and column are a display format; a UTF-8 file with an emoji in a comment
 makes them ambiguous, and a refactoring tool that miscounts a column corrupts a file.
 
-Helm gets one extra step. A template action is *masked* before parsing — replaced
-with filler of exactly the same byte length — so the surrounding YAML still has valid
+Helm gets one extra step. The tool *masks* a template action before it parses, and
+replaces it with filler of the same byte length. The surrounding YAML then has valid
 structure and every offset in the file stays correct. Whether the filler is spaces or
 `x` characters depends on where the action sits: an action alone on its line has to
 vanish structurally, while one inside a value has to become scalar text. The actions
-themselves are then parsed separately, which is how `.Values.image.tag` becomes a
+themselves are then parsed separately, so `.Values.image.tag` becomes a
 reference to a values key.
 
 ### The index, and confidence
@@ -442,7 +441,7 @@ Extraction produces facts per file. The index joins them and resolves each refer
 to the symbol it names, trying in order: the lexical scope chain, the same file, an
 import binding in that file, a string key (CSS classes, Helm values), a member of a
 value, the enclosing package or directory, and finally a unique exported name
-anywhere. The first rule that answers, wins — and *which rule answered* is the
+anywhere. The first rule that answers wins, and the report names *which rule answered*, which is the
 confidence:
 
 | Tier | What proved it | Rewritten? |
@@ -463,8 +462,8 @@ Indexing helm takes a few seconds; doing it again for every command would not.
 The cache is content-addressed. A file's facts are keyed by the SHA-256 of its
 contents combined with a fingerprint of the query set that produced them. Change the
 file and the key changes; change a `queries/*/facts.scm` and every key changes. There
-is no invalidation logic to get wrong, because there is nothing to invalidate — a
-stale entry is simply never looked up.
+is no invalidation logic to get wrong, because there is nothing to invalidate. Nothing
+ever looks up a stale entry.
 
 Entries live under `$FUN_REFACTOR_CACHE`, or the platform cache directory
 (`~/Library/Caches/fun-refactor` on macOS, `~/.cache/fun-refactor` on Linux). The
@@ -481,7 +480,7 @@ $ fr <command> --no-cache
 ```
 
 The directory name carries both the schema version and the query-set fingerprint,
-which is why editing a query file makes every stale entry unreachable and not
+so editing a query file makes every stale entry unreachable and not
 wrong.
 
 Indexing is parallel across files, and results merge in scan order, so the output does
@@ -489,7 +488,7 @@ not depend on which thread finished first.
 
 ### The edit engine
 
-Every refactoring returns a *plan* — a set of edits — and touches nothing. The engine
+Every refactoring returns a *plan*, which is a set of edits, and touches nothing. The engine
 then:
 
 1. **Rejects overlaps.** Two edits to the same bytes are a bug in the caller, not
@@ -500,10 +499,10 @@ then:
    `if !(a)` in a language that requires the brackets.
 4. **Commits atomically.** Either every file is written or none is.
 
-That reparse check is the safety net, not the safety. It cannot catch a change that
-parses and means something else — moving a statement out from under the condition
+That reparse check is a safety net and not the safety itself. It cannot catch a change that
+parses and means something else, such as moving a statement out from under the condition
 that guarded it, say, or dropping the brackets a de Morgan result needs. Those are
-caught by the analysis being right, which is why the confidence tiers exist and why
+caught by the analysis being right. The confidence tiers exist for that reason, and
 the tool refuses so much.
 
 ---

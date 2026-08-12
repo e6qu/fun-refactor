@@ -9,7 +9,7 @@
 //!   * SCSS. `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a
 //!     call, so the machinery below handles both once it treats an `include_statement`
 //!     as a call. SCSS adds a declaration that can start with no parentheses, and a
-//!     grammar whose gaps hide call sites — see [`open_a_parameter_list`] and
+//!     grammar whose gaps hide call sites, see [`open_a_parameter_list`] and
 //!     [`reject_hidden_call_sites`].
 //!   * Terraform. A module is a directory; its parameters are the `variable "x" {}`
 //!     blocks declared in it, and its call sites are `module "m" { source = "./dir" }`
@@ -53,8 +53,8 @@ impl Change {
     /// Here and not in the CLI because a recipe's `signature "…"` step writes the
     /// same syntax, and two parsers for one syntax is two chances to disagree.
     ///
-    /// Three fields, not four. The declaration may itself contain colons — `flag: bool`
-    /// is the documented example — so everything after the position is one field and
+    /// Three fields, not four. The declaration may itself contain colons, `flag: bool`
+    /// is the documented example, so everything after the position is one field and
     /// the argument comes off its end. Splitting into four handed the arm below only
     /// the first word of the declaration and dropped the rest, which made
     /// `add:1:flag\: bool:false` fail with the message that recommends it.
@@ -116,7 +116,7 @@ pub struct SignaturePlan {
 ///
 /// `def f(a, b): return a + b` with `remove:1` produced `def f(a): return a + b`, which
 /// names something nothing supplies. The shell path has had this rule since it was
-/// written — "the body still reads $2, the parameter being removed" — and it was never
+/// written — "the body still reads $2, the parameter being removed", and it was never
 /// true of anything else, which is the shape most of the defects in this tool have had:
 /// a rule that holds for the language it was written against.
 fn still_read(
@@ -239,8 +239,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         let call_source = crate::vfs::read_to_string(&reference.file)?;
         let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
         // The grammar decides whether this is a call, not the kind the extractor
-        // recorded. `new Thing(1, "x")` is written down as a reference to the *type* —
-        // which it also is — so filtering on the kind skipped it, and a constructor's
+        // recorded. `new Thing(1, "x")` is written down as a reference to the *type*,
+        // which it also is, so filtering on the kind skipped it, and a constructor's
         // parameters could be reordered while every `new` was left as it was. A mention
         // that really is not a call has no arguments to change and is passed over; a
         // recorded call the grammar will not show as one is the case worth refusing.
@@ -317,7 +317,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 /// Would this reorder put a parameter with a default before one without?
 ///
 /// Python and TypeScript both require every defaulted parameter to come last, and
-/// tree-sitter parses `def circ(units="m", r):` without complaint — so the engine's
+/// tree-sitter parses `def circ(units="m", r):` without complaint, so the engine's
 /// reparse check cannot see this and `fr signature circ move:0:1` produced a file
 /// Python rejects with *"parameter without a default follows parameter with a
 /// default"*. The languages with no defaults at all cannot hit it.
@@ -467,7 +467,7 @@ fn apply_change(
 /// Write a parameter list for a declaration or call that has none yet.
 ///
 /// Only an addition can do this: there is nothing to remove or reorder in a list
-/// that does not exist, and on the call side that is a legitimate state — a mixin
+/// that does not exist, and on the call side that is a legitimate state, a mixin
 /// whose parameters all have defaults is included as `@include reset;`.
 fn open_a_parameter_list(
     edits: &mut EditSet,
@@ -507,7 +507,7 @@ fn open_a_parameter_list(
 /// Refuse when a file that could hold a call site did not parse cleanly.
 ///
 /// A call site inside an ERROR node produces no reference, so it is invisible to the
-/// index and not weakly resolved — the confidence check above cannot see it. In
+/// index and not weakly resolved, the confidence check above cannot see it. In
 /// SCSS this is not hypothetical: `@include m();` with empty parentheses and the
 /// namespaced `@include ns.m()` both fail to parse under tree-sitter-scss, and each
 /// one is a call this change would leave behind.
@@ -639,7 +639,7 @@ fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
         // `method_invocation` and every construction an `object_creation_expression`.
         //
         // The comment here used to say "the one call form whose kind does not say
-        // call", which was true of the languages it was written against — and meant
+        // call", which was true of the languages it was written against, and meant
         // `fr signature` refused at every Java call site there has ever been.
         if node.kind().contains("call")
             || matches!(
@@ -648,7 +648,7 @@ fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
             )
         {
             // The walk has to find the call this reference *names*, not one it merely
-            // sits inside. A mention in an argument position — `render(Pet)` — walks up
+            // sits inside. A mention in an argument position, `render(Pet)`, walks up
             // into a call to something else entirely, whose arguments would then be
             // reordered as if they were the mentioned symbol's.
             return match argument_list(node) {
@@ -677,8 +677,8 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
 //
 // `greet() { … }` declares no parameters, but a caller still observes a signature: the
 // positional parameters `$1`, `$2`, … the body reads, and the words each call site
-// passes. A change is two rewrites that must agree — renumber the body, reorder the
-// call sites — and both must be provable before either is written.
+// passes. A change is two rewrites that must agree, renumber the body, reorder the
+// call sites, and both must be provable before either is written.
 //
 // Shell semantics put several shapes out of reach:
 //
@@ -688,7 +688,7 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
 //     arguments at run time, so nothing after it has a knowable position. Only the
 //     positions a change touches must be determinate: `f a "$@"` can lose its first
 //     argument, `f $x b` cannot.
-//   * `$12` is not parameter 12 — the shell reads `${1}` followed by a literal `2`.
+//   * `$12` is not parameter 12, the shell reads `${1}` followed by a literal `2`.
 //     tree-sitter reports one two-digit name, so a multi-digit unbraced reference
 //     refuses.
 //
@@ -1016,8 +1016,8 @@ fn shell_positional_text(number: usize, braced: bool) -> String {
 /// Bash has no import that binds a name: a command is whatever `source` put in scope
 /// by the time the line runs. So a call is attributed to this function only when its
 /// file is the defining file or reaches it through a chain of literal `source` paths.
-/// Anything else is either an external command of the same name — reported and left
-/// alone — or a file whose scope cannot be known, which refuses.
+/// Anything else is either an external command of the same name, reported and left
+/// alone, or a file whose scope cannot be known, which refuses.
 fn shell_call_files<'a>(
     index: &'a Index,
     sym: &Symbol,
@@ -1207,7 +1207,7 @@ fn shell_check_positions(
     };
     for span in call.arguments.iter().take(required) {
         if let Some(reason) = shell_argument_is_indeterminate(parsed, source, *span) {
-            // Not a resolution that is too weak — the call resolved. The shell decides
+            // Not a resolution that is too weak, the call resolved. The shell decides
             // how many words this argument becomes when it runs, and no reading of the
             // text can say. `Refusal::Unknowable` exists for exactly this, and saying
             // "resolution is only 'name-only'" sent the reader after a resolution
@@ -1219,7 +1219,7 @@ fn shell_check_positions(
                     sym.name,
                     location(file, span.start),
                     reason.0,
-                    reason.1.map(|r| format!(" — {r}")).unwrap_or_default()
+                    reason.1.map(|r| format!(". {r}")).unwrap_or_default()
                 ),
             }
             .into());
@@ -1835,8 +1835,8 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
 
         // The index records every module `source` as an import. One that points at
         // the target directory without a matching top-level `module` block means the
-        // block is somewhere this rewrite does not look — nested inside another
-        // block, say — and editing around it would update only part of the call
+        // block is somewhere this rewrite does not look, nested inside another
+        // block, say, and editing around it would update only part of the call
         // surface.
         for import in &info.imports {
             if local_module_dir(here, &import.path).as_deref() != Some(dir) {
@@ -1920,7 +1920,7 @@ fn variable_insertion(
     }
 
     // A module with no variables at all has no anchor, so the conventional file is
-    // the only sane target — and if it does not exist, saying so beats creating one.
+    // the only sane target, and if it does not exist, saying so beats creating one.
     let path = dir.join("variables.tf");
     if index.file(&path).is_none() {
         anyhow::bail!(
@@ -2314,7 +2314,7 @@ mod tests {
     fn refuses_a_reorder_that_would_put_a_default_before_a_required_parameter() {
         // Python rejects `def circ(units="m", r):` with "parameter without a default
         // follows parameter with a default", and tree-sitter parses it without
-        // complaint — so the engine's reparse check cannot see this one and the
+        // complaint, so the engine's reparse check cannot see this one and the
         // refactoring has to know the rule itself.
         let src = "def circ(r, units=\"m\"):\n    return r\n";
         let (_tmp, index) = workspace(&[("a.py", src)]);

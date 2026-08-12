@@ -1,4 +1,4 @@
-//! Cross-language references — the queries no single-language tool can answer.
+//! Cross-language references, the queries no single-language tool can answer.
 //!
 //! A CSS class named in an HTML attribute and a TSX `className` is one entity
 //! spanning three languages and three grammars. No language server sees across that
@@ -232,7 +232,7 @@ fn cross_language_edits_survive_reparse_validation() {
 //
 // Resolution matches candidates by name across the whole workspace. Until the
 // language table existed it did so without asking what language a candidate was
-// written in, so a Rust `out.push(…)` resolved to a Zig `Ring.push` — at
+// written in, so a Rust `out.push(…)` resolved to a Zig `Ring.push`, at
 // `import-qualified`, a tier the tool rewrites. Renaming the Zig method turned a
 // `Vec::push` call in Rust into `out.pushReading(…)`: two languages, no relationship,
 // and an ordinary-looking diff.

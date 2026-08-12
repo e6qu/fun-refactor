@@ -4,7 +4,7 @@
 //! own until one of them had none. Go qualifies with a package, which is a directory. Zig
 //! qualifies with an import binding, which is a file. Java qualifies with the type's own
 //! name. Rust writes that last one `Type::m` and was the only spelling recognised, so
-//! `Widths.width(…)` fell through to the rule that asks which declaration sits nearest —
+//! `Widths.width(…)` fell through to the rule that asks which declaration sits nearest,
 //! and answered, inside `Holder.java`, with `Holder`'s own method, at exact confidence.
 //!
 //! What every one of these has in common is that the source wrote the qualifier down.
@@ -110,7 +110,7 @@ fn a_zig_call_through_an_import_binding_resolves_into_that_file() {
 #[test]
 fn a_zig_import_path_is_a_file_beside_this_one() {
     // `@import("holder.zig")` has no `./` in front of it, and every path rule assumed one
-    // or a dotted module name — so the extension was read as the last segment and the
+    // or a dotted module name, so the extension was read as the last segment and the
     // import was looked up as a file called `zig`.
     let (_tmp, root) = workspace(&[
         ("a.zig", "pub const value: u8 = 1;\n"),
@@ -132,7 +132,7 @@ fn a_zig_call_through_a_value_is_not_a_call_through_an_import() {
     // enclosing instance, so nothing about it is written down and the answer stays where
     // it was: a member matched by name, and no stronger.
     //
-    // `self` is a different matter and resolves exactly — it is the enclosing instance,
+    // `self` is a different matter and resolves exactly. It is the enclosing instance,
     // which the declaration states.
     let (_tmp, root) = workspace(&[(
         "a.zig",

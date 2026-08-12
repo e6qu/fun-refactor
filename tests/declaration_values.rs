@@ -4,7 +4,7 @@
 //! languages its author had in front of them. They disagreed, and the disagreement was
 //! invisible because each caller had a fallback that covered for it somewhere else:
 //!
-//! * `fr inline` refused every Java local — "has no initialiser" — because Java hangs the
+//! * `fr inline` refused every Java local — "has no initialiser", because Java hangs the
 //!   value off a declarator and not off the declaration.
 //! * `fr type` answered `var`, Java's keyword for "work it out", as though it were the
 //!   type the source wrote down. It could not reach the value to work anything out from,

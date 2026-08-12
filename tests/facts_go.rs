@@ -301,7 +301,7 @@ fn type_positions_are_type_references() {
     let src = "package p\n\ntype Point struct{}\n\nfunc f(p Point) Point { return p }\n";
     let f = go(src);
     let point_refs: Vec<_> = f.references.iter().filter(|r| r.name == "Point").collect();
-    // Parameter type and result type — the declaration itself is not a reference.
+    // Parameter type and result type, the declaration itself is not a reference.
     assert_eq!(point_refs.len(), 2, "got {point_refs:?}");
     assert!(point_refs.iter().all(|r| r.kind == ReferenceKind::Type));
 }
@@ -347,7 +347,7 @@ fn grouped_imports_report_one_entry_per_spec() {
     let by_path = |p: &str| f.imports.iter().find(|i| i.path == p).unwrap();
     assert_eq!(by_path("os").alias, None);
     assert_eq!(by_path("strings").alias.as_deref(), Some("str"));
-    // A dot import dumps every exported name into file scope — glob semantics.
+    // A dot import dumps every exported name into file scope, glob semantics.
     assert!(by_path("math").is_glob);
     assert_eq!(by_path("math").alias, None);
     // A blank import binds nothing; the recorded alias says so.

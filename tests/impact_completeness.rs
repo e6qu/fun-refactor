@@ -1,8 +1,8 @@
 //! What `fr impact` says it looked at.
 //!
 //! The caller walk is bounded, and the bound is a choice. A five-deep call chain traced
-//! three levels reported "affects 4 site(s)" — a definite count of an incomplete search
-//! — and said nothing at all about the two functions it had not looked at. This is the
+//! three levels reported "affects 4 site(s)", a definite count of an incomplete search,
+//! and said nothing at all about the two functions it had not looked at. This is the
 //! command a person uses to decide whether a change is safe.
 
 use fun_refactor::analysis::impact;
@@ -83,7 +83,7 @@ fn raising_the_depth_finds_what_the_note_promised() {
 fn duplicates_names_the_threshold_it_searched_with() {
     // The empty answer already said "No duplication of 60 tokens or more". The
     // non-empty one said "3 duplicated block(s)" and stopped, which reads as all of
-    // them — and the non-empty one is the answer somebody acts on.
+    // them, and the non-empty one is the answer somebody acts on.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     std::fs::write(
         tmp.path().join("a.py"),
