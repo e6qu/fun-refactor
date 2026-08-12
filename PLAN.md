@@ -704,6 +704,20 @@ hold a finite verb and must not open with one. Three earlier attempts without th
 each produced fragments. "Including comments". "Replaced". "which is ordinary Zig. Is the
 only parse failure". Punctuation can be moved by machine. A sentence needs the guard.
 
+### The type-safety tutorial
+
+`docs/type-safety.html` teaches typed thinking in eight steps. It starts at simple
+types. It walks through aliases and units, domain types, parsing at the edges,
+functions as values and purity, and it ends at composition and monads. Five conversion exercises
+close it. Every example appears in Python 3.14 and TypeScript 5.9 side by side.
+
+The examples are files under `tests/typesafety/`, one pair per example. Each file
+declares the verdict the checker must give it: `expect: passes` or `expect: fails`.
+`tests/typesafety.rs` runs mypy 1.19 strict and tsc 5.9 strict over all of them. It
+executes the files tagged `run: yes` and regenerates `docs/typesafety-data.js`. It
+also holds the page's example slots and the file set in agreement. A statement on
+that page about what a checker accepts is a statement CI put to the checker.
+
 ### What the browser can show
 
 The playground runs the same library as the terminal program, compiled to WebAssembly.

@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Type safety — a tutorial in eight steps</title>
+<meta name="description" content="From primitive types to domain types, parsing at the edges, pure functions and monads. Every example in Python 3.14 and TypeScript 5.9, side by side, and every one checked in CI.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="wordmark" href="index.html">fun<span>-</span>refactor</a>
+    <nav class="top-nav">
+      <a href="index.html">Overview</a>
+      <a href="demo.html">Demo</a>
+      <a href="catalog.html">Catalogue</a>
+      <a href="recipes.html">Recipes</a>
+      <a href="translate.html">Translate</a>
+      <a href="contract.html">Contract</a>
+      <a href="types.html">Types</a>
+      <a href="type-safety.html" aria-current="page">Type safety</a>
+      <a href="playground/">Playground</a>
+      <a href="docs.html">Docs</a>
+      <a href="why.html">Why</a>
+      <a href="https://github.com/e6qu/fun-refactor">GitHub</a>
+      <button class="theme-toggle" id="theme" title="Switch theme" aria-label="Switch theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="shell">
+    <p class="eyebrow">A tutorial</p>
+    <h1 class="prose">Type safety, from primitives to monads</h1>
+    <p class="lede prose">
+      A type is a claim the compiler checks on every build. This page walks that idea
+      up, in eight steps: what a primitive type can say, what a domain type can say,
+      where to parse, and how typed functions compose. Each step ends where the next
+      one starts.
+    </p>
+    <p class="prose">
+      Every example appears twice, Python 3.14 on the left and TypeScript 5.9 on the
+      right. Every example is a real file in
+      <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">this repository</a>,
+      and CI holds each one to the verdict printed on it: <code>mypy --strict</code>
+      and <code>tsc --strict</code> accept the ones marked <em>accepted</em> and reject
+      the ones marked <em>rejected</em>. Examples marked <em>runs in CI</em> also
+      execute. Nothing on this page is a claim about a checker that a checker has not
+      answered.
+    </p>
+    <ol class="ts-toc" id="toc">
+      <li><a href="#simple-types">Simple types</a></li>
+      <li><a href="#aliases-and-units">Aliases and units</a></li>
+      <li><a href="#domain-types">Domain types</a></li>
+      <li><a href="#parse-dont-validate">Parse, don't validate</a></li>
+      <li><a href="#functions-as-values">Functions as values</a></li>
+      <li><a href="#pure-functions">Pure functions</a></li>
+      <li><a href="#composition-and-monads">Composition and monads</a></li>
+      <li><a href="#exercises">Exercises</a></li>
+    </ol>
+  </div>
+</section>
+
+<section id="simple-types">
+  <div class="shell prose">
+    <h2>1. Simple types</h2>
+    <p>
+      <code>str</code>, <code>int</code>, <code>float</code> and <code>bool</code> are
+      the types most code is written in. Each one makes a small claim: this value is
+      text, this one is a number. The checker enforces that claim and nothing more.
+    </p>
+    <p>
+      The first example is a transfer between two accounts. Both account numbers are
+      strings, so the call that swaps them is well typed. The checker keeps its
+      promise; the promise is too small.
+    </p>
+    <div class="ts-example" data-example="transfer_arguments"></div>
+    <p>
+      A simple type can also be the wrong claim. <code>float</code> says "any real
+      number, approximately", and money is exact. Ten cents, three times, is thirty
+      cents, and <code>0.1 + 0.1 + 0.1</code> is not <code>0.3</code> in either
+      language. Integer cents carry the same prices without the approximation.
+    </p>
+    <div class="ts-example" data-example="money_float"></div>
+    <p>
+      Both defects have the same shape: the type accepts values the program never
+      means. The rest of this page is about narrowing that gap.
+    </p>
+  </div>
+</section>
+
+<section id="aliases-and-units">
+  <div class="shell prose">
+    <h2>2. Aliases and units</h2>
+    <p>
+      A type alias gives a name to an existing type. The name documents intent at
+      every signature that uses it, and that is all it does. The checker treats the
+      alias and the original as the same type, so an alias stops no bug.
+    </p>
+    <div class="ts-example" data-example="alias_transparent"></div>
+    <p>
+      To make the checker enforce the name, the type has to be distinct. Python spells
+      that <code>NewType</code>. TypeScript has no built-in spelling, and the common
+      idiom is a <em>brand</em>: an intersection with a property that exists only in
+      the type system. In both languages the new type costs nothing at run time.
+    </p>
+    <div class="ts-example" data-example="unit_newtype"></div>
+    <p>The whole change from the alias version:</p>
+    <div class="ts-diff" data-diff="unit_newtype"></div>
+    <p>
+      The payoff is the rejected call. Seconds and meters are both numbers, and now
+      they are not interchangeable. The 1999 Mars Climate Orbiter was lost to a
+      pound-seconds value read as newton-seconds; the type system is the cheap place
+      to catch that class of mistake.
+    </p>
+    <div class="ts-example" data-example="unit_newtype_misuse"></div>
+    <p>
+      Strings have the same problem in another costume. A status written as
+      <code>str</code> accepts every string ever typed, including the misspelled
+      ones. A literal type lists the values that exist.
+    </p>
+    <div class="ts-example" data-example="status_literal"></div>
+    <div class="ts-example" data-example="status_literal_misuse"></div>
+  </div>
+</section>
+
+<section id="domain-types">
+  <div class="shell prose">
+    <h2>3. Domain types</h2>
+    <p>
+      A domain type carries a fact about your problem, not about memory. An email
+      address is not any string; it is a string a specific check accepted. The pattern
+      has three parts: a distinct type, one function that constructs it, and no other
+      way to get one. Code that holds an <code>EmailAddress</code> can rely on the
+      check without repeating it.
+    </p>
+    <div class="ts-example" data-example="email_parse"></div>
+    <p>
+      The same pattern retires the very first bug on this page. Give each kind of
+      account its own type, and the swapped call stops compiling.
+    </p>
+    <div class="ts-example" data-example="entity_ids"></div>
+    <p>The whole change from the first section's version:</p>
+    <div class="ts-diff" data-diff="entity_ids"></div>
+    <div class="ts-example" data-example="entity_ids_misuse"></div>
+    <p>
+      Domain types can also describe <em>states</em>. A payment that is pending has no
+      receipt. One class with an optional receipt field allows four combinations, and
+      two of them are nonsense. Two types, one per state, allow the two that exist,
+      and the checker makes every reader handle both.
+    </p>
+    <div class="ts-example" data-example="payment_states"></div>
+    <div class="ts-example" data-example="payment_states_misuse"></div>
+  </div>
+</section>
+
+<section id="parse-dont-validate">
+  <div class="shell prose">
+    <h2>4. Parse, don't validate</h2>
+    <p>
+      Domain types raise a question: where do they come from? The outside world hands
+      a program strings. Command lines, environment variables, HTTP bodies and files
+      all arrive untyped, and something has to check them.
+    </p>
+    <p>
+      <em>Validating</em> checks a value and passes it along unchanged. The knowledge
+      that the check happened lives nowhere, so every reader checks again.
+    </p>
+    <div class="ts-example" data-example="config_validate_everywhere"></div>
+    <p>
+      <em>Parsing</em> checks a value and returns a different type. The result proves
+      the check ran, the checker carries that proof to every caller, and the inner
+      checks come out. The rule, named by Alexis King: parse, don't validate. Do it
+      once, at the edge of the system.
+    </p>
+    <div class="ts-example" data-example="config_parse_once"></div>
+    <p>The whole change from the validate-everywhere version:</p>
+    <div class="ts-diff" data-diff="config_parse_once"></div>
+    <p>
+      The network edge works the same way, and both ecosystems have a library for it:
+      pydantic in Python, zod in TypeScript. Declare the shape once. The library
+      checks the input, reports what is wrong, and returns a value whose type the
+      checker knows.
+    </p>
+    <div class="ts-example" data-example="api_parse"></div>
+    <p>
+      After this section, a program has two zones. At the edge, raw input is parsed
+      into domain types, and failures are handled where they can be reported. Inside,
+      every function takes domain types, and the checker guarantees the garbage never
+      gets that far.
+    </p>
+  </div>
+</section>
+
+<section id="functions-as-values">
+  <div class="shell prose">
+    <h2>5. Functions as values</h2>
+    <p>
+      A function has a type too: what it takes, and what it returns. Once that type is
+      written down, functions can be passed around and checked like any other value.
+    </p>
+    <div class="ts-example" data-example="function_values"></div>
+    <p>
+      A function that takes or returns a function is a higher-order function. The
+      interesting ones are wrappers: retry, memoize, log. A wrapper is only safe when
+      it keeps the wrapped signature, and both languages can state that. Python
+      spells it with type parameters, <code>[**P, R]</code>. TypeScript spells it
+      with a generic argument tuple.
+    </p>
+    <div class="ts-example" data-example="higher_order"></div>
+  </div>
+</section>
+
+<section id="pure-functions">
+  <div class="shell prose">
+    <h2>6. Pure functions</h2>
+    <p>
+      A function is pure when the same arguments always produce the same result and
+      nothing else happens: no clock, no network, no global state. Purity is not in
+      the type signature, and the signature offers a strong hint. A function whose
+      answer depends only on its parameters has to receive everything it needs.
+    </p>
+    <div class="ts-example" data-example="pure_clock"></div>
+    <p>
+      The clock became a parameter, and the function became a table of facts a test
+      can check. This pairs with section 4: parse at the edge, keep effects at the
+      edge, and let the core be pure functions between domain types. The edge stays
+      thin, and the core stays testable.
+    </p>
+  </div>
+</section>
+
+<section id="composition-and-monads">
+  <div class="shell prose">
+    <h2>7. Composition and monads</h2>
+    <p>
+      Small pure functions become programs by composition: the output of one is the
+      input of the next. Types make composition safe. A pipeline compiles only when
+      the steps fit, so reordering or skipping a step is a compile error, not a
+      production incident.
+    </p>
+    <div class="ts-example" data-example="typed_pipeline"></div>
+    <p>
+      Real steps can fail. The plain spelling of failure is <code>None</code> or
+      <code>null</code> in the return type, and each caller has to stop and check
+      before continuing. It works, and it stacks up.
+    </p>
+    <div class="ts-example" data-example="nullable_chain"></div>
+    <p>
+      A <code>Result</code> keeps the pipeline shape with failure inside it. It holds
+      either a value or a reason. <code>and_then</code> applies the next step to a
+      value and passes a failure straight through, so the chain reads like the happy
+      path and the first failure wins.
+    </p>
+    <div class="ts-example" data-example="result_chain"></div>
+    <p>
+      This shape has a name. A wrapper type with a way in (<code>Ok</code>), a way to
+      transform (<code>map</code>), and a way to chain steps that return the wrapper
+      (<code>and_then</code>, also called <code>flatMap</code> or <code>bind</code>)
+      is a monad. You already use monads: <code>Promise</code> chains with
+      <code>then</code>, and arrays chain with <code>flatMap</code>. The word names
+      the pattern; the pattern is the part that matters.
+    </p>
+  </div>
+</section>
+
+<section id="exercises">
+  <div class="shell prose">
+    <h2>8. Exercises</h2>
+    <p>
+      Each exercise is working, badly typed code. Rewrite it so the checker catches
+      the defect described. The solutions shown are one way, not the way, and every
+      one is checked in CI like the rest of the page.
+    </p>
+
+    <h3>Exercise 1: the status that never matches</h3>
+    <p>
+      One branch of this function is dead because of a typo, and the checker cannot
+      know. Make the typo a compile error, and make a forgotten status a compile
+      error too.
+    </p>
+    <div class="ts-example" data-example="exercise_status_start"></div>
+    <details class="ts-solution">
+      <summary>Hint</summary>
+      <p>Section 2: a literal type. Section 3: an exhaustive match with
+      <code>assert_never</code>, or a <code>switch</code> with a <code>never</code>
+      default.</p>
+    </details>
+    <details class="ts-solution">
+      <summary>One solution</summary>
+      <div class="ts-example" data-example="exercise_status_solution"></div>
+      <p>The change, as a diff:</p>
+      <div class="ts-diff" data-diff="exercise_status_solution"></div>
+    </details>
+
+    <h3>Exercise 2: five positionals, three of them bool</h3>
+    <p>
+      Two call sites disagree about the argument order, and both compile. Make the
+      units distinct types and the flags named fields, so only one of the calls
+      survives.
+    </p>
+    <div class="ts-example" data-example="exercise_shipping_start"></div>
+    <details class="ts-solution">
+      <summary>Hint</summary>
+      <p>Section 2 for the units. For the flags, a frozen dataclass or an object
+      type with named fields.</p>
+    </details>
+    <details class="ts-solution">
+      <summary>One solution</summary>
+      <div class="ts-example" data-example="exercise_shipping_solution"></div>
+      <p>The change, as a diff:</p>
+      <div class="ts-diff" data-diff="exercise_shipping_solution"></div>
+    </details>
+
+    <h3>Exercise 3: the dict checked three times</h3>
+    <p>
+      A user arrives as JSON and travels as a loose dictionary, so every function
+      re-checks the fields it reads. Parse once at the edge and delete the checks.
+    </p>
+    <div class="ts-example" data-example="exercise_user_json_start"></div>
+    <details class="ts-solution">
+      <summary>Hint</summary>
+      <p>Section 4. Declare the shape with pydantic or zod, parse in
+      <code>summary</code>, and let the field types travel.</p>
+    </details>
+    <details class="ts-solution">
+      <summary>One solution</summary>
+      <div class="ts-example" data-example="exercise_user_json_solution"></div>
+      <p>The change, as a diff:</p>
+      <div class="ts-diff" data-diff="exercise_user_json_solution"></div>
+    </details>
+
+    <h3>Exercise 4: money that mixes currencies</h3>
+    <p>
+      An amount is a number, and its currency is a string beside it. The guard is a
+      run-time error. Move it into the types, so adding dollars to euros does not
+      compile.
+    </p>
+    <div class="ts-example" data-example="exercise_money_start"></div>
+    <details class="ts-solution">
+      <summary>Hint</summary>
+      <p>In Python, one class per currency and a constrained type variable,
+      <code>[M: (Usd, Eur)]</code>. In TypeScript, a generic currency parameter and
+      <code>NoInfer</code> on the second argument.</p>
+    </details>
+    <details class="ts-solution">
+      <summary>One solution</summary>
+      <div class="ts-example" data-example="exercise_money_solution"></div>
+      <p>The change, as a diff:</p>
+      <div class="ts-diff" data-diff="exercise_money_solution"></div>
+      <p>And the call it exists to reject:</p>
+      <div class="ts-example" data-example="exercise_money_misuse"></div>
+    </details>
+
+    <h3>Exercise 5: three failures, one None</h3>
+    <p>
+      Three lookups can each fail, and every failure collapses into the same empty
+      answer. Rewrite the chain with a <code>Result</code> so each failure carries
+      its reason.
+    </p>
+    <div class="ts-example" data-example="exercise_lookup_start"></div>
+    <details class="ts-solution">
+      <summary>Hint</summary>
+      <p>Section 7. Three small functions returning <code>Result</code>, and
+      <code>and_then</code> to thread them.</p>
+    </details>
+    <details class="ts-solution">
+      <summary>One solution</summary>
+      <div class="ts-example" data-example="exercise_lookup_solution"></div>
+      <p>The change, as a diff:</p>
+      <div class="ts-diff" data-diff="exercise_lookup_solution"></div>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="shell prose">
+    <h2>Where this goes next</h2>
+    <p>
+      The same ideas run through this repository's own code, in Rust:
+      <a href="types.html">Making it unrepresentable</a> walks the defects that
+      newtypes and closed sets removed here, with the bug that motivated each one.
+      The example files behind this page live in
+      <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>,
+      and the test that holds them to their word is
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a>.
+    </p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell footer-inner">
+    <div>
+      <span id="built"></span>
+    </div>
+    <div>
+      <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">The example files</a>
+    </div>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script type="module" src="type-safety.js"></script>
+<script type="module" src="built.js"></script>
+</body>
+</html>
