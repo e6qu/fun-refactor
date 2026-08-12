@@ -105,9 +105,10 @@ function diffPair(diff) {
 }
 
 function row(label, sentence, body) {
+  const tail = sentence ? ` ${escape(sentence)}` : "";
   return `
     <div class="ts-row">
-      <div class="ts-row-label"><strong>${label}</strong> ${escape(sentence)}</div>
+      <div class="ts-row-label"><strong>${label}</strong>${tail}</div>
       ${body}
     </div>`;
 }
@@ -145,25 +146,30 @@ for (const slot of document.querySelectorAll("[data-block]")) {
     (misuse ? row("Now a type error.", misuse.title + ".", pair(misuse)) : "");
 
   slot.innerHTML = `
-    <div class="ts-block-head">
-      <h4>${escape(after.title)}</h4>
-      <button type="button" class="ts-diff-button" aria-expanded="false">Diff</button>
+    <div class="ts-block-head"><h4>${escape(after.title)}</h4></div>
+    <div class="ts-block-controls">
+      <button type="button" class="ts-diff-button" aria-pressed="false">Diff</button>
     </div>
-    ${row("Before.", before.title + ".", pair(before))}
-    <div class="ts-row ts-diff-row" hidden>
-      <div class="ts-row-label"><strong>The change.</strong></div>
-      ${diffPair(diff)}
+    <div class="ts-view-code">
+      ${row("Before.", before.title + ".", pair(before))}
+      ${collapsed ? `<details class="ts-solution"><summary>Show one solution</summary>${afterRows}</details>` : afterRows}
     </div>
-    ${collapsed ? `<details class="ts-solution"><summary>Show one solution</summary>${afterRows}</details>` : afterRows}`;
+    <div class="ts-view-diff" hidden>
+      ${row("The change, from before to after.", "", diffPair(diff))}
+    </div>`;
 
+  // The button swaps the windows in place: the same two panes show either the
+  // code, before and after, or the diff between them.
   const button = slot.querySelector(".ts-diff-button");
-  const diffRow = slot.querySelector(".ts-diff-row");
+  const codeView = slot.querySelector(".ts-view-code");
+  const diffView = slot.querySelector(".ts-view-diff");
   button.addEventListener("click", () => {
-    const open = diffRow.hasAttribute("hidden");
-    diffRow.toggleAttribute("hidden", !open);
-    button.setAttribute("aria-expanded", String(open));
-    if (open && collapsed) {
-      // Reading the diff reveals the solution anyway; open it too.
+    const showDiff = diffView.hasAttribute("hidden");
+    diffView.toggleAttribute("hidden", !showDiff);
+    codeView.toggleAttribute("hidden", showDiff);
+    button.setAttribute("aria-pressed", String(showDiff));
+    if (showDiff && collapsed) {
+      // The diff shows the solution anyway; leave it open on the way back.
       slot.querySelector("details.ts-solution")?.setAttribute("open", "");
     }
   });

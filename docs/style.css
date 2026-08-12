@@ -833,15 +833,19 @@ footer a { color: var(--ink-soft); }
   padding: 1rem 1.25rem 1.25rem;
 }
 
-.ts-block-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
+.ts-block-head { margin-bottom: 0.5rem; }
 
 .ts-block-head h4 { margin: 0; font-size: 1.05rem; }
+
+/* Centred on the border between the Python and the TypeScript pane. */
+.ts-block-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.ts-view-code[hidden],
+.ts-view-diff[hidden] { display: none; }
 
 .ts-diff-button {
   font: inherit;
@@ -856,7 +860,7 @@ footer a { color: var(--ink-soft); }
   white-space: nowrap;
 }
 .ts-diff-button:hover,
-.ts-diff-button[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.ts-diff-button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 
 .ts-row { margin: 1rem 0; }
 .ts-row-label { font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--ink-soft); }
