@@ -878,3 +878,6 @@ footer a { color: var(--ink-soft); }
    their measure so the text stays readable. */
 .ts-page .shell { max-width: 90vw; }
 .ts-page .prose { max-width: none; }
+
+.ts-commands { margin: 1rem 0; padding: 0.75rem 1rem; border: 1px solid var(--rule-soft); border-radius: 6px; background: var(--sunken); overflow-x: auto; }
+.ts-commands code { font-size: 0.85rem; }

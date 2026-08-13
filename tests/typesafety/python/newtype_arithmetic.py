@@ -1,5 +1,5 @@
 # expect: passes
-# title: Seconds plus Kilograms still compiles, and the sum is a meaningless int
+# title: Seconds plus Kilograms still passes the check, and the sum is a meaningless int
 from typing import NewType
 
 Seconds = NewType("Seconds", int)

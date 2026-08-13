@@ -37,10 +37,10 @@
     <p class="eyebrow">A tutorial</p>
     <h1 class="prose">Type safety, from primitives to monads</h1>
     <p class="lede prose">
-      A type is a claim that the compiler checks on every build. This tutorial starts
-      with the smallest claims and works up: richer types, parsing at the edges of the
-      system, and functions that compose. Eight steps, and each one ends where the
-      next begins.
+      A type is a claim about a value, and a type checker is the program that holds
+      your code to it. This tutorial starts with the smallest claims and works up:
+      richer types, parsing at the edges of the system, and functions that compose.
+      Nine steps, and each one ends where the next begins.
     </p>
     <p class="prose">
       Each example comes as a <strong>before</strong> and an <strong>after</strong>,
@@ -53,6 +53,7 @@
       the checkers confirmed.
     </p>
     <ol class="ts-toc" id="toc">
+      <li><a href="#before-you-start">Before you start</a></li>
       <li><a href="#simple-types">Simple types</a></li>
       <li><a href="#aliases-and-units">Aliases and units</a></li>
       <li><a href="#domain-types">Domain types</a></li>
@@ -65,9 +66,73 @@
   </div>
 </section>
 
+<section id="before-you-start">
+  <div class="shell prose">
+    <h2>1. Before you start</h2>
+    <p>
+      This tutorial is for programmers who can read Python or TypeScript and want
+      their types to carry more weight. You do not need to have used a type checker
+      before. If you have, the first two sections will read quickly.
+    </p>
+    <h3>The tools</h3>
+    <p>
+      A <em>type checker</em> is a program that reads your source code and reports
+      contradictions in it, without running it. Python's is a separate tool called
+      <a href="https://mypy-lang.org/">mypy</a>; the annotations you write in the code
+      do nothing at run time by themselves. TypeScript's checker is the TypeScript
+      compiler itself, <code>tsc</code>, which checks the types and then erases them
+      from the JavaScript it emits. To follow along at home:
+    </p>
+    <pre class="ts-commands"><code>pip install mypy          # then:  mypy --strict shelf.py
+npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pre>
+    <p>
+      Both commands read the file and print either nothing, or a list of errors with
+      line numbers. That moment, the <em>scan</em>, is where every error on this page
+      appears. Nothing here depends on what happens later, at <em>run time</em>, when
+      the program executes. The <code>--strict</code> flag turns on the checkers'
+      full rigour, and this whole page assumes it.
+    </p>
+    <h3>The words</h3>
+    <p>
+      A <em>type</em> is a claim about a value: this is text, this is a whole number.
+      An <em>annotation</em> is where you write that claim: after a colon in Python,
+      after a colon in TypeScript too. <code>Any</code> in Python and
+      <code>any</code> in TypeScript are the escape hatch: a value typed that way
+      matches everything, and the checker stops looking at it. Here is a first
+      annotated function, with every claim written out:
+    </p>
+    <div class="ts-example" data-example="annotations_first_look"></div>
+    <p>
+      Read the Python side as: <code>shelf_label</code> takes an <code>item</code>
+      that is a string and a <code>price</code> that is a float, and returns a
+      string. The TypeScript side makes the same claims with the same shape. The
+      checker's whole job is to find the places where code disagrees with claims
+      like these.
+    </p>
+    <h3>The running example</h3>
+    <p>
+      Every example on this page comes from one imaginary business: a small web shop.
+      It prints receipts, sends them by email, moves invoices from draft to sent to
+      paid, takes orders over HTTP, quotes shipping, retries calls to a flaky
+      supplier, and starts its server from a command line. Nothing about it is
+      exotic, which is the point: every problem on this page is one you have met.
+    </p>
+    <h3>How to read the examples</h3>
+    <p>
+      Each example is a block with a <strong>Before</strong>, the code with a
+      weakness, and an <strong>After</strong>, the same code with the types doing
+      more work. The Diff button between them swaps the panes to the exact change.
+      Some blocks end with a row labelled <strong>Now a type error</strong>: a call
+      that the Before version accepted and the After version makes the checker
+      reject. When you can predict what that row will say before you open a block,
+      the section has done its job.
+    </p>
+  </div>
+</section>
+
 <section id="simple-types">
   <div class="shell prose">
-    <h2>1. Simple types</h2>
+    <h2>2. Simple types</h2>
     <p>
       Most code is written in <code>str</code>, <code>int</code>, <code>float</code>
       and <code>bool</code>. Each of these makes a small claim about a value: it is
@@ -75,12 +140,12 @@
       that the claim is usually much smaller than what your program means.
     </p>
     <p>
-      Here is the plainest possible case. Imagine a small web shop printing receipts.
-      Each line of a receipt shows an item's name, its unit price, how many were
-      bought, and whether the item is gift-wrapped, and the function
-      <code>order_line</code> formats one such line. With <code>Any</code>, every call
-      compiles, even the one that passes all four arguments in the wrong order; you
-      find out at run time, when a customer gets a mangled receipt. With ordinary
+      Here is the plainest possible case. Each line of the shop's receipts shows an
+      item's name, its unit price, how many were bought, and whether the item is
+      gift-wrapped, and the function <code>order_line</code> formats one such line.
+      Written with the <code>Any</code> escape hatch, every call passes the scan,
+      even the one with all four arguments in the wrong order; you find out at run
+      time, when a customer gets a mangled receipt. Written with ordinary
       <code>str</code>, <code>float</code>, <code>int</code> and <code>bool</code>,
       the checker catches that same call while it reads the file.
     </p>
@@ -91,7 +156,7 @@
       <code>transfer</code> takes the two account numbers as strings. Swap them at
       the call site and the checker stays quiet, because both are the same type, and
       the rent flows the wrong way. Programmers call this kind of code <em>stringly
-      typed</em>. Hold the example in mind; its fix arrives in section 3.
+      typed</em>. Hold the example in mind; its fix arrives in section 4.
     </p>
     <p>
       Sometimes the simple type is the wrong claim outright. The same shop sums its
@@ -109,7 +174,7 @@
 
 <section id="aliases-and-units">
   <div class="shell prose">
-    <h2>2. Aliases and units</h2>
+    <h2>3. Aliases and units</h2>
     <p>
       A type alias is a new name for an old type. The checker treats them as
       identical, so an alias documents your intent and enforces nothing. If you want
@@ -181,7 +246,7 @@
 
 <section id="domain-types">
   <div class="shell prose">
-    <h2>3. Domain types</h2>
+    <h2>4. Domain types</h2>
     <p>
       There is a name for building everything out of raw strings and numbers: Scott
       Wlaschin calls it <em>primitive obsession</em>. The cure is a domain type, one
@@ -198,8 +263,8 @@
     </p>
     <div class="ts-block" data-block="email_parse"></div>
     <p>
-      The same recipe retires the transfer bug from section 1. Give each kind of
-      account its own type, and the swapped call no longer compiles.
+      The same recipe retires the transfer bug from section 2. Give each kind of
+      account its own type, and the swapped call no longer passes the check.
     </p>
     <div class="ts-block" data-block="entity_ids"></div>
     <p>
@@ -222,7 +287,7 @@
 
 <section id="parse-dont-validate">
   <div class="shell prose">
-    <h2>4. Parse, don't validate</h2>
+    <h2>5. Parse, don't validate</h2>
     <p>
       Where do domain types come from? The outside world only ever hands your program
       text. A command line is a list of strings. An environment variable is a string.
@@ -275,7 +340,7 @@
 
 <section id="functions-as-values">
   <div class="shell prose">
-    <h2>5. Functions as values</h2>
+    <h2>6. Functions as values</h2>
     <p>
       Functions have types too: what they take, and what they return. Write that type
       down, and a function can be passed around and checked like any other value.
@@ -317,7 +382,7 @@
 
 <section id="pure-functions">
   <div class="shell prose">
-    <h2>6. Pure functions</h2>
+    <h2>7. Pure functions</h2>
     <p>
       A function is pure when the same arguments always give the same result and
       nothing else happens: no clock, no network, no globals. The formal term is
@@ -334,7 +399,7 @@
     <p>
       Once the clock is a parameter, the function is a table of facts, and a test can
       pin any entry. Handing dependencies in like this is <em>dependency
-      injection</em> at its smallest. It also completes the picture from section 4:
+      injection</em> at its smallest. It also completes the picture from section 5:
       parse at the edge, keep the effects at the edge, and let the core be pure
       functions between domain types. Gary Bernhardt calls the shape <em>functional
       core, imperative shell</em>.
@@ -344,11 +409,12 @@
 
 <section id="composition-and-monads">
   <div class="shell prose">
-    <h2>7. Composition and monads</h2>
+    <h2>8. Composition and monads</h2>
     <p>
       Small pure functions turn into programs by composition: one function's output is
-      the next one's input. Types are what make that safe. The pipeline compiles only
-      if the steps fit together, so a step out of order is a compile error, caught
+      the next one's input. Types are what make that safe. The pipeline passes the
+      check only if the steps fit together, so a step out of order is a type error,
+      caught
       long before it can become a production incident.
     </p>
     <p>
@@ -410,7 +476,7 @@
       Nothing actually runs until the edge of the program calls <code>run</code>.
     </p>
     <p>
-      The scene for the IO is the flaky upstream service from section 5, fetched with
+      The scene for the IO is the flaky upstream service from section 6, fetched with
       a retry, except this time the retry policy and the business logic never share a
       function body.
     </p>
@@ -435,7 +501,7 @@
 
 <section id="exercises">
   <div class="shell prose">
-    <h2>8. Exercises</h2>
+    <h2>9. Exercises</h2>
     <p>
       Every exercise starts from working, badly typed code. Your job is to rewrite it
       so the checker catches the defect described. One solution sits behind a toggle
@@ -446,11 +512,11 @@
     <h3>Exercise 1: make the typo impossible</h3>
     <p>
       A typo has killed one branch of this status function, and the checker has no way
-      to see it. Make the typo a compile error, and a forgotten status too.
+      to see it. Make the typo a type error the scan catches, and a forgotten status too.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
-      <p>Section 2: a literal type. Section 3: an exhaustive match with
+      <p>Section 3: a literal type. Section 4: an exhaustive match with
       <code>assert_never</code>, or a <code>switch</code> with a <code>never</code>
       default.</p>
     </details>
@@ -458,14 +524,14 @@
 
     <h3>Exercise 2: name the units and the flags</h3>
     <p>
-      Two call sites disagree about the argument order, and both compile. A row of
+      Two call sites disagree about the argument order, and both pass the check. A row of
       bare booleans invites what Robert Harper calls <em>boolean blindness</em>: the
       call reads true, false, true and tells you nothing. Give the units real types
       and the flags names, so only one of the calls survives.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
-      <p>Section 2 for the units. For the flags, a frozen dataclass or an object
+      <p>Section 3 for the units. For the flags, a frozen dataclass or an object
       type with named fields.</p>
     </details>
     <div class="ts-block" data-block="exercise_shipping_solution" data-collapse-after></div>
@@ -478,7 +544,7 @@
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
-      <p>Section 4. Declare the shape with pydantic or zod, parse in
+      <p>Section 5. Declare the shape with pydantic or zod, parse in
       <code>summary</code>, and let the field types travel.</p>
     </details>
     <div class="ts-block" data-block="exercise_user_json_solution" data-collapse-after></div>
@@ -487,7 +553,7 @@
     <p>
       An amount is a number with its currency in a string beside it, and the mismatch
       is caught at run time, if at all. Move it into the types, so adding dollars to
-      euros no longer compiles.
+      euros no longer passes the check.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
@@ -505,7 +571,7 @@
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
-      <p>Section 7. Three small functions returning <code>Result</code>, and
+      <p>Section 8. Three small functions returning <code>Result</code>, and
       <code>and_then</code> to thread them.</p>
     </details>
     <div class="ts-block" data-block="exercise_lookup_solution" data-collapse-after></div>

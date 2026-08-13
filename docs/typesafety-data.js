@@ -34,6 +34,16 @@ export const EXAMPLES = {
     python: "type Seconds = int\n\n\ndef wait_before_retry(delay: Seconds) -> str:\n    return f\"sleeping {delay}s\"\n\n\ndef plan() -> str:\n    minutes = 5\n    return wait_before_retry(minutes)  # accepted: Seconds and int are the same type\n",
     typescript: "type Seconds = number;\n\nfunction waitBeforeRetry(delay: Seconds): string {\n  return `sleeping ${delay}s`;\n}\n\nexport function plan(): string {\n  const minutes = 5;\n  return waitBeforeRetry(minutes); // accepted: Seconds and number are the same type\n}\n",
   },
+  "annotations_first_look": {
+    title: "A function with its types written out",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: false,
+    improves: null,
+    misuseOf: null,
+    python: "def shelf_label(item: str, price: float) -> str:\n    return f\"{item}: {price:.2f} EUR\"\n\n\nlabel: str = shelf_label(\"tea\", 4.50)\n",
+    typescript: "function shelfLabel(item: string, price: number): string {\n  return `${item}: ${price.toFixed(2)} EUR`;\n}\n\nexport const label: string = shelfLabel(\"tea\", 4.5);\n",
+  },
   "any_arguments": {
     title: "With Any, the checker accepts the arguments in any order",
     expectPython: "passes",
@@ -375,7 +385,7 @@ export const EXAMPLES = {
     typescript: "function totalPrice(prices: number[]): number {\n  return prices.reduce((sum, price) => sum + price, 0);\n}\n\n// Three items at ten cents each.\nexport const sumIsOff = totalPrice([0.1, 0.1, 0.1]) !== 0.3; // true\n",
   },
   "newtype_arithmetic": {
-    title: "Seconds plus Kilograms still compiles, and the sum is a meaningless int",
+    title: "Seconds plus Kilograms still passes the check, and the sum is a meaningless int",
     expectPython: "passes",
     expectTypescript: "passes",
     runs: false,
