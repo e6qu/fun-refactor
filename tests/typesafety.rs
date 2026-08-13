@@ -13,7 +13,7 @@
 //! this test ran. Without that, the page would be sixty statements about `mypy` and
 //! `tsc` that nothing ever put to either.
 //!
-//! The checkers are pinned: mypy 1.18 with pydantic 2.13, and the TypeScript compiler
+//! The checkers are pinned: mypy 1.18, and the TypeScript compiler
 //! from `tests/typesafety/typescript/package.json`. A machine without them skips and
 //! says so; CI installs them, and a skip there fails the run.
 

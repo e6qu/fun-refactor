@@ -1,12 +1,11 @@
 # expect: fails
 # title: A raw dictionary where a User is required, rejected by the checker
 # misuse-of: exercise_user_json_solution
-from pydantic import BaseModel, ConfigDict
+from dataclasses import dataclass
 
 
-class User(BaseModel):
-    model_config = ConfigDict(strict=True)
-
+@dataclass(frozen=True)
+class User:
     name: str
     age: int
 
@@ -15,4 +14,4 @@ def greeting(user: User) -> str:
     return f"hello {user.name}"
 
 
-hello = greeting({"name": "Ada", "age": "36"})
+hello = greeting({"name": "Ada", "age": 36})

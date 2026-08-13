@@ -2,10 +2,6 @@
 //
 // The checkers' verbatim words for each type-error example. Regenerated together with typesafety-data.js.
 export const ERRORS = {
-  "api_parse_misuse": {
-    python: "api_parse_misuse.py:19: error: Argument 1 to \"price_cents\" has incompatible type \"dict[str, str | None]\"; expected \"Order\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "api_parse_misuse.ts(17,45): error TS2322: Type 'string' is not assignable to type 'number'.",
-  },
   "config_parse_once_misuse": {
     python: "config_parse_once_misuse.py:17: error: Argument 1 to \"connect\" has incompatible type \"dict[str, str]\"; expected \"Config\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "config_parse_once_misuse.ts(12,33): error TS2345: Argument of type 'Map<string, string>' is not assignable to parameter of type 'Config'.\n  Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
@@ -35,8 +31,8 @@ export const ERRORS = {
     typescript: "exercise_status_misuse.ts(23,21): error TS2345: Argument of type '\"recieved\"' is not assignable to parameter of type 'Status'.",
   },
   "exercise_user_json_misuse": {
-    python: "exercise_user_json_misuse.py:18: error: Argument 1 to \"greeting\" has incompatible type \"dict[str, str]\"; expected \"User\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "exercise_user_json_misuse.ts(16,46): error TS2322: Type 'string' is not assignable to type 'number'.",
+    python: "exercise_user_json_misuse.py:17: error: Argument 1 to \"greeting\" has incompatible type \"dict[str, object]\"; expected \"User\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "exercise_user_json_misuse.ts(9,46): error TS2322: Type 'string' is not assignable to type 'number'.",
   },
   "function_values_misuse": {
     python: "function_values_misuse.py:19: error: Argument 2 to \"cheapest_first\" has incompatible type \"Callable[[Order], str]\"; expected \"Callable[[Order], int]\"  [arg-type]\nfunction_values_misuse.py:19: error: Incompatible return value type (got \"str\", expected \"int\")  [return-value]\nFound 2 errors in 1 file (checked 1 source file)",

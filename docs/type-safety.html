@@ -359,15 +359,14 @@
     </p>
     <div class="ts-block" data-block="config_parse_once"></div>
     <p>
-      The order that arrives over HTTP is the same story, so this one can be short.
-      <code>json.loads</code> or <code>JSON.parse</code> gives you a shapeless
-      dictionary, and pydantic and zod check its shape at run time and hand the
-      checker a typed result. Declare the shape once, as a schema, and the library
-      returns a real <code>Order</code> or an error naming the field and the reason.
-      The Python handler below goes from raw body to <code>Order</code> in one call;
-      the TypeScript one parses the JSON first and hands the value to the schema.
+      The order that arrives over HTTP is the same story. <code>json.loads</code>
+      or <code>JSON.parse</code> gives you a shapeless value, one parse function
+      turns it into an <code>Order</code> or raises with the reason, and every
+      function after that takes the <code>Order</code>. The exercise at the end of
+      the page walks exactly this case. Libraries exist that write the parse
+      function from a declared schema; they check at run time, so on this page
+      they appear only in the closing table, as the contrast.
     </p>
-    <div class="ts-block" data-block="api_parse"></div>
     <p>
       Parse input at the boundary, and pass <code>Config</code>, <code>Order</code>
       and the other domain values around instead of raw strings. Hand a function the
@@ -599,8 +598,8 @@
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
-      <p>Section 5. Declare the shape with pydantic or zod, parse in
-      <code>summary</code>, and let the field types travel.</p>
+      <p>Section 5. Write one parse function that returns a <code>User</code> or
+      raises, call it in <code>summary</code>, and let the field types travel.</p>
     </details>
     <div class="ts-block" data-block="exercise_user_json_solution" data-collapse-after></div>
 
