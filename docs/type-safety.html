@@ -37,7 +37,7 @@
     <p class="eyebrow">A tutorial</p>
     <h1 class="prose">Type safety, from primitives to monads</h1>
     <p class="lede prose">
-      A type says what a value means, not only how it is stored. This tutorial
+      A type says what a value means. This tutorial
       starts from one file of working, badly typed code. It types the swapped
       invoice arguments first, then the units and the ids, then parses the input
       once at the border, and it ends with functions that compose.
@@ -480,7 +480,7 @@
       edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled
       monads are not idiomatic in Python or TypeScript, and most teams will
       experience them as friction. The Writer and IO below are small models to
-      learn the pattern from, not a recommendation. What carries over is the idea:
+      learn the pattern from. What carries over is the idea:
       keep values and failures flowing through steps whose types the checker can
       see, even when you spell it with the language's own tools.
     </p>
@@ -495,8 +495,8 @@
     <p>
       The IO below wraps the flaky fetch from section 6. Store the call in a value
       instead of performing it, and <code>retry</code> wraps that stored value
-      once, instead of living as a loop pasted into every network function.
-      Nothing runs until the edge of the program calls <code>run</code>, and the
+      once; the loop disappears from the network functions. Nothing runs until the
+      edge of the program calls <code>run</code>, and the
       checker keeps the stages apart: an <code>IO[str]</code> is not a
       <code>str</code>, so code cannot spend the description as if it were already
       the answer.
