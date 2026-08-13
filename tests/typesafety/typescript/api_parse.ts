@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-const Order = z.object({
+const Order = z.strictObject({
   id: z.string(),
   quantity: z.number().int(),
   giftNote: z.string().nullable(),

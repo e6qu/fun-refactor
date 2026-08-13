@@ -878,3 +878,39 @@ footer a { color: var(--ink-soft); }
    their measure so the text stays readable. */
 .ts-page .shell { max-width: 90vw; }
 .ts-page .prose { max-width: none; }
+
+/* ------------------------------------------------------------- type-safety quiz */
+
+.ts-quiz-card {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1rem 1.25rem 1.25rem;
+  margin: 2.5rem 0 1rem;
+}
+.ts-quiz-question { font-weight: 600; margin: 0.25rem 0 1rem; }
+.ts-quiz-controls { display: flex; gap: 0.75rem; justify-content: center; margin: 1.25rem 0 0.5rem; }
+.ts-quiz-button {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+  color: inherit;
+  cursor: pointer;
+}
+.ts-quiz-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.ts-quiz-button:disabled { opacity: 0.45; cursor: default; }
+.ts-quiz-reveal { margin-top: 0.75rem; }
+.ts-quiz-reveal .ts-quiz-next { display: block; margin: 0.75rem auto 0; }
+
+.ts-checker-words { margin: 0.75rem 0 0.25rem; }
+.ts-checker-words summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ts-checker-words[open] summary { margin-bottom: 0.5rem; }
+.ts-checker-words pre { white-space: pre-wrap; }

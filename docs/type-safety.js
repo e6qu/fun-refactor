@@ -7,6 +7,7 @@
 // something this file cannot find renders a visible error, never an empty box.
 
 import { DIFFS, EXAMPLES } from "./typesafety-data.js";
+import { ERRORS } from "./typesafety-errors.js";
 
 function escape(text) {
   return text
@@ -117,6 +118,31 @@ function missing(slot, what) {
   slot.innerHTML = `<p class="ts-missing">Missing: ${escape(what)}</p>`;
 }
 
+// The checkers' verbatim messages for an example the page presents as a type
+// error, behind a toggle. Captured by the harness, never paraphrased.
+function checkerWords(id) {
+  const errors = ERRORS[id];
+  if (!errors) {
+    return "";
+  }
+  const pane = (label, text) =>
+    text
+      ? `
+    <div class="ts-pane">
+      <div class="ts-pane-head"><span>${label}</span></div>
+      <pre><code>${escape(text)}</code></pre>
+    </div>`
+      : "";
+  return `
+    <details class="ts-checker-words">
+      <summary>The checkers' words</summary>
+      <div class="ts-pair">
+        ${pane("The Python checker says", errors.python)}
+        ${pane("The TypeScript checker says", errors.typescript)}
+      </div>
+    </details>`;
+}
+
 // ------------------------------------------------------------ the slots
 
 for (const slot of document.querySelectorAll("[data-example]")) {
@@ -138,12 +164,16 @@ for (const slot of document.querySelectorAll("[data-block]")) {
     missing(slot, slot.dataset.block);
     continue;
   }
-  const misuse = Object.values(EXAMPLES).find((e) => e.misuseOf === slot.dataset.block);
+  const [misuseId, misuse] = Object.entries(EXAMPLES).find(
+    ([, e]) => e.misuseOf === slot.dataset.block,
+  ) ?? [null, null];
   const collapsed = slot.hasAttribute("data-collapse-after");
 
   const afterRows =
     row("After.", after.title + ".", pair(after)) +
-    (misuse ? row("Now a type error.", misuse.title + ".", pair(misuse)) : "");
+    (misuse
+      ? row("Now a type error.", misuse.title + ".", pair(misuse) + checkerWords(misuseId))
+      : "");
 
   slot.innerHTML = `
     <div class="ts-block-head"><h4>${escape(after.title)}</h4></div>
@@ -173,6 +203,62 @@ for (const slot of document.querySelectorAll("[data-block]")) {
       slot.querySelector("details.ts-solution")?.setAttribute("open", "");
     }
   });
+}
+
+// "You be the checker": a section-closing quiz. The reader reads a snippet the
+// section just taught about, calls the verdict, and then sees the real one,
+// with the checkers' own messages when the answer is a rejection. Every verdict
+// comes from the same generated data the rest of the page uses.
+for (const slot of document.querySelectorAll("[data-quiz]")) {
+  const ids = slot.dataset.quiz.split(",").map((id) => id.trim());
+  const broken = ids.find((id) => !EXAMPLES[id]);
+  if (broken) {
+    missing(slot, broken);
+    continue;
+  }
+  let at = 0;
+  const render = () => {
+    const id = ids[at];
+    const example = EXAMPLES[id];
+    const fails = example.expectPython === "fails" || example.expectTypescript === "fails";
+    slot.innerHTML = `
+      <div class="ts-quiz-card">
+        <div class="ts-block-head"><h4>You be the checker (${at + 1} of ${ids.length})</h4></div>
+        <p class="ts-quiz-question">Does the strict scan accept this?</p>
+        ${pair(example)}
+        <div class="ts-quiz-controls">
+          <button type="button" class="ts-quiz-button" data-answer="passes">It passes</button>
+          <button type="button" class="ts-quiz-button" data-answer="fails">Type error</button>
+        </div>
+        <div class="ts-quiz-reveal" hidden></div>
+      </div>`;
+    const reveal = slot.querySelector(".ts-quiz-reveal");
+    for (const button of slot.querySelectorAll("[data-answer]")) {
+      button.addEventListener("click", () => {
+        const right = button.dataset.answer === (fails ? "fails" : "passes");
+        const note = fails
+          ? "The checker rejects it."
+          : example.improves
+            ? "The checker accepts it, and this version has earned it."
+            : "The checker accepts it. Accepted is not the same as correct: " +
+              "the weakness is real, the type just cannot see it.";
+        reveal.innerHTML = `
+          <p><strong>${right ? "Right." : "Not quite."}</strong>
+            ${escape(example.title)}. ${note}</p>
+          ${fails ? checkerWords(id) : ""}
+          ${at + 1 < ids.length ? '<button type="button" class="ts-quiz-button ts-quiz-next">Next one</button>' : ""}`;
+        reveal.hidden = false;
+        for (const b of slot.querySelectorAll("[data-answer]")) {
+          b.disabled = true;
+        }
+        slot.querySelector(".ts-quiz-next")?.addEventListener("click", () => {
+          at += 1;
+          render();
+        });
+      });
+    }
+  };
+  render();
 }
 
 // The reading position: a checkbox beside each contents entry marks a step done.

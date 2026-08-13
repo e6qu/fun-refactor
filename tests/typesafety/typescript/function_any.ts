@@ -2,7 +2,7 @@
 
 type Order = { readonly id: string; readonly totalCents: number };
 
-function cheapestFirst(orders: Order[], key: (...args: any[]) => number): Order[] {
+function cheapestFirst(orders: readonly Order[], key: (...args: any[]) => number): Order[] {
   return [...orders].sort((a, b) => key(a) - key(b));
 }
 

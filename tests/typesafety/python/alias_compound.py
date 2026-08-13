@@ -10,11 +10,11 @@ type RetryPolicy = Callable[[int, Exception], Milliseconds]
 DEFAULT_BACKOFF: Final[Milliseconds] = 30_000
 
 
-def fixed_backoff(attempt: int, error: Exception) -> Milliseconds:
+def fixed_backoff(_attempt: int, _error: Exception) -> Milliseconds:
     return DEFAULT_BACKOFF
 
 
-def doubling_backoff(attempt: int, error: Exception) -> Milliseconds:
+def doubling_backoff(attempt: int, _error: Exception) -> Milliseconds:
     return DEFAULT_BACKOFF * (1 << attempt)
 
 

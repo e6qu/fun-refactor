@@ -35,8 +35,12 @@ def check_stock(quantity: int) -> Result[int]:
     return Ok(quantity) if quantity <= 10 else Err("only 10 in stock")
 
 
+def price(quantity: int) -> Result[int]:
+    return Ok(quantity * 250)
+
+
 def quote(text: str) -> Result[int]:
-    return and_then(and_then(parse_quantity(text), check_stock), lambda q: Ok(q * 250))
+    return and_then(and_then(parse_quantity(text), check_stock), price)
 
 
 assert quote("3") == Ok(750)

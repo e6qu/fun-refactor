@@ -1,7 +1,10 @@
 // expect: passes
 
-export function remaining(deadline: number, now: number): number {
-  return deadline - now;
+export function remainingMs(deadline: Date, now: Date): number {
+  return deadline.getTime() - now.getTime();
 }
 
-export const checked = remaining(120, 45) === 75; // true, every day
+const dispatch = new Date("2026-08-13T16:00:00");
+
+export const before = remainingMs(dispatch, new Date("2026-08-13T15:30:00")); // 1_800_000
+export const after = remainingMs(dispatch, new Date("2026-08-13T16:45:00")); // -2_700_000

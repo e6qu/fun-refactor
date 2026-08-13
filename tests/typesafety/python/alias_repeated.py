@@ -3,11 +3,11 @@
 from collections.abc import Callable
 
 
-def fixed_backoff(attempt: int, error: Exception) -> int:
+def fixed_backoff(_attempt: int, _error: Exception) -> int:
     return 30_000
 
 
-def doubling_backoff(attempt: int, error: Exception) -> int:
+def doubling_backoff(attempt: int, _error: Exception) -> int:
     return 30_000 * (1 << attempt)
 
 

@@ -1,6 +1,6 @@
 // expect: passes
 
-function totalPence(pricesPence: number[]): number {
+function totalPence(pricesPence: readonly number[]): number {
   return pricesPence.reduce((sum, price) => sum + price, 0);
 }
 

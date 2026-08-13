@@ -27,7 +27,7 @@ export function invoiceLine(description: string, price: Pence, quantity: number,
   return `${description} x${quantity} at ${price}d${note}`;
 }
 
-export function invoiceTotal(prices: Pence[]): Pence {
+export function invoiceTotal(prices: readonly Pence[]): Pence {
   return pence(prices.reduce((sum, price) => sum + price, 0));
 }
 

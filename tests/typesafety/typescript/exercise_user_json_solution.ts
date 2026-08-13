@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-const User = z.object({
+const User = z.strictObject({
   name: z.string(),
   age: z.number().int(),
 });

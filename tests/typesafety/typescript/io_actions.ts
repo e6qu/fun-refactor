@@ -39,5 +39,8 @@ function flakyFetch(): string {
 }
 
 export const greeting = andThen(retry(3, { run: flakyFetch }), (text) => of(text.toUpperCase()));
-// Nothing has run yet; greeting.run() answers "PAYLOAD" on the third call.
-// The Python twin runs these assertions in CI.
+
+export const nothingRanYet = calls === 0; // true: greeting is still a description
+export const answer = greeting.run(); // "PAYLOAD"
+export const callsAfterRun = calls; // 3: two failures, one answer
+// The Python twin runs the same three assertions in CI.

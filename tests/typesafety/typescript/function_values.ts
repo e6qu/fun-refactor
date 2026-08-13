@@ -5,7 +5,7 @@ type Order = {
   readonly totalCents: number;
 };
 
-function cheapestFirst(orders: Order[], key: (order: Order) => number): Order[] {
+function cheapestFirst(orders: readonly Order[], key: (order: Order) => number): Order[] {
   return [...orders].sort((a, b) => key(a) - key(b));
 }
 

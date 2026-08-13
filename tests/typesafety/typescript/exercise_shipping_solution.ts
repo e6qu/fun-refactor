@@ -7,7 +7,7 @@ type Kilograms = number & { readonly [kilogramsBrand]: true };
 type Kilometers = number & { readonly [kilometersBrand]: true };
 
 function kilograms(n: number): Kilograms {
-  return n as Kilograms;
+  return n as Kilograms; // the one trusted door into the brand
 }
 
 function kilometers(n: number): Kilometers {

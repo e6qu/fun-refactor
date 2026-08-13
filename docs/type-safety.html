@@ -37,10 +37,10 @@
     <p class="eyebrow">A tutorial</p>
     <h1 class="prose">Type safety, from primitives to monads</h1>
     <p class="lede prose">
-      A type is a claim about a value, and a type checker is the program that holds
-      your code to it. This tutorial starts with the smallest claims and works up:
-      richer types, parsing at the edges of the system, and functions that compose.
-      Nine steps, and each one ends where the next begins.
+      A type says what a value means, not only how it is stored. This tutorial
+      starts from one file of working, badly typed code. It types the swapped
+      invoice arguments first, then the units and the ids, then parses the input
+      once at the border, and it ends with functions that compose.
     </p>
     <ol class="ts-toc" id="toc">
       <li><a href="#the-program">The program we will fix</a></li>
@@ -71,26 +71,20 @@
     <div class="ts-example" data-example="the_program"></div>
     <p>
       Each function hides a bug that reached production. <code>bom_line</code> and
-      <code>invoice_line</code> take every argument as <code>Any</code>, so the call
-      that swaps a price with a description passes the scan, and one customer's
-      invoice read <code>80 xTrue at handlebar gripd +tax</code>.
-      <code>product_cost</code> and <code>invoice_total</code> carry pounds in
-      floats, and most shilling-and-pence amounts have no exact float, so the totals
-      drift pennies away from the ledger. <code>advance</code> compares against bare
-      strings, one of them misspelled <code>darft</code>, so no invoice ever leaves
-      its draft stage through that branch. <code>bill</code> takes two look-alike
-      ids as two strings, so nothing stops an invoice addressed to a bicycle.
-      <code>load_bom_line</code> reads the parts file and hands every field on as
-      text, quantities and costs included.
+      <code>invoice_line</code> take every argument as <code>Any</code>, which is how
+      one customer's invoice read <code>80 xTrue at handlebar gripd +tax</code>.
+      <code>product_cost</code> and <code>invoice_total</code> keep pounds in floats,
+      and the totals drift pennies from the ledger. <code>advance</code> compares
+      bare strings, and the misspelled <code>darft</code> freezes every invoice in
+      its draft stage. <code>bill</code> takes two look-alike ids as plain strings,
+      so an invoice can be addressed to a bicycle. <code>load_bom_line</code> hands
+      every field of the parts file on as text.
     </p>
     <p>
-      The tutorial removes these weaknesses in order. Section 2 types the invoice
-      line and moves the money into pence. Section 3 names the units and closes the
-      status strings. Section 4 gives customers and products their own types.
-      Section 5 parses the parts file, and everything else that crosses into the
-      program, once at the border. Sections 6 through 8 then take the typed pieces
-      and compose them into programs. By the end, nothing of this file survives
-      unchanged, and the closing section shows the finished file.
+      The tutorial removes these weaknesses in order: first the invoice line and
+      the money, then the units and the statuses, then the ids, then the borders.
+      Sections 6 through 8 compose the typed pieces into programs. Nothing of this
+      file survives unchanged, and the closing section shows the finished version.
     </p>
     <h3>How to read the examples</h3>
     <p>
@@ -98,9 +92,11 @@
       weakness, and an <strong>After</strong>, the same code with the types doing
       more work. The Diff button between them swaps the panes to the exact change.
       Some blocks end with a row labelled <strong>Now a type error</strong>: a call
-      that the Before version accepted and the After version makes the checker
-      reject. When you can predict what that row will say before you open a block,
-      the section has done its job.
+      the Before version accepted, and the After version turns into a rejection.
+      A toggle under that row shows the checkers' verbatim messages. Some sections
+      end with a short quiz: read the code, call the verdict yourself, and then see
+      what the checker actually said. When you get those right without looking, the
+      section has done its job.
     </p>
   </div>
 </section>
@@ -151,6 +147,7 @@
       All three problems have the same shape: the type accepts values the program
       never intends. Everything that follows is about closing that gap.
     </p>
+    <div class="ts-quiz" data-quiz="any_arguments,typed_arguments_misuse,money_float"></div>
   </div>
 </section>
 
@@ -158,14 +155,11 @@
   <div class="shell prose">
     <h2>3. Aliases and units</h2>
     <p>
-      A type alias is a new name for an old type. The checker treats them as
-      identical, so an alias documents your intent and enforces nothing. If you want
-      enforcement, the type has to be genuinely distinct. Python has
-      <code>NewType</code> for this. TypeScript gets there with a <em>brand</em>: an
-      intersection with a marker property that exists only in the type system. Type
-      theorists would say TypeScript's types are <em>structural</em>, where anything
-      with the right shape fits, and a brand makes one <em>nominal</em>, where only
-      the declared name fits. Either way, the distinct type is free at run time.
+      A type alias is a new name for an old type. The checker treats the two as
+      identical, so an alias documents intent and enforces nothing. Enforcement
+      needs a genuinely distinct type: <code>NewType</code> in Python, and in
+      TypeScript a <em>brand</em>, an intersection with a marker that exists only in
+      the type system.
     </p>
     <p>
       In 1999 the Mars Climate Orbiter was lost because one team's software produced
@@ -181,6 +175,11 @@
       apart.
     </p>
     <div class="ts-block" data-block="unit_newtype"></div>
+    <p>
+      Type theorists would say TypeScript's types are <em>structural</em>, anything
+      with the right shape fits, and a brand makes one <em>nominal</em>, only the
+      declared name fits. Either way, the distinct type is free at run time.
+    </p>
     <p>
       Aliases still earn their place when the point is naming. A long function type
       reads far better under a short name, and one edit updates every signature that
@@ -230,6 +229,7 @@
       mean anything to it.
     </p>
     <div class="ts-block" data-block="literal_flag"></div>
+      <div class="ts-quiz" data-quiz="alias_transparent,unit_newtype_misuse,unit_arithmetic_misuse"></div>
   </div>
 </section>
 
@@ -237,16 +237,17 @@
   <div class="shell prose">
     <h2>4. Domain types</h2>
     <p>
-      There is a name for building everything out of raw strings and numbers: Scott
-      Wlaschin calls it <em>primitive obsession</em>. The cure is a domain type, one
-      that states a fact about your problem. An <code>EmailAddress</code> is a string
-      that a particular check accepted. The recipe has three parts: a distinct type,
-      one function that constructs it, and no other way to obtain one. Functional
-      programmers call that function a <em>smart constructor</em>. Neither checker
-      can fully enforce the last clause: <code>NewType</code> and a brand cast can be
-      invoked anywhere. Keep the constructor in one module and treat a stray cast as
-      a review failure, and any code holding an <code>EmailAddress</code> can rely on
-      the check without repeating it.
+      A raw string is not an email address. A domain type states that fact: an
+      <code>EmailAddress</code> is a string one particular check accepted. Building
+      everything from raw strings and numbers has a name, <em>primitive
+      obsession</em>, coined by Scott Wlaschin. The recipe against it has three
+      parts: a distinct type, one function that constructs it, and no other way to
+      obtain one. Functional programmers call that function a <em>smart
+      constructor</em>. Neither checker can fully enforce the last clause, since
+      <code>NewType</code> and a brand cast can be invoked anywhere. Keep the
+      constructor in one module, and treat a stray cast as a review failure. Any
+      code holding an <code>EmailAddress</code> can then rely on the check without
+      repeating it.
     </p>
     <p>
       The workshop sends each invoice by email, and later a reminder. The address
@@ -276,6 +277,7 @@
       without a receipt, and no pending payment has one.
     </p>
     <div class="ts-block" data-block="payment_states"></div>
+      <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
   </div>
 </section>
 
@@ -290,14 +292,14 @@
       works with.
     </p>
     <p>
-      <em>Validation</em> checks a value and passes it along unchanged. The knowledge
-      that the check happened is stored nowhere, so every downstream reader checks
-      again; security researchers call the scattered version <em>shotgun parsing</em>,
-      and it is exactly where malformed input slips through. <em>Parsing</em> checks
-      the value and returns a different type. Same check, except now the result proves
-      it happened, and the type checker carries that proof to every caller. Alexis
-      King gave the rule its name, <em>parse, don't validate</em>, and its best
-      slogan: write functions on the data you wish you had. Parse once, at the edge.
+      <em>Validation</em> checks a value and passes it along unchanged. Nothing
+      records that the check happened, so every downstream reader checks again.
+      Security researchers call that scattered version <em>shotgun parsing</em>, and
+      it is exactly where malformed input slips through. <em>Parsing</em> runs the
+      same check and returns a different type, so the result proves the check
+      happened, and the type checker carries the proof to every caller. Alexis King
+      gave the rule its name, <em>parse, don't validate</em>, and its best slogan:
+      write functions on the data you wish you had. Parse once, at the edge.
     </p>
     <p>
       The seed's <code>load_bom_line</code> is this problem in one line: it splits a
@@ -385,12 +387,14 @@
     <h2>7. Pure functions</h2>
     <p>
       A function is pure when the same arguments always give the same result and
-      nothing else happens: no clock, no network, no globals. The formal term is
-      <em>referential transparency</em>: any call could be replaced by its value. A
-      signature cannot prove purity, since a function typed <code>int</code> to
-      <code>int</code> is free to read the clock anyway, but writing pure functions
-      leaves a mark on it: a function that depends only on its parameters has to
-      receive everything it needs, so the clock shows up as an argument.
+      nothing else happens: no clock, no network, no globals. Pass <code>now</code>
+      into <code>remaining</code>, below, and a test chooses the time instead of
+      racing the system clock. The formal name is <em>referential transparency</em>:
+      any call could be replaced by its value. A signature cannot prove purity,
+      since a function typed <code>int</code> to <code>int</code> can still read the
+      clock. The discipline still leaves a mark: a function that depends only on its
+      parameters has to receive everything it needs, so the clock shows up as an
+      argument.
     </p>
     <p>
       The example is a countdown. <code>remaining</code> reports how long is left
@@ -438,13 +442,14 @@
     </p>
     <div class="ts-block" data-block="result_chain"></div>
     <p>
-      This shape has a name. Any wrapper with a way in (<code>Ok</code>) and a way to
-      chain steps that themselves return the wrapper (<code>and_then</code>, also
-      called <code>flatMap</code> or <code>bind</code>) is a <strong>monad</strong>,
-      provided the plumbing behaves: chaining is associative and <code>Ok</code> is
-      its neutral step, which the literature calls the monad laws. A <code>map</code>
-      that only transforms the contents then comes free: chain a step that cannot
-      fail. The standard ones map onto the standard problems:
+      <code>Result</code> gives each step two outcomes, a value or a reason, and
+      <code>and_then</code> runs the next step only after a value. That shape has a
+      name: a wrapper with a way in (<code>Ok</code>) and a chaining step that
+      returns the wrapper (<code>and_then</code>, also called <code>flatMap</code>
+      or <code>bind</code>) is a <strong>monad</strong>. The fine print, called the
+      monad laws: chaining is associative, and <code>Ok</code> is its neutral step.
+      A <code>map</code> that only transforms the contents comes free: chain a step
+      that cannot fail. The standard monads answer the standard problems:
     </p>
     <ul>
       <li><strong>Option</strong> handles absence. Neither language ships the
@@ -465,13 +470,13 @@
     </p>
     <div class="ts-example" data-example="familiar_monads"></div>
     <p>
-      Before you rewrite a codebase around any of this, a warning. Hand-rolled monads
-      are not idiomatic in Python or TypeScript, and most teams will experience them
-      as friction. These languages already ship the specialised forms: <code>None</code>
-      narrowing, exceptions at the edge, comprehensions, <code>async/await</code>.
-      Reach for those first. The shape is still worth carrying in your head, because
-      those idioms are the monads, one per problem, and the shape tells you what a
-      clean pipeline looks like even when you spell it natively.
+      Before you rewrite a codebase around any of this, a warning. Reach for the
+      language's own tools first: <code>None</code> narrowing, exceptions at the
+      edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled
+      monads are not idiomatic in Python or TypeScript, and most teams will
+      experience them as friction. The Writer and IO below are compact models to
+      learn the shape from, not a recommendation. The shape is what transfers: it
+      tells you what a clean pipeline looks like even when you spell it natively.
     </p>
     <p>
       Here is a Writer, hand-rolled. Each step returns its result together with its
@@ -485,10 +490,10 @@
     </p>
     <div class="ts-block" data-block="logged_steps"></div>
     <p>
-      And here is an IO. Wrap the computation instead of running it, and effects
-      become values you can hand around. A retry policy stops being a loop pasted into
-      every network function; it becomes one combinator that wraps any description.
-      Nothing actually runs until the edge of the program calls <code>run</code>.
+      And here is an IO. Store the network call in a value instead of performing
+      it. <code>retry</code> then wraps that stored call once, instead of living as
+      a loop pasted into every network function. Nothing runs until the edge of the
+      program calls <code>run</code>.
     </p>
     <p>
       The scene for the IO is the flaky upstream service from section 6, fetched with

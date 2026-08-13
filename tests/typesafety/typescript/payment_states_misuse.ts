@@ -1,7 +1,7 @@
 // expect: fails
 
-type Pending = { kind: "pending"; requestedAt: string };
-type Settled = { kind: "settled"; requestedAt: string; receiptId: string };
+type Pending = { readonly kind: "pending"; readonly requestedAt: string };
+type Settled = { readonly kind: "settled"; readonly requestedAt: string; readonly receiptId: string };
 type Payment = Pending | Settled;
 
 export function receiptOf(payment: Payment): string {
