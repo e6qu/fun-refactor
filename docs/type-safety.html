@@ -73,8 +73,8 @@
       Each function hides a bug that reached production. <code>bom_line</code> and
       <code>invoice_line</code> take every argument as <code>Any</code>, which is how
       one customer's invoice read <code>80 xTrue at handlebar gripd +tax</code>.
-      <code>product_cost</code> and <code>invoice_total</code> keep pounds in floats,
-      and the totals drift pennies from the ledger. <code>advance</code> compares
+      Money travels as bare numbers, so <code>apply_discount</code> cannot tell the
+      total from the rate, and the swapped call goes through. <code>advance</code> compares
       bare strings, and the misspelled <code>darft</code> freezes every invoice in
       its draft stage. <code>bill</code> takes two look-alike ids as plain strings,
       so an invoice can be addressed to a bicycle. <code>load_bom_line</code> hands
@@ -141,19 +141,18 @@
       in mind; its fix arrives in section 4.
     </p>
     <p>
-      Sometimes the simple type is the wrong claim outright. The seed's
-      <code>invoice_total</code> sums pounds as floats, and it matters that three
-      parts at two shillings, a tenth of a pound each, come to exactly six
-      shillings. <code>float</code> stores approximate reals, and money needs to be
-      exact. Everything passes the scan, and the totals drift a penny away from the
-      ledger. Integer pence fix it: Python's <code>int</code> is exact at any size,
-      JavaScript's <code>number</code> is exact for whole numbers up to 2⁵³, and
-      carrying by twelves and twenties turns out to be formatting, not arithmetic.
+      Money shows the same weakness from another angle. In the seed, a price and a
+      discount rate are both bare numbers, so when <code>apply_discount</code> gets
+      its arguments in the wrong order, the checker has nothing to object to. Give
+      the total and the rate their own types, and the swap stops getting through.
+      Integer pence also happen to add exactly where floats drift, and you can
+      watch that by pressing Run, but the checker never sees it. The typing lesson
+      is the swap.
     </p>
     <div class="ts-block" data-block="money_pence"></div>
     <p>
-      All three problems have the same shape: the type accepts values the program
-      never intends. Everything that follows is about closing that gap.
+      In each case the type is too broad, so wrong values fit. The rest of the page
+      narrows the types until the wrong calls stop fitting.
     </p>
     <div class="ts-quiz" data-quiz="any_arguments,typed_arguments_misuse,money_float"></div>
   </div>
@@ -245,17 +244,17 @@
   <div class="shell prose">
     <h2>4. Domain types</h2>
     <p>
-      A raw string is not an email address. A domain type states that fact: an
-      <code>EmailAddress</code> is a string one particular check accepted. Building
-      everything from raw strings and numbers has a name, <em>primitive
-      obsession</em>, coined by Scott Wlaschin. The recipe against it has three
-      parts: a distinct type, one function that constructs it, and no other way to
-      obtain one. Functional programmers call that function a <em>smart
-      constructor</em>. Neither checker can fully enforce the last clause, since
-      <code>NewType</code> and a brand cast can be invoked anywhere. Keep the
-      constructor in one module, and treat a stray cast as a review failure. Any
-      code holding an <code>EmailAddress</code> can then rely on the check without
-      repeating it.
+      A string becomes an <code>EmailAddress</code> only after
+      <code>parse_email</code> has checked it. That is the whole idea of a domain
+      type. Scott Wlaschin calls the habit of building everything out of raw strings
+      and numbers <em>primitive obsession</em>, and the cure has three parts: a
+      distinct type, one function that constructs it, and no other way to get one.
+      Functional programmers call that function a <em>smart constructor</em>.
+      Neither checker can fully enforce the third part, because
+      <code>NewType</code> and a brand cast work anywhere, so keep the constructor
+      in one module and treat a stray cast as a review failure. Code that receives
+      an <code>EmailAddress</code> can then skip the check, and the checker turns
+      away anyone who passes a plain string instead.
     </p>
     <p>
       The workshop sends each invoice by email, and later a reminder. The address
@@ -300,50 +299,44 @@
       works with.
     </p>
     <p>
-      <em>Validation</em> checks a value and passes it along unchanged. Nothing
-      records that the check happened, so every downstream reader checks again.
-      Security researchers call that scattered version <em>shotgun parsing</em>, and
-      it is exactly where malformed input slips through. <em>Parsing</em> runs the
-      same check and returns a different type, so the result proves the check
-      happened, and the type checker carries the proof to every caller. Alexis King
-      gave the rule its name, <em>parse, don't validate</em>, and its best slogan:
-      write functions on the data you wish you had. Parse once, at the edge.
+      <em>Validation</em> checks a value and hands it on as the same plain string,
+      so later code cannot tell the check ever ran, and checks again. Security
+      researchers call that scattered checking <em>shotgun parsing</em>, and it is
+      exactly where malformed input slips through. <em>Parsing</em> runs the same
+      check and returns a different type, so functions that receive the typed value
+      never repeat it. Alexis King gave the rule its name, <em>parse, don't
+      validate</em>, and its best slogan: write functions on the data you wish you
+      had. Parse once, at the edge.
     </p>
     <p>
-      The seed's <code>load_bom_line</code> is this problem in one line: it splits a
-      row of the parts file and hands every field on as text, so the conversion of
-      <code>qty</code> and <code>cost</code> happens wherever someone remembers to do
-      it. Take the command line first, because it is the same problem at its
-      smallest. The workshop's server is started from a terminal, as servers are,
-      with a line like <code>serve port=8080 verbose=true</code>.
-      <code>argv</code> is nothing but strings; the operator typed
-      <code>port=8080</code>, and <code>"8080"</code> stays text until something
-      converts it. In the before version the settings travel as a dict of strings, so
-      every function that wants the port converts and re-checks it for itself. In the
-      after version, <code>parse_argv</code> reads the strings once and returns a
-      <code>Config</code> whose <code>port</code> field is an <code>int</code>, and
-      the type guarantees it. A bad command line fails immediately, with a message,
+      The seed's <code>load_bom_line</code> splits a row of the parts file and hands
+      every field on as text, so <code>qty</code> and <code>cost</code> get
+      converted wherever someone remembers to. The command line is the same problem
+      at its smallest. The workshop's server starts from a terminal with a line like
+      <code>serve port=8080 verbose=true</code>, and <code>argv</code> gives the
+      program nothing but strings. In the before version the settings travel as a
+      dictionary of strings, and every function that wants the port converts and
+      re-checks it for itself. In the after version <code>parse_argv</code> reads
+      the strings once and returns a <code>Config</code> whose <code>port</code> is
+      an <code>int</code>. A bad command line fails right there, with a message,
       before the program does any work.
     </p>
     <div class="ts-block" data-block="config_parse_once"></div>
     <p>
-      The network edge is the same story. When a customer places an order, the shop's
-      API receives an HTTP request whose body is one long JSON string.
+      The order that arrives over HTTP is the same story, so this one can be short.
       <code>json.loads</code> or <code>JSON.parse</code> gives you a shapeless
-      dictionary, and the shape still needs checking. This is what pydantic and zod
-      are for: libraries that check the shape at run time and hand the static checker
-      a typed result. You declare the shape once, as a schema; the library either hands you a
-      real <code>Order</code> with typed fields, or an error naming the field and the
-      reason. The Python handler below goes from raw body to <code>Order</code> in a
-      single call; the TypeScript one parses the JSON first and hands the shapeless
-      value to the schema. Neither touches the dictionary afterwards.
+      dictionary, and pydantic and zod check its shape at run time and hand the
+      checker a typed result. Declare the shape once, as a schema, and the library
+      returns a real <code>Order</code> or an error naming the field and the reason.
+      The Python handler below goes from raw body to <code>Order</code> in one call;
+      the TypeScript one parses the JSON first and hands the value to the schema.
     </p>
     <div class="ts-block" data-block="api_parse"></div>
     <p>
-      From here on, your program has two zones. At the edge, raw text becomes domain
-      types, and failures get reported where someone can act on them. Inside, every
-      function receives domain types, and the checker keeps raw text out: a string
-      can no longer wander past the edge unparsed.
+      Parse input at the boundary, and pass <code>Config</code>, <code>Order</code>
+      and the other domain values around instead of raw strings. Hand a function the
+      raw dictionary anyway, and the checker refuses it; that refusal is the new row
+      under each example above.
     </p>
   </div>
 </section>
@@ -395,28 +388,28 @@
     <h2>7. Pure functions</h2>
     <p>
       A function is pure when the same arguments always give the same result and
-      nothing else happens: no clock, no network, no globals. Pass <code>now</code>
-      into <code>remaining</code>, below, and a test chooses the time instead of
-      racing the system clock. The formal name is <em>referential transparency</em>:
-      any call could be replaced by its value. A signature cannot prove purity,
-      since a function typed <code>int</code> to <code>int</code> can still read the
-      clock. The discipline still leaves a mark: a function that depends only on its
-      parameters has to receive everything it needs, so the clock shows up as an
-      argument.
+      nothing else happens: no clock, no network, no globals. The formal name is
+      <em>referential transparency</em>, and any call to such a function could be
+      replaced by its value. Be clear about what the checker sees here: nothing. A
+      function typed <code>int</code> to <code>int</code> is free to read the
+      clock, and the scan stays quiet. Purity is a discipline, and what the checker
+      can hold is the shape it leaves behind: a function that depends only on its
+      parameters has to receive everything it needs.
     </p>
     <p>
-      The example is a countdown. <code>remaining</code> reports how long is left
-      until a deadline, which sounds too small to get wrong, until a test tries to
-      pin its answer down and the answer moves.
+      <code>remaining</code> shows the trade. Read the clock inside, and a test can
+      never pin the answer down. Take <code>now</code> as a parameter, and the
+      answer becomes a fact a test can state, and the dependency gets a type: hand
+      <code>remaining</code> a bare number instead of a <code>datetime</code>, and
+      the checker refuses the call.
     </p>
     <div class="ts-block" data-block="pure_clock"></div>
     <p>
-      Once the clock is a parameter, the function is a table of facts, and a test can
-      pin any entry. Handing dependencies in like this is <em>dependency
-      injection</em> at its smallest. It also completes the picture from section 5:
-      parse at the edge, keep the effects at the edge, and let the core be pure
-      functions between domain types. Gary Bernhardt calls the shape <em>functional
-      core, imperative shell</em>.
+      Handing dependencies in like this is <em>dependency injection</em> at its
+      smallest. Gary Bernhardt calls the resulting shape <em>functional core,
+      imperative shell</em>: effects at the boundary, pure functions between domain
+      types in the middle. The next section shows what the checker can hold once
+      even the effects become values.
     </p>
   </div>
 </section>
@@ -425,39 +418,43 @@
   <div class="shell prose">
     <h2>8. Composition and monads</h2>
     <p>
-      Small pure functions turn into programs by composition: one function's output is
-      the next one's input. Types are what make that safe. The pipeline passes the
-      check only if the steps fit together, so a step out of order is a type error,
-      caught
-      long before it can become a production incident.
+      You build programs by connecting small functions: one function's output is
+      the next one's input. The types make the connection safe. Put the steps in
+      the wrong order, and the checker rejects the call.
     </p>
     <p>
-      Quoting an order is a pipeline: convert the raw order, then price it. The
-      <code>RawOrder</code> arrives from the section 5 edge, already shaped; what
-      this section adds is the handoff. Each step has its own input and output type,
-      and that is the whole safety story.
+      Quoting an order takes two steps: convert the raw order, then price it. The
+      <code>RawOrder</code> was already parsed in section 5; here it changes hands.
+      The check that matters is that each function accepts exactly what the
+      previous one returns, and the rejection below shows the wrong handoff
+      refused.
     </p>
     <div class="ts-block" data-block="typed_pipeline"></div>
     <p>
-      Real steps fail. The plain way to say so is to return <code>None</code> or
-      <code>null</code>, and it works; the cost is that every caller stops to check,
-      and every kind of failure collapses into the same empty answer. A
-      <code>Result</code> keeps the failure inside the pipeline: each step returns
-      either a value or a reason, and <code>and_then</code> feeds values forward while
-      passing any failure straight through. The chain reads like the happy path, and
-      the first failure wins. Wlaschin teaches this as <em>railway-oriented
-      programming</em>: two tracks, and one switch.
+      Real steps fail. Returning <code>None</code> or <code>null</code> works, but
+      every kind of failure collapses into the same empty answer. With a
+      <code>Result</code>, each step returns either a value or a reason, and
+      <code>and_then</code> runs the next step only when it got a value. The code
+      follows the success case, and when a step fails, the later steps never run.
+      Wlaschin teaches this as <em>railway-oriented programming</em>: two tracks,
+      and one switch.
     </p>
     <div class="ts-block" data-block="result_chain"></div>
     <p>
-      <code>Result</code> gives each step two outcomes, a value or a reason, and
-      <code>and_then</code> runs the next step only after a value. That shape has a
-      name: a wrapper with a way in (<code>Ok</code>) and a chaining step that
-      returns the wrapper (<code>and_then</code>, also called <code>flatMap</code>
-      or <code>bind</code>) is a <strong>monad</strong>. The fine print, called the
-      monad laws: chaining is associative, and <code>Ok</code> is its neutral step.
-      A <code>map</code> that only transforms the contents comes free: chain a step
-      that cannot fail. The standard monads answer the standard problems:
+      Here is what the checker holds. A <code>Result[int]</code> will not pass
+      where an <code>int</code> is expected, so a caller cannot forget the failure
+      case the way they can forget an exception. An exception never shows up in a
+      signature; a <code>Result</code> does, and the rejection above shows a quote
+      spent as a number being refused.
+    </p>
+    <p>
+      This pattern is called a <strong>monad</strong>: <code>Ok</code> puts a value
+      into the wrapper, and <code>and_then</code> (also called <code>flatMap</code>
+      or <code>bind</code>) chains steps that return the same wrapper. The monad
+      laws just say the plumbing behaves: grouping chained calls differently does
+      not change the result, and <code>Ok</code> on its own changes nothing.
+      <code>map</code> is the version of <code>and_then</code> for a step that
+      cannot fail. Here are the familiar wrappers and what each one handles:
     </p>
     <ul>
       <li><strong>Option</strong> handles absence. Neither language ships the
@@ -482,38 +479,35 @@
       language's own tools first: <code>None</code> narrowing, exceptions at the
       edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled
       monads are not idiomatic in Python or TypeScript, and most teams will
-      experience them as friction. The Writer and IO below are compact models to
-      learn the shape from, not a recommendation. The shape is what transfers: it
-      tells you what a clean pipeline looks like even when you spell it natively.
+      experience them as friction. The Writer and IO below are small models to
+      learn the pattern from, not a recommendation. What carries over is the idea:
+      keep values and failures flowing through steps whose types the checker can
+      see, even when you spell it with the language's own tools.
     </p>
     <p>
-      Here is a Writer, hand-rolled. Each step returns its result together with its
-      log line, and the chain concatenates the trails. The log arrives with the
-      answer, as ordinary data you can assert on, attach to a response, or throw
-      away.
-    </p>
-    <p>
-      The scene for the Writer is a price calculation the shop wants to audit: every
-      step that touches the amount should leave a line saying what it did.
+      Here is a Writer, hand-rolled for a price calculation the workshop wants to
+      audit. Each step returns its result together with its log line, and the
+      chain concatenates the trails, so the audit arrives with the answer as plain
+      data. The checker's part: a <code>Logged</code> total will not pass where a
+      bare number is expected, so nobody drops the log by accident.
     </p>
     <div class="ts-block" data-block="logged_steps"></div>
     <p>
-      And here is an IO. Store the network call in a value instead of performing
-      it. <code>retry</code> then wraps that stored call once, instead of living as
-      a loop pasted into every network function. Nothing runs until the edge of the
-      program calls <code>run</code>.
-    </p>
-    <p>
-      The scene for the IO is the flaky upstream service from section 6, fetched with
-      a retry, except this time the retry policy and the business logic never share a
-      function body.
+      The IO below wraps the flaky fetch from section 6. Store the call in a value
+      instead of performing it, and <code>retry</code> wraps that stored value
+      once, instead of living as a loop pasted into every network function.
+      Nothing runs until the edge of the program calls <code>run</code>, and the
+      checker keeps the stages apart: an <code>IO[str]</code> is not a
+      <code>str</code>, so code cannot spend the description as if it were already
+      the answer.
     </p>
     <div class="ts-block" data-block="io_actions"></div>
     <p>
       As for the definition you may have heard, "a monad is just a monoid in the
       category of endofunctors": that is a true sentence from category theory, and a
       long-running joke about explanations that explain nothing. Keep the working
-      definition. A way in, a flattening chain, and a map for free.
+      definition: a way in, a chain, and <code>map</code> for the steps that cannot
+      fail.
     </p>
   </div>
 </section>
@@ -522,10 +516,9 @@
   <div class="shell prose">
     <h2>9. Exercises</h2>
     <p>
-      By this point every weakness in the seed file has a fix on this page. These
-      five exercises hand you its cousins: working, badly typed code, each carrying
-      one of the same defects in a new place. Your job is to rewrite each one so the
-      checker catches the defect described. One solution sits behind a toggle
+      These five exercises reuse the mistakes from the seed file, each in a new
+      place. You get working, badly typed code, and your job is to rewrite it so
+      the checker catches the defect described. One solution sits behind a toggle
       in each block, along with the diff, and every solution goes through the same CI
       checks as the rest of the page.
     </p>
@@ -607,18 +600,17 @@
   <div class="shell prose">
     <h2>Where this goes next</h2>
     <p>
-      First, the promise from section 1, kept. Here is the seed file again with
-      every weakness from the diagnosis gone: the invoice line takes real types, the
-      money is integer pence, the statuses are a closed set, customers and products
-      cannot swap, and the parts file is parsed once, with the quantity, the unit
-      and the cost checked at the door. Every bug the old file hid is a type error
-      in this one.
+      Here is the seed file again, rewritten. The invoice line takes real types,
+      the money and the discount rate have their own types, the statuses are a
+      closed set, customers and products cannot swap, and the parts file is parsed
+      once, with the quantity, the unit and the cost checked at the door. The
+      mistakes this page covered now show up as type errors.
     </p>
     <div class="ts-example" data-example="the_program_fixed"></div>
     <p>
-      The same ideas run through this repository's own Rust:
-      <a href="types.html">Making it unrepresentable</a> walks the defects that
-      newtypes and closed sets removed here, each with the bug that motivated it. The
+      The Rust side of this repository applies the same ideas:
+      <a href="types.html">Making it unrepresentable</a> shows its newtypes and
+      closed sets next to the bugs they removed. The
       example files behind this page live in
       <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>,
       and <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a>

@@ -1,11 +1,6 @@
-// Fill the example slots on type-safety.html from the generated data.
-//
-// The page reads like a notebook: each example is a cell showing one language
-// at a time, with a toggle to switch every cell on the page between Python and
-// TypeScript, and a Run button that executes the cell in the browser. The
-// scan verdicts and the checkers' messages come precomputed from CI; only the
-// run happens live. A slot naming something this file cannot find renders a
-// visible error, never an empty box.
+// Fill the example slots on type-safety.html from the generated data. A slot
+// naming something this file cannot find renders a visible error, never an
+// empty box.
 
 import { DIFFS, EXAMPLES } from "./typesafety-data.js";
 import { ERRORS } from "./typesafety-errors.js";
@@ -450,8 +445,6 @@ function missing(slot, what) {
   slot.innerHTML = `<p class="ts-missing">Missing: ${escape(what)}</p>`;
 }
 
-// The checker's verbatim message for an example the page presents as a type
-// error, behind a toggle. Captured by the harness, never paraphrased.
 function checkerWords(id) {
   const errors = ERRORS[id];
   const text = errors?.[lang];
@@ -467,9 +460,8 @@ function checkerWords(id) {
     </details>`;
 }
 
-// Every cell is editable: a transparent textarea sits over a highlighted
-// mirror, so the reader can change the code and run their own version. Reset
-// restores the checked example.
+// The editable textarea is transparent and sits over the highlighted mirror,
+// which shows through it.
 function wireCommon(slot, codes) {
   for (const button of slot.querySelectorAll(".ts-lang-toggle button")) {
     button.addEventListener("click", () => setLang(button.dataset.lang));
@@ -590,8 +582,6 @@ for (const slot of document.querySelectorAll("[data-block]")) {
     codes.push(...ordered);
     wireCommon(slot, codes);
 
-    // The button swaps the cell in place: the same window shows either the
-    // code, before and after, or the diff between them.
     const button = slot.querySelector(".ts-diff-button");
     const codeView = slot.querySelector(".ts-view-code");
     const diffView = slot.querySelector(".ts-view-diff");
@@ -609,10 +599,6 @@ for (const slot of document.querySelectorAll("[data-block]")) {
   render();
 }
 
-// "You be the checker": a section-closing quiz. The reader reads a cell the
-// section just taught about, calls the verdict, and then sees the real one,
-// with the checker's own message when the answer is a rejection. Every verdict
-// comes from the same generated data the rest of the page uses.
 for (const slot of document.querySelectorAll("[data-quiz]")) {
   const ids = slot.dataset.quiz.split(",").map((id) => id.trim());
   const broken = ids.find((id) => !EXAMPLES[id]);
@@ -669,9 +655,7 @@ for (const slot of document.querySelectorAll("[data-quiz]")) {
   render();
 }
 
-// Selecting text highlights every identical occurrence on the page, so a
-// selected identifier shows all its uses across the examples. Uses the CSS
-// Custom Highlight API; a browser without it keeps plain selection.
+// A browser without the CSS Custom Highlight API keeps plain selection.
 if (typeof Highlight !== "undefined" && CSS.highlights) {
   const NAME = "ts-same-text";
   const CAP = 2000;
@@ -680,9 +664,7 @@ if (typeof Highlight !== "undefined" && CSS.highlights) {
 
   const repaint = () => {
     CSS.highlights.delete(NAME);
-    // A selection inside an editable cell lives in the textarea, invisible to
-    // document.getSelection(); read it from the control, and let the matches
-    // paint on the mirror text showing through underneath.
+    // A selection inside a textarea is invisible to document.getSelection().
     let needle = "";
     const active = document.activeElement;
     if (active?.classList?.contains("ts-editor-input")) {
@@ -729,8 +711,6 @@ if (typeof Highlight !== "undefined" && CSS.highlights) {
   });
 }
 
-// The reading position: a checkbox beside each contents entry marks a step done.
-// The state is local to this browser.
 const toc = document.getElementById("toc");
 if (toc) {
   const KEY = "fr-typesafety-progress";
@@ -760,7 +740,6 @@ if (toc) {
   }
 }
 
-// A small "next step" link at the end of each numbered section.
 const sections = [...document.querySelectorAll("main > section[id]")];
 sections.forEach((section, at) => {
   const next = sections[at + 1];

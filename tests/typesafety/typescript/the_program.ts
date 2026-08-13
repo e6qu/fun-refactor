@@ -17,6 +17,10 @@ export function invoiceTotal(pricesPounds: number[]): number {
   return pricesPounds.reduce((sum, price) => sum + price, 0);
 }
 
+export function applyDiscount(totalPounds: number, rate: number): number {
+  return totalPounds * (1 - rate);
+}
+
 export function advance(status: string): string {
   if (status === "darft") {
     return "sent";

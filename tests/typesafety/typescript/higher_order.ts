@@ -1,5 +1,7 @@
 // expect: passes
 
+class ConnectionLost extends Error {}
+
 function retry<A extends unknown[], R>(
   times: number,
   operation: (...args: A) => R,
@@ -10,6 +12,7 @@ function retry<A extends unknown[], R>(
       try {
         return operation(...args);
       } catch (error) {
+        if (!(error instanceof ConnectionLost)) throw error;
         failures += 1;
         if (failures >= times) throw error;
       }

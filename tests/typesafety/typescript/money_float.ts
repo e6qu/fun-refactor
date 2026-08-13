@@ -1,7 +1,9 @@
 // expect: passes
 
-function totalPounds(pricesPounds: readonly number[]): number {
-  return pricesPounds.reduce((sum, price) => sum + price, 0);
+function applyDiscount(totalPounds: number, rate: number): number {
+  return totalPounds * (1 - rate);
 }
 
-export const sumIsOff = totalPounds([0.1, 0.1, 0.1]) !== 0.3;
+export function checkout(): number {
+  return applyDiscount(0.1, 12.5);
+}

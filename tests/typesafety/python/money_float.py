@@ -1,8 +1,8 @@
 # expect: passes
-# run: yes
-# title: Three parts at two shillings do not come to six shillings
-def total_pounds(prices_pounds: list[float]) -> float:
-    return sum(prices_pounds)
+# title: A price and a discount rate are both bare numbers, so the swapped call is accepted
+def apply_discount(total_pounds: float, rate: float) -> float:
+    return total_pounds * (1 - rate)
 
 
-assert total_pounds([0.1, 0.1, 0.1]) != 0.3
+def checkout() -> float:
+    return apply_discount(0.1, 12.5)

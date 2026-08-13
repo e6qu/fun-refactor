@@ -20,6 +20,10 @@ def invoice_total(prices_pounds: list[float]) -> float:
     return sum(prices_pounds)
 
 
+def apply_discount(total_pounds: float, rate: float) -> float:
+    return total_pounds * (1 - rate)
+
+
 def advance(status: str) -> str:
     if status == "darft":
         return "sent"

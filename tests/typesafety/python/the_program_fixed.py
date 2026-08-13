@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Literal, NewType
 
 Pence = NewType("Pence", int)
+Rate = NewType("Rate", float)
 CustomerId = NewType("CustomerId", str)
 ProductId = NewType("ProductId", str)
 type Status = Literal["draft", "sent", "paid"]
@@ -33,6 +34,10 @@ def invoice_line(description: str, price: Pence, quantity: int, taxed: bool) -> 
 
 def invoice_total(prices: list[Pence]) -> Pence:
     return Pence(sum(prices))
+
+
+def apply_discount(total: Pence, rate: Rate) -> Pence:
+    return Pence(round(total * (1 - rate)))
 
 
 def advance(status: Status) -> Status:
@@ -65,6 +70,7 @@ def parse_bom_line(row: str) -> BomLine | None:
 
 assert advance("draft") == "sent"
 assert invoice_total([Pence(24), Pence(24), Pence(24)]) == 72
+assert apply_discount(Pence(1250), Rate(0.1)) == 1125
 assert parse_bom_line("F-101,down tube,1,meters,155") == BomLine(
     "F-101", "down tube", 1, Unit.METERS, Pence(155)
 )

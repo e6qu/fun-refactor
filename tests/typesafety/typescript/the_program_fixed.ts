@@ -1,10 +1,12 @@
 // expect: passes
 
 declare const penceBrand: unique symbol;
+declare const rateBrand: unique symbol;
 declare const customerBrand: unique symbol;
 declare const productBrand: unique symbol;
 
 type Pence = number & { readonly [penceBrand]: true };
+type Rate = number & { readonly [rateBrand]: true };
 type CustomerId = string & { readonly [customerBrand]: true };
 type ProductId = string & { readonly [productBrand]: true };
 type Status = "draft" | "sent" | "paid";
@@ -30,6 +32,16 @@ export function invoiceLine(description: string, price: Pence, quantity: number,
 export function invoiceTotal(prices: readonly Pence[]): Pence {
   return pence(prices.reduce((sum, price) => sum + price, 0));
 }
+
+function rate(n: number): Rate {
+  return n as Rate;
+}
+
+export function applyDiscount(total: Pence, discount: Rate): Pence {
+  return pence(Math.round(total * (1 - discount)));
+}
+
+export const discounted = applyDiscount(pence(1250), rate(0.1));
 
 export function advance(status: Status): Status {
   switch (status) {

@@ -1,9 +1,12 @@
-// expect: passes
+// expect: fails
 
 class ConnectionLost extends Error {}
 
-function retry(times: number, operation: (...args: any[]) => any): (...args: any[]) => any {
-  return (...args: any[]) => {
+function retry<A extends unknown[], R>(
+  times: number,
+  operation: (...args: A) => R,
+): (...args: A) => R {
+  return (...args: A): R => {
     let failures = 0;
     for (;;) {
       try {
@@ -22,5 +25,4 @@ function fetchPage(url: string, timeout: number): string {
 }
 
 const patientFetch = retry(3, fetchPage);
-export const fine = patientFetch("https://example.test", 10);
-export const wrong = patientFetch(10, "https://example.test");
+export const result = patientFetch(10, "https://example.test");

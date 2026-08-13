@@ -1,4 +1,4 @@
-// expect: passes
+// expect: fails
 
 declare const penceBrand: unique symbol;
 declare const rateBrand: unique symbol;
@@ -18,4 +18,4 @@ function applyDiscount(total: Pence, discount: Rate): Pence {
   return pence(Math.round(total * (1 - discount)));
 }
 
-export const discounted = applyDiscount(pence(1250), rate(0.1));
+export const discounted = applyDiscount(rate(0.1), pence(1250));

@@ -1,16 +1,15 @@
 # expect: passes
 # run: yes
-# title: Integer pence add up exactly, and carry into shillings and pounds
+# title: Pence and Rate become types, and money stops looking like every other number
 # improves: money_float
-def total_pence(prices_pence: list[int]) -> int:
-    return sum(prices_pence)
+from typing import NewType
+
+Pence = NewType("Pence", int)
+Rate = NewType("Rate", float)
 
 
-def show(pence: int) -> str:
-    shillings, d = divmod(pence, 12)
-    pounds, s = divmod(shillings, 20)
-    return f"£{pounds} {s}s {d}d"
+def apply_discount(total: Pence, rate: Rate) -> Pence:
+    return Pence(round(total * (1 - rate)))
 
 
-assert total_pence([24, 24, 24]) == 72
-assert show(72) == "£0 6s 0d"
+assert apply_discount(Pence(1250), Rate(0.1)) == 1125
