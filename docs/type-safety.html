@@ -608,8 +608,8 @@
       An amount is a number with its currency in a string beside it, and the mismatch
       is caught at run time, if at all. Move it into the types, so adding dollars to
       euros no longer passes the check. In the TypeScript solution,
-      <code>NoInfer</code> pins the currency to the first amount, so the second
-      cannot widen it to a union of both.
+      <code>NoInfer</code>, which arrived in TypeScript 5.4, pins the currency to
+      the first amount, so the second cannot widen it to a union of both.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
@@ -646,34 +646,35 @@
       survive erasure, and only the model and the schema ever check a value. The
       runtime end of the axis is its own tradition: Racket's contracts and
       Clojure's spec live there, and pydantic and zod are that idea in these two
-      languages.
+      languages. The last column says when each construct arrived; everything on
+      this page runs on Python 3.12 and TypeScript 5.4 or newer.
     </p>
     <h3>Python</h3>
     <table>
-      <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th></tr>
-      <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Nothing exists</td><td>A long signature needs a short, honest name</td></tr>
-      <tr><td><code>NewType</code></td><td>The label: <code>Meters</code> cannot go where <code>Pence</code> belongs</td><td>The plain value, untouched</td><td>Two same-shaped values must never swap</td></tr>
-      <tr><td><code>Literal</code></td><td>A closed set of values</td><td>Plain strings and numbers</td><td>A field or flag has a fixed menu</td></tr>
-      <tr><td><code>Enum</code>, <code>StrEnum</code></td><td>A closed set with a named member for each value</td><td>A real object; the constructor raises on anything outside the set</td><td>The set must also exist at run time, as when parsing a CSV column</td></tr>
-      <tr><td><code>@dataclass(frozen=True)</code></td><td>The shape: field names and types</td><td>A real object, and frozen blocks mutation</td><td>Data with named fields, which is most data</td></tr>
-      <tr><td><code>NamedTuple</code></td><td>The shape, like a dataclass</td><td>A tuple, so indexing and unpacking still work</td><td>Tuple compatibility is required; otherwise a dataclass reads better</td></tr>
-      <tr><td><code>TypedDict</code></td><td>The keys and value types of a dictionary</td><td>A plain dict; nothing enforces the shape</td><td>Dictionaries you cannot replace, like JSON already flowing through code</td></tr>
-      <tr><td>Union of dataclasses + <code>match</code></td><td>Exhaustiveness: every reader handles every state</td><td>Ordinary objects</td><td>A value is one of a few shapes, like the payment</td></tr>
-      <tr><td>Typestate classes</td><td>The order of operations</td><td>Ordinary objects</td><td>Steps must happen in sequence, like the invoice</td></tr>
-      <tr><td>pydantic <code>BaseModel</code></td><td>The shape, like a dataclass</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td></tr>
+      <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th><th>Since</th></tr>
+      <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Nothing exists</td><td>A long signature needs a short, honest name</td><td>3.12 as the <code>type</code> statement</td></tr>
+      <tr><td><code>NewType</code></td><td>The label: <code>Meters</code> cannot go where <code>Pence</code> belongs</td><td>The plain value, untouched</td><td>Two same-shaped values must never swap</td><td>3.5</td></tr>
+      <tr><td><code>Literal</code></td><td>A closed set of values</td><td>Plain strings and numbers</td><td>A field or flag has a fixed menu</td><td>3.8</td></tr>
+      <tr><td><code>Enum</code>, <code>StrEnum</code></td><td>A closed set with a named member for each value</td><td>A real object; the constructor raises on anything outside the set</td><td>The set must also exist at run time, as when parsing a CSV column</td><td>3.4; <code>StrEnum</code> 3.11</td></tr>
+      <tr><td><code>@dataclass(frozen=True)</code></td><td>The shape: field names and types</td><td>A real object, and frozen blocks mutation</td><td>Data with named fields, which is most data</td><td>3.7</td></tr>
+      <tr><td><code>NamedTuple</code></td><td>The shape, like a dataclass</td><td>A tuple, so indexing and unpacking still work</td><td>Tuple compatibility is required; otherwise a dataclass reads better</td><td>3.6</td></tr>
+      <tr><td><code>TypedDict</code></td><td>The keys and value types of a dictionary</td><td>A plain dict; nothing enforces the shape</td><td>Dictionaries you cannot replace, like JSON already flowing through code</td><td>3.8</td></tr>
+      <tr><td>Union of dataclasses + <code>match</code></td><td>Exhaustiveness: every reader handles every state</td><td>Ordinary objects</td><td>A value is one of a few shapes, like the payment</td><td>3.10; <code>assert_never</code> 3.11</td></tr>
+      <tr><td>Typestate classes</td><td>The order of operations</td><td>Ordinary objects</td><td>Steps must happen in sequence, like the invoice</td><td>3.5, with the first annotations</td></tr>
+      <tr><td>pydantic <code>BaseModel</code></td><td>The shape, like a dataclass</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
     <h3>TypeScript</h3>
     <table>
-      <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th></tr>
-      <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Erased</td><td>A long signature needs a short, honest name</td></tr>
-      <tr><td>Brand (<code>unique symbol</code>)</td><td>The label, like <code>NewType</code></td><td>Erased; the plain value remains</td><td>Two same-shaped values must never swap</td></tr>
-      <tr><td>Literal union</td><td>A closed set of values</td><td>Erased</td><td>A field or flag has a fixed menu</td></tr>
-      <tr><td><code>enum</code></td><td>A closed set with named members</td><td>A real object survives erasure</td><td>The set must exist at run time; many teams prefer literal unions otherwise</td></tr>
-      <tr><td>Object type, <code>interface</code></td><td>The shape: property names and types</td><td>Erased</td><td>Data with named fields, which is most data</td></tr>
-      <tr><td><code>class</code></td><td>The shape and the methods</td><td>A real object; <code>instanceof</code> works</td><td>Identity or behaviour matters, as in the retry errors</td></tr>
-      <tr><td>Discriminated union + <code>never</code></td><td>Exhaustiveness: every reader handles every state</td><td>Erased; the objects are plain</td><td>A value is one of a few shapes, like the payment</td></tr>
-      <tr><td>Typestate object types</td><td>The order of operations</td><td>Erased; the objects are plain</td><td>Steps must happen in sequence, like the invoice</td></tr>
-      <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td></tr>
+      <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th><th>Since</th></tr>
+      <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Erased</td><td>A long signature needs a short, honest name</td><td>1.4</td></tr>
+      <tr><td>Brand (<code>unique symbol</code>)</td><td>The label, like <code>NewType</code></td><td>Erased; the plain value remains</td><td>Two same-shaped values must never swap</td><td>2.7</td></tr>
+      <tr><td>Literal union</td><td>A closed set of values</td><td>Erased</td><td>A field or flag has a fixed menu</td><td>1.8</td></tr>
+      <tr><td><code>enum</code></td><td>A closed set with named members</td><td>A real object survives erasure</td><td>The set must exist at run time; many teams prefer literal unions otherwise</td><td>1.0</td></tr>
+      <tr><td>Object type, <code>interface</code></td><td>The shape: property names and types</td><td>Erased</td><td>Data with named fields, which is most data</td><td>1.0</td></tr>
+      <tr><td><code>class</code></td><td>The shape and the methods</td><td>A real object; <code>instanceof</code> works</td><td>Identity or behaviour matters, as in the retry errors</td><td>1.0</td></tr>
+      <tr><td>Discriminated union + <code>never</code></td><td>Exhaustiveness: every reader handles every state</td><td>Erased; the objects are plain</td><td>A value is one of a few shapes, like the payment</td><td>2.0</td></tr>
+      <tr><td>Typestate object types</td><td>The order of operations</td><td>Erased; the objects are plain</td><td>Steps must happen in sequence, like the invoice</td><td>2.0</td></tr>
+      <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
     <p>
       A rule of thumb runs through the page. Start with the closed set when the
