@@ -954,7 +954,7 @@ footer a { color: var(--ink-soft); }
   color: var(--accent);
 }
 
-.ts-run-button {
+.ts-cell-button {
   font: inherit;
   font-size: 0.75rem;
   font-weight: 600;
@@ -965,7 +965,8 @@ footer a { color: var(--ink-soft); }
   color: inherit;
   cursor: pointer;
 }
-.ts-run-button:hover { border-color: var(--accent); color: var(--accent); }
+.ts-cell-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.ts-cell-button:disabled { opacity: 0.45; cursor: default; }
 
 .ts-run-out {
   margin: 0;

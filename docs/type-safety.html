@@ -93,7 +93,9 @@
       between Python and TypeScript. Every cell is editable: change the code, run
       your version, and Reset brings the checked example back. The Run button
       executes the cell right here in the browser, using a Python runtime compiled
-      to WebAssembly and the TypeScript compiler, both fetched on the first click. An example is a block with a
+      to WebAssembly and the TypeScript compiler, both fetched on the first click.
+      Type check and Lint work the same way: the real checker and linters run in
+      the page, so an edited cell can be re-scanned without leaving the browser. An example is a block with a
       <strong>Before</strong>, the code with a weakness, and an <strong>After</strong>,
       the same code with the types doing more work; the Diff button swaps the cells
       to the exact change. Some blocks end with a row labelled <strong>Now a type

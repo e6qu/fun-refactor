@@ -113,12 +113,7 @@ function loadScript(src) {
 }
 
 async function runPython(code) {
-  pyodidePromise ??= loadScript(
-    "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js",
-  ).then(() =>
-    globalThis.loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/" }),
-  );
-  const pyodide = await pyodidePromise;
+  const pyodide = await loadPyodideOnce();
   if (code.includes("pydantic")) {
     await pyodide.loadPackage("pydantic");
   }
@@ -190,14 +185,219 @@ async function runTypescript(code) {
   }
 }
 
-async function runCell(code, language, out) {
+// ------------------------------------------------- checking cells in the page
+
+const TS_LIB_HOST = "https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/";
+let libsPromise;
+
+async function typescriptLibs() {
+  const files = new Map();
+  let round = ["lib.es2022.d.ts", "lib.decorators.d.ts", "lib.decorators.legacy.d.ts"];
+  while (round.length) {
+    const texts = await Promise.all(
+      round.map(async (name) => [name, await (await fetch(TS_LIB_HOST + name)).text()]),
+    );
+    const next = [];
+    for (const [name, text] of texts) {
+      files.set(name, text);
+      for (const match of text.matchAll(/\/\/\/ <reference lib="([^"]+)" \/>/g)) {
+        const wanted = `lib.${match[1]}.d.ts`;
+        if (!files.has(wanted) && !next.includes(wanted)) {
+          next.push(wanted);
+        }
+      }
+    }
+    round = next;
+  }
+  return files;
+}
+
+// zod's real declarations stay in CI; this stub lets an edited cell that
+// imports it type-check for everything else, and says so in the output.
+const MODULE_STUB =
+  'declare module "zod" {\n  const z: any;\n  namespace z {\n    type infer<T> = any;\n  }\n  export { z };\n}\n';
+
+async function typescriptDiagnostics(code, extra = {}) {
+  compilerPromise ??= loadScript(
+    "https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/typescript.min.js",
+  ).then(() => globalThis.ts);
+  const compiler = await compilerPromise;
+  libsPromise ??= typescriptLibs();
+  const libs = await libsPromise;
+  const roots = { "cell.ts": code, "page-modules.d.ts": MODULE_STUB };
+  const options = {
+    strict: true,
+    noEmit: true,
+    target: compiler.ScriptTarget.ES2022,
+    module: compiler.ModuleKind.ESNext,
+    moduleResolution: compiler.ModuleResolutionKind.Bundler,
+    skipLibCheck: true,
+    lib: ["lib.es2022.d.ts"],
+    types: [],
+    ...extra,
+  };
+  const host = {
+    fileExists: (name) => name in roots || libs.has(name),
+    readFile: (name) => roots[name] ?? libs.get(name),
+    getSourceFile: (name, version) => {
+      const text = roots[name] ?? libs.get(name);
+      return text === undefined
+        ? undefined
+        : compiler.createSourceFile(name, text, version ?? compiler.ScriptTarget.ES2022, true);
+    },
+    getDefaultLibFileName: () => "lib.es2022.d.ts",
+    writeFile: () => {},
+    getCurrentDirectory: () => "/",
+    getDirectories: () => [],
+    getCanonicalFileName: (name) => name,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => "\n",
+  };
+  const program = compiler.createProgram(Object.keys(roots), options, host);
+  return compiler
+    .getPreEmitDiagnostics(program)
+    .filter((d) => d.file?.fileName !== "page-modules.d.ts")
+    .map((d) => {
+      const message = compiler.flattenDiagnosticMessageText(d.messageText, "\n");
+      if (d.file && d.start !== undefined) {
+        const { line, character } = d.file.getLineAndCharacterOfPosition(d.start);
+        return `cell.ts(${line + 1},${character + 1}): ${message}`;
+      }
+      return message;
+    });
+}
+
+async function checkTypescript(code) {
+  const lines = await typescriptDiagnostics(code);
+  const note = code.includes('from "zod"')
+    ? "\n(zod itself is typed as any here; CI checks against its real declarations)"
+    : "";
+  return { ok: lines.length === 0, output: (lines.join("\n") || "no type errors") + note };
+}
+
+const TS_LINT_FLAGS = {
+  noUnusedLocals: true,
+  noUnusedParameters: true,
+  noImplicitReturns: true,
+  noFallthroughCasesInSwitch: true,
+  allowUnreachableCode: false,
+};
+
+async function lintTypescript(code) {
+  const [base, picky] = await Promise.all([
+    typescriptDiagnostics(code),
+    typescriptDiagnostics(code, TS_LINT_FLAGS),
+  ]);
+  const seen = new Set(base);
+  const findings = picky.filter((line) => !seen.has(line));
+  return { ok: findings.length === 0, output: findings.join("\n") || "no lint findings" };
+}
+
+let mypyPromise;
+let pyLintersPromise;
+
+async function pythonTool(code, script, ready) {
+  const pyodide = await loadPyodideOnce();
+  await ready(pyodide);
+  if (code.includes("pydantic")) {
+    await pyodide.loadPackage("pydantic");
+  }
+  pyodide.FS.writeFile("/cell.py", code);
+  const output = await pyodide.runPythonAsync(script);
+  return String(output ?? "");
+}
+
+async function checkPython(code) {
+  const config = `[mypy]\nstrict = True\n${code.includes("pydantic") ? "plugins = pydantic.mypy\n" : ""}`;
+  const output = await pythonTool(code, MYPY_DRIVER, async (pyodide) => {
+    mypyPromise ??= pyodide
+      .loadPackage("micropip")
+      .then(() =>
+        pyodide.runPythonAsync(
+          'import micropip\nawait micropip.install(["mypy==1.19.0"])',
+        ),
+      );
+    await mypyPromise;
+    pyodide.FS.writeFile("/mypy.ini", config);
+  });
+  return { ok: !output.includes("error:"), output: output.replaceAll("/cell.py", "cell.py") };
+}
+
+const MYPY_DRIVER = `
+from mypy import api
+
+_out, _err, _status = api.run(["--config-file", "/mypy.ini", "/cell.py"])
+(_out + _err).strip()
+`;
+
+const PYLINT_DRIVER = `
+import io
+import sys
+
+from pyflakes.api import check as _pyflakes_check
+from pyflakes.reporter import Reporter as _Reporter
+import pycodestyle as _pycodestyle
+
+_source = open("/cell.py").read()
+_buf = io.StringIO()
+_pyflakes_check(_source, "cell.py", _Reporter(_buf, _buf))
+_old, sys.stdout = sys.stdout, _buf
+_checker = _pycodestyle.Checker(
+    filename="cell.py", lines=_source.splitlines(True), max_line_length=100
+)
+_checker.check_all()
+sys.stdout = _old
+_buf.getvalue().strip()
+`;
+
+async function lintPython(code) {
+  const output = await pythonTool(code, PYLINT_DRIVER, async (pyodide) => {
+    pyLintersPromise ??= pyodide
+      .loadPackage("micropip")
+      .then(() =>
+        pyodide.runPythonAsync(
+          'import micropip\nawait micropip.install(["pyflakes", "pycodestyle"])',
+        ),
+      );
+    await pyLintersPromise;
+  });
+  return { ok: output === "", output: output || "no lint findings" };
+}
+
+async function loadPyodideOnce() {
+  pyodidePromise ??= loadScript(
+    "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js",
+  ).then(() =>
+    globalThis.loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/" }),
+  );
+  return pyodidePromise;
+}
+
+const ACTIONS = {
+  run: {
+    busy: "Running…",
+    python: runPython,
+    typescript: runTypescript,
+  },
+  check: {
+    busy: "Type checking… the first check downloads the checker",
+    python: checkPython,
+    typescript: checkTypescript,
+  },
+  lint: {
+    busy: "Linting… the first lint downloads the linters",
+    python: lintPython,
+    typescript: lintTypescript,
+  },
+};
+
+async function runCell(action, code, language, out) {
   out.hidden = false;
   out.className = "ts-run-out";
-  out.textContent = "Running…";
-  const run = language === "python" ? runPython : runTypescript;
+  out.textContent = ACTIONS[action].busy;
   let result;
   try {
-    result = await run(code);
+    result = await ACTIONS[action][language](code);
   } catch (error) {
     result = { ok: false, output: String(error?.message ?? error) };
   }
@@ -205,9 +405,9 @@ async function runCell(code, language, out) {
   const printer = language === "python" ? "print(...)" : "console.log(...)";
   out.textContent =
     result.output ||
-    (result.ok
+    (result.ok && action === "run"
       ? `ran, with nothing to print. The cell is editable: add a ${printer} and run again.`
-      : "failed");
+      : result.output || "failed");
 }
 
 // ------------------------------------------------------------ the pieces
@@ -219,7 +419,9 @@ function pane(codes, code) {
       <div class="ts-pane-head"><span>${LABELS[lang]}</span>
         <span class="ts-cell-buttons">
           <button type="button" class="ts-reset-button" hidden>Reset</button>
-          <button type="button" class="ts-run-button">Run</button>
+          <button type="button" class="ts-cell-button" data-action="check">Type check</button>
+          <button type="button" class="ts-cell-button" data-action="lint">Lint</button>
+          <button type="button" class="ts-cell-button" data-action="run">Run</button>
         </span></div>
       <div class="ts-editor">
         <pre aria-hidden="true"><code></code></pre>
@@ -323,9 +525,21 @@ function wireCommon(slot, codes) {
       input.value = initial;
       paint();
     });
-    cell.querySelector(".ts-run-button").addEventListener("click", () => {
-      runCell(input.value, language, cell.querySelector(".ts-run-out"));
-    });
+    const actions = cell.querySelectorAll(".ts-cell-button");
+    for (const button of actions) {
+      button.addEventListener("click", async () => {
+        for (const b of actions) {
+          b.disabled = true;
+        }
+        try {
+          await runCell(button.dataset.action, input.value, language, cell.querySelector(".ts-run-out"));
+        } finally {
+          for (const b of actions) {
+            b.disabled = false;
+          }
+        }
+      });
+    }
   });
 }
 
