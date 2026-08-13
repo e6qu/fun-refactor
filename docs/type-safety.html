@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Type safety — a tutorial</title>
-<meta name="description" content="From primitive types to domain types, parsing at the edges, pure functions and monads. Every example in Python 3.14 and TypeScript 5.9, side by side, before and after, and every one checked in CI.">
+<meta name="description" content="From primitive types to domain types, parsing at the edges, pure functions and monads. Every example in Python 3.14 and TypeScript 5.9, before and after, runnable in the page, and every one checked in CI.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -88,15 +88,20 @@
     </p>
     <h3>How to read the examples</h3>
     <p>
-      Each example is a block with a <strong>Before</strong>, the code with a
-      weakness, and an <strong>After</strong>, the same code with the types doing
-      more work. The Diff button between them swaps the panes to the exact change.
-      Some blocks end with a row labelled <strong>Now a type error</strong>: a call
-      the Before version accepted, and the After version turns into a rejection.
-      A toggle under that row shows the checkers' verbatim messages. Some sections
-      end with a short quiz: read the code, call the verdict yourself, and then see
-      what the checker actually said. When you get those right without looking, the
-      section has done its job.
+      The page reads like a notebook. Each example is a cell showing one language
+      at a time, and the toggle beside its title switches every cell on the page
+      between Python and TypeScript. The Run button executes the cell right here in
+      the browser, using a Python runtime compiled to WebAssembly and the TypeScript
+      compiler, both fetched on the first click. An example is a block with a
+      <strong>Before</strong>, the code with a weakness, and an <strong>After</strong>,
+      the same code with the types doing more work; the Diff button swaps the cells
+      to the exact change. Some blocks end with a row labelled <strong>Now a type
+      error</strong>: a call the Before version accepted, and the After version
+      turns into a rejection. Run one and it often still executes, wrongly; the
+      toggle under it shows the checker's verbatim message, which is the scan
+      catching what the run cannot. Some sections end with a short quiz: read the
+      cell, call the verdict yourself, and then see what the checker actually said.
+      When you get those right without looking, the section has done its job.
     </p>
   </div>
 </section>
