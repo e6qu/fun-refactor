@@ -171,12 +171,20 @@ async function runTypescript(code) {
     }
     throw new Error(`no module ${name} in this page`);
   };
+  const printed = [];
+  const flat = (value) => (typeof value === "string" ? value : shown(value));
+  const shim = { ...console, log: (...args) => printed.push(args.map(flat).join(" ")) };
   try {
-    new Function("exports", "require", "module", js)(exports, require, { exports });
+    new Function("exports", "require", "module", "console", js)(
+      exports,
+      require,
+      { exports },
+      shim,
+    );
     const values = Object.entries(exports)
       .filter(([, value]) => typeof value !== "function")
       .map(([name, value]) => `${name} = ${shown(value)}`);
-    return { ok: true, output: values.join("\n") };
+    return { ok: true, output: [...printed, ...values].join("\n") };
   } catch (error) {
     return { ok: false, output: String(error?.message ?? error) };
   }
@@ -194,7 +202,12 @@ async function runCell(code, language, out) {
     result = { ok: false, output: String(error?.message ?? error) };
   }
   out.className = result.ok ? "ts-run-out ts-run-ok" : "ts-run-out ts-run-err";
-  out.textContent = result.output || (result.ok ? "ran, with nothing to print" : "failed");
+  const printer = language === "python" ? "print(...)" : "console.log(...)";
+  out.textContent =
+    result.output ||
+    (result.ok
+      ? `ran, with nothing to print. The cell is editable: add a ${printer} and run again.`
+      : "failed");
 }
 
 // ------------------------------------------------------------ the pieces
@@ -204,8 +217,15 @@ function pane(codes, code) {
   return `
     <div class="ts-pane ts-cell">
       <div class="ts-pane-head"><span>${LABELS[lang]}</span>
-        <button type="button" class="ts-run-button">Run</button></div>
-      <pre><code>${highlight(code, lang)}</code></pre>
+        <span class="ts-cell-buttons">
+          <button type="button" class="ts-reset-button" hidden>Reset</button>
+          <button type="button" class="ts-run-button">Run</button>
+        </span></div>
+      <div class="ts-editor">
+        <pre aria-hidden="true"><code></code></pre>
+        <textarea class="ts-editor-input" spellcheck="false" autocapitalize="off"
+          autocomplete="off" wrap="off" aria-label="Editable example code"></textarea>
+      </div>
       <div class="ts-run-out" hidden></div>
     </div>`;
 }
@@ -265,15 +285,46 @@ function checkerWords(id) {
     </details>`;
 }
 
+// Every cell is editable: a transparent textarea sits over a highlighted
+// mirror, so the reader can change the code and run their own version. Reset
+// restores the checked example.
 function wireCommon(slot, codes) {
   for (const button of slot.querySelectorAll(".ts-lang-toggle button")) {
     button.addEventListener("click", () => setLang(button.dataset.lang));
   }
   const cells = slot.querySelectorAll(".ts-cell");
   cells.forEach((cell, at) => {
-    const code = codes[at];
+    const initial = codes[at];
+    const language = lang;
+    const input = cell.querySelector(".ts-editor-input");
+    const mirror = cell.querySelector(".ts-editor pre");
+    const reset = cell.querySelector(".ts-reset-button");
+    input.value = initial;
+    const paint = () => {
+      mirror.firstElementChild.innerHTML = highlight(input.value, language) + "\n";
+      reset.hidden = input.value === initial;
+    };
+    paint();
+    input.addEventListener("input", paint);
+    input.addEventListener("scroll", () => {
+      mirror.scrollLeft = input.scrollLeft;
+      mirror.scrollTop = input.scrollTop;
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        const { selectionStart, selectionEnd, value } = input;
+        input.value = `${value.slice(0, selectionStart)}    ${value.slice(selectionEnd)}`;
+        input.selectionStart = input.selectionEnd = selectionStart + 4;
+        paint();
+      }
+    });
+    reset.addEventListener("click", () => {
+      input.value = initial;
+      paint();
+    });
     cell.querySelector(".ts-run-button").addEventListener("click", () => {
-      runCell(code, lang, cell.querySelector(".ts-run-out"));
+      runCell(input.value, language, cell.querySelector(".ts-run-out"));
     });
   });
 }
@@ -435,11 +486,20 @@ if (typeof Highlight !== "undefined" && CSS.highlights) {
 
   const repaint = () => {
     CSS.highlights.delete(NAME);
-    const selection = document.getSelection();
-    if (!selection || selection.isCollapsed) {
-      return;
+    // A selection inside an editable cell lives in the textarea, invisible to
+    // document.getSelection(); read it from the control, and let the matches
+    // paint on the mirror text showing through underneath.
+    let needle = "";
+    const active = document.activeElement;
+    if (active?.classList?.contains("ts-editor-input")) {
+      needle = active.value.slice(active.selectionStart, active.selectionEnd).trim();
+    } else {
+      const selection = document.getSelection();
+      if (!selection || selection.isCollapsed) {
+        return;
+      }
+      needle = selection.toString().trim();
     }
-    const needle = selection.toString().trim();
     if (needle.length < 2 || needle.length > 200 || needle.includes("\n")) {
       return;
     }
