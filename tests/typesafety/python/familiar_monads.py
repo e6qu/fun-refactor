@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: flatMap and comprehensions are monads you already use
+# title: flatMap and comprehensions are the chaining step of monads you already use
 from dataclasses import dataclass
 
 

@@ -5,7 +5,7 @@ import { z } from "zod";
 const Order = z.object({
   id: z.string(),
   quantity: z.number().int(),
-  giftNote: z.string().optional(),
+  giftNote: z.string().nullable(),
 });
 
 type Order = z.infer<typeof Order>;

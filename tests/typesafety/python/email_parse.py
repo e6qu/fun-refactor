@@ -7,8 +7,9 @@ EmailAddress = NewType("EmailAddress", str)
 
 
 def parse_email(raw: str) -> EmailAddress | None:
-    candidate = raw.strip().lower()
-    if "@" not in candidate or candidate.startswith("@"):
+    candidate = raw.strip()
+    local, sep, domain = candidate.partition("@")
+    if not sep or not local or "@" in domain or "." not in domain:
         return None
     return EmailAddress(candidate)
 

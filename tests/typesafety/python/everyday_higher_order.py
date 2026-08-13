@@ -1,6 +1,6 @@
 # expect: passes
 # run: yes
-# title: The @timed decorator adds the measurement once
+# title: Python reaches for a decorator, and JavaScript for the array chain
 # improves: plumbing_by_hand
 import time
 from collections.abc import Callable

@@ -5,11 +5,10 @@ type Order = { readonly item: string; readonly quantity: number };
 type Priced = { readonly item: string; readonly totalCents: number };
 
 function parseOrder(raw: RawOrder): Order {
-  const quantity = Number(raw.quantityText);
-  if (!Number.isInteger(quantity)) {
+  if (!/^\d+$/.test(raw.quantityText)) {
     throw new Error(`quantity is not a number: ${raw.quantityText}`);
   }
-  return { item: raw.item, quantity };
+  return { item: raw.item, quantity: Number(raw.quantityText) };
 }
 
 function price(order: Order, unitCents: number): Priced {

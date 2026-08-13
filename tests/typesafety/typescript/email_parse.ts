@@ -4,8 +4,11 @@ declare const emailBrand: unique symbol;
 type EmailAddress = string & { readonly [emailBrand]: true };
 
 function parseEmail(raw: string): EmailAddress | null {
-  const candidate = raw.trim().toLowerCase();
-  if (!candidate.includes("@") || candidate.startsWith("@")) {
+  const candidate = raw.trim();
+  const at = candidate.indexOf("@");
+  const local = candidate.slice(0, at < 0 ? 0 : at);
+  const domain = candidate.slice(at + 1);
+  if (at < 0 || !local || domain.includes("@") || !domain.includes(".")) {
     return null;
   }
   return candidate as EmailAddress;

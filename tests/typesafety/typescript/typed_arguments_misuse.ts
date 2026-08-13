@@ -5,4 +5,4 @@ function invoiceLine(description: string, pricePence: number, quantity: number, 
   return `${description} x${quantity} at ${pricePence}d${note}`;
 }
 
-export const line = invoiceLine(80, "handlebar grip", true, 2); // rejected during the scan
+export const line = invoiceLine(80, "handlebar grip", true, 2); // rejected: all four arguments flagged

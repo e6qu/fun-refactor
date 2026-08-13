@@ -1,13 +1,15 @@
 # expect: passes
 # title: pydantic and zod check the order at the door
 # improves: api_dict
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Order(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     id: str
     quantity: int
-    gift_note: str | None = None
+    gift_note: str | None
 
 
 def price_cents(order: Order) -> int:

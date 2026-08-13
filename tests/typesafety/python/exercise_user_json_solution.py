@@ -1,10 +1,12 @@
 # expect: passes
 # title: One parse at the door replaces the three checks
 # improves: exercise_user_json_start
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class User(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     name: str
     age: int
 

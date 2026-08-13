@@ -90,7 +90,7 @@
       Section 5 parses the parts file, and everything else that crosses into the
       program, once at the border. Sections 6 through 8 then take the typed pieces
       and compose them into programs. By the end, nothing of this file survives
-      unchanged.
+      unchanged, and the closing section shows the finished file.
     </p>
     <h3>How to read the examples</h3>
     <p>
@@ -175,7 +175,7 @@
     <p>
       The seed's parts file keeps a unit column, and the workshop measures spokes by
       count, tubing by the meter, and grease by the kilogram. The bill of materials
-      for one frame wants 1.8 meters of tubing and 36 spokes, and
+      wants 1.8 meters of tubing for the frame and 36 spokes for each wheel, and
       <code>cut_tubing</code> expects a length, which a bare count fits perfectly.
       Both are plain numbers until <code>NewType</code> and a brand pull them
       apart.
@@ -266,8 +266,9 @@
       combinations, two of which cannot exist. Model each state as its own type, and
       only the real two remain. This is a <em>tagged union</em>, which TypeScript
       calls a discriminated union. The goal is what Yaron Minsky called <em>making
-      illegal states unrepresentable</em>, and the checker demanding that every reader
-      handle every state is <em>exhaustiveness checking</em>.
+      illegal states unrepresentable</em>. With an <code>assert_never</code> arm or a
+      <code>never</code> default in place, the checker demands that every reader
+      handle every state: <em>exhaustiveness checking</em>.
     </p>
     <p>
       The shop's payments show the pattern. A payment starts out pending, and once it
@@ -323,8 +324,9 @@
       are for: libraries that check the shape at run time and hand the static checker
       a typed result. You declare the shape once, as a schema; the library either hands you a
       real <code>Order</code> with typed fields, or an error naming the field and the
-      reason. The handler below goes from raw body to <code>Order</code> in a single
-      line and never touches the dictionary.
+      reason. The Python handler below goes from raw body to <code>Order</code> in a
+      single call; the TypeScript one parses the JSON first and hands the shapeless
+      value to the schema. Neither touches the dictionary afterwards.
     </p>
     <div class="ts-block" data-block="api_parse"></div>
     <p>
@@ -418,9 +420,10 @@
       long before it can become a production incident.
     </p>
     <p>
-      Quoting an order is a three-step pipeline: parse the raw order, then price it.
-      Each step has its own input and output type, and that is the whole safety
-      story.
+      Quoting an order is a pipeline: convert the raw order, then price it. The
+      <code>RawOrder</code> arrives from the section 5 edge, already shaped; what
+      this section adds is the handoff. Each step has its own input and output type,
+      and that is the whole safety story.
     </p>
     <div class="ts-block" data-block="typed_pipeline"></div>
     <p>
@@ -438,8 +441,10 @@
       This shape has a name. Any wrapper with a way in (<code>Ok</code>) and a way to
       chain steps that themselves return the wrapper (<code>and_then</code>, also
       called <code>flatMap</code> or <code>bind</code>) is a <strong>monad</strong>,
-      and a <code>map</code> that only transforms the contents comes free: chain a
-      step that cannot fail. The standard ones map onto the standard problems:
+      provided the plumbing behaves: chaining is associative and <code>Ok</code> is
+      its neutral step, which the literature calls the monad laws. A <code>map</code>
+      that only transforms the contents then comes free: chain a step that cannot
+      fail. The standard ones map onto the standard problems:
     </p>
     <ul>
       <li><strong>Option</strong> handles absence. Neither language ships the
@@ -530,7 +535,9 @@
       Two call sites disagree about the argument order, and both pass the check. A row of
       bare booleans invites what Robert Harper calls <em>boolean blindness</em>: the
       call reads true, false, true and tells you nothing. Give the units real types
-      and the flags names, so only one of the calls survives.
+      and the flags names. A type cannot tell which bare number you meant, so label
+      every value where it enters; after that, two labelled quantities can no longer
+      change places quietly, and the solution's misuse row shows the swap rejected.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>
@@ -584,6 +591,15 @@
 <section>
   <div class="shell prose">
     <h2>Where this goes next</h2>
+    <p>
+      First, the promise from section 1, kept. Here is the seed file again with
+      every weakness from the diagnosis gone: the invoice line takes real types, the
+      money is integer pence, the statuses are a closed set, customers and products
+      cannot swap, and the parts file is parsed once, with the quantity, the unit
+      and the cost checked at the door. Every bug the old file hid is a type error
+      in this one.
+    </p>
+    <div class="ts-example" data-example="the_program_fixed"></div>
     <p>
       The same ideas run through this repository's own Rust:
       <a href="types.html">Making it unrepresentable</a> walks the defects that

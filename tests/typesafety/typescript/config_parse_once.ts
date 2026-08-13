@@ -15,11 +15,15 @@ export function parseArgv(argv: string[]): Config {
   if (portText === undefined || !/^\d+$/.test(portText)) {
     throw new Error("port missing or not a number");
   }
+  const port = Number(portText);
+  if (port < 1 || port > 65535) {
+    throw new Error("port out of range");
+  }
   const verboseText = settings.get("verbose") ?? "false";
   if (verboseText !== "true" && verboseText !== "false") {
     throw new Error("verbose must be true or false");
   }
-  return { port: Number(portText), verbose: verboseText === "true" };
+  return { port, verbose: verboseText === "true" };
 }
 
 export function connect(config: Config): string {
