@@ -62,9 +62,13 @@ function isUnit(value: string): value is Unit {
   return value === "each" || value === "meters" || value === "kilograms";
 }
 
+function isRow(fields: string[]): fields is [string, string, string, string, string] {
+  return fields.length === 5;
+}
+
 export function parseBomLine(row: string): BomLine | null {
   const fields = row.split(",");
-  if (fields.length !== 5) return null;
+  if (!isRow(fields)) return null;
   const [partNo, description, qtyText, unitText, costText] = fields;
   if (!/^\d+$/.test(qtyText) || !/^\d+$/.test(costText) || !isUnit(unitText)) return null;
   return { partNo, description, qty: Number(qtyText), unit: unitText, cost: pence(Number(costText)) };

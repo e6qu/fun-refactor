@@ -165,6 +165,9 @@
       Racket, in the Lisp family, pioneered this as <em>occurrence typing</em>;
       Python and TypeScript call it <em>narrowing</em>, and every
       <code>match</code> and <code>typeof</code> test on this page leans on it.
+      The checker only trusts a narrowing it can watch hold still: narrow a shared
+      attribute, call a function, and the narrowing is gone. Copy the value to a
+      local first.
     </p>
     <div class="ts-block" data-block="note_narrowing"></div>
     <p>
@@ -230,7 +233,9 @@
     <p>
       Strings share the weakness. A bare <code>"paid"</code> scattered through a
       codebase is a <em>magic string</em>, and a status typed <code>str</code> will
-      accept anything, typos included. A literal type writes down the values that
+      accept anything, typos included; one production classic is a machine-learning
+      option misspelled <code>tahn</code> for <code>tanh</code>, alive for months
+      behind a <code>str</code>. A literal type writes down the values that
       exist, and the checker turns everything else away.
     </p>
     <p>
@@ -302,7 +307,10 @@
       calls a discriminated union. The goal is what Yaron Minsky called <em>making
       illegal states unrepresentable</em>. With an <code>assert_never</code> arm or a
       <code>never</code> default in place, the checker demands that every reader
-      handle every state: <em>exhaustiveness checking</em>.
+      handle every state: <em>exhaustiveness checking</em>. The throw inside that
+      arm is deliberate: when nothing uses the narrowed value, a forgotten case can
+      slip through as <code>never</code>, and the runtime error is the net under
+      the net.
     </p>
     <p>
       The shop's payments show the pattern. A payment starts out pending, and once it
@@ -320,6 +328,24 @@
       plain classes and return types, and a step out of order fails the scan.
     </p>
     <div class="ts-block" data-block="invoice_typestate"></div>
+    <p>
+      The wrapper deserves one more turn of the screw. A <code>NewType</code> is a
+      subtype, so an <code>HtmlText</code> built on <code>str</code> would still
+      fit back into <code>escape_html</code>, and a second escape would sail
+      through. Make the wrapper its own class, and both directions close: raw text
+      cannot reach the renderer, and escaped text cannot be escaped again. React
+      ships this discipline; its renderer refuses plain strings as HTML.
+    </p>
+    <div class="ts-block" data-block="escape_wrapper"></div>
+    <p>
+      One asymmetry between the languages earns the section's last example.
+      TypeScript checks shapes everywhere: any object with the right members fits.
+      Python's classes match by name, and <code>typing.Protocol</code>, added in
+      3.8, is the opt-in: declare the methods a carrier must have, and any class
+      that has them counts, including one from a library you cannot edit. No
+      inheritance, and the checker still holds every carrier to the signature.
+    </p>
+    <div class="ts-block" data-block="carrier_protocol"></div>
       <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
   </div>
 </section>
@@ -647,7 +673,11 @@
       runtime end of the axis is its own tradition: Racket's contracts and
       Clojure's spec live there, and pydantic and zod are that idea in these two
       languages. The last column says when each construct arrived; everything on
-      this page runs on Python 3.12 and TypeScript 5.4 or newer.
+      this page runs on Python 3.12 and TypeScript 5.4 or newer. Strict has fine
+      print in both: the Python checker skips the bodies of unannotated functions
+      unless told otherwise, and TypeScript leaves array indexing optimistic
+      unless <code>noUncheckedIndexedAccess</code> is on. This page checks with it
+      on.
     </p>
     <h3>Python</h3>
     <table>
@@ -669,13 +699,23 @@
       <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Erased</td><td>A long signature needs a short, honest name</td><td>1.4</td></tr>
       <tr><td>Brand (<code>unique symbol</code>)</td><td>The label, like <code>NewType</code></td><td>Erased; the plain value remains</td><td>Two same-shaped values must never swap</td><td>2.7</td></tr>
       <tr><td>Literal union</td><td>A closed set of values</td><td>Erased</td><td>A field or flag has a fixed menu</td><td>1.8</td></tr>
-      <tr><td><code>enum</code></td><td>A closed set with named members</td><td>A real object survives erasure</td><td>The set must exist at run time; many teams prefer literal unions otherwise</td><td>1.0</td></tr>
+      <tr><td><code>enum</code></td><td>A closed set with named members</td><td>A real object survives erasure</td><td>Rarely: plain enums break under type-stripping runtimes, and a <code>const</code> object with a derived union covers the need</td><td>1.0</td></tr>
       <tr><td>Object type, <code>interface</code></td><td>The shape: property names and types</td><td>Erased</td><td>Data with named fields, which is most data</td><td>1.0</td></tr>
       <tr><td><code>class</code></td><td>The shape and the methods</td><td>A real object; <code>instanceof</code> works</td><td>Identity or behaviour matters, as in the retry errors</td><td>1.0</td></tr>
       <tr><td>Discriminated union + <code>never</code></td><td>Exhaustiveness: every reader handles every state</td><td>Erased; the objects are plain</td><td>A value is one of a few shapes, like the payment</td><td>2.0</td></tr>
       <tr><td>Typestate object types</td><td>The order of operations</td><td>Erased; the objects are plain</td><td>Steps must happen in sequence, like the invoice</td><td>2.0</td></tr>
+      <tr><td><code>satisfies</code> + <code>as const</code></td><td>Conformance to a type without widening the literal</td><td>Erased</td><td>A value must match a shape and keep its exact keys</td><td>4.9; <code>as const</code> 3.4</td></tr>
       <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
+    <p>
+      The bill deserves open eyes too. Data from the wild is dirty, and a model
+      that can only hold clean values cannot even load the record you need to
+      repair. A parser that stops at the first bad field cannot collect every
+      mistake a user made at once. Types named ValidThis and CheckedThat multiply
+      until nobody knows which one a function wants. And every invariant in a
+      constructor is a promise your test fixtures must satisfy before they can
+      build anything at all.
+    </p>
     <p>
       A rule of thumb runs through the page. Start with the closed set when the
       values have a fixed menu. Add the label when two same-shaped values must

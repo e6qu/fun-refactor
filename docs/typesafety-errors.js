@@ -2,6 +2,10 @@
 //
 // The checkers' verbatim words for each type-error example. Regenerated together with typesafety-data.js.
 export const ERRORS = {
+  "carrier_protocol_misuse": {
+    python: "carrier_protocol_misuse.py:20: error: List item 0 has incompatible type \"ChattyCourier\"; expected \"Carrier\"  [list-item]\ncarrier_protocol_misuse.py:20: note: Following member(s) of \"ChattyCourier\" have conflicts:\ncarrier_protocol_misuse.py:20: note:     Expected:\ncarrier_protocol_misuse.py:20: note:         def quote_pence(self, kilograms: float) -> int\ncarrier_protocol_misuse.py:20: note:     Got:\ncarrier_protocol_misuse.py:20: note:         def quote_pence(self, kilograms: float) -> str\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "carrier_protocol_misuse.ts(17,31): error TS2322: Type 'ChattyCourier' is not assignable to type 'Carrier'.\n  The types returned by 'quotePence(...)' are incompatible between these types.\n    Type 'string' is not assignable to type 'number'.",
+  },
   "config_parse_once_misuse": {
     python: "config_parse_once_misuse.py:17: error: Argument 1 to \"connect\" has incompatible type \"dict[str, str]\"; expected \"Config\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "config_parse_once_misuse.ts(12,33): error TS2345: Argument of type 'Map<string, string>' is not assignable to parameter of type 'Config'.\n  Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
@@ -13,6 +17,10 @@ export const ERRORS = {
   "entity_ids_misuse": {
     python: "entity_ids_misuse.py:15: error: Argument 1 to \"bill\" has incompatible type \"ProductId\"; expected \"CustomerId\"  [arg-type]\nentity_ids_misuse.py:15: error: Argument 2 to \"bill\" has incompatible type \"CustomerId\"; expected \"ProductId\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
     typescript: "entity_ids_misuse.ts(14,15): error TS2345: Argument of type 'ProductId' is not assignable to parameter of type 'CustomerId'.\n  Property '[customerBrand]' is missing in type 'String & { readonly [productBrand]: true; }' but required in type '{ readonly [customerBrand]: true; }'.",
+  },
+  "escape_wrapper_misuse": {
+    python: "escape_wrapper_misuse.py:21: error: Argument 1 to \"render_note\" has incompatible type \"str\"; expected \"HtmlText\"  [arg-type]\nescape_wrapper_misuse.py:22: error: Argument 1 to \"escape_html\" has incompatible type \"HtmlText\"; expected \"str\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
+    typescript: "escape_wrapper_misuse.ts(15,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'HtmlText'.\nescape_wrapper_misuse.ts(16,33): error TS2345: Argument of type 'HtmlText' is not assignable to parameter of type 'string'.",
   },
   "exercise_lookup_misuse": {
     python: "exercise_lookup_misuse.py:28: error: Argument 1 to \"greet\" has incompatible type \"Ok[str] | Err\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",

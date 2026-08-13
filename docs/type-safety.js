@@ -222,6 +222,7 @@ async function typescriptDiagnostics(code, extra = {}) {
   const roots = { "cell.ts": code, "page-modules.d.ts": MODULE_STUB };
   const options = {
     strict: true,
+    noUncheckedIndexedAccess: true,
     noEmit: true,
     target: compiler.ScriptTarget.ES2022,
     module: compiler.ModuleKind.ESNext,
