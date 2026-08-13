@@ -23,6 +23,8 @@ class Priced:
 
 
 def parse_order(raw: RawOrder) -> Order:
+    if not raw.quantity_text.isdigit():
+        raise ValueError(f"quantity is not a number: {raw.quantity_text}")
     return Order(item=raw.item, quantity=int(raw.quantity_text))
 
 

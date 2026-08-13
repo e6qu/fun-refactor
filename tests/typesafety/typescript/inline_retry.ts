@@ -1,7 +1,9 @@
 // expect: passes
 
+class ConnectionLost extends Error {}
+
 function unreliableFetch(): string {
-  throw new Error("try again");
+  throw new ConnectionLost("try again");
 }
 
 export function fetchGreeting(attemptsLeft = 3): string {
@@ -10,6 +12,7 @@ export function fetchGreeting(attemptsLeft = 3): string {
     try {
       return unreliableFetch().toUpperCase();
     } catch (error) {
+      if (!(error instanceof ConnectionLost)) throw error;
       failures += 1;
       if (failures >= attemptsLeft) throw error;
     }

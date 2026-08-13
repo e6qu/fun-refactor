@@ -1,5 +1,7 @@
 // expect: passes
 
+class ConnectionLost extends Error {}
+
 type IO<T> = { readonly run: () => T };
 
 function of<T>(value: T): IO<T> {
@@ -18,6 +20,7 @@ function retry<T>(times: number, action: IO<T>): IO<T> {
         try {
           return action.run();
         } catch (error) {
+          if (!(error instanceof ConnectionLost)) throw error;
           failures += 1;
           if (failures >= times) throw error;
         }
@@ -31,7 +34,7 @@ let calls = 0;
 
 function flakyFetch(): string {
   calls += 1;
-  if (calls < 3) throw new Error("try again");
+  if (calls < 3) throw new ConnectionLost("try again");
   return "payload";
 }
 

@@ -1,5 +1,5 @@
 # expect: passes
-# title: An EmailAddress can only come from parse_email
+# title: An EmailAddress records that parse_email accepted it
 # improves: email_checked
 from typing import NewType
 
@@ -14,7 +14,7 @@ def parse_email(raw: str) -> EmailAddress | None:
 
 
 def send_receipt(to: EmailAddress) -> str:
-    # No validation here, and none needed. The type is the proof.
+    # No validation here: parse_email already said yes.
     return f"receipt sent to {to}"
 
 

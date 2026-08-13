@@ -12,7 +12,7 @@ function parseEmail(raw: string): EmailAddress | null {
 }
 
 function sendReceipt(to: EmailAddress): string {
-  // No validation here, and none needed. The type is the proof.
+  // No validation here: parse_email already said yes.
   return `receipt sent to ${to}`;
 }
 

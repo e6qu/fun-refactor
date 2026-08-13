@@ -18,7 +18,10 @@ def parse_argv(argv: list[str]) -> Config:
     port_text = settings.get("port")
     if port_text is None or not port_text.isdigit():
         raise ValueError("port missing or not a number")
-    return Config(port=int(port_text), verbose=settings.get("verbose") == "true")
+    verbose_text = settings.get("verbose", "false")
+    if verbose_text not in ("true", "false"):
+        raise ValueError("verbose must be true or false")
+    return Config(port=int(port_text), verbose=verbose_text == "true")
 
 
 def connect(config: Config) -> str:

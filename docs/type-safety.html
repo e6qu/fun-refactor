@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Type safety — a tutorial in eight steps</title>
+<title>Type safety — a tutorial</title>
 <meta name="description" content="From primitive types to domain types, parsing at the edges, pure functions and monads. Every example in Python 3.14 and TypeScript 5.9, side by side, before and after, and every one checked in CI.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
 <link rel="stylesheet" href="style.css">
@@ -122,7 +122,10 @@
       with all four arguments in the wrong order; the customer who read
       <code>80 xTrue at handlebar gripd</code> was the first to notice. Written with
       ordinary <code>str</code>, <code>int</code> and <code>bool</code>, the checker
-      catches that same call while it reads the file.
+      catches that same call while it reads the file. TypeScript rejects all four
+      arguments. Python rejects three: <code>True</code> passes where an
+      <code>int</code> belongs, because Python's <code>bool</code> is a subclass of
+      <code>int</code>, a surprise worth meeting early.
     </p>
     <div class="ts-block" data-block="typed_arguments"></div>
     <p>
@@ -139,8 +142,9 @@
       parts at two shillings, a tenth of a pound each, come to exactly six
       shillings. <code>float</code> stores approximate reals, and money needs to be
       exact. Everything passes the scan, and the totals drift a penny away from the
-      ledger. Integer pence fix it, and carrying by twelves and twenties turns out
-      to be formatting, not arithmetic.
+      ledger. Integer pence fix it: Python's <code>int</code> is exact at any size,
+      JavaScript's <code>number</code> is exact for whole numbers up to 2⁵³, and
+      carrying by twelves and twenties turns out to be formatting, not arithmetic.
     </p>
     <div class="ts-block" data-block="money_pence"></div>
     <p>
@@ -164,8 +168,8 @@
       the declared name fits. Either way, the distinct type is free at run time.
     </p>
     <p>
-      In 1999 the Mars Climate Orbiter burned up because one team's software produced
-      pound-seconds and another's read newton-seconds. The type checker is the
+      In 1999 the Mars Climate Orbiter was lost because one team's software produced
+      pound-force seconds and another's read newton-seconds. The type checker is the
       cheapest place to catch that class of mistake.
     </p>
     <p>
@@ -236,8 +240,11 @@
       that states a fact about your problem. An <code>EmailAddress</code> is a string
       that a particular check accepted. The recipe has three parts: a distinct type,
       one function that constructs it, and no other way to obtain one. Functional
-      programmers call that function a <em>smart constructor</em>. Any code holding an
-      <code>EmailAddress</code> can rely on the check without repeating it.
+      programmers call that function a <em>smart constructor</em>. Neither checker
+      can fully enforce the last clause: <code>NewType</code> and a brand cast can be
+      invoked anywhere. Keep the constructor in one module and treat a stray cast as
+      a review failure, and any code holding an <code>EmailAddress</code> can rely on
+      the check without repeating it.
     </p>
     <p>
       The workshop sends each invoice by email, and later a reminder. The address
@@ -311,7 +318,8 @@
       API receives an HTTP request whose body is one long JSON string.
       <code>json.loads</code> or <code>JSON.parse</code> gives you a shapeless
       dictionary, and the shape still needs checking. This is what pydantic and zod
-      are for. You declare the shape once, as a schema; the library either hands you a
+      are for: libraries that check the shape at run time and hand the static checker
+      a typed result. You declare the shape once, as a schema; the library either hands you a
       real <code>Order</code> with typed fields, or an error naming the field and the
       reason. The handler below goes from raw body to <code>Order</code> in a single
       line and never touches the dictionary.
@@ -320,8 +328,8 @@
     <p>
       From here on, your program has two zones. At the edge, raw text becomes domain
       types, and failures get reported where someone can act on them. Inside, every
-      function receives domain types, and the checker guarantees that garbage never
-      makes it that far.
+      function receives domain types, and the checker keeps raw text out: a string
+      can no longer wander past the edge unparsed.
     </p>
   </div>
 </section>
@@ -362,7 +370,7 @@
       <code>reduce</code> each take a typed callback, and the types flow all the way
       down the chain. Python has <code>map</code> and <code>filter</code> as well,
       though a comprehension usually reads better. JavaScript has decorators as well,
-      though only on class members.
+      on classes and their members, though not on plain functions.
     </p>
     <div class="ts-block" data-block="everyday_higher_order"></div>
   </div>
@@ -374,9 +382,11 @@
     <p>
       A function is pure when the same arguments always give the same result and
       nothing else happens: no clock, no network, no globals. The formal term is
-      <em>referential transparency</em>: any call could be replaced by its value. You
-      can often read purity straight off the signature, because a function that
-      depends only on its parameters has to receive everything it needs.
+      <em>referential transparency</em>: any call could be replaced by its value. A
+      signature cannot prove purity, since a function typed <code>int</code> to
+      <code>int</code> is free to read the clock anyway, but writing pure functions
+      leaves a mark on it: a function that depends only on its parameters has to
+      receive everything it needs, so the clock shows up as an argument.
     </p>
     <p>
       The example is a countdown. <code>remaining</code> reports how long is left
@@ -423,15 +433,16 @@
     </p>
     <div class="ts-block" data-block="result_chain"></div>
     <p>
-      This shape has a name. Any wrapper with a way in (<code>Ok</code>), a way to
-      transform the contents (<code>map</code>), and a way to chain steps that
-      themselves return the wrapper (<code>and_then</code>, also called
-      <code>flatMap</code> or <code>bind</code>) is a <strong>monad</strong>. The
-      standard ones map onto the standard problems:
+      This shape has a name. Any wrapper with a way in (<code>Ok</code>) and a way to
+      chain steps that themselves return the wrapper (<code>and_then</code>, also
+      called <code>flatMap</code> or <code>bind</code>) is a <strong>monad</strong>,
+      and a <code>map</code> that only transforms the contents comes free: chain a
+      step that cannot fail. The standard ones map onto the standard problems:
     </p>
     <ul>
-      <li><strong>Option</strong> handles absence. <code>x | None</code> narrowing in
-        Python and optional chaining in TypeScript play this role.</li>
+      <li><strong>Option</strong> handles absence. Neither language ships the
+        wrapper; <code>x | None</code> narrowing in Python and optional chaining in
+        TypeScript cover the same ground natively.</li>
       <li><strong>Result</strong> handles failure with a reason. You met it above.</li>
       <li><strong>List</strong> handles many answers at once. A comprehension and
         <code>flatMap</code> are its chaining step.</li>
@@ -446,6 +457,15 @@
       Two of them you have been using all along:
     </p>
     <div class="ts-example" data-example="familiar_monads"></div>
+    <p>
+      Before you rewrite a codebase around any of this, a warning. Hand-rolled monads
+      are not idiomatic in Python or TypeScript, and most teams will experience them
+      as friction. These languages already ship the specialised forms: <code>None</code>
+      narrowing, exceptions at the edge, comprehensions, <code>async/await</code>.
+      Reach for those first. The shape is still worth carrying in your head, because
+      those idioms are the monads, one per problem, and the shape tells you what a
+      clean pipeline looks like even when you spell it natively.
+    </p>
     <p>
       Here is a Writer, hand-rolled. Each step returns its result together with its
       log line, and the chain concatenates the trails. The log arrives with the
@@ -470,19 +490,10 @@
     </p>
     <div class="ts-block" data-block="io_actions"></div>
     <p>
-      Before you rewrite a codebase around any of this, a warning. Hand-rolled monads
-      are not idiomatic in Python or TypeScript, and most teams will experience them
-      as friction. These languages already ship the specialised forms: <code>None</code>
-      narrowing, exceptions at the edge, comprehensions, <code>async/await</code>.
-      Reach for those first. The shape is still worth carrying in your head, because
-      those idioms are the monads, one per problem, and the shape tells you what a
-      clean pipeline looks like even when you spell it natively.
-    </p>
-    <p>
       As for the definition you may have heard, "a monad is just a monoid in the
       category of endofunctors": that is a true sentence from category theory, and a
       long-running joke about explanations that explain nothing. Keep the working
-      definition. A way in, a map, and a flattening chain.
+      definition. A way in, a flattening chain, and a map for free.
     </p>
   </div>
 </section>
