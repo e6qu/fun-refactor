@@ -1,15 +1,15 @@
 # expect: passes
-# title: Shop and supplier accounts become different types
-# improves: transfer_arguments
+# title: Customers and products become different types
+# improves: bill_arguments
 from typing import NewType
 
-ShopAccount = NewType("ShopAccount", str)
-SupplierAccount = NewType("SupplierAccount", str)
+CustomerId = NewType("CustomerId", str)
+ProductId = NewType("ProductId", str)
 
 
-def refund(source: ShopAccount, target: SupplierAccount, amount_cents: int) -> str:
-    return f"move {amount_cents} from {source} to {target}"
+def bill(customer: CustomerId, product: ProductId) -> str:
+    return f"invoice {customer} for one {product}"
 
 
-def refund_supplier(shop: ShopAccount, supplier: SupplierAccount) -> str:
-    return refund(shop, supplier, 4_500)
+def bill_roadster(customer: CustomerId, product: ProductId) -> str:
+    return bill(customer, product)

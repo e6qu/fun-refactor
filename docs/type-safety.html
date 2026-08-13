@@ -53,7 +53,7 @@
       the checkers confirmed.
     </p>
     <ol class="ts-toc" id="toc">
-      <li><a href="#before-you-start">Before you start</a></li>
+      <li><a href="#the-program">The program we will fix</a></li>
       <li><a href="#simple-types">Simple types</a></li>
       <li><a href="#aliases-and-units">Aliases and units</a></li>
       <li><a href="#domain-types">Domain types</a></li>
@@ -66,77 +66,40 @@
   </div>
 </section>
 
-<section id="before-you-start">
+<section id="the-program">
   <div class="shell prose">
-    <h2>1. Before you start</h2>
-    <h3>The problem</h3>
+    <h2>1. The program we will fix</h2>
     <p>
-      Imagine you have joined a small web shop. The code works, mostly, but the bug
-      tracker tells a story. A customer's receipt read <code>3 x tea at 1</code>
-      because two arguments changed places. A refund moved money into the shop's
-      account instead of back to the supplier's. The books came out a cent short of
-      the bank statement. One invoice froze in its draft stage forever, and nobody
-      could say why. The server once spent a morning listening on the wrong port.
+      One program runs through this whole page. A small workshop builds bicycles
+      from parts: a bill of materials lists what goes into each model with
+      quantities and costs, and an invoice bills the customer who buys one. The
+      books are kept in old British money, where twelve pence (<code>d</code>) make
+      a shilling (<code>s</code>) and twenty shillings make a pound, so £1 3s 6d is
+      one pound, three shillings and sixpence. Here is the code, condensed to one
+      file. The type checker, at its strictest, accepts every line of it.
+    </p>
+    <div class="ts-example" data-example="the_program"></div>
+    <p>
+      Each function hides a bug that reached production. <code>bom_line</code> and
+      <code>invoice_line</code> take every argument as <code>Any</code>, so the call
+      that swaps a price with a description passes the scan, and one customer's
+      invoice read <code>80 xTrue at handlebar gripd +tax</code>.
+      <code>product_cost</code> and <code>invoice_total</code> carry pounds in
+      floats, and most shilling-and-pence amounts have no exact float, so the totals
+      drift pennies away from the ledger. <code>advance</code> compares against bare
+      strings, one of them misspelled <code>darft</code>, so no invoice ever leaves
+      its draft stage through that branch. <code>bill</code> takes two look-alike
+      ids as two strings, so nothing stops an invoice addressed to a bicycle.
+      <code>load_bom_line</code> reads the parts file and hands every field on as
+      text, quantities and costs included.
     </p>
     <p>
-      Five different bugs, and one cause: somewhere, a value of the wrong kind fit
-      into a hole of the right shape. Text went where a number belonged, a float
-      carried money, one string stood for two different account numbers. This
-      tutorial takes that one system and rewrites it until each of those mistakes
-      stops being possible, not by adding checks that run, but by writing types that
-      make the wrong code fail before it runs.
-    </p>
-    <h3>The checker</h3>
-    <p>
-      Both languages come with a <em>type checker</em>: a program that reads your
-      source code and lists the places where the code contradicts its own
-      annotations, each with a file and line number, without executing anything.
-      That reading is the <em>scan</em>, and it is where every error on this page
-      appears. Nothing here depends on what happens later, at <em>run time</em>,
-      when the program executes; in both languages the annotations do no work of
-      their own once the program is running. This page assumes the checker's
-      strictest settings throughout.
-    </p>
-    <h3>The words</h3>
-    <p>
-      A <em>type</em> is a claim about a value: this is text, this is a whole number.
-      An <em>annotation</em> is where you write that claim, after a colon in both
-      languages. <code>Any</code> in Python and <code>any</code> in TypeScript are
-      the escape hatch: a value typed that way matches everything, and the checker
-      stops looking at it. Here is a first annotated function, with every claim
-      written out:
-    </p>
-    <div class="ts-example" data-example="annotations_first_look"></div>
-    <p>
-      Read the Python side as: <code>shelf_label</code> takes an <code>item</code>
-      that is a string and a <code>price</code> that is a float, and returns a
-      string. The TypeScript side makes the same claims with the same shape. The
-      checker's whole job is to find the places where code disagrees with claims
-      like these.
-    </p>
-    <h3>The program we will fix</h3>
-    <p>
-      Here is the shop's order system, condensed to one file. Every bug from the
-      tracker lives in it. The checker, even at its strictest, accepts all of it.
-    </p>
-    <div class="ts-example" data-example="the_shop"></div>
-    <p>
-      Look for the five weaknesses. <code>order_line</code> takes all four arguments
-      as <code>Any</code>, so the swapped call that mangled the receipt passes the
-      scan. <code>order_total</code> carries money in floats, which is where the
-      missing cent went. <code>advance</code> compares against bare strings, and one
-      of them is misspelled <code>darft</code>, which is why that invoice never left
-      its draft stage. <code>refund</code> takes two account numbers as two strings,
-      so nothing distinguishes the shop's account from the supplier's.
-      <code>start</code> reads the port from <code>argv</code> and it stays text.
-    </p>
-    <p>
-      The tutorial removes these weaknesses in order. Section 2 types the receipt
-      line and moves the money out of floats. Section 3 closes the status strings
-      and names the units. Section 4 gives the two accounts two types. Section 5
-      parses the command line, and everything else that crosses into the program,
-      once at the border. Sections 6 through 8 then take the typed pieces and
-      compose them into programs. By the end, nothing of this file survives
+      The tutorial removes these weaknesses in order. Section 2 types the invoice
+      line and moves the money into pence. Section 3 names the units and closes the
+      status strings. Section 4 gives customers and products their own types.
+      Section 5 parses the parts file, and everything else that crosses into the
+      program, once at the border. Sections 6 through 8 then take the typed pieces
+      and compose them into programs. By the end, nothing of this file survives
       unchanged.
     </p>
     <h3>How to read the examples</h3>
@@ -162,33 +125,34 @@
       that the claim is usually much smaller than what your program means.
     </p>
     <p>
-      Start with the receipt bug. Each line of a receipt shows an item's name, its
-      unit price, how many were bought, and whether the item is gift-wrapped, and
-      <code>order_line</code> formats one such line. As the seed file has it, with
+      Start with the mangled invoice. Each line of an invoice shows a description,
+      a price in pence, a quantity, and whether the line is taxed, and
+      <code>invoice_line</code> formats one such line. As the seed file has it, with
       every argument <code>Any</code>, every call passes the scan, including the one
-      with all four arguments in the wrong order; the customer's mangled receipt was
-      the first anyone heard of it. Written with ordinary <code>str</code>,
-      <code>float</code>, <code>int</code> and <code>bool</code>, the checker
+      with all four arguments in the wrong order; the customer who read
+      <code>80 xTrue at handlebar gripd</code> was the first to notice. Written with
+      ordinary <code>str</code>, <code>int</code> and <code>bool</code>, the checker
       catches that same call while it reads the file.
     </p>
     <div class="ts-block" data-block="typed_arguments"></div>
     <p>
-      Simple types run out of power quickly, though. The seed's <code>refund</code>
-      moves money from the shop's account back to a supplier's, and takes the two
-      account numbers as strings. Swap them at the call site and the checker stays
-      quiet, because both are the same type, and the money flows into the shop
-      instead of out of it, which is exactly the refund bug from the tracker.
+      Simple types run out of power quickly, though. The seed's <code>bill</code>
+      addresses an invoice, and takes a customer id and a product id as two
+      strings. Swap them at the call site and the checker stays quiet, because both
+      are the same type, and the invoice goes out addressed to a bicycle.
       Programmers call this kind of code <em>stringly typed</em>. Hold the example
       in mind; its fix arrives in section 4.
     </p>
     <p>
       Sometimes the simple type is the wrong claim outright. The seed's
-      <code>order_total</code> sums prices as floats, and it matters that three
-      items at ten cents come to exactly thirty. <code>float</code> stores
-      approximate reals, and money needs to be exact. Everything passes the scan,
-      and the totals drift a cent away from the bank statement.
+      <code>invoice_total</code> sums pounds as floats, and it matters that three
+      parts at two shillings, a tenth of a pound each, come to exactly six
+      shillings. <code>float</code> stores approximate reals, and money needs to be
+      exact. Everything passes the scan, and the totals drift a penny away from the
+      ledger. Integer pence fix it, and carrying by twelves and twenties turns out
+      to be formatting, not arithmetic.
     </p>
-    <div class="ts-block" data-block="money_cents"></div>
+    <div class="ts-block" data-block="money_pence"></div>
     <p>
       All three problems have the same shape: the type accepts values the program
       never intends. Everything that follows is about closing that gap.
@@ -215,7 +179,9 @@
       cheapest place to catch that class of mistake.
     </p>
     <p>
-      The example here is a retry delay. <code>wait_before_retry</code> expects a
+      The seed's parts file keeps a unit column, and the workshop measures spokes by
+      count, tubing by the meter, and grease by the kilogram. The example here is the
+      smallest version of that mistake: <code>wait_before_retry</code> expects a
       number of seconds, and somewhere else in the program a number of meters is also
       in play. Both are plain numbers until <code>NewType</code> and a brand pull them
       apart.
@@ -284,14 +250,15 @@
       <code>EmailAddress</code> can rely on the check without repeating it.
     </p>
     <p>
-      Back at the shop, the checkout sends a receipt by email, and later a reminder.
-      The address arrives from a web form, typed by a person, so it needs a check, and
-      the question is where that check lives.
+      The workshop sends each invoice by email, and later a reminder. The address
+      arrives from a web form, typed by a person, so it needs a check, and the
+      question is where that check lives.
     </p>
     <div class="ts-block" data-block="email_parse"></div>
     <p>
-      The same recipe retires the seed's refund bug, held over from section 2. Give each kind of
-      account its own type, and the swapped call no longer passes the check.
+      The same recipe retires the seed's billing bug, held over from section 2. Give
+      customers and products their own id types, and the swapped call no longer
+      passes the check.
     </p>
     <div class="ts-block" data-block="entity_ids"></div>
     <p>
@@ -333,9 +300,12 @@
       slogan: write functions on the data you wish you had. Parse once, at the edge.
     </p>
     <p>
-      Take the command line first, which is the seed's last weakness. The shop's
-      server is started from a terminal, as servers are, with a line like
-      <code>serve port=8080 verbose=true</code>.
+      The seed's <code>load_bom_line</code> is this problem in one line: it splits a
+      row of the parts file and hands every field on as text, so the conversion of
+      <code>qty</code> and <code>cost</code> happens wherever someone remembers to do
+      it. Take the command line first, because it is the same problem at its
+      smallest. The workshop's server is started from a terminal, as servers are,
+      with a line like <code>serve port=8080 verbose=true</code>.
       <code>argv</code> is nothing but strings; the operator typed
       <code>port=8080</code>, and <code>"8080"</code> stays text until something
       converts it. In the before version the settings travel as a dict of strings, so

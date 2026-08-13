@@ -3,9 +3,9 @@
 from typing import Any
 
 
-def order_line(name: Any, unit_price: Any, quantity: Any, gift: Any) -> Any:
-    note = " (gift)" if gift else ""
-    return f"{name} x{quantity} at {unit_price:.2f}{note}"
+def invoice_line(description: Any, price_pence: Any, quantity: Any, taxed: Any) -> Any:
+    note = " +tax" if taxed else ""
+    return f"{description} x{quantity} at {price_pence}d{note}"
 
 
-line = order_line(3, "tea", True, 1.95)  # accepted, and fails at run time
+line = invoice_line(80, "handlebar grip", True, 2)  # accepted, and wrong at run time

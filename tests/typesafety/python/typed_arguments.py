@@ -2,10 +2,10 @@
 # run: yes
 # title: With real types, the mixed-up call fails the type check
 # improves: any_arguments
-def order_line(name: str, unit_price: float, quantity: int, gift: bool) -> str:
-    note = " (gift)" if gift else ""
-    return f"{name} x{quantity} at {unit_price:.2f}{note}"
+def invoice_line(description: str, price_pence: int, quantity: int, taxed: bool) -> str:
+    note = " +tax" if taxed else ""
+    return f"{description} x{quantity} at {price_pence}d{note}"
 
 
-assert order_line("tea", 1.95, 3, gift=False) == "tea x3 at 1.95"
-assert order_line("mug", 8.00, 1, gift=True) == "mug x1 at 8.00 (gift)"
+assert invoice_line("handlebar grip", 80, 2, taxed=False) == "handlebar grip x2 at 80d"
+assert invoice_line("saddle", 155, 1, taxed=True) == "saddle x1 at 155d +tax"

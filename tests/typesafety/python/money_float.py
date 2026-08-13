@@ -1,9 +1,9 @@
 # expect: passes
 # run: yes
-# title: Adding 0.1 three times does not equal 0.3
-def total_price(prices: list[float]) -> float:
-    return sum(prices)
+# title: Three parts at two shillings do not come to six shillings
+def total_pounds(prices_pounds: list[float]) -> float:
+    return sum(prices_pounds)
 
 
-# Three items at ten cents each. CI runs this line.
-assert total_price([0.1, 0.1, 0.1]) != 0.3
+# Two shillings is a tenth of a pound. CI runs this line.
+assert total_pounds([0.1, 0.1, 0.1]) != 0.3

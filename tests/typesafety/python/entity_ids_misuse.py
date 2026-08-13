@@ -1,15 +1,15 @@
 # expect: fails
-# title: The swapped refund, rejected by the checker
+# title: The swapped bill, rejected by the checker
 # misuse-of: entity_ids
 from typing import NewType
 
-ShopAccount = NewType("ShopAccount", str)
-SupplierAccount = NewType("SupplierAccount", str)
+CustomerId = NewType("CustomerId", str)
+ProductId = NewType("ProductId", str)
 
 
-def refund(source: ShopAccount, target: SupplierAccount, amount_cents: int) -> str:
-    return f"move {amount_cents} from {source} to {target}"
+def bill(customer: CustomerId, product: ProductId) -> str:
+    return f"invoice {customer} for one {product}"
 
 
-def refund_supplier(shop: ShopAccount, supplier: SupplierAccount) -> str:
-    return refund(supplier, shop, 4_500)  # rejected: both types are wrong
+def bill_roadster(customer: CustomerId, product: ProductId) -> str:
+    return bill(product, customer)  # rejected: both types are wrong

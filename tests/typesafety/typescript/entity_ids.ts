@@ -1,15 +1,15 @@
 // expect: passes
 
-declare const shopBrand: unique symbol;
-declare const supplierBrand: unique symbol;
+declare const customerBrand: unique symbol;
+declare const productBrand: unique symbol;
 
-type ShopAccount = string & { readonly [shopBrand]: true };
-type SupplierAccount = string & { readonly [supplierBrand]: true };
+type CustomerId = string & { readonly [customerBrand]: true };
+type ProductId = string & { readonly [productBrand]: true };
 
-function refund(source: ShopAccount, target: SupplierAccount, amountCents: number): string {
-  return `move ${amountCents} from ${source} to ${target}`;
+function bill(customer: CustomerId, product: ProductId): string {
+  return `invoice ${customer} for one ${product}`;
 }
 
-export function refundSupplier(shop: ShopAccount, supplier: SupplierAccount): string {
-  return refund(shop, supplier, 4_500);
+export function billRoadster(customer: CustomerId, product: ProductId): string {
+  return bill(customer, product);
 }
