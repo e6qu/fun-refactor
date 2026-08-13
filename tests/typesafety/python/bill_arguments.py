@@ -5,7 +5,4 @@ def bill(customer_id: str, product_id: str) -> str:
 
 
 def bill_roadster(customer_id: str, product_id: str) -> str:
-    # The arguments are in the wrong order. The checker accepts the call,
-    # because both parameters are the same type, and the invoice goes out
-    # addressed to a bicycle.
     return bill(product_id, customer_id)

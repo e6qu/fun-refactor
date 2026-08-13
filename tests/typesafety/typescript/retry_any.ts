@@ -20,4 +20,4 @@ function fetchPage(url: string, timeout: number): string {
 
 const patientFetch = retry(3, fetchPage);
 export const fine = patientFetch("https://example.test", 10);
-export const wrong = patientFetch(10, "https://example.test"); // accepted, and wrong
+export const wrong = patientFetch(10, "https://example.test");

@@ -8,4 +8,4 @@ def invoice_line(description: Any, price_pence: Any, quantity: Any, taxed: Any) 
     return f"{description} x{quantity} at {price_pence}d{note}"
 
 
-line = invoice_line(80, "handlebar grip", True, 2)  # accepted, and wrong at run time
+line = invoice_line(80, "handlebar grip", True, 2)

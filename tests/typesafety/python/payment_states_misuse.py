@@ -19,4 +19,4 @@ type Payment = Pending | Settled
 
 
 def receipt_of(payment: Payment) -> str:
-    return payment.receipt_id  # error: Pending has no receipt_id
+    return payment.receipt_id

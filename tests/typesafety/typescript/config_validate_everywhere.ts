@@ -19,7 +19,7 @@ export function connect(settings: Map<string, string>): string {
 
 export function report(settings: Map<string, string>): string {
   const portText = settings.get("port");
-  if (portText === undefined || !/^\d+$/.test(portText)) { // the same check, again
+  if (portText === undefined || !/^\d+$/.test(portText)) {
     throw new Error("port missing or not a number");
   }
   return `listening on ${Number(portText)}`;

@@ -13,6 +13,5 @@ function addPrices(
 }
 
 export function basketTotal(): number {
-  // Throws at run time. Nothing warned about it earlier.
   return addPrices(19.99, "USD", 5.0, "EUR");
 }

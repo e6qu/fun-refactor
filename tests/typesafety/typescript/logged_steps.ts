@@ -18,5 +18,3 @@ function addTax(n: number): Logged<number> {
 export function total(n: number): Logged<number> {
   return andThen(andThen({ value: n, log: [] }, double), addTax);
 }
-// total(100) is { value: 220, log: ["doubled 100", "taxed 200"] }.
-// The Python twin runs these assertions in CI.

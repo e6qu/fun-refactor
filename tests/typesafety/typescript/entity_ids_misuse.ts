@@ -11,5 +11,5 @@ function bill(customer: CustomerId, product: ProductId): string {
 }
 
 export function billRoadster(customer: CustomerId, product: ProductId): string {
-  return bill(product, customer); // rejected: both types are wrong
+  return bill(product, customer);
 }

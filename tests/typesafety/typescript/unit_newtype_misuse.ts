@@ -16,6 +16,6 @@ function cutTubing(length: Meters): string {
 
 export function restock(): string {
   const spokes = each(36);
-  cutTubing(1.8); // error: number is not Meters
-  return cutTubing(spokes); // error: Each is not Meters
+  cutTubing(1.8);
+  return cutTubing(spokes);
 }

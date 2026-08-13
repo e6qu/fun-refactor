@@ -14,5 +14,5 @@ function advance(status: Status): Status {
 }
 
 export function submit(): Status {
-  return advance("snet"); // error: not one of the three statuses
+  return advance("snet");
 }

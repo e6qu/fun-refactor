@@ -7,6 +7,5 @@ function cheapestFirst(orders: readonly Order[], key: (...args: any[]) => number
 }
 
 export function demo(orders: Order[]): Order[] {
-  // accepted, and every call returns NaN: an Order has no [currency]
   return cheapestFirst(orders, (order, currency) => Number(order[currency]));
 }

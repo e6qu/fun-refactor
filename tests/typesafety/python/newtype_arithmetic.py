@@ -7,4 +7,4 @@ Kilograms = NewType("Kilograms", float)
 
 
 def nonsense(tubing: Meters, grease: Kilograms) -> float:
-    return tubing + grease  # accepted, and the sum means nothing
+    return tubing + grease

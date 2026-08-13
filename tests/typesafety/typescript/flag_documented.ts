@@ -7,5 +7,5 @@ function readLog(path: string, mode: string): number {
 }
 
 export function tail(): number {
-  return readLog("app.log", "binry"); // typo: silently reads as binary
+  return readLog("app.log", "binry");
 }

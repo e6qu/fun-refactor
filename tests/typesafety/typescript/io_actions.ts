@@ -29,7 +29,6 @@ function retry<T>(times: number, action: IO<T>): IO<T> {
   };
 }
 
-// A connection that fails twice and then answers, so the retry is observable.
 let calls = 0;
 
 function flakyFetch(): string {
@@ -40,7 +39,6 @@ function flakyFetch(): string {
 
 export const greeting = andThen(retry(3, { run: flakyFetch }), (text) => of(text.toUpperCase()));
 
-export const nothingRanYet = calls === 0; // true: greeting is still a description
-export const answer = greeting.run(); // "PAYLOAD"
-export const callsAfterRun = calls; // 3: two failures, one answer
-// The Python twin runs the same three assertions in CI.
+export const nothingRanYet = calls === 0;
+export const answer = greeting.run();
+export const callsAfterRun = calls;

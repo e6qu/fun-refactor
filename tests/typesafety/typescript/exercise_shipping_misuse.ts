@@ -7,7 +7,7 @@ type Kilograms = number & { readonly [kilogramsBrand]: true };
 type Kilometers = number & { readonly [kilometersBrand]: true };
 
 function kilograms(n: number): Kilograms {
-  return n as Kilograms; // the one trusted door into the brand
+  return n as Kilograms;
 }
 
 function kilometers(n: number): Kilometers {
@@ -27,7 +27,7 @@ function shippingCents(weight: Kilograms, distance: Kilometers, handling: Handli
 }
 
 export const quote = shippingCents(
-  kilometers(120.0), // rejected: both units are wrong
+  kilometers(120.0),
   kilograms(2.5),
   { express: true },
 );

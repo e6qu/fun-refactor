@@ -9,4 +9,4 @@ def cut_tubing(length: Meters) -> str:
 
 def restock() -> str:
     spokes = 36
-    return cut_tubing(spokes)  # accepted: Meters and float are the same type
+    return cut_tubing(spokes)

@@ -19,4 +19,4 @@ def add[M: (Usd, Eur)](a: M, b: M) -> M:
 
 
 def basket_total() -> Usd:
-    return add(Usd(1999), Eur(500))  # error: no single currency fits both
+    return add(Usd(1999), Eur(500))

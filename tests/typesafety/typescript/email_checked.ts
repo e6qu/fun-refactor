@@ -12,7 +12,7 @@ export function sendReceipt(to: string): string {
 }
 
 export function sendReminder(to: string): string {
-  if (!looksLikeEmail(to)) { // the same check, again
+  if (!looksLikeEmail(to)) {
     throw new Error("bad address");
   }
   return `reminder sent to ${to}`;

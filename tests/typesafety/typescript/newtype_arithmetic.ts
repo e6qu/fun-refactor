@@ -7,5 +7,5 @@ type Meters = number & { readonly [metersBrand]: true };
 type Kilograms = number & { readonly [kilogramsBrand]: true };
 
 export function nonsense(tubing: Meters, grease: Kilograms): number {
-  return tubing + grease; // accepted, and the sum means nothing
+  return tubing + grease;
 }

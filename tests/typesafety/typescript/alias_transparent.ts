@@ -8,5 +8,5 @@ function cutTubing(length: Meters): string {
 
 export function restock(): string {
   const spokes = 36;
-  return cutTubing(spokes); // accepted: Meters and number are the same type
+  return cutTubing(spokes);
 }

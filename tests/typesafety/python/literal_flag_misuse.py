@@ -10,4 +10,4 @@ def read_log(path: str, mode: Literal["text", "binary"]) -> int:
 
 
 def tail(chosen: str) -> int:
-    return read_log("app.log", chosen)  # error: str is wider than the two values
+    return read_log("app.log", chosen)

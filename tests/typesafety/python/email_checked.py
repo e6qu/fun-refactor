@@ -11,6 +11,6 @@ def send_receipt(to: str) -> str:
 
 
 def send_reminder(to: str) -> str:
-    if not looks_like_email(to):  # the same check, again
+    if not looks_like_email(to):
         raise ValueError("bad address")
     return f"reminder sent to {to}"

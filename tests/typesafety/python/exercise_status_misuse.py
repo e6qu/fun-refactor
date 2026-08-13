@@ -19,4 +19,4 @@ def next_action(status: Status) -> str:
 
 
 def handle() -> str:
-    return next_action("recieved")  # rejected: not one of the three statuses
+    return next_action("recieved")

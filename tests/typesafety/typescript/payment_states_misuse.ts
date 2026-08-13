@@ -5,5 +5,5 @@ type Settled = { readonly kind: "settled"; readonly requestedAt: string; readonl
 type Payment = Pending | Settled;
 
 export function receiptOf(payment: Payment): string {
-  return payment.receiptId; // error: Pending has no receiptId
+  return payment.receiptId;
 }

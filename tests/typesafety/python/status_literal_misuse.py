@@ -17,4 +17,4 @@ def advance(status: Status) -> Status:
 
 
 def submit() -> Status:
-    return advance("snet")  # error: not one of the three statuses
+    return advance("snet")

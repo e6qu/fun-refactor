@@ -21,4 +21,4 @@ class Kilograms:
 
 
 def nonsense(tubing: Meters, grease: Kilograms) -> Meters:
-    return tubing + grease  # error: Meters + Kilograms has no meaning
+    return tubing + grease

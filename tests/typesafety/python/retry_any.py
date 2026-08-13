@@ -23,4 +23,4 @@ def fetch(url: str, timeout: int) -> str:
 
 patient_fetch = retry(3, fetch)
 fine = patient_fetch("https://example.test", 10)
-wrong = patient_fetch(10, "https://example.test")  # accepted, and wrong
+wrong = patient_fetch(10, "https://example.test")

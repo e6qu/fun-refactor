@@ -7,4 +7,4 @@ def read_log(path: str, mode: str) -> int:
 
 
 def tail() -> int:
-    return read_log("app.log", "binry")  # typo: silently reads as binary
+    return read_log("app.log", "binry")

@@ -568,7 +568,9 @@
     <p>
       An amount is a number with its currency in a string beside it, and the mismatch
       is caught at run time, if at all. Move it into the types, so adding dollars to
-      euros no longer passes the check.
+      euros no longer passes the check. In the TypeScript solution,
+      <code>NoInfer</code> pins the currency to the first amount, so the second
+      cannot widen it to a union of both.
     </p>
     <details class="ts-solution">
       <summary>Hint</summary>

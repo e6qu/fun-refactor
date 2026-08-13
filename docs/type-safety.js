@@ -261,6 +261,57 @@ for (const slot of document.querySelectorAll("[data-quiz]")) {
   render();
 }
 
+// Selecting text highlights every identical occurrence on the page, so a
+// selected identifier shows all its uses across the examples. Uses the CSS
+// Custom Highlight API; a browser without it keeps plain selection.
+if (typeof Highlight !== "undefined" && CSS.highlights) {
+  const NAME = "ts-same-text";
+  const CAP = 2000;
+  let pending = 0;
+  const main = document.querySelector("main");
+
+  const repaint = () => {
+    CSS.highlights.delete(NAME);
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed) {
+      return;
+    }
+    const needle = selection.toString().trim();
+    if (needle.length < 2 || needle.length > 200 || needle.includes("\n")) {
+      return;
+    }
+    const ranges = [];
+    const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+    outer: while (walker.nextNode()) {
+      const node = walker.currentNode;
+      let from = 0;
+      for (;;) {
+        const at = node.data.indexOf(needle, from);
+        if (at < 0) {
+          break;
+        }
+        const range = new Range();
+        range.setStart(node, at);
+        range.setEnd(node, at + needle.length);
+        ranges.push(range);
+        from = at + needle.length;
+        if (ranges.length >= CAP) {
+          break outer;
+        }
+      }
+    }
+    // One match is just the selection itself; echoes start at two.
+    if (ranges.length > 1) {
+      CSS.highlights.set(NAME, new Highlight(...ranges));
+    }
+  };
+
+  document.addEventListener("selectionchange", () => {
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(repaint);
+  });
+}
+
 // The reading position: a checkbox beside each contents entry marks a step done.
 // The state is local to this browser.
 const toc = document.getElementById("toc");

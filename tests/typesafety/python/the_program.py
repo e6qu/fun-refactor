@@ -21,7 +21,7 @@ def invoice_total(prices_pounds: list[float]) -> float:
 
 
 def advance(status: str) -> str:
-    if status == "darft":  # one of these strings is misspelled
+    if status == "darft":
         return "sent"
     if status == "sent":
         return "paid"
@@ -33,4 +33,4 @@ def bill(customer_id: str, product_id: str) -> str:
 
 
 def load_bom_line(row: str) -> list[str]:
-    return row.split(",")  # part_no, description, qty, unit, cost: all text
+    return row.split(",")

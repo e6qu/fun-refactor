@@ -13,5 +13,5 @@ def cut_tubing(length: Meters) -> str:
 
 def restock() -> str:
     spokes = Each(36)
-    cut_tubing(1.8)  # error: "float" is not "Meters"
-    return cut_tubing(spokes)  # error: "Each" is not "Meters"
+    cut_tubing(1.8)
+    return cut_tubing(spokes)

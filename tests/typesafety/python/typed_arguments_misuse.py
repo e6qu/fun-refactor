@@ -6,4 +6,4 @@ def invoice_line(description: str, price_pence: int, quantity: int, taxed: bool)
     return f"{description} x{quantity} at {price_pence}d{note}"
 
 
-line = invoice_line(80, "handlebar grip", True, 2)  # rejected: three of the four arguments flagged
+line = invoice_line(80, "handlebar grip", True, 2)

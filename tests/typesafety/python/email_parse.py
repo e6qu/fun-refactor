@@ -15,7 +15,6 @@ def parse_email(raw: str) -> EmailAddress | None:
 
 
 def send_receipt(to: EmailAddress) -> str:
-    # No validation here: parse_email already said yes.
     return f"receipt sent to {to}"
 
 

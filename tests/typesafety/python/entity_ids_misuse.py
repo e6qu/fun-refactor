@@ -12,4 +12,4 @@ def bill(customer: CustomerId, product: ProductId) -> str:
 
 
 def bill_roadster(customer: CustomerId, product: ProductId) -> str:
-    return bill(product, customer)  # rejected: both types are wrong
+    return bill(product, customer)

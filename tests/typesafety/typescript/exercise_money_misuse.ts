@@ -16,5 +16,5 @@ function add<C extends Currency>(a: Money<C>, b: Money<NoInfer<C>>): Money<C> {
 }
 
 export function basketTotal(): Money<"USD"> {
-  return add(money("USD", 1999), money("EUR", 500)); // error: EUR is not USD
+  return add(money("USD", 1999), money("EUR", 500));
 }

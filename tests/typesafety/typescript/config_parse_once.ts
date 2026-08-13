@@ -27,7 +27,7 @@ export function parseArgv(argv: string[]): Config {
 }
 
 export function connect(config: Config): string {
-  return `connecting on ${config.port}`; // no check, and none needed
+  return `connecting on ${config.port}`;
 }
 
 export function report(config: Config): string {

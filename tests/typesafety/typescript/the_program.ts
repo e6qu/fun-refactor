@@ -19,7 +19,6 @@ export function invoiceTotal(pricesPounds: number[]): number {
 
 export function advance(status: string): string {
   if (status === "darft") {
-    // one of these strings is misspelled
     return "sent";
   }
   if (status === "sent") {
@@ -33,5 +32,5 @@ export function bill(customerId: string, productId: string): string {
 }
 
 export function loadBomLine(row: string): string[] {
-  return row.split(","); // part_no, description, qty, unit, cost: all text
+  return row.split(",");
 }

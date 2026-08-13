@@ -13,7 +13,7 @@ def area(width: int, height: int) -> int:
 
 
 def greet(name: str) -> str:
-    started = time.perf_counter()  # the same three lines, again
+    started = time.perf_counter()
     result = f"hello {name}"
     durations.append(time.perf_counter() - started)
     return result

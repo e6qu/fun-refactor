@@ -18,4 +18,4 @@ function addMeters(a: Meters, b: Meters): Meters {
   return (a + b) as Meters;
 }
 
-export const nonsense = addMeters(meters(1.8), kilograms(4)); // error: Kilograms is not Meters
+export const nonsense = addMeters(meters(1.8), kilograms(4));

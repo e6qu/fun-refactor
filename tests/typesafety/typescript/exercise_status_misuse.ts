@@ -20,5 +20,5 @@ function nextAction(status: Status): string {
 }
 
 export function handle(): string {
-  return nextAction("recieved"); // rejected: not one of the three statuses
+  return nextAction("recieved");
 }

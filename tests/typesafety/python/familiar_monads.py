@@ -11,7 +11,6 @@ class Team:
 
 
 def all_logins(teams: list[Team]) -> list[str]:
-    # For each team, a list of logins; the comprehension flattens the lists.
     return [login for team in teams for login in team.logins]
 
 

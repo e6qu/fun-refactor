@@ -28,7 +28,7 @@ def parse_argv(argv: list[str]) -> Config:
 
 
 def connect(config: Config) -> str:
-    return f"connecting on {config.port}"  # no check, and none needed
+    return f"connecting on {config.port}"
 
 
 def report(config: Config) -> str:

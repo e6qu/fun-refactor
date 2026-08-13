@@ -13,7 +13,7 @@ class Order(BaseModel):
 
 
 def price_cents(order: Order) -> int:
-    return order.quantity * 250  # no checks: the type says both
+    return order.quantity * 250
 
 
 def handle(body: str) -> int:

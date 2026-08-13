@@ -22,5 +22,5 @@ def shipping_cents(weight: Kilograms, distance: Kilometers, handling: Handling) 
 
 
 quote = shipping_cents(
-    Kilometers(120.0), Kilograms(2.5), Handling(express=True)  # rejected: both units are wrong
+    Kilometers(120.0), Kilograms(2.5), Handling(express=True)
 )

@@ -6,5 +6,5 @@ function readLog(path: string, mode: "text" | "binary"): number {
 }
 
 export function tail(chosen: string): number {
-  return readLog("app.log", chosen); // error: string is wider than the two values
+  return readLog("app.log", chosen);
 }

@@ -9,5 +9,4 @@ def add_prices(
 
 
 def basket_total() -> float:
-    # Raises at run time. Nothing warned about it earlier.
     return add_prices(19.99, "USD", 5.00, "EUR")

@@ -11,7 +11,7 @@ const Order = z.strictObject({
 type Order = z.infer<typeof Order>;
 
 function priceCents(order: Order): number {
-  return order.quantity * 250; // no checks: the type says both
+  return order.quantity * 250;
 }
 
 export function handle(body: string): number {

@@ -15,5 +15,4 @@ def cheapest_first(orders: list[Order], key: Callable[..., int]) -> list[Order]:
 
 
 def demo(orders: list[Order]) -> list[Order]:
-    # accepted, and every call fails: sorted passes the key one argument, not two
     return cheapest_first(orders, lambda order, currency: int(order[currency]))

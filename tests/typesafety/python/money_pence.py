@@ -12,6 +12,5 @@ def show(pence: int) -> str:
     return f"£{pounds} {s}s {d}d"
 
 
-# The same three parts: two shillings is 24 pence. CI runs both lines.
 assert total_pence([24, 24, 24]) == 72
 assert show(72) == "£0 6s 0d"

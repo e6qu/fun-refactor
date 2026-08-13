@@ -1,7 +1,7 @@
 // expect: passes
 
 export function nextAction(status: string): string {
-  if (status === "recieved") { // typo: never matches "received"
+  if (status === "recieved") {
     return "start picking";
   }
   if (status === "picked") {

@@ -32,7 +32,6 @@ def retry[T](times: int, action: IO[T]) -> IO[T]:
     return IO(attempt)
 
 
-# A connection that fails twice and then answers, so the retry is observable.
 _calls = {"count": 0}
 
 
@@ -45,6 +44,6 @@ def flaky_fetch() -> str:
 
 greeting = and_then(retry(3, IO(flaky_fetch)), lambda text: of(text.upper()))
 
-assert _calls["count"] == 0  # nothing has run yet
+assert _calls["count"] == 0
 assert greeting.run() == "PAYLOAD"
-assert _calls["count"] == 3  # two failures, one answer
+assert _calls["count"] == 3
