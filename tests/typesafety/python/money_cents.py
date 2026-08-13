@@ -2,9 +2,6 @@
 # run: yes
 # title: Integer cents add up exactly
 # improves: money_float
-"""The same prices, held as integer cents. The sum is exact at any scale."""
-
-
 def total_cents(prices_cents: list[int]) -> int:
     return sum(prices_cents)
 

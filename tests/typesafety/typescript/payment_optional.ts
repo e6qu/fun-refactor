@@ -1,6 +1,4 @@
 // expect: passes
-// Two booleans worth of shape in one type. A settled payment without a
-// receipt, and a pending payment with one, both construct without complaint.
 
 type Payment = {
   readonly requestedAt: string;

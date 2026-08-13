@@ -1,8 +1,5 @@
 # expect: passes
 # title: Two parameters share one type, so the checker accepts the swapped call
-"""Both parameters are `str`, so swapping them type-checks."""
-
-
 def transfer(from_account: str, to_account: str, amount_cents: int) -> str:
     return f"move {amount_cents} from {from_account} to {to_account}"
 

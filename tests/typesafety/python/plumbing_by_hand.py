@@ -1,8 +1,5 @@
 # expect: passes
 # title: The timing lines repeat in every function
-"""Two functions want the same measurement, so the same three lines appear in
-both. The next function that needs timing copies them again."""
-
 import time
 
 durations: list[float] = []

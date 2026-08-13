@@ -1,8 +1,6 @@
 # expect: fails
 # title: Meters where Seconds belong, rejected by the checker
 # misuse-of: unit_newtype
-"""The same call as before, with a plain `int` and with `Meters`. Both are rejected."""
-
 from typing import NewType
 
 Seconds = NewType("Seconds", int)

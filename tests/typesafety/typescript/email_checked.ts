@@ -1,6 +1,4 @@
 // expect: passes
-// The address travels as a plain string, so each function checks it again.
-// No function can trust that another already did.
 
 function looksLikeEmail(raw: string): boolean {
   return raw.includes("@") && !raw.startsWith("@");

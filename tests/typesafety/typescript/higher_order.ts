@@ -1,6 +1,4 @@
 // expect: passes
-// `retry` takes a function and returns one with the same parameters and the
-// same result. The type parameters carry the whole signature through.
 
 function retry<A extends unknown[], R>(
   times: number,

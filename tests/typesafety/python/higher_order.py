@@ -1,9 +1,6 @@
 # expect: passes
 # title: After retry, fetch keeps its full signature
 # improves: retry_any
-"""`retry` takes a function and returns one with the same parameters and the
-same result. The type parameters carry the whole signature through."""
-
 from collections.abc import Callable
 
 

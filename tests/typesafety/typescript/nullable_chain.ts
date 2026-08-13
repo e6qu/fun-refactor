@@ -1,6 +1,4 @@
 // expect: passes
-// Three steps can each fail. The caller of `quote` receives null and cannot
-// say which step failed, or why.
 
 function parseQuantity(text: string): number | null {
   return /^\d+$/.test(text) ? Number(text) : null;

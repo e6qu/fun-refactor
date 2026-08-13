@@ -2,10 +2,6 @@
 # run: yes
 # title: IO describes the fetch, retry wraps it, and run performs it
 # improves: inline_retry
-"""`IO` wraps a computation without running it. `and_then` composes a larger
-description, `retry` wraps any description in a policy, and nothing touches
-the network until `run`. The retry logic exists once, as a combinator."""
-
 from collections.abc import Callable
 from dataclasses import dataclass
 

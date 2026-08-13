@@ -1,5 +1,4 @@
 // expect: fails
-// The same call as before, with a plain `number` and with `Meters`. Both are rejected.
 
 declare const secondsBrand: unique symbol;
 declare const metersBrand: unique symbol;

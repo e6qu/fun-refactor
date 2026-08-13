@@ -2,11 +2,6 @@
 # run: yes
 # title: With real types, the mixed-up call fails the type check
 # improves: any_arguments
-"""Plain `str`, `float`, `int` and `bool` say what each argument is. The
-misplaced call from before now fails during the type check, before the
-program runs at all."""
-
-
 def order_line(name: str, unit_price: float, quantity: int, gift: bool) -> str:
     note = " (gift)" if gift else ""
     return f"{name} x{quantity} at {unit_price:.2f}{note}"

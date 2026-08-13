@@ -1,9 +1,6 @@
 # expect: passes
 # title: Kilograms, Kilometers and a Handling record make the call readable
 # improves: exercise_shipping_start
-"""Units as types, options as named fields. The call now says what every
-value means, and swapped units are a compile error."""
-
 from dataclasses import dataclass
 from typing import NewType
 

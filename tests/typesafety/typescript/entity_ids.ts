@@ -1,5 +1,4 @@
 // expect: passes
-// The transfer example again, with the account numbers as distinct types.
 
 declare const tenantBrand: unique symbol;
 declare const landlordBrand: unique symbol;

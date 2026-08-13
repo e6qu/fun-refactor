@@ -1,6 +1,4 @@
 // expect: passes
-// The steps pass a loose record along. Each one checks the keys it needs, and
-// a step out of order fails at run time, when it fails at all.
 
 function parseOrder(raw: Record<string, unknown>): Record<string, unknown> {
   const quantityText = raw["quantityText"];

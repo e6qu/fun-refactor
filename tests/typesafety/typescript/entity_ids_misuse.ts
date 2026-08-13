@@ -1,5 +1,4 @@
 // expect: fails
-// The bug from the first section, written against the typed accounts.
 
 declare const tenantBrand: unique symbol;
 declare const landlordBrand: unique symbol;
@@ -12,6 +11,5 @@ function transfer(source: TenantAccount, target: LandlordAccount, amountCents: n
 }
 
 export function payRent(tenant: TenantAccount, landlord: LandlordAccount): string {
-  // The same swapped arguments. The checker rejects both of them.
-  return transfer(landlord, tenant, 95_000);
+  return transfer(landlord, tenant, 95_000); // rejected: both types are wrong
 }

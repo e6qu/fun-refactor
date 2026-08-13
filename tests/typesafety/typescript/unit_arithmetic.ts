@@ -1,7 +1,4 @@
 // expect: passes
-// A brand stops the wrong substitution, and arithmetic escapes it: `+` on two
-// branded numbers is number + number again, and the brand is gone. TypeScript
-// has no operator overloading, so route sums through typed functions.
 
 declare const secondsBrand: unique symbol;
 declare const kilogramsBrand: unique symbol;

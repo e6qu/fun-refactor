@@ -2,10 +2,6 @@
 # run: yes
 # title: The @timed decorator adds the measurement once
 # improves: plumbing_by_hand
-"""A decorator is a higher-order function applied with `@` at the definition.
-`timed` takes a function, returns a wrapped one, and the type parameters keep
-the signature, so `area(3, 4)` still checks its arguments."""
-
 import time
 from collections.abc import Callable
 

@@ -1,8 +1,6 @@
 # expect: passes
 # title: Seconds and Meters become types the checker can tell apart
 # improves: alias_transparent
-"""`NewType` makes a distinct type from `int`. The checker tells them apart."""
-
 from typing import NewType
 
 Seconds = NewType("Seconds", int)

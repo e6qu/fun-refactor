@@ -1,9 +1,6 @@
 # expect: passes
 # title: Usd and Eur become types, and add takes one currency at a time
 # improves: exercise_money_start
-"""One class per currency, and `add` constrained to a single one of them.
-Cents are integers, so the totals are exact."""
-
 from dataclasses import dataclass, replace
 
 

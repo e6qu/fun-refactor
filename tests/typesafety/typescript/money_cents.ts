@@ -1,5 +1,4 @@
 // expect: passes
-// The same prices, held as integer cents. The sum is exact at any scale.
 
 function totalCents(pricesCents: number[]): number {
   return pricesCents.reduce((sum, price) => sum + price, 0);

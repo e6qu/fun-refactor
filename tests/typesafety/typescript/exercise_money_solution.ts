@@ -1,7 +1,4 @@
 // expect: passes
-// Money carries its currency in the type, and `add` infers the currency from
-// its first argument. `NoInfer` stops the second argument from widening it.
-// Cents are integers, so the totals are exact.
 
 type Currency = "USD" | "EUR";
 

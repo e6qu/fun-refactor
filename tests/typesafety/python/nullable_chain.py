@@ -1,9 +1,5 @@
 # expect: passes
 # title: quote returns None for three different reasons
-"""Three steps can each fail. The caller of `quote` receives None and cannot
-say which step failed, or why."""
-
-
 def parse_quantity(text: str) -> int | None:
     return int(text) if text.isdigit() else None
 

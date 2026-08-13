@@ -1,8 +1,6 @@
 # expect: fails
 # title: Seconds plus Kilograms, rejected by the checker
 # misuse-of: unit_arithmetic
-"""The sum of two different units means nothing, and now the checker says so."""
-
 from dataclasses import dataclass
 
 

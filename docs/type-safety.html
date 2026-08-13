@@ -75,24 +75,29 @@
       that the claim is usually much smaller than what your program means.
     </p>
     <p>
-      Here is the plainest possible case. <code>order_line</code> formats a line from
-      a name, a price, a quantity and a gift flag. With <code>Any</code>, every call
+      Here is the plainest possible case. Imagine a small web shop printing receipts.
+      Each line of a receipt shows an item's name, its unit price, how many were
+      bought, and whether the item is gift-wrapped, and the function
+      <code>order_line</code> formats one such line. With <code>Any</code>, every call
       compiles, even the one that passes all four arguments in the wrong order; you
-      find out at run time. With ordinary <code>str</code>, <code>float</code>,
-      <code>int</code> and <code>bool</code>, the checker catches that same call while
-      it reads the file.
+      find out at run time, when a customer gets a mangled receipt. With ordinary
+      <code>str</code>, <code>float</code>, <code>int</code> and <code>bool</code>,
+      the checker catches that same call while it reads the file.
     </p>
     <div class="ts-block" data-block="typed_arguments"></div>
     <p>
-      Simple types run out of power quickly, though. <code>transfer</code> takes two
-      account numbers, both strings, so the checker happily accepts the call that
-      swaps them. Programmers call this kind of code <em>stringly typed</em>. Hold
-      that example in mind; its fix arrives in section 3.
+      Simple types run out of power quickly, though. Picture a rent payment: money
+      moves from a tenant's account to a landlord's account, and
+      <code>transfer</code> takes the two account numbers as strings. Swap them at
+      the call site and the checker stays quiet, because both are the same type, and
+      the rent flows the wrong way. Programmers call this kind of code <em>stringly
+      typed</em>. Hold the example in mind; its fix arrives in section 3.
     </p>
     <p>
-      Sometimes the simple type is the wrong claim outright. <code>float</code> stores
-      approximate reals, and money needs to be exact. Everything typechecks, and the
-      totals quietly drift.
+      Sometimes the simple type is the wrong claim outright. The same shop sums its
+      prices, and it matters that three items at ten cents come to exactly thirty.
+      <code>float</code> stores approximate reals, and money needs to be exact.
+      Everything typechecks, and the totals quietly drift.
     </p>
     <div class="ts-block" data-block="money_cents"></div>
     <p>
@@ -120,12 +125,24 @@
       pound-seconds and another's read newton-seconds. The type checker is the
       cheapest place to catch that class of mistake.
     </p>
+    <p>
+      The example here is a retry delay. <code>wait_before_retry</code> expects a
+      number of seconds, and somewhere else in the program a number of meters is also
+      in play. Both are plain numbers until <code>NewType</code> and a brand pull them
+      apart.
+    </p>
     <div class="ts-block" data-block="unit_newtype"></div>
     <p>
       Aliases still earn their place when the point is naming. A long function type
       reads far better under a short name, and one edit updates every signature that
       uses it. A named constant does the same job for a <em>magic number</em>, a bare
       <code>30_000</code> whose meaning the reader is left to guess.
+    </p>
+    <p>
+      Here the shop's client retries failed requests. Every retry policy is a function
+      from an attempt number and an error to a delay, and that shape used to be spelled
+      out at three different signatures, with the default delay sitting in the code as
+      a bare <code>30_000</code>.
     </p>
     <div class="ts-block" data-block="alias_compound"></div>
     <p>
@@ -142,12 +159,21 @@
       accept anything, typos included. A literal type writes down the values that
       exist, and the checker turns everything else away.
     </p>
+    <p>
+      The shop's invoices move through three stages: drafted, sent to the customer,
+      and paid. <code>advance</code> moves an invoice to its next stage.
+    </p>
     <div class="ts-block" data-block="status_literal"></div>
     <p>
       Literals belong in parameters too. A flag whose docstring says "text or binary"
       can say it in the type instead, where the checker can read it. The rejection
       cuts both ways: a variable typed as plain <code>str</code> can no longer be
       passed in, since it could hold anything at all.
+    </p>
+    <p>
+      The example is a log reader. Its <code>mode</code> parameter decides whether the
+      file is read as text or as fixed-width binary records, and only those two words
+      mean anything to it.
     </p>
     <div class="ts-block" data-block="literal_flag"></div>
   </div>
@@ -165,6 +191,11 @@
       programmers call that function a <em>smart constructor</em>. Any code holding an
       <code>EmailAddress</code> can rely on the check without repeating it.
     </p>
+    <p>
+      Back at the shop, the checkout sends a receipt by email, and later a reminder.
+      The address arrives from a web form, typed by a person, so it needs a check, and
+      the question is where that check lives.
+    </p>
     <div class="ts-block" data-block="email_parse"></div>
     <p>
       The same recipe retires the transfer bug from section 1. Give each kind of
@@ -179,6 +210,11 @@
       calls a discriminated union. The goal is what Yaron Minsky called <em>making
       illegal states unrepresentable</em>, and the checker demanding that every reader
       handle every state is <em>exhaustiveness checking</em>.
+    </p>
+    <p>
+      The shop's payments show the pattern. A payment starts out pending, and once it
+      settles, it has a receipt id. There is no such thing as a settled payment
+      without a receipt, and no pending payment has one.
     </p>
     <div class="ts-block" data-block="payment_states"></div>
   </div>
@@ -205,8 +241,10 @@
       slogan: write functions on the data you wish you had. Parse once, at the edge.
     </p>
     <p>
-      Take the command line first. <code>argv</code> is nothing but strings; the user
-      typed <code>port=8080</code>, and <code>"8080"</code> stays text until something
+      Take the command line first. The shop's server is started from a terminal, as
+      servers are, with a line like <code>serve port=8080 verbose=true</code>.
+      <code>argv</code> is nothing but strings; the operator typed
+      <code>port=8080</code>, and <code>"8080"</code> stays text until something
       converts it. In the before version the settings travel as a dict of strings, so
       every function that wants the port converts and re-checks it for itself. In the
       after version, <code>parse_argv</code> reads the strings once and returns a
@@ -216,7 +254,8 @@
     </p>
     <div class="ts-block" data-block="config_parse_once"></div>
     <p>
-      The network edge is the same story. The response body is one long JSON string.
+      The network edge is the same story. When a customer places an order, the shop's
+      API receives an HTTP request whose body is one long JSON string.
       <code>json.loads</code> or <code>JSON.parse</code> gives you a shapeless
       dictionary, and the shape still needs checking. This is what pydantic and zod
       are for. You declare the shape once, as a schema; the library either hands you a
@@ -243,6 +282,10 @@
       Leave it open, with <code>Callable[..., int]</code> or <code>any</code>, and the
       checker will wave through key functions that crash the moment they run.
     </p>
+    <p>
+      The shop again: a page lists orders, cheapest first. Sorting needs a key, and a
+      key is a function passed as a value.
+    </p>
     <div class="ts-block" data-block="function_values"></div>
     <p>
       A function that takes or returns another function is a higher-order function.
@@ -250,6 +293,12 @@
       if it preserves the signature it wraps, and both languages can express that.
       Python uses type parameters, <code>[**P, R]</code>; TypeScript uses a generic
       argument tuple.
+    </p>
+    <p>
+      The wrapper here is <code>retry</code>. Fetching from a flaky upstream service
+      fails now and then, so the shop wraps <code>fetch</code> to try three times
+      before giving up. The question the types answer: after wrapping, does the
+      checker still know what <code>fetch</code> takes and returns?
     </p>
     <div class="ts-block" data-block="higher_order"></div>
     <p>
@@ -276,6 +325,11 @@
       can often read purity straight off the signature, because a function that
       depends only on its parameters has to receive everything it needs.
     </p>
+    <p>
+      The example is a countdown. <code>remaining</code> reports how long is left
+      until a deadline, which sounds too small to get wrong, until a test tries to
+      pin its answer down and the answer moves.
+    </p>
     <div class="ts-block" data-block="pure_clock"></div>
     <p>
       Once the clock is a parameter, the function is a table of facts, and a test can
@@ -296,6 +350,11 @@
       the next one's input. Types are what make that safe. The pipeline compiles only
       if the steps fit together, so a step out of order is a compile error, caught
       long before it can become a production incident.
+    </p>
+    <p>
+      Quoting an order is a three-step pipeline: parse the raw order, then price it.
+      Each step has its own input and output type, and that is the whole safety
+      story.
     </p>
     <div class="ts-block" data-block="typed_pipeline"></div>
     <p>
@@ -339,12 +398,21 @@
       answer, as ordinary data you can assert on, attach to a response, or throw
       away.
     </p>
+    <p>
+      The scene for the Writer is a price calculation the shop wants to audit: every
+      step that touches the amount should leave a line saying what it did.
+    </p>
     <div class="ts-block" data-block="logged_steps"></div>
     <p>
       And here is an IO. Wrap the computation instead of running it, and effects
       become values you can hand around. A retry policy stops being a loop pasted into
       every network function; it becomes one combinator that wraps any description.
       Nothing actually runs until the edge of the program calls <code>run</code>.
+    </p>
+    <p>
+      The scene for the IO is the flaky upstream service from section 5, fetched with
+      a retry, except this time the retry policy and the business logic never share a
+      function body.
     </p>
     <div class="ts-block" data-block="io_actions"></div>
     <p>

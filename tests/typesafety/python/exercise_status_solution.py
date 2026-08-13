@@ -1,9 +1,6 @@
 # expect: passes
 # title: Status as a literal type catches the typo
 # improves: exercise_status_start
-"""A closed set and an exhaustive match. The typo from the start is now a
-compile error, and so is a forgotten status."""
-
 from typing import Literal, assert_never
 
 type Status = Literal["received", "picked", "shipped"]

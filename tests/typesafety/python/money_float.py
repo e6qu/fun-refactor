@@ -1,9 +1,6 @@
 # expect: passes
 # run: yes
 # title: Adding 0.1 three times does not equal 0.3
-"""Ten cents, three times, is thirty cents. The float sum misses it."""
-
-
 def total_price(prices: list[float]) -> float:
     return sum(prices)
 

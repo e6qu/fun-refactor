@@ -1,7 +1,4 @@
 // expect: passes
-// `Logged` pairs a value with the log that produced it. `andThen` runs the
-// next step and concatenates the trails, so the log arrives with the answer,
-// as data. This shape is usually called the Writer monad.
 
 type Logged<T> = { readonly value: T; readonly log: readonly string[] };
 

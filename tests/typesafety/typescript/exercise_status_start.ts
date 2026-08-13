@@ -1,6 +1,4 @@
 // expect: passes
-// Order status as plain strings. The first branch has a typo, so it never
-// matches, and the checker has no way to notice.
 
 export function nextAction(status: string): string {
   if (status === "recieved") { // typo: never matches "received"

@@ -1,8 +1,6 @@
 # expect: fails
 # title: The swapped transfer, rejected by the checker
 # misuse-of: entity_ids
-"""The bug from the first section, written against the typed accounts."""
-
 from typing import NewType
 
 TenantAccount = NewType("TenantAccount", str)
@@ -14,5 +12,4 @@ def transfer(source: TenantAccount, target: LandlordAccount, amount_cents: int) 
 
 
 def pay_rent(tenant: TenantAccount, landlord: LandlordAccount) -> str:
-    # The same swapped arguments. The checker rejects both of them.
-    return transfer(landlord, tenant, 95_000)
+    return transfer(landlord, tenant, 95_000)  # rejected: both types are wrong

@@ -1,7 +1,4 @@
 // expect: passes
-// An array holds many results, and `flatMap` is its `andThen`: apply the step
-// to each value, and flatten. A `Promise` holds a later result, and `then` is
-// its `andThen`. You have been using monads all along.
 
 type Team = { readonly name: string; readonly logins: readonly string[] };
 

@@ -1,6 +1,4 @@
 // expect: passes
-// The body is parsed into a loose record, and the shape checks spread through
-// every function that reads it.
 
 function priceCents(order: Record<string, unknown>): number {
   const quantity = order["quantity"];

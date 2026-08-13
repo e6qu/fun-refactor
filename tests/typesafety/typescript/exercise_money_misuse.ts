@@ -1,5 +1,4 @@
 // expect: fails
-// The mixed-currency call from the start, against the typed version.
 
 type Currency = "USD" | "EUR";
 

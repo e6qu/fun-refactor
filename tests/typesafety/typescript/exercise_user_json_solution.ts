@@ -1,6 +1,4 @@
 // expect: passes
-// One parse at the edge. The three checks are gone, because past the parse
-// the fields exist and have their types.
 
 import { z } from "zod";
 

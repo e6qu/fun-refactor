@@ -1,6 +1,4 @@
 // expect: passes
-// The comment says two values are allowed. Nothing enforces it, so any string
-// arrives here.
 
 /** mode is "text" or "binary". */
 function readLog(path: string, mode: string): number {

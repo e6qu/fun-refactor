@@ -1,6 +1,4 @@
 // expect: passes
-// A union of string literals lists every value the type allows. The checker
-// rejects the rest.
 
 type Status = "draft" | "sent" | "paid";
 

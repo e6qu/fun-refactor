@@ -1,6 +1,4 @@
 // expect: passes
-// An alias earns its keep on a compound type: the name reads, and one edit
-// changes every signature. A named constant does the same for a magic number.
 
 type Milliseconds = number;
 type RetryPolicy = (attempt: number, error: Error) => Milliseconds;

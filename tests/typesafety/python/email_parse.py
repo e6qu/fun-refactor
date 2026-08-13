@@ -1,9 +1,6 @@
 # expect: passes
 # title: An EmailAddress can only come from parse_email
 # improves: email_checked
-"""`parse_email` is the only way to make an `EmailAddress`. Any function that
-holds one knows the check already ran."""
-
 from typing import NewType
 
 EmailAddress = NewType("EmailAddress", str)

@@ -1,6 +1,4 @@
 // expect: passes
-// The loop filters, transforms and sums by hand, in one mutable pass. Each new
-// question about the orders gets another loop like it.
 
 type Order = { readonly item: string; readonly totalCents: number; readonly gift: boolean };
 

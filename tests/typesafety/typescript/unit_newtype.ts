@@ -1,5 +1,4 @@
 // expect: passes
-// A brand makes a distinct type from `number`. The checker tells them apart.
 
 declare const secondsBrand: unique symbol;
 

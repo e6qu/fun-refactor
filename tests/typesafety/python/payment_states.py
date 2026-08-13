@@ -2,9 +2,6 @@
 # run: yes
 # title: Pending and Settled become separate types
 # improves: payment_optional
-"""A pending payment has no receipt. As two classes, that is a fact the
-checker knows, and `match` must handle both."""
-
 from dataclasses import dataclass
 from typing import assert_never
 

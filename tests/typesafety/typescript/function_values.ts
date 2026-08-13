@@ -1,6 +1,4 @@
 // expect: passes
-// `key` is a function from Order to number, and the parameter type writes
-// that down. The compiler checks the arrow function against it.
 
 type Order = {
   readonly id: string;

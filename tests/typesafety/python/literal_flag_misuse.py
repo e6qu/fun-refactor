@@ -1,10 +1,6 @@
 # expect: fails
 # title: A variable typed str, rejected at the mode parameter
 # misuse-of: literal_flag
-"""A value typed `str` could be anything, so the checker refuses to pass it
-where only two values are allowed. Type the variable as the literal, or pass
-the value directly."""
-
 from typing import Literal
 
 

@@ -1,6 +1,4 @@
 // expect: passes
-// Settings travel as a map of strings. Every reader re-checks the port,
-// because no reader can trust that another already did.
 
 function readArgv(argv: string[]): Map<string, string> {
   const settings = new Map<string, string>();

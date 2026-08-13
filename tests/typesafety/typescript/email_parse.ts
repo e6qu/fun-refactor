@@ -1,6 +1,4 @@
 // expect: passes
-// `parseEmail` is the only place an `EmailAddress` is made. Any function that
-// holds one knows the check already ran.
 
 declare const emailBrand: unique symbol;
 type EmailAddress = string & { readonly [emailBrand]: true };

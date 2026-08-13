@@ -1,6 +1,4 @@
 // expect: passes
-// The same three steps, with a Result. Each failure carries its reason, and
-// `andThen` threads the chain.
 
 type Ok<T> = { readonly kind: "ok"; readonly value: T };
 type Err = { readonly kind: "err"; readonly reason: string };

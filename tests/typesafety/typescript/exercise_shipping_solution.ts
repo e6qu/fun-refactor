@@ -1,6 +1,4 @@
 // expect: passes
-// Units as types, options as named fields. The call now says what every
-// value means, and swapped units are a compile error.
 
 declare const kilogramsBrand: unique symbol;
 declare const kilometersBrand: unique symbol;

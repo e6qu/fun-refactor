@@ -1,6 +1,4 @@
 // expect: passes
-// A closed set and an exhaustive switch. The typo from the start is now a
-// compile error, and so is a forgotten status.
 
 type Status = "received" | "picked" | "shipped";
 

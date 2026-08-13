@@ -1,5 +1,4 @@
 // expect: fails
-// The sum of two different units means nothing, and now the checker says so.
 
 declare const secondsBrand: unique symbol;
 declare const kilogramsBrand: unique symbol;

@@ -1,8 +1,5 @@
 # expect: passes
 # title: The same function type is written out three times
-"""The same function type is spelled out three times, and the magic number sits
-bare where a name should be."""
-
 from collections.abc import Callable
 
 

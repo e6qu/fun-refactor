@@ -1,6 +1,4 @@
 // expect: passes
-// Three lookups, each of which can fail. Every failure collapses into the
-// same null, so the caller cannot tell what went wrong.
 
 function findUserId(login: string): string | null {
   return login === "ada" ? "u7" : null;

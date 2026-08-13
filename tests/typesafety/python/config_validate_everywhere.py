@@ -1,9 +1,5 @@
 # expect: passes
 # title: connect and report both re-check the port
-"""Settings travel as a dict of strings. Every reader re-checks the port,
-because no reader can trust that another already did."""
-
-
 def read_argv(argv: list[str]) -> dict[str, str]:
     settings: dict[str, str] = {}
     for pair in argv:

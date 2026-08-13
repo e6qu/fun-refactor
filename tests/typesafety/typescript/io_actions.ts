@@ -1,7 +1,4 @@
 // expect: passes
-// `IO` wraps a computation without running it. `andThen` composes a larger
-// description, `retry` wraps any description in a policy, and nothing touches
-// the network until `run`. The retry logic exists once, as a combinator.
 
 type IO<T> = { readonly run: () => T };
 

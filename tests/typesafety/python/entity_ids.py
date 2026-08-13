@@ -1,8 +1,6 @@
 # expect: passes
 # title: Tenant and landlord accounts become different types
 # improves: transfer_arguments
-"""The transfer example again, with the account numbers as distinct types."""
-
 from typing import NewType
 
 TenantAccount = NewType("TenantAccount", str)

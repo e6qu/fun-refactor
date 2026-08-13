@@ -1,8 +1,5 @@
 # expect: passes
 # title: The handler checks the order's shape by hand
-"""The body is parsed into a dict, and the shape checks spread through every
-function that reads it."""
-
 import json
 
 

@@ -1,5 +1,4 @@
 // expect: fails
-// The same `advance`, called with a misspelled status.
 
 type Status = "draft" | "sent" | "paid";
 

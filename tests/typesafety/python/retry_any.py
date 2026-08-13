@@ -1,8 +1,5 @@
 # expect: passes
 # title: After retry, the checker forgets the signature of fetch
-"""`retry` returns `Callable[..., Any]`, so the checker no longer sees the
-parameters or the result of the function inside it."""
-
 from collections.abc import Callable
 from typing import Any
 
@@ -25,6 +22,5 @@ def fetch(url: str, timeout: int) -> str:
 
 
 patient_fetch = retry(3, fetch)
-# The checker accepts both of these. The second fails at run time.
 fine = patient_fetch("https://example.test", 10)
-wrong = patient_fetch(10, "https://example.test")
+wrong = patient_fetch(10, "https://example.test")  # accepted, and wrong

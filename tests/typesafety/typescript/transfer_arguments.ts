@@ -1,5 +1,4 @@
 // expect: passes
-// Both parameters are `string`, so swapping them type-checks.
 
 function transfer(fromAccount: string, toAccount: string, amountCents: number): string {
   return `move ${amountCents} from ${fromAccount} to ${toAccount}`;

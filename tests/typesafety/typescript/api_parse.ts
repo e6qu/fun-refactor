@@ -1,6 +1,4 @@
 // expect: passes
-// The request body is a string. `Order.parse` turns it into an `Order` or
-// throws, once, here. Every function past this point takes an `Order`.
 
 import { z } from "zod";
 
@@ -13,9 +11,7 @@ const Order = z.object({
 type Order = z.infer<typeof Order>;
 
 function priceCents(order: Order): number {
-  // No check that `quantity` exists, and no check that it is a number.
-  // The type already says both.
-  return order.quantity * 250;
+  return order.quantity * 250; // no checks: the type says both
 }
 
 export function handle(body: string): number {

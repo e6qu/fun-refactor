@@ -1,6 +1,4 @@
 // expect: passes
-// Each step's output type is the next step's input type. The chain compiles
-// only when they meet, so a step out of order is a compile error.
 
 type RawOrder = { readonly item: string; readonly quantityText: string };
 type Order = { readonly item: string; readonly quantity: number };

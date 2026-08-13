@@ -1,9 +1,6 @@
 # expect: passes
 # title: pydantic and zod check the order at the door
 # improves: api_dict
-"""The request body is a string. `model_validate_json` turns it into an `Order`
-or raises, once, here. Every function past this point takes an `Order`."""
-
 from pydantic import BaseModel
 
 
@@ -14,9 +11,7 @@ class Order(BaseModel):
 
 
 def price_cents(order: Order) -> int:
-    # No check that `quantity` exists, and no check that it is a number.
-    # The type already says both.
-    return order.quantity * 250
+    return order.quantity * 250  # no checks: the type says both
 
 
 def handle(body: str) -> int:

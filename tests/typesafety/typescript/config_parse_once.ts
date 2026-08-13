@@ -1,6 +1,4 @@
 // expect: passes
-// One function turns the argument strings into a Config, or throws. Past that
-// point `port` exists and is a number, and the type says so.
 
 type Config = {
   readonly port: number;

@@ -1,6 +1,4 @@
 // expect: passes
-// Five positional parameters, three of them boolean. Which of the two calls
-// is right? The checker accepts both.
 
 function shippingCents(
   weight: number,

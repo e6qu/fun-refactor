@@ -1,8 +1,5 @@
 # expect: passes
 # title: This Payment type allows a settled payment with no receipt
-"""Two booleans worth of shape in one class. A settled payment without a
-receipt, and a pending payment with one, both construct without complaint."""
-
 from dataclasses import dataclass
 
 

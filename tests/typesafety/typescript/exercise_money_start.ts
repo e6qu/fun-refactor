@@ -1,6 +1,4 @@
 // expect: passes
-// An amount is a number and its currency is a string beside it. Mixing
-// currencies is caught at run time, at best.
 
 function addPrices(
   amountA: number,

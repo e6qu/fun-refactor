@@ -1,6 +1,4 @@
 // expect: passes
-// A user arrives as JSON and travels as a loose record. Three functions
-// check it, each in its own way, and none can trust the others.
 
 function greeting(user: Record<string, unknown>): string {
   const name = user["name"];

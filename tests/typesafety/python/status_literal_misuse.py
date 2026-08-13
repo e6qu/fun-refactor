@@ -1,8 +1,6 @@
 # expect: fails
 # title: The misspelled status, rejected by the checker
 # misuse-of: status_literal
-"""The same `advance`, called with a misspelled status."""
-
 from typing import Literal
 
 type Status = Literal["draft", "sent", "paid"]

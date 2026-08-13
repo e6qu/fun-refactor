@@ -1,9 +1,5 @@
 # expect: passes
 # title: shipping_cents takes five positional arguments, three of them bool
-"""Five positional parameters, three of them bool. Which of the two calls
-is right? The checker accepts both."""
-
-
 def shipping_cents(
     weight: float, distance: float, express: bool, insured: bool, fragile: bool
 ) -> int:
