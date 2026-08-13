@@ -66,6 +66,10 @@ export const ERRORS = {
     python: "money_pence_misuse.py:15: error: Argument 1 to \"apply_discount\" has incompatible type \"Rate\"; expected \"Pence\"  [arg-type]\nmoney_pence_misuse.py:15: error: Argument 2 to \"apply_discount\" has incompatible type \"Pence\"; expected \"Rate\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
     typescript: "money_pence_misuse.ts(21,41): error TS2345: Argument of type 'Rate' is not assignable to parameter of type 'Pence'.\n  Property '[penceBrand]' is missing in type 'Number & { readonly [rateBrand]: true; }' but required in type '{ readonly [penceBrand]: true; }'.",
   },
+  "note_narrowing_misuse": {
+    python: "note_narrowing_misuse.py:5: error: Item \"None\" of \"str | None\" has no attribute \"upper\"  [union-attr]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "note_narrowing_misuse.ts(4,10): error TS18047: 'note' is possibly 'null'.",
+  },
   "payment_states_misuse": {
     python: "payment_states_misuse.py:22: error: Item \"Pending\" of \"Pending | Settled\" has no attribute \"receipt_id\"  [union-attr]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "payment_states_misuse.ts(8,18): error TS2339: Property 'receiptId' does not exist on type 'Payment'.\n  Property 'receiptId' does not exist on type 'Pending'.",

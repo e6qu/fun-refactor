@@ -544,6 +544,36 @@ export const EXAMPLES = {
     python: "from typing import NewType\n\nMeters = NewType(\"Meters\", float)\nKilograms = NewType(\"Kilograms\", float)\n\n\ndef nonsense(tubing: Meters, grease: Kilograms) -> float:\n    return tubing + grease\n",
     typescript: "declare const metersBrand: unique symbol;\ndeclare const kilogramsBrand: unique symbol;\n\ntype Meters = number & { readonly [metersBrand]: true };\ntype Kilograms = number & { readonly [kilogramsBrand]: true };\n\nexport function nonsense(tubing: Meters, grease: Kilograms): number {\n  return tubing + grease;\n}\n",
   },
+  "note_cast": {
+    title: "cast makes the checker look away, and the missing note still crashes",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: false,
+    improves: null,
+    misuseOf: null,
+    python: "from typing import cast\n\n\ndef shout(note: str | None) -> str:\n    return cast(str, note).upper()\n",
+    typescript: "export function shout(note: string | null): string {\n  return (note as string).toUpperCase();\n}\n",
+  },
+  "note_narrowing": {
+    title: "The checker follows the branch, and inside it the None is gone",
+    expectPython: "passes",
+    expectTypescript: "passes",
+    runs: true,
+    improves: "note_cast",
+    misuseOf: null,
+    python: "def shout(note: str | None) -> str:\n    if note is None:\n        return \"\"\n    return note.upper()\n\n\nassert shout(\"fragile\") == \"FRAGILE\"\nassert shout(None) == \"\"\n",
+    typescript: "export function shout(note: string | null): string {\n  if (note === null) {\n    return \"\";\n  }\n  return note.toUpperCase();\n}\n\nexport const loud = shout(\"fragile\");\nexport const quiet = shout(null);\n",
+  },
+  "note_narrowing_misuse": {
+    title: "upper on a note that may be missing, rejected by the checker",
+    expectPython: "fails",
+    expectTypescript: "fails",
+    runs: false,
+    improves: null,
+    misuseOf: "note_narrowing",
+    python: "def shout(note: str | None) -> str:\n    return note.upper()\n",
+    typescript: "export function shout(note: string | null): string {\n  return note.toUpperCase();\n}\n",
+  },
   "nullable_chain": {
     title: "quote returns None for three different reasons",
     expectPython: "passes",
@@ -867,6 +897,10 @@ export const DIFFS = {
   "money_pence": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,6 +1,11 @@\n-def apply_discount(total_pounds: float, rate: float) -> float:\n-    return total_pounds * (1 - rate)\n+from typing import NewType\n \n+Pence = NewType(\"Pence\", int)\n+Rate = NewType(\"Rate\", float)\n \n-def checkout() -> float:\n-    return apply_discount(0.1, 12.5)\n+\n+def apply_discount(total: Pence, rate: Rate) -> Pence:\n+    return Pence(round(total * (1 - rate)))\n+\n+\n+assert apply_discount(Pence(1250), Rate(0.1)) == 1125\n",
     typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,7 +1,19 @@\n-function applyDiscount(totalPounds: number, rate: number): number {\n-  return totalPounds * (1 - rate);\n+declare const penceBrand: unique symbol;\n+declare const rateBrand: unique symbol;\n+\n+type Pence = number & { readonly [penceBrand]: true };\n+type Rate = number & { readonly [rateBrand]: true };\n+\n+function pence(n: number): Pence {\n+  return n as Pence;\n+}\n+\n+function rate(n: number): Rate {\n+  return n as Rate;\n }\n \n-export function checkout(): number {\n-  return applyDiscount(0.1, 12.5);\n+function applyDiscount(total: Pence, discount: Rate): Pence {\n+  return pence(Math.round(total * (1 - discount)));\n }\n+\n+export const discounted = applyDiscount(pence(1250), rate(0.1));\n",
+  },
+  "note_narrowing": {
+    python: "--- a/example.py\n+++ b/example.py\n@@ -1,5 +1,8 @@\n-from typing import cast\n+def shout(note: str | None) -> str:\n+    if note is None:\n+        return \"\"\n+    return note.upper()\n \n \n-def shout(note: str | None) -> str:\n-    return cast(str, note).upper()\n+assert shout(\"fragile\") == \"FRAGILE\"\n+assert shout(None) == \"\"\n",
+    typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,3 +1,9 @@\n export function shout(note: string | null): string {\n-  return (note as string).toUpperCase();\n+  if (note === null) {\n+    return \"\";\n+  }\n+  return note.toUpperCase();\n }\n+\n+export const loud = shout(\"fragile\");\n+export const quiet = shout(null);\n",
   },
   "payment_states": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,12 +1,30 @@\n from dataclasses import dataclass\n+from typing import assert_never\n \n \n @dataclass(frozen=True)\n-class Payment:\n+class Pending:\n+    requested_at: str\n+\n+\n+@dataclass(frozen=True)\n+class Settled:\n     requested_at: str\n-    settled: bool\n-    receipt_id: str | None\n+    receipt_id: str\n+\n+\n+type Payment = Pending | Settled\n+\n+\n+def describe(payment: Payment) -> str:\n+    match payment:\n+        case Pending(requested_at=at):\n+            return f\"waiting since {at}\"\n+        case Settled(receipt_id=receipt):\n+            return f\"settled, receipt {receipt}\"\n+        case _:\n+            assert_never(payment)\n \n \n-impossible_a = Payment(\"09:00\", settled=True, receipt_id=None)\n-impossible_b = Payment(\"09:00\", settled=False, receipt_id=\"r-42\")\n+assert describe(Pending(\"09:00\")) == \"waiting since 09:00\"\n+assert describe(Settled(\"09:00\", \"r-42\")) == \"settled, receipt r-42\"\n",

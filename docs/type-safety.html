@@ -132,7 +132,10 @@
       catches that same call while it reads the file. TypeScript rejects all four
       arguments. Python rejects three: <code>True</code> passes where an
       <code>int</code> belongs, because Python's <code>bool</code> is a subclass of
-      <code>int</code>, a surprise worth meeting early.
+      <code>int</code>, a surprise worth meeting early. The mix of checked and
+      unchecked code has a name and a lineage: <em>gradual typing</em>, worked out
+      in the Lisp family for Typed Racket, where typed and untyped code share one
+      program and <code>Any</code> is the seam.
     </p>
     <div class="ts-block" data-block="typed_arguments"></div>
     <p>
@@ -153,6 +156,17 @@
       is the swap.
     </p>
     <div class="ts-block" data-block="money_pence"></div>
+    <p>
+      One more habit completes the basics. The gift note on an invoice line is
+      <code>str | None</code>, and calling <code>upper</code> on a note that may be
+      missing is rejected. <code>cast</code> makes the checker look away, and the
+      crash comes back at run time. Write the branch instead: the checker follows
+      an <code>if</code>, and inside it the <code>None</code> is gone. Typed
+      Racket, in the Lisp family, pioneered this as <em>occurrence typing</em>;
+      Python and TypeScript call it <em>narrowing</em>, and every
+      <code>match</code> and <code>typeof</code> test on this page leans on it.
+    </p>
+    <div class="ts-block" data-block="note_narrowing"></div>
     <p>
       In each case the type is too broad, so wrong values fit. The rest of the page
       narrows the types until the wrong calls stop fitting.
@@ -259,7 +273,8 @@
       an <code>EmailAddress</code> can then skip the check, and the checker turns
       away anyone who passes a plain string instead. The same door can hold any
       business rule: a quantity that must stay between 1 and 99 is one bounds
-      check in one constructor.
+      check in one constructor. Save the treatment for values where a mix-up is
+      easy to make and expensive to ship; wrapping everything buys ceremony.
     </p>
     <p>
       The workshop sends each invoice by email, and later a reminder. The address
@@ -357,7 +372,10 @@
       Parse input at the boundary, and pass <code>Config</code>, <code>Order</code>
       and the other domain values around instead of raw strings. Hand a function the
       raw dictionary anyway, and the checker refuses it; that refusal is the new row
-      under each example above.
+      under each example above. One honest limit: a type records that a check
+      happened, and the world can change afterwards. A parsed port can be taken by
+      the time you bind it. The type spared you the re-checking; the operating
+      system still gets a vote.
     </p>
   </div>
 </section>
@@ -626,7 +644,10 @@
       scan, and what still exists once the program runs. Most of these constructs
       vanish at run time. In Python, only an enum, a class and a validating model
       leave something behind; in TypeScript, only an enum, a class and a schema
-      survive erasure, and only the model and the schema ever check a value.
+      survive erasure, and only the model and the schema ever check a value. The
+      runtime end of the axis is its own tradition: Racket's contracts and
+      Clojure's spec live there, and pydantic and zod are that idea in these two
+      languages.
     </p>
     <h3>Python</h3>
     <table>
