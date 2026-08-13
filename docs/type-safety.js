@@ -192,7 +192,7 @@ let libsPromise;
 
 async function typescriptLibs() {
   const files = new Map();
-  let round = ["lib.es2022.d.ts", "lib.decorators.d.ts", "lib.decorators.legacy.d.ts"];
+  let round = ["lib.es2022.full.d.ts", "lib.decorators.d.ts", "lib.decorators.legacy.d.ts"];
   while (round.length) {
     const texts = await Promise.all(
       round.map(async (name) => [name, await (await fetch(TS_LIB_HOST + name)).text()]),
@@ -232,7 +232,7 @@ async function typescriptDiagnostics(code, extra = {}) {
     module: compiler.ModuleKind.ESNext,
     moduleResolution: compiler.ModuleResolutionKind.Bundler,
     skipLibCheck: true,
-    lib: ["lib.es2022.d.ts"],
+    lib: ["lib.es2022.full.d.ts"],
     types: [],
     ...extra,
   };
@@ -245,7 +245,7 @@ async function typescriptDiagnostics(code, extra = {}) {
         ? undefined
         : compiler.createSourceFile(name, text, version ?? compiler.ScriptTarget.ES2022, true);
     },
-    getDefaultLibFileName: () => "lib.es2022.d.ts",
+    getDefaultLibFileName: () => "lib.es2022.full.d.ts",
     writeFile: () => {},
     getCurrentDirectory: () => "/",
     getDirectories: () => [],
@@ -314,7 +314,7 @@ async function checkPython(code) {
       .loadPackage("micropip")
       .then(() =>
         pyodide.runPythonAsync(
-          'import micropip\nawait micropip.install(["mypy==1.19.0"])',
+          'import micropip\nawait micropip.install(["mypy==1.18.2"])',
         ),
       );
     await mypyPromise;
@@ -330,38 +330,18 @@ _out, _err, _status = api.run(["--config-file", "/mypy.ini", "/cell.py"])
 (_out + _err).strip()
 `;
 
-const PYLINT_DRIVER = `
-import io
-import sys
-
-from pyflakes.api import check as _pyflakes_check
-from pyflakes.reporter import Reporter as _Reporter
-import pycodestyle as _pycodestyle
-
-_source = open("/cell.py").read()
-_buf = io.StringIO()
-_pyflakes_check(_source, "cell.py", _Reporter(_buf, _buf))
-_old, sys.stdout = sys.stdout, _buf
-_checker = _pycodestyle.Checker(
-    filename="cell.py", lines=_source.splitlines(True), max_line_length=100
-)
-_checker.check_all()
-sys.stdout = _old
-_buf.getvalue().strip()
-`;
-
 async function lintPython(code) {
-  const output = await pythonTool(code, PYLINT_DRIVER, async (pyodide) => {
-    pyLintersPromise ??= pyodide
-      .loadPackage("micropip")
-      .then(() =>
-        pyodide.runPythonAsync(
-          'import micropip\nawait micropip.install(["pyflakes", "pycodestyle"])',
-        ),
-      );
-    await pyLintersPromise;
+  pyLintersPromise ??= import(
+    "https://cdn.jsdelivr.net/npm/@astral-sh/ruff-wasm-web@0.16.2/+esm"
+  ).then(async (ruff) => {
+    await ruff.default();
+    return new ruff.Workspace({ "line-length": 100, lint: { select: ["E", "F", "W"] } });
   });
-  return { ok: output === "", output: output || "no lint findings" };
+  const workspace = await pyLintersPromise;
+  const findings = workspace
+    .check(code)
+    .map((d) => `cell.py:${d.start_location.row}:${d.start_location.column}: ${d.code} ${d.message}`);
+  return { ok: findings.length === 0, output: findings.join("\n") || "no lint findings" };
 }
 
 async function loadPyodideOnce() {
@@ -385,7 +365,7 @@ const ACTIONS = {
     typescript: checkTypescript,
   },
   lint: {
-    busy: "Linting… the first lint downloads the linters",
+    busy: "Linting… the first lint downloads the linter",
     python: lintPython,
     typescript: lintTypescript,
   },

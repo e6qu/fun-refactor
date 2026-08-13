@@ -36,4 +36,6 @@ export function chainGuardSheet(width: Meters, height: Meters): SquareMeters {
   return timesMeters(width, height);
 }
 
+export const tubing = totalTubing(meters(0.72), meters(1.02));
+
 export const shippingWeight = addKilograms(kilograms(9.5), kilograms(2.1));

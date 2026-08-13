@@ -9,6 +9,8 @@ function readArgv(argv: string[]): Map<string, string> {
   return settings;
 }
 
+export const settings = readArgv(["port=8080", "verbose=true"]);
+
 export function connect(settings: Map<string, string>): string {
   const portText = settings.get("port");
   if (portText === undefined || !/^\d+$/.test(portText)) {

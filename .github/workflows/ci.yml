@@ -67,7 +67,7 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install the tutorial's Python checker
-        run: pip install "mypy==1.19.0" "pydantic==2.13.4"
+        run: pip install "mypy==1.18.2" "pydantic==2.13.4"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
