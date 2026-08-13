@@ -914,3 +914,8 @@ footer a { color: var(--ink-soft); }
 }
 .ts-checker-words[open] summary { margin-bottom: 0.5rem; }
 .ts-checker-words pre { white-space: pre-wrap; }
+
+::highlight(ts-same-text) {
+  background-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 2px;
+}
