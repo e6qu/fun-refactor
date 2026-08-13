@@ -1,15 +1,15 @@
 # expect: fails
-# title: Seconds plus Kilograms, rejected by the checker
+# title: Meters plus Kilograms, rejected by the checker
 # misuse-of: unit_arithmetic
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Seconds:
+class Meters:
     value: float
 
-    def __add__(self, other: "Seconds") -> "Seconds":
-        return Seconds(self.value + other.value)
+    def __add__(self, other: "Meters") -> "Meters":
+        return Meters(self.value + other.value)
 
 
 @dataclass(frozen=True)
@@ -20,5 +20,5 @@ class Kilograms:
         return Kilograms(self.value + other.value)
 
 
-def nonsense(duration: Seconds, load: Kilograms) -> Seconds:
-    return duration + load  # error: Seconds + Kilograms has no meaning
+def nonsense(tubing: Meters, grease: Kilograms) -> Meters:
+    return tubing + grease  # error: Meters + Kilograms has no meaning

@@ -1,12 +1,12 @@
 // expect: passes
 
-type Seconds = number;
+type Meters = number;
 
-function waitBeforeRetry(delay: Seconds): string {
-  return `sleeping ${delay}s`;
+function cutTubing(length: Meters): string {
+  return `cutting ${length}m of tubing`;
 }
 
-export function plan(): string {
-  const minutes = 5;
-  return waitBeforeRetry(minutes); // accepted: Seconds and number are the same type
+export function restock(): string {
+  const spokes = 36;
+  return cutTubing(spokes); // accepted: Meters and number are the same type
 }

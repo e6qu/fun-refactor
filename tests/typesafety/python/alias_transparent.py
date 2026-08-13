@@ -1,12 +1,12 @@
 # expect: passes
-# title: An alias is only a name: minutes still pass as Seconds
-type Seconds = int
+# title: An alias is only a name: a bare count still passes as Meters
+type Meters = float
 
 
-def wait_before_retry(delay: Seconds) -> str:
-    return f"sleeping {delay}s"
+def cut_tubing(length: Meters) -> str:
+    return f"cutting {length}m of tubing"
 
 
-def plan() -> str:
-    minutes = 5
-    return wait_before_retry(minutes)  # accepted: Seconds and int are the same type
+def restock() -> str:
+    spokes = 36
+    return cut_tubing(spokes)  # accepted: Meters and float are the same type

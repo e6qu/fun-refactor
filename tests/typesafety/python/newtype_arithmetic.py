@@ -1,10 +1,10 @@
 # expect: passes
-# title: Seconds plus Kilograms still passes the check, and the sum is a meaningless int
+# title: Meters plus Kilograms still passes the check, and the sum is a meaningless number
 from typing import NewType
 
-Seconds = NewType("Seconds", int)
-Kilograms = NewType("Kilograms", int)
+Meters = NewType("Meters", float)
+Kilograms = NewType("Kilograms", float)
 
 
-def nonsense(duration: Seconds, load: Kilograms) -> int:
-    return duration + load  # accepted, and the sum means nothing
+def nonsense(tubing: Meters, grease: Kilograms) -> float:
+    return tubing + grease  # accepted, and the sum means nothing

@@ -1,21 +1,21 @@
 // expect: fails
 
-declare const secondsBrand: unique symbol;
+declare const metersBrand: unique symbol;
 declare const kilogramsBrand: unique symbol;
 
-type Seconds = number & { readonly [secondsBrand]: true };
+type Meters = number & { readonly [metersBrand]: true };
 type Kilograms = number & { readonly [kilogramsBrand]: true };
 
-function seconds(n: number): Seconds {
-  return n as Seconds;
+function meters(n: number): Meters {
+  return n as Meters;
 }
 
 function kilograms(n: number): Kilograms {
   return n as Kilograms;
 }
 
-function addSeconds(a: Seconds, b: Seconds): Seconds {
-  return (a + b) as Seconds;
+function addMeters(a: Meters, b: Meters): Meters {
+  return (a + b) as Meters;
 }
 
-export const nonsense = addSeconds(seconds(30), kilograms(4)); // error: Kilograms is not Seconds
+export const nonsense = addMeters(meters(1.8), kilograms(4)); // error: Kilograms is not Meters

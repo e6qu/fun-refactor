@@ -1,16 +1,16 @@
 # expect: passes
-# title: Seconds and Meters become types the checker can tell apart
+# title: Meters and Each become types the checker can tell apart
 # improves: alias_transparent
 from typing import NewType
 
-Seconds = NewType("Seconds", int)
-Meters = NewType("Meters", int)
+Meters = NewType("Meters", float)
+Each = NewType("Each", int)
 
 
-def wait_before_retry(delay: Seconds) -> str:
-    return f"sleeping {delay}s"
+def cut_tubing(length: Meters) -> str:
+    return f"cutting {length}m of tubing"
 
 
-def plan() -> str:
-    timeout = Seconds(30)
-    return wait_before_retry(timeout)
+def restock() -> str:
+    frame_tubing = Meters(1.8)
+    return cut_tubing(frame_tubing)

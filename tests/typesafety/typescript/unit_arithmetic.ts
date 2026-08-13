@@ -1,29 +1,39 @@
 // expect: passes
 
-declare const secondsBrand: unique symbol;
+declare const metersBrand: unique symbol;
+declare const squareMetersBrand: unique symbol;
 declare const kilogramsBrand: unique symbol;
 
-type Seconds = number & { readonly [secondsBrand]: true };
+type Meters = number & { readonly [metersBrand]: true };
+type SquareMeters = number & { readonly [squareMetersBrand]: true };
 type Kilograms = number & { readonly [kilogramsBrand]: true };
 
-function seconds(n: number): Seconds {
-  return n as Seconds;
+function meters(n: number): Meters {
+  return n as Meters;
 }
 
 function kilograms(n: number): Kilograms {
   return n as Kilograms;
 }
 
-function addSeconds(a: Seconds, b: Seconds): Seconds {
-  return (a + b) as Seconds;
+function addMeters(a: Meters, b: Meters): Meters {
+  return (a + b) as Meters;
+}
+
+function timesMeters(a: Meters, b: Meters): SquareMeters {
+  return (a * b) as SquareMeters;
 }
 
 function addKilograms(a: Kilograms, b: Kilograms): Kilograms {
   return (a + b) as Kilograms;
 }
 
-export function totalWait(first: Seconds, second: Seconds): Seconds {
-  return addSeconds(first, second);
+export function totalTubing(topTube: Meters, downTube: Meters): Meters {
+  return addMeters(topTube, downTube);
 }
 
-export const load = addKilograms(kilograms(2.5), kilograms(1.5));
+export function chainGuardSheet(width: Meters, height: Meters): SquareMeters {
+  return timesMeters(width, height);
+}
+
+export const shippingWeight = addKilograms(kilograms(9.5), kilograms(2.1));

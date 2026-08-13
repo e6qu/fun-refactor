@@ -1,11 +1,11 @@
 // expect: passes
 
-declare const secondsBrand: unique symbol;
+declare const metersBrand: unique symbol;
 declare const kilogramsBrand: unique symbol;
 
-type Seconds = number & { readonly [secondsBrand]: true };
+type Meters = number & { readonly [metersBrand]: true };
 type Kilograms = number & { readonly [kilogramsBrand]: true };
 
-export function nonsense(duration: Seconds, load: Kilograms): number {
-  return duration + load; // accepted, and the sum means nothing
+export function nonsense(tubing: Meters, grease: Kilograms): number {
+  return tubing + grease; // accepted, and the sum means nothing
 }

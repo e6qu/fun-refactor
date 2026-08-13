@@ -1,21 +1,21 @@
 // expect: fails
 
-declare const secondsBrand: unique symbol;
 declare const metersBrand: unique symbol;
+declare const eachBrand: unique symbol;
 
-type Seconds = number & { readonly [secondsBrand]: true };
 type Meters = number & { readonly [metersBrand]: true };
+type Each = number & { readonly [eachBrand]: true };
 
-function meters(n: number): Meters {
-  return n as Meters;
+function each(n: number): Each {
+  return n as Each;
 }
 
-function waitBeforeRetry(delay: Seconds): string {
-  return `sleeping ${delay}s`;
+function cutTubing(length: Meters): string {
+  return `cutting ${length}m of tubing`;
 }
 
-export function plan(): string {
-  const distance = meters(30);
-  waitBeforeRetry(30); // error: number is not Seconds
-  return waitBeforeRetry(distance); // error: Meters is not Seconds
+export function restock(): string {
+  const spokes = each(36);
+  cutTubing(1.8); // error: number is not Meters
+  return cutTubing(spokes); // error: Each is not Meters
 }

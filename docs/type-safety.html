@@ -174,10 +174,10 @@
     </p>
     <p>
       The seed's parts file keeps a unit column, and the workshop measures spokes by
-      count, tubing by the meter, and grease by the kilogram. The example here is the
-      smallest version of that mistake: <code>wait_before_retry</code> expects a
-      number of seconds, and somewhere else in the program a number of meters is also
-      in play. Both are plain numbers until <code>NewType</code> and a brand pull them
+      count, tubing by the meter, and grease by the kilogram. The bill of materials
+      for one frame wants 1.8 meters of tubing and 36 spokes, and
+      <code>cut_tubing</code> expects a length, which a bare count fits perfectly.
+      Both are plain numbers until <code>NewType</code> and a brand pull them
       apart.
     </p>
     <div class="ts-block" data-block="unit_newtype"></div>
@@ -198,8 +198,10 @@
       One limit is worth knowing about. A distinct type protects substitution, and
       arithmetic slips right past it: add two branded numbers and you get a plain
       number back, in both languages. If you multiply and add your quantities, give
-      them a small class with typed operations. Then the units survive the
-      arithmetic.
+      them typed operations instead: tubing lengths add to a length, weights add to
+      a shipping weight, and the width of the chain-guard sheet times its height
+      comes out an area, a third unit neither factor had. Then the units survive
+      the arithmetic.
     </p>
     <div class="ts-block" data-block="unit_arithmetic"></div>
     <p>

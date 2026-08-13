@@ -1,15 +1,23 @@
 # expect: passes
-# title: With typed addition, Seconds plus Seconds stays Seconds
+# title: Typed arithmetic keeps the units: lengths add, and width times height is an area
 # improves: newtype_arithmetic
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Seconds:
+class Meters:
     value: float
 
-    def __add__(self, other: "Seconds") -> "Seconds":
-        return Seconds(self.value + other.value)
+    def __add__(self, other: "Meters") -> "Meters":
+        return Meters(self.value + other.value)
+
+    def __mul__(self, other: "Meters") -> "SquareMeters":
+        return SquareMeters(self.value * other.value)
+
+
+@dataclass(frozen=True)
+class SquareMeters:
+    value: float
 
 
 @dataclass(frozen=True)
@@ -20,9 +28,13 @@ class Kilograms:
         return Kilograms(self.value + other.value)
 
 
-def total_wait(first: Seconds, second: Seconds) -> Seconds:
-    return first + second
+def total_tubing(top_tube: Meters, down_tube: Meters) -> Meters:
+    return top_tube + down_tube
 
 
-def total_load(first: Kilograms, second: Kilograms) -> Kilograms:
-    return first + second
+def chain_guard_sheet(width: Meters, height: Meters) -> SquareMeters:
+    return width * height
+
+
+def shipping_weight(frame: Kilograms, wheels: Kilograms) -> Kilograms:
+    return frame + wheels

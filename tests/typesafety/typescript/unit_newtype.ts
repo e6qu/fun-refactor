@@ -1,18 +1,18 @@
 // expect: passes
 
-declare const secondsBrand: unique symbol;
+declare const metersBrand: unique symbol;
 
-type Seconds = number & { readonly [secondsBrand]: true };
+type Meters = number & { readonly [metersBrand]: true };
 
-function seconds(n: number): Seconds {
-  return n as Seconds;
+function meters(n: number): Meters {
+  return n as Meters;
 }
 
-function waitBeforeRetry(delay: Seconds): string {
-  return `sleeping ${delay}s`;
+function cutTubing(length: Meters): string {
+  return `cutting ${length}m of tubing`;
 }
 
-export function plan(): string {
-  const timeout = seconds(30);
-  return waitBeforeRetry(timeout);
+export function restock(): string {
+  const frameTubing = meters(1.8);
+  return cutTubing(frameTubing);
 }

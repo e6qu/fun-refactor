@@ -1,17 +1,17 @@
 # expect: fails
-# title: Meters where Seconds belong, rejected by the checker
+# title: A count of spokes where Meters belong, rejected by the checker
 # misuse-of: unit_newtype
 from typing import NewType
 
-Seconds = NewType("Seconds", int)
-Meters = NewType("Meters", int)
+Meters = NewType("Meters", float)
+Each = NewType("Each", int)
 
 
-def wait_before_retry(delay: Seconds) -> str:
-    return f"sleeping {delay}s"
+def cut_tubing(length: Meters) -> str:
+    return f"cutting {length}m of tubing"
 
 
-def plan() -> str:
-    distance = Meters(30)
-    wait_before_retry(30)  # error: "int" is not "Seconds"
-    return wait_before_retry(distance)  # error: "Meters" is not "Seconds"
+def restock() -> str:
+    spokes = Each(36)
+    cut_tubing(1.8)  # error: "float" is not "Meters"
+    return cut_tubing(spokes)  # error: "Each" is not "Meters"
