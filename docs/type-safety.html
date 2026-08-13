@@ -54,6 +54,7 @@
       <li><a href="#pure-functions">Pure functions</a></li>
       <li><a href="#composition-and-monads">Composition and monads</a></li>
       <li><a href="#exercises">Exercises</a></li>
+      <li><a href="#toolbox">The toolbox, compared</a></li>
     </ol>
   </div>
 </section>
@@ -256,7 +257,9 @@
       <code>NewType</code> and a brand cast work anywhere, so keep the constructor
       in one module and treat a stray cast as a review failure. Code that receives
       an <code>EmailAddress</code> can then skip the check, and the checker turns
-      away anyone who passes a plain string instead.
+      away anyone who passes a plain string instead. The same door can hold any
+      business rule: a quantity that must stay between 1 and 99 is one bounds
+      check in one constructor.
     </p>
     <p>
       The workshop sends each invoice by email, and later a reminder. The address
@@ -270,6 +273,12 @@
       passes the check.
     </p>
     <div class="ts-block" data-block="entity_ids"></div>
+    <p>
+      Alexis King, whose parsing rule the next section borrows, draws a line worth
+      keeping in view: a distinct name keeps two values apart, and only reshaping
+      the data makes a bad value impossible to build. The ids above are names.
+      The states below are reshaped data.
+    </p>
     <p>
       Domain types can also describe <em>states</em>. A pending payment has no receipt
       yet. Model both states as one class with an optional receipt, and you allow four
@@ -286,6 +295,16 @@
       without a receipt, and no pending payment has one.
     </p>
     <div class="ts-block" data-block="payment_states"></div>
+    <p>
+      One kind of mistake is still standing. The statuses have safe names, and the
+      payment cannot hold an impossible mixture, but nothing stops code from paying
+      an invoice that was never sent; the seed's <code>advance</code> would take
+      the call and fail at run time. Give each stage its own type, and let
+      <code>send</code> return the only type <code>record_payment</code> accepts.
+      Rust programmers call this <em>typestate</em>. In Python and TypeScript it is
+      plain classes and return types, and a step out of order fails the scan.
+    </p>
+    <div class="ts-block" data-block="invoice_typestate"></div>
       <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
   </div>
 </section>
@@ -595,6 +614,55 @@
       <code>and_then</code> to thread them.</p>
     </details>
     <div class="ts-block" data-block="exercise_lookup_solution" data-collapse-after></div>
+  </div>
+</section>
+
+<section id="toolbox">
+  <div class="shell prose">
+    <h2>10. The toolbox, compared</h2>
+    <p>
+      The page has now used most of what the two languages offer for building
+      types. They differ in two ways that matter: what the checker holds at the
+      scan, and what still exists once the program runs. Most of these constructs
+      vanish at run time. In Python, only an enum, a class and a validating model
+      leave something behind; in TypeScript, only an enum, a class and a schema
+      survive erasure, and only the model and the schema ever check a value.
+    </p>
+    <h3>Python</h3>
+    <table>
+      <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th></tr>
+      <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Nothing exists</td><td>A long signature needs a short, honest name</td></tr>
+      <tr><td><code>NewType</code></td><td>The label: <code>Meters</code> cannot go where <code>Pence</code> belongs</td><td>The plain value, untouched</td><td>Two same-shaped values must never swap</td></tr>
+      <tr><td><code>Literal</code></td><td>A closed set of values</td><td>Plain strings and numbers</td><td>A field or flag has a fixed menu</td></tr>
+      <tr><td><code>Enum</code>, <code>StrEnum</code></td><td>A closed set with a named member for each value</td><td>A real object; the constructor raises on anything outside the set</td><td>The set must also exist at run time, as when parsing a CSV column</td></tr>
+      <tr><td><code>@dataclass(frozen=True)</code></td><td>The shape: field names and types</td><td>A real object, and frozen blocks mutation</td><td>Data with named fields, which is most data</td></tr>
+      <tr><td><code>NamedTuple</code></td><td>The shape, like a dataclass</td><td>A tuple, so indexing and unpacking still work</td><td>Tuple compatibility is required; otherwise a dataclass reads better</td></tr>
+      <tr><td><code>TypedDict</code></td><td>The keys and value types of a dictionary</td><td>A plain dict; nothing enforces the shape</td><td>Dictionaries you cannot replace, like JSON already flowing through code</td></tr>
+      <tr><td>Union of dataclasses + <code>match</code></td><td>Exhaustiveness: every reader handles every state</td><td>Ordinary objects</td><td>A value is one of a few shapes, like the payment</td></tr>
+      <tr><td>Typestate classes</td><td>The order of operations</td><td>Ordinary objects</td><td>Steps must happen in sequence, like the invoice</td></tr>
+      <tr><td>pydantic <code>BaseModel</code></td><td>The shape, like a dataclass</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td></tr>
+    </table>
+    <h3>TypeScript</h3>
+    <table>
+      <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th></tr>
+      <tr><td><code>type</code> alias</td><td>Nothing; it is the old type under a new name</td><td>Erased</td><td>A long signature needs a short, honest name</td></tr>
+      <tr><td>Brand (<code>unique symbol</code>)</td><td>The label, like <code>NewType</code></td><td>Erased; the plain value remains</td><td>Two same-shaped values must never swap</td></tr>
+      <tr><td>Literal union</td><td>A closed set of values</td><td>Erased</td><td>A field or flag has a fixed menu</td></tr>
+      <tr><td><code>enum</code></td><td>A closed set with named members</td><td>A real object survives erasure</td><td>The set must exist at run time; many teams prefer literal unions otherwise</td></tr>
+      <tr><td>Object type, <code>interface</code></td><td>The shape: property names and types</td><td>Erased</td><td>Data with named fields, which is most data</td></tr>
+      <tr><td><code>class</code></td><td>The shape and the methods</td><td>A real object; <code>instanceof</code> works</td><td>Identity or behaviour matters, as in the retry errors</td></tr>
+      <tr><td>Discriminated union + <code>never</code></td><td>Exhaustiveness: every reader handles every state</td><td>Erased; the objects are plain</td><td>A value is one of a few shapes, like the payment</td></tr>
+      <tr><td>Typestate object types</td><td>The order of operations</td><td>Erased; the objects are plain</td><td>Steps must happen in sequence, like the invoice</td></tr>
+      <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td></tr>
+    </table>
+    <p>
+      A rule of thumb runs through the page. Start with the closed set when the
+      values have a fixed menu. Add the label when two same-shaped values must
+      never swap. Give the data a shape when the fields have names, and reshape it
+      when some combinations are impossible. Keep validation at the border, in one
+      constructor or one schema, and let every type after it stand for a check
+      that already happened.
+    </p>
   </div>
 </section>
 

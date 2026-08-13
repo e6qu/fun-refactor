@@ -46,6 +46,10 @@ export const ERRORS = {
     python: "higher_order_misuse.py:25: error: Argument 1 has incompatible type \"int\"; expected \"str\"  [arg-type]\nhigher_order_misuse.py:25: error: Argument 2 has incompatible type \"str\"; expected \"int\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
     typescript: "higher_order_misuse.ts(28,36): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.",
   },
+  "invoice_typestate_misuse": {
+    python: "invoice_typestate_misuse.py:28: error: \"DraftInvoice\" has no attribute \"record_payment\"  [attr-defined]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "invoice_typestate_misuse.ts(15,37): error TS2322: Type '\"draft\"' is not assignable to type '\"sent\"'.",
+  },
   "io_actions_misuse": {
     python: "io_actions_misuse.py:21: error: Argument 1 to \"send\" has incompatible type \"IO[str]\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "io_actions_misuse.ts(13,30): error TS2345: Argument of type 'IO<string>' is not assignable to parameter of type 'string'.",
