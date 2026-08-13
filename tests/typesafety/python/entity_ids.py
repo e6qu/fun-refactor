@@ -1,15 +1,15 @@
 # expect: passes
-# title: Tenant and landlord accounts become different types
+# title: Shop and supplier accounts become different types
 # improves: transfer_arguments
 from typing import NewType
 
-TenantAccount = NewType("TenantAccount", str)
-LandlordAccount = NewType("LandlordAccount", str)
+ShopAccount = NewType("ShopAccount", str)
+SupplierAccount = NewType("SupplierAccount", str)
 
 
-def transfer(source: TenantAccount, target: LandlordAccount, amount_cents: int) -> str:
+def refund(source: ShopAccount, target: SupplierAccount, amount_cents: int) -> str:
     return f"move {amount_cents} from {source} to {target}"
 
 
-def pay_rent(tenant: TenantAccount, landlord: LandlordAccount) -> str:
-    return transfer(tenant, landlord, 95_000)
+def refund_supplier(shop: ShopAccount, supplier: SupplierAccount) -> str:
+    return refund(shop, supplier, 4_500)

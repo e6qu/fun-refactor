@@ -47,8 +47,8 @@
       in Python 3.14 and TypeScript 5.9 side by side, with a Diff button that shows
       the whole change. The examples are real files in
       <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">this repository</a>,
-      and CI runs <code>mypy --strict</code> and <code>tsc --strict</code> over every
-      one of them. All the errors you will see are static: the checker finds them by
+      and CI runs both languages' type checkers, at their strictest, over every one
+      of them. All the errors you will see are static: the checker finds them by
       reading the source, before anything runs. Nothing on this page claims more than
       the checkers confirmed.
     </p>
@@ -70,36 +70,46 @@
   <div class="shell prose">
     <h2>1. Before you start</h2>
     <p>
-      This tutorial is for programmers who can read Python or TypeScript and want
-      their types to carry more weight. You do not need to have used a type checker
-      before. If you have, the first two sections will read quickly.
+      This tutorial is written for a junior developer who knows some Python and some
+      TypeScript: you can read a function in either language and you have shipped
+      some code. You do not need to have used a type checker before.
     </p>
-    <h3>The tools</h3>
+    <h3>The problem</h3>
     <p>
-      A <em>type checker</em> is a program that reads your source code and reports
-      contradictions in it, without running it. Python's is a separate tool called
-      <a href="https://mypy-lang.org/">mypy</a>; the annotations you write in the code
-      do nothing at run time by themselves. TypeScript's checker is the TypeScript
-      compiler itself, <code>tsc</code>, which checks the types and then erases them
-      from the JavaScript it emits. To follow along at home:
+      Imagine you have joined a small web shop. The code works, mostly, but the bug
+      tracker tells a story. A customer's receipt read <code>3 x tea at 1</code>
+      because two arguments changed places. A refund moved money into the shop's
+      account instead of back to the supplier's. The books came out a cent short of
+      the bank statement. One invoice froze in its draft stage forever, and nobody
+      could say why. The server once spent a morning listening on the wrong port.
     </p>
-    <pre class="ts-commands"><code>pip install mypy          # then:  mypy --strict shelf.py
-npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pre>
     <p>
-      Both commands read the file and print either nothing, or a list of errors with
-      line numbers. That moment, the <em>scan</em>, is where every error on this page
-      appears. Nothing here depends on what happens later, at <em>run time</em>, when
-      the program executes. The <code>--strict</code> flag turns on the checkers'
-      full rigour, and this whole page assumes it.
+      Five different bugs, and one cause: somewhere, a value of the wrong kind fit
+      into a hole of the right shape. Text went where a number belonged, a float
+      carried money, one string stood for two different account numbers. This
+      tutorial takes that one system and rewrites it until each of those mistakes
+      stops being possible, not by adding checks that run, but by writing types that
+      make the wrong code fail before it runs.
+    </p>
+    <h3>The checker</h3>
+    <p>
+      Both languages come with a <em>type checker</em>: a program that reads your
+      source code and lists the places where the code contradicts its own
+      annotations, each with a file and line number, without executing anything.
+      That reading is the <em>scan</em>, and it is where every error on this page
+      appears. Nothing here depends on what happens later, at <em>run time</em>,
+      when the program executes; in both languages the annotations do no work of
+      their own once the program is running. This page assumes the checker's
+      strictest settings throughout.
     </p>
     <h3>The words</h3>
     <p>
       A <em>type</em> is a claim about a value: this is text, this is a whole number.
-      An <em>annotation</em> is where you write that claim: after a colon in Python,
-      after a colon in TypeScript too. <code>Any</code> in Python and
-      <code>any</code> in TypeScript are the escape hatch: a value typed that way
-      matches everything, and the checker stops looking at it. Here is a first
-      annotated function, with every claim written out:
+      An <em>annotation</em> is where you write that claim, after a colon in both
+      languages. <code>Any</code> in Python and <code>any</code> in TypeScript are
+      the escape hatch: a value typed that way matches everything, and the checker
+      stops looking at it. Here is a first annotated function, with every claim
+      written out:
     </p>
     <div class="ts-example" data-example="annotations_first_look"></div>
     <p>
@@ -109,13 +119,30 @@ npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pr
       checker's whole job is to find the places where code disagrees with claims
       like these.
     </p>
-    <h3>The running example</h3>
+    <h3>The program we will fix</h3>
     <p>
-      Every example on this page comes from one imaginary business: a small web shop.
-      It prints receipts, sends them by email, moves invoices from draft to sent to
-      paid, takes orders over HTTP, quotes shipping, retries calls to a flaky
-      supplier, and starts its server from a command line. Nothing about it is
-      exotic, which is the point: every problem on this page is one you have met.
+      Here is the shop's order system, condensed to one file. Every bug from the
+      tracker lives in it. The checker, even at its strictest, accepts all of it.
+    </p>
+    <div class="ts-example" data-example="the_shop"></div>
+    <p>
+      Look for the five weaknesses. <code>order_line</code> takes all four arguments
+      as <code>Any</code>, so the swapped call that mangled the receipt passes the
+      scan. <code>order_total</code> carries money in floats, which is where the
+      missing cent went. <code>advance</code> compares against bare strings, and one
+      of them is misspelled <code>darft</code>, which is why that invoice never left
+      its draft stage. <code>refund</code> takes two account numbers as two strings,
+      so nothing distinguishes the shop's account from the supplier's.
+      <code>start</code> reads the port from <code>argv</code> and it stays text.
+    </p>
+    <p>
+      The tutorial removes these weaknesses in order. Section 2 types the receipt
+      line and moves the money out of floats. Section 3 closes the status strings
+      and names the units. Section 4 gives the two accounts two types. Section 5
+      parses the command line, and everything else that crosses into the program,
+      once at the border. Sections 6 through 8 then take the typed pieces and
+      compose them into programs. By the end, nothing of this file survives
+      unchanged.
     </p>
     <h3>How to read the examples</h3>
     <p>
@@ -140,29 +167,31 @@ npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pr
       that the claim is usually much smaller than what your program means.
     </p>
     <p>
-      Here is the plainest possible case. Each line of the shop's receipts shows an
-      item's name, its unit price, how many were bought, and whether the item is
-      gift-wrapped, and the function <code>order_line</code> formats one such line.
-      Written with the <code>Any</code> escape hatch, every call passes the scan,
-      even the one with all four arguments in the wrong order; you find out at run
-      time, when a customer gets a mangled receipt. Written with ordinary
-      <code>str</code>, <code>float</code>, <code>int</code> and <code>bool</code>,
-      the checker catches that same call while it reads the file.
+      Start with the receipt bug. Each line of a receipt shows an item's name, its
+      unit price, how many were bought, and whether the item is gift-wrapped, and
+      <code>order_line</code> formats one such line. As the seed file has it, with
+      every argument <code>Any</code>, every call passes the scan, including the one
+      with all four arguments in the wrong order; the customer's mangled receipt was
+      the first anyone heard of it. Written with ordinary <code>str</code>,
+      <code>float</code>, <code>int</code> and <code>bool</code>, the checker
+      catches that same call while it reads the file.
     </p>
     <div class="ts-block" data-block="typed_arguments"></div>
     <p>
-      Simple types run out of power quickly, though. Picture a rent payment: money
-      moves from a tenant's account to a landlord's account, and
-      <code>transfer</code> takes the two account numbers as strings. Swap them at
-      the call site and the checker stays quiet, because both are the same type, and
-      the rent flows the wrong way. Programmers call this kind of code <em>stringly
-      typed</em>. Hold the example in mind; its fix arrives in section 4.
+      Simple types run out of power quickly, though. The seed's <code>refund</code>
+      moves money from the shop's account back to a supplier's, and takes the two
+      account numbers as strings. Swap them at the call site and the checker stays
+      quiet, because both are the same type, and the money flows into the shop
+      instead of out of it, which is exactly the refund bug from the tracker.
+      Programmers call this kind of code <em>stringly typed</em>. Hold the example
+      in mind; its fix arrives in section 4.
     </p>
     <p>
-      Sometimes the simple type is the wrong claim outright. The same shop sums its
-      prices, and it matters that three items at ten cents come to exactly thirty.
-      <code>float</code> stores approximate reals, and money needs to be exact.
-      Everything typechecks, and the totals quietly drift.
+      Sometimes the simple type is the wrong claim outright. The seed's
+      <code>order_total</code> sums prices as floats, and it matters that three
+      items at ten cents come to exactly thirty. <code>float</code> stores
+      approximate reals, and money needs to be exact. Everything passes the scan,
+      and the totals drift a cent away from the bank statement.
     </p>
     <div class="ts-block" data-block="money_cents"></div>
     <p>
@@ -225,8 +254,11 @@ npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pr
       exist, and the checker turns everything else away.
     </p>
     <p>
-      The shop's invoices move through three stages: drafted, sent to the customer,
-      and paid. <code>advance</code> moves an invoice to its next stage.
+      This is the seed's frozen invoice. The shop's invoices move through three
+      stages: drafted, sent to the customer, and paid, and <code>advance</code>
+      moves an invoice to its next stage. In the seed file, one branch compares
+      against the misspelled string <code>darft</code>, so no invoice ever matches
+      it, and the checker sees nothing wrong with comparing one string to another.
     </p>
     <div class="ts-block" data-block="status_literal"></div>
     <p>
@@ -263,7 +295,7 @@ npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pr
     </p>
     <div class="ts-block" data-block="email_parse"></div>
     <p>
-      The same recipe retires the transfer bug from section 2. Give each kind of
+      The same recipe retires the seed's refund bug, held over from section 2. Give each kind of
       account its own type, and the swapped call no longer passes the check.
     </p>
     <div class="ts-block" data-block="entity_ids"></div>
@@ -306,8 +338,9 @@ npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pr
       slogan: write functions on the data you wish you had. Parse once, at the edge.
     </p>
     <p>
-      Take the command line first. The shop's server is started from a terminal, as
-      servers are, with a line like <code>serve port=8080 verbose=true</code>.
+      Take the command line first, which is the seed's last weakness. The shop's
+      server is started from a terminal, as servers are, with a line like
+      <code>serve port=8080 verbose=true</code>.
       <code>argv</code> is nothing but strings; the operator typed
       <code>port=8080</code>, and <code>"8080"</code> stays text until something
       converts it. In the before version the settings travel as a dict of strings, so
@@ -503,8 +536,10 @@ npm install typescript    # then:  npx tsc --strict --noEmit shelf.ts</code></pr
   <div class="shell prose">
     <h2>9. Exercises</h2>
     <p>
-      Every exercise starts from working, badly typed code. Your job is to rewrite it
-      so the checker catches the defect described. One solution sits behind a toggle
+      By this point every weakness in the seed file has a fix on this page. These
+      five exercises hand you its cousins: working, badly typed code, each carrying
+      one of the same defects in a new place. Your job is to rewrite each one so the
+      checker catches the defect described. One solution sits behind a toggle
       in each block, along with the diff, and every solution goes through the same CI
       checks as the rest of the page.
     </p>

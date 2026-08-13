@@ -1,10 +1,11 @@
 # expect: passes
-# title: Two parameters share one type, so the checker accepts the swapped call
-def transfer(from_account: str, to_account: str, amount_cents: int) -> str:
-    return f"move {amount_cents} from {from_account} to {to_account}"
+# title: Two account numbers share one type, so a refund can flow the wrong way
+def refund(source_account: str, target_account: str, amount_cents: int) -> str:
+    return f"move {amount_cents} from {source_account} to {target_account}"
 
 
-def pay_rent(tenant_account: str, landlord_account: str) -> str:
-    # The arguments are in the wrong order. The checker accepts this call,
-    # because both parameters have the same type. The money goes the wrong way.
-    return transfer(landlord_account, tenant_account, 95_000)
+def refund_supplier(shop_account: str, supplier_account: str) -> str:
+    # The arguments are in the wrong order. The checker accepts the call,
+    # because both parameters are the same type, and the money flows into
+    # the shop instead of back to the supplier.
+    return refund(supplier_account, shop_account, 4_500)
