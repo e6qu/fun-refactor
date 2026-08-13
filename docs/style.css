@@ -1026,3 +1026,16 @@ footer a { color: var(--ink-soft); }
   cursor: pointer;
 }
 .ts-reset-button:hover { border-color: var(--accent); color: var(--accent); }
+
+.ts-mantras {
+  margin: 3.5rem auto 1rem;
+  max-width: 1100px;
+  text-align: center;
+  border-top: 1px solid var(--rule-soft);
+  padding-top: 2rem;
+}
+.ts-mantras p {
+  margin: 0.4rem 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
