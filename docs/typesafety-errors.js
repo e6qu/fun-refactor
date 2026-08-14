@@ -10,6 +10,10 @@ export const ERRORS = {
     python: "config_parse_once_misuse.py:17: error: Argument 1 to \"connect\" has incompatible type \"dict[str, str]\"; expected \"Config\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "config_parse_once_misuse.ts(12,33): error TS2345: Argument of type 'Map<string, string>' is not assignable to parameter of type 'Config'.\n  Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
   },
+  "dispatch_typed_misuse": {
+    python: "dispatch_typed_misuse.py:27: error: Dict entry 1 has incompatible type \"Literal['sent']\": \"Callable[[str], str]\"; expected \"Literal['draft', 'sent', 'paid']\": \"Callable[[Invoice], Invoice]\"  [dict-item]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "dispatch_typed_misuse.ts(17,3): error TS2322: Type '(invoiceNumber: string) => string' is not assignable to type '(invoice: Invoice) => Invoice'.\n  Types of parameters 'invoiceNumber' and 'invoice' are incompatible.\n    Type 'Invoice' is not assignable to type 'string'.",
+  },
   "email_parse_misuse": {
     python: "email_parse_misuse.py:13: error: Argument 1 to \"send_receipt\" has incompatible type \"str\"; expected \"EmailAddress\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "email_parse_misuse.ts(10,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EmailAddress'.\n  Type 'string' is not assignable to type '{ readonly [emailBrand]: true; }'.",
@@ -21,6 +25,10 @@ export const ERRORS = {
   "escape_wrapper_misuse": {
     python: "escape_wrapper_misuse.py:21: error: Argument 1 to \"render_note\" has incompatible type \"str\"; expected \"HtmlText\"  [arg-type]\nescape_wrapper_misuse.py:22: error: Argument 1 to \"escape_html\" has incompatible type \"HtmlText\"; expected \"str\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
     typescript: "escape_wrapper_misuse.ts(15,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'HtmlText'.\nescape_wrapper_misuse.ts(16,33): error TS2345: Argument of type 'HtmlText' is not assignable to parameter of type 'string'.",
+  },
+  "everyday_higher_order_misuse": {
+    python: "everyday_higher_order_misuse.py:26: error: Argument 1 to \"map\" has incompatible type \"Callable[[InvoiceLine], str]\"; expected \"Callable[[InvoiceLine], bool]\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "everyday_higher_order_misuse.ts(17,3): error TS2322: Type 'string' is not assignable to type 'number'.\neveryday_higher_order_misuse.ts(17,42): error TS2769: No overload matches this call.\n  Overload 1 of 3, '(callbackfn: (previousValue: string, currentValue: string, currentIndex: number, array: string[]) => string, initialValue: string): string', gave the following error.\n    Argument of type '(sum: number, pence: string) => string' is not assignable to parameter of type '(previousValue: string, currentValue: string, currentIndex: number, array: string[]) => string'.\n      Types of parameters 'sum' and 'previousValue' are incompatible.\n        Type 'string' is not assignable to type 'number'.\n  Overload 2 of 3, '(callbackfn: (previousValue: number, currentValue: string, currentIndex: number, array: string[]) => number, initialValue: number): number', gave the following error.\n    Type 'string' is not assignable to type 'number'.",
   },
   "exercise_lookup_misuse": {
     python: "exercise_lookup_misuse.py:28: error: Argument 1 to \"greet\" has incompatible type \"Ok[str] | Err\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
@@ -43,8 +51,8 @@ export const ERRORS = {
     typescript: "exercise_user_json_misuse.ts(9,46): error TS2322: Type 'string' is not assignable to type 'number'.",
   },
   "function_values_misuse": {
-    python: "function_values_misuse.py:19: error: Argument 2 to \"cheapest_first\" has incompatible type \"Callable[[Order], str]\"; expected \"Callable[[Order], int]\"  [arg-type]\nfunction_values_misuse.py:19: error: Incompatible return value type (got \"str\", expected \"int\")  [return-value]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "function_values_misuse.ts(10,43): error TS2322: Type 'string' is not assignable to type 'number'.",
+    python: "function_values_misuse.py:24: error: Argument 2 to \"picking_list\" has incompatible type \"Callable[[InvoiceLine], str]\"; expected \"Callable[[InvoiceLine], int]\"  [arg-type]\nfunction_values_misuse.py:24: error: Incompatible return value type (got \"str\", expected \"int\")  [return-value]\nFound 2 errors in 1 file (checked 1 source file)",
+    typescript: "function_values_misuse.ts(15,49): error TS2322: Type 'string' is not assignable to type 'number'.",
   },
   "higher_order_misuse": {
     python: "higher_order_misuse.py:25: error: Argument 1 has incompatible type \"int\"; expected \"str\"  [arg-type]\nhigher_order_misuse.py:25: error: Argument 2 has incompatible type \"str\"; expected \"int\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",

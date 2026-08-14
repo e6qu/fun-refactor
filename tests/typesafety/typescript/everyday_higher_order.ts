@@ -1,10 +1,18 @@
 // expect: passes
 
-type Order = { readonly item: string; readonly totalCents: number; readonly gift: boolean };
+declare const penceBrand: unique symbol;
+type Pence = number & { readonly [penceBrand]: true };
 
-export function giftSpendCents(orders: Order[]): number {
-  return orders
-    .filter((order) => order.gift)
-    .map((order) => order.totalCents)
-    .reduce((sum, cents) => sum + cents, 0);
+type InvoiceLine = { readonly item: string; readonly pence: Pence; readonly gift: boolean };
+
+function isGift(line: InvoiceLine): boolean {
+  return line.gift;
+}
+
+function amount(line: InvoiceLine): Pence {
+  return line.pence;
+}
+
+export function giftTotal(lines: readonly InvoiceLine[]): number {
+  return lines.filter(isGift).map(amount).reduce((sum, pence) => sum + pence, 0);
 }

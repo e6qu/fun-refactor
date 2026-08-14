@@ -1,18 +1,23 @@
 # expect: passes
-# title: A loosely typed key accepts the wrong lambda
+# title: A loosely typed key accepts a lambda the sort cannot call
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import NewType
+
+Pence = NewType("Pence", int)
 
 
 @dataclass(frozen=True)
-class Order:
-    id: str
-    total_cents: int
+class InvoiceLine:
+    item: str
+    pence: Pence
+    quantity: int
 
 
-def cheapest_first(orders: list[Order], key: Callable[..., int]) -> list[Order]:
-    return sorted(orders, key=key)
+def picking_list(
+    lines: list[InvoiceLine], key: Callable[..., int]
+) -> list[InvoiceLine]:
+    return sorted(lines, key=key)
 
 
-def demo(orders: list[Order]) -> list[Order]:
-    return cheapest_first(orders, lambda order, currency: int(order[currency]))
+cheapest_first = picking_list([], lambda line, currency: line[currency])

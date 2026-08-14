@@ -1,33 +1,35 @@
 # expect: passes
 # run: yes
-# title: Python reaches for a decorator, and JavaScript for the array chain
+# title: filter and map take the test and the extractor as values
 # improves: plumbing_by_hand
-import time
-from collections.abc import Callable
+from dataclasses import dataclass
+from typing import NewType
 
-durations: list[float] = []
-
-
-def timed[**P, R](operation: Callable[P, R]) -> Callable[P, R]:
-    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-        started = time.perf_counter()
-        try:
-            return operation(*args, **kwargs)
-        finally:
-            durations.append(time.perf_counter() - started)
-    return wrapped
+Pence = NewType("Pence", int)
 
 
-@timed
-def area(width: int, height: int) -> int:
-    return width * height
+@dataclass(frozen=True)
+class InvoiceLine:
+    item: str
+    pence: Pence
+    gift: bool
 
 
-@timed
-def greet(name: str) -> str:
-    return f"hello {name}"
+def is_gift(line: InvoiceLine) -> bool:
+    return line.gift
 
 
-assert area(3, 4) == 12
-assert greet("ada") == "hello ada"
-assert len(durations) == 2
+def amount(line: InvoiceLine) -> Pence:
+    return line.pence
+
+
+def gift_total(lines: list[InvoiceLine]) -> Pence:
+    return Pence(sum(map(amount, filter(is_gift, lines))))
+
+
+basket = [
+    InvoiceLine("saddle", Pence(155), gift=True),
+    InvoiceLine("spokes", Pence(36), gift=False),
+    InvoiceLine("bell", Pence(80), gift=True),
+]
+assert gift_total(basket) == 235

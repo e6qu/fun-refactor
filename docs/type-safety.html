@@ -122,11 +122,13 @@
 <section id="functions-as-values">
   <div class="shell prose">
     <h2>6. Functions as values</h2>
-    <p>A function's type is what it takes and returns. Leave it open and the checker waves through a key that crashes the sort.</p>
+    <p>A function's type is what it takes and returns. Leave it open and the checker waves through a key the sort cannot call.</p>
     <div class="ts-block" data-block="function_values"></div>
+    <p>The table of handlers is where this pays every day. Declare one handler shape, and the checker holds every entry to it, so a handler wired to the wrong case is caught while you write it.</p>
+    <div class="ts-block" data-block="dispatch_typed"></div>
     <p>A wrapper that loses the signature loses every argument check with it.</p>
     <div class="ts-block" data-block="higher_order"></div>
-    <p>The everyday shapes: a decorator in Python, the array chain in JavaScript.</p>
+    <p>The everyday shape: a hand-rolled loop becomes a chain that takes its test and its extractor as values, and the checker types every step of it.</p>
     <div class="ts-block" data-block="everyday_higher_order"></div>
   </div>
 </section>

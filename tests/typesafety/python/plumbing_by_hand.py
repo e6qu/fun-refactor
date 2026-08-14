@@ -1,19 +1,21 @@
 # expect: passes
-# title: The timing lines repeat in every function
-import time
+# title: A loop accumulates the gift total by hand
+from dataclasses import dataclass
+from typing import NewType
 
-durations: list[float] = []
-
-
-def area(width: int, height: int) -> int:
-    started = time.perf_counter()
-    result = width * height
-    durations.append(time.perf_counter() - started)
-    return result
+Pence = NewType("Pence", int)
 
 
-def greet(name: str) -> str:
-    started = time.perf_counter()
-    result = f"hello {name}"
-    durations.append(time.perf_counter() - started)
-    return result
+@dataclass(frozen=True)
+class InvoiceLine:
+    item: str
+    pence: Pence
+    gift: bool
+
+
+def gift_total(lines: list[InvoiceLine]) -> Pence:
+    total = 0
+    for line in lines:
+        if line.gift:
+            total += line.pence
+    return Pence(total)

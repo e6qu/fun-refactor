@@ -1,14 +1,21 @@
 // expect: passes
 
-type Order = {
-  readonly id: string;
-  readonly totalCents: number;
-};
+declare const penceBrand: unique symbol;
+type Pence = number & { readonly [penceBrand]: true };
 
-function cheapestFirst(orders: readonly Order[], key: (order: Order) => number): Order[] {
-  return [...orders].sort((a, b) => key(a) - key(b));
+type InvoiceLine = { readonly item: string; readonly pence: Pence; readonly quantity: number };
+
+function pickingList(
+  lines: readonly InvoiceLine[],
+  key: (line: InvoiceLine) => number,
+): InvoiceLine[] {
+  return [...lines].sort((a, b) => key(a) - key(b));
 }
 
-export function demo(orders: Order[]): Order[] {
-  return cheapestFirst(orders, (order) => order.totalCents);
-}
+const basket: InvoiceLine[] = [
+  { item: "saddle", pence: 155 as Pence, quantity: 1 },
+  { item: "bell", pence: 80 as Pence, quantity: 3 },
+];
+
+export const cheapestFirst = pickingList(basket, (line) => line.pence);
+export const fewestFirst = pickingList(basket, (line) => line.quantity);
