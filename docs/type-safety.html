@@ -36,14 +36,6 @@
   <div class="shell">
     <p class="eyebrow">A tutorial</p>
     <h1 class="prose">Type safety, from primitives to monads</h1>
-    <p class="lede prose">
-      A type names the values a place in your program can hold: <code>bool</code>
-      names two, a <code>Status</code> can name exactly three, and the checker
-      reads your code and rejects every path that puts anything else there. This
-      tutorial starts from one file of working, badly typed code. It types the
-      swapped invoice arguments first, then the units and the ids, then parses the
-      input once at the border, and it ends with functions that compose.
-    </p>
     <ol class="ts-toc" id="toc">
       <li><a href="#the-program">The program we will fix</a></li>
       <li><a href="#simple-types">Simple types</a></li>
@@ -62,118 +54,21 @@
 <section id="the-program">
   <div class="shell prose">
     <h2>1. The program we will fix</h2>
-    <p>
-      One program runs through this whole page. A small workshop builds bicycles
-      from parts: a bill of materials lists what goes into each model with
-      quantities and costs, and an invoice bills the customer who buys one. The
-      books are kept in old British money, where twelve pence (<code>d</code>) make
-      a shilling (<code>s</code>) and twenty shillings make a pound, so £1 3s 6d is
-      one pound, three shillings and sixpence. Here is the code, condensed to one
-      file. The type checker, at its strictest, accepts every line of it.
-    </p>
+    <p>A workshop builds bicycles. A bill of materials lists the parts, an invoice bills the customer, and the books are kept in old British money, where twelve pence make a shilling and twenty shillings a pound. Every line below passes the strictest scan.</p>
     <div class="ts-example" data-example="the_program"></div>
-    <p>
-      Each function hides a bug that reached production. <code>bom_line</code> and
-      <code>invoice_line</code> take every argument as <code>Any</code>, which is how
-      one customer's invoice read <code>80 xTrue at handlebar gripd +tax</code>.
-      Money travels as bare numbers, so <code>apply_discount</code> cannot tell the
-      total from the rate, and the swapped call goes through. <code>advance</code> compares
-      bare strings, and the misspelled <code>darft</code> freezes every invoice in
-      its draft stage. <code>bill</code> takes two look-alike ids as plain strings,
-      so an invoice can be addressed to a bicycle. <code>load_bom_line</code> hands
-      every field of the parts file on as text.
-    </p>
-    <p>
-      The tutorial removes these weaknesses in order: first the invoice line and
-      the money, then the units and the statuses, then the ids, then the borders.
-      Sections 6 through 8 compose the typed pieces into programs. Nothing of this
-      file survives unchanged, and the closing section shows the finished version.
-    </p>
-    <h3>How to read the examples</h3>
-    <p>
-      The page reads like a notebook. Each example is a cell showing one language
-      at a time, and the toggle beside its title switches every cell on the page
-      between Python and TypeScript. Every cell is editable: change the code, run
-      your version, and Reset brings the checked example back. The Run button
-      executes the cell right here in the browser, using a Python runtime compiled
-      to WebAssembly and the TypeScript compiler, both fetched on the first click.
-      Type check and Lint work the same way: the real checker and linters run in
-      the page, so an edited cell can be re-scanned without leaving the browser. An example is a block with a
-      <strong>Before</strong>, the code with a weakness, and an <strong>After</strong>,
-      the same code with the types doing more work; the Diff button swaps the cells
-      to the exact change. Some blocks end with a row labelled <strong>Now a type
-      error</strong>: a call the Before version accepted, and the After version
-      turns into a rejection. Run one and it often still executes, wrongly; the
-      toggle under it shows the checker's verbatim message, which is the scan
-      catching what the run cannot. Some sections end with a short quiz: read the
-      cell, call the verdict yourself, and then see what the checker actually said.
-      When you get those right without looking, the section has done its job.
-    </p>
+    <p>Five bugs hide in it, and the checker cannot see one of them: <code>Any</code> arguments, money that looks like every other number, a status misspelled <code>darft</code>, two ids that swap freely, and a parts file that stays text.</p>
   </div>
 </section>
 
 <section id="simple-types">
   <div class="shell prose">
     <h2>2. Simple types</h2>
-    <p>
-      Most code is written in <code>str</code>, <code>int</code>, <code>float</code>
-      and <code>bool</code>. Each of these makes a small claim about a value: it is
-      text, or it is a number. The checker holds that claim faithfully. The trouble is
-      that the claim is usually much smaller than what your program means.
-    </p>
-    <p>
-      Start with the mangled invoice. Each line of an invoice shows a description,
-      a price in pence, a quantity, and whether the line is taxed, and
-      <code>invoice_line</code> formats one such line. As the seed file has it, with
-      every argument <code>Any</code>, every call passes the scan, including the one
-      with all four arguments in the wrong order; the customer who read
-      <code>80 xTrue at handlebar gripd</code> was the first to notice. Written with
-      ordinary <code>str</code>, <code>int</code> and <code>bool</code>, the checker
-      catches that same call while it reads the file. TypeScript rejects all four
-      arguments. Python rejects three: <code>True</code> passes where an
-      <code>int</code> belongs, because Python's <code>bool</code> is a subclass of
-      <code>int</code>, a surprise worth meeting early. The mix of checked and
-      unchecked code has a name and a lineage: <em>gradual typing</em>, worked out
-      in the Lisp family for Typed Racket, where typed and untyped code share one
-      program and <code>Any</code> is the seam.
-    </p>
+    <p><code>Any</code> accepts the four arguments in any order. Real types do not.</p>
     <div class="ts-block" data-block="typed_arguments"></div>
-    <p>
-      Simple types run out of power quickly, though. The seed's <code>bill</code>
-      addresses an invoice, and takes a customer id and a product id as two
-      strings. Swap them at the call site and the checker stays quiet, because both
-      are the same type, and the invoice goes out addressed to a bicycle.
-      Programmers call this kind of code <em>stringly typed</em>. Hold the example
-      in mind; its fix arrives in section 4.
-    </p>
-    <p>
-      Money shows the same weakness from another angle. In the seed, a price and a
-      discount rate are both bare numbers, so when <code>apply_discount</code> gets
-      its arguments in the wrong order, the checker has nothing to object to. Give
-      the total and the rate their own types, and the swap stops getting through.
-      Integer pence also happen to add exactly where floats drift, and you can
-      watch that by pressing Run, but the checker never sees it. The typing lesson
-      is the swap.
-    </p>
+    <p>A price and a discount rate are both bare numbers, so the swapped call goes through.</p>
     <div class="ts-block" data-block="money_pence"></div>
-    <p>
-      One more habit completes the basics. The gift note on an invoice line is
-      <code>str | None</code>, and calling <code>upper</code> on a note that may be
-      missing is rejected. <code>cast</code> makes the checker look away, and the
-      crash comes back at run time. Write the branch instead: the checker follows
-      an <code>if</code>, and inside it the <code>None</code> is gone. Typed
-      Racket, in the Lisp family, pioneered this as <em>occurrence typing</em>;
-      Python and TypeScript call it <em>narrowing</em>, and every
-      <code>match</code> and <code>typeof</code> test on this page leans on it.
-      The checker only trusts a narrowing it can watch hold still: narrow a shared
-      attribute, call a function, and the narrowing is gone. Copy the value to a
-      local first.
-    </p>
+    <p>The gift note may be missing. <code>cast</code> silences the checker; a branch it can follow does not. Typed Racket named this <em>occurrence typing</em>, and narrowing does not survive a call that could change the value.</p>
     <div class="ts-block" data-block="note_narrowing"></div>
-    <p>
-      In each case the type is too broad, so wrong values fit. The rest of the page
-      narrows the types until the wrong calls stop fitting.
-    </p>
     <div class="ts-quiz" data-quiz="any_arguments,typed_arguments_misuse,money_float"></div>
   </div>
 </section>
@@ -181,268 +76,56 @@
 <section id="aliases-and-units">
   <div class="shell prose">
     <h2>3. Aliases and units</h2>
-    <p>
-      A type alias is a new name for an old type. The checker treats the two as
-      identical, so an alias documents intent and enforces nothing. Enforcement
-      needs a genuinely distinct type: <code>NewType</code> in Python, and in
-      TypeScript a <em>brand</em>, an intersection with a marker that exists only in
-      the type system.
-    </p>
-    <p>
-      In 1999 the Mars Climate Orbiter was lost because one team's software produced
-      pound-force seconds and another's read newton-seconds. The type checker is the
-      cheapest place to catch that class of mistake.
-    </p>
-    <p>
-      The seed's parts file keeps a unit column, and the workshop measures spokes by
-      count, tubing by the meter, and grease by the kilogram. The bill of materials
-      wants 1.8 meters of tubing for the frame and 36 spokes for each wheel, and
-      <code>cut_tubing</code> expects a length, which a bare count fits perfectly.
-      Both are plain numbers until <code>NewType</code> and a brand pull them
-      apart.
-    </p>
+    <p>An alias is another name for the same type, so it enforces nothing. <code>NewType</code> and a TypeScript brand make a genuinely distinct one, free at run time. The parts file measures spokes by count and tubing by the meter.</p>
     <div class="ts-block" data-block="unit_newtype"></div>
-    <p>
-      Type theorists would say TypeScript's types are <em>structural</em>, anything
-      with the right shape fits, and a brand makes one <em>nominal</em>, only the
-      declared name fits. Either way, the distinct type is free at run time.
-    </p>
-    <p>
-      Aliases still earn their place when the point is naming. A long function type
-      reads far better under a short name, and one edit updates every signature that
-      uses it. A named constant does the same job for a <em>magic number</em>, a bare
-      <code>30_000</code> whose meaning the reader is left to guess.
-    </p>
-    <p>
-      Here the shop's client retries failed requests. Every retry policy is a function
-      from an attempt number and an error to a delay, and that shape used to be spelled
-      out at three different signatures, with the default delay sitting in the code as
-      a bare <code>30_000</code>.
-    </p>
+    <p>Aliases still earn their keep as names: one for a callback shape, one constant for a magic number.</p>
     <div class="ts-block" data-block="alias_compound"></div>
-    <p>
-      One limit is worth knowing about. A distinct type protects substitution, and
-      arithmetic slips right past it: add two branded numbers and you get a plain
-      number back, in both languages. If you multiply and add your quantities, give
-      them typed operations instead: tubing lengths add to a length, weights add to
-      a shipping weight, and the width of the chain-guard sheet times its height
-      comes out an area, a third unit neither factor had. Then the units survive
-      the arithmetic.
-    </p>
+    <p>Addition strips a brand, so give the quantities typed operations. Width times height comes out an area, a unit neither factor had.</p>
     <div class="ts-block" data-block="unit_arithmetic"></div>
-    <p>
-      Strings share the weakness. A bare <code>"paid"</code> scattered through a
-      codebase is a <em>magic string</em>, and a status typed <code>str</code> will
-      accept anything, typos included; one production classic is a machine-learning
-      option misspelled <code>tahn</code> for <code>tanh</code>, alive for months
-      behind a <code>str</code>. A literal type writes down the values that
-      exist, and the checker turns everything else away.
-    </p>
-    <p>
-      This is the seed's frozen invoice. The shop's invoices move through three
-      stages: drafted, sent to the customer, and paid, and <code>advance</code>
-      moves an invoice to its next stage. In the seed file, one branch compares
-      against the misspelled string <code>darft</code>, so no invoice ever matches
-      it, and the checker sees nothing wrong with comparing one string to another.
-    </p>
+    <p>A status typed <code>str</code> accepts every typo, including the seed's <code>darft</code>. A literal type writes down the three values that exist.</p>
     <div class="ts-block" data-block="status_literal"></div>
-    <p>
-      Literals belong in parameters too. A flag whose docstring says "text or binary"
-      can say it in the type instead, where the checker can read it. The rejection
-      cuts both ways: a variable typed as plain <code>str</code> can no longer be
-      passed in, since it could hold anything at all.
-    </p>
-    <p>
-      The example is a log reader. Its <code>mode</code> parameter decides whether the
-      file is read as text or as fixed-width binary records, and only those two words
-      mean anything to it.
-    </p>
+    <p>The same closure works on a parameter: a mode that means text or binary, and nothing else.</p>
     <div class="ts-block" data-block="literal_flag"></div>
-      <div class="ts-quiz" data-quiz="alias_transparent,unit_newtype_misuse,unit_arithmetic_misuse"></div>
+    <div class="ts-quiz" data-quiz="alias_transparent,unit_newtype_misuse,unit_arithmetic_misuse"></div>
   </div>
 </section>
 
 <section id="domain-types">
   <div class="shell prose">
     <h2>4. Domain types</h2>
-    <p>
-      A string becomes an <code>EmailAddress</code> only after
-      <code>parse_email</code> has checked it. That is the whole idea of a domain
-      type. Scott Wlaschin calls the habit of building everything out of raw strings
-      and numbers <em>primitive obsession</em>, and the cure has three parts: a
-      distinct type, one function that constructs it, and no other way to get one.
-      Functional programmers call that function a <em>smart constructor</em>.
-      Neither checker can fully enforce the third part, because
-      <code>NewType</code> and a brand cast work anywhere, so keep the constructor
-      in one module and treat a stray cast as a review failure. Code that receives
-      an <code>EmailAddress</code> can then skip the check, and the checker turns
-      away anyone who passes a plain string instead. The same door can hold any
-      business rule: a quantity that must stay between 1 and 99 is one bounds
-      check in one constructor. Save the treatment for values where a mix-up is
-      easy to make and expensive to ship; wrapping everything buys ceremony.
-    </p>
-    <p>
-      The workshop sends each invoice by email, and later a reminder. The address
-      arrives from a web form, typed by a person, so it needs a check, and the
-      question is where that check lives.
-    </p>
+    <p>A string becomes an <code>EmailAddress</code> only after <code>parse_email</code> accepts it. Scott Wlaschin calls the alternative <em>primitive obsession</em>. Keep the constructor in one module: neither checker can stop a cast made elsewhere.</p>
     <div class="ts-block" data-block="email_parse"></div>
-    <p>
-      The same recipe retires the seed's billing bug, held over from section 2. Give
-      customers and products their own id types, and the swapped call no longer
-      passes the check.
-    </p>
+    <p>Two ids of the same shape swap silently until they are two types.</p>
     <div class="ts-block" data-block="entity_ids"></div>
-    <p>
-      Alexis King, whose parsing rule the next section borrows, draws a line worth
-      keeping in view: a distinct name keeps two values apart, and only reshaping
-      the data makes a bad value impossible to build. The ids above are names.
-      The states below are reshaped data.
-    </p>
-    <p>
-      Domain types can also describe <em>states</em>. A pending payment has no receipt
-      yet. Model both states as one class with an optional receipt, and you allow four
-      combinations, two of which cannot exist. Model each state as its own type, and
-      only the real two remain. This is a <em>tagged union</em>, which TypeScript
-      calls a discriminated union. The goal is what Yaron Minsky called <em>making
-      illegal states unrepresentable</em>. With an <code>assert_never</code> arm or a
-      <code>never</code> default in place, the checker demands that every reader
-      handle every state: <em>exhaustiveness checking</em>. The throw inside that
-      arm is deliberate: when nothing uses the narrowed value, a forgotten case can
-      slip through as <code>never</code>, and the runtime error is the net under
-      the net.
-    </p>
-    <p>
-      The shop's payments show the pattern. A payment starts out pending, and once it
-      settles, it has a receipt id. There is no such thing as a settled payment
-      without a receipt, and no pending payment has one.
-    </p>
+    <p>A name keeps values apart. Reshaping the data makes the bad value impossible to build: a settled payment carries its receipt, a pending one cannot.</p>
     <div class="ts-block" data-block="payment_states"></div>
-    <p>
-      One kind of mistake is still standing. The statuses have safe names, and the
-      payment cannot hold an impossible mixture, but nothing stops code from paying
-      an invoice that was never sent; the seed's <code>advance</code> would take
-      the call and fail at run time. Give each stage its own type, and let
-      <code>send</code> return the only type <code>record_payment</code> accepts.
-      Rust programmers call this <em>typestate</em>. In Python and TypeScript it is
-      plain classes and return types, and a step out of order fails the scan.
-    </p>
+    <p>Stages work the same way. <code>send</code> returns the only invoice <code>record_payment</code> accepts, so paying a draft fails the scan. Rust calls this <em>typestate</em>.</p>
     <div class="ts-block" data-block="invoice_typestate"></div>
-    <p>
-      The wrapper deserves one more turn of the screw. A <code>NewType</code> is a
-      subtype, so an <code>HtmlText</code> built on <code>str</code> would still
-      fit back into <code>escape_html</code>, and a second escape would sail
-      through. Make the wrapper its own class, and both directions close: raw text
-      cannot reach the renderer, and escaped text cannot be escaped again. React
-      ships this discipline; its renderer refuses plain strings as HTML.
-    </p>
+    <p>Escaped text deserves its own class rather than a subtype, so raw text cannot reach the renderer and escaped text cannot be escaped twice.</p>
     <div class="ts-block" data-block="escape_wrapper"></div>
-    <p>
-      One asymmetry between the languages earns the section's last example.
-      TypeScript checks shapes everywhere: any object with the right members fits.
-      Python's classes match by name, and <code>typing.Protocol</code>, added in
-      3.8, is the opt-in: declare the methods a carrier must have, and any class
-      that has them counts, including one from a library you cannot edit. No
-      inheritance, and the checker still holds every carrier to the signature.
-    </p>
+    <p>TypeScript matches shapes everywhere. Python matches by name, and <code>typing.Protocol</code> is the opt-in: any class with the right method counts, including one you cannot edit.</p>
     <div class="ts-block" data-block="carrier_protocol"></div>
-      <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
+    <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
   </div>
 </section>
 
 <section id="parse-dont-validate">
   <div class="shell prose">
     <h2>5. Parse, don't validate</h2>
-    <p>
-      Where do domain types come from? The outside world only ever hands your program
-      text. A command line is a list of strings. An environment variable is a string.
-      An HTTP body is a string of JSON. A file is bytes. None of it arrives with a
-      type, and something has to turn it into the objects the rest of the program
-      works with.
-    </p>
-    <p>
-      <em>Validation</em> checks a value and hands it on as the same plain string,
-      so later code cannot tell the check ever ran, and checks again. Security
-      researchers call that scattered checking <em>shotgun parsing</em>, and it is
-      exactly where malformed input slips through. <em>Parsing</em> runs the same
-      check and returns a different type, so functions that receive the typed value
-      never repeat it. Alexis King gave the rule its name, <em>parse, don't
-      validate</em>, and its best slogan: write functions on the data you wish you
-      had. Parse once, at the edge.
-    </p>
-    <p>
-      The seed's <code>load_bom_line</code> splits a row of the parts file and hands
-      every field on as text, so <code>qty</code> and <code>cost</code> get
-      converted wherever someone remembers to. The command line is the same problem
-      at its smallest. The workshop's server starts from a terminal with a line like
-      <code>serve port=8080 verbose=true</code>, and <code>argv</code> gives the
-      program nothing but strings. In the before version the settings travel as a
-      dictionary of strings, and every function that wants the port converts and
-      re-checks it for itself. In the after version <code>parse_argv</code> reads
-      the strings once and returns a <code>Config</code> whose <code>port</code> is
-      an <code>int</code>. A bad command line fails right there, with a message,
-      before the program does any work.
-    </p>
+    <p>The outside world hands your program text. <em>Validation</em> checks it and passes the same string on, so the next reader checks again. <em>Parsing</em> runs the same check and returns a different type, and every function after it demands that type. Alexis King named the rule and its slogan: write functions on the data you wish you had.</p>
     <div class="ts-block" data-block="config_parse_once"></div>
-    <p>
-      The order that arrives over HTTP is the same story. <code>json.loads</code>
-      or <code>JSON.parse</code> gives you a shapeless value, one parse function
-      turns it into an <code>Order</code> or raises with the reason, and every
-      function after that takes the <code>Order</code>. The exercise at the end of
-      the page walks exactly this case. Libraries exist that write the parse
-      function from a declared schema; they check at run time, so on this page
-      they appear only in the closing table, as the contrast.
-    </p>
-    <p>
-      Parse input at the boundary, and pass <code>Config</code>, <code>Order</code>
-      and the other domain values around instead of raw strings. Hand a function the
-      raw dictionary anyway, and the checker refuses it; that refusal is the new row
-      under each example above. One honest limit: a type records that a check
-      happened, and the world can change afterwards. A parsed port can be taken by
-      the time you bind it. The type spared you the re-checking; the operating
-      system still gets a vote.
-    </p>
+    <p>One honest limit: the type records that a check happened, and the world can change afterwards. A parsed port can be taken by the time you bind it.</p>
   </div>
 </section>
 
 <section id="functions-as-values">
   <div class="shell prose">
     <h2>6. Functions as values</h2>
-    <p>
-      Functions have types too: what they take, and what they return. Write that type
-      down, and a function can be passed around and checked like any other value.
-      Leave it open, with <code>Callable[..., int]</code> or <code>any</code>, and the
-      checker will wave through key functions that crash the moment they run.
-    </p>
-    <p>
-      The shop again: a page lists orders, cheapest first. Sorting needs a key, and a
-      key is a function passed as a value.
-    </p>
+    <p>A function's type is what it takes and returns. Leave it open and the checker waves through a key that crashes the sort.</p>
     <div class="ts-block" data-block="function_values"></div>
-    <p>
-      A function that takes or returns another function is a higher-order function.
-      The most useful ones are wrappers: retry, memoize, log. A wrapper is only safe
-      if it preserves the signature it wraps, and both languages can express that.
-      Python uses type parameters, <code>[**P, R]</code>; TypeScript uses a generic
-      argument tuple.
-    </p>
-    <p>
-      The wrapper here is <code>retry</code>. Fetching from a flaky upstream service
-      fails now and then, so the shop wraps <code>fetch</code> to try three times
-      before giving up. The question the types answer: after wrapping, does the
-      checker still know what <code>fetch</code> takes and returns?
-    </p>
+    <p>A wrapper that loses the signature loses every argument check with it.</p>
     <div class="ts-block" data-block="higher_order"></div>
-    <p>
-      Each language also has a higher-order idiom you will meet every day. In Python
-      it is the decorator: <code>@timed</code> above a definition means "pass this
-      function through <code>timed</code> and bind the result to the same name". In
-      JavaScript it is the array chain: <code>map</code>, <code>filter</code> and
-      <code>reduce</code> each take a typed callback, and the types flow all the way
-      down the chain. Python has <code>map</code> and <code>filter</code> as well,
-      though a comprehension usually reads better. JavaScript has decorators as well,
-      on classes and their members, though not on plain functions.
-    </p>
+    <p>The everyday shapes: a decorator in Python, the array chain in JavaScript.</p>
     <div class="ts-block" data-block="everyday_higher_order"></div>
   </div>
 </section>
@@ -450,148 +133,44 @@
 <section id="pure-functions">
   <div class="shell prose">
     <h2>7. Pure functions</h2>
-    <p>
-      A function is pure when the same arguments always give the same result and
-      nothing else happens: no clock, no network, no globals. The formal name is
-      <em>referential transparency</em>, and any call to such a function could be
-      replaced by its value. Be clear about what the checker sees here: nothing. A
-      function typed <code>int</code> to <code>int</code> is free to read the
-      clock, and the scan stays quiet. Purity is a discipline, and what the checker
-      can hold is the shape it leaves behind: a function that depends only on its
-      parameters has to receive everything it needs.
-    </p>
-    <p>
-      <code>remaining</code> shows the trade. Read the clock inside, and a test can
-      never pin the answer down. Take <code>now</code> as a parameter, and the
-      answer becomes a fact a test can state, and the dependency gets a type: hand
-      <code>remaining</code> a bare number instead of a <code>datetime</code>, and
-      the checker refuses the call.
-    </p>
+    <p>Same arguments, same result, nothing else. The checker sees none of this: a function typed <code>int</code> to <code>int</code> can still read the clock. What it can hold is the shape the discipline leaves behind, where the clock arrives as an argument with a type of its own.</p>
     <div class="ts-block" data-block="pure_clock"></div>
-    <p>
-      Handing dependencies in like this is <em>dependency injection</em> at its
-      smallest. Gary Bernhardt calls the resulting shape <em>functional core,
-      imperative shell</em>: effects at the boundary, pure functions between domain
-      types in the middle. The next section shows what the checker can hold once
-      even the effects become values.
-    </p>
   </div>
 </section>
 
 <section id="composition-and-monads">
   <div class="shell prose">
     <h2>8. Composition and monads</h2>
-    <p>
-      You build programs by connecting small functions: one function's output is
-      the next one's input. The types make the connection safe. Put the steps in
-      the wrong order, and the checker rejects the call.
-    </p>
-    <p>
-      Quoting an order takes two steps: convert the raw order, then price it. The
-      <code>RawOrder</code> was already parsed in section 5; here it changes hands.
-      The check that matters is that each function accepts exactly what the
-      previous one returns, and the rejection below shows the wrong handoff
-      refused.
-    </p>
+    <p>Programs are small functions connected end to end, and the types make the connection safe: each step must accept what the last one returned.</p>
     <div class="ts-block" data-block="typed_pipeline"></div>
-    <p>
-      Real steps fail. Returning <code>None</code> or <code>null</code> works, but
-      every kind of failure collapses into the same empty answer. With a
-      <code>Result</code>, each step returns either a value or a reason, and
-      <code>and_then</code> runs the next step only when it got a value. The code
-      follows the success case, and when a step fails, the later steps never run.
-      Wlaschin teaches this as <em>railway-oriented programming</em>: two tracks,
-      and one switch.
-    </p>
+    <p>Steps fail. <code>None</code> collapses every failure into the same empty answer, while a <code>Result</code> carries the reason and <code>and_then</code> runs the next step only after a value. Wlaschin teaches this as <em>railway-oriented programming</em>.</p>
     <div class="ts-block" data-block="result_chain"></div>
-    <p>
-      Here is what the checker holds. A <code>Result[int]</code> will not pass
-      where an <code>int</code> is expected, so a caller cannot forget the failure
-      case the way they can forget an exception. An exception never shows up in a
-      signature; a <code>Result</code> does, and the rejection above shows a quote
-      spent as a number being refused.
-    </p>
-    <p>
-      This pattern is called a <strong>monad</strong>: <code>Ok</code> puts a value
-      into the wrapper, and <code>and_then</code> (also called <code>flatMap</code>
-      or <code>bind</code>) chains steps that return the same wrapper. The monad
-      laws just say the plumbing behaves: grouping chained calls differently does
-      not change the result, and <code>Ok</code> on its own changes nothing.
-      <code>map</code> is the version of <code>and_then</code> for a step that
-      cannot fail. Here are the familiar wrappers and what each one handles:
-    </p>
+    <p>The failure is now in the signature, where an exception never was, so a caller cannot forget it.</p>
+    <p>The pattern has a name. A wrapper with a way in (<code>Ok</code>) and a chaining step that returns the wrapper (<code>and_then</code>, also <code>flatMap</code> or <code>bind</code>) is a <strong>monad</strong>. <code>map</code> is the version for a step that cannot fail.</p>
     <ul>
-      <li><strong>Option</strong> handles absence. Neither language ships the
-        wrapper; <code>x | None</code> narrowing in Python and optional chaining in
-        TypeScript cover the same ground natively.</li>
-      <li><strong>Result</strong> handles failure with a reason. You met it above.</li>
-      <li><strong>List</strong> handles many answers at once. A comprehension and
-        <code>flatMap</code> are its chaining step.</li>
-      <li><strong>Promise</strong> handles answers that arrive later.
-        <code>then</code> chains and flattens.</li>
-      <li><strong>Writer</strong> carries a log beside the value, so the audit trail
-        arrives with the answer.</li>
-      <li><strong>IO</strong> describes an effect without performing it, so policies
-        like retry become ordinary functions over descriptions.</li>
+      <li><strong>Option</strong>: absence. Neither language ships it; <code>| None</code> and optional chaining cover it.</li>
+      <li><strong>Result</strong>: failure with a reason.</li>
+      <li><strong>List</strong>: many answers, chained with <code>flatMap</code> or a comprehension.</li>
+      <li><strong>Promise</strong>: answers that arrive later.</li>
+      <li><strong>Writer</strong>: a log beside the value.</li>
+      <li><strong>IO</strong>: an effect described rather than performed.</li>
     </ul>
-    <p>
-      Two of them you have been using all along:
-    </p>
     <div class="ts-example" data-example="familiar_monads"></div>
-    <p>
-      Before you rewrite a codebase around any of this, a warning. Reach for the
-      language's own tools first: <code>None</code> narrowing, exceptions at the
-      edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled
-      monads are not idiomatic in Python or TypeScript, and most teams will
-      experience them as friction. The Writer and IO below are small models to
-      learn the pattern from. What carries over is the idea:
-      keep values and failures flowing through steps whose types the checker can
-      see, even when you spell it with the language's own tools.
-    </p>
-    <p>
-      Here is a Writer, hand-rolled for a price calculation the workshop wants to
-      audit. Each step returns its result together with its log line, and the
-      chain concatenates the trails, so the audit arrives with the answer as plain
-      data. The checker's part: a <code>Logged</code> total will not pass where a
-      bare number is expected, so nobody drops the log by accident.
-    </p>
+    <p>Reach for the language's own tools first. Hand-rolled monads are not idiomatic here, and most teams meet them as friction; the two below are models to learn the shape from.</p>
+    <p>A Writer carries the audit trail with the answer, and the checker stops anyone dropping it.</p>
     <div class="ts-block" data-block="logged_steps"></div>
-    <p>
-      The IO below wraps the flaky fetch from section 6. Store the call in a value
-      instead of performing it, and <code>retry</code> wraps that stored value
-      once; the loop disappears from the network functions. Nothing runs until the
-      edge of the program calls <code>run</code>, and the
-      checker keeps the stages apart: an <code>IO[str]</code> is not a
-      <code>str</code>, so code cannot spend the description as if it were already
-      the answer.
-    </p>
+    <p>An IO stores the call instead of performing it, so <code>retry</code> wraps it once and nothing runs until <code>run</code>.</p>
     <div class="ts-block" data-block="io_actions"></div>
-    <p>
-      As for the definition you may have heard, "a monad is just a monoid in the
-      category of endofunctors": that is a true sentence from category theory, and a
-      long-running joke about explanations that explain nothing. Keep the working
-      definition: a way in, a chain, and <code>map</code> for the steps that cannot
-      fail.
-    </p>
+    <p>As for "a monad is just a monoid in the category of endofunctors": a true sentence from category theory, and a long-running joke about explanations that explain nothing.</p>
   </div>
 </section>
 
 <section id="exercises">
   <div class="shell prose">
     <h2>9. Exercises</h2>
-    <p>
-      These five exercises reuse the mistakes from the seed file, each in a new
-      place. You get working, badly typed code, and your job is to rewrite it so
-      the checker catches the defect described. One solution sits behind a toggle
-      in each block, along with the diff, and every solution goes through the same CI
-      checks as the rest of the page.
-    </p>
 
     <h3>Exercise 1: make the typo impossible</h3>
-    <p>
-      A typo has killed one branch of this status function, and the checker has no way
-      to see it. Make the typo a type error the scan catches, and a forgotten status too.
-    </p>
+    <p>A typo has killed one branch, and the checker cannot see it. Make the typo a type error, and a forgotten status too.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 3: a literal type. Section 4: an exhaustive match with
@@ -601,14 +180,7 @@
     <div class="ts-block" data-block="exercise_status_solution" data-collapse-after></div>
 
     <h3>Exercise 2: name the units and the flags</h3>
-    <p>
-      Two call sites disagree about the argument order, and both pass the check. A row of
-      bare booleans invites what Robert Harper calls <em>boolean blindness</em>: the
-      call reads true, false, true and tells you nothing. Give the units real types
-      and the flags names. A type cannot tell which bare number you meant, so label
-      every value where it enters; after that, two labelled quantities can no longer
-      change places quietly, and the solution's misuse row shows the swap rejected.
-    </p>
+    <p>Two call sites disagree about the argument order, and both pass. A row of bare booleans invites what Robert Harper calls <em>boolean blindness</em>. Give the units types and the flags names.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 3 for the units. For the flags, a frozen dataclass or an object
@@ -617,11 +189,7 @@
     <div class="ts-block" data-block="exercise_shipping_solution" data-collapse-after></div>
 
     <h3>Exercise 3: parse the user once</h3>
-    <p>
-      A user arrives as JSON and then travels as a loose dictionary, so every function
-      re-checks whichever fields it touches. Parse once at the edge, then delete the
-      checks.
-    </p>
+    <p>A user arrives as JSON and travels as a loose dictionary, so every function re-checks it. Parse once at the edge, then delete the checks.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 5. Write one parse function that returns a <code>User</code> or
@@ -630,27 +198,17 @@
     <div class="ts-block" data-block="exercise_user_json_solution" data-collapse-after></div>
 
     <h3>Exercise 4: separate the currencies</h3>
-    <p>
-      An amount is a number with its currency in a string beside it, and the mismatch
-      is caught at run time, if at all. Move it into the types, so adding dollars to
-      euros no longer passes the check. In the TypeScript solution,
-      <code>NoInfer</code>, which arrived in TypeScript 5.4, pins the currency to
-      the first amount, so the second cannot widen it to a union of both.
-    </p>
+    <p>An amount is a number with its currency in a string beside it. Move it into the types, so adding dollars to euros no longer passes.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>In Python, one class per currency and a constrained type variable,
       <code>[M: (Usd, Eur)]</code>. In TypeScript, a generic currency parameter and
-      <code>NoInfer</code> on the second argument.</p>
+      <code>NoInfer</code> on the second argument, which pins the currency to the first amount.</p>
     </details>
     <div class="ts-block" data-block="exercise_money_solution" data-collapse-after></div>
 
     <h3>Exercise 5: give each failure its reason</h3>
-    <p>
-      Three lookups can each fail, and all three failures collapse into one
-      <code>None</code>. Rebuild the chain on <code>Result</code>, so each failure
-      keeps its reason.
-    </p>
+    <p>Three lookups can each fail, and all three collapse into one <code>None</code>. Rebuild the chain on <code>Result</code>.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 8. Three small functions returning <code>Result</code>, and
@@ -663,22 +221,7 @@
 <section id="toolbox">
   <div class="shell prose">
     <h2>10. The toolbox, compared</h2>
-    <p>
-      The page has now used most of what the two languages offer for building
-      types. They differ in two ways that matter: what the checker holds at the
-      scan, and what still exists once the program runs. Most of these constructs
-      vanish at run time. In Python, only an enum, a class and a validating model
-      leave something behind; in TypeScript, only an enum, a class and a schema
-      survive erasure, and only the model and the schema ever check a value. The
-      runtime end of the axis is its own tradition: Racket's contracts and
-      Clojure's spec live there, and pydantic and zod are that idea in these two
-      languages. The last column says when each construct arrived; everything on
-      this page runs on Python 3.12 and TypeScript 5.4 or newer. Strict has fine
-      print in both: the Python checker skips the bodies of unannotated functions
-      unless told otherwise, and TypeScript leaves array indexing optimistic
-      unless <code>noUncheckedIndexedAccess</code> is on. This page checks with it
-      on.
-    </p>
+    <p>Two axes matter: what the checker holds at the scan, and what survives into the running program. Most of these vanish; only a validating model or schema ever checks a value, in the tradition of Racket's contracts and Clojure's spec. Everything here needs Python 3.12 or TypeScript 5.4, and strict has fine print in both: Python skips unannotated function bodies, and TypeScript leaves array indexing optimistic without <code>noUncheckedIndexedAccess</code>, which this page turns on.</p>
     <h3>Python</h3>
     <table>
       <tr><th>Construct</th><th>The checker holds</th><th>At run time</th><th>Reach for it when</th><th>Since</th></tr>
@@ -707,46 +250,16 @@
       <tr><td><code>satisfies</code> + <code>as const</code></td><td>Conformance to a type without widening the literal</td><td>Erased</td><td>A value must match a shape and keep its exact keys</td><td>4.9; <code>as const</code> 3.4</td></tr>
       <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: bad data is rejected as it enters</td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
-    <p>
-      The bill deserves open eyes too. Data from the wild is dirty, and a model
-      that can only hold clean values cannot even load the record you need to
-      repair. A parser that stops at the first bad field cannot collect every
-      mistake a user made at once. Types named ValidThis and CheckedThat multiply
-      until nobody knows which one a function wants. And every invariant in a
-      constructor is a promise your test fixtures must satisfy before they can
-      build anything at all.
-    </p>
-    <p>
-      A rule of thumb runs through the page. Start with the closed set when the
-      values have a fixed menu. Add the label when two same-shaped values must
-      never swap. Give the data a shape when the fields have names, and reshape it
-      when some combinations are impossible. Keep validation at the border, in one
-      constructor or one schema, and let every type after it stand for a check
-      that already happened.
-    </p>
+    <p>The bill: data from the wild is dirty, and a model that holds only clean values cannot load the record you need to repair. A parser that stops at the first bad field cannot collect every mistake at once. Types named ValidThis and CheckedThat multiply. And every invariant is a promise your fixtures must satisfy before they can build anything.</p>
   </div>
 </section>
 
 <section>
   <div class="shell prose">
     <h2>Where this goes next</h2>
-    <p>
-      Here is the seed file again, rewritten. The invoice line takes real types,
-      the money and the discount rate have their own types, the statuses are a
-      closed set, customers and products cannot swap, and the parts file is parsed
-      once, with the quantity, the unit and the cost checked at the door. The
-      mistakes this page covered now show up as type errors.
-    </p>
+    <p>The seed file, rewritten. Every mistake this page covered is now a type error.</p>
     <div class="ts-example" data-example="the_program_fixed"></div>
-    <p>
-      The Rust side of this repository applies the same ideas:
-      <a href="types.html">Making it unrepresentable</a> shows its newtypes and
-      closed sets next to the bugs they removed. The
-      example files behind this page live in
-      <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>,
-      and <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a>
-      is the test that keeps them honest.
-    </p>
+    <p>The Rust side of this repository applies the same ideas: <a href="types.html">Making it unrepresentable</a>. The examples behind this page live in <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>, and <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a> keeps them honest.</p>
     <div class="ts-mantras">
       <p>Typecheck, don't execute.</p>
       <p>Turn your bugs into type errors.</p>
