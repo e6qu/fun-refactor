@@ -148,10 +148,9 @@
       <p>A monad is just a monoid in the category of endofunctors.</p>
       <cite>Anonymous</cite>
     </blockquote>
-    <p>Useful steps rarely hand back a plain value. The answer may be missing, it may have failed with a reason, it may arrive later, it may not have run yet. Call two such steps in a row and the wrapper is in the way: the second function wants an <code>Order</code>, and the first one returned a <code>Result[Order]</code>. Unwrap at every step and a pipeline turns into a staircase of checks.</p>
-    <p>A <strong>monad</strong> is the shape that keeps the chain straight: a way in, and one chaining step that opens the wrapper, runs the next function, and closes it again. You already use three of them.</p>
+    <p>You already use three: a comprehension flattening a list of lists, <code>await</code> unwrapping an answer that arrives later, and the check that clears away a value which may be missing.</p>
     <div class="ts-example" data-example="familiar_monads"></div>
-    <p>That is all the pattern is: a way in (<code>Ok</code>, <code>Promise.resolve</code>, a one-element list) and a chaining step that returns the same wrapper (<code>and_then</code>, <code>flatMap</code>, <code>bind</code>, <code>then</code>, <code>await</code>). <code>map</code> is the version for a step that cannot fail. The wrappers you meet:</p>
+    <p>Those three share one shape, called a <strong>monad</strong>: a way in (<code>Ok</code>, <code>Promise.resolve</code>, a one-element list) and a chaining step that returns the same wrapper (<code>and_then</code>, <code>flatMap</code>, <code>bind</code>, <code>then</code>, <code>await</code>). <code>map</code> is the version for a step that cannot fail. The wrappers you meet:</p>
     <ul>
       <li><strong>Option</strong>: the answer may be missing. Neither language ships it; <code>| None</code> and optional chaining cover it.</li>
       <li><strong>Result</strong>: the step failed, and the reason matters.</li>
