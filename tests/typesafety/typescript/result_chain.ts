@@ -24,6 +24,10 @@ function checkStock(quantity: number): Result<number> {
   return quantity <= 10 ? ok(quantity) : err("only 10 in stock");
 }
 
+function price(quantity: number): Result<number> {
+  return ok(quantity * 250);
+}
+
 export function quote(text: string): Result<number> {
-  return andThen(andThen(parseQuantity(text), checkStock), (q) => ok(q * 250));
+  return andThen(andThen(parseQuantity(text), checkStock), price);
 }

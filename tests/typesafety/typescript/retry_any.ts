@@ -17,10 +17,10 @@ function retry(times: number, operation: (...args: any[]) => any): (...args: any
   };
 }
 
-function fetchPage(url: string, timeout: number): string {
+function fetch(url: string, timeout: number): string {
   return `GET ${url} within ${timeout}s`;
 }
 
-const patientFetch = retry(3, fetchPage);
+const patientFetch = retry(3, fetch);
 export const fine = patientFetch("https://example.test", 10);
 export const wrong = patientFetch(10, "https://example.test");

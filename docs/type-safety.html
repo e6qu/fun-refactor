@@ -144,27 +144,32 @@
 <section id="composition-and-monads">
   <div class="shell prose">
     <h2>8. Composition and monads</h2>
-    <p>Programs are small functions connected end to end, and the types make the connection safe: each step must accept what the last one returned.</p>
-    <div class="ts-block" data-block="typed_pipeline"></div>
-    <p>Steps fail. <code>None</code> collapses every failure into the same empty answer, while a <code>Result</code> carries the reason and <code>and_then</code> runs the next step only after a value. Wlaschin teaches this as <em>railway-oriented programming</em>.</p>
-    <div class="ts-block" data-block="result_chain"></div>
-    <p>The failure is now in the signature, where an exception never was, so a caller cannot forget it.</p>
-    <p>The pattern has a name. A wrapper with a way in (<code>Ok</code>) and a chaining step that returns the wrapper (<code>and_then</code>, also <code>flatMap</code> or <code>bind</code>) is a <strong>monad</strong>. <code>map</code> is the version for a step that cannot fail.</p>
-    <ul>
-      <li><strong>Option</strong>: absence. Neither language ships it; <code>| None</code> and optional chaining cover it.</li>
-      <li><strong>Result</strong>: failure with a reason.</li>
-      <li><strong>List</strong>: many answers, chained with <code>flatMap</code> or a comprehension.</li>
-      <li><strong>Promise</strong>: answers that arrive later.</li>
-      <li><strong>Writer</strong>: a log beside the value.</li>
-      <li><strong>IO</strong>: an effect described rather than performed.</li>
-    </ul>
+    <blockquote class="ts-epigraph">
+      <p>A monad is just a monoid in the category of endofunctors.</p>
+      <cite>Anonymous</cite>
+    </blockquote>
+    <p>Useful steps rarely hand back a plain value. The answer may be missing, it may have failed with a reason, it may arrive later, it may not have run yet. Call two such steps in a row and the wrapper is in the way: the second function wants an <code>Order</code>, and the first one returned a <code>Result[Order]</code>. Unwrap at every step and a pipeline turns into a staircase of checks.</p>
+    <p>A <strong>monad</strong> is the shape that keeps the chain straight: a way in, and one chaining step that opens the wrapper, runs the next function, and closes it again. You already use three of them.</p>
     <div class="ts-example" data-example="familiar_monads"></div>
-    <p>Reach for the language's own tools first. Hand-rolled monads are not idiomatic here, and most teams meet them as friction; the two below are models to learn the shape from.</p>
-    <p>A Writer carries the audit trail with the answer, and the checker stops anyone dropping it.</p>
+    <p>That is all the pattern is: a way in (<code>Ok</code>, <code>Promise.resolve</code>, a one-element list) and a chaining step that returns the same wrapper (<code>and_then</code>, <code>flatMap</code>, <code>bind</code>, <code>then</code>, <code>await</code>). <code>map</code> is the version for a step that cannot fail. The wrappers you meet:</p>
+    <ul>
+      <li><strong>Option</strong>: the answer may be missing. Neither language ships it; <code>| None</code> and optional chaining cover it.</li>
+      <li><strong>Result</strong>: the step failed, and the reason matters.</li>
+      <li><strong>List</strong>: many answers at once, chained with <code>flatMap</code> or a comprehension.</li>
+      <li><strong>Promise</strong>: the answer arrives later, chained with <code>await</code>.</li>
+      <li><strong>Writer</strong>: an audit line travels beside the value.</li>
+      <li><strong>IO</strong>: the effect is described now and performed later.</li>
+    </ul>
+    <p>Only one is usually worth writing yourself. Returning <code>None</code> collapses every failure into the same empty answer, while a <code>Result</code> carries the reason, and <code>and_then</code> runs the next step only after a value. The chain reads straight down, and the first failure ends it. Wlaschin calls the picture <em>railway-oriented programming</em>: two tracks and one switch.</p>
+    <div class="ts-block" data-block="result_chain"></div>
+    <p>The failure now sits in the signature, where an exception never was, so a caller cannot forget it and the checker refuses a quote spent as a number.</p>
+    <p>None of this is needed when the steps carry nothing extra. Then composition is just the types lining up, and a step out of order is a type error on its own.</p>
+    <div class="ts-block" data-block="typed_pipeline"></div>
+    <p>The last two are worth reading and rarely worth writing. Reach for the language's own tools first, because hand-rolled monads are not idiomatic in either language and most teams meet them as friction. A Writer keeps the audit trail attached to the answer it explains, which is what you want when every step that touches an amount has to justify itself.</p>
     <div class="ts-block" data-block="logged_steps"></div>
-    <p>An IO stores the call instead of performing it, so <code>retry</code> wraps it once and nothing runs until <code>run</code>.</p>
+    <p>An IO stores the call instead of performing it, so a retry policy wraps the description once instead of living as a loop inside every network function, and nothing happens until the edge of the program calls <code>run</code>.</p>
     <div class="ts-block" data-block="io_actions"></div>
-    <p>As for "a monad is just a monoid in the category of endofunctors": a true sentence from category theory, and a long-running joke about explanations that explain nothing.</p>
+    <p>The epigraph, by the way, is a true sentence from category theory, and a long-running joke about explanations that explain nothing.</p>
   </div>
 </section>
 

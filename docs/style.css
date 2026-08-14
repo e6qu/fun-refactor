@@ -1039,3 +1039,11 @@ footer a { color: var(--ink-soft); }
   font-weight: 600;
   font-size: 1.05rem;
 }
+
+.ts-epigraph {
+  margin: 0 0 1.5rem;
+  padding-left: 1rem;
+  border-left: 3px solid var(--rule);
+}
+.ts-epigraph p { margin: 0; font-style: italic; color: var(--ink-soft); }
+.ts-epigraph cite { display: block; margin-top: 0.3rem; font-size: 0.85rem; color: var(--ink-faint); font-style: normal; }

@@ -1,18 +1,33 @@
 # expect: passes
 # run: yes
-# title: flatMap and comprehensions are the chaining step of monads you already use
+# title: Three you already use: a comprehension, await, and a value that may be missing
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Team:
+class Assembly:
     name: str
-    logins: tuple[str, ...]
+    parts: tuple[str, ...]
 
 
-def all_logins(teams: list[Team]) -> list[str]:
-    return [login for team in teams for login in team.logins]
+def all_parts(assemblies: list[Assembly]) -> list[str]:
+    return [part for assembly in assemblies for part in assembly.parts]
 
 
-teams = [Team("ops", ("ada", "bob")), Team("web", ("cid",))]
-assert all_logins(teams) == ["ada", "bob", "cid"]
+async def quoted_total(fetch: Callable[[str], Awaitable[int]]) -> int:
+    frame = await fetch("F-101")
+    wheels = await fetch("W-200")
+    return frame + wheels
+
+
+def note_length(note: str | None) -> int:
+    if note is None:
+        return 0
+    return len(note)
+
+
+assemblies = [Assembly("frame", ("top tube", "down tube")), Assembly("wheel", ("rim",))]
+assert all_parts(assemblies) == ["top tube", "down tube", "rim"]
+assert note_length("fragile") == 7
+assert note_length(None) == 0

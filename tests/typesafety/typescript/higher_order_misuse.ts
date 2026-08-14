@@ -20,9 +20,9 @@ function retry<A extends unknown[], R>(
   };
 }
 
-function fetchPage(url: string, timeout: number): string {
+function fetch(url: string, timeout: number): string {
   return `GET ${url} within ${timeout}s`;
 }
 
-const patientFetch = retry(3, fetchPage);
+const patientFetch = retry(3, fetch);
 export const result = patientFetch(10, "https://example.test");

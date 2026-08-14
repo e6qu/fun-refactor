@@ -88,7 +88,7 @@ export const ERRORS = {
   },
   "pure_clock_misuse": {
     python: "pure_clock_misuse.py:13: error: Argument \"now\" to \"remaining\" has incompatible type \"float\"; expected \"datetime\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "pure_clock_misuse.ts(9,43): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Date'.",
+    typescript: "pure_clock_misuse.ts(9,41): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Date'.",
   },
   "result_chain_misuse": {
     python: "result_chain_misuse.py:25: error: Unsupported operand types for + (\"Ok[int]\" and \"int\")  [operator]\nresult_chain_misuse.py:25: error: Unsupported operand types for + (\"Err\" and \"int\")  [operator]\nresult_chain_misuse.py:25: note: Left operand is of type \"Ok[int] | Err\"\nFound 2 errors in 1 file (checked 1 source file)",

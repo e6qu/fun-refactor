@@ -1,5 +1,5 @@
 // expect: passes
 
-export function remainingMs(deadline: Date): number {
+export function remaining(deadline: Date): number {
   return deadline.getTime() - Date.now();
 }
