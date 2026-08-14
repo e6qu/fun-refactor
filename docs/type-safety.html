@@ -46,6 +46,7 @@
       <li><a href="#pure-functions">Pure functions</a></li>
       <li><a href="#composition-and-monads">Composition and monads</a></li>
       <li><a href="#exercises">Exercises</a></li>
+      <li><a href="#concepts">The concepts</a></li>
       <li><a href="#toolbox">The toolbox, compared</a></li>
     </ol>
   </div>
@@ -218,9 +219,52 @@
   </div>
 </section>
 
+<section id="concepts">
+  <div class="shell prose">
+    <h2>10. The concepts</h2>
+    <p>Every idea the page used, with the name people call it by, and when it does its work. Most of this is scan only: a type alias leaves nothing behind, and a brand leaves the plain value. An enum and a class are real objects that outlive the scan. pydantic and zod sit at the far end, checking values as they arrive and handing the checker a type in return.</p>
+    <table>
+      <tr><th>Concept</th><th>What it means</th><th>Scan or run time</th><th>Section</th></tr>
+      <tr><td>Gradual typing</td><td>Checked and unchecked code in one program, with <code>Any</code> as the seam. Worked out for Typed Racket.</td><td>Scan only</td><td>2</td></tr>
+      <tr><td><code>Any</code></td><td>The escape hatch: every value fits, and the checker stops looking.</td><td>Neither; it is the absence of checking</td><td>2</td></tr>
+      <tr><td>Stringly typed</td><td>Meaning carried in strings the checker cannot read.</td><td>Neither; the checker sees a string</td><td>2</td></tr>
+      <tr><td>Narrowing</td><td>The checker follows a test and uses the narrower type inside the branch. Typed Racket called it <em>occurrence typing</em>.</td><td>Scan, and the test itself runs</td><td>2</td></tr>
+      <tr><td>Type alias</td><td>A second name for the same type. It documents and enforces nothing.</td><td>Scan only; nothing survives</td><td>3</td></tr>
+      <tr><td><code>NewType</code>, brand</td><td>A distinct type over the same representation.</td><td>Scan only; the plain value remains</td><td>3</td></tr>
+      <tr><td>Magic number, magic string</td><td>A bare literal whose meaning the reader has to guess.</td><td>Neither; any value of that type fits</td><td>3</td></tr>
+      <tr><td>Literal type</td><td>The values that exist, written into the type itself.</td><td>Scan only; plain strings at run time</td><td>3</td></tr>
+      <tr><td>Enum</td><td>A closed set whose members are also objects.</td><td>Both; the constructor rejects outsiders</td><td>3</td></tr>
+      <tr><td>Units of measure</td><td>Quantities that must never mix, kept apart by their types.</td><td>Scan only</td><td>3</td></tr>
+      <tr><td>Domain type</td><td>A type that states a fact about your problem.</td><td>Scan; a class also exists at run time</td><td>4</td></tr>
+      <tr><td>Primitive obsession</td><td>Building everything out of raw strings and numbers. Scott Wlaschin's name for it.</td><td>Neither; the checker sees int and str</td><td>4</td></tr>
+      <tr><td>Smart constructor</td><td>The one function allowed to build a type, holding its invariant.</td><td>Both; the check runs, the type records it</td><td>4</td></tr>
+      <tr><td>Structural and nominal typing</td><td>Anything with the right shape fits, against only the declared name fits.</td><td>Scan only</td><td>4</td></tr>
+      <tr><td><code>Protocol</code></td><td>Python's opt-in structural typing: the methods a value must have, no inheritance.</td><td>Scan only, unless marked runtime-checkable</td><td>4</td></tr>
+      <tr><td>Tagged union</td><td>One of several shapes, told apart by a tag. TypeScript calls it a discriminated union.</td><td>Scan; the tag field is real data</td><td>4</td></tr>
+      <tr><td>Illegal states unrepresentable</td><td>Reshape the data so the bad combination cannot be built. Yaron Minsky's phrase.</td><td>Scan only</td><td>4</td></tr>
+      <tr><td>Exhaustiveness checking</td><td>Every reader must handle every case, or the scan fails.</td><td>Scan, with a throw as the net beneath</td><td>4</td></tr>
+      <tr><td>Typestate</td><td>The stage of a value carried in its type, so a step out of order is a type error. Named in Rust.</td><td>Scan only; the objects are ordinary</td><td>4</td></tr>
+      <tr><td>Validation</td><td>Check a value and pass the same value on. Nothing records that the check ran.</td><td>Run time, and again at every reader</td><td>5</td></tr>
+      <tr><td>Parsing</td><td>Run the same check and return a different type, which every later function demands.</td><td>Both; runs once, holds ever after</td><td>5</td></tr>
+      <tr><td>Shotgun parsing</td><td>The same check scattered across every reader, where malformed input slips through.</td><td>Run time, repeatedly</td><td>5</td></tr>
+      <tr><td>Parse, don't validate</td><td>Alexis King's rule: convert at the border, then write functions on the data you wish you had.</td><td>Both, by design</td><td>5</td></tr>
+      <tr><td>Schema validation</td><td>pydantic and zod: declare the shape once, and the library checks incoming data and hands the checker a type.</td><td>Run time, at the border</td><td>5</td></tr>
+      <tr><td>Higher-order function</td><td>A function that takes or returns a function.</td><td>Both; real values the checker types</td><td>6</td></tr>
+      <tr><td>Signature preservation</td><td>A wrapper that keeps the wrapped function's exact type.</td><td>Scan only</td><td>6</td></tr>
+      <tr><td>Purity</td><td>Same arguments, same result, nothing else. Formally, <em>referential transparency</em>.</td><td>Neither; a discipline the checker cannot see</td><td>7</td></tr>
+      <tr><td>Dependency injection</td><td>Hand a function what it needs instead of letting it reach out.</td><td>Both; a real argument with a type</td><td>7</td></tr>
+      <tr><td>Functional core, imperative shell</td><td>Effects at the boundary, pure functions in the middle. Gary Bernhardt's shape.</td><td>Neither; an arrangement</td><td>7</td></tr>
+      <tr><td>Composition</td><td>One function's output is the next one's input, and the types must agree.</td><td>Both</td><td>8</td></tr>
+      <tr><td>Monad</td><td>A wrapper with a way in and a chaining step that returns the wrapper.</td><td>Both; real values, checked chains</td><td>8</td></tr>
+      <tr><td>Railway-oriented programming</td><td>Wlaschin's picture of a Result chain: two tracks, one switch.</td><td>Both</td><td>8</td></tr>
+      <tr><td>Boolean blindness</td><td>A row of bare booleans at a call site tells the reader nothing. Robert Harper's term.</td><td>Neither; every bool fits</td><td>9</td></tr>
+    </table>
+  </div>
+</section>
+
 <section id="toolbox">
   <div class="shell prose">
-    <h2>10. The toolbox, compared</h2>
+    <h2>11. The toolbox, compared</h2>
     <p>Two axes matter: what the checker holds at the scan, and what survives into the running program. Most of these vanish; only a validating model or schema ever checks a value, in the tradition of Racket's contracts and Clojure's spec. Everything here needs Python 3.12 or TypeScript 5.4, and strict has fine print in both: Python skips unannotated function bodies, and TypeScript leaves array indexing optimistic without <code>noUncheckedIndexedAccess</code>, which this page turns on.</p>
     <h3>Python</h3>
     <table>
