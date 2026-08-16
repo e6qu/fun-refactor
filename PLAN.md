@@ -370,11 +370,17 @@ reproduces, and is pinned by a test that fails when it stops being true.
   covers a CSS class assembled inside a helper call. Each stands on the report, not on the
   gap. `tests/open_defects.rs` asserts both halves: a rename that quietly skipped the
   helper call would satisfy the first half of B14 and fail the second.
-- **B286 is a decision.** Inlining adds brackets according to the value and not according
-  to its destination. An extra bracket is noise. A missing bracket changes the arithmetic.
+- **B286 was a decision, and then a fix.** Inlining bracketed by the value; it
+  brackets by the use site now. A use held by its own delimiters, a declaration, an
+  argument list, a return, takes the value bare. A use under a tighter operator keeps
+  the pair. The failure modes stay asymmetric, and the unrecognised parent still errs
+  toward the bracket.
 
 **No open defect is both this project's own and fixable here.** B263, the last one that
-was, closed in #105; B300, the re-export barrel, closed on this branch.
+was, closed in #105; B300, the re-export barrel, closed on this branch. B286, B364 and
+B365 closed on the branch after it. Inline brackets by use site now. The Zig
+file-as-struct idiom reads as the record it is. The IR has a sum, so closed choices
+cross all six languages.
 
 ### What the work became
 

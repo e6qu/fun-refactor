@@ -81,7 +81,8 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         )
     })?;
     let value_span = Span::from(value);
-    let value_text = substitution(sym.language, value, value_span.text(&source));
+    let value_text = value_span.text(&source).to_string();
+    let compound = groups_with_parentheses(sym.language) && !atomic(value);
 
     let references = index.references_to(symbol);
     if references.is_empty() {
@@ -129,15 +130,36 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .into());
     }
 
+    // A compound value is wrapped only where the use site needs it. Each use sits in
+    // its own file and its own expression, so the decision is made per site against
+    // that file's parse tree.
+    let mut trees: std::collections::HashMap<std::path::PathBuf, (String, crate::parse::Parsed)> =
+        std::collections::HashMap::new();
     let mut edits = EditSet::new();
     for reference in &references {
+        let bare = if !compound {
+            true
+        } else if reference.file == sym.file {
+            use_site_shielded(&parsed, reference.span)
+        } else {
+            let (_, tree) = match trees.entry(reference.file.clone()) {
+                std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                    let text = crate::vfs::read_to_string(&reference.file)?;
+                    let tree = Parsers::new().parse(reference.language, &text)?;
+                    entry.insert((text, tree))
+                }
+            };
+            use_site_shielded(tree, reference.span)
+        };
+        let replacement = if bare {
+            value_text.clone()
+        } else {
+            format!("({value_text})")
+        };
         edits.add(
             reference.file.clone(),
-            Edit::new(
-                reference.span,
-                value_text.clone(),
-                format!("inline {}", sym.name),
-            ),
+            Edit::new(reference.span, replacement, format!("inline {}", sym.name)),
         );
     }
 
@@ -176,7 +198,8 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 /// meaning, whereas deciding precedence properly needs a per-grammar operator table
 /// that would be wrong somewhere, silently. Left bare: the things no surrounding
 /// operator can split, a name, a literal, a call, a field, an index, and anything
-/// already wrapped.
+/// already wrapped. A use site that is itself delimited is also left bare, because
+/// `total = value` holds the whole value however it associates. See [`shielded`].
 ///
 /// Languages without an expression grammar are untouched. A YAML value is not an
 /// expression, and `(true)` is not the same scalar as `true`.
@@ -200,9 +223,14 @@ pub(crate) fn groups_with_parentheses(language: Language) -> bool {
 }
 
 fn substitution(language: Language, value: tree_sitter::Node<'_>, text: &str) -> String {
-    if !groups_with_parentheses(language) {
+    if !groups_with_parentheses(language) || atomic(value) {
         return text.to_string();
     }
+    format!("({text})")
+}
+
+/// Can no surrounding operator split this expression?
+fn atomic(value: tree_sitter::Node<'_>) -> bool {
     const ATOMIC: &[&str] = &[
         "identifier",
         "literal",
@@ -229,9 +257,51 @@ fn substitution(language: Language, value: tree_sitter::Node<'_>, text: &str) ->
         "parenthes",
     ];
     let kind = value.kind();
-    match ATOMIC.iter().any(|atom| kind.contains(atom)) {
-        true => text.to_string(),
-        false => format!("({text})"),
+    ATOMIC.iter().any(|atom| kind.contains(atom))
+}
+
+/// Does the surrounding syntax already hold the whole substituted expression?
+///
+/// `total = value`, `f(value)`, `return value` and a list element between commas are
+/// delimited by their own punctuation. A compound value keeps its meaning there bare,
+/// and a parenthesis is noise. `value * 2` is not delimited; the multiplication
+/// would bind into the value, so the wrap stays. The words match tree-sitter node
+/// kinds across all seven grammars. A parent this list does not recognise keeps
+/// the parenthesis, which at worst reads as noise and never changes what runs.
+fn shielded(parent_kind: &str) -> bool {
+    const SHIELDS: &[&str] = &[
+        "statement",
+        "declaration",
+        "declarator",
+        "argument",
+        "return",
+        "parenthes",
+        "array",
+        "tuple",
+        "list",
+        "dictionary",
+        "map",
+        "set",
+        "pair",
+        "keyword",
+        "assignment",
+        "initializer",
+        "element",
+        "block",
+        "substitution",
+        "interpolation",
+    ];
+    SHIELDS.iter().any(|word| parent_kind.contains(word))
+}
+
+/// True when the node covering `span` sits in a position its own delimiters protect.
+fn use_site_shielded(parsed: &Parsed, span: Span) -> bool {
+    let Some(node) = node_covering(parsed, span) else {
+        return false;
+    };
+    match node.parent() {
+        Some(parent) => shielded(parent.kind()),
+        None => true,
     }
 }
 
@@ -432,12 +502,60 @@ mod tests {
 
         let plan = variable(&index, id).unwrap();
         assert_eq!(plan.use_sites, 2);
-        // Parenthesised at every site, including the two where nothing could have
-        // bound tighter. Knowing that would mean a precedence table per grammar, and a
-        // table like that is wrong somewhere, silently, and by changing the answer.
+        // Both uses sit alone inside an argument list, whose own parentheses and
+        // commas already hold the expression, so no extra pair appears.
         assert_eq!(
             apply(&plan, &path),
-            "fn f() {\n    p((a + b));\n    q((a + b));\n}\n"
+            "fn f() {\n    p(a + b);\n    q(a + b);\n}\n"
+        );
+    }
+
+    #[test]
+    fn a_declaration_value_needs_no_brackets() {
+        let src = "fn f(w: usize, h: usize) -> usize {\n    let base = w * 2 + h * 3;\n    \
+                   let scaled = base;\n    scaled\n}\n";
+        let (tmp, index) = workspace(&[("a.rs", src)]);
+        let path = tmp.path().join("a.rs");
+        let id = var_at(&index, &path, src.find("let base").unwrap() + 4);
+
+        let plan = variable(&index, id).unwrap();
+        // The declaration's `=` and `;` hold the whole value; a pair here is noise.
+        assert!(
+            apply(&plan, &path).contains("let scaled = w * 2 + h * 3;"),
+            "got:\n{}",
+            apply(&plan, &path)
+        );
+    }
+
+    #[test]
+    fn a_use_under_a_tighter_operator_keeps_its_brackets() {
+        let src = "fn f(w: usize, h: usize) -> usize {\n    let sum = w + h;\n    sum * 2\n}\n";
+        let (tmp, index) = workspace(&[("a.rs", src)]);
+        let path = tmp.path().join("a.rs");
+        let id = var_at(&index, &path, src.find("let sum").unwrap() + 4);
+
+        let plan = variable(&index, id).unwrap();
+        // Without the pair the `*` pulls `h` in and the arithmetic changes.
+        assert!(
+            apply(&plan, &path).contains("(w + h) * 2"),
+            "got:\n{}",
+            apply(&plan, &path)
+        );
+    }
+
+    #[test]
+    fn parenthesises_only_where_the_use_site_needs_it() {
+        let src = "fn f() {\n    let n = a + b;\n    p(n);\n    let m = n * 2;\n}\n";
+        let (tmp, index) = workspace(&[("a.rs", src)]);
+        let path = tmp.path().join("a.rs");
+        let id = var_at(&index, &path, src.find("let n").unwrap() + 4);
+
+        let plan = variable(&index, id).unwrap();
+        // The argument list protects the first use. The second sits under a `*`
+        // that would otherwise pull `b` into the multiplication.
+        assert_eq!(
+            apply(&plan, &path),
+            "fn f() {\n    p(a + b);\n    let m = (a + b) * 2;\n}\n"
         );
     }
 
@@ -550,7 +668,7 @@ mod tests {
         let id = var_at(&index, &path, src.find("x = a + b").unwrap());
 
         let plan = variable(&index, id).unwrap();
-        assert_eq!(apply(&plan, &path), "def f():\n    g((a + b))\n");
+        assert_eq!(apply(&plan, &path), "def f():\n    g(a + b)\n");
     }
 }
 
@@ -658,8 +776,13 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     let grouped: Vec<String> = arguments.iter().map(|a| a.grouped.clone()).collect();
     let mut expansion = substitute_words(body_text, &parameters, &grouped);
     // The body was an expression in its own right; parenthesise it so it keeps its
-    // meaning inside whatever expression the call sat in.
-    if needs_parentheses(&expansion) {
+    // meaning inside whatever expression the call sat in. When the call site's own
+    // delimiters already hold it, `x = (a + b)` is only noise, so the pair stays off.
+    let exposed = match call_node.parent() {
+        Some(parent) => !shielded(parent.kind()),
+        None => false,
+    };
+    if exposed && needs_parentheses(&expansion) {
         expansion = format!("({expansion})");
     }
 

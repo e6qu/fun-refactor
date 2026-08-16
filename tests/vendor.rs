@@ -70,7 +70,7 @@ fn every_recorded_file_exists_and_matches_its_checksum() {
             .join(&path);
         assert!(
             full.exists(),
-            "{language}/{path} is in the manifest but not on disk — \
+            "{language}/{path} is in the manifest but not on disk; \
              re-run `python3 vendor/vendor.py`"
         );
         assert_eq!(

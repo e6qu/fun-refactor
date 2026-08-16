@@ -12,8 +12,13 @@
 # Measured against the same rules before any of this work: em-dash 2050,
 # false-comparison 240, filler 350, self-reference 222, long-sentence 2339.
 #
-em-dash 57
+# The meter's second fix moved the numbers again, downward: its string extractor
+# read a char literal like `'"'` as a string delimiter, which flipped its lexing
+# parity and counted spans of plain code as prose. 160 of the long "sentences"
+# were code. The counts below are the honest ones under the fixed lexer.
+#
+em-dash 56
 false-comparison 19
 filler 13
-self-reference 54
-long-sentence 1154
+self-reference 52
+long-sentence 1011

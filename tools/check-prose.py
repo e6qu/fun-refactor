@@ -77,8 +77,13 @@ def messages_of(path: Path) -> str:
     Escape sequences are decoded before counting. A literal ending `.\\n` ends a
     sentence in what the user sees, and counting it as mid-sentence glued every
     such message to the next string in the file.
+
+    Char literals go first. `'"'` is a character, not a string delimiter, and
+    reading it as one flipped the lexer's parity, so whole spans of code between
+    two such characters counted as prose.
     """
     text = path.read_text()
+    text = re.sub(r"'(?:[^'\\\n]|\\(?:.|u\{[0-9a-fA-F]+\}))'", "' '", text)
     out = []
     for match in re.finditer(r'"((?:[^"\\]|\\.)*)"', text, re.S):
         raw = re.sub(r"\\\s*\n\s*", " ", match.group(1))

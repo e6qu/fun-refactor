@@ -37,7 +37,7 @@ fn inlines_a_thin_wrapper() {
     assert_eq!(plan.function, "double");
 
     let out = apply(&plan, &path);
-    assert!(out.contains("let y = (3 * 2);"), "got:\n{out}");
+    assert!(out.contains("let y = 3 * 2;"), "got:\n{out}");
     // The definition is left alone; inlining one call is not deleting the function.
     assert!(out.contains("fn double(x: i32)"), "got:\n{out}");
 }
@@ -50,7 +50,7 @@ fn substitutes_each_argument_for_its_parameter() {
 
     let at = src.rfind("add").unwrap() + 1;
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
-    assert!(out.contains("let s = (p + q);"), "got:\n{out}");
+    assert!(out.contains("let s = p + q;"), "got:\n{out}");
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn a_repeated_parameter_with_a_plain_argument_is_fine() {
 
     let at = src.rfind("square").unwrap() + 1;
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
-    assert!(out.contains("let y = (n * n);"), "got:\n{out}");
+    assert!(out.contains("let y = n * n;"), "got:\n{out}");
 }
 
 #[test]
@@ -150,7 +150,7 @@ fn works_for_python() {
 
     let at = src.rfind("double").unwrap() + 1;
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
-    assert!(out.contains("y = (3 * 2)"), "got:\n{out}");
+    assert!(out.contains("y = 3 * 2"), "got:\n{out}");
 }
 
 #[test]
@@ -177,7 +177,7 @@ fn works_for_go_despite_its_statement_list_wrapper() {
 
     let at = src.rfind("double").unwrap() + 1;
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
-    assert!(out.contains("y := (3 * 2)"), "got:\n{out}");
+    assert!(out.contains("y := 3 * 2"), "got:\n{out}");
 }
 
 #[test]
@@ -189,7 +189,7 @@ fn works_for_typescript() {
 
     let at = src.rfind("double").unwrap() + 1;
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
-    assert!(out.contains("const y = (3 * 2);"), "got:\n{out}");
+    assert!(out.contains("const y = 3 * 2;"), "got:\n{out}");
 }
 
 #[test]
@@ -200,5 +200,5 @@ fn works_for_zig() {
 
     let at = src.rfind("double").unwrap() + 1;
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
-    assert!(out.contains("const y = (3 * 2);"), "got:\n{out}");
+    assert!(out.contains("const y = 3 * 2;"), "got:\n{out}");
 }

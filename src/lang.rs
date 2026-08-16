@@ -293,6 +293,25 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
     false
 }
 
+/// A known reason a whole file fails to parse, told from its name alone.
+///
+/// `.sass` is the indented Sass syntax. It maps to [`Language::Scss`] so the file
+/// stays visible in scans instead of vanishing. The grammar reads only the braced
+/// syntax, so nearly every line comes back as an error node. A parse report that
+/// names this beside the positions is one the reader can act on. A bare count sends
+/// them hunting for a syntax error that is not there.
+pub fn known_parse_gap(path: &Path) -> Option<&'static str> {
+    let extension = path.extension().and_then(|e| e.to_str())?;
+    match extension {
+        "sass" => Some(
+            "`.sass` holds the indented Sass syntax, and the grammar here reads only the \
+             braced syntax of `.scss` files. The whole file reads as errors until it is \
+             rewritten in the braced syntax.",
+        ),
+        _ => None,
+    }
+}
+
 /// Which language boundaries a reference may resolve across.
 ///
 /// Resolution matches candidates by name across the whole workspace. Without this it ignored

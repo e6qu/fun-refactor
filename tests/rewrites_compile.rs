@@ -801,7 +801,7 @@ fn every_rewrite_the_command_offers_compiles() {
             run.record(fixture.language.name(), compiled);
         }
         eprintln!(
-            "rewrite sweep: {} — {} position(s) offered and checked",
+            "rewrite sweep: {}, {} position(s) offered and checked",
             fixture.language,
             positions.len()
         );
