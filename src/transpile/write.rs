@@ -102,6 +102,16 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     walk_stmts(then, add);
                     walk_stmts(otherwise, add);
                 }
+                Stmt::IfPresent {
+                    binding,
+                    then,
+                    otherwise,
+                    ..
+                } => {
+                    add(binding, Kind::Value, false);
+                    walk_stmts(then, add);
+                    walk_stmts(otherwise, add);
+                }
                 Stmt::While { body, .. } => walk_stmts(body, add),
                 _ => {}
             }
@@ -158,6 +168,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     }
                 }
             }
+            Item::Test { body, .. } => walk_stmts(body, &mut add),
             Item::Import { .. } | Item::Unsupported(_) => {}
         }
     }
@@ -723,6 +734,14 @@ impl Out {
         self.indent = self.indent.saturating_sub(1);
     }
 
+    /// Add a note the first time it comes up. A loss repeated at every site
+    /// reads once; fifty copies of the same sentence bury the others.
+    fn note_once(&mut self, text: &str) {
+        if !self.fidelity.notes.iter().any(|n| n == text) {
+            self.fidelity.notes.push(text.to_string());
+        }
+    }
+
     /// Record a fragment that had no counterpart, and say where it came from.
     fn carried(&mut self, what: &Unsupported) {
         self.fidelity.carried_verbatim += 1;
@@ -945,6 +964,19 @@ fn rust(out: &mut Out, module: &Module) {
                 out.fidelity.newtypes += 1;
                 out.blank();
             }
+            Item::Test { doc, name, body } => {
+                for line in doc {
+                    out.line(&format!("/// {line}"));
+                }
+                out.line("#[test]");
+                out.line(&format!("fn {}() {{", test_slug(name)));
+                out.open();
+                rust_block(out, body);
+                out.close();
+                out.line("}");
+                out.fidelity.functions += 1;
+                out.blank();
+            }
             Item::Sum(s) => {
                 for line in &s.doc {
                     out.line(&format!("/// {line}"));
@@ -1121,6 +1153,28 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                     out.line("}");
                 }
             }
+            Stmt::IfPresent {
+                binding,
+                value,
+                then,
+                otherwise,
+            } => {
+                let v = rust_expr(out, value);
+                let bound = out.name(binding);
+                out.line(&format!("if let Some({bound}) = {v} {{"));
+                out.open();
+                rust_block(out, then);
+                out.close();
+                if otherwise.is_empty() {
+                    out.line("}");
+                } else {
+                    out.line("} else {");
+                    out.open();
+                    rust_block(out, otherwise);
+                    out.close();
+                    out.line("}");
+                }
+            }
             Stmt::While { condition, body } => {
                 let c = rust_expr(out, condition);
                 out.line(&format!("while {c} {{"));
@@ -1283,6 +1337,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         ),
         // Rust puts it after; the other two put it in front.
         Expr::Await(inner) => format!("{}.await", rust_expr(out, inner)),
+        Expr::Propagate(inner) => format!("{}?", rust_expr(out, inner)),
         // Rust has no universal spelling for construction: `X::new`, `X { .. }` and
         // a builder are all idiomatic and which one applies is a fact about the type.
         Expr::New { callee, args } => {
@@ -1508,6 +1563,22 @@ fn python(out: &mut Out, module: &Module) {
                 out.fidelity.newtypes += 1;
                 out.blank();
             }
+            Item::Test { doc, name, body } => {
+                for line in doc {
+                    out.line(&format!("# {line}"));
+                }
+                let slug = test_slug(name);
+                let prefixed = match slug.starts_with("test") {
+                    true => slug,
+                    false => format!("test_{slug}"),
+                };
+                out.line(&format!("def {prefixed}():"));
+                out.open();
+                python_block(out, body);
+                out.close();
+                out.fidelity.functions += 1;
+                out.blank();
+            }
             Item::Sum(s) => {
                 // One class per variant and a union alias naming the choice. The
                 // alias is the type callers write; `match` narrows by class.
@@ -1722,6 +1793,26 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                             continue;
                         }
                     }
+                    python_line(out, "else:");
+                    out.open();
+                    python_block(out, otherwise);
+                    out.close();
+                }
+            }
+            Stmt::IfPresent {
+                binding,
+                value,
+                then,
+                otherwise,
+            } => {
+                let v = python_expr(out, value);
+                let bound = out.name(binding);
+                python_line(out, &format!("{bound} = {v}"));
+                python_line(out, &format!("if {bound} is not None:"));
+                out.open();
+                python_block(out, then);
+                out.close();
+                if !otherwise.is_empty() {
                     python_line(out, "else:");
                     out.open();
                     python_block(out, otherwise);
@@ -1996,6 +2087,13 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             )
         }
         Expr::Await(inner) => format!("await {}", python_expr(out, inner)),
+        Expr::Propagate(inner) => {
+            out.note_once(
+                "a `?`/`try` is written as the bare expression: an error here \
+                 propagates on its own.",
+            );
+            python_expr(out, inner)
+        }
         // Construction in Python is a call.
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| python_expr(out, a)).collect();
@@ -2107,6 +2205,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
 fn go(out: &mut Out, module: &Module) {
     out.line("package main");
     out.blank();
+    // `func TestX(t *testing.T)` names a package the file must import itself.
+    if module.items.iter().any(|i| matches!(i, Item::Test { .. })) {
+        out.line("import \"testing\"");
+        out.blank();
+    }
     for line in &module.doc {
         out.line(&format!("// {line}"));
     }
@@ -2180,6 +2283,22 @@ fn go(out: &mut Out, module: &Module) {
                 out.fidelity.newtypes += 1;
                 out.blank();
             }
+            Item::Test { doc, name, body } => {
+                for line in doc {
+                    out.line(&format!("// {line}"));
+                }
+                out.line(&format!(
+                    "func Test{}(t *testing.T) {{",
+                    pascal(&test_slug(name))
+                ));
+                out.open();
+                out.line("_ = t");
+                go_block(out, body, None);
+                out.close();
+                out.line("}");
+                out.fidelity.functions += 1;
+                out.blank();
+            }
             Item::Sum(s) => {
                 // Go has no closed choice. The convention that stands in for one
                 // is an interface with an unexported marker method. Only the types
@@ -2220,6 +2339,27 @@ fn go(out: &mut Out, module: &Module) {
                 out.blank();
             }
         }
+    }
+}
+
+/// A test's prose name as an identifier: the words joined, everything else gone.
+fn test_slug(name: &str) -> String {
+    let mut out = String::new();
+    let mut gap = false;
+    for c in name.chars() {
+        if c.is_alphanumeric() {
+            if gap && !out.is_empty() {
+                out.push('_');
+            }
+            gap = false;
+            out.push(c.to_ascii_lowercase());
+        } else {
+            gap = true;
+        }
+    }
+    match out.is_empty() {
+        true => "unnamed".to_string(),
+        false => out,
     }
 }
 
@@ -2356,6 +2496,32 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 let c = go_expr(out, condition);
                 out.line(&format!("if {c} {{"));
                 out.open();
+                go_block(out, then, None);
+                out.close();
+                if otherwise.is_empty() {
+                    out.line("}");
+                } else {
+                    out.line("} else {");
+                    out.open();
+                    go_block(out, otherwise, None);
+                    out.close();
+                    out.line("}");
+                }
+            }
+            Stmt::IfPresent {
+                binding,
+                value,
+                then,
+                otherwise,
+            } => {
+                // The optional is a pointer here, and the payload is one
+                // dereference away. A second binding holds the pointer, so the
+                // body reads the name the source bound.
+                let v = go_expr(out, value);
+                let bound = out.name(binding);
+                out.line(&format!("if {bound}Ptr := {v}; {bound}Ptr != nil {{"));
+                out.open();
+                out.line(&format!("{bound} := *{bound}Ptr"));
                 go_block(out, then, None);
                 out.close();
                 if otherwise.is_empty() {
@@ -2544,6 +2710,17 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             let source = format!("await {}", go_expr(out, inner));
             out.carried(&Unsupported {
                 construct: "await".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+        }
+        // Go propagates nothing: an error is a value somebody must return. Writing
+        // the expression bare would turn an early return into a plain call.
+        Expr::Propagate(inner) => {
+            let source = format!("{}?", go_expr(out, inner));
+            out.carried(&Unsupported {
+                construct: "error propagation".into(),
                 source: source.clone(),
                 line: 0,
             });
@@ -2763,6 +2940,25 @@ fn typescript(out: &mut Out, module: &Module) {
                 out.close();
                 out.line("}");
                 out.fidelity.newtypes += 1;
+                out.blank();
+            }
+            Item::Test { doc, name, body } => {
+                for line in doc {
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
+                }
+                out.note_once(
+                    "a test crossed as a plain function: no runner is part of the \
+                     language, so wiring it into yours is left to you.",
+                );
+                out.line(&format!(
+                    "export function {}(): void {{",
+                    camel(&format!("test_{}", test_slug(name)))
+                ));
+                out.open();
+                ts_block(out, body);
+                out.close();
+                out.line("}");
+                out.fidelity.functions += 1;
                 out.blank();
             }
             Item::Sum(s) => {
@@ -3043,6 +3239,29 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                     out.line("}");
                 }
             }
+            Stmt::IfPresent {
+                binding,
+                value,
+                then,
+                otherwise,
+            } => {
+                let v = ts_expr(out, value);
+                let bound = out.name(binding);
+                out.line(&format!("const {bound} = {v};"));
+                out.line(&format!("if ({bound} !== null) {{"));
+                out.open();
+                ts_block(out, then);
+                out.close();
+                if otherwise.is_empty() {
+                    out.line("}");
+                } else {
+                    out.line("} else {");
+                    out.open();
+                    ts_block(out, otherwise);
+                    out.close();
+                    out.line("}");
+                }
+            }
             Stmt::While { condition, body } => {
                 let c = ts_expr(out, condition);
                 out.line(&format!("while ({c}) {{"));
@@ -3223,6 +3442,13 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             )
         }
         Expr::Await(inner) => format!("await {}", ts_expr(out, inner)),
+        Expr::Propagate(inner) => {
+            out.note_once(
+                "a `?`/`try` is written as the bare expression: an error here \
+                 propagates on its own.",
+            );
+            ts_expr(out, inner)
+        }
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
             format!("new {}({})", ts_expr(out, callee), rendered.join(", "))
@@ -3368,7 +3594,11 @@ fn java(out: &mut Out, module: &Module) {
         .filter(|i| {
             matches!(
                 i,
-                Item::Constant(_) | Item::Function(_) | Item::Newtype(_) | Item::Unsupported(_)
+                Item::Constant(_)
+                    | Item::Function(_)
+                    | Item::Newtype(_)
+                    | Item::Test { .. }
+                    | Item::Unsupported(_)
             )
         })
         .collect();
@@ -3442,6 +3672,24 @@ fn java(out: &mut Out, module: &Module) {
                     java_type(&n.base)
                 ));
                 out.fidelity.newtypes += 1;
+            }
+            Item::Test { doc, name, body } => {
+                for line in doc {
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
+                }
+                out.note_once(
+                    "a test crossed as a plain method: no runner is part of the \
+                     language, so wiring it into yours is left to you.",
+                );
+                out.line(&format!(
+                    "static void {}() {{",
+                    camel(&format!("test_{}", test_slug(name)))
+                ));
+                out.open();
+                java_block(out, body, None);
+                out.close();
+                out.line("}");
+                out.fidelity.functions += 1;
             }
             Item::Unsupported(u) => carry(out, u),
             _ => {}
@@ -3699,6 +3947,33 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             let c = java_expr(out, condition);
             out.line(&format!("if ({c}) {{"));
             out.open();
+            java_block(out, then, None);
+            out.close();
+            if otherwise.is_empty() {
+                out.line("}");
+            } else {
+                out.line("} else {");
+                out.open();
+                java_block(out, otherwise, None);
+                out.close();
+                out.line("}");
+            }
+        }
+        Stmt::IfPresent {
+            binding,
+            value,
+            then,
+            otherwise,
+        } => {
+            // The optional cannot unwrap in place, so a second binding holds it
+            // and the branch takes the payload out under the name the source
+            // bound.
+            let v = java_expr(out, value);
+            let bound = out.name(binding);
+            out.line(&format!("var {bound}Maybe = {v};"));
+            out.line(&format!("if ({bound}Maybe.isPresent()) {{"));
+            out.open();
+            out.line(&format!("var {bound} = {bound}Maybe.get();"));
             java_block(out, then, None);
             out.close();
             if otherwise.is_empty() {
@@ -4113,6 +4388,13 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             });
             format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
+        Expr::Propagate(inner) => {
+            out.note_once(
+                "a `?`/`try` is written as the bare expression: an exception here \
+                 propagates on its own.",
+            );
+            java_expr(out, inner)
+        }
         Expr::Keyword { name, value } => {
             let rendered = java_expr(out, value);
             let source = format!("{name}={rendered}");
@@ -4258,6 +4540,19 @@ fn zig(out: &mut Out, module: &Module) {
                     ));
                 }
                 out.fidelity.newtypes += 1;
+                out.blank();
+            }
+            Item::Test { doc, name, body } => {
+                for line in doc {
+                    out.line(&format!("/// {line}"));
+                }
+                out.line(&format!("test \"{name}\" {{"));
+                out.open();
+                let mutated = zig_mutated(body);
+                zig_block(out, body, None, &mutated);
+                out.close();
+                out.line("}");
+                out.fidelity.functions += 1;
                 out.blank();
             }
             Item::Sum(s) => {
@@ -4632,6 +4927,28 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.line("}");
             }
         }
+        Stmt::IfPresent {
+            binding,
+            value,
+            then,
+            otherwise,
+        } => {
+            let v = zig_expr(out, value);
+            let bound = out.name(binding);
+            zig_line(out, &format!("if ({v}) |{bound}| {{"));
+            out.open();
+            zig_block(out, then, None, mutated);
+            out.close();
+            if otherwise.is_empty() {
+                out.line("}");
+            } else {
+                out.line("} else {");
+                out.open();
+                zig_block(out, otherwise, None, mutated);
+                out.close();
+                out.line("}");
+            }
+        }
         Stmt::While { condition, body } => {
             let c = zig_expr(out, condition);
             zig_line(out, &format!("while ({c}) {{"));
@@ -4926,6 +5243,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let rendered = zig_expr(out, inner);
             zig_carry(out, "await", format!("await {rendered}"))
         }
+        Expr::Propagate(inner) => format!("try {}", zig_expr(out, inner)),
         // Zig calls positionally and has nothing that names an argument.
         Expr::Keyword { name, value } => {
             let rendered = zig_expr(out, value);

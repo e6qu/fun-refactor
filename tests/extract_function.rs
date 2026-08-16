@@ -334,3 +334,118 @@ fn extract_function_produces_parseable_code_in_every_imperative_language() {
             .unwrap_or_else(|e| panic!("{name} produced code that will not parse: {e}"));
     }
 }
+
+#[test]
+fn a_binding_mutated_in_the_region_travels_back_as_a_return() {
+    // `total` is declared before the region, assigned inside it, and read after.
+    // Passed by value alone, the mutation dies with the call and the function
+    // quietly computes zero.
+    let src = "def tally(items):\n    total = 0\n    for item in items:\n        \
+               total += item\n    return total\n";
+    let (tmp, index) = workspace(&[("a.py", src)]);
+    let path = tmp.path().join("a.py");
+
+    let plan = extract::function(&index, &path, lines(src, 3, 4), "add_up").unwrap();
+    assert_eq!(
+        plan.returns,
+        vec!["total".to_string()],
+        "{:?}",
+        plan.returns
+    );
+
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("    total = add_up(items, total)"),
+        "the changed value is assigned back.\n{out}"
+    );
+    assert!(
+        out.contains("def add_up(items, total):"),
+        "the binding still flows in:\n{out}"
+    );
+    assert!(
+        out.contains("    return total"),
+        "the helper returns what it changed.\n{out}"
+    );
+}
+
+#[test]
+fn a_mutated_rust_binding_is_reassigned_and_the_parameter_is_mut() {
+    let src = "fn tally(items: &[i64]) -> i64 {\n    let mut total: i64 = 0;\n    \
+               for item in items {\n        total += item;\n    }\n    total\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let plan = extract::function(&index, &path, lines(src, 3, 5), "add_up").unwrap();
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("    total = add_up(items, total);"),
+        "assigned, never shadowed with a fresh `let`:\n{out}"
+    );
+    assert!(
+        out.contains("mut total: i64) -> i64"),
+        "a parameter the body assigns must say `mut`:\n{out}"
+    );
+}
+
+#[test]
+fn a_typescript_assignment_target_is_a_use_of_the_binding() {
+    // `total += item` was invisible to the index. The region moved without
+    // `total` flowing in, and the output named a binding that no longer existed.
+    let src = "export function tally(items: number[]): number {\n    \
+               let total: number = 0;\n    for (const item of items) {\n        \
+               total += item;\n    }\n    return total;\n}\n";
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let plan = extract::function(&index, &path, lines(src, 3, 5), "addUp").unwrap();
+    assert_eq!(
+        plan.parameters
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["items", "total"],
+        "{:?}",
+        plan.parameters
+    );
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("    total = addUp(items, total);"),
+        "got:\n{out}"
+    );
+}
+
+#[test]
+fn zig_refuses_a_region_that_assigns_an_outside_binding() {
+    // A Zig parameter cannot be assigned, so the changed value has no way back.
+    let src = "fn tally(items: []const i64) i64 {\n    var total: i64 = 0;\n    \
+               for (items) |item| {\n        total += item;\n    }\n    return total;\n}\n";
+    let (tmp, index) = workspace(&[("a.zig", src)]);
+    let path = tmp.path().join("a.zig");
+
+    let err = extract::function(&index, &path, lines(src, 3, 5), "addUp")
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("cannot be assigned"), "got: {err}");
+    assert!(
+        err.contains("total"),
+        "the refusal names the binding: {err}"
+    );
+}
+
+#[test]
+fn a_statement_range_without_function_is_refused_by_name() {
+    let src = "def tally(items):\n    total = 0\n    for item in items:\n        \
+               total += item\n    return total\n";
+    let (tmp, index) = workspace(&[("a.py", src)]);
+    let path = tmp.path().join("a.py");
+
+    let start = src.find("for item").unwrap();
+    let end = src.find("total += item").unwrap() + "total += item".len();
+    let err = extract::variable(&index, &path, Span::new(start, end), "loop", false)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("--function"),
+        "the refusal points at the flag that does this: {err}"
+    );
+}

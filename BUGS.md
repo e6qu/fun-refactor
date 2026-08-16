@@ -175,6 +175,40 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B373: **`fr extract --function` lost a mutation to an outside binding.** Silent
+  wrong answer. A binding declared before the region, assigned inside it and read
+  after became a parameter. A parameter is a copy in every one of these
+  languages. `invoice_total` extracted its loop and started returning zero. The
+  changed value travels back as a return now. The call assigns instead of
+  declaring, and the Rust parameter says `mut`. Zig refuses by name, because its
+  parameters cannot be assigned at all.
+
+- [x] B374: **a TypeScript assignment target was no use of its binding.** Query gap.
+  The reference catch-all is restricted to `primary_expression`, and the left side
+  of `total += item` is not one, so the index recorded no use. Extraction moved
+  such regions without passing `total` in, and the draft named a binding that no
+  longer existed. Rename and usages missed the same sites. Explicit patterns for
+  assignment targets close it.
+
+- [x] B375: **a statement range without `--function` built a garbage edit.** Refusal
+  late. `fr extract` on a `for` loop spliced `name = for …`, and only the reparse
+  gate stopped it. Its message spoke about parsing instead of the flag that does
+  what was wanted. The binding path now refuses a statement by name and points at
+  `--function`.
+
+- [x] B376: **every translated Zig call lost its arguments.** Silent. The grammar
+  hangs arguments off the call with no argument-list node; the reader looked for
+  one, found nothing, and read every call as nullary. `twice(x)` crossed as
+  `twice()` with a clean fidelity report. The arguments are the children after the
+  callee, which is what `fr inline` had always known. Four ledger counts rose to
+  the honest number when the arguments started carrying.
+
+- [x] B377: **a Go `:=` with any right side carried whole.** Wrapper. Both sides of
+  `:=` and `=` arrive inside an `expression_list` even when they hold one
+  expression, and the wrapper reached `expr` as an unknown construct. The single
+  element is unwrapped now; a genuine pair, `a, b := f()`, still carries, because
+  the IR cannot bind two names at once.
+
 - [x] B364: **a Zig file whose top level is fields loses them in translation.** The
   file-as-struct idiom. zls writes `const Self = @This();` and fields at file scope.
   The reader had no record to put them in, so each carried as a comment. Fixed. The

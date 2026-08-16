@@ -35,7 +35,7 @@ pub fn read(
         Language::TypeScript | Language::Tsx => typescript::module(&cx, root),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
-             what its constructs mean"
+             what its constructs mean."
         ),
     };
     settle_methods(&mut module);
@@ -242,7 +242,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::Call { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::Binary { left, right, .. } => bad(left) || bad(right),
             Expr::Unary { operand, .. } => bad(operand),
-            Expr::Await(inner) => bad(inner),
+            Expr::Await(inner) | Expr::Propagate(inner) => bad(inner),
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::RecordLit { fields, .. } => fields.iter().any(|(_, value)| bad(value)),
             Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
@@ -279,6 +279,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
         Stmt::Let { value: Some(e), .. } => bad(e),
         Stmt::Assign { target, value } => bad(target) || bad(value),
         Stmt::If { condition, .. } | Stmt::While { condition, .. } => bad(condition),
+        Stmt::IfPresent { value, .. } => bad(value),
         Stmt::ForEach { iterable, .. } => bad(iterable),
         _ => false,
     }
@@ -402,7 +403,27 @@ mod rust {
                     text: cx.text(child),
                     line: cx.line(child),
                 }),
-                "function_item" => module.items.push(Item::Function(function(cx, child, None))),
+                // `#[test]` marks the next function as a test; the attribute is
+                // that mark and not a construct of its own.
+                "attribute_item"
+                    if cx.text(child).trim() == "#[test]"
+                        && child
+                            .next_named_sibling()
+                            .is_some_and(|n| n.kind() == "function_item") => {}
+                "function_item" => {
+                    let tested = child.prev_named_sibling().is_some_and(|p| {
+                        p.kind() == "attribute_item" && cx.text(p).trim() == "#[test]"
+                    });
+                    let f = function(cx, child, None);
+                    module.items.push(match tested {
+                        true => Item::Test {
+                            doc: f.doc,
+                            name: f.name,
+                            body: f.body,
+                        },
+                        false => Item::Function(f),
+                    });
+                }
                 "struct_item" => module.items.push(match record(cx, child) {
                     Some(r) => Item::Record(r),
                     None => Item::Unsupported(cx.unsupported(child)),
@@ -457,6 +478,24 @@ mod rust {
             }
         }
         module
+    }
+
+    /// The binding and the tested value of `let Some(x) = e`, when the pattern is
+    /// that one shape: a plain name inside `Some`.
+    fn some_capture(cx: &Cx, condition: Node<'_>) -> Option<(String, Expr)> {
+        let pattern = cx.field(condition, "pattern")?;
+        if pattern.kind() != "tuple_struct_pattern" {
+            return None;
+        }
+        let parts = cx.children(pattern);
+        let [head, inner] = parts.as_slice() else {
+            return None;
+        };
+        if cx.text(*head) != "Some" || inner.kind() != "identifier" {
+            return None;
+        }
+        let value = cx.field(condition, "value")?;
+        Some((plain(cx.text(*inner)), expr(cx, value)))
     }
 
     /// A Rust identifier without the escape that made it writable.
@@ -852,15 +891,32 @@ mod rust {
                         }
                     })
                     .unwrap_or_default();
+                let then = cx
+                    .field(node, "consequence")
+                    .map(|b| block(cx, b))
+                    .unwrap_or_default();
+                // `if let Some(x) = e` tests an optional and binds its payload,
+                // which every target can say. Any other pattern is a match in
+                // disguise and carries whole.
+                if let Some(condition) = cx.field(node, "condition") {
+                    if condition.kind() == "let_condition" {
+                        return match some_capture(cx, condition) {
+                            Some((binding, value)) => Stmt::IfPresent {
+                                binding,
+                                value,
+                                then,
+                                otherwise,
+                            },
+                            None => Stmt::Unsupported(cx.unsupported(node)),
+                        };
+                    }
+                }
                 Stmt::If {
                     condition: cx
                         .field(node, "condition")
                         .map(|c| expr(cx, c))
                         .unwrap_or(Expr::Null),
-                    then: cx
-                        .field(node, "consequence")
-                        .map(|b| block(cx, b))
-                        .unwrap_or_default(),
+                    then,
                     otherwise,
                 }
             }
@@ -954,6 +1010,11 @@ mod rust {
             }
             "await_expression" => match node.named_child(0) {
                 Some(inner) => Expr::Await(Box::new(expr(cx, inner))),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
+            // `x?`: evaluate, and on failure leave the function with the failure.
+            "try_expression" => match node.named_child(0) {
+                Some(inner) => Expr::Propagate(Box::new(expr(cx, inner))),
                 None => Expr::Unsupported(cx.unsupported(node)),
             },
             "integer_literal" => Expr::Int(unsuffixed(&cx.text(node))),
@@ -2016,6 +2077,38 @@ mod go {
                 }),
                 "function_declaration" => {
                     let mut f = function(cx, child, None, None);
+                    // `func TestX(t *testing.T)` is the language's own test
+                    // convention. The parameter is the runner's handle, not data,
+                    // and a leading `_ = t` only exists to quiet the compiler, so
+                    // neither crosses.
+                    let handle_ty = |ty: &Option<Type>| match ty {
+                        Some(Type::Named { name, .. }) => name.contains("testing.T"),
+                        // `*testing.T` reads as an optional, the way every
+                        // pointer here does.
+                        Some(Type::Optional(inner)) => {
+                            matches!(inner.as_ref(), Type::Named { name, .. } if name.contains("testing.T"))
+                        }
+                        _ => false,
+                    };
+                    let runner_handle = f.params.len() == 1
+                        && f.params[0].name == "t"
+                        && handle_ty(&f.params[0].ty);
+                    if runner_handle && f.name.starts_with("Test") && f.name.len() > 4 {
+                        let mut body = f.body;
+                        if matches!(
+                            body.first(),
+                            Some(Stmt::Assign { target: Expr::Name(t), value: Expr::Name(v) })
+                                if t == "_" && v == "t"
+                        ) {
+                            body.remove(0);
+                        }
+                        module.items.push(Item::Test {
+                            doc: f.doc,
+                            name: f.name.trim_start_matches("Test").to_string(),
+                            body,
+                        });
+                        continue;
+                    }
                     // Go's constructor is a naming habit: `NewThing` that returns one. Naming
                     // the type it makes is what puts it back with that type, a top-level
                     // function belongs to nothing. `NewEdit` written as Rust would have come
@@ -2311,6 +2404,19 @@ mod go {
             .collect()
     }
 
+    /// The one expression inside a `left`/`right` list, or the list carried
+    /// whole: `a, b := f()` binds a pair, which the IR cannot say.
+    fn unlisted(cx: &Cx, node: Node<'_>) -> Expr {
+        if node.kind() == "expression_list" {
+            let items = cx.children(node);
+            return match items.as_slice() {
+                [only] => expr(cx, *only),
+                _ => Expr::Unsupported(cx.unsupported(node)),
+            };
+        }
+        expr(cx, node)
+    }
+
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
             // A comment is not an untranslatable construct: every one of these
@@ -2333,20 +2439,23 @@ mod go {
             })),
             "break_statement" => Stmt::Break,
             "continue_statement" => Stmt::Continue,
+            // Both sides of `:=` and `=` arrive wrapped in an `expression_list`,
+            // even when they hold one expression. Passing the wrapper to `expr`
+            // carried every such statement whole.
             "short_var_declaration" => Stmt::Let {
                 name: cx.field_text(node, "left").unwrap_or_default(),
                 ty: None,
-                value: cx.field(node, "right").map(|v| expr(cx, v)),
+                value: cx.field(node, "right").map(|v| unlisted(cx, v)),
                 mutable: true,
             },
             "assignment_statement" => Stmt::Assign {
                 target: cx
                     .field(node, "left")
-                    .map(|l| expr(cx, l))
+                    .map(|l| unlisted(cx, l))
                     .unwrap_or(Expr::Null),
                 value: cx
                     .field(node, "right")
-                    .map(|r| expr(cx, r))
+                    .map(|r| unlisted(cx, r))
                     .unwrap_or(Expr::Null),
             },
             "expression_statement" => cx
@@ -3166,6 +3275,13 @@ mod zig {
                     Some(f) => Item::Function(f),
                     None => Item::Unsupported(cx.unsupported(child)),
                 }),
+                // `test "name" { … }` is a named test. The form that names a
+                // declaration instead of a string reruns that declaration's
+                // tests, and carries.
+                "test_declaration" => module.items.push(match test_block(cx, child) {
+                    Some(t) => t,
+                    None => Item::Unsupported(cx.unsupported(child)),
+                }),
                 "variable_declaration" if file_record.is_some() && binds_this(cx, child) => {
                     // The binding *is* the record's name; carrying it as a constant
                     // would declare the type twice.
@@ -3245,6 +3361,25 @@ mod zig {
                     .find(|part| part.kind() == "identifier")
                     .map(|part| cx.text(*part))
             })
+    }
+
+    /// `test "name" { … }`, with the name unquoted.
+    fn test_block(cx: &Cx, node: Node<'_>) -> Option<Item> {
+        let children = cx.children(node);
+        let name = children
+            .iter()
+            .find(|c| c.kind() == "string")
+            .map(|s| super::unquote(&cx.text(*s)))?;
+        let body = children
+            .iter()
+            .find(|c| c.kind() == "block")
+            .map(|b| block(cx, *b))
+            .unwrap_or_default();
+        Some(Item::Test {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            body,
+        })
     }
 
     /// Is this declaration `const X = @This();`?
@@ -3752,28 +3887,50 @@ mod zig {
             }
             "if_statement" => {
                 let children = cx.children(node);
-                // `if (maybe) |value| { … }` unwraps an optional and binds what was
-                // inside it. That is not a condition, and reading it as one would drop
-                // the binding and leave the body referring to a name nothing declares.
-                if children.iter().any(|c| c.kind() == "payload") {
+                let then = children
+                    .iter()
+                    .skip(1)
+                    .find(|c| is_body(**c))
+                    .map(|b| body_of(cx, *b))
+                    .unwrap_or_default();
+                // The else branch is one level down, inside an `else_clause`.
+                let else_clause = children.iter().find(|c| c.kind() == "else_clause");
+                let otherwise = else_clause
+                    .and_then(|e| cx.children(*e).into_iter().find(|c| is_body(*c)))
+                    .map(|b| body_of(cx, b))
+                    .unwrap_or_default();
+                // `if (maybe) |value| { … }` tests an optional and binds its
+                // payload. A `|*value|` pointer capture writes through the
+                // original, and an error union's `else |err|` binds a second
+                // payload; neither has a crossing, so both carry whole.
+                if let Some(payload) = children.iter().find(|c| c.kind() == "payload") {
+                    let bindings: Vec<Node> = cx
+                        .children(*payload)
+                        .into_iter()
+                        .filter(|c| c.kind() == "identifier")
+                        .collect();
+                    let by_pointer = all(*payload).iter().any(|c| c.kind() == "*");
+                    let else_binds = else_clause.is_some_and(|e| {
+                        let mut cursor = e.walk();
+                        let found = e.children(&mut cursor).any(|c| c.kind() == "payload");
+                        found
+                    });
+                    if let ([binding], false, false) = (bindings.as_slice(), by_pointer, else_binds)
+                    {
+                        return Stmt::IfPresent {
+                            binding: cx.text(*binding),
+                            value: children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null),
+                            then,
+                            otherwise,
+                        };
+                    }
                     return Stmt::Unsupported(cx.unsupported(node));
                 }
                 let condition = children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null);
                 Stmt::If {
                     condition,
-                    then: children
-                        .iter()
-                        .skip(1)
-                        .find(|c| is_body(**c))
-                        .map(|b| body_of(cx, *b))
-                        .unwrap_or_default(),
-                    // The else branch is one level down, inside an `else_clause`.
-                    otherwise: children
-                        .iter()
-                        .find(|c| c.kind() == "else_clause")
-                        .and_then(|e| cx.children(*e).into_iter().find(|c| is_body(*c)))
-                        .map(|b| body_of(cx, b))
-                        .unwrap_or_default(),
+                    then,
+                    otherwise,
                 }
             }
             "while_statement" => {
@@ -3834,7 +3991,9 @@ mod zig {
                 Some(loop_node) => stmt(cx, loop_node),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
-            "call_expression" | "field_expression" | "identifier" => Stmt::Expr(expr(cx, node)),
+            "call_expression" | "field_expression" | "identifier" | "try_expression" => {
+                Stmt::Expr(expr(cx, node))
+            }
             _ => Stmt::Unsupported(cx.unsupported(node)),
         }
     }
@@ -3879,11 +4038,16 @@ mod zig {
                 let Some(callee) = parts.first().copied() else {
                     return Expr::Unsupported(cx.unsupported(node));
                 };
+                // This grammar has no argument-list node: the arguments hang off
+                // the call directly, after the callee. Looking for one anyway
+                // found nothing, and every translated Zig call lost its
+                // arguments without a word said.
                 let args = parts
                     .iter()
-                    .find(|c| c.kind() == "arguments")
-                    .map(|a| cx.children(*a).into_iter().map(|n| expr(cx, n)).collect())
-                    .unwrap_or_default();
+                    .skip(1)
+                    .filter(|c| !c.kind().contains("comment"))
+                    .map(|n| expr(cx, *n))
+                    .collect();
                 call_or_carry(cx, node, expr(cx, callee), args)
             }
             // The operator is punctuation, so it is not among the named children:
@@ -3931,7 +4095,15 @@ mod zig {
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
-            // `try`, `catch`, `orelse` and `comptime` are how Zig says what the others
+            // `try f()`: evaluate, and on failure leave the function with the failure.
+            "try_expression" => {
+                let inner = all(node).into_iter().find(|c| c.kind() != "try");
+                match inner {
+                    Some(inner) => Expr::Propagate(Box::new(expr(cx, inner))),
+                    None => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `catch`, `orelse` and `comptime` are how Zig says what the others
             // say with exceptions and generics, and none of them has a counterpart.
             _ => Expr::Unsupported(cx.unsupported(node)),
         }

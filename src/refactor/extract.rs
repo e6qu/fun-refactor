@@ -87,6 +87,18 @@ pub fn variable(
     let expr_span = Span::from(expr);
     let expr_text = expr_span.text(&source).to_string();
 
+    // A statement is not a value. `total_loop = for line in lines: …` says nothing
+    // in any of these languages. Without this check that text was built and
+    // thrown at the reparse gate, which rejected it without saying what to do
+    // instead.
+    if expr.kind().contains("statement") || expr.kind().contains("declaration") {
+        anyhow::bail!(
+            "the selection is a {}, and a binding holds an expression; \
+             `--function` extracts statements into a function",
+            expr.kind().replace('_', " ")
+        );
+    }
+
     // Extracting a bare name would only alias it, which is never the intent.
     if expr.child_count() == 0 && expr.kind().contains("identifier") {
         anyhow::bail!("'{expr_text}' is already a name; extracting it would only create an alias");
@@ -579,16 +591,24 @@ pub struct Parameter {
     pub name: String,
     /// The declared type, where the source states one.
     pub type_annotation: Option<String>,
+    /// The region assigns to this name, so the new function's copy changes and the
+    /// changed value has to travel back. Rust is the one language here that must
+    /// say so on the parameter itself.
+    pub mutated: bool,
 }
 
 impl Parameter {
     fn render(&self, language: Language) -> String {
+        let mutability = match (language, self.mutated) {
+            (Language::Rust, true) => "mut ",
+            _ => "",
+        };
         match (language, &self.type_annotation) {
             (Language::Python, _) => self.name.clone(),
             // Go writes the type after the name with no colon between them.
             (Language::Go, Some(ty)) => format!("{} {ty}", self.name),
-            (_, Some(ty)) => format!("{}: {ty}", self.name),
-            (_, None) => self.name.clone(),
+            (_, Some(ty)) => format!("{mutability}{}: {ty}", self.name),
+            (_, None) => format!("{mutability}{}", self.name),
         }
     }
 }
@@ -689,6 +709,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
 
     // Data flow in: names used in the region whose definition lives outside it.
     let mut parameters: Vec<Parameter> = Vec::new();
+    let mut parameter_ids: Vec<(String, crate::model::SymbolId)> = Vec::new();
     let mut seen_params = std::collections::HashSet::new();
     for reference in references_within(index, file, region) {
         let Some(target) = reference.target.and_then(|t| index.symbol(t)) else {
@@ -705,13 +726,45 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             continue;
         }
         if seen_params.insert(target.name.clone()) {
+            parameter_ids.push((target.name.clone(), target.id));
             parameters.push(Parameter {
                 name: target.name.clone(),
                 type_annotation: declared_type(&parsed, &source, target.full_span),
+                mutated: false,
             });
         }
     }
     parameters.sort_by(|a, b| a.name.cmp(&b.name));
+
+    // A parameter the region assigns to is a copy: the caller's binding keeps its
+    // old value in every one of these languages. Where the code after the region
+    // still reads that binding, the changed value has to travel back as a return.
+    // Anything less quietly changes what the function computes.
+    let assigned = assigned_names(&parsed, region, &source);
+    let mut carried: Vec<String> = Vec::new();
+    for (name, id) in &parameter_ids {
+        if !assigned.contains(name) {
+            continue;
+        }
+        let read_after = index.references_to(*id).iter().any(|r| {
+            r.file == *file && r.span.start >= region.end && enclosing_span.contains(r.span)
+        });
+        if read_after {
+            carried.push(name.clone());
+        }
+    }
+    carried.sort();
+    if !carried.is_empty() && language == Language::Zig {
+        anyhow::bail!(
+            "the selected code assigns to {}, declared outside it and read after it. \
+             A Zig parameter cannot be assigned, so the change cannot travel back, \
+             and this region cannot be extracted as-is.",
+            carried.join(", ")
+        );
+    }
+    for parameter in parameters.iter_mut() {
+        parameter.mutated = carried.contains(&parameter.name);
+    }
 
     // Data flow out: locals defined in the region that are still read afterwards.
     let mut returns: Vec<String> = Vec::new();
@@ -729,16 +782,26 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             returns.push(symbol.name.clone());
         }
     }
+    returns.extend(carried.iter().cloned());
     returns.sort();
     returns.dedup();
+    let carried: std::collections::BTreeSet<String> = carried.into_iter().collect();
 
-    // The declared type of the single returned binding, where the source states one.
+    // The declared type of the single returned binding, where the source states
+    // one. It sits at the declaration inside the region, or on the parameter
+    // that carried it in from outside.
     let return_type = returns.first().and_then(|name| {
         info.symbols
             .iter()
             .filter_map(|id| index.symbol(*id))
             .find(|s| &s.name == name && region.contains(s.name_span))
             .and_then(|s| declared_type(&parsed, &source, s.full_span))
+            .or_else(|| {
+                parameters
+                    .iter()
+                    .find(|p| p.name == *name)
+                    .and_then(|p| p.type_annotation.clone())
+            })
     });
 
     // Languages that require types on parameters cannot have them invented. Where a binding's
@@ -782,7 +845,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
 
     let body = region.text(&source).to_string();
     let indent = line_indent(&source, region.start);
-    let call = render_call(language, name, &parameters, &returns, is_async);
+    let call = render_call(language, name, &parameters, &returns, &carried, is_async);
     let definition = render_function(
         language,
         Signature {
@@ -822,6 +885,89 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         returns,
         body,
     })
+}
+
+/// Names the region assigns to: the plain-name left side of an assignment,
+/// augmented or not, and the operand of an increment.
+///
+/// Only a bare name matters here. A write through a field or an index,
+/// `totals.count = n`, mutates the value both names see and outlives the call.
+/// Rebinding a bare name is what a parameter copy loses.
+fn assigned_names(
+    parsed: &Parsed,
+    region: Span,
+    source: &str,
+) -> std::collections::BTreeSet<String> {
+    fn names_in_target(
+        node: tree_sitter::Node<'_>,
+        source: &str,
+        out: &mut std::collections::BTreeSet<String>,
+    ) {
+        let kind = node.kind();
+        if kind.contains("identifier") {
+            out.insert(Span::from(node).text(source).to_string());
+            return;
+        }
+        // Go writes `a, b = f()` with an expression_list on the left; Python writes
+        // `a, b = f()` with a pattern_list. Each name in it is assigned.
+        if kind.contains("list") || kind.contains("pattern") || kind.contains("tuple") {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                if child.kind().contains("identifier") {
+                    out.insert(Span::from(child).text(source).to_string());
+                }
+            }
+        }
+    }
+
+    fn walk(
+        node: tree_sitter::Node<'_>,
+        region: Span,
+        source: &str,
+        out: &mut std::collections::BTreeSet<String>,
+    ) {
+        let span = Span::from(node);
+        if span.end <= region.start || span.start >= region.end {
+            return;
+        }
+        let kind = node.kind();
+        if kind.contains("assignment") || kind.contains("augmented") {
+            if let Some(target) = node
+                .child_by_field_name("left")
+                .or_else(|| node.named_child(0))
+            {
+                names_in_target(target, source, out);
+            }
+        }
+        if kind == "update_expression" {
+            if let Some(target) = node
+                .child_by_field_name("argument")
+                .or_else(|| node.named_child(0))
+            {
+                names_in_target(target, source, out);
+            }
+        }
+        // tree-sitter-zig spells an assignment statement with the declaration's own
+        // kind; the difference is the missing `var` or `const` in front.
+        if kind == "variable_declaration" {
+            let mut cursor = node.walk();
+            let children: Vec<tree_sitter::Node<'_>> = node.children(&mut cursor).collect();
+            let declares = children.iter().any(|c| matches!(c.kind(), "var" | "const"));
+            if !declares {
+                if let Some(first) = children.first() {
+                    names_in_target(*first, source, out);
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            walk(child, region, source, out);
+        }
+    }
+
+    let mut out = std::collections::BTreeSet::new();
+    walk(parsed.root(), region, source, &mut out);
+    out
 }
 
 /// Kinds that hold a value and therefore have to cross the new function's boundary.
@@ -1060,6 +1206,7 @@ fn render_call(
     name: &str,
     parameters: &[Parameter],
     returns: &[String],
+    carried: &std::collections::BTreeSet<String>,
     is_async: bool,
 ) -> String {
     let args = parameters
@@ -1074,14 +1221,23 @@ fn render_call(
         false => format!("{name}({args})"),
     };
 
+    // A returned binding that already exists at the call site is assigned, never
+    // re-declared. `let` would shadow it in Rust, `:=` re-declare it in Go, and
+    // `const` collide with it in TypeScript.
+    let all_carried = !returns.is_empty() && returns.iter().all(|r| carried.contains(r));
     match (returns.len(), language) {
         (0, Language::Python | Language::Go) => call,
         (0, _) => format!("{call};"),
         (1, Language::Python) => format!("{} = {call}", returns[0]),
+        (1, Language::Rust) if all_carried => format!("{} = {call};", returns[0]),
         (1, Language::Rust) => format!("let {} = {call};", returns[0]),
+        (1, Language::Go) if all_carried => format!("{} = {call}", returns[0]),
         (1, Language::Go) => format!("{} := {call}", returns[0]),
+        (1, _) if all_carried => format!("{} = {call};", returns[0]),
         (1, _) => format!("const {} = {call};", returns[0]),
         (_, Language::Python) => format!("{} = {call}", returns.join(", ")),
+        // `:=` is legal while at least one name on the left is new.
+        (_, Language::Go) if all_carried => format!("{} = {call}", returns.join(", ")),
         (_, Language::Go) => format!("{} := {call}", returns.join(", ")),
         _ => format!("{call};"),
     }
@@ -2794,6 +2950,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
         parameters.push(Parameter {
             name: text,
             type_annotation: None,
+            mutated: false,
         });
     }
 

@@ -254,6 +254,18 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 missing.remove(mine);
                 gained.remove(theirs);
             }
+            // A test crossing a target with no runner of its own degrades to a
+            // plain function named `test…`, and the writer's note says so. That
+            // function coming back is the test under another name, not a gain.
+            let degraded: Vec<String> = source
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    Item::Test { name, .. } => Some(format!("test{}", plain(name))),
+                    _ => None,
+                })
+                .collect();
+            gained.retain(|(name, params)| !(params.is_empty() && degraded.contains(&plain(name))));
             assert!(
                 missing.is_empty() && gained.is_empty(),
                 "{} -> {to} -> {from} did not come back the same\n  lost:   {missing:?}\n  gained: {gained:?}",

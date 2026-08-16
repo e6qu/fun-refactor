@@ -12,21 +12,31 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 /// What each corpus, translated everywhere, still cannot say, by construct.
+///
+/// Some numbers here have moved up as well as down, and both moves were honest.
+/// The Zig reader once read no call arguments at all. A call whose argument
+/// could not translate looked clean by losing the argument, and reading the
+/// arguments made those statements carry truthfully. Four counts rose. And a
+/// crossing that empties a big container, the payload `if`, the `test` block,
+/// surfaces the losses its body used to swallow under one line. One count
+/// falls; its contents' counts rise.
 const CARRIED: &[(&str, usize)] = &[
     ("await", 26),
     ("builtin_function", 10),
-    ("catch_expression", 25),
+    ("catch_expression", 35),
     ("comptime_declaration", 5),
     ("comptime_statement", 20),
     ("conditional expression", 15),
-    ("defer_statement", 280),
+    ("defer_statement", 275),
     ("errdefer_statement", 50),
+    ("error propagation", 26),
     ("error_set_declaration", 10),
     ("enum_declaration", 5),
-    ("expression_statement", 185),
+    ("expression_statement", 290),
+    ("field_expression", 5),
     ("for_statement", 20),
     ("function_declaration", 5),
-    ("if_statement", 142),
+    ("if_statement", 122),
     ("instanceof", 66),
     ("joining two strings, which needs an allocator here", 2),
     ("keyword argument", 35),
@@ -35,14 +45,13 @@ const CARRIED: &[(&str, usize)] = &[
     ("map literal", 11),
     ("new", 42),
     ("return_statement", 10),
-    ("switch_expression", 20),
-    ("test_declaration", 65),
+    ("switch_expression", 15),
+    ("test_declaration", 60),
     ("throw", 4),
     ("try", 10),
     ("try/catch", 5),
-    ("try_expression", 60),
     ("tuple", 5),
-    ("variable_declaration", 555),
+    ("variable_declaration", 630),
     ("while_statement", 20),
 ];
 

@@ -402,6 +402,17 @@
 ; element names, so a lowercase `<div>` never becomes a symbol reference.
 (primary_expression/identifier) @reference.identifier
 
+; The target of an assignment is not a `primary_expression`, so the catch-all
+; misses it, and `total += item` read as no use of `total` at all. Extraction
+; then moved such a region without passing `total` in, and the output named a
+; binding that no longer existed.
+(assignment_expression
+  left: (identifier) @reference.identifier)
+(augmented_assignment_expression
+  left: (identifier) @reference.identifier)
+(update_expression
+  argument: (identifier) @reference.identifier)
+
 ; ------------------------------------------------------------------- JSX
 ;
 ; A capitalised identifier in a `name:` field is a component reference:
