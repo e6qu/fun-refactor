@@ -483,7 +483,11 @@ and none of the three broke a build (B301). An identity is a good sweep for a co
 takes its instruction from the user. It needs no invented pattern and the correct answer is
 known in advance.
 
-`remove-flag` and `translate` are not swept yet. `remove-flag` has no boolean constant to
+Both remaining sweeps exist now. `tests/remove_flag_sweep.rs` drives `fr remove-flag`
+end to end in seven languages over synthesized flag fixtures, which are the corpus this
+repository did not have. `tests/translate_corpus_sweep.rs` translates every corpus file
+to every target in process and ratchets the carried-construct ledger in both
+directions. The paragraph below records why they were last. `remove-flag` has no boolean constant to
 target in this repository, so it needs a corpus that has one. `translate` has
 `tests/round_trip.rs`, which asks more of it than a sweep would. The first two take a
 pattern from the user, so a sweep has to invent the patterns and a poor choice measures
@@ -622,7 +626,10 @@ has nothing to validate. **yaml** is checked as part of the chart `helm lint` re
 
 `fr translate` is the one writing command not driven here. Its output is a draft that
 carries unresolved constructs by design. So compiling it would fail correctly and prove
-nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead.
+nothing; `tests/round_trip.rs` and `tests/translate_sweep.rs` cover it instead. The IR
+carries distinct types since B358. `tests/translate_newtypes.rs` holds each writer to its
+language's spelling of one. `tests/cli_translate_flags.rs` holds the blocked-destination
+listing, `--out` and `--force`.
 
 ### What the matrix claims, and what the suite drove
 

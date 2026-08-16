@@ -277,8 +277,9 @@ fn a_comment_is_translated_rather_than_reported_as_a_failure() {
 
 #[test]
 fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
-    // Destructuring, `const { params } = routeContextSchema.parse(context)`, has no
-    // Python counterpart. The promise is that it is *there*. It is not that it is gone.
+    // Destructuring used to be the example here, until it learned to lower. The
+    // promises stand: what still carries is *there*, counted, and marked, and what
+    // stopped carrying is translated, and never both at once.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -291,8 +292,8 @@ fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
     );
     assert!(
         plan.output
-            .contains("const { params } = routeContextSchema.parse(context)"),
-        "{}",
+            .contains("params = route_context_schema.parse(context).params"),
+        "the destructuring stopped lowering:\n{}",
         plan.output
     );
 }

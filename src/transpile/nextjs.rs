@@ -184,6 +184,11 @@ fn translate_segment(segment: &str) -> String {
 
 /// Translate a Next.js API route into a FastAPI module.
 pub fn plan(path: &Path) -> Result<RoutePlan> {
+    plan_to(path, None, false)
+}
+
+/// [`plan`], with the destination and the overwrite decision in the caller's hands.
+pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan> {
     crate::capabilities::record(
         crate::capabilities::Capability::Openapi,
         crate::lang::detect(path).unwrap_or(crate::lang::Language::TypeScript),
@@ -258,21 +263,25 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
         );
     }
 
-    let destination = path.with_file_name(format!(
-        "{}.py",
-        route
-            .trim_matches('/')
-            .replace(['/', '{', '}', ':'], "_")
-            .split('_')
-            .filter(|part| !part.is_empty())
-            .collect::<Vec<_>>()
-            .join("_")
-            .then_or("index")
-    ));
+    let destination = match out {
+        Some(out) => out.to_path_buf(),
+        None => path.with_file_name(format!(
+            "{}.py",
+            route
+                .trim_matches('/')
+                .replace(['/', '{', '}', ':'], "_")
+                .split('_')
+                .filter(|part| !part.is_empty())
+                .collect::<Vec<_>>()
+                .join("_")
+                .then_or("index")
+        )),
+    };
 
-    if crate::vfs::exists(&destination) {
+    if crate::vfs::exists(&destination) && !force {
         bail!(
-            "{} already exists; translating {} would overwrite it",
+            "{} already exists; translating {} would overwrite it. --force \
+             overwrites, --out chooses another path.",
             destination.display(),
             path.display()
         );
@@ -287,6 +296,7 @@ pub fn plan(path: &Path) -> Result<RoutePlan> {
             format!("translate {} to FastAPI", path.display()),
         ),
     );
+    edits.declare_language(destination.clone(), crate::lang::Language::Python);
 
     Ok(RoutePlan {
         source: path.to_path_buf(),

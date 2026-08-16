@@ -88,10 +88,24 @@ fn ask_for(path: &Path, target: Language) -> Result<PathBuf, String> {
 
 #[test]
 fn everything_the_listing_offers_can_be_asked_for() {
+    // A blocked entry is the other half of the promise. It is listed with the
+    // reason, and asking for it plainly fails with that reason. A Helm chart
+    // offered as yaml writes to its own path; the listing used to hide the pair.
     let tmp = workspace();
     let mut asked = 0;
+    let mut blocked = 0;
     for path in files(tmp.path()) {
         for option in translate::options_for(&path) {
+            if let Some(reason) = &option.blocked {
+                blocked += 1;
+                let refused = ask_for(&path, option.target).expect_err("blocked, then produced.");
+                assert!(
+                    refused.contains("already exists"),
+                    "{} is blocked for '{reason}' and refused for: {refused}.",
+                    path.display()
+                );
+                continue;
+            }
             asked += 1;
             let got = ask_for(&path, option.target).unwrap_or_else(|e| {
                 panic!(
@@ -114,7 +128,10 @@ fn everything_the_listing_offers_can_be_asked_for() {
         "only {asked} options were offered across the whole corpus, so this checked \
          almost nothing"
     );
-    eprintln!("translate sweep: {asked} offered options, every one of them honoured");
+    eprintln!(
+        "translate sweep: {asked} open options honoured, {blocked} blocked ones \
+         refused with their reason"
+    );
 }
 
 #[test]

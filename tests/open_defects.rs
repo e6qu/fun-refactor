@@ -225,3 +225,48 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
         said(&with)
     );
 }
+
+/// B364: a Zig file whose top level is fields, the file-as-struct idiom, loses them.
+///
+/// zls writes `const Self = @This();` and then fields at file scope. The reader has
+/// no record to put them in, so each carries as unsupported. The entry is open
+/// because the fix is a design: a record named after the file, from its fields.
+#[test]
+fn b364_zig_file_level_fields_carry_as_unsupported() {
+    let (_tmp, root) = workspace(&[(
+        "store.zig",
+        "const Store = @This();\n\nio: i64,\nconfig: i64,\n\npub fn size(self: *Store) i64 {\n    return self.io;\n}\n",
+    )]);
+    let plan = fun_refactor::transpile::plan(
+        &root.join("store.zig"),
+        fun_refactor::lang::Language::TypeScript,
+    )
+    .expect("a draft");
+    assert!(
+        plan.output.contains("fun-refactor: not translated"),
+        "the file-level fields translated; B364 is stale:\n{}",
+        plan.output
+    );
+    assert_eq!(plan.fidelity.records, 0, "a record appeared; B364 is stale");
+}
+
+/// B365: a Zig tagged union, `union(enum)`, has no crossing.
+///
+/// The same shape as a Rust enum with payloads, a TypeScript discriminated union.
+/// The reader carries it whole. Open because the crossing is a feature: variants
+/// with payloads in the IR.
+#[test]
+fn b365_zig_tagged_union_carries_as_unsupported() {
+    let (_tmp, root) = workspace(&[(
+        "result.zig",
+        "pub const Answer = union(enum) {\n    none: void,\n    value: i64,\n};\n",
+    )]);
+    let plan =
+        fun_refactor::transpile::plan(&root.join("result.zig"), fun_refactor::lang::Language::Rust)
+            .expect("a draft");
+    assert!(
+        plan.output.contains("fun-refactor: not translated"),
+        "the tagged union translated; B365 is stale:\n{}",
+        plan.output
+    );
+}

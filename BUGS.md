@@ -26,6 +26,16 @@ rule for, at the version this build pins: `tree-sitter` 0.26.11, with
 `tree-sitter-zig` 1.1.2 and `tree-sitter-scss` 1.0.0. The version is part of the claim: an
 upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails when it does.
 
+- [ ] B364: **a Zig file whose top level is fields loses them in translation.** The
+  file-as-struct idiom. zls writes `const Self = @This();` and fields at file scope.
+  The reader has no record to put them in, so each carries as a comment. The fix is a
+  design, a record named after the file. Pinned in `tests/open_defects.rs`.
+
+- [ ] B365: **a Zig tagged union has no crossing.** Missing feature. `union(enum)` is
+  a Rust enum with payloads, a TypeScript discriminated union, in their spellings. The reader
+  carries it whole. The crossing is a feature, variants with payloads in the IR.
+  Pinned in `tests/open_defects.rs`.
+
 - [ ] B286: `fr inline` parenthesises by what the value is, not by where it goes, so
   `let scaled = base` with `base = w * 2 + h * 3` inlines to `let scaled = (w * 2 + h * 3)`.
   The parentheses are needed when the use site sits inside a tighter-binding expression,
@@ -180,6 +190,74 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   container declaration.
 
 ## Fixed
+
+- [x] B366: **a Python keyword argument carried the whole statement with it.** The IR
+  had `Expr::Keyword`; no reader produced one. So `encode(a, algorithm=c)` carried as
+  a comment. The reader produces it now. A target without keyword arguments degrades
+  one argument and says so inline, where it lost the line before.
+
+- [x] B367: **a Java cast carried the whole statement with it.** No IR node. So
+  `((JsonArray) o).elements` took its `return` out as a comment. `Expr::Cast`
+  exists now, and every writer spells it: `as` twice, a conversion, `@as`, and the
+  parenthesised original. Python drops it, because a cast is not a thing there.
+
+- [x] B368: **a TypeScript destructuring declaration carried whole.** Needless.
+  `const { params } = parse(context)` is a binding and a field read, sayable
+  everywhere. It lowers to that now, one binding for several names; renames,
+  defaults and nesting still carry, and say so.
+
+- [x] B369: **a Zig field default was dropped without a word.** Silent. `mutex: Mutex
+  = .init` became a field with no default and no note. No language here puts a default
+  on a plain struct field, so it is still dropped. The field's doc now says what the
+  source gave it.
+
+- [x] B370: **a translation to `--out` with an unfamiliar extension failed in the edit
+  engine.** Re-detection. The engine took the language from the destination's name,
+  and `api.gen` names nothing. The plan knows the language it wrote; the edit set carries
+  that declaration now, and detection by name is the fallback.
+
+- [x] B371: **the translate sweep read only what the CLI printed.** Truncated. Ten
+  notes, then "and N more"; the ledger pinned a tenth of the truth. The corpus sweep
+  counts in process now, ratcheted both ways. The remove-flag sweep drives the one
+  writing command no sweep had reached, in seven languages.
+
+- [x] B363: **the prose meter never decoded a string's escape sequences.** Undercounted.
+  `.\n` ended no sentence, gluing each message to the next literal in the file, and the
+  two words around any `\n` counted as one. Real over-long strings hid under the miscount.
+  The extractor decodes now, and the long-sentence budget was re-baselined upward to the
+  honest number, with the note in `tools/PROSE-DEBT` saying why.
+
+- [x] B358: **`fr translate` wrote Python's `NewType` incantation into every target as a
+  value.** `Pence = NewType("Pence", int)` was read as a constant. So Rust got
+  `pub const pence: &str = NewType("Pence", int);`, which parses and refers to nothing.
+  The IR has a `Newtype` item now. Python reads the call, and TypeScript reads the brand
+  idiom. Each writer spells the real thing: a tuple struct, a defined type, a brand plus
+  constructor, a one-component record, a non-exhaustive integer enum. Construction
+  follows, with `new` in Java and `@enumFromInt` in Zig. Found by translating the
+  tutorial's own examples.
+
+- [x] B359: **the translate listing hid a target whose destination existed.**
+  `options_for` swallowed every failed plan. With `money.ts` on disk the listing offered
+  four languages, teaching the reader the fifth pair did not exist. A blocked target is
+  listed with the reason now. `--out` and `--force` are the two ways past it, on all three
+  translation paths. The imperative-pair refusal text also still denied the transpiler
+  exists; it names the missing reader or writer now.
+
+- [x] B360: **a rejected edit said only that the result would not parse.** Guesswork.
+  The rejected text was gone before anyone could look at it. The refusal now names the
+  line and column where the result stops parsing, and prints the lines around it.
+
+- [x] B361: **`fr imports` took one file where every other sweep takes the workspace.**
+  Odd one out. `unused`, `duplicates` and `parse` walk the tree; `imports` demanded a
+  path. With no file it now organizes every file the index holds, in one atomic apply.
+  Every skipped file is counted and the reason printed, because a silent skip reads as
+  coverage.
+
+- [x] B362: **applying an edit into a directory that does not exist failed at the
+  staging step.** Late. `--out drafts/m.ts` planned fine and then could not stage. A
+  relative `--out` also resolved against the process directory. The writer creates the
+  destination directory now, and the flag resolves like every other path, against
+  `-C`.
 
 - [x] B352: **clicking a node in the call graph landed on the indentation.** The drawing
   carried each function's line and no column, so the click put the cursor at column 1. The

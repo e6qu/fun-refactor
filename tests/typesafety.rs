@@ -191,7 +191,13 @@ fn tsc_available() -> bool {
 fn tsc(files: &[&str]) -> std::process::Output {
     Command::new("npx")
         .current_dir(typescript_dir())
-        .args(["--no-install", "tsc", "--noEmit", "--strict", "--noUncheckedIndexedAccess"])
+        .args([
+            "--no-install",
+            "tsc",
+            "--noEmit",
+            "--strict",
+            "--noUncheckedIndexedAccess",
+        ])
         .args(["--target", "es2022", "--module", "esnext"])
         .args(["--moduleResolution", "bundler", "--skipLibCheck"])
         .args(files)

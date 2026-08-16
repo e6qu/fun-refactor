@@ -125,6 +125,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     for item in &module.items {
         match item {
             Item::Function(f) => walk_function(f, &mut add),
+            Item::Newtype(n) => add(&n.name, Kind::Type, n.exported),
             Item::Record(r) => {
                 add(&r.name, Kind::Type, r.exported);
                 for field in &r.fields {
@@ -439,6 +440,15 @@ pub fn write_in_context(
         .iter()
         .filter_map(|item| match item {
             Item::Record(r) => Some(r.name.clone()),
+            Item::Newtype(n) => Some(n.name.clone()),
+            _ => None,
+        })
+        .collect();
+    out.newtypes = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Newtype(n) => Some((n.name.clone(), n.base.clone())),
             _ => None,
         })
         .collect();
@@ -512,6 +522,11 @@ struct Out {
     /// the file's own records as foreign made a perfect translation confess to a
     /// problem it did not have, which is how a fidelity report stops being read.
     declared_types: std::collections::BTreeSet<String>,
+    /// The distinct types this module declares, name to base.
+    ///
+    /// A call to one is a construction. Two targets spell that their own way:
+    /// Java needs `new`, and Zig has no call syntax for a type at all.
+    newtypes: std::collections::BTreeMap<String, Type>,
     /// Text a writer could not put where the expression it replaced stood.
     ///
     /// Zig is the only target here with no block comment: `//` runs to the end of the line, so
@@ -551,6 +566,7 @@ impl Out {
             unnameable: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
+            newtypes: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
@@ -904,6 +920,19 @@ fn rust(out: &mut Out, module: &Module) {
                 }
                 out.blank();
             }
+            Item::Newtype(n) => {
+                for line in &n.doc {
+                    out.line(&format!("/// {line}"));
+                }
+                let visibility = if n.exported { "pub " } else { "" };
+                out.line(&format!(
+                    "{visibility}struct {}(pub {});",
+                    out.name(&n.name),
+                    rust_type(&n.base)
+                ));
+                out.fidelity.newtypes += 1;
+                out.blank();
+            }
             Item::Unsupported(u) => {
                 carry(out, u);
                 out.blank();
@@ -1225,6 +1254,9 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         }
         // Rust asks this with a `match` on an enum or with `Any::downcast`, and
         // which one applies is a fact about the type and not about the code.
+        Expr::Cast { ty, value } => {
+            format!("({} as {})", rust_expr(out, value), rust_expr(out, ty))
+        }
         Expr::InstanceOf { value, ty } => {
             let rendered = rust_expr(out, value);
             let named = rust_expr(out, ty);
@@ -1333,6 +1365,10 @@ fn python(out: &mut Out, module: &Module) {
         out.line("from dataclasses import dataclass");
         out.blank();
     }
+    if module.items.iter().any(|i| matches!(i, Item::Newtype(_))) {
+        out.line("from typing import NewType");
+        out.blank();
+    }
 
     for item in &module.items {
         match item {
@@ -1413,6 +1449,18 @@ fn python(out: &mut Out, module: &Module) {
                     let commented = out.comment(l);
                     out.line(&commented);
                 }
+                out.blank();
+            }
+            Item::Newtype(n) => {
+                for line in &n.doc {
+                    out.line(&format!("# {line}"));
+                }
+                let name = out.name(&n.name);
+                out.line(&format!(
+                    "{name} = NewType(\"{name}\", {})",
+                    python_type(&n.base)
+                ));
+                out.fidelity.newtypes += 1;
                 out.blank();
             }
             Item::Unsupported(u) => {
@@ -1870,6 +1918,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = args.iter().map(|a| python_expr(out, a)).collect();
             format!("{}({})", python_expr(out, callee), rendered.join(", "))
         }
+        Expr::Cast { value, .. } => python_expr(out, value),
         Expr::InstanceOf { value, ty } => {
             let rendered = python_expr(out, value);
             format!("isinstance({rendered}, {})", python_expr(out, ty))
@@ -2038,6 +2087,14 @@ fn go(out: &mut Out, module: &Module) {
                     let commented = out.comment(l);
                     out.line(&commented);
                 }
+                out.blank();
+            }
+            Item::Newtype(n) => {
+                for line in &n.doc {
+                    out.line(&format!("// {line}"));
+                }
+                out.line(&format!("type {} {}", out.name(&n.name), go_type(&n.base)));
+                out.fidelity.newtypes += 1;
                 out.blank();
             }
             Item::Unsupported(u) => {
@@ -2388,6 +2445,9 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // Go spells this as a two-value type assertion, which is a statement.
+        Expr::Cast { ty, value } => {
+            format!("{}({})", go_expr(out, ty), go_expr(out, value))
+        }
         Expr::InstanceOf { value, ty } => {
             let rendered = go_expr(out, value);
             let named = go_expr(out, ty);
@@ -2563,6 +2623,28 @@ fn typescript(out: &mut Out, module: &Module) {
                     let commented = out.comment(l);
                     out.line(&commented);
                 }
+                out.blank();
+            }
+            Item::Newtype(n) => {
+                for line in &n.doc {
+                    out.line(&format!("// {line}"));
+                }
+                let name = out.name(&n.name);
+                let brand = format!("{}Brand", camel(&n.name));
+                let export = if n.exported { "export " } else { "" };
+                let base = ts_type(&n.base);
+                out.line(&format!("declare const {brand}: unique symbol;"));
+                out.line(&format!(
+                    "{export}type {name} = {base} & {{ readonly [{brand}]: true }};"
+                ));
+                out.line(&format!(
+                    "{export}function {name}(value: {base}): {name} {{"
+                ));
+                out.open();
+                out.line(&format!("return value as {name};"));
+                out.close();
+                out.line("}");
+                out.fidelity.newtypes += 1;
                 out.blank();
             }
             Item::Unsupported(u) => {
@@ -2915,6 +2997,9 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
             format!("new {}({})", ts_expr(out, callee), rendered.join(", "))
         }
+        Expr::Cast { ty, value } => {
+            format!("({} as {})", ts_expr(out, value), ts_expr(out, ty))
+        }
         Expr::InstanceOf { value, ty } => {
             let rendered = ts_expr(out, value);
             format!("{rendered} instanceof {}", ts_expr(out, ty))
@@ -3053,7 +3138,7 @@ fn java(out: &mut Out, module: &Module) {
         .filter(|i| {
             matches!(
                 i,
-                Item::Constant(_) | Item::Function(_) | Item::Unsupported(_)
+                Item::Constant(_) | Item::Function(_) | Item::Newtype(_) | Item::Unsupported(_)
             )
         })
         .collect();
@@ -3111,6 +3196,17 @@ fn java(out: &mut Out, module: &Module) {
                 out.blank();
             }
             Item::Function(f) => java_function(out, f, true),
+            Item::Newtype(n) => {
+                for line in &n.doc {
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
+                }
+                out.line(&format!(
+                    "public record {}({} value) {{}}",
+                    pascal(&n.name),
+                    java_type(&n.base)
+                ));
+                out.fidelity.newtypes += 1;
+            }
             Item::Unsupported(u) => carry(out, u),
             _ => {}
         }
@@ -3622,11 +3718,19 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Call { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
+            if let Expr::Name(name) = callee.as_ref() {
+                if out.newtypes.contains_key(name) {
+                    return format!("new {}({})", out.name(name), rendered.join(", "));
+                }
+            }
             format!("{}({})", java_expr(out, callee), rendered.join(", "))
         }
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
             format!("new {}({})", java_expr(out, callee), rendered.join(", "))
+        }
+        Expr::Cast { ty, value } => {
+            format!("(({}) {})", java_expr(out, ty), java_expr(out, value))
         }
         Expr::InstanceOf { value, ty } => {
             let rendered = java_expr(out, value);
@@ -3851,6 +3955,24 @@ fn zig(out: &mut Out, module: &Module) {
             }
             Item::Function(f) => {
                 zig_function(out, f, None);
+                out.blank();
+            }
+            Item::Newtype(n) => {
+                for line in &n.doc {
+                    out.line(&format!("// {line}"));
+                }
+                let name = out.name(&n.name);
+                if n.base == Type::Int {
+                    out.line(&format!("pub const {name} = enum(i64) {{ _ }};"));
+                } else {
+                    out.line(&format!("pub const {name} = {};", zig_type(&n.base)));
+                    out.fidelity.notes.push(format!(
+                        "`{}` is an alias in Zig: a distinct type over {} has no \
+                         spelling this tool writes there",
+                        n.name, n.base
+                    ));
+                }
+                out.fidelity.newtypes += 1;
                 out.blank();
             }
             Item::Unsupported(u) => {
@@ -4333,6 +4455,17 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Call { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
+            if let Expr::Name(name) = callee.as_ref() {
+                if let Some(base) = out.newtypes.get(name) {
+                    let inner = rendered.join(", ");
+                    let spelled = out.name(name);
+                    return if *base == Type::Int {
+                        format!("@as({spelled}, @enumFromInt({inner}))")
+                    } else {
+                        format!("@as({spelled}, {inner})")
+                    };
+                }
+            }
             format!("{}({})", zig_expr(out, callee), rendered.join(", "))
         }
         // Zig has no `new`. A value is made by whatever function on the type returns one, which
@@ -4448,6 +4581,9 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         }
         // Zig asks this with a tagged-union `switch`, which needs the union, and a
         // type arriving from a language with runtime classes does not have one.
+        Expr::Cast { ty, value } => {
+            format!("@as({}, {})", zig_expr(out, ty), zig_expr(out, value))
+        }
         Expr::InstanceOf { value, ty } => {
             let rendered = zig_expr(out, value);
             let named = zig_expr(out, ty);

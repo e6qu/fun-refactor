@@ -81,25 +81,27 @@ fn a_manifest_is_a_template_and_a_template_with_actions_is_not_a_manifest() {
 }
 
 #[test]
-fn no_imperative_language_can_be_rewritten_as_another() {
-    // The important refusal. A button that claimed to turn Rust into Python would be
-    // the least honest thing in this codebase.
+fn an_imperative_pair_is_never_a_rewrite_and_the_refusal_points_at_the_draft() {
+    // The containment path must still refuse every imperative pair: the bytes of a
+    // Rust file are never a Python file. What the refusal says changed once already,
+    // when it denied that the transpiler exists. It must now point at the path that
+    // does the work, or name the reader or writer the build lacks.
     let (_tmp, root) = workspace(&[
         ("a.rs", "fn main() {}\n"),
         ("b.py", "def main():\n    pass\n"),
         ("c.go", "package main\n\nfunc main() {}\n"),
     ]);
-    for (file, to) in [
-        ("a.rs", Language::Python),
-        ("b.py", Language::Go),
-        ("c.go", Language::Rust),
-        ("a.rs", Language::Bash),
+    for (file, to, expected) in [
+        ("a.rs", Language::Python, "as a draft"),
+        ("b.py", Language::Go, "as a draft"),
+        ("c.go", Language::Rust, "as a draft"),
+        ("a.rs", Language::Bash, "a writer for bash"),
     ] {
-        let error = translate::plan(&root.join(file), to).expect_err("not a refactoring");
+        let error = translate::plan(&root.join(file), to).expect_err("never a rewrite");
         let message = error.to_string();
         assert!(
-            message.contains("translation, not a refactoring"),
-            "{file} -> {to} should say why, got: {message}"
+            message.contains(expected),
+            "{file} -> {to} should say '{expected}'. Got: {message}."
         );
     }
 }
