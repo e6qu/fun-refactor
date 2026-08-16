@@ -262,8 +262,8 @@ enum Command {
     ///
     /// Prints a diff by default; pass --write to apply it.
     Imports {
-        /// File to organize.
-        file: PathBuf,
+        /// File to organize. Omit it to organize every file in the workspace.
+        file: Option<PathBuf>,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
         write: bool,
@@ -302,11 +302,13 @@ enum Command {
     },
     /// Rewrite a file as another language, beside the original.
     ///
-    /// Only where one grammar contains the other. CSS as SCSS, a manifest as a Helm
-    /// template, TypeScript as TSX, and only when the file parses cleanly as the
-    /// target. Omit the language to list what this file could be. Rewriting one
-    /// programming language as another is a translation. It is not a refactoring, and is
-    /// refused with the reason.
+    /// Two different promises. Where one grammar contains the other, the result is
+    /// the same bytes under the target's extension, checked by the target's parser.
+    /// CSS as SCSS, a manifest as a Helm template, TypeScript as TSX. Between
+    /// programming languages the result is a draft translation. Signatures carry
+    /// their types where possible. Every construct without a counterpart is marked
+    /// in the output, never silently dropped. Omit the language to list what this
+    /// file could be.
     ///
     /// Prints a diff by default; pass --write to apply it.
     Translate {
@@ -317,6 +319,12 @@ enum Command {
         /// Apply the change instead of printing a diff.
         #[arg(long)]
         write: bool,
+        /// Write the result here instead of beside the original.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Overwrite the destination when it already exists.
+        #[arg(long)]
+        force: bool,
     },
     /// Remove a feature flag and everything that only existed to serve it.
     ///
@@ -562,12 +570,21 @@ pub fn run() -> Result<()> {
             paths,
             internal,
         } => cmd_unused(&cli, catalogs.as_deref(), languages, paths, *internal),
-        Command::Imports { file, write } => cmd_imports(&cli, file, *write),
+        Command::Imports { file, write } => cmd_imports(&cli, file.as_deref(), *write),
         Command::Translate {
             file,
             language,
             write,
-        } => cmd_translate(&cli, file, language.as_deref(), *write),
+            out,
+            force,
+        } => cmd_translate(
+            &cli,
+            file,
+            language.as_deref(),
+            *write,
+            out.as_deref(),
+            *force,
+        ),
         Command::Move {
             target,
             destination,
@@ -1193,8 +1210,13 @@ fn cmd_unused(
     Ok(())
 }
 
-fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
+fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
+
+    let Some(file) = file else {
+        return cmd_imports_workspace(cli, &index, write);
+    };
+
     let path = workspace_path(cli, file)?;
     let plan = crate::refactor::imports::plan(&index, &path)?;
 
@@ -1223,13 +1245,84 @@ fn cmd_imports(cli: &Cli, file: &std::path::Path, write: bool) -> Result<()> {
     present(cli, &plan.edits, &summary, write)
 }
 
+/// Every file the index holds, one pass, one atomic apply.
+///
+/// A file whose imports this tool cannot organize is skipped, counted and printed,
+/// because a silent skip reads as coverage.
+fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) -> Result<()> {
+    let mut edits = crate::edit::EditSet::new();
+    let mut touched = 0usize;
+    let mut removed = 0usize;
+    let mut reordered = 0usize;
+    let mut skipped: std::collections::BTreeMap<String, usize> = Default::default();
+
+    let files: Vec<std::path::PathBuf> = index.files().map(|(path, _)| path.clone()).collect();
+    for path in files {
+        match crate::refactor::imports::plan(index, &path) {
+            Ok(plan) => {
+                if plan.edits.is_empty() {
+                    continue;
+                }
+                touched += 1;
+                removed += plan.removed.len();
+                reordered += plan.sorted_blocks;
+                if !cli.json {
+                    println!(
+                        "{}: removing {} import(s), reordering {} block(s).",
+                        plan.file.display(),
+                        plan.removed.len(),
+                        plan.sorted_blocks
+                    );
+                }
+                edits.extend(plan.edits);
+            }
+            Err(error) => {
+                *skipped.entry(error.to_string()).or_default() += 1;
+            }
+        }
+    }
+
+    if !cli.json && !skipped.is_empty() {
+        println!("\nSkipped, with the tool's reasons:");
+        for (reason, count) in &skipped {
+            let first = reason.lines().next().unwrap_or(reason);
+            println!("  {count} file(s): {first}");
+        }
+    }
+    if !cli.json {
+        println!();
+    }
+
+    let summary = format!(
+        "workspace: {touched} file(s) changed, {removed} import(s) removed, \
+         {reordered} block(s) reordered."
+    );
+    present(cli, &edits, &summary, write)
+}
+
 fn cmd_translate(
     cli: &Cli,
     file: &std::path::Path,
     language: Option<&str>,
     write: bool,
+    out: Option<&std::path::Path>,
+    force: bool,
 ) -> Result<()> {
     let path = workspace_path(cli, file)?;
+    // The destination may not exist yet, so it cannot go through `workspace_path`,
+    // which canonicalizes. Same rule though: a relative path is relative to the
+    // workspace root, not to wherever this process happens to run.
+    let out = out.map(|o| {
+        if o.is_absolute() {
+            o.to_path_buf()
+        } else {
+            cli.root
+                .canonicalize()
+                .unwrap_or_else(|_| cli.root.clone())
+                .join(o)
+        }
+    });
+    let out = out.as_deref();
     let from = crate::lang::detect(&path)
         .ok_or_else(|| anyhow::anyhow!("{} is not a language this build reads", path.display()))?;
 
@@ -1259,14 +1352,21 @@ fn cmd_translate(
         }
         for option in &options {
             let target = option.target;
+            if let Some(reason) = &option.blocked {
+                println!(
+                    "  {target:<10} -> {} (blocked: {reason})",
+                    option.destination.display()
+                );
+                continue;
+            }
             match &option.fidelity {
                 None => println!(
-                    "  {target:<10} -> {} (same bytes)",
+                    "  {target:<10} -> {} (same bytes).",
                     option.destination.display()
                 ),
                 Some(f) => println!(
                     "  {target:<10} -> {} (a draft: {}/{} signatures complete, {} \
-                     construct(s) carried over)",
+                     construct(s) carried over).",
                     option.destination.display(),
                     f.signatures_complete,
                     f.functions,
@@ -1281,7 +1381,7 @@ fn cmd_translate(
     // *path* as well as its text, a Next.js route's URL is where it sits on disk. It is
     // therefore its own target instead of a flavour of Python.
     if language.eq_ignore_ascii_case("fastapi") {
-        return cmd_translate_fastapi(cli, &path, write);
+        return cmd_translate_fastapi(cli, &path, write, out, force);
     }
 
     let to = crate::lang::Language::from_name(language)
@@ -1290,7 +1390,7 @@ fn cmd_translate(
     // Containment first. CSS as SCSS is the same bytes and needs no translation. A
     // pair that is not a containment is a translation, which is a different promise.
     if crate::translate::targets(from).contains(&to) {
-        let plan = crate::translate::plan(&path, to)?;
+        let plan = crate::translate::plan_to(&path, to, out, force)?;
         let summary = format!(
             "{} written as {} ({} -> {})",
             plan.source.display(),
@@ -1301,11 +1401,15 @@ fn cmd_translate(
         return present(cli, &plan.edits, &summary, write);
     }
 
-    let plan = crate::transpile::plan(&path, to)?;
+    let plan = crate::transpile::plan_to(&path, to, out, force)?;
     if !cli.json {
         let f = &plan.fidelity;
+        let distinct = match f.newtypes {
+            0 => String::new(),
+            n => format!(", {n} distinct type(s)"),
+        };
         println!(
-            "{} -> {} ({} function(s), {} record(s), {} constant(s))",
+            "{} -> {} ({} function(s), {} record(s), {} constant(s){distinct}).",
             plan.from, plan.to, f.functions, f.records, f.constants
         );
         println!(
@@ -1349,8 +1453,14 @@ fn cmd_translate(
 }
 
 /// `fr translate <route.ts> fastapi`, a Next.js API route as a FastAPI module.
-fn cmd_translate_fastapi(cli: &Cli, path: &std::path::Path, write: bool) -> Result<()> {
-    let plan = crate::transpile::nextjs::plan(path)?;
+fn cmd_translate_fastapi(
+    cli: &Cli,
+    path: &std::path::Path,
+    write: bool,
+    out: Option<&std::path::Path>,
+    force: bool,
+) -> Result<()> {
+    let plan = crate::transpile::nextjs::plan_to(path, out, force)?;
     if !cli.json {
         println!(
             "{} -> {} serving {} ({})",

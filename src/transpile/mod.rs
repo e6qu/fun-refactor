@@ -46,7 +46,7 @@ pub fn read_file(path: &Path) -> Result<ir::Module> {
     if parsed.has_errors() {
         bail!(
             "{} does not parse cleanly as {language}, so anything read out of it would \
-             be a guess about broken code",
+             be a guess about broken code.",
             path.display()
         );
     }
@@ -130,6 +130,16 @@ pub struct TranslationPlan {
 
 /// Translate `path` into `to`, writing beside it under the target's extension.
 pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
+    plan_to(path, to, None, false)
+}
+
+/// [`plan`], with the destination and the overwrite decision in the caller's hands.
+pub fn plan_to(
+    path: &Path,
+    to: Language,
+    out: Option<&Path>,
+    force: bool,
+) -> Result<TranslationPlan> {
     crate::capabilities::record(crate::capabilities::Capability::Translate, to);
     let Some(from) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
@@ -159,10 +169,14 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     }
 
     let source = crate::vfs::read_to_string(path)?;
-    let destination = crate::translate::destination_for(path, to)?;
-    if crate::vfs::exists(&destination) {
+    let destination = match out {
+        Some(out) => out.to_path_buf(),
+        None => crate::translate::destination_for(path, to)?,
+    };
+    if crate::vfs::exists(&destination) && !force {
         bail!(
-            "{} already exists; translating {} would overwrite it",
+            "{} already exists; translating {} would overwrite it. --force \
+             overwrites, --out chooses another path.",
             destination.display(),
             path.display()
         );
@@ -173,7 +187,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
     if parsed.has_errors() {
         bail!(
             "{} does not parse cleanly as {from}, so anything read out of it would be a \
-             guess about broken code",
+             guess about broken code.",
             path.display()
         );
     }
@@ -215,6 +229,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslationPlan> {
             format!("translate {} to {to}", path.display()),
         ),
     );
+    edits.declare_language(destination.clone(), to);
 
     Ok(TranslationPlan {
         from,
@@ -301,6 +316,12 @@ fn banner(to: Language, from: &str, source: &Path, fidelity: &Fidelity) -> Strin
         "{} function(s), {} record(s), {} constant(s).",
         fidelity.functions, fidelity.records, fidelity.constants
     )));
+    if fidelity.newtypes > 0 {
+        out.push_str(&comment(&format!(
+            "{} distinct type(s) carried across as this language spells them.",
+            fidelity.newtypes
+        )));
+    }
     if fidelity.translated() == 0 {
         out.push_str(&comment(
             "Nothing was found to translate: no function, record or constant. If the \

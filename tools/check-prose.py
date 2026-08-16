@@ -72,11 +72,17 @@ def comments_of(path: Path) -> str:
 
 
 def messages_of(path: Path) -> str:
-    """The sentences a user reads: string literals long enough to be prose."""
+    """The sentences a user reads: string literals long enough to be prose.
+
+    Escape sequences are decoded before counting. A literal ending `.\\n` ends a
+    sentence in what the user sees, and counting it as mid-sentence glued every
+    such message to the next string in the file.
+    """
     text = path.read_text()
     out = []
     for match in re.finditer(r'"((?:[^"\\]|\\.)*)"', text, re.S):
         raw = re.sub(r"\\\s*\n\s*", " ", match.group(1))
+        raw = raw.replace("\\n", "\n").replace("\\t", " ").replace('\\"', '"')
         if len(raw) > 40 and " " in raw and not raw.startswith(("@", "(", "http")):
             out.append(raw)
     return "\n".join(out)

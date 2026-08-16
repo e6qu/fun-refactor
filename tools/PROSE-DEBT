@@ -4,6 +4,11 @@
 # A count above its number fails the build. A count below it fails too, and asks you
 # to lower the number here. Both directions are recorded, so the total only falls.
 #
+# Re-baselined once, upward, when the meter was fixed and not the rules: the string
+# extractor decoded no escape sequences, so `.\n` never ended a sentence and the two
+# words around a `\n` counted as one. B363 records it. The honest count on the day of
+# the fix was 1160, against 1114 under the broken meter.
+#
 # Measured against the same rules before any of this work: em-dash 2050,
 # false-comparison 240, filler 350, self-reference 222, long-sentence 2339.
 #
@@ -11,4 +16,4 @@ em-dash 57
 false-comparison 19
 filler 13
 self-reference 54
-long-sentence 1114
+long-sentence 1154

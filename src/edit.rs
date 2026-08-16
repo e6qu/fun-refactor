@@ -44,6 +44,12 @@ pub struct FileEdits {
 #[derive(Debug, Clone, Default)]
 pub struct EditSet {
     files: BTreeMap<PathBuf, FileEdits>,
+    /// What language a file is, where the producer knows better than the name.
+    ///
+    /// A translation writing `--out build/api.gen` knows the text is Python; the
+    /// path says nothing. Detection from the name is the fallback, this is the
+    /// authority.
+    languages: BTreeMap<PathBuf, crate::lang::Language>,
 }
 
 impl EditSet {
@@ -53,6 +59,26 @@ impl EditSet {
 
     pub fn add(&mut self, path: impl Into<PathBuf>, edit: Edit) {
         self.files.entry(path.into()).or_default().edits.push(edit);
+    }
+
+    /// Take every edit in `other` into this set.
+    pub fn extend(&mut self, other: EditSet) {
+        for (path, file) in other.files {
+            for edit in file.edits {
+                self.add(path.clone(), edit);
+            }
+        }
+        self.languages.extend(other.languages);
+    }
+
+    /// Declare what language `path` holds, overriding detection by name.
+    pub fn declare_language(&mut self, path: impl Into<PathBuf>, language: crate::lang::Language) {
+        self.languages.insert(path.into(), language);
+    }
+
+    /// The declared language of `path`, where one was declared.
+    pub fn language(&self, path: &Path) -> Option<crate::lang::Language> {
+        self.languages.get(path).copied()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -191,7 +217,9 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
         let updated = apply_to_string(&original, edits)
             .with_context(|| format!("applying edits to {}", path.display()))?;
 
-        let language = crate::lang::detect(path)
+        let language = edit_set
+            .language(path)
+            .or_else(|| crate::lang::detect(path))
             .with_context(|| format!("unsupported file type: {}", path.display()))?;
 
         if validation == Validation::ReparseStrict {
@@ -204,8 +232,9 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
             if after.has_errors() && !before.has_errors() {
                 bail!(
                     "edit rejected: {} parses cleanly now but would not after the \
-                     change. The file was left unchanged.",
-                    path.display()
+                     change. The file was left unchanged.{}",
+                    path.display(),
+                    rejection_evidence(&after, &updated)
                 );
             }
             let before_errors = before.error_spans().len();
@@ -213,9 +242,10 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
             if after_errors > before_errors {
                 bail!(
                     "edit rejected: {} would gain {} new syntax error(s). \
-                     The file was left unchanged.",
+                     The file was left unchanged.{}",
                     path.display(),
-                    after_errors - before_errors
+                    after_errors - before_errors,
+                    rejection_evidence(&after, &updated)
                 );
             }
         }
@@ -229,6 +259,30 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
     }
 
     Ok(outcomes)
+}
+
+/// Where the rejected text stops parsing, with the lines around it.
+///
+/// A refusal naming no position sends whoever caused it back to guessing. The
+/// rejected text never reaches disk, so this is the only moment to see it.
+fn rejection_evidence(after: &crate::parse::Parsed, updated: &str) -> String {
+    let Some(at) = after.error_spans().iter().map(|span| span.start).min() else {
+        return String::new();
+    };
+    let index = crate::span::LineIndex::new(updated);
+    let at = index.line_col(at, updated);
+    let window: Vec<String> = updated
+        .lines()
+        .enumerate()
+        .filter(|(i, _)| *i + 1 >= at.line.saturating_sub(3) && *i < at.line + 2)
+        .map(|(i, text)| format!("  {:>4} {text}", i + 1))
+        .collect();
+    format!(
+        "\n{}\n  That result stops parsing at line {}, column {}.",
+        window.join("\n"),
+        at.line,
+        at.col
+    )
 }
 
 /// Write planned outcomes to disk atomically across all files.
@@ -280,6 +334,7 @@ fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
     let result = (|| -> Result<()> {
         for outcome in outcomes.iter().filter(|o| o.changed()) {
             let dir = outcome.path.parent().unwrap_or_else(|| Path::new("."));
+            std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
             let mut tmp = tempfile::NamedTempFile::new_in(dir)
                 .with_context(|| format!("staging {}", outcome.path.display()))?;
             use std::io::Write;

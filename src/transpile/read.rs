@@ -238,6 +238,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::RecordLit { fields, .. } => fields.iter().any(|(_, value)| bad(value)),
             Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
+            Expr::Cast { ty, value } => bad(ty) || bad(value),
             Expr::Keyword { value, .. } => bad(value),
             Expr::Coalesce { value, fallback } => bad(value) || bad(fallback),
             Expr::Ternary {
@@ -1041,7 +1042,9 @@ mod python {
                             module.doc.push(super::unquote(&cx.text(*n)));
                         }
                         Some(n) if matches!(n.kind(), "assignment") => {
-                            if let Some(c) = constant(cx, *n) {
+                            if let Some(nt) = newtype(cx, *n) {
+                                module.items.push(Item::Newtype(nt));
+                            } else if let Some(c) = constant(cx, *n) {
                                 module.items.push(Item::Constant(c));
                             } else {
                                 module.items.push(Item::Unsupported(cx.unsupported(child)));
@@ -1327,6 +1330,31 @@ mod python {
             name: name.clone(),
             ty: cx.field(node, "type").map(|t| ty(cx, t)),
             exported: !name.starts_with('_'),
+        })
+    }
+
+    /// `Pence = NewType("Pence", int)`, read as the distinct type it declares.
+    ///
+    /// Read as a constant, the call crossed into every target as a value.
+    /// `NewType`, `int` and the quotes crossed with it, in five spellings, each
+    /// of which parses and refers to nothing.
+    fn newtype(cx: &Cx, node: Node<'_>) -> Option<Newtype> {
+        let name = cx.field_text(node, "left")?;
+        let call = cx.field(node, "right").filter(|r| r.kind() == "call")?;
+        let callee = cx.field_text(call, "function")?;
+        if callee != "NewType" && callee != "typing.NewType" {
+            return None;
+        }
+        let args = cx.field(call, "arguments")?;
+        let base = cx
+            .children(args)
+            .into_iter()
+            .find(|a| !matches!(a.kind(), "string" | "comment"))?;
+        Some(Newtype {
+            doc: Vec::new(),
+            name,
+            base: ty(cx, base),
+            exported: true,
         })
     }
 
@@ -1772,6 +1800,14 @@ mod python {
                     None => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
+            "keyword_argument" => Expr::Keyword {
+                name: cx.field_text(node, "name").unwrap_or_default(),
+                value: Box::new(
+                    cx.field(node, "value")
+                        .map(|v| expr(cx, v))
+                        .unwrap_or(Expr::Null),
+                ),
+            },
             "not_operator" => Expr::Unary {
                 op: UnaryOp::Not,
                 operand: Box::new(
@@ -2743,6 +2779,18 @@ mod java {
                     .map(|a| cx.children(a).into_iter().map(|n| expr(cx, n)).collect())
                     .unwrap_or_default(),
             },
+            "cast_expression" => Expr::Cast {
+                ty: Box::new(
+                    cx.field(node, "type")
+                        .map(|t| Expr::Name(cx.text(t)))
+                        .unwrap_or(Expr::Null),
+                ),
+                value: Box::new(
+                    cx.field(node, "value")
+                        .map(|v| expr(cx, v))
+                        .unwrap_or(Expr::Null),
+                ),
+            },
             "instanceof_expression" => Expr::InstanceOf {
                 value: Box::new(
                     cx.field(node, "left")
@@ -2918,8 +2966,17 @@ mod zig {
                     let Some(field_name) = parts.first().map(|c| cx.text(*c)) else {
                         continue;
                     };
+                    let mut doc = doc_above(cx, member, &["///", "//"]);
+                    // A default is dropped, because no other language here puts one
+                    // on a plain struct field. Dropped and said, where it was silent.
+                    if let Some(default) = after(&parts, "=", "\u{0}") {
+                        doc.push(format!(
+                            "the source gave this a default: `{}`",
+                            cx.text(default).trim()
+                        ));
+                    }
                     record.fields.push(Field {
-                        doc: doc_above(cx, member, &["///", "//"]),
+                        doc,
                         name: field_name,
                         // `x: i32`, the type is whatever follows the colon, and stops
                         // before the `=` of a default.
@@ -3449,6 +3506,7 @@ mod typescript {
         let mut module = Module::default();
         // A member a record cannot keep still has to reach the reader.
         let mut carried: Vec<Item> = Vec::new();
+        let brands = brand_symbols(cx, root);
         for child in cx.children(root) {
             let (node, exported) = match child.kind() {
                 "export_statement" => match cx.children(child).first() {
@@ -3459,6 +3517,11 @@ mod typescript {
             };
             match node.kind() {
                 "comment" => {}
+                "ambient_declaration" if declares_brand(cx, node, &brands) => {}
+                "type_alias_declaration" => match branded(cx, node, &brands, exported) {
+                    Some(nt) => module.items.push(Item::Newtype(nt)),
+                    None => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                },
                 "import_statement" => module.items.push(Item::Import {
                     text: cx.text(child),
                     line: cx.line(child),
@@ -3495,8 +3558,149 @@ mod typescript {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        // A brand travels with a constructor function bearing its own name; this
+        // tool's TypeScript writer emits one. Read back as content it duplicates
+        // the newtype, and its lower-case spelling wins over the type's.
+        let newtype_names: std::collections::BTreeSet<String> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Newtype(n) => Some(n.name.clone()),
+                _ => None,
+            })
+            .collect();
+        module
+            .items
+            .retain(|item| !matches!(item, Item::Function(f) if newtype_names.contains(&f.name)));
         module.items.extend(carried);
         module
+    }
+
+    /// `const { a, b } = e`, lowered to what every target can say.
+    ///
+    /// One binding for the value, then one per name. Python and Go have no object
+    /// pattern; the lowering says what the pattern means, exactly. A pattern using
+    /// renames, defaults or nesting stays unsupported, because its lowering is a
+    /// different one.
+    fn destructured(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
+        if !matches!(node.kind(), "lexical_declaration" | "variable_declaration") {
+            return None;
+        }
+        let declarator = cx
+            .children(node)
+            .into_iter()
+            .find(|d| d.kind() == "variable_declarator")?;
+        let pattern = cx
+            .field(declarator, "name")
+            .filter(|n| n.kind() == "object_pattern")?;
+        let mut names = Vec::new();
+        for member in cx.children(pattern) {
+            if member.kind() == "shorthand_property_identifier_pattern" {
+                names.push(cx.text(member));
+            } else {
+                return None;
+            }
+        }
+        if names.is_empty() {
+            return None;
+        }
+        let value = cx.field(declarator, "value").map(|v| expr(cx, v))?;
+        // One name reads straight through the field; several bind the value once.
+        if let [name] = names.as_slice() {
+            return Some(vec![Stmt::Let {
+                name: name.clone(),
+                ty: None,
+                value: Some(Expr::Field {
+                    of: Box::new(value),
+                    name: name.clone(),
+                }),
+                mutable: false,
+            }]);
+        }
+        let temp = format!("{}_parts", names.join("_"));
+        let mut body = vec![Stmt::Let {
+            name: temp.clone(),
+            ty: None,
+            value: Some(value),
+            mutable: false,
+        }];
+        for name in &names {
+            body.push(Stmt::Let {
+                name: name.clone(),
+                ty: None,
+                value: Some(Expr::Field {
+                    of: Box::new(Expr::Name(temp.clone())),
+                    name: name.clone(),
+                }),
+                mutable: false,
+            });
+        }
+        Some(body)
+    }
+
+    /// The names declared as `declare const x: unique symbol` at the top level.
+    fn brand_symbols(cx: &Cx, root: Node<'_>) -> std::collections::BTreeSet<String> {
+        let mut out = std::collections::BTreeSet::new();
+        for child in cx.children(root) {
+            if child.kind() != "ambient_declaration" {
+                continue;
+            }
+            let text = cx.text(child);
+            if !text.contains("unique symbol") {
+                continue;
+            }
+            for declaration in cx.children(child) {
+                if declaration.kind() != "lexical_declaration" {
+                    continue;
+                }
+                for d in cx.children(declaration) {
+                    if d.kind() == "variable_declarator" {
+                        if let Some(name) = cx.field_text(d, "name") {
+                            out.insert(name);
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// Is this ambient declaration one of the brand symbols an alias consumed?
+    fn declares_brand(
+        cx: &Cx,
+        node: Node<'_>,
+        brands: &std::collections::BTreeSet<String>,
+    ) -> bool {
+        let text = cx.text(node);
+        text.contains("unique symbol") && brands.iter().any(|b| text.contains(b.as_str()))
+    }
+
+    /// `type Pence = number & { readonly [penceBrand]: true }`, the brand idiom,
+    /// read as the distinct type it declares.
+    fn branded(
+        cx: &Cx,
+        node: Node<'_>,
+        brands: &std::collections::BTreeSet<String>,
+        exported: bool,
+    ) -> Option<Newtype> {
+        let name = cx.field_text(node, "name")?;
+        let value = cx.field(node, "value")?;
+        if value.kind() != "intersection_type" {
+            return None;
+        }
+        let parts = cx.children(value);
+        let base = parts.iter().find(|p| p.kind() == "predefined_type")?;
+        let marker = parts.iter().find(|p| p.kind() == "object_type")?;
+        let marker_text = cx.text(*marker);
+        if !brands.iter().any(|b| marker_text.contains(b.as_str())) {
+            return None;
+        }
+        Some(Newtype {
+            doc: Vec::new(),
+            name,
+            base: ty(cx, *base),
+            exported,
+        })
     }
 
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
@@ -3681,10 +3885,15 @@ mod typescript {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children_with_comments(node)
-            .iter()
-            .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
-            .collect()
+        let mut out = Vec::new();
+        for n in cx.children_with_comments(node) {
+            if let Some(lowered) = destructured(cx, n) {
+                out.extend(lowered);
+                continue;
+            }
+            out.push(keep_whole(cx, n, stmt(cx, n)));
+        }
+        out
     }
 
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {

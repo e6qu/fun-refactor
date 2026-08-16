@@ -40,6 +40,7 @@ pub enum Item {
     Function(Function),
     Record(Record),
     Constant(Constant),
+    Newtype(Newtype),
     /// An import.
     ///
     /// Not [`Item::Unsupported`], because an import is not a construct that failed to
@@ -150,6 +151,20 @@ pub struct Constant {
     pub name: String,
     pub ty: Option<Type>,
     pub value: Expr,
+    pub exported: bool,
+}
+
+/// A distinct type over an existing one, worth one line in every language here.
+///
+/// Python spells it `Pence = NewType("Pence", int)`, and TypeScript as a brand.
+/// Rust makes a tuple struct, Go a defined type, Java a one-component record.
+/// Read as a [`Constant`], the source language's incantation crossed into the
+/// target as a value: output that parses and means nothing.
+#[derive(Debug, Clone)]
+pub struct Newtype {
+    pub doc: Vec<String>,
+    pub name: String,
+    pub base: Type,
     pub exported: bool,
 }
 
@@ -351,6 +366,16 @@ pub enum Expr {
         name: String,
         value: Box<Expr>,
     },
+    /// `(T) x`, `x as T`, `@as(T, x)`: the value reasserted as a type.
+    ///
+    /// Every language here can spell it. They disagree about what it does: a Java
+    /// cast checks at run time, a TypeScript `as` checks nothing, a Rust `as`
+    /// converts. The source already settled that; the translation keeps the
+    /// assertion where it stood.
+    Cast {
+        ty: Box<Expr>,
+        value: Box<Expr>,
+    },
     /// `x instanceof T`, `isinstance(x, T)`.
     ///
     /// The same question in both, spelled as an operator in one and a builtin in the other, so
@@ -530,6 +555,8 @@ pub struct Fidelity {
     /// Imports listed and not translated. Counted apart because they are not a
     /// failure to translate anything.
     pub imports_listed: usize,
+    /// Distinct types carried across: a `NewType`, a brand.
+    pub newtypes: usize,
     /// Signatures whose *types* carried but whose calling convention did not: a
     /// keyword-only marker, `*args` or `**kwargs` with no counterpart in the target.
     /// A caller of the translated function writes the call differently.
@@ -553,6 +580,6 @@ impl Fidelity {
 
     /// How many declarations came across at all.
     pub fn translated(&self) -> usize {
-        self.functions + self.records + self.constants
+        self.functions + self.records + self.constants + self.newtypes
     }
 }

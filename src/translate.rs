@@ -1,8 +1,10 @@
 //! Rewriting a file as another language.
 //!
-//! Not a source-to-source translator: this tool parses to syntax trees and splices byte ranges,
-//! with no type system and no semantic model. It refuses every pair of imperative languages by
-//! name, with the reason. (`src/transpile` is the separate, IR-based path for those.)
+//! Two different promises share this command. Where one grammar contains the other, the
+//! result is the same bytes under the target's extension, checked by the target's parser.
+//! Between programming languages, `src/transpile` produces a draft: signatures carried with
+//! their types where possible, and every construct without a counterpart marked, never
+//! silently dropped.
 //!
 //! Some languages contain others. SCSS is a superset of CSS, TSX is TypeScript with JSX, a Helm
 //! template is YAML with actions, XHTML is both HTML and XML. For a file using no feature the
@@ -56,6 +58,11 @@ pub struct Option_ {
     /// `None` where the result is the same bytes under a different extension, and the
     /// fidelity of the draft where it is a translation.
     pub fidelity: std::option::Option<crate::transpile::Fidelity>,
+    /// Why this target cannot be produced right now, when it cannot.
+    ///
+    /// A blocked target used to vanish from the listing, and a listing that hides
+    /// an entry teaches the reader the pair does not exist.
+    pub blocked: std::option::Option<String>,
 }
 
 /// Everything `path` could be rewritten as, worked out by asking for each one.
@@ -73,11 +80,24 @@ pub fn options_for(path: &Path) -> Vec<Option_> {
     let mut out = Vec::new();
 
     for target in targets(from) {
+        let Ok(destination) = destination_for(path, *target) else {
+            continue;
+        };
+        if crate::vfs::exists(&destination) {
+            out.push(Option_ {
+                target: *target,
+                destination,
+                fidelity: None,
+                blocked: Some(BLOCKED_BY_EXISTING.to_string()),
+            });
+            continue;
+        }
         if let Ok(planned) = plan(path, *target) {
             out.push(Option_ {
                 target: *target,
                 destination: planned.destination,
                 fidelity: None,
+                blocked: None,
             });
         }
     }
@@ -89,11 +109,24 @@ pub fn options_for(path: &Path) -> Vec<Option_> {
             if *target == from || out.iter().any(|o| o.target == *target) {
                 continue;
             }
+            let Ok(destination) = destination_for(path, *target) else {
+                continue;
+            };
+            if crate::vfs::exists(&destination) {
+                out.push(Option_ {
+                    target: *target,
+                    destination,
+                    fidelity: None,
+                    blocked: Some(BLOCKED_BY_EXISTING.to_string()),
+                });
+                continue;
+            }
             if let Ok(planned) = crate::transpile::plan(path, *target) {
                 out.push(Option_ {
                     target: *target,
                     destination: planned.destination,
                     fidelity: Some(planned.fidelity),
+                    blocked: None,
                 });
             }
         }
@@ -111,10 +144,19 @@ pub fn why_not(from: Language, to: Language) -> String {
         return format!("{from} is already {to}");
     }
     if from.class() == LanguageClass::Imperative && to.class() == LanguageClass::Imperative {
+        let has_reader = crate::transpile::can_be_read(from);
+        let has_writer = crate::transpile::can_be_written(to);
+        let missing = match (has_reader, has_writer) {
+            (false, false) => format!("a reader for {from} and a writer for {to}"),
+            (false, true) => format!("a reader for {from}"),
+            (true, false) => format!("a writer for {to}"),
+            (true, true) => {
+                return format!("{from} translates into {to} as a draft; ask for it by name.")
+            }
+        };
         return format!(
-            "rewriting {from} as {to} is a translation, not a refactoring: it needs a \
-             semantic model of both languages, and this tool has neither. Nothing here \
-             can do it, so nothing here pretends to."
+            "translating {from} into {to} needs {missing}, which this build lacks. \
+             See `src/transpile/` for the pairs it has."
         );
     }
     format!(
@@ -148,6 +190,10 @@ pub fn why_nothing(from: Language) -> String {
         format!("no other grammar this build has contains {from}")
     }
 }
+
+/// The one reason a listing shows a target it cannot produce.
+pub const BLOCKED_BY_EXISTING: &str =
+    "the destination already exists. --force overwrites it, --out chooses another path.";
 
 /// A rewrite that has been worked out but not applied.
 #[derive(Debug)]
@@ -201,6 +247,16 @@ fn pascal_case(name: &str) -> String {
 
 /// Work out how to rewrite `path` as `to`, refusing when it is not the same file.
 pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
+    plan_to(path, to, None, false)
+}
+
+/// [`plan`], with the destination and the overwrite decision in the caller's hands.
+pub fn plan_to(
+    path: &Path,
+    to: Language,
+    out: std::option::Option<&Path>,
+    force: bool,
+) -> Result<TranslatePlan> {
     crate::capabilities::record(crate::capabilities::Capability::Translate, to);
     let Some(from) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
@@ -210,10 +266,14 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
     }
 
     let source = crate::vfs::read_to_string(path)?;
-    let destination = destination_for(path, to)?;
-    if crate::vfs::exists(&destination) {
+    let destination = match out {
+        Some(out) => out.to_path_buf(),
+        None => destination_for(path, to)?,
+    };
+    if crate::vfs::exists(&destination) && !force {
         bail!(
-            "{} already exists; rewriting {} would overwrite it",
+            "{} already exists; rewriting {} would overwrite it. --force overwrites, \
+             --out chooses another path.",
             destination.display(),
             path.display()
         );
@@ -248,6 +308,7 @@ pub fn plan(path: &Path, to: Language) -> Result<TranslatePlan> {
             format!("rewrite {} as {to}", path.display()),
         ),
     );
+    edits.declare_language(destination.clone(), to);
 
     Ok(TranslatePlan {
         from,
