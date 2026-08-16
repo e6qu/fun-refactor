@@ -50,7 +50,8 @@ pub fn read_file(path: &Path) -> Result<ir::Module> {
             path.display()
         );
     }
-    read::read(language, &source, parsed.root())
+    let stem = path.file_stem().map(|s| s.to_string_lossy().to_string());
+    read::read(language, &source, parsed.root(), stem.as_deref())
 }
 
 /// Read a parsed file into the IR. Used by the framework-aware translations too.
@@ -59,7 +60,7 @@ pub(crate) fn read_module(
     source: &str,
     root: tree_sitter::Node<'_>,
 ) -> Result<ir::Module> {
-    read::read(language, source, root)
+    read::read(language, source, root, None)
 }
 
 /// Write a module out as a language. Used by the framework-aware translations too.
@@ -192,7 +193,8 @@ pub fn plan_to(
         );
     }
 
-    let mut module = read::read(from, &source, parsed.root())?;
+    let stem = path.file_stem().map(|s| s.to_string_lossy().to_string());
+    let mut module = read::read(from, &source, parsed.root(), stem.as_deref())?;
     // Java has no top level below the type. So its writer needs a class to put the module in,
     // and a public class must be named after its file.
     module.name = destination
@@ -320,6 +322,12 @@ fn banner(to: Language, from: &str, source: &Path, fidelity: &Fidelity) -> Strin
         out.push_str(&comment(&format!(
             "{} distinct type(s) carried across as this language spells them.",
             fidelity.newtypes
+        )));
+    }
+    if fidelity.sums > 0 {
+        out.push_str(&comment(&format!(
+            "{} choice type(s) carried across, variants and payloads intact.",
+            fidelity.sums
         )));
     }
     if fidelity.translated() == 0 {

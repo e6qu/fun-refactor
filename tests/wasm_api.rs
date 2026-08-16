@@ -65,7 +65,7 @@ fn every_workspace_method_activates_its_own_files() {
 
     assert!(
         checked > 20,
-        "only found {checked} methods — the parse of src/wasm.rs is wrong, not the file"
+        "only found {checked} methods: the parse of src/wasm.rs is wrong, not the file"
     );
     assert!(
         missing.is_empty(),

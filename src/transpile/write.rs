@@ -149,6 +149,15 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                 };
                 add(&c.name, kind, c.exported)
             }
+            Item::Sum(s) => {
+                add(&s.name, Kind::Type, s.exported);
+                for variant in &s.variants {
+                    add(&variant.name, Kind::Type, s.exported);
+                    for field in &variant.fields {
+                        into(&mut fields, &field.name, Kind::Value, field.exported);
+                    }
+                }
+            }
             Item::Import { .. } | Item::Unsupported(_) => {}
         }
     }
@@ -438,10 +447,13 @@ pub fn write_in_context(
     out.declared_types = context
         .items
         .iter()
-        .filter_map(|item| match item {
-            Item::Record(r) => Some(r.name.clone()),
-            Item::Newtype(n) => Some(n.name.clone()),
-            _ => None,
+        .flat_map(|item| match item {
+            Item::Record(r) => vec![r.name.clone()],
+            Item::Newtype(n) => vec![n.name.clone()],
+            Item::Sum(s) => std::iter::once(s.name.clone())
+                .chain(s.variants.iter().map(|v| v.name.clone()))
+                .collect(),
+            _ => Vec::new(),
         })
         .collect();
     out.newtypes = context
@@ -933,6 +945,38 @@ fn rust(out: &mut Out, module: &Module) {
                 out.fidelity.newtypes += 1;
                 out.blank();
             }
+            Item::Sum(s) => {
+                for line in &s.doc {
+                    out.line(&format!("/// {line}"));
+                }
+                let visibility = if s.exported { "pub " } else { "" };
+                let type_name = out.name(&s.name);
+                out.line(&format!("{visibility}enum {type_name} {{"));
+                out.open();
+                for variant in &s.variants {
+                    for line in &variant.doc {
+                        out.line(&format!("/// {line}"));
+                    }
+                    let variant_name = out.name(&variant.name);
+                    if variant.fields.is_empty() {
+                        out.line(&format!("{variant_name},"));
+                        continue;
+                    }
+                    let mut fields = Vec::new();
+                    for f in &variant.fields {
+                        let ty =
+                            f.ty.as_ref()
+                                .map(rust_type)
+                                .unwrap_or_else(|| unknown(out, &f.name));
+                        fields.push(format!("{}: {ty}", out.field(&f.name)));
+                    }
+                    out.line(&format!("{variant_name} {{ {} }},", fields.join(", ")));
+                }
+                out.close();
+                out.line("}");
+                out.fidelity.sums += 1;
+                out.blank();
+            }
             Item::Unsupported(u) => {
                 carry(out, u);
                 out.blank();
@@ -1357,10 +1401,11 @@ fn python(out: &mut Out, module: &Module) {
         out.blank();
     }
 
-    let needs_dataclass = module
-        .items
-        .iter()
-        .any(|i| matches!(i, Item::Record(r) if !r.fields.is_empty()));
+    let needs_dataclass = module.items.iter().any(|i| match i {
+        Item::Record(r) => !r.fields.is_empty(),
+        Item::Sum(s) => s.variants.iter().any(|v| !v.fields.is_empty()),
+        _ => false,
+    });
     if needs_dataclass {
         out.line("from dataclasses import dataclass");
         out.blank();
@@ -1461,6 +1506,44 @@ fn python(out: &mut Out, module: &Module) {
                     python_type(&n.base)
                 ));
                 out.fidelity.newtypes += 1;
+                out.blank();
+            }
+            Item::Sum(s) => {
+                // One class per variant and a union alias naming the choice. The
+                // alias is the type callers write; `match` narrows by class.
+                let names = hoisted_variant_names(out, module, s);
+                for (variant, variant_name) in s.variants.iter().zip(&names) {
+                    for line in &variant.doc {
+                        out.line(&format!("# {line}"));
+                    }
+                    if !variant.fields.is_empty() {
+                        out.line("@dataclass");
+                    }
+                    out.line(&format!("class {variant_name}:"));
+                    out.open();
+                    for f in &variant.fields {
+                        for line in &f.doc {
+                            out.line(&format!("# {line}"));
+                        }
+                        let annotation =
+                            f.ty.as_ref()
+                                .map(python_type)
+                                .unwrap_or_else(|| unknown(out, &f.name));
+                        let field_name = out.field(&f.name);
+                        out.line(&format!("{field_name}: {annotation}"));
+                    }
+                    if variant.fields.is_empty() {
+                        out.line("pass");
+                    }
+                    out.close();
+                    out.blank();
+                }
+                for line in &s.doc {
+                    out.line(&format!("# {line}"));
+                }
+                let type_name = out.name(&s.name);
+                out.line(&format!("{type_name} = {}", names.join(" | ")));
+                out.fidelity.sums += 1;
                 out.blank();
             }
             Item::Unsupported(u) => {
@@ -2097,6 +2180,41 @@ fn go(out: &mut Out, module: &Module) {
                 out.fidelity.newtypes += 1;
                 out.blank();
             }
+            Item::Sum(s) => {
+                // Go has no closed choice. The convention that stands in for one
+                // is an interface with an unexported marker method. Only the types
+                // declared here can implement it, so the choice is as closed as Go
+                // can spell.
+                let name = out.name(&s.name);
+                for line in &s.doc {
+                    out.line(&format!("// {name} {line}"));
+                }
+                let marker = format!("is{}", pascal(&s.name));
+                out.line(&format!("type {name} interface{{ {marker}() }}"));
+                out.blank();
+                let names = hoisted_variant_names(out, module, s);
+                for (variant, variant_name) in s.variants.iter().zip(&names) {
+                    for line in &variant.doc {
+                        out.line(&format!("// {variant_name} {line}"));
+                    }
+                    out.line(&format!("type {variant_name} struct {{"));
+                    out.open();
+                    for f in &variant.fields {
+                        let ty =
+                            f.ty.as_ref()
+                                .map(go_type)
+                                .unwrap_or_else(|| unknown(out, &f.name));
+                        let field_name = out.field(&f.name);
+                        out.line(&format!("{field_name} {ty}"));
+                    }
+                    out.close();
+                    out.line("}");
+                    out.blank();
+                    out.line(&format!("func ({variant_name}) {marker}() {{}}"));
+                    out.blank();
+                }
+                out.fidelity.sums += 1;
+            }
             Item::Unsupported(u) => {
                 carry(out, u);
                 out.blank();
@@ -2647,12 +2765,124 @@ fn typescript(out: &mut Out, module: &Module) {
                 out.fidelity.newtypes += 1;
                 out.blank();
             }
+            Item::Sum(s) => {
+                // One object type per variant, told apart by a literal field, and a
+                // union alias naming the choice. The literal is what lets the
+                // checker narrow a `switch` on it.
+                let export = if s.exported { "export " } else { "" };
+                let tag = discriminator(s);
+                let names = hoisted_variant_names(out, module, s);
+                for (variant, variant_name) in s.variants.iter().zip(&names) {
+                    for line in &variant.doc {
+                        out.line(&format!("/** {} */", block_comment_safe(line)));
+                    }
+                    out.line(&format!("{export}interface {variant_name} {{"));
+                    out.open();
+                    out.line(&format!(
+                        "readonly {tag}: \"{}\";",
+                        snake_always(&variant.name)
+                    ));
+                    for f in &variant.fields {
+                        for line in &f.doc {
+                            out.line(&format!("/** {} */", block_comment_safe(line)));
+                        }
+                        let ty =
+                            f.ty.as_ref()
+                                .map(ts_type)
+                                .unwrap_or_else(|| unknown(out, &f.name));
+                        let field_name = out.field(&f.name);
+                        out.line(&format!("{field_name}: {ty};"));
+                    }
+                    out.close();
+                    out.line("}");
+                    out.blank();
+                }
+                for line in &s.doc {
+                    out.line(&format!("/** {} */", block_comment_safe(line)));
+                }
+                let type_name = out.name(&s.name);
+                out.line(&format!(
+                    "{export}type {type_name} = {};",
+                    names.join(" | ")
+                ));
+                out.fidelity.sums += 1;
+                out.blank();
+            }
             Item::Unsupported(u) => {
                 carry(out, u);
                 out.blank();
             }
         }
     }
+}
+
+/// What each variant is called where it must live beside every other type.
+///
+/// Rust and Zig keep variants inside the enum, so they never collide with the
+/// module's other types. The flat-namespace targets hoist each variant to the top
+/// level. Rust lets a file declare a struct `Hierarchy` and an enum with a
+/// `Hierarchy` variant, and hoisting both would emit two types with one name. The
+/// variant steps aside, prefixed with its sum's name, and the rename is in the notes.
+fn hoisted_variant_names(out: &mut Out, module: &Module, s: &Sum) -> Vec<String> {
+    let mut taken: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for item in &module.items {
+        match item {
+            Item::Record(r) => {
+                taken.insert(out.name(&r.name));
+            }
+            Item::Newtype(n) => {
+                taken.insert(out.name(&n.name));
+            }
+            Item::Sum(other) => {
+                taken.insert(out.name(&other.name));
+                if other.name != s.name {
+                    for v in &other.variants {
+                        taken.insert(out.name(&v.name));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut names = Vec::new();
+    for variant in &s.variants {
+        let base = out.name(&variant.name);
+        if taken.contains(&base) {
+            let renamed = format!("{}{base}", out.name(&s.name));
+            out.fidelity.notes.push(format!(
+                "variant `{}` of `{}` is written as `{renamed}`: the file already \
+                 declares a type called `{base}`.",
+                variant.name, s.name
+            ));
+            names.push(renamed);
+        } else {
+            names.push(base);
+        }
+    }
+    names
+}
+
+/// The field that tells the variants of a sum apart, avoiding any name they use.
+///
+/// `kind` is the convention. A variant that already has a field spelled `kind`
+/// would collide with it, so the next free word steps in. Numbering takes over
+/// in the unlikely file where every word is taken.
+fn discriminator(s: &Sum) -> String {
+    let taken: std::collections::BTreeSet<String> = s
+        .variants
+        .iter()
+        .flat_map(|v| v.fields.iter())
+        .map(|f| camel(&f.name))
+        .collect();
+    for candidate in ["kind", "tag", "variant", "discriminant"] {
+        if !taken.contains(candidate) {
+            return candidate.to_string();
+        }
+    }
+    (2..)
+        .map(|n| format!("kind{n}"))
+        .find(|candidate| !taken.contains(candidate))
+        .expect("the numbers do not run out")
 }
 
 /// `inside_class` is where it is written, which is not the same question as whether it takes a
@@ -3131,7 +3361,7 @@ fn java(out: &mut Out, module: &Module) {
         }
     }
 
-    // Everything that is not a record has nowhere else to live.
+    // Everything that is not a type declaration has nowhere else to live.
     let loose: Vec<&Item> = module
         .items
         .iter()
@@ -3142,13 +3372,11 @@ fn java(out: &mut Out, module: &Module) {
             )
         })
         .collect();
-    let records: Vec<&Record> = module
+    // Records and sums, in source order: both are types Java writes at the top level.
+    let types: Vec<&Item> = module
         .items
         .iter()
-        .filter_map(|i| match i {
-            Item::Record(r) => Some(r),
-            _ => None,
-        })
+        .filter(|i| matches!(i, Item::Record(_) | Item::Sum(_)))
         .collect();
 
     // **One public class per file**, named after the file. That is not a convention in Java, it
@@ -3157,17 +3385,25 @@ fn java(out: &mut Out, module: &Module) {
     // with loose functions keeps the file's own class public and writes its records as
     // package-private siblings beside it.
     if loose.is_empty() {
-        for (index, record) in records.iter().enumerate() {
+        for (index, item) in types.iter().enumerate() {
             if index > 0 {
                 out.blank();
             }
-            java_record(out, record, index == 0);
+            match item {
+                Item::Record(r) => java_record(out, r, index == 0),
+                Item::Sum(s) => java_sum(out, module, s, index == 0),
+                _ => unreachable!("filtered to records and sums"),
+            }
         }
         return;
     }
 
-    for record in &records {
-        java_record(out, record, false);
+    for item in &types {
+        match item {
+            Item::Record(r) => java_record(out, r, false),
+            Item::Sum(s) => java_sum(out, module, s, false),
+            _ => unreachable!("filtered to records and sums"),
+        }
         out.blank();
     }
 
@@ -3258,6 +3494,49 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
     out.close();
     out.line("}");
     out.fidelity.records += 1;
+}
+
+/// A sum as Java spells one: a sealed interface over records, one per variant.
+///
+/// The `permits` clause could be omitted with everything in one file, and is written
+/// anyway because it states the closed set in as many words.
+fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
+    for line in &s.doc {
+        out.line(&format!("/** {} */", block_comment_safe(line)));
+    }
+    if !public && s.exported {
+        let note = out.comment(
+            "package-private: Java allows one public class per file and this file's own \
+             class has that name. Move this to its own file to export it.",
+        );
+        out.line(&note);
+    }
+    let visibility = if public { "public " } else { "" };
+    let name = out.name(&s.name);
+    let names = hoisted_variant_names(out, module, s);
+    out.line(&format!(
+        "{visibility}sealed interface {name} permits {} {{}}",
+        names.join(", ")
+    ));
+    for (variant, variant_name) in s.variants.iter().zip(&names) {
+        out.blank();
+        for line in &variant.doc {
+            out.line(&format!("/** {} */", block_comment_safe(line)));
+        }
+        let mut components = Vec::new();
+        for f in &variant.fields {
+            let ty =
+                f.ty.as_ref()
+                    .map(java_type)
+                    .unwrap_or_else(|| unknown(out, &f.name));
+            components.push(format!("{ty} {}", out.field(&f.name)));
+        }
+        out.line(&format!(
+            "record {variant_name}({}) implements {name} {{}}",
+            components.join(", ")
+        ));
+    }
+    out.fidelity.sums += 1;
 }
 
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
@@ -3611,6 +3890,12 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
                 }
                 in_expr(&c.value, &mut needed);
             }
+            Item::Sum(s) => s
+                .variants
+                .iter()
+                .flat_map(|v| v.fields.iter())
+                .filter_map(|f| f.ty.as_ref())
+                .for_each(|t| in_type(t, &mut needed)),
             _ => {}
         }
     }
@@ -3973,6 +4258,53 @@ fn zig(out: &mut Out, module: &Module) {
                     ));
                 }
                 out.fidelity.newtypes += 1;
+                out.blank();
+            }
+            Item::Sum(s) => {
+                for line in &s.doc {
+                    out.line(&format!("/// {line}"));
+                }
+                let name = out.name(&s.name);
+                let visibility = if s.exported { "pub " } else { "" };
+                out.line(&format!("{visibility}const {name} = union(enum) {{"));
+                out.open();
+                for variant in &s.variants {
+                    for line in &variant.doc {
+                        out.line(&format!("/// {line}"));
+                    }
+                    let variant_name = out.legal(snake_always(&variant.name));
+                    match variant.fields.as_slice() {
+                        [] => out.line(&format!("{variant_name}: void,")),
+                        // A single field named for its value is the payload itself;
+                        // wrapping it in a one-field struct would make every use
+                        // site say `.value.value`.
+                        [only] if only.name == "value" => {
+                            let ty = only
+                                .ty
+                                .as_ref()
+                                .map(zig_type)
+                                .unwrap_or_else(|| unknown(out, &only.name));
+                            out.line(&format!("{variant_name}: {ty},"));
+                        }
+                        fields => {
+                            let mut spelled = Vec::new();
+                            for f in fields {
+                                let ty =
+                                    f.ty.as_ref()
+                                        .map(zig_type)
+                                        .unwrap_or_else(|| unknown(out, &f.name));
+                                spelled.push(format!("{}: {ty}", out.field(&f.name)));
+                            }
+                            out.line(&format!(
+                                "{variant_name}: struct {{ {} }},",
+                                spelled.join(", ")
+                            ));
+                        }
+                    }
+                }
+                out.close();
+                out.line("};");
+                out.fidelity.sums += 1;
                 out.blank();
             }
             Item::Unsupported(u) => {

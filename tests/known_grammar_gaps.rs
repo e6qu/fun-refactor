@@ -109,6 +109,16 @@ fn typescript_cannot_read_a_property_called_in_after_another() {
 fn the_indented_sass_syntax_is_not_scss() {
     assert!(error_nodes(Language::Scss, ".button\n  color: red\n") > 0);
     assert_eq!(error_nodes(Language::Scss, ".button { color: red; }\n"), 0);
+
+    // The failure has a name, and `fr parse` prints it beside the positions. The
+    // reader is not sent hunting for a syntax error that is not there.
+    let cause = fun_refactor::lang::known_parse_gap(std::path::Path::new("style.sass"))
+        .expect("a named cause");
+    assert!(cause.contains("indented"), "got: {cause}");
+    assert!(
+        fun_refactor::lang::known_parse_gap(std::path::Path::new("style.scss")).is_none(),
+        "the braced syntax parses; naming a cause for it would be a lie."
+    );
 }
 
 /// The SCSS forms behind B11, and what each one costs in `twbs/bootstrap`.

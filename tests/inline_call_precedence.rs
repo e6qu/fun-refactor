@@ -32,7 +32,7 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
              double(x + 1)\n}\n",
             6,
             5,
-            "((x + 1) * 2)",
+            "(x + 1) * 2",
         ),
         (
             "a.go",
@@ -40,7 +40,7 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
              func useIt(x int) int {\n\treturn double(x + 1)\n}\n",
             8,
             9,
-            "((x + 1) * 2)",
+            "(x + 1) * 2",
         ),
         (
             "a.zig",
@@ -48,7 +48,7 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
              return double(x + 1);\n}\n",
             6,
             12,
-            "((x + 1) * 2)",
+            "(x + 1) * 2",
         ),
         (
             "a.ts",
@@ -56,14 +56,14 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
              function useIt(x: number): number {\n    return double(x + 1);\n}\n",
             6,
             12,
-            "((x + 1) * 2)",
+            "(x + 1) * 2",
         ),
         (
             "a.py",
             "def double(n):\n    return n * 2\n\ndef use_it(x):\n    return double(x + 1)\n",
             5,
             12,
-            "((x + 1) * 2)",
+            "(x + 1) * 2",
         ),
         (
             "A.java",
@@ -71,13 +71,17 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
              static int useIt(int x) {\n        return twice(x + 1);\n    }\n}\n",
             7,
             16,
-            "((x + 1) * 2)",
+            "(x + 1) * 2",
         ),
     ] {
         let after = inlined(file, source, line, column);
         assert!(
             after.contains(expected),
             "{file} produced:\n{after}\nwanted it to contain `{expected}`"
+        );
+        assert!(
+            !after.contains("((x + 1) * 2)"),
+            "{file} wrapped an expansion its own statement already delimits.\n{after}"
         );
     }
 }
@@ -108,8 +112,8 @@ fn an_atomic_argument_gains_no_brackets() {
         6,
         5,
     );
-    assert!(after.contains("(x * 2)"), "{after}");
-    assert!(!after.contains("((x) * 2)"), "{after}");
+    assert!(after.contains("x * 2"), "{after}");
+    assert!(!after.contains("(x * 2)"), "{after}");
 }
 
 #[test]
@@ -121,5 +125,6 @@ fn a_unary_body_groups_its_argument() {
         6,
         5,
     );
-    assert!(after.contains("(-(p - q))"), "{after}");
+    assert!(after.contains("-(p - q)"), "{after}");
+    assert!(!after.contains("(-(p - q))"), "{after}");
 }

@@ -54,46 +54,6 @@ fn applied(root: &Path, file: &str, edits: &fun_refactor::edit::EditSet) -> Stri
     }
 }
 
-// ------------------------------------------------------------------- B286
-
-#[test]
-fn inline_brackets_by_the_value_and_not_by_the_destination() {
-    // B286, and it is a decision and not an oversight. The bracket is needed when the use
-    // site binds more tightly than the value does, and noise when it does not. The check would
-    // have to be per-use-site and per-language. The two failure modes are not symmetric: an
-    // extra bracket is noise, a missing one changes the arithmetic.
-    //
-    // Both halves are asserted, because the entry only stands while the needed bracket is still
-    // there. A fix that dropped brackets everywhere would satisfy half of this and silently
-    // change what code computes.
-    let (_tmp, root) = workspace(&[(
-        "a.rs",
-        "fn f(w: usize, h: usize) -> usize {\n    let base = w * 2 + h * 3;\n    \
-         let scaled = base;\n    scaled\n}\n",
-    )]);
-    let index = index_of(&root);
-    let plan =
-        fun_refactor::refactor::inline::variable(&index, symbol(&index, "base")).expect("a plan");
-    assert!(
-        applied(&root, "a.rs", &plan.edits).contains("let scaled = (w * 2 + h * 3);"),
-        "the noisy half of B286 is gone — update the entry:\n{}",
-        applied(&root, "a.rs", &plan.edits)
-    );
-
-    let (_tmp2, root2) = workspace(&[(
-        "b.rs",
-        "fn f(w: usize, h: usize) -> usize {\n    let sum = w + h;\n    sum * 2\n}\n",
-    )]);
-    let index2 = index_of(&root2);
-    let plan2 =
-        fun_refactor::refactor::inline::variable(&index2, symbol(&index2, "sum")).expect("a plan");
-    assert!(
-        applied(&root2, "b.rs", &plan2.edits).contains("(w + h) * 2"),
-        "the bracket that changes the arithmetic went missing:\n{}",
-        applied(&root2, "b.rs", &plan2.edits)
-    );
-}
-
 // --------------------------------------------------------------------- B5
 
 #[test]
@@ -223,50 +183,5 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
         said(&with).contains("given the inputs supplied"),
         "with some inputs the answer is decided given them, and names what is missing: {}",
         said(&with)
-    );
-}
-
-/// B364: a Zig file whose top level is fields, the file-as-struct idiom, loses them.
-///
-/// zls writes `const Self = @This();` and then fields at file scope. The reader has
-/// no record to put them in, so each carries as unsupported. The entry is open
-/// because the fix is a design: a record named after the file, from its fields.
-#[test]
-fn b364_zig_file_level_fields_carry_as_unsupported() {
-    let (_tmp, root) = workspace(&[(
-        "store.zig",
-        "const Store = @This();\n\nio: i64,\nconfig: i64,\n\npub fn size(self: *Store) i64 {\n    return self.io;\n}\n",
-    )]);
-    let plan = fun_refactor::transpile::plan(
-        &root.join("store.zig"),
-        fun_refactor::lang::Language::TypeScript,
-    )
-    .expect("a draft");
-    assert!(
-        plan.output.contains("fun-refactor: not translated"),
-        "the file-level fields translated; B364 is stale:\n{}",
-        plan.output
-    );
-    assert_eq!(plan.fidelity.records, 0, "a record appeared; B364 is stale");
-}
-
-/// B365: a Zig tagged union, `union(enum)`, has no crossing.
-///
-/// The same shape as a Rust enum with payloads, a TypeScript discriminated union.
-/// The reader carries it whole. Open because the crossing is a feature: variants
-/// with payloads in the IR.
-#[test]
-fn b365_zig_tagged_union_carries_as_unsupported() {
-    let (_tmp, root) = workspace(&[(
-        "result.zig",
-        "pub const Answer = union(enum) {\n    none: void,\n    value: i64,\n};\n",
-    )]);
-    let plan =
-        fun_refactor::transpile::plan(&root.join("result.zig"), fun_refactor::lang::Language::Rust)
-            .expect("a draft");
-    assert!(
-        plan.output.contains("fun-refactor: not translated"),
-        "the tagged union translated; B365 is stale:\n{}",
-        plan.output
     );
 }

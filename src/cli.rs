@@ -1408,8 +1408,12 @@ fn cmd_translate(
             0 => String::new(),
             n => format!(", {n} distinct type(s)"),
         };
+        let choices = match f.sums {
+            0 => String::new(),
+            n => format!(", {n} choice type(s)"),
+        };
         println!(
-            "{} -> {} ({} function(s), {} record(s), {} constant(s){distinct}).",
+            "{} -> {} ({} function(s), {} record(s), {} constant(s){distinct}{choices}).",
             plan.from, plan.to, f.functions, f.records, f.constants
         );
         println!(
@@ -3053,14 +3057,18 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
             payload["files_with_errors"] = serde_json::json!(failures
                 .iter()
                 .map(|(p, at)| {
-                    serde_json::json!({
+                    let mut entry = serde_json::json!({
                         "path": p,
                         "error_nodes": at.len(),
                         "at": at
                             .iter()
                             .map(|pos| serde_json::json!({ "line": pos.line, "col": pos.col }))
                             .collect::<Vec<_>>(),
-                    })
+                    });
+                    if let Some(cause) = crate::lang::known_parse_gap(p) {
+                        entry["known_cause"] = serde_json::json!(cause);
+                    }
+                    entry
                 })
                 .collect::<Vec<_>>());
         }
@@ -3096,6 +3104,9 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
                 shown.join(", "),
                 at.len()
             );
+            if let Some(cause) = crate::lang::known_parse_gap(path) {
+                println!("    {cause}");
+            }
         }
     }
     report_skipped(&result);

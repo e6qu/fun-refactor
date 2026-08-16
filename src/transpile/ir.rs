@@ -41,6 +41,7 @@ pub enum Item {
     Record(Record),
     Constant(Constant),
     Newtype(Newtype),
+    Sum(Sum),
     /// An import.
     ///
     /// Not [`Item::Unsupported`], because an import is not a construct that failed to
@@ -166,6 +167,31 @@ pub struct Newtype {
     pub name: String,
     pub base: Type,
     pub exported: bool,
+}
+
+/// A closed choice: a value is exactly one of the named variants, and each variant
+/// may carry its own fields.
+///
+/// Rust spells it `enum` with payloads, and Zig `union(enum)`. TypeScript writes a
+/// union of object types told apart by a literal field; Python a union of
+/// dataclasses. Java spells it `sealed interface` over records. Go has no closed
+/// choice and uses the marker-interface convention. Read as anything less, the
+/// variants collapse. A reader that flattened one into a record lost *which*
+/// variant a value was, the whole meaning of the type.
+#[derive(Debug, Clone)]
+pub struct Sum {
+    pub doc: Vec<String>,
+    pub name: String,
+    pub variants: Vec<Variant>,
+    pub exported: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Variant {
+    pub doc: Vec<String>,
+    pub name: String,
+    /// Empty for a bare tag like `None` or `Empty`.
+    pub fields: Vec<Field>,
 }
 
 /// Something with no counterpart, carried whole so nothing is lost.
@@ -557,6 +583,9 @@ pub struct Fidelity {
     pub imports_listed: usize,
     /// Distinct types carried across: a `NewType`, a brand.
     pub newtypes: usize,
+    /// Closed choices carried across: an enum with payloads, a tagged union, a
+    /// discriminated union.
+    pub sums: usize,
     /// Signatures whose *types* carried but whose calling convention did not: a
     /// keyword-only marker, `*args` or `**kwargs` with no counterpart in the target.
     /// A caller of the translated function writes the call differently.
@@ -580,6 +609,6 @@ impl Fidelity {
 
     /// How many declarations came across at all.
     pub fn translated(&self) -> usize {
-        self.functions + self.records + self.constants + self.newtypes
+        self.functions + self.records + self.constants + self.newtypes + self.sums
     }
 }

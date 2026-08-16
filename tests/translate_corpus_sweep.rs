@@ -14,12 +14,11 @@ use std::path::PathBuf;
 /// What each corpus, translated everywhere, still cannot say, by construct.
 const CARRIED: &[(&str, usize)] = &[
     ("await", 26),
-    ("builtin_function", 15),
+    ("builtin_function", 10),
     ("catch_expression", 25),
     ("comptime_declaration", 5),
     ("comptime_statement", 20),
     ("conditional expression", 15),
-    ("container_field", 55),
     ("defer_statement", 280),
     ("errdefer_statement", 50),
     ("error_set_declaration", 10),
@@ -43,7 +42,7 @@ const CARRIED: &[(&str, usize)] = &[
     ("try/catch", 5),
     ("try_expression", 60),
     ("tuple", 5),
-    ("variable_declaration", 570),
+    ("variable_declaration", 555),
     ("while_statement", 20),
 ];
 

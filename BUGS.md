@@ -11,7 +11,7 @@ silently does the wrong thing.
 Every open entry is pinned by a test, so a claim that stops being true fails a build
 instead of sitting here. B11 said `@content` was a gap after it had stopped being one, and
 nothing noticed. The eight grammar limits are pinned by `tests/known_grammar_gaps.rs`,
-from both sides, the failing form and the neighbouring forms that work. The four that are
+from both sides, the failing form and the neighbouring forms that work. The three that are
 this tool's own behaviour are pinned by `tests/open_defects.rs`. Each asserts the
 whole entry: what the tool does not do, and what it reports instead. Every one of these
 stands on the second half. A test that checked only the first would pass just as well
@@ -26,25 +26,6 @@ rule for, at the version this build pins: `tree-sitter` 0.26.11, with
 `tree-sitter-zig` 1.1.2 and `tree-sitter-scss` 1.0.0. The version is part of the claim: an
 upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails when it does.
 
-- [ ] B364: **a Zig file whose top level is fields loses them in translation.** The
-  file-as-struct idiom. zls writes `const Self = @This();` and fields at file scope.
-  The reader has no record to put them in, so each carries as a comment. The fix is a
-  design, a record named after the file. Pinned in `tests/open_defects.rs`.
-
-- [ ] B365: **a Zig tagged union has no crossing.** Missing feature. `union(enum)` is
-  a Rust enum with payloads, a TypeScript discriminated union, in their spellings. The reader
-  carries it whole. The crossing is a feature, variants with payloads in the IR.
-  Pinned in `tests/open_defects.rs`.
-
-- [ ] B286: `fr inline` parenthesises by what the value is, not by where it goes, so
-  `let scaled = base` with `base = w * 2 + h * 3` inlines to `let scaled = (w * 2 + h * 3)`.
-  The parentheses are needed when the use site sits inside a tighter-binding expression,
-  `(w + h) * 2` is the whole point. Noisy when it does not, which makes
-  `fr extract` followed by `fr inline` not quite an inverse, and left alone deliberately. The
-  check would have to be per-use-site and per-language, and the failure modes are not
-  symmetric. An extra bracket is noise; a missing one silently changes what the code
-  computes.
-
 - [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
   has two syntaxes, the braced one in `.scss` files and the older whitespace-significant
   one in `.sass` files, and `tree-sitter-scss` implements the first. So a `.sass` file
@@ -52,7 +33,10 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   mapping stays: removing it would make those files vanish the way `.js` files did.
   Pinned in `tests/known_grammar_gaps.rs`. `tree-sitter-scss` 1.0.0 implements the braced
   syntax only and has no rule set for the indented one. So this needs a second grammar
-  and not a change to that one.
+  and not a change to that one. What changed meanwhile: `fr parse` now prints the
+  cause beside the positions, in text and in `--json` as `known_cause`. The error
+  nodes no longer read as a syntax error to hunt for. The gap that remains is the
+  grammar.
 
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
   resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
@@ -190,6 +174,49 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   container declaration.
 
 ## Fixed
+
+- [x] B364: **a Zig file whose top level is fields loses them in translation.** The
+  file-as-struct idiom. zls writes `const Self = @This();` and fields at file scope.
+  The reader had no record to put them in, so each carried as a comment. Fixed. The
+  reader builds a record from the file's fields, named by the `@This()` binding. When
+  the binding is the conventional `Self`, the file itself names the record.
+  Signatures saying `Self` are renamed to the record, so the output never mentions a
+  type it does not declare. Receiver-taking functions join the record as methods the
+  way they do everywhere else. Covered in `tests/translate_file_struct.rs`.
+
+- [x] B365: **a Zig tagged union has no crossing.** Missing feature. `union(enum)` is
+  a Rust enum with payloads, a TypeScript discriminated union, in their spellings. The
+  reader carried it whole. Fixed: the IR has a sum, a closed choice of variants each
+  carrying named fields. Every language that can spell one has a reader. Rust enums
+  with payloads and Zig `union(enum)` and plain `enum` cross. So do TypeScript
+  discriminated unions over the file's own object types, and Python unions of local
+  dataclasses. So does Go's marker-interface convention, which this tool's own Go
+  writer emits, so a trip through Go comes home. Writers exist for all six; Java spells it
+  `sealed interface` over records. An untagged Zig `union` stays carried, because it
+  overlays members and knows nothing about which is live. In a flat-namespace target,
+  a variant whose name collides with another of the file's types is prefixed with its
+  sum's name. The rename lands in the notes. Explicit discriminants and unnamed tuple
+  payloads cross with their loss said in the variant's doc. Covered in
+  `tests/translate_sums.rs`, and the corpus ledger dropped: every `container_field`
+  the zls corpus used to carry now translates.
+
+- [x] B286: `fr inline` parenthesised by what the value was, not by where it went.
+  So `let scaled = base` inlined to a needlessly bracketed
+  `let scaled = (w * 2 + h * 3)`. Fixed per use site without a precedence table. A
+  declaration, an assignment, an argument list, a return and a collection element
+  each hold their whole value between delimiters. No operator outside can reach in,
+  so the value goes in bare. Any parent the list does not
+  recognise keeps the wrap, which errs toward noise and never toward changed
+  arithmetic. `(w + h) * 2` still gets its parentheses. The same rule spares
+  `fr inline --call` from wrapping an expansion that lands in a delimited spot.
+  Extract-then-inline round-trips bytes in the common cases now.
+
+- [x] B372: **the prose meter read char literals as string delimiters.** Parity flip.
+  The extractor lexes string literals with a regex, and `'"'` in the code read as an
+  opening quote. Spans of plain Rust between two of them counted as prose. 160 of
+  the "long sentences" in the ledger were code. Char literals are blanked before the
+  scan now. Every budget in `tools/PROSE-DEBT` moved to the honest number, which is
+  lower.
 
 - [x] B366: **a Python keyword argument carried the whole statement with it.** The IR
   had `Expr::Keyword`; no reader produced one. So `encode(a, algorithm=c)` carried as

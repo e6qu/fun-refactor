@@ -12,7 +12,15 @@ use crate::span::LineIndex;
 use anyhow::{bail, Result};
 use tree_sitter::Node;
 
-pub fn read(language: Language, source: &str, root: Node<'_>) -> Result<Module> {
+/// `file_stem` is the source file's own name, and only Zig wants it. The
+/// file-as-struct idiom names its type `Self`, and everyone else calls the type by
+/// the file's name.
+pub fn read(
+    language: Language,
+    source: &str,
+    root: Node<'_>,
+    file_stem: Option<&str>,
+) -> Result<Module> {
     let lines = LineIndex::new(source);
     let cx = Cx {
         source,
@@ -23,7 +31,7 @@ pub fn read(language: Language, source: &str, root: Node<'_>) -> Result<Module> 
         Language::Python => python::module(&cx, root),
         Language::Go => go::module(&cx, root),
         Language::Java => java::module(&cx, root),
-        Language::Zig => zig::module(&cx, root),
+        Language::Zig => zig::module(&cx, root, file_stem),
         Language::TypeScript | Language::Tsx => typescript::module(&cx, root),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
@@ -399,6 +407,10 @@ mod rust {
                     Some(r) => Item::Record(r),
                     None => Item::Unsupported(cx.unsupported(child)),
                 }),
+                "enum_item" => module.items.push(match sum(cx, child) {
+                    Some(s) => Item::Sum(s),
+                    None => Item::Unsupported(cx.unsupported(child)),
+                }),
                 "const_item" | "static_item" => {
                     if let Some(c) = constant(cx, child) {
                         module.items.push(Item::Constant(c));
@@ -543,6 +555,99 @@ mod rust {
                 .children(&mut node.walk())
                 .any(|c| c.kind() == "visibility_modifier"),
             methods: Vec::new(),
+        })
+    }
+
+    /// An enum, unit variants and payloads alike.
+    fn sum(cx: &Cx, node: Node<'_>) -> Option<Sum> {
+        let name = plain(cx.field_text(node, "name")?);
+        let body = cx.field(node, "body")?;
+        let mut variants = Vec::new();
+        for v in cx.children(body) {
+            if v.kind() != "enum_variant" {
+                continue;
+            }
+            let variant_name = plain(cx.field_text(v, "name")?);
+            let mut doc = doc_above(cx, v, &["///", "//"]);
+            // An explicit discriminant has no slot in the IR: kept as words, not
+            // dropped in silence.
+            if let Some(value) = cx.field(v, "value") {
+                doc.push(format!(
+                    "the source gave this the value `{}`",
+                    cx.text(value).trim()
+                ));
+            }
+            let mut fields = Vec::new();
+            if let Some(payload) = cx.field(v, "body") {
+                match payload.kind() {
+                    "field_declaration_list" => {
+                        for f in cx.children(payload) {
+                            if f.kind() != "field_declaration" {
+                                continue;
+                            }
+                            fields.push(Field {
+                                doc: doc_above(cx, f, &["///", "//"]),
+                                name: plain(cx.field_text(f, "name").unwrap_or_default()),
+                                ty: cx.field(f, "type").map(|t| ty(cx, t)),
+                                // A variant's fields are as reachable as the enum.
+                                exported: true,
+                            });
+                        }
+                    }
+                    "ordered_field_declaration_list" => {
+                        let types: Vec<Node<'_>> = cx
+                            .children(payload)
+                            .into_iter()
+                            .filter(|c| {
+                                !matches!(
+                                    c.kind(),
+                                    "visibility_modifier" | "attribute_item" | "line_comment"
+                                )
+                            })
+                            .collect();
+                        // A tuple payload has no field names, and every target here
+                        // wants one. One value is *the* value; more get counted
+                        // names, said out loud.
+                        match types.as_slice() {
+                            [only] => fields.push(Field {
+                                doc: Vec::new(),
+                                name: "value".to_string(),
+                                ty: Some(ty(cx, *only)),
+                                exported: true,
+                            }),
+                            many => {
+                                doc.push(
+                                    "the source did not name the payload's fields; \
+                                     f0, f1 … are this tool's."
+                                        .to_string(),
+                                );
+                                for (index, t) in many.iter().enumerate() {
+                                    fields.push(Field {
+                                        doc: Vec::new(),
+                                        name: format!("f{index}"),
+                                        ty: Some(ty(cx, *t)),
+                                        exported: true,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    _ => return None,
+                }
+            }
+            variants.push(Variant {
+                doc,
+                name: variant_name,
+                fields,
+            });
+        }
+        Some(Sum {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            variants,
+            exported: node
+                .children(&mut node.walk())
+                .any(|c| c.kind() == "visibility_modifier"),
         })
     }
 
@@ -1056,8 +1161,66 @@ mod python {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        settle_unions(&mut module);
         module.items.extend(carried);
         module
+    }
+
+    /// Turn `Payment = Card | Cash` into a sum when the members are this file's own
+    /// method-less classes.
+    ///
+    /// The union-of-dataclasses idiom, and the shape this tool's own Python writer
+    /// emits. The alias reads as a constant whose value nothing could translate; the
+    /// members read as records. Together they are one closed choice.
+    fn settle_unions(module: &mut Module) {
+        let locals: std::collections::BTreeMap<String, Record> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Record(r) if r.methods.is_empty() => Some((r.name.clone(), r.clone())),
+                _ => None,
+            })
+            .collect();
+
+        let mut consumed: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for item in module.items.iter_mut() {
+            let Item::Constant(c) = item else { continue };
+            let Expr::Unsupported(u) = &c.value else {
+                continue;
+            };
+            let members: Vec<&str> = u.source.split('|').map(str::trim).collect();
+            let named = members.len() > 1
+                && members.iter().all(|m| {
+                    !m.is_empty()
+                        && m.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
+                        && locals.contains_key(*m)
+                        && !consumed.contains(*m)
+                });
+            if !named {
+                continue;
+            }
+            let variants: Vec<Variant> = members
+                .iter()
+                .map(|name| {
+                    let member = &locals[*name];
+                    Variant {
+                        doc: member.doc.clone(),
+                        name: member.name.clone(),
+                        fields: member.fields.clone(),
+                    }
+                })
+                .collect();
+            consumed.extend(members.iter().map(|m| m.to_string()));
+            *item = Item::Sum(Sum {
+                doc: c.doc.clone(),
+                name: c.name.clone(),
+                variants,
+                exported: c.exported,
+            });
+        }
+        module
+            .items
+            .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
     }
 
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
@@ -1911,7 +2074,84 @@ mod go {
                 module.items.push(Item::Function(method));
             }
         }
+        settle_sums(&mut module);
         module
+    }
+
+    /// Turn the marker-interface convention back into the sum it spells.
+    ///
+    /// Go has no closed choice. `type Shape interface{ isShape() }` with the
+    /// method on each member is how one is written, by hand and by this tool's own
+    /// Go writer. Read literally, the interface is unsupported and every member
+    /// gains a phantom `isShape` method that no other language wants.
+    fn settle_sums(module: &mut Module) {
+        let markers: Vec<(usize, String)> = module
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(|(at, item)| match item {
+                Item::Unsupported(u) => marker_interface(&u.source).map(|name| (at, name)),
+                _ => None,
+            })
+            .collect();
+
+        let mut consumed: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for (at, name) in markers {
+            let marker = format!("is{name}");
+            let members: Vec<Record> = module
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    Item::Record(r)
+                        if r.methods.iter().any(|m| {
+                            m.name == marker && m.params.is_empty() && m.returns.is_none()
+                        }) =>
+                    {
+                        Some(r.clone())
+                    }
+                    _ => None,
+                })
+                .collect();
+            if members.is_empty() {
+                continue;
+            }
+            // A member with anything beyond the marker is more than a variant;
+            // converting it would drop its other methods on the floor.
+            if members
+                .iter()
+                .any(|r| r.methods.iter().any(|m| m.name != marker))
+            {
+                continue;
+            }
+            let variants: Vec<Variant> = members
+                .iter()
+                .map(|member| Variant {
+                    doc: member.doc.clone(),
+                    name: member.name.clone(),
+                    fields: member.fields.clone(),
+                })
+                .collect();
+            let exported = members.iter().any(|m| m.exported);
+            module.items[at] = Item::Sum(Sum {
+                doc: Vec::new(),
+                name,
+                variants,
+                exported,
+            });
+            consumed.extend(members.into_iter().map(|m| m.name));
+        }
+        module
+            .items
+            .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
+    }
+
+    /// The name in `type X interface{ isX() }`, if the text has that shape and no more.
+    fn marker_interface(source: &str) -> Option<String> {
+        let compact: String = source.chars().filter(|c| !c.is_whitespace()).collect();
+        let at = compact.find("interface{")?;
+        let name = compact[..at].trim_start_matches("type").to_string();
+        let body = compact[at + "interface{".len()..].strip_suffix('}')?;
+        (!name.is_empty() && body == format!("is{name}()")).then_some(name)
     }
 
     fn function(
@@ -2881,18 +3121,56 @@ mod zig {
         parts.get(at + 1).filter(|c| c.kind() != stop).copied()
     }
 
-    pub fn module(cx: &Cx, root: Node<'_>) -> Module {
+    pub fn module(cx: &Cx, root: Node<'_>, file_stem: Option<&str>) -> Module {
         let mut module = Module::default();
         // A method a record cannot keep still has to reach the reader, and a record has
         // no room for one. It goes beside the type instead, as a carried comment.
         let mut carried: Vec<Item> = Vec::new();
+
+        // The file-as-struct idiom: fields at file scope make the file itself a
+        // struct, and `const Self = @This();` says so in as many words. The type's
+        // name is the binding's. When the binding is the conventional `Self`,
+        // everyone importing the file calls the type by the file's name.
+        let binding = this_binding(cx, root);
+        let has_file_fields = cx
+            .children(root)
+            .iter()
+            .any(|c| c.kind() == "container_field");
+        let record_name = match (&binding, has_file_fields) {
+            (Some(name), _) if name != "Self" => Some(name.clone()),
+            (Some(_), _) | (None, true) => file_stem.map(str::to_string),
+            (None, false) => None,
+        };
+        let mut file_record = record_name.map(|name| Record {
+            doc: Vec::new(),
+            name,
+            fields: Vec::new(),
+            extends: None,
+            exported: true,
+            methods: Vec::new(),
+        });
+        let mut record_at: Option<usize> = None;
+
         for child in cx.children(root) {
             match child.kind() {
                 "comment" => {}
+                "container_field" if file_record.is_some() => {
+                    let record = file_record.as_mut().expect("checked");
+                    record_at.get_or_insert(module.items.len());
+                    match field(cx, child, true) {
+                        Some(field) => record.fields.push(field),
+                        None => carried.push(Item::Unsupported(cx.unsupported(child))),
+                    }
+                }
                 "function_declaration" => module.items.push(match function(cx, child) {
                     Some(f) => Item::Function(f),
                     None => Item::Unsupported(cx.unsupported(child)),
                 }),
+                "variable_declaration" if file_record.is_some() && binds_this(cx, child) => {
+                    // The binding *is* the record's name; carrying it as a constant
+                    // would declare the type twice.
+                    record_at.get_or_insert(module.items.len());
+                }
                 "variable_declaration" => match declaration(cx, child, &mut carried) {
                     Some(item) => module.items.push(item),
                     None => module.items.push(Item::Unsupported(cx.unsupported(child))),
@@ -2900,8 +3178,80 @@ mod zig {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        if let Some(record) = file_record {
+            // Inside the file the type went by the binding's name, `Self` most of
+            // the time, and outside it goes by the record's. A signature still
+            // saying `Self` would name a type the output never declares.
+            if let Some(binding) = &binding {
+                if *binding != record.name {
+                    for item in module.items.iter_mut() {
+                        if let Item::Function(f) = item {
+                            rename_type(f, binding, &record.name);
+                        }
+                    }
+                }
+            }
+            let at = record_at.unwrap_or(module.items.len());
+            module
+                .items
+                .insert(at.min(module.items.len()), Item::Record(record));
+        }
         module.items.extend(carried);
         module
+    }
+
+    /// Substitute one type name for another everywhere a signature says it.
+    fn rename_type(function: &mut Function, from: &str, to: &str) {
+        fn in_type(ty: &mut Type, from: &str, to: &str) {
+            match ty {
+                Type::Named { name, args } => {
+                    if name == from {
+                        *name = to.to_string();
+                    }
+                    for arg in args {
+                        in_type(arg, from, to);
+                    }
+                }
+                Type::List(inner) | Type::Optional(inner) => in_type(inner, from, to),
+                Type::Map(key, value) => {
+                    in_type(key, from, to);
+                    in_type(value, from, to);
+                }
+                Type::Unit | Type::Bool | Type::Int | Type::Float | Type::String => {}
+            }
+        }
+        if function.receiver.as_deref() == Some(from) {
+            function.receiver = Some(to.to_string());
+        }
+        for param in function.params.iter_mut() {
+            if let Some(ty) = param.ty.as_mut() {
+                in_type(ty, from, to);
+            }
+        }
+        if let Some(returns) = function.returns.as_mut() {
+            in_type(returns, from, to);
+        }
+    }
+
+    /// The name bound to `@This()` at the top level, if any.
+    fn this_binding(cx: &Cx, root: Node<'_>) -> Option<String> {
+        cx.children(root)
+            .into_iter()
+            .filter(|c| c.kind() == "variable_declaration")
+            .find(|c| binds_this(cx, *c))
+            .and_then(|c| {
+                all(c)
+                    .iter()
+                    .find(|part| part.kind() == "identifier")
+                    .map(|part| cx.text(*part))
+            })
+    }
+
+    /// Is this declaration `const X = @This();`?
+    fn binds_this(cx: &Cx, node: Node<'_>) -> bool {
+        let parts = all(node);
+        after(&parts, "=", ";")
+            .is_some_and(|v| v.kind() == "builtin_function" && cx.text(v).starts_with("@This"))
     }
 
     /// `const X = …;` at the top level: an import, a struct, or a constant.
@@ -2927,9 +3277,17 @@ mod zig {
                 cx, node, name, exported, value, carried,
             )));
         }
-        // An enum or a union has no counterpart in most of the targets, and
-        // flattening one into a record would lose which variant a value is.
-        if matches!(value.kind(), "enum_declaration" | "union_declaration") {
+        // An enum is a choice with bare variants; `union(enum)` is a choice with
+        // payloads. Both are sums. A bare `union` is neither. It overlays its
+        // members in memory and knows nothing about which one is live.
+        // Flattening it into anything would invent a meaning it does not have.
+        if value.kind() == "enum_declaration" {
+            return Some(Item::Sum(plain_enum(cx, node, name, exported, value)));
+        }
+        if value.kind() == "union_declaration" {
+            if cx.text(value).trim_start().starts_with("union(enum") {
+                return tagged_union(cx, node, name, exported, value).map(Item::Sum);
+            }
             return None;
         }
 
@@ -2940,6 +3298,96 @@ mod zig {
             value: expr(cx, value),
             exported,
         }))
+    }
+
+    /// `enum { a, b }`: a choice whose variants carry nothing.
+    fn plain_enum(cx: &Cx, node: Node<'_>, name: String, exported: bool, body: Node<'_>) -> Sum {
+        let mut variants = Vec::new();
+        for member in cx.children(body) {
+            if member.kind() != "container_field" {
+                continue;
+            }
+            let parts = all(member);
+            let Some(variant_name) = parts.first().map(|c| cx.text(*c)) else {
+                continue;
+            };
+            let mut doc = doc_above(cx, member, &["///", "//"]);
+            // An explicit tag value has no slot in the IR: kept as words, not
+            // dropped in silence.
+            if let Some(value) = after(&parts, "=", "\u{0}") {
+                doc.push(format!(
+                    "the source gave this the value `{}`",
+                    cx.text(value).trim()
+                ));
+            }
+            variants.push(Variant {
+                doc,
+                name: variant_name,
+                fields: Vec::new(),
+            });
+        }
+        Sum {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            variants,
+            exported,
+        }
+    }
+
+    /// `union(enum)`: a choice whose variants carry payloads.
+    fn tagged_union(
+        cx: &Cx,
+        node: Node<'_>,
+        name: String,
+        exported: bool,
+        body: Node<'_>,
+    ) -> Option<Sum> {
+        let mut variants = Vec::new();
+        for member in cx.children(body) {
+            match member.kind() {
+                "container_field" => {
+                    let parts = all(member);
+                    let variant_name = parts.first().map(|c| cx.text(*c))?;
+                    let doc = doc_above(cx, member, &["///", "//"]);
+                    let payload = after(&parts, ":", "=");
+                    let fields = match payload {
+                        // `done: void` carries nothing; the variant is the news.
+                        None => Vec::new(),
+                        Some(t) if cx.text(t).trim() == "void" => Vec::new(),
+                        // An anonymous struct payload has named fields of its own.
+                        Some(t) if t.kind() == "struct_declaration" => cx
+                            .children(t)
+                            .into_iter()
+                            .filter(|f| f.kind() == "container_field")
+                            .filter_map(|f| field(cx, f, exported))
+                            .collect(),
+                        // Anything else is the payload itself, one value.
+                        Some(t) => vec![Field {
+                            doc: Vec::new(),
+                            name: "value".to_string(),
+                            ty: Some(ty_of(cx, t)),
+                            exported,
+                        }],
+                    };
+                    variants.push(Variant {
+                        doc,
+                        name: variant_name,
+                        fields,
+                    });
+                }
+                "comment" => {}
+                // A declaration inside the union, a method or a nested type, has no
+                // slot in a sum. Refusing the whole union keeps it carried verbatim
+                // instead of half-translated.
+                _ => return None,
+            }
+        }
+        Some(Sum {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            variants,
+            exported,
+        })
     }
 
     fn record(
@@ -2961,31 +3409,10 @@ mod zig {
         };
         for member in cx.children(body) {
             match member.kind() {
-                "container_field" => {
-                    let parts = all(member);
-                    let Some(field_name) = parts.first().map(|c| cx.text(*c)) else {
-                        continue;
-                    };
-                    let mut doc = doc_above(cx, member, &["///", "//"]);
-                    // A default is dropped, because no other language here puts one
-                    // on a plain struct field. Dropped and said, where it was silent.
-                    if let Some(default) = after(&parts, "=", "\u{0}") {
-                        doc.push(format!(
-                            "the source gave this a default: `{}`",
-                            cx.text(default).trim()
-                        ));
-                    }
-                    record.fields.push(Field {
-                        doc,
-                        name: field_name,
-                        // `x: i32`, the type is whatever follows the colon, and stops
-                        // before the `=` of a default.
-                        ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
-                        // Zig has no per-field visibility; a field of an exported type
-                        // is reachable wherever the type is.
-                        exported,
-                    });
-                }
+                "container_field" => match field(cx, member, exported) {
+                    Some(field) => record.fields.push(field),
+                    None => carried.push(Item::Unsupported(cx.unsupported(member))),
+                },
                 "function_declaration" => match function(cx, member) {
                     Some(mut f) => {
                         f.is_constructor = super::constructs(
@@ -3007,6 +3434,31 @@ mod zig {
             }
         }
         record
+    }
+
+    /// A struct field, wherever the struct is: in a declaration, or the file itself.
+    fn field(cx: &Cx, member: Node<'_>, exported: bool) -> Option<Field> {
+        let parts = all(member);
+        let name = parts.first().map(|c| cx.text(*c))?;
+        let mut doc = doc_above(cx, member, &["///", "//"]);
+        // A default is dropped, because no other language here puts one
+        // on a plain struct field. Dropped and said, where it was silent.
+        if let Some(default) = after(&parts, "=", "\u{0}") {
+            doc.push(format!(
+                "the source gave this a default: `{}`",
+                cx.text(default).trim()
+            ));
+        }
+        Some(Field {
+            doc,
+            name,
+            // `x: i32`, the type is whatever follows the colon, and stops
+            // before the `=` of a default.
+            ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
+            // Zig has no per-field visibility; a field of an exported type
+            // is reachable wherever the type is.
+            exported,
+        })
     }
 
     /// A function, unless its signature is a compile-time computation.
@@ -3502,11 +3954,22 @@ mod typescript {
 
     use super::*;
 
+    /// A union alias whose members might be this file's own records. Noted during
+    /// the walk, settled after it, when every member can be looked up.
+    struct UnionAlias {
+        at: usize,
+        name: String,
+        doc: Vec<String>,
+        exported: bool,
+        members: Vec<String>,
+    }
+
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
         // A member a record cannot keep still has to reach the reader.
         let mut carried: Vec<Item> = Vec::new();
         let brands = brand_symbols(cx, root);
+        let mut unions: Vec<UnionAlias> = Vec::new();
         for child in cx.children(root) {
             let (node, exported) = match child.kind() {
                 "export_statement" => match cx.children(child).first() {
@@ -3520,7 +3983,18 @@ mod typescript {
                 "ambient_declaration" if declares_brand(cx, node, &brands) => {}
                 "type_alias_declaration" => match branded(cx, node, &brands, exported) {
                     Some(nt) => module.items.push(Item::Newtype(nt)),
-                    None => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                    None => {
+                        if let Some(members) = union_members(cx, node) {
+                            unions.push(UnionAlias {
+                                at: module.items.len(),
+                                name: cx.field_text(node, "name").unwrap_or_default(),
+                                doc: doc_above(cx, child, &["///", "//", "/**", "*/", "*"]),
+                                exported,
+                                members,
+                            });
+                        }
+                        module.items.push(Item::Unsupported(cx.unsupported(child)));
+                    }
                 },
                 "import_statement" => module.items.push(Item::Import {
                     text: cx.text(child),
@@ -3558,6 +4032,7 @@ mod typescript {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        settle_unions(&mut module, unions);
         // A brand travels with a constructor function bearing its own name; this
         // tool's TypeScript writer emits one. Read back as content it duplicates
         // the newtype, and its lower-case spelling wins over the type's.
@@ -3574,6 +4049,106 @@ mod typescript {
             .retain(|item| !matches!(item, Item::Function(f) if newtype_names.contains(&f.name)));
         module.items.extend(carried);
         module
+    }
+
+    /// The member names of `type X = A | B | C`, when every member is a bare name.
+    fn union_members(cx: &Cx, node: Node<'_>) -> Option<Vec<String>> {
+        let value = cx.field(node, "value")?;
+        if value.kind() != "union_type" {
+            return None;
+        }
+        fn flatten(cx: &Cx, node: Node<'_>, into: &mut Vec<String>) -> bool {
+            match node.kind() {
+                "union_type" => cx
+                    .children(node)
+                    .into_iter()
+                    .all(|part| flatten(cx, part, into)),
+                "type_identifier" => {
+                    into.push(cx.text(node));
+                    true
+                }
+                _ => false,
+            }
+        }
+        let mut members = Vec::new();
+        flatten(cx, value, &mut members).then_some(members)
+    }
+
+    /// Turn `type X = A | B` into a sum when A and B are this file's own records.
+    ///
+    /// The discriminated-union idiom: each member is an object type, told apart by a
+    /// field holding a distinct literal. The literal field is the union's plumbing
+    /// and not a variant's data, so it is stripped; the variant's name carries the
+    /// distinction from here on. An alias over anything else, a member declared in
+    /// another file, a member with methods, stays carried verbatim.
+    fn settle_unions(module: &mut Module, unions: Vec<UnionAlias>) {
+        let mut consumed: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for alias in unions {
+            let members: Option<Vec<Record>> = alias
+                .members
+                .iter()
+                .map(|name| {
+                    module.items.iter().find_map(|item| match item {
+                        Item::Record(r)
+                            if r.name == *name
+                                && r.methods.is_empty()
+                                && !consumed.contains(name) =>
+                        {
+                            Some(r.clone())
+                        }
+                        _ => None,
+                    })
+                })
+                .collect();
+            let Some(members) = members else { continue };
+
+            // A field every member declares with a literal type is the discriminator.
+            let literal = |field: &Field| {
+                matches!(&field.ty, Some(Type::Named { name, .. })
+                    if name.starts_with('"') || name.starts_with('\''))
+            };
+            let discriminators: Vec<String> = members
+                .first()
+                .map(|first| {
+                    first
+                        .fields
+                        .iter()
+                        .filter(|f| literal(f))
+                        .filter(|f| {
+                            members
+                                .iter()
+                                .all(|m| m.fields.iter().any(|o| o.name == f.name && literal(o)))
+                        })
+                        .map(|f| f.name.clone())
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            let variants: Vec<Variant> = members
+                .iter()
+                .map(|member| Variant {
+                    doc: member.doc.clone(),
+                    name: member.name.clone(),
+                    fields: member
+                        .fields
+                        .iter()
+                        .filter(|f| !discriminators.contains(&f.name))
+                        .cloned()
+                        .collect(),
+                })
+                .collect();
+
+            module.items[alias.at] = Item::Sum(Sum {
+                doc: alias.doc,
+                name: alias.name,
+                variants,
+                exported: alias.exported,
+            });
+            consumed.extend(alias.members);
+        }
+        module
+            .items
+            .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
     }
 
     /// `const { a, b } = e`, lowered to what every target can say.
