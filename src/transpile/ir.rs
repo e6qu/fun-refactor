@@ -11,9 +11,8 @@
 //!
 //! # Not in it
 //!
-//! Constructs whose meaning is the language: ownership, goroutines, decorators, generators,
-//! comprehensions, pattern matching, error propagation. `?` has no general translation into
-//! Python, nor a channel into TypeScript.
+//! Constructs whose meaning is the language: ownership, goroutines, decorators,
+//! generators, pattern matching. A channel has no translation into TypeScript.
 //!
 //! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], carrying the original text. The
 //! writer emits each as a comment beside a marker, and the report leads with how many crossed
@@ -52,6 +51,18 @@ pub enum Item {
     Import {
         text: String,
         line: usize,
+    },
+    /// A named test, declared in the source file beside the code it checks.
+    ///
+    /// Zig spells it `test "name" { … }`, and the name is prose rather than an
+    /// identifier. Each writer slugs it into its own convention: a `#[test]`
+    /// function, a `def test_…`, a `func Test…(t *testing.T)`. TypeScript and
+    /// Java name no runner in the language itself, so both write a plain
+    /// function and say what is missing.
+    Test {
+        doc: Vec<String>,
+        name: String,
+        body: Vec<Stmt>,
     },
     /// A top-level construct with no counterpart: a Rust `impl Trait for T`, a Go
     /// `init()`, a Python decorator that is not a known one.
@@ -297,6 +308,20 @@ pub enum Stmt {
         then: Vec<Stmt>,
         otherwise: Vec<Stmt>,
     },
+    /// `if let Some(x) = e`, `if (e) |x|`: test an optional and bind its payload.
+    ///
+    /// Rust and Zig bind in the condition. Python and TypeScript spell an
+    /// optional as a nullable value, so their writers name the value first and
+    /// test it against null. That says the same thing. Java's `Optional` and
+    /// Go's pointer cannot unwrap in place. Those writers hold the value in a
+    /// second binding, named after the first, and unwrap it into the payload
+    /// name inside the branch.
+    IfPresent {
+        binding: String,
+        value: Expr,
+        then: Vec<Stmt>,
+        otherwise: Vec<Stmt>,
+    },
     While {
         condition: Expr,
         body: Vec<Stmt>,
@@ -384,6 +409,14 @@ pub enum Expr {
     /// TypeScript, postfix in Rust. Go has no counterpart and says so instead of
     /// dropping the keyword, which would turn a suspension point into a plain call.
     Await(Box<Expr>),
+    /// Evaluate, and on failure leave the function with the failure: Rust's `x?`,
+    /// Zig's `try x`.
+    ///
+    /// Python, TypeScript and Java do the same thing with no spelling at all:
+    /// an exception propagates unless something catches it. Their writers emit
+    /// the expression bare and say so once. Go has no propagation and carries
+    /// it, because a dropped `?` would turn an early return into a plain call.
+    Propagate(Box<Expr>),
     /// `name=value` in an argument list.
     ///
     /// Python has these and the other three do not. So a writer without them carries the call
