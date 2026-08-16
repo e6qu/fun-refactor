@@ -42,6 +42,7 @@
       <li><a href="#aliases-and-units">Aliases and units</a></li>
       <li><a href="#domain-types">Domain types</a></li>
       <li><a href="#parse-dont-validate">Parse, don't validate</a></li>
+      <li><a href="#fake-types">Fake types</a></li>
       <li><a href="#functions-as-values">Functions as values</a></li>
       <li><a href="#pure-functions">Pure functions</a></li>
       <li><a href="#composition-and-monads">Composition and monads</a></li>
@@ -119,9 +120,20 @@
   </div>
 </section>
 
+<section id="fake-types">
+  <div class="shell prose">
+    <h2>6. Fake types</h2>
+    <p>A type that can hold anything the input can hold gives the checker nothing to refuse. The classic is a faithful <code>Json</code> type. It looks careful, and it is viral: it appears in every signature that touches the data, every use needs a cast to get at a field, and the casts are unchecked assertions. Decoding is not parsing, and the standard library will not stop you, because <code>json.loads</code> and <code>JSON.parse</code> hand back <code>Any</code> and <code>unknown</code>.</p>
+    <div class="ts-block" data-block="json_parsed"></div>
+    <p>The same trap opens whenever you copy an external system's shape into your own types. A config format built from resources, names and attribute bags is exactly right for the format and useless to your program: nothing distinguishes a server from a database, no field is required, and a misspelled key is found by whoever runs it. Model what your program needs, and read the foreign shape in one place.</p>
+    <div class="ts-block" data-block="deploy_plan"></div>
+    <p>The test for a type worth having: can it refuse anything? If every value the source produces fits, the type is documentation with a checker's costs and none of its help.</p>
+  </div>
+</section>
+
 <section id="functions-as-values">
   <div class="shell prose">
-    <h2>6. Functions as values</h2>
+    <h2>7. Functions as values</h2>
     <p>A function's type is what it takes and returns. Leave it open and the checker waves through a key the sort cannot call.</p>
     <div class="ts-block" data-block="function_values"></div>
     <p>The table of handlers is where this pays every day. Declare one handler shape, and the checker holds every entry to it, so a handler wired to the wrong case is caught while you write it.</p>
@@ -135,7 +147,7 @@
 
 <section id="pure-functions">
   <div class="shell prose">
-    <h2>7. Pure functions</h2>
+    <h2>8. Pure functions</h2>
     <p>Same arguments, same result, nothing else. The checker sees none of this: a function typed <code>int</code> to <code>int</code> can still read the clock. What it can hold is the shape the discipline leaves behind, where the clock arrives as an argument with a type of its own.</p>
     <div class="ts-block" data-block="pure_clock"></div>
   </div>
@@ -143,7 +155,7 @@
 
 <section id="composition-and-monads">
   <div class="shell prose">
-    <h2>8. Composition and monads</h2>
+    <h2>9. Composition and monads</h2>
     <blockquote class="ts-epigraph">
       <p>A monad is just a monoid in the category of endofunctors.</p>
       <cite>Anonymous</cite>
@@ -174,7 +186,7 @@
 
 <section id="exercises">
   <div class="shell prose">
-    <h2>9. Exercises</h2>
+    <h2>10. Exercises</h2>
 
     <h3>Exercise 1: make the typo impossible</h3>
     <p>A typo has killed one branch, and the checker cannot see it. Make the typo a type error, and a forgotten status too.</p>
@@ -218,7 +230,7 @@
     <p>Three lookups can each fail, and all three collapse into one <code>None</code>. Rebuild the chain on <code>Result</code>.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
-      <p>Section 8. Three small functions returning <code>Result</code>, and
+      <p>Section 9. Three small functions returning <code>Result</code>, and
       <code>and_then</code> to thread them.</p>
     </details>
     <div class="ts-block" data-block="exercise_lookup_solution" data-collapse-after></div>
@@ -227,7 +239,7 @@
 
 <section id="concepts">
   <div class="shell prose">
-    <h2>10. The concepts</h2>
+    <h2>11. The concepts</h2>
     <p>Every idea the page used, with the name people call it by, and when it does its work. Most of this is scan only: a type alias leaves nothing behind, and a brand leaves the plain value. An enum and a class are real objects that outlive the scan. pydantic and zod sit at the far end, checking values as they arrive and handing the checker a type in return.</p>
     <table>
       <tr><th>Concept</th><th>What it means</th><th>Scan or run time</th><th>Section</th></tr>
@@ -254,23 +266,24 @@
       <tr><td>Parsing</td><td>Run the same check and return a different type, which every later function demands.</td><td>Both; runs once, holds ever after</td><td>5</td></tr>
       <tr><td>Shotgun parsing</td><td>The same check scattered across every reader, where malformed input slips through.</td><td>Run time, repeatedly</td><td>5</td></tr>
       <tr><td>Parse, don't validate</td><td>Alexis King's rule: convert at the border, then write functions on the data you wish you had.</td><td>Both, by design</td><td>5</td></tr>
+      <tr><td>Fake type</td><td>A type wide enough to hold whatever the source can hold. It spreads through every signature and proves nothing.</td><td>Scan only, and it holds nothing back</td><td>6</td></tr>
       <tr><td>Schema validation</td><td>pydantic and zod: declare the shape once, and the library checks incoming data and hands the checker a type.</td><td>Run time, at the border</td><td>5</td></tr>
-      <tr><td>Higher-order function</td><td>A function that takes or returns a function.</td><td>Both; real values the checker types</td><td>6</td></tr>
-      <tr><td>Signature preservation</td><td>A wrapper that keeps the wrapped function's exact type.</td><td>Scan only</td><td>6</td></tr>
-      <tr><td>Purity</td><td>Same arguments, same result, nothing else. Formally, <em>referential transparency</em>.</td><td>Neither; a discipline the checker cannot see</td><td>7</td></tr>
-      <tr><td>Dependency injection</td><td>Hand a function what it needs instead of letting it reach out.</td><td>Both; a real argument with a type</td><td>7</td></tr>
-      <tr><td>Functional core, imperative shell</td><td>Effects at the boundary, pure functions in the middle. Gary Bernhardt's shape.</td><td>Neither; an arrangement</td><td>7</td></tr>
-      <tr><td>Composition</td><td>One function's output is the next one's input, and the types must agree.</td><td>Both</td><td>8</td></tr>
-      <tr><td>Monad</td><td>A wrapper with a way in and a chaining step that returns the wrapper.</td><td>Both; real values, checked chains</td><td>8</td></tr>
-      <tr><td>Railway-oriented programming</td><td>Wlaschin's picture of a Result chain: two tracks, one switch.</td><td>Both</td><td>8</td></tr>
-      <tr><td>Boolean blindness</td><td>A row of bare booleans at a call site tells the reader nothing. Robert Harper's term.</td><td>Neither; every bool fits</td><td>9</td></tr>
+      <tr><td>Higher-order function</td><td>A function that takes or returns a function.</td><td>Both; real values the checker types</td><td>7</td></tr>
+      <tr><td>Signature preservation</td><td>A wrapper that keeps the wrapped function's exact type.</td><td>Scan only</td><td>7</td></tr>
+      <tr><td>Purity</td><td>Same arguments, same result, nothing else. Formally, <em>referential transparency</em>.</td><td>Neither; a discipline the checker cannot see</td><td>8</td></tr>
+      <tr><td>Dependency injection</td><td>Hand a function what it needs instead of letting it reach out.</td><td>Both; a real argument with a type</td><td>8</td></tr>
+      <tr><td>Functional core, imperative shell</td><td>Effects at the boundary, pure functions in the middle. Gary Bernhardt's shape.</td><td>Neither; an arrangement</td><td>8</td></tr>
+      <tr><td>Composition</td><td>One function's output is the next one's input, and the types must agree.</td><td>Both</td><td>9</td></tr>
+      <tr><td>Monad</td><td>A wrapper with a way in and a chaining step that returns the wrapper.</td><td>Both; real values, checked chains</td><td>9</td></tr>
+      <tr><td>Railway-oriented programming</td><td>Wlaschin's picture of a Result chain: two tracks, one switch.</td><td>Both</td><td>9</td></tr>
+      <tr><td>Boolean blindness</td><td>A row of bare booleans at a call site tells the reader nothing. Robert Harper's term.</td><td>Neither; every bool fits</td><td>10</td></tr>
     </table>
   </div>
 </section>
 
 <section id="toolbox">
   <div class="shell prose">
-    <h2>11. The toolbox, compared</h2>
+    <h2>12. The toolbox, compared</h2>
     <p>Two axes matter: what the checker holds at the scan, and what survives into the running program. Most of these vanish; only a validating model or schema ever checks a value, in the tradition of Racket's contracts and Clojure's spec. Everything here needs Python 3.12 or TypeScript 5.4, and strict has fine print in both: Python skips unannotated function bodies, and TypeScript leaves array indexing optimistic without <code>noUncheckedIndexedAccess</code>, which this page turns on.</p>
     <h3>Python</h3>
     <table>

@@ -10,6 +10,10 @@ export const ERRORS = {
     python: "config_parse_once_misuse.py:17: error: Argument 1 to \"connect\" has incompatible type \"dict[str, str]\"; expected \"Config\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "config_parse_once_misuse.ts(12,33): error TS2345: Argument of type 'Map<string, string>' is not assignable to parameter of type 'Config'.\n  Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
   },
+  "deploy_plan_misuse": {
+    python: "deploy_plan_misuse.py:31: error: Argument 1 to \"summary\" has incompatible type \"Resource\"; expected \"ServerPlan\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "deploy_plan_misuse.ts(21,18): error TS2345: Argument of type 'Resource' is not assignable to parameter of type 'ServerPlan'.\n  Type 'Resource' is missing the following properties from type 'ServerPlan': port, replicas",
+  },
   "dispatch_typed_misuse": {
     python: "dispatch_typed_misuse.py:27: error: Dict entry 1 has incompatible type \"Literal['sent']\": \"Callable[[str], str]\"; expected \"Literal['draft', 'sent', 'paid']\": \"Callable[[Invoice], Invoice]\"  [dict-item]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "dispatch_typed_misuse.ts(17,3): error TS2322: Type '(invoiceNumber: string) => string' is not assignable to type '(invoice: Invoice) => Invoice'.\n  Types of parameters 'invoiceNumber' and 'invoice' are incompatible.\n    Type 'Invoice' is not assignable to type 'string'.",
@@ -65,6 +69,10 @@ export const ERRORS = {
   "io_actions_misuse": {
     python: "io_actions_misuse.py:21: error: Argument 1 to \"send\" has incompatible type \"IO[str]\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "io_actions_misuse.ts(13,30): error TS2345: Argument of type 'IO<string>' is not assignable to parameter of type 'string'.",
+  },
+  "json_parsed_misuse": {
+    python: "json_parsed_misuse.py:24: error: Argument 1 to \"invoice_total\" has incompatible type \"bool | int | float | str | list[Json] | dict[str, Json] | None\"; expected \"list[Line]\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    typescript: "json_parsed_misuse.ts(15,23): error TS2345: Argument of type 'Json' is not assignable to parameter of type 'readonly Line[]'.\n  Type 'null' is not assignable to type 'readonly Line[]'.",
   },
   "literal_flag_misuse": {
     python: "literal_flag_misuse.py:13: error: Argument 2 to \"read_log\" has incompatible type \"str\"; expected \"Literal['text', 'binary']\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
