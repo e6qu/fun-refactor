@@ -2,6 +2,7 @@
 
 use fun_refactor::lang::Language;
 use fun_refactor::translate;
+use fun_refactor::transpile;
 use std::path::PathBuf;
 
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
@@ -173,4 +174,33 @@ fn the_offered_targets_all_actually_work_on_a_file_that_suits_them() {
         checked >= 8,
         "expected every declared pair to be exercised, ran {checked}"
     );
+}
+
+#[test]
+fn force_replaces_the_previous_translation_instead_of_stacking_a_second() {
+    // The overwrite edit was an insertion at byte zero, so an existing destination
+    // kept its old translation below the new one and --force doubled the file on
+    // every run: two headers, twice the functions, all of it valid syntax.
+    let tmp = tempfile::tempdir().unwrap();
+    let source = tmp.path().join("c.py");
+    std::fs::write(&source, "def cost(price: float) -> float:\n    return price * 2\n").unwrap();
+    let destination = tmp.path().join("c.ts");
+
+    let first = transpile::plan_to(&source, Language::TypeScript, Some(&destination), false)
+        .expect("a fresh destination plans");
+    let edits = first.edits.edits_for(&destination).expect("one file");
+    let written = fun_refactor::edit::apply_to_string("", edits).unwrap();
+    std::fs::write(&destination, &written).unwrap();
+
+    let second = transpile::plan_to(&source, Language::TypeScript, Some(&destination), true)
+        .expect("--force plans over an existing file");
+    let existing = std::fs::read_to_string(&destination).unwrap();
+    let edits = second.edits.edits_for(&destination).expect("one file");
+    let replaced = fun_refactor::edit::apply_to_string(&existing, edits).unwrap();
+    assert_eq!(
+        replaced.matches("Translated from python").count(),
+        1,
+        "one translation, one header:\n{replaced}"
+    );
+    assert_eq!(written, replaced, "a forced rerun reproduces the file, not two of it");
 }
