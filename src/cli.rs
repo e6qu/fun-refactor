@@ -76,7 +76,8 @@ struct Cli {
     #[arg(long, global = true)]
     json: bool,
 
-    /// Workspace root to operate on.
+    /// Workspace root to operate on. A single file is accepted too, and then only
+    /// that file is scanned.
     #[arg(long, short = 'C', global = true, default_value = ".")]
     root: PathBuf,
 
@@ -157,6 +158,7 @@ enum Command {
     /// CSS class is declared by every rule that names it.
     Def {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Show only the primary definition.
         #[arg(long)]
@@ -172,16 +174,19 @@ enum Command {
     /// there is no type written down, which is also different from both.
     Type {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
     },
     /// Show the concrete implementations of an abstract declaration.
     Implementations {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
     },
     /// Show every use of a symbol, grouped by file.
     Usages {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Include same-named occurrences that resolved elsewhere or not at all.
         #[arg(long)]
@@ -190,6 +195,7 @@ enum Command {
     /// Show what calls a function.
     Callers {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// How many levels to walk.
         #[arg(long, default_value = "1")]
@@ -198,6 +204,7 @@ enum Command {
     /// Show what a function calls.
     Callees {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// How many levels to walk.
         #[arg(long, default_value = "1")]
@@ -208,6 +215,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Extract {
         /// The region to extract, as `path:line:col-line:col`.
+        /// Line and column are 1-based and land on the identifier.
         range: String,
         /// Name for the new binding or function.
         name: String,
@@ -226,6 +234,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Inline {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Inline the call at that position instead of a variable.
         #[arg(long)]
@@ -239,8 +248,24 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Signature {
         /// Position as `path:line:col`, or a bare function name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// `remove:<i>`, `move:<from>:<to>`, or `add:<i>:<declaration>:<argument>`.
+        ///
+        /// Indices are 0-based, and the declaration and the argument are inserted
+        /// verbatim. One example of each form:
+        ///
+        ///   remove:0            drop the first parameter everywhere.
+        ///
+        ///   move:0:1            move the first parameter to the second slot.
+        ///
+        ///   add:1:timeout: int:30   add `timeout: int` at index 1, passing `30`
+        ///                           at every call site.
+        ///
+        /// The declaration may itself contain a colon, as `timeout: int` does.
+        /// Everything after the index up to the last colon is the declaration;
+        /// what follows the last colon is the argument.
+        #[arg(verbatim_doc_comment)]
         change: String,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -251,6 +276,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Move {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Destination file.
         destination: PathBuf,
@@ -263,6 +289,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Delete {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -341,12 +368,35 @@ enum Command {
     ///
     /// Prints a report and a diff by default; pass --write to apply it. A recipe is
     /// one transaction, either every step's edits are written or none are.
+    ///
+    /// A recipe file begins with `schema 1` and then one or more recipe blocks,
+    /// `recipe <name> { <steps> }`. The smallest useful file is:
+    ///
+    ///   schema 1
+    ///
+    ///   recipe tidy {
+    ///     imports where lang=go
+    ///   }
+    ///
+    /// RECIPES.md documents the grammar, every predicate and the expectations.
+    //
+    // The one-line summary is respelled in `about`. The inline example needs
+    // `verbatim_doc_comment`, which would otherwise keep the summary's line break
+    // and wrap the command listing.
+    #[command(
+        verbatim_doc_comment,
+        about = "Run a refactoring recipe: find, do, expect"
+    )]
     Recipe {
         /// The recipe file.
         file: PathBuf,
         /// Apply the changes instead of printing a diff.
         #[arg(long)]
         write: bool,
+        /// Parse the file and print its plan, the steps, selectors and
+        /// expectations, without running anything.
+        #[arg(long)]
+        explain: bool,
         /// Additional catalog directory for entry-point rules, as `fr unused` takes.
         #[arg(long)]
         catalogs: Vec<PathBuf>,
@@ -382,7 +432,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     RemoveFlag {
         /// The flag's name, or a position as `path:line:col` when the name is used
-        /// more than once.
+        /// more than once. Line and column are 1-based and land on the identifier.
         flag: String,
         /// The value to assume it always had.
         #[arg(long, action = clap::ArgAction::Set, default_value_t = true)]
@@ -396,6 +446,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Rewrite {
         /// Position as `path:line:col`.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Which transformation: invert-if, de-morgan, guard-clause.
         /// Omit to list what applies at that position.
@@ -406,8 +457,12 @@ enum Command {
     },
     /// Rewrite every occurrence of a code shape.
     ///
-    /// `$NAME` in the pattern matches any node and substitutes back into the
-    /// template. Prints a diff by default; pass --write to apply it.
+    /// `$NAME` in the pattern matches exactly one expression or node, and the same
+    /// name substitutes that text back into the template. The same name used twice
+    /// must match the same text, so `add($A, $A)` matches `add(x, x)` and never
+    /// `add(x, y)`. There is no variadic form: one metavariable never stands for a
+    /// list of arguments. `$$NAME` is a literal `$NAME`. Prints a diff by default;
+    /// pass --write to apply it.
     Restructure {
         /// The shape to match, e.g. 'old_api($X)'.
         pattern: String,
@@ -430,6 +485,7 @@ enum Command {
         #[arg(value_parser = ["back", "fwd"])]
         direction: String,
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// How many hops to follow.
         #[arg(long, default_value = "5")]
@@ -456,6 +512,7 @@ enum Command {
     /// Show everything a change to a symbol could affect.
     Impact {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// How far to follow call edges backwards (0 disables the call walk).
         #[arg(long, default_value = "3")]
@@ -484,6 +541,7 @@ enum Command {
     /// Prints a diff by default; pass --write to apply it.
     Rename {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// The new name.
         new_name: String,
@@ -494,6 +552,7 @@ enum Command {
     /// List references to a symbol.
     Refs {
         /// Position as `path:line:col`, or a bare symbol name.
+        /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Include weakly-resolved references that share the name.
         #[arg(long)]
@@ -511,7 +570,15 @@ pub fn run() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
-    let result = dispatch(&cli);
+    let result = match crate::vfs::exists(&cli.root) {
+        true => dispatch(&cli),
+        // Checked once here instead of wherever the root is first read, because the
+        // walker's own answer was an IO error about a directory entry.
+        false => Err(Fault::invalid_input(format!(
+            "workspace root {} does not exist.",
+            cli.root.display()
+        ))),
+    };
     let Err(error) = result else {
         return Ok(());
     };
@@ -520,20 +587,34 @@ pub fn run() -> Result<()> {
     }
     // The same prose, in the same shape, that returning the error from `main` printed.
     // It is printed here because the exit code is chosen here, and `main` can only
-    // say 0 or 1.
-    eprintln!("Error: {error:?}");
+    // say 0 or 1. The workspace root is stripped from it because a person acts on
+    // `pkg/a.go:3:6`, while the JSON message above keeps the absolute spelling.
+    eprintln!("Error: {}", humanize_paths(&cli, format!("{error:?}")));
     std::process::exit(exit_code(&error));
+}
+
+/// Strip the workspace root out of error prose, so a human reads relative paths.
+///
+/// One choke point instead of one fix per message. The messages are built in places
+/// that do not know the root: a delete refusal lists its blocking sites deep in the
+/// planner. A path outside the root never starts with it and stays absolute.
+fn humanize_paths(cli: &Cli, prose: String) -> String {
+    let root = workspace_root(cli);
+    let prefix = format!("{}{}", root.display(), std::path::MAIN_SEPARATOR);
+    prose.replace(&prefix, "")
 }
 
 /// The exit code a failure earns, mirroring the JSON error's `kind`.
 ///
-/// Clap owns 2 for a command line that did not parse, so domain failures start at 3.
+/// Clap exits 2 for a command line that did not parse. An argument that parsed as a
+/// string and is invalid as a range or a position is the same failure from the
+/// user's chair. So it shares the code.
 fn exit_code(error: &anyhow::Error) -> i32 {
     if let Some(fault) = error.downcast_ref::<Fault>() {
         return match fault.kind {
             FaultKind::NotFound => 3,
             FaultKind::Ambiguous => 4,
-            FaultKind::InvalidInput => 1,
+            FaultKind::InvalidInput => 2,
         };
     }
     if error.chain().any(|c| c.is::<crate::refactor::Refusal>()) {
@@ -624,8 +705,9 @@ fn dispatch(cli: &Cli) -> Result<()> {
         Command::Recipe {
             file,
             write,
+            explain,
             catalogs,
-        } => cmd_recipe(cli, file, *write, catalogs),
+        } => cmd_recipe(cli, file, *write, *explain, catalogs),
         Command::RemoveFlag { flag, value, write } => {
             cmd_remove_flag(cli, flag, FlagValue(*value), *write)
         }
@@ -789,6 +871,31 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     )
 }
 
+/// The canonical workspace root, the spelling the index writes into every path.
+fn workspace_root(cli: &Cli) -> PathBuf {
+    cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone())
+}
+
+/// A path spelled the way human listings print it: relative to the workspace root.
+///
+/// The diff headers already print workspace-relative paths and the docs quote them
+/// that way, while the listings printed absolute ones. One spelling for a person:
+/// relative, short, and pasteable back into the next command. The JSON keeps every
+/// path absolute so a program joining outputs never does path arithmetic. A file
+/// outside the root has no relative spelling and stays absolute.
+fn shown_path(root: &std::path::Path, path: &std::path::Path) -> String {
+    match path.strip_prefix(root) {
+        Ok(rest) if !rest.as_os_str().is_empty() => rest.display().to_string(),
+        // `-C` can name a single file, and then the root *is* the file. Stripping
+        // left an empty cell where a name belongs.
+        Ok(_) => match path.file_name() {
+            Some(name) => name.to_string_lossy().to_string(),
+            None => path.display().to_string(),
+        },
+        Err(_) => path.display().to_string(),
+    }
+}
+
 /// Render a plan's diff, report what it did, and optionally commit it.
 fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) -> Result<()> {
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
@@ -863,7 +970,11 @@ fn cmd_extract(
     occurrences: Occurrences,
     write: bool,
 ) -> Result<()> {
-    let (path, start, end) = crate::span::parse_range(range)?;
+    // A malformed or inverted range is a command-line fault, and the shared parser
+    // returns an untyped error because a recipe reads the same spec. The kind is
+    // attached here, where the argument is known to have come from a command line.
+    let (path, start, end) =
+        crate::span::parse_range(range).map_err(|e| Fault::invalid_input(e.to_string()))?;
     let path = workspace_path(cli, &path)?;
     let source =
         crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
@@ -920,6 +1031,7 @@ fn cmd_inline(cli: &Cli, target: &str, inline: Inline, write: bool) -> Result<()
         let pos = parse_position(target).ok_or_else(|| {
             anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
         })?;
+        refuse_zero_column(&pos)?;
         let path = workspace_path(cli, &pos.path)?;
         let source = crate::vfs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
@@ -1022,9 +1134,16 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     let plan = crate::refactor::delete::plan(&index, symbol.id)?;
 
     if !plan.warnings.is_empty() && !cli.json {
+        let root = workspace_root(cli);
         println!("Review these before committing:");
         for w in plan.warnings.iter().take(20) {
-            println!("  {}:{}:{}  {}", w.file.display(), w.line, w.col, w.detail);
+            println!(
+                "  {}:{}:{}  {}",
+                shown_path(&root, &w.file),
+                w.line,
+                w.col,
+                w.detail
+            );
         }
         if plan.warnings.len() > 20 {
             println!("  … and {} more", plan.warnings.len() - 20);
@@ -1132,6 +1251,7 @@ fn cmd_duplicates(
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     if classes.is_empty() {
         println!(
             "No duplication of {min_tokens} tokens or more{}.",
@@ -1149,7 +1269,7 @@ fn cmd_duplicates(
         for instance in &class.instances {
             println!(
                 "  {}:{}-{}",
-                instance.file.display(),
+                shown_path(&root, &instance.file),
                 instance.start_line,
                 instance.end_line
             );
@@ -1184,7 +1304,7 @@ fn cmd_duplicates(
             skipped.len()
         );
         for path in skipped.iter().take(10) {
-            println!("  {}", path.display());
+            println!("  {}", shown_path(&root, path));
         }
         if skipped.len() > 10 {
             println!("  … and {} more", skipped.len() - 10);
@@ -1274,6 +1394,7 @@ fn cmd_unused(
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     let mut exported_count = 0usize;
     for symbol in unused.iter().filter_map(|id| index.symbol(*id)) {
         if symbol.exported {
@@ -1285,7 +1406,7 @@ fn cmd_unused(
             symbol.kind.as_str(),
             symbol.qualified_name(),
             if symbol.exported { "exported" } else { "" },
-            symbol.file.display()
+            shown_path(&root, &symbol.file)
         );
     }
     if unused.len() == total {
@@ -1324,7 +1445,7 @@ fn cmd_unused(
             // Only when one file dominates: otherwise the answer is spread out and
             // naming its largest single file says nothing.
             if *count * 2 > unused.len() {
-                println!("  {count} of them in {}", path.display());
+                println!("  {count} of them in {}", shown_path(&root, path));
             }
         }
     }
@@ -1518,6 +1639,17 @@ fn cmd_translate(
 
     let to = crate::lang::Language::from_name(language)
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
+
+    // Asking for the language a file already is usually means the reader wanted the
+    // listing, so the refusal says how to get it.
+    if to == from {
+        anyhow::bail!(
+            "{} is already {to}. Run 'fr translate {}' to list the languages it can \
+             be written as.",
+            path.display(),
+            file.display()
+        );
+    }
 
     // Containment first. CSS as SCSS is the same bytes and needs no translation. A
     // pair that is not a containment is a translation, which is a different promise.
@@ -1863,8 +1995,14 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
 }
 
 /// `fr recipe <file>`, run a refactoring written down.
-fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBuf]) -> Result<()> {
-    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+fn cmd_recipe(
+    cli: &Cli,
+    file: &std::path::Path,
+    write: bool,
+    explain: bool,
+    catalogs: &[PathBuf],
+) -> Result<()> {
+    let root = workspace_root(cli);
     // A relative path is relative to the workspace, as every other file argument is.
     let recipe_path = if file.is_absolute() || crate::vfs::exists(file) {
         file.to_path_buf()
@@ -1874,6 +2012,18 @@ fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBu
     let text = crate::vfs::read_to_string(&recipe_path)
         .with_context(|| format!("reading {}", recipe_path.display()))?;
     let parsed = crate::recipe::parse(&text)?;
+
+    if explain {
+        // Accepting `--write` here and applying nothing would be a silent no-op.
+        if write {
+            return Err(Fault::invalid_input(
+                "--explain runs nothing, so there is nothing for --write to apply; \
+                 drop one of the two."
+                    .to_string(),
+            ));
+        }
+        return explain_recipes(cli, &parsed);
+    }
 
     let scanned = scan(&root, &ScanOptions::default())?;
     let mut sources = std::collections::BTreeMap::new();
@@ -1930,6 +2080,111 @@ fn cmd_recipe(cli: &Cli, file: &std::path::Path, write: bool, catalogs: &[PathBu
         std::process::exit(1);
     }
     Ok(())
+}
+
+/// `fr recipe --explain`: the plan as parsed, with nothing selected and nothing run.
+///
+/// The lines mirror [`print_recipe_report`], so a reader sees the same shape before
+/// a run as after one. Only the columns a run fills in are missing.
+fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
+    use crate::recipe::{Expect, OnRefusal, Requirement};
+
+    let requirement = |requirement: &Requirement| match requirement {
+        Requirement::Language(name) => format!("language {name}"),
+        Requirement::Symbol(name) => format!("symbol \"{name}\""),
+        Requirement::Path(path) => format!("path \"{path}\""),
+    };
+    let expectation = |expect: &Expect| match expect {
+        Expect::NoNew(what) => format!("no-new {what}"),
+        Expect::Changed { how, count } => format!("changed {} {count} files", how.as_str()),
+        Expect::Refusals { how, count } => format!("refusals {} {count}", how.as_str()),
+    };
+
+    if cli.json {
+        let recipes: Vec<_> = parsed
+            .recipes
+            .iter()
+            .map(|recipe| {
+                serde_json::json!({
+                    "recipe": recipe.name,
+                    "description": recipe.description,
+                    "requires": recipe.requires.iter().map(requirement).collect::<Vec<_>>(),
+                    "steps": recipe.steps.iter().map(|step| serde_json::json!({
+                        "step": step.operation.describe(),
+                        "selector": selector_of(step),
+                        "on_refusal": match step.on_refusal {
+                            OnRefusal::Stop => "stop",
+                            OnRefusal::Report => "report",
+                            OnRefusal::Allow => "allow",
+                        },
+                        "limit": step.limit,
+                        "allow_empty": step.allow_empty,
+                    })).collect::<Vec<_>>(),
+                    "expectations": recipe.expects.iter().map(expectation).collect::<Vec<_>>(),
+                    "ran": false,
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&recipes)?);
+        return Ok(());
+    }
+
+    for recipe in &parsed.recipes {
+        println!("recipe {}: {} step(s)", recipe.name, recipe.steps.len());
+        if let Some(description) = &recipe.description {
+            println!("  {description}");
+        }
+        for requires in &recipe.requires {
+            println!("  requires {}", requirement(requires));
+        }
+        println!();
+        for (i, step) in recipe.steps.iter().enumerate() {
+            let selector = selector_of(step);
+            println!(
+                "  {}  {}{}",
+                i + 1,
+                step.operation.describe(),
+                if selector.is_empty() {
+                    String::new()
+                } else {
+                    format!(" where {selector}")
+                }
+            );
+            let mut notes: Vec<String> = Vec::new();
+            match step.on_refusal {
+                OnRefusal::Stop => {}
+                OnRefusal::Report => notes.push("on-refusal report".to_string()),
+                OnRefusal::Allow => notes.push("on-refusal allow".to_string()),
+            }
+            if let Some(limit) = step.limit {
+                notes.push(format!("limit {limit}"));
+            }
+            if step.allow_empty {
+                notes.push("allow-empty".to_string());
+            }
+            if !notes.is_empty() {
+                println!("     {}", notes.join(", "));
+            }
+        }
+        if !recipe.expects.is_empty() {
+            println!("\nexpect");
+            for expect in &recipe.expects {
+                println!("  {}", expectation(expect));
+            }
+        }
+        println!();
+    }
+    println!("Parsed and not run. Run without --explain to see matches and a diff.");
+    Ok(())
+}
+
+/// A step's `where` clause as one line, the same spelling the run report prints.
+fn selector_of(step: &crate::recipe::Step) -> String {
+    step.selector
+        .iter()
+        .map(|p| p.describe())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn print_recipe_report(report: &crate::recipe::Report) {
@@ -2002,6 +2257,24 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
         }
         None => FlagTarget::Named(flag.to_string()),
     };
+
+    // The cascade reports a name nothing declares as an untyped error, and the exit
+    // code is chosen from the error's type. The same lookup it will make is asked
+    // here first. The failure then carries the not-found kind, and the near misses,
+    // that a bad rename target gets.
+    if let FlagTarget::Named(name) = &target {
+        let index = build_index(cli, &[])?;
+        if index.find_symbols(name, None).is_empty() {
+            let near = nearest_names(&index, name);
+            return Err(Fault::not_found_near(
+                format!(
+                    "no symbol named '{name}' to remove; nothing was changed.{}",
+                    did_you_mean(&near)
+                ),
+                near,
+            ));
+        }
+    }
     let plan = crate::refactor::cascade::remove_flag_for(&root, &target, value.0)?;
 
     if plan.is_empty() {
@@ -2048,6 +2321,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
 
     let pos = parse_position(target)
         .ok_or_else(|| anyhow::anyhow!("a rewrite needs a position: path:line:col"))?;
+    refuse_zero_column(&pos)?;
     let path = workspace_path(cli, &pos.path)?;
     let source =
         crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
@@ -2183,7 +2457,7 @@ fn cmd_flow(
                 }))?
             );
         } else {
-            print!("{}", result.format_tree());
+            print!("{}", result.format_tree_under(&workspace_root(cli)));
             report_values_inputs(inputs, &result);
         }
         return Ok(());
@@ -2233,7 +2507,7 @@ fn cmd_flow(
             }))?
         );
     } else {
-        print!("{}", result.format_tree());
+        print!("{}", result.format_tree_under(&workspace_root(cli)));
     }
     Ok(())
 }
@@ -2448,7 +2722,7 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
             graph.hierarchy_gaps.len()
         );
         for (file, detail) in graph.hierarchy_gaps.iter().take(10) {
-            println!("  {}: {detail}", file.display());
+            println!("  {}: {detail}", shown_path(&root, file));
         }
         if graph.hierarchy_gaps.len() > 10 {
             println!("  … and {} more", graph.hierarchy_gaps.len() - 10);
@@ -2492,13 +2766,18 @@ fn cmd_entrypoints(
                 .collect();
             println!("{}", serde_json::to_string_pretty(&payload)?);
         } else {
+            let root = workspace_root(cli);
             println!(
                 "{} function(s) not reachable from any of {} entry point(s):",
                 orphans.len(),
                 entries.len()
             );
             for s in &orphans {
-                println!("  {:<40} {}", s.qualified_name(), s.file.display());
+                println!(
+                    "  {:<40} {}",
+                    s.qualified_name(),
+                    shown_path(&root, &s.file)
+                );
             }
             println!(
                 "\nNote: reachability follows resolved call edges plus class-hierarchy \
@@ -2537,13 +2816,14 @@ fn cmd_entrypoints(
             .collect();
         println!("{}", serde_json::to_string_pretty(&payload)?);
     } else {
+        let root = workspace_root(cli);
         for entry in &selected {
             if let Some(symbol) = index.symbol(entry.symbol) {
                 println!(
                     "{:<18} {:<32} {}",
                     entry.kind.as_str(),
                     symbol.qualified_name(),
-                    symbol.file.display()
+                    shown_path(&root, &symbol.file)
                 );
             }
         }
@@ -2609,6 +2889,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
 
     if !plan.warnings.is_empty() {
         let grouped = crate::refactor::rename::group_warnings(&plan.warnings);
+        let root = workspace_root(cli);
         // A dispatch site *was* renamed, with the family it can reach; the
         // other kinds were left alone. One heading over both called changed
         // sites unchanged.
@@ -2617,7 +2898,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
             for w in warnings.iter().take(10) {
                 println!(
                     "    {}:{}:{}  {}",
-                    w.file.display(),
+                    shown_path(&root, &w.file),
                     w.line,
                     w.col,
                     w.detail
@@ -2690,21 +2971,30 @@ struct Candidate {
 
 /// A failure whose kind the JSON error object can name.
 ///
-/// `message` is the exact prose a human reads. The kind and any candidates are the
-/// same facts for a machine, threaded from the site that knew them.
+/// `message` is the exact prose a human reads. The kind, any candidates and any
+/// near-miss suggestions are the same facts for a machine, threaded from the site
+/// that knew them.
 #[derive(Debug)]
 struct Fault {
     kind: FaultKind,
     message: String,
     candidates: Vec<Candidate>,
+    /// Names close to the one that was not found, nearest first.
+    suggestions: Vec<String>,
 }
 
 impl Fault {
     fn not_found(message: String) -> anyhow::Error {
+        Self::not_found_near(message, Vec::new())
+    }
+
+    /// A not-found whose message already asks "did you mean", with the same names as data.
+    fn not_found_near(message: String, suggestions: Vec<String>) -> anyhow::Error {
         anyhow::Error::new(Fault {
             kind: FaultKind::NotFound,
             message,
             candidates: Vec::new(),
+            suggestions,
         })
     }
 
@@ -2713,6 +3003,7 @@ impl Fault {
             kind: FaultKind::InvalidInput,
             message,
             candidates: Vec::new(),
+            suggestions: Vec::new(),
         })
     }
 
@@ -2721,6 +3012,7 @@ impl Fault {
             kind: FaultKind::Ambiguous,
             message,
             candidates,
+            suggestions: Vec::new(),
         })
     }
 }
@@ -2766,6 +3058,9 @@ fn report_json_error(error: &anyhow::Error) {
                 })
                 .collect();
         }
+        if !fault.suggestions.is_empty() {
+            object["suggestions"] = serde_json::json!(fault.suggestions);
+        }
     }
     let payload = serde_json::json!({ "error": object });
     match serde_json::to_string_pretty(&payload) {
@@ -2781,6 +3076,22 @@ struct Position {
     path: PathBuf,
     line: usize,
     col: usize,
+}
+
+/// Refuse a position whose column is 0.
+///
+/// Columns are 1-based, and an offset lookup for column 0 quietly answered as if 1
+/// had been written. An editor that counts from 0 produces these constantly, and the
+/// silent shift by one is the kind a refactoring must not make.
+fn refuse_zero_column(pos: &Position) -> Result<()> {
+    if pos.col == 0 {
+        return Err(Fault::invalid_input(format!(
+            "{}:{}:0 names column 0; columns start at 1.",
+            pos.path.display(),
+            pos.line
+        )));
+    }
+    Ok(())
 }
 
 /// Parse `path:line:col`. Returns `None` for anything else, which callers treat as
@@ -2806,6 +3117,7 @@ fn parse_position(target: &str) -> Option<Position> {
 /// part that is wrong.
 fn parse_target_position(cli: &Cli, target: &str) -> Result<Option<Position>> {
     if let Some(pos) = parse_position(target) {
+        refuse_zero_column(&pos)?;
         return Ok(Some(pos));
     }
     match position_shape_problem(cli, target) {
@@ -2851,6 +3163,41 @@ fn position_shape_problem(cli: &Cli, target: &str) -> Option<String> {
             ))
         }
         _ => None,
+    }
+}
+
+/// Names in the index within edit distance 2 of `wanted`, nearest first, at most three.
+///
+/// The distance is the recipe engine's, so a mistyped symbol and a mistyped predicate
+/// are judged by one rule. The cap is tight on purpose: a suggestion two edits away is
+/// usually the typo, and one five edits away is a different name.
+fn nearest_names(index: &Index, wanted: &str) -> Vec<String> {
+    let mut scored: Vec<(usize, &str)> = index
+        .symbols
+        .iter()
+        .map(|s| s.name.as_str())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .filter_map(|name| {
+            let d = crate::recipe::distance(name, wanted);
+            (d <= 2).then_some((d, name))
+        })
+        .collect();
+    scored.sort();
+    scored
+        .into_iter()
+        .take(3)
+        .map(|(_, name)| name.to_string())
+        .collect()
+}
+
+/// "Did you mean 'a', 'b' or 'c'?", or nothing when there is nothing close.
+fn did_you_mean(suggestions: &[String]) -> String {
+    let quoted: Vec<String> = suggestions.iter().map(|s| format!("'{s}'")).collect();
+    match quoted.as_slice() {
+        [] => String::new(),
+        [one] => format!(" Did you mean {one}?"),
+        [head @ .., last] => format!(" Did you mean {} or {last}?", head.join(", ")),
     }
 }
 
@@ -2933,7 +3280,13 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
 
     let matches = index.find_symbols(target, None);
     match matches.len() {
-        0 => Err(Fault::not_found(format!("no symbol named '{target}'"))),
+        0 => {
+            let near = nearest_names(index, target);
+            Err(Fault::not_found_near(
+                format!("no symbol named '{target}'.{}", did_you_mean(&near)),
+                near,
+            ))
+        }
         1 => Ok(matches[0]),
         // Several sites can declare one entity, a CSS class has no canonical
         // definition, and that is not an ambiguous choice between rivals.
@@ -2964,10 +3317,12 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
 }
 
 fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
+    use std::io::IsTerminal;
+
     let options = scan_options(languages)?;
     // Canonicalise the root so indexed paths match the ones commands resolve from
     // arguments; otherwise /var and /private/var name the same file but never match.
-    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let root = workspace_root(cli);
     let scanned = crate::scan::scan(&root, &options)?;
 
     let cache = if cli.no_cache {
@@ -2975,7 +3330,26 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
     } else {
         crate::cache::Cache::open()
     };
-    let index = Index::build_with_cache(&scanned, cache.as_ref())?;
+
+    // A cold index of a large workspace is most of a minute, and the silence read as
+    // a hang. When stderr is a terminal, one line counts the files up and is erased
+    // once the work is done. A pipe sees nothing, so nothing scripted changes.
+    let paint = |done: usize, total: usize| {
+        // Repainting on every file would spend more time on the terminal than on a
+        // small file, so the counter moves in coarse steps.
+        if done.is_multiple_of(16) || done == total {
+            eprint!("\rindexing {done}/{total} files…");
+        }
+    };
+    let progress: Option<&(dyn Fn(usize, usize) + Sync)> = match std::io::stderr().is_terminal() {
+        true => Some(&paint),
+        false => None,
+    };
+    let index = Index::build_with_cache_reporting(&scanned, cache.as_ref(), progress)?;
+    if progress.is_some() {
+        let widest = format!("indexing {0}/{0} files…", scanned.files.len());
+        eprint!("\r{:width$}\r", "", width = widest.chars().count());
+    }
 
     if let Some(cache) = &cache {
         let stats = cache.stats();
@@ -3148,12 +3522,13 @@ fn cmd_symbols(
             .collect();
         println!("{}", serde_json::to_string_pretty(&payload)?);
     } else {
+        let root = workspace_root(cli);
         for symbol in &selected {
             println!(
                 "{:<12} {:<30} {}",
                 symbol.kind.as_str(),
                 symbol.qualified_name(),
-                symbol.file.display()
+                shown_path(&root, &symbol.file)
             );
         }
         println!("\n{} symbol(s)", selected.len());
@@ -3201,6 +3576,7 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     println!("{}  {}", declared.name, declared.describe());
     if let Some(inferred) = &declared.inferred {
         if let Some(from) = inferred.from.and_then(|id| index.symbol(id)) {
@@ -3209,7 +3585,7 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
             println!(
                 "  evidence: {} at {}:{}",
                 from.name,
-                from.file.display(),
+                shown_path(&root, &from.file),
                 at
             );
         }
@@ -3226,7 +3602,7 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
         println!(
             "\n{} is defined at {}:{}",
             declared.describe(),
-            defined.file.display(),
+            shown_path(&root, &defined.file),
             at
         );
     }
@@ -3272,6 +3648,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     for definition in &found.definitions {
         if first_only && definition.role != navigate::DefinitionRole::Primary {
             continue;
@@ -3280,7 +3657,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
             "{:<18} {:<12} {}:{}:{}",
             definition.role.label(),
             definition.kind.as_str(),
-            definition.location.file.display(),
+            shown_path(&root, &definition.location.file),
             definition.location.line,
             definition.location.col
         );
@@ -3329,8 +3706,9 @@ fn cmd_implementations(cli: &Cli, target: &str) -> Result<()> {
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     for (name, file) in &rendered {
-        println!("{:<34} {}", name, file.display());
+        println!("{:<34} {}", name, shown_path(&root, file));
     }
     println!(
         "\n{} implementation(s) that a call through this declaration could reach, \n\
@@ -3394,8 +3772,9 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     for (file, usages) in found.by_file() {
-        println!("{}", file.display());
+        println!("{}", shown_path(&root, file));
         for usage in usages {
             let context = usage
                 .within
@@ -3422,7 +3801,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     for definition in &defined.definitions {
         println!(
             "  {}:{}:{}  {}",
-            definition.location.file.display(),
+            shown_path(&root, &definition.location.file),
             definition.location.line,
             definition.location.col,
             definition.role.label()
@@ -3437,7 +3816,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         for usage in found.same_name_elsewhere.iter().take(20) {
             println!(
                 "  {}:{}:{}  [{}]",
-                usage.location.file.display(),
+                shown_path(&root, &usage.location.file),
                 usage.location.line,
                 usage.location.col,
                 usage.confidence.as_str()
@@ -3456,7 +3835,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         for usage in found.in_text.iter().take(20) {
             println!(
                 "  {}:{}:{}  {}",
-                usage.location.file.display(),
+                shown_path(&root, &usage.location.file),
                 usage.location.line,
                 usage.location.col,
                 usage.location.preview
@@ -3518,12 +3897,13 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         return Ok(());
     }
 
+    let root = workspace_root(cli);
     println!("{} reference(s) to {}", refs.len(), symbol.qualified_name());
     for r in &refs {
         let at = locate(&r.file, r.span.start);
         println!(
             "  {}:{}:{}  [{}]",
-            r.file.display(),
+            shown_path(&root, &r.file),
             at.line,
             at.col,
             r.confidence.as_str()
@@ -3539,7 +3919,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
             let at = locate(&r.file, r.span.start);
             println!(
                 "  {}:{}:{}  [{}]",
-                r.file.display(),
+                shown_path(&root, &r.file),
                 at.line,
                 at.col,
                 r.confidence.as_str()

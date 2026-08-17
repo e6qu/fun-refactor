@@ -147,6 +147,13 @@ pub enum Refusal {
     /// definitions were there before. Bash resolves this at run time by whichever
     /// definition ran last, which no static reading can predict.
     AmbiguousDefinition { name: String, file: PathBuf },
+    /// The symbol still has references that resolve to it, so deleting it would break them.
+    ///
+    /// The message carries the full listing, one blocking site per line. It was a plain
+    /// `anyhow!` before, which exited 1 while `fr --help` promised every considered
+    /// refusal exits 5. The exit code is chosen from the error's type, so the fix
+    /// belonged in the type.
+    StillUsed { detail: String },
     /// Something the tool cannot establish at all.
     ///
     /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and is not
@@ -212,6 +219,9 @@ impl std::fmt::Display for Refusal {
                 confidence.get().as_str()
             ),
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
+            // The detail is the whole message, worded at the site that knows the
+            // sites, so the wording did not change when the type did.
+            Refusal::StillUsed { detail } => f.write_str(detail),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
             }

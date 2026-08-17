@@ -103,6 +103,14 @@ impl FlowResult {
     }
 
     pub fn format_tree(&self) -> String {
+        self.format_tree_under(Path::new(""))
+    }
+
+    /// [`Self::format_tree`], with each path under `root` spelled relative to it.
+    ///
+    /// The CLI passes its workspace root so the listing matches the paths a reader
+    /// types back in. A file outside the root keeps its absolute spelling.
+    pub fn format_tree_under(&self, root: &Path) -> String {
         let mut out = String::new();
         for step in &self.steps {
             let marker = if step.confidence.is_safe_to_rewrite() {
@@ -114,7 +122,7 @@ impl FlowResult {
                 "{}{}  ({}){}\n",
                 "  ".repeat(step.depth),
                 step.text.trim(),
-                step.file.display(),
+                step.file.strip_prefix(root).unwrap_or(&step.file).display(),
                 marker
             ));
         }

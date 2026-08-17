@@ -60,7 +60,7 @@ $ fr refs pkg/action/action.go:725:6
 
 The position is 1-based in both line and column. It must land on the symbol's
 identifier, and not the `func` keyword or the opening brace. Any occurrence works:
-the definition or any use of it, since the tool resolves whatever is under the
+the definition or any use of it. The tool resolves whatever is under the
 cursor and then works from the symbol it found. That makes the form
 editor-friendly; it is the same information an editor has when you right-click.
 
@@ -73,7 +73,7 @@ than guessing:
 
 ```console
 $ fr refs RunAll
-Error: 'RunAll' is defined 2 times; specify a position as path:line:col
+Error: 'RunAll' is defined 2 times; name one of these, or give a position as path:line:col
   RunAll (function) in internal/chart/v3/lint/lint.go
   RunAll (function) in pkg/chart/v2/lint/lint.go
 ```
@@ -162,7 +162,7 @@ has no caller inside its own repository, and that is not evidence of anything. R
 without the flag and you get them, tagged:
 
 ```
-method       Chart::SetDependencies             exported  internal/chart/v3/chart.go
+method       Chart::SetDependencies             exported  internal/chart/v3/chart.go:73:18
 
 199 of these are exported. In a library that is the public
 API, which nothing in this repository can be expected to call. Pass
@@ -509,7 +509,7 @@ the tool refuses so much.
 
 ## Where to go next
 
-- `fr capabilities` prints what is supported for each of the 15 languages, with the
+- `fr capabilities` prints what is supported for each of the 16 languages, with the
   reason attached to every cell that is not. It is derived from the code, not
   maintained by hand.
 - `fr <command> --help` for the flags each command takes.

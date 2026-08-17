@@ -1088,7 +1088,10 @@ fn glob(pattern: &str, text: &str) -> bool {
 }
 
 /// Edit distance, for "did you mean".
-fn distance(a: &str, b: &str) -> usize {
+///
+/// `pub(crate)` because the CLI's own "no symbol named" suggestion uses the same
+/// measure; two distances would rank the same typo two ways.
+pub(crate) fn distance(a: &str, b: &str) -> usize {
     let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
     let mut previous: Vec<usize> = (0..=b.len()).collect();
     for (i, ca) in a.iter().enumerate() {

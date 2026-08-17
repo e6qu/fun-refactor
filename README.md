@@ -127,7 +127,9 @@ unless you add `--write`, and a multi-file change is applied atomically.
 
 Files are indexed in parallel, and extracted facts are cached by file content and
 query set. So a repeated command re-reads only what changed, roughly 1.7× faster
-cold and 3–5× warm. `--no-cache` bypasses the cache; `fr cache --clear` empties it.
+cold and 3–5× warm. On the one repository we timed, a warm index cost on the order
+of 30 ms per file; take the magnitude, not the number. `--no-cache` bypasses the
+cache; `fr cache --clear` empties it.
 
 ## What it will not do
 

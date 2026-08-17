@@ -99,6 +99,21 @@ impl Index {
         scan_result: &ScanResult,
         cache: Option<&crate::cache::Cache>,
     ) -> Result<Self> {
+        Self::build_with_cache_reporting(scan_result, cache, None)
+    }
+
+    /// [`Self::build_with_cache`], telling `progress` how far extraction has come.
+    ///
+    /// The callback receives `(files done, files total)` and runs on worker threads.
+    /// It exists because a cold index of a large workspace is most of a minute of
+    /// silence. Only the terminal-facing caller can decide whether a progress line
+    /// belongs on stderr.
+    #[cfg(feature = "cli")]
+    pub fn build_with_cache_reporting(
+        scan_result: &ScanResult,
+        cache: Option<&crate::cache::Cache>,
+        progress: Option<&(dyn Fn(usize, usize) + Sync)>,
+    ) -> Result<Self> {
         use rayon::prelude::*;
 
         let mut index = Index::default();
@@ -111,46 +126,57 @@ impl Index {
         // Extraction is per-file and shares nothing, so it parallelises cleanly. The
         // results are collected in scan order and merged serially afterwards, because
         // symbol ids are assigned by position and must not depend on thread timing.
+        let total = scan_result.files.len();
+        let done = std::sync::atomic::AtomicUsize::new(0);
         let extracted: Vec<Result<Option<(usize, FileFacts)>>> = scan_result
             .files
             .par_iter()
             .enumerate()
             .map(|(position, file)| {
-                let source = match crate::vfs::read_to_string(&file.path) {
-                    Ok(s) => s,
-                    // Reported by the caller once results are merged.
-                    Err(e) => {
-                        return Ok(Some((
-                            position,
-                            Self::unreadable_placeholder(&file.path, e.to_string()),
-                        )))
+                let outcome = (|| {
+                    let source = match crate::vfs::read_to_string(&file.path) {
+                        Ok(s) => s,
+                        // Reported by the caller once results are merged.
+                        Err(e) => {
+                            return Ok(Some((
+                                position,
+                                Self::unreadable_placeholder(&file.path, e.to_string()),
+                            )))
+                        }
+                    };
+
+                    // A cached entry carries its own gaps, so a hit skips parsing entirely
+                    // instead of reparsing to ask.
+                    if let Some(cache) = cache {
+                        let key = crate::cache::Cache::key(file.language, &source);
+                        if let Some(facts) = cache.get(&key, &file.path) {
+                            return Ok(Some((position, facts)));
+                        }
                     }
-                };
 
-                // A cached entry carries its own gaps, so a hit skips parsing entirely
-                // instead of reparsing to ask.
-                if let Some(cache) = cache {
-                    let key = crate::cache::Cache::key(file.language, &source);
-                    if let Some(facts) = cache.get(&key, &file.path) {
-                        return Ok(Some((position, facts)));
+                    // Parsers and compiled queries are not shareable across threads, so
+                    // each worker builds its own. Query compilation is the cost here and
+                    // it is paid once per thread. It is not once per file.
+                    let parsers = Parsers::new();
+                    let mut extractor = Extractor::new();
+                    let parsed = parsers.parse(file.language, &source)?;
+                    let facts = extractor
+                        .extract(&parsed, &file.path, &source)
+                        .with_context(|| {
+                            format!("extracting facts from {}", file.path.display())
+                        })?;
+
+                    if let Some(cache) = cache {
+                        let key = crate::cache::Cache::key(file.language, &source);
+                        cache.put(&key, &facts);
                     }
+                    Ok(Some((position, facts)))
+                })();
+                if let Some(report) = progress {
+                    let counted = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    report(counted, total);
                 }
-
-                // Parsers and compiled queries are not shareable across threads, so
-                // each worker builds its own. Query compilation is the cost here and
-                // it is paid once per thread. It is not once per file.
-                let parsers = Parsers::new();
-                let mut extractor = Extractor::new();
-                let parsed = parsers.parse(file.language, &source)?;
-                let facts = extractor
-                    .extract(&parsed, &file.path, &source)
-                    .with_context(|| format!("extracting facts from {}", file.path.display()))?;
-
-                if let Some(cache) = cache {
-                    let key = crate::cache::Cache::key(file.language, &source);
-                    cache.put(&key, &facts);
-                }
-                Ok(Some((position, facts)))
+                outcome
             })
             .collect();
 

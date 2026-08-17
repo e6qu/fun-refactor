@@ -16,7 +16,10 @@ pub struct Span {
 
 impl Span {
     pub fn new(start: usize, end: usize) -> Self {
-        debug_assert!(start <= end, "span start {start} must not exceed end {end}");
+        debug_assert!(
+            start <= end,
+            "span start {start} must not exceed end {end}."
+        );
         Self { start, end }
     }
 
@@ -192,24 +195,32 @@ impl LineIndex {
 ///
 /// Here and not in the CLI because a recipe's `extract … at "…"` writes the same spec. Two
 /// parsers for one syntax is two chances to disagree about it.
+///
+/// An inverted range is refused here, where both ends are known. Letting it through
+/// handed [`Span::new`] a start past its end. That is a caller bug there and a typo
+/// here, and the typo deserves an answer that names both ends.
 pub fn parse_range(spec: &str) -> anyhow::Result<(std::path::PathBuf, LineCol, LineCol)> {
-    let shape = || anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'");
+    let shape = || anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'.");
     let (head, end_col) = spec.rsplit_once(':').ok_or_else(shape)?;
     let (head, end_line) = head.rsplit_once('-').ok_or_else(shape)?;
     let (path, start_col) = head.rsplit_once(':').ok_or_else(shape)?;
     let (path, start_line) = path.rsplit_once(':').ok_or_else(shape)?;
 
-    Ok((
-        std::path::PathBuf::from(path),
-        LineCol {
-            line: start_line.parse()?,
-            col: start_col.parse()?,
-        },
-        LineCol {
-            line: end_line.parse()?,
-            col: end_col.parse()?,
-        },
-    ))
+    let start = LineCol {
+        line: start_line.parse()?,
+        col: start_col.parse()?,
+    };
+    let end = LineCol {
+        line: end_line.parse()?,
+        col: end_col.parse()?,
+    };
+    if (end.line, end.col) < (start.line, start.col) {
+        anyhow::bail!(
+            "the range's end ({end}) comes before its start ({start}); write it as \
+             path:start_line:start_col-end_line:end_col."
+        );
+    }
+    Ok((std::path::PathBuf::from(path), start, end))
 }
 
 #[cfg(test)]
@@ -230,6 +241,29 @@ mod tests {
         let b = Span::new(5, 10);
         assert!(!a.overlaps(b));
         assert!(!b.overlaps(a));
+    }
+
+    #[test]
+    fn an_inverted_range_is_refused_with_both_ends_named() {
+        // `src/main.py:8:20-8:5` used to reach `Span::new` and die on its assertion,
+        // which reported byte offsets instead of the typo.
+        let err = parse_range("src/main.py:8:20-8:5").unwrap_err().to_string();
+        assert!(
+            err.contains("end (8:5) comes before its start (8:20)"),
+            "{err}"
+        );
+        assert!(
+            err.contains("path:start_line:start_col-end_line:end_col"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn an_ordered_range_still_parses() {
+        let (path, start, end) = parse_range("src/main.py:8:5-9:20").unwrap();
+        assert_eq!(path, std::path::PathBuf::from("src/main.py"));
+        assert_eq!(start, LineCol { line: 8, col: 5 });
+        assert_eq!(end, LineCol { line: 9, col: 20 });
     }
 
     #[test]
