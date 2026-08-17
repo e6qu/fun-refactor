@@ -200,7 +200,7 @@ fn a_stranger_answering_the_same_name_keeps_the_calls_in_place() {
     let out = applied(tmp.path(), "App.java", &plan);
     assert!(
         out.contains("size(\"hello\")"),
-        "the call could reach the stranger, so it stays:\n{out}"
+        "the call could reach the stranger, so it stays.\n{out}"
     );
 }
 
@@ -238,6 +238,7 @@ fn a_receiver_with_a_declared_type_outside_the_family_holds_its_call() {
     let shapes = "public class A {\n    int size(int n) {\n        return n;\n    }\n\n    \
         int size(String s) {\n        return s.length();\n    }\n}\n\n\
         class B {\n    int size(int n) {\n        return n + 1;\n    }\n}\n";
+    // A caller in a second file.
     let main = "public class Main {\n    public static void main(String[] args) {\n        \
         A a = new A();\n        B b = new B();\n        \
         System.out.println(a.size(1) + b.size(2) + a.size(\"hey\"));\n    }\n}\n";

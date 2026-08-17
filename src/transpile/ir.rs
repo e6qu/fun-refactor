@@ -381,9 +381,9 @@ pub enum Stmt {
     Defer(Vec<Stmt>),
     /// Zig's `errdefer`: run only when the scope is left on the failure path.
     ///
-    /// The exception languages say the same thing with a catch that cleans up and
-    /// rethrows, wrapped around the rest of the scope, so it crosses to Python,
-    /// TypeScript and Java as exactly that. Go has no failure path a block can
+    /// The exception languages say the same thing with a catch that cleans up
+    /// and rethrows, wrapped around the rest of the scope. It crosses to
+    /// Python, TypeScript and Java as that shape. Go has no failure path a block can
     /// watch, and Rust would need a guard type; both carry it, visibly.
     ErrDefer(Vec<Stmt>),
     /// One value branched against literal alternatives.

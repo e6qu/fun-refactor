@@ -96,9 +96,9 @@ fn a_go_test_function_reads_back_as_a_test() {
 
 #[test]
 fn a_test_referencing_a_declaration_carries() {
-    // `test double { ... }` names the declaration it covers, and it crosses as
-    // a test like the quoted form; the covering test takes a suffix where its
-    // slug would collide with the declaration itself.
+    // `test double { ... }` names the declaration it covers, and it crosses
+    // as a test like the quoted form. The covering test takes a suffix where
+    // its slug would collide with the declaration itself.
     let source = "pub fn double(n: u32) u32 {\n    return n * 2;\n}\n\n\
         test double {\n    const four = double(2);\n    _ = four;\n}\n";
     let tmp = tempfile::tempdir().unwrap();

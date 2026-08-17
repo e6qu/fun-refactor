@@ -485,7 +485,7 @@ impl Index {
                 // The mirror of the first rule: a bare `count` in Python or Rust
                 // never names a member, only `self.count` does. With attribute
                 // definitions living in method scopes, the nearest-definition rule
-                // handed a local's own uses to the attribute, and renaming the
+                // handed a local's own uses to the attribute. Renaming the
                 // local left the rest behind, compiling into UnboundLocalError.
                 !is_member
             } else {
@@ -666,10 +666,10 @@ impl Index {
 
         // The enclosing instance. `self.count` inside `Base.inc` names a member of
         // `Base`, wherever in the class its definition sites sit. Lexical scopes
-        // cannot say that: an attribute defined in `__init__` is invisible from a
-        // sibling method's chain, so resolution fell to the name-matched tier and
-        // called the receiver's type unknown, about the one receiver whose type is
-        // never unknown. The innermost enclosing symbol with a qualifier names the
+        // cannot say that. An attribute defined in `__init__` is invisible from
+        // a sibling method's chain, so resolution fell to the name-matched tier.
+        // It then called the receiver's type unknown, about the one receiver
+        // whose type is never unknown. The innermost enclosing symbol with a qualifier names the
         // class.
         if member_access
             && reference
@@ -1207,9 +1207,9 @@ impl Index {
             // qualifier: each site's container is the method it sits in. A rename
             // that took one site left the object answering two names at run time.
             // TypeScript's overloads are separate declarations over one
-            // implementation: two `function pick(...)` signatures and the body all
-            // name one function, and renaming any alone leaves `error TS2389:
-            // Function implementation name must be 'pick'`. The grammar allows the
+            // implementation. Two `function pick(...)` signatures and the body
+            // all name one function; renamed alone, any of them leaves `error
+            // TS2389: Function implementation name must be 'pick'`. The grammar allows the
             // repetition only for overloads, so same name, same file, same
             // container is the entity.
             if matches!(sym.language, Language::TypeScript | Language::Tsx)

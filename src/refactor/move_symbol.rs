@@ -560,8 +560,8 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         }
         // `import mod` and `mod.foo()` reach the symbol through the module, and
         // there is no named import to repoint. The receivers rewrite to the new
-        // module and the file imports it; the old behaviour added a dead named
-        // import while every call kept dereferencing the module that no longer
+        // module and the file imports it. The old behaviour added a dead named
+        // import, and every call kept dereferencing the module that no longer
         // holds the name.
         if repoint_module_attribute_uses(index, file, sym, destination, &mut plan.edits)? {
             plan.imports_added.push(file.clone());
@@ -1072,21 +1072,20 @@ fn repoint_module_attribute_uses(
     let Some(info) = index.file(file) else {
         return Ok(false);
     };
-    let bindings: Vec<String> = info
-        .imports
-        .iter()
-        .filter(|import| {
-            import.names.is_empty()
-                && index.resolve_import_path(file, &import.path).as_deref()
-                    == Some(sym.file.as_path())
-        })
-        .filter_map(|import| {
-            import
-                .alias
-                .clone()
-                .or_else(|| crate::refactor::imports::implicit_binding(&import.path, sym.language))
-        })
-        .collect();
+    let bindings: Vec<String> =
+        info.imports
+            .iter()
+            .filter(|import| {
+                import.names.is_empty()
+                    && index.resolve_import_path(file, &import.path).as_deref()
+                        == Some(sym.file.as_path())
+            })
+            .filter_map(|import| {
+                import.alias.clone().or_else(|| {
+                    crate::refactor::imports::implicit_binding(&import.path, sym.language)
+                })
+            })
+            .collect();
     if bindings.is_empty() {
         return Ok(false);
     }

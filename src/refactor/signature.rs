@@ -380,7 +380,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             // A receiver whose declared type sits outside the family cannot
             // reach it; the same evidence rename uses to hold such a call still.
             if let Some(declared) = super::receiver_declared_type(index, reference) {
-                let outside = !seen_family_owners.is_empty() && !seen_family_owners.contains(&declared);
+                let outside =
+                    !seen_family_owners.is_empty() && !seen_family_owners.contains(&declared);
                 if outside {
                     continue;
                 }

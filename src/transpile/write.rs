@@ -546,9 +546,9 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
-    // A target without inheritance can still hold what a base in the same module
-    // contributed: the base's own fields and methods, laid flat into the extending
-    // record. The supertype marker then only stands where the base is truly out
+    // A target without inheritance can still hold what a base in the same
+    // module contributed. The base's own fields and methods lay flat into the
+    // extending record. The supertype marker then only stands where the base is truly out
     // of reach.
     let flattened = match language {
         Language::Rust | Language::Go | Language::Zig => {
@@ -6485,9 +6485,9 @@ fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &
 
 /// The module with every same-module base laid flat into its extenders.
 ///
-/// `class User(UserBase)` where `UserBase` sits ten lines up loses nothing to a
-/// target without inheritance except the sharing: the base's fields and methods
-/// belong to every instance of `User`, so they lay flat into it. The extends
+/// `class User(UserBase)` where `UserBase` sits ten lines up loses nothing to
+/// a target without inheritance except the sharing. The base's fields and
+/// methods belong to every instance of `User`, so they lay flat into it. The extends
 /// marker then stands only for a base this module does not hold. Chains flatten
 /// transitively; a cycle, which no source language accepts, stops the walk; a
 /// method the extender overrides is the extender's.

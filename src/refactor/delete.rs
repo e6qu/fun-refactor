@@ -1031,7 +1031,10 @@ fn python_pass_filler(
     if !emptied {
         return None;
     }
-    let line_start = source[..span.start].rfind('\n').map(|at| at + 1).unwrap_or(0);
+    let line_start = source[..span.start]
+        .rfind('\n')
+        .map(|at| at + 1)
+        .unwrap_or(0);
     let indent: String = source[line_start..]
         .chars()
         .take_while(|c| c.is_whitespace() && *c != '\n')

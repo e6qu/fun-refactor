@@ -766,8 +766,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     // something else; the paste compiled, ran, and raised NameError. Visible at
     // the call site is the bar, and an import of the name counts.
     if callee.file != *file {
-        if let (Some(callee_info), Some(caller_info)) =
-            (index.file(&callee.file), index.file(file))
+        if let (Some(callee_info), Some(caller_info)) = (index.file(&callee.file), index.file(file))
         {
             let body_words = body_expression.text(&callee_source);
             let words: std::collections::HashSet<&str> = body_words

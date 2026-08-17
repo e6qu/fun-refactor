@@ -1509,7 +1509,10 @@ fn moving_beside_a_dependency_adds_no_self_import() {
     // initialised, and the first use raised ImportError.
     let ws = Workspace::new(&[
         ("b.py", "def g() -> int:\n    return 2\n"),
-        ("a.py", "from b import g\n\n\ndef f() -> int:\n    return g() + 1\n"),
+        (
+            "a.py",
+            "from b import g\n\n\ndef f() -> int:\n    return g() + 1\n",
+        ),
         ("main.py", "from a import f\n\nprint(f())\n"),
     ]);
     let index = ws.index();
@@ -1527,12 +1530,15 @@ fn moving_beside_a_dependency_adds_no_self_import() {
 fn a_module_attribute_consumer_repoints_to_the_new_module() {
     // `user.py` binds the whole module and dereferences it. There is no named
     // import to repoint, so the receivers rewrite and the file imports the new
-    // module; the old behaviour added a dead named import while every call kept
+    // module. The old behaviour added a dead named import, and every call kept
     // dereferencing the module that no longer held the name.
     let ws = Workspace::new(&[
         ("mod.py", "def foo() -> int:\n    return 1\n"),
         ("other.py", "X = 1\n"),
-        ("user.py", "import mod\n\n\ndef run() -> int:\n    return mod.foo()\n"),
+        (
+            "user.py",
+            "import mod\n\n\ndef run() -> int:\n    return mod.foo()\n",
+        ),
     ]);
     let index = ws.index();
     let id = symbol_id(&index, "foo", None);

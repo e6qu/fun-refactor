@@ -78,7 +78,7 @@ fn a_computing_constructor_keeps_its_body() {
 
 #[test]
 fn a_lost_supertype_is_said_in_the_output_itself() {
-    // The base lives in another module, so nothing can lay it flat; the report
+    // The base lives in another module, so nothing can lay it flat. The report
     // already named the loss, and the draft file, the thing a reader has in
     // front of them, says it too.
     let source = "import { Repo } from \"./repo\";\n\n\
@@ -120,7 +120,7 @@ fn a_property_keeps_its_reads_where_the_idiom_exists() {
     .output;
     assert!(
         ts.contains("get total(): number {") && ts.contains("it.total > cutoff"),
-        "TypeScript has the idiom and keeps the reads:\n{ts}"
+        "TypeScript has the idiom and keeps the reads.\n{ts}"
     );
 
     let rust = transpile::plan_to(&path, Language::Rust, Some(&tmp.path().join("b")), false)
@@ -134,10 +134,10 @@ fn a_property_keeps_its_reads_where_the_idiom_exists() {
 
 #[test]
 fn a_local_base_lays_flat_where_nothing_inherits() {
-    // `TaskRepo extends Repo` and `Repo` sits in the same file: Rust has no
+    // `TaskRepo extends Repo` and `Repo` sits in the same file. Rust has no
     // inheritance, and the marker alone left `self.find(id)` calling a method
     // the struct never had. The base's fields and methods belong to every
-    // instance of the extender, so they lay flat into it, and the marker stands
+    // instance of the extender, so they lay flat into it. The marker stands
     // only for a base the module does not hold.
     let source = "export class Repo {\n    rows: number[] = [];\n\n    \
         find(id: number): number {\n        return id;\n    }\n}\n\n\
@@ -151,7 +151,7 @@ fn a_local_base_lays_flat_where_nothing_inherits() {
     assert!(
         plan.output
             .contains("pub struct TaskRepo {\n    pub rows: Vec<f64>,\n}"),
-        "the base's field belongs to the extender:\n{}",
+        "the base's field belongs to the extender.\n{}",
         plan.output
     );
     let task_repo = plan.output.split("impl TaskRepo").nth(1).unwrap_or("");

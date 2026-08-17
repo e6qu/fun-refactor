@@ -226,7 +226,10 @@ impl std::error::Error for Refusal {}
 /// `b.size(2)` with `B b = ...` above it names the type outright; the nearest
 /// binding of the receiver's name in scope carries it. `this` and `self` are the
 /// enclosing instance and answer a different question.
-pub(crate) fn receiver_declared_type(index: &crate::index::Index, reference: &crate::model::Reference) -> Option<String> {
+pub(crate) fn receiver_declared_type(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+) -> Option<String> {
     let receiver = reference.receiver.as_deref()?;
     if matches!(receiver, "this" | "self") {
         return None;
@@ -260,4 +263,3 @@ pub(crate) fn receiver_declared_type(index: &crate::index::Index, reference: &cr
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);
     Some(last.to_string())
 }
-

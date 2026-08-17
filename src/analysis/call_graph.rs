@@ -1210,9 +1210,9 @@ impl Hierarchy {
     /// `Sub(Base)` writing `self.count = 0` assigns the same instance attribute
     /// `Base.__init__` created. A rename that stopped at the class boundary left
     /// the subclass writing the old name, and the object answered two names at
-    /// run time. The family is the whole tree the owner stands in: ancestors,
-    /// descendants, and the descendants of every ancestor, because a sibling
-    /// subclass inherits the same attribute.
+    /// run time. The family is the whole tree the owner stands in. Ancestors
+    /// and descendants belong, and so do the descendants of every ancestor: a
+    /// sibling subclass inherits the same attribute.
     pub fn field_group(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
         let Some(field) = index.symbol(symbol) else {
             return Vec::new();
@@ -1231,9 +1231,7 @@ impl Hierarchy {
         let mut frontier = vec![owner];
         while let Some(current) = frontier.pop() {
             for ((f, supertype), children) in &self.direct_subtypes {
-                if *f == family
-                    && children.contains(&current)
-                    && related.insert(supertype.clone())
+                if *f == family && children.contains(&current) && related.insert(supertype.clone())
                 {
                     frontier.push(supertype.clone());
                 }
@@ -1246,9 +1244,7 @@ impl Hierarchy {
             .symbols
             .iter()
             .filter(|s| {
-                s.kind == SymbolKind::Field
-                    && s.name == field.name
-                    && s.language == field.language
+                s.kind == SymbolKind::Field && s.name == field.name && s.language == field.language
             })
             .filter(|s| s.qualifier.as_deref().is_some_and(|q| related.contains(q)))
             .map(|s| s.id)

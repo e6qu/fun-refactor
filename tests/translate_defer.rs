@@ -156,9 +156,9 @@ fn typescript_parameter_properties_become_fields() {
 
 #[test]
 fn errdefer_cleans_up_only_on_the_failure_path() {
-    // Zig's `errdefer` runs when the scope is left failing, and here failure is
-    // an exception: the cleanup wraps the rest of the scope, runs on the way
-    // out, and the exception keeps flying. Carried whole, 55 of these vanished
+    // Zig's `errdefer` runs when the scope is left failing, and here failure
+    // is an exception. The cleanup wraps the rest of the scope, runs on the
+    // way out, and the exception keeps flying. Carried whole, 55 of these vanished
     // into comments while the code after them read the names they managed.
     let source = "pub fn build(allocator: anytype) !u32 {\n    \
         var list = try makeList(allocator);\n    errdefer list.deinit(allocator);\n    \
@@ -172,7 +172,7 @@ fn errdefer_cleans_up_only_on_the_failure_path() {
         .output;
     assert!(
         py.contains("except BaseException:") && py.contains("raise"),
-        "Python cleans up and lets the failure keep flying:\n{py}"
+        "Python cleans up and lets the failure keep flying.\n{py}"
     );
 
     let ts = transpile::plan_to(

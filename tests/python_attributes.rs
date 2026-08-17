@@ -100,7 +100,9 @@ fn a_local_and_the_attribute_it_copies_stay_two_symbols() {
     let edits = plan.edits.edits_for(&path).expect("edits");
     let out = fun_refactor::edit::apply_to_string(source, edits).unwrap();
     assert!(
-        out.contains("tmp = self.count") && out.contains("tmp += 1") && out.contains("self.count = tmp"),
+        out.contains("tmp = self.count")
+            && out.contains("tmp += 1")
+            && out.contains("self.count = tmp"),
         "all three local uses move together:\n{out}"
     );
     assert_eq!(
@@ -113,8 +115,8 @@ fn a_local_and_the_attribute_it_copies_stay_two_symbols() {
 #[test]
 fn the_attribute_family_crosses_the_class_chain() {
     // `Sub(Base)` writing `self.count = 0` assigns the attribute
-    // `Base.__init__` created; a rename that stopped at the class boundary left
-    // the object answering two names at run time.
+    // `Base.__init__` created. A rename that stopped at the class boundary
+    // left the object answering two names at run time.
     let source = "class Base:\n    def __init__(self) -> None:\n        self.count = 0\n\n    \
         def inc(self) -> None:\n        self.count += 1\n\n\nclass Sub(Base):\n    \
         def reset(self) -> None:\n        self.count = 0\n";

@@ -165,10 +165,10 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // answers to any more, so it renames too, reported at its own confidence.
     if dispatched {
         let family_of = crate::analysis::call_graph::Family::of;
-        // The types the family belongs to. A receiver whose declared type is
-        // outside them cannot reach the family: `b.size(2)` where `b: B` and `B`
-        // has its own `size` was renamed as a dispatch candidate, and javac
-        // refused the result.
+        // The types the family belongs to. A receiver whose declared type sits
+        // outside them cannot reach it. `b.size(2)` with `b` declared `B`, and
+        // `B` holding its own `size`, was renamed as a dispatch candidate, and
+        // javac refused the result.
         let owners: std::collections::BTreeSet<String> = group
             .iter()
             .filter_map(|id| index.symbol(*id))
@@ -563,7 +563,6 @@ fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), R
     Ok(())
 }
 
-
 /// Find the old name inside string literals and comments across the workspace.
 ///
 /// These defeat both syntax analysis and language servers, so they are surfaced for
@@ -594,8 +593,8 @@ fn textual_sweep(
 fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String {
     if reference.receiver.is_some() && !reference.receiver_is_path {
         // Saying "type not known" about a receiver whose declaration names its
-        // type reads as a defect; the true reason is that the type it names is
-        // not the renamed symbol's.
+        // type reads as a defect. The true reason is that the named type is not
+        // the renamed symbol's.
         if let Some(declared) = super::receiver_declared_type(index, reference) {
             return format!(
                 "its receiver is declared `{declared}`, which is not what is being renamed"
