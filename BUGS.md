@@ -175,6 +175,31 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B386: **the OpenAPI status note spoke FastAPI at a Next.js tree.** The
+  note was copied from the translation. That note tells the reader to add
+  `status_code=` to a `@router` decorator that exists nowhere in their tree.
+  The statuses now travel as data on the route plan. The baseline writes its
+  own note in the source's terms: `NextResponse.json(..., { status })` or
+  `new Response(..., { status })` settles the status.
+  Pinned in `tests/json_surface.rs`.
+
+- [x] B385: **a malformed position was looked up as a symbol name.** `fr def
+  py/app.py:abc:1` answered "no symbol named 'py/app.py:abc:1'". That sent
+  the reader after a naming problem when the fault was a typo in the position.
+  A target shaped like a position, an existing file followed by
+  colon-separated parts, is now refused with the part that is wrong. Pinned
+  in `tests/json_surface.rs`.
+
+- [x] B384: **every failed command printed nothing to stdout under `--json`.**
+  An agent asking for JSON had nothing to parse. The CLI now prints one
+  `{"error": {...}}` object on stdout when `--json` was passed. The `kind`
+  field names what went wrong: `not-found`, `ambiguous`, `refused`,
+  `invalid-input`, `io`, or `error` for a plain failure. An ambiguous name
+  carries a `candidates` array: name, kind, path, line and column for each
+  rival. The data is threaded from the site that knew it, never parsed back
+  out of the prose. The stderr prose and the exit codes are unchanged. Pinned
+  in `tests/json_surface.rs`.
+
 - [x] B383: **a signature change and a delete ignored the dispatch family.
   `remove:0` took `&self` off a trait method.** Three holes in one probe. The
   receiver sat in the declaration's parameter list. Position 0 addressed it,

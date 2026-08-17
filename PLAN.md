@@ -1332,3 +1332,18 @@ Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,
 `callees`, `graph`, `flow`, `impact`, `stitch`, `entrypoints`, `capabilities`, `cache`,
 `openapi`, `type`.
+
+### The JSON surface an agent scripts against
+
+A probe drove every command as an agent would, `--json` and nothing else. The
+gaps it found were of one kind: the machine half of an answer said less than the
+human half. B384, B385 and B386 record the three that were defects. The rest
+were missing fields, now present and pinned in `tests/json_surface.rs`:
+
+* `fr symbols --json` carries `line` and `col` beside the byte spans.
+* `fr callers` and `fr callees` carry `file`, `line` and a `parent` per node, so
+  the tree can be rebuilt from the rows.
+* `fr flow --json` steps carry `line` and `col`, and the value-flow answer names
+  its `model` the way the provenance answer already did.
+* `fr unused --json` carries the dynamic-dispatch caveat the human output had.
+* `fr openapi --json` carries the "does not settle" notes in the payload.

@@ -64,6 +64,12 @@ pub struct RoutePlan {
     /// the endpoint takes no query at all. A caller passing `?limit=10` is outside a contract
     /// that claims to describe it.
     pub queries: Vec<(String, String)>,
+    /// Every status code the handlers return, in the order met.
+    ///
+    /// Carried as data because two consumers speak about them differently. The
+    /// FastAPI translation advises about decorators, and the OpenAPI baseline has to
+    /// speak the source's own language. A note string cannot serve both.
+    pub statuses: Vec<String>,
 }
 
 /// A named shape a route declares, from an exported `interface` or a zod schema.
@@ -235,7 +241,12 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
 
     let module = super::read_module(language, &source, parsed.root())?;
     let route = route_for(path);
-    let (output, fidelity, methods) = write(&module, &route, path)?;
+    let Written {
+        output,
+        fidelity,
+        methods,
+        statuses,
+    } = write(&module, &route, path)?;
 
     // The declared shapes, from either place a Next.js route keeps them.
     let models: Vec<Model> = models_of(&module);
@@ -309,6 +320,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
         models,
         bodies,
         queries,
+        statuses,
     })
 }
 
@@ -702,7 +714,7 @@ fn zod_type(spec: &Expr) -> Type {
 const VERDICT: &str = "# fun-refactor: verdict\n\n";
 
 /// Write the FastAPI module.
-fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelity, Vec<String>)> {
+fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
     // What each handler reads out of the URL. Read here as well as in `plan`, because the
     // contract and the code have to agree about it. A parameter the document mentions and the
     // router does not declare is the same failure as the reverse.
@@ -1059,7 +1071,23 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<(String, Fidelit
         out = out.replace("\n\n\n\n", "\n\n\n");
     }
 
-    Ok((out, fidelity, methods))
+    Ok(Written {
+        output: out,
+        fidelity,
+        methods,
+        statuses: responses.statuses,
+    })
+}
+
+/// What [`write`] produced: the Python text, and what it says about itself.
+///
+/// A named struct, because the tuple it replaces had grown a fourth field. Two
+/// adjacent `Vec<String>`s in a tuple can swap without failing to compile.
+struct Written {
+    output: String,
+    fidelity: Fidelity,
+    methods: Vec<String>,
+    statuses: Vec<String>,
 }
 
 /// Which response helpers the translated handlers ended up needing.

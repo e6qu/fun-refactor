@@ -174,15 +174,18 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             ));
         }
 
-        let statuses: Vec<String> = plan
-            .fidelity
-            .notes
-            .iter()
-            .filter(|note| note.starts_with("returns status "))
-            .cloned()
-            .collect();
-        for status in statuses {
-            notes.push(format!("{}: {status}", relative(root, file)));
+        // In the source's own words. The translation's note about these statuses
+        // advises adding `status_code=` to a `@router` decorator, which is advice
+        // about the FastAPI file it writes. This document describes a Next.js tree,
+        // where no such decorator exists, so the note points at the handler instead.
+        if !plan.statuses.is_empty() {
+            notes.push(format!(
+                "{}: returns status {}. Next.js settles a status inside the handler, \
+                 by `NextResponse.json(..., {{ status }})` or `new Response(..., \
+                 {{ status }})`. The responses here stay `default` and do not carry it.",
+                relative(root, file),
+                plan.statuses.join(", ")
+            ));
         }
     }
 

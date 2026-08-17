@@ -115,10 +115,10 @@ enum Command {
     ///
     /// The two are reported separately and never merged, because "the source said `int`"
     /// and "this holds an `int`" are different answers. A declared type is a contract. An
-    /// inferred one is a derivation, shown with the evidence it was drawn from, a
-    /// literal, a constructor call, the binding it was assigned from, so a reader can
-    /// judge it. Where neither is available the answer is that there is no type written
-    /// down, which is also different from both.
+    /// inferred one is a derivation, shown with the evidence it was drawn from, so a
+    /// reader can judge it. The evidence is a literal, a constructor call, or the
+    /// binding it was assigned from. Where neither is available the answer is that
+    /// there is no type written down, which is also different from both.
     Type {
         /// Position as `path:line:col`, or a bare symbol name.
         target: String,
@@ -253,7 +253,7 @@ enum Command {
         /// Only report symbols nothing outside their own file or package can see.
         ///
         /// An exported symbol with no use in the workspace may still be the public
-        /// API of a library, which no amount of scanning this repository can rule
+        /// API of a library. No amount of scanning this repository can rule that
         /// out. Those are the ones this hides.
         #[arg(long)]
         internal: bool,
@@ -372,8 +372,8 @@ enum Command {
     /// Trace where a value comes from or goes to.
     ///
     /// For Helm charts, `-f` and `--set` describe the invocation the answer is
-    /// for: without them a values key that the command line could override is
-    /// reported undecided, with them the same precedence order decides it.
+    /// for. Without them a values key that the command line could override is
+    /// reported undecided. With them the same precedence order decides it.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
         #[arg(value_parser = ["back", "fwd"])]
@@ -460,39 +460,49 @@ pub fn run() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
+    let result = dispatch(&cli);
+    if cli.json {
+        if let Err(error) = &result {
+            report_json_error(error);
+        }
+    }
+    result
+}
+
+fn dispatch(cli: &Cli) -> Result<()> {
     match &cli.command {
         Command::Capabilities {
             capability,
             language,
             markdown,
-        } => cmd_capabilities(&cli, capability.as_deref(), language.as_deref(), *markdown),
-        Command::Cache { clear } => cmd_cache(&cli, *clear),
-        Command::Scan { languages } => cmd_scan(&cli, languages),
-        Command::Parse { languages, stats } => cmd_parse(&cli, languages, *stats),
+        } => cmd_capabilities(cli, capability.as_deref(), language.as_deref(), *markdown),
+        Command::Cache { clear } => cmd_cache(cli, *clear),
+        Command::Scan { languages } => cmd_scan(cli, languages),
+        Command::Parse { languages, stats } => cmd_parse(cli, languages, *stats),
         Command::Symbols {
             languages,
             name,
             kind,
             stats,
-        } => cmd_symbols(&cli, languages, name.as_deref(), kind.as_deref(), *stats),
-        Command::Def { target, first } => cmd_def(&cli, target, *first),
-        Command::Type { target } => cmd_type(&cli, target),
-        Command::Implementations { target } => cmd_implementations(&cli, target),
+        } => cmd_symbols(cli, languages, name.as_deref(), kind.as_deref(), *stats),
+        Command::Def { target, first } => cmd_def(cli, target, *first),
+        Command::Type { target } => cmd_type(cli, target),
+        Command::Implementations { target } => cmd_implementations(cli, target),
         Command::Usages {
             target,
             include_unresolved,
-        } => cmd_usages(&cli, target, *include_unresolved),
+        } => cmd_usages(cli, target, *include_unresolved),
         Command::Refs {
             target,
             include_unresolved,
-        } => cmd_refs(&cli, target, *include_unresolved),
+        } => cmd_refs(cli, target, *include_unresolved),
         Command::Rename {
             target,
             new_name,
             write,
-        } => cmd_rename(&cli, target, new_name, *write),
-        Command::Callers { target, depth } => cmd_trace(&cli, target, *depth, Direction2::Callers),
-        Command::Callees { target, depth } => cmd_trace(&cli, target, *depth, Direction2::Callees),
+        } => cmd_rename(cli, target, new_name, *write),
+        Command::Callers { target, depth } => cmd_trace(cli, target, *depth, Direction2::Callers),
+        Command::Callees { target, depth } => cmd_trace(cli, target, *depth, Direction2::Callees),
         Command::Flow {
             direction,
             target,
@@ -502,7 +512,7 @@ pub fn run() -> Result<()> {
             set_string,
         } => {
             let inputs = crate::analysis::provenance::ValuesInputs::parse(values, set, set_string)?;
-            cmd_flow(&cli, direction, target, *depth, &inputs)
+            cmd_flow(cli, direction, target, *depth, &inputs)
         }
         Command::Extract {
             range,
@@ -511,7 +521,7 @@ pub fn run() -> Result<()> {
             all,
             write,
         } => cmd_extract(
-            &cli,
+            cli,
             range,
             name,
             match *function {
@@ -529,7 +539,7 @@ pub fn run() -> Result<()> {
             call,
             write,
         } => cmd_inline(
-            &cli,
+            cli,
             target,
             match *call {
                 true => Inline::Call,
@@ -537,40 +547,40 @@ pub fn run() -> Result<()> {
             },
             *write,
         ),
-        Command::Openapi { out, yaml } => cmd_openapi(&cli, out.as_deref(), *yaml),
+        Command::Openapi { out, yaml } => cmd_openapi(cli, out.as_deref(), *yaml),
         Command::Recipe {
             file,
             write,
             catalogs,
-        } => cmd_recipe(&cli, file, *write, catalogs),
+        } => cmd_recipe(cli, file, *write, catalogs),
         Command::RemoveFlag { flag, value, write } => {
-            cmd_remove_flag(&cli, flag, FlagValue(*value), *write)
+            cmd_remove_flag(cli, flag, FlagValue(*value), *write)
         }
         Command::Rewrite {
             target,
             rewrite,
             write,
-        } => cmd_rewrite(&cli, target, rewrite.as_deref(), *write),
+        } => cmd_rewrite(cli, target, rewrite.as_deref(), *write),
         Command::Restructure {
             pattern,
             template,
             language,
             write,
-        } => cmd_restructure(&cli, pattern, template, language, *write),
-        Command::Delete { target, write } => cmd_delete(&cli, target, *write),
+        } => cmd_restructure(cli, pattern, template, language, *write),
+        Command::Delete { target, write } => cmd_delete(cli, target, *write),
         Command::Duplicates {
             min_tokens,
             exact,
             languages,
             paths,
-        } => cmd_duplicates(&cli, *min_tokens, *exact, languages, paths),
+        } => cmd_duplicates(cli, *min_tokens, *exact, languages, paths),
         Command::Unused {
             catalogs,
             languages,
             paths,
             internal,
-        } => cmd_unused(&cli, catalogs.as_deref(), languages, paths, *internal),
-        Command::Imports { file, write } => cmd_imports(&cli, file.as_deref(), *write),
+        } => cmd_unused(cli, catalogs.as_deref(), languages, paths, *internal),
+        Command::Imports { file, write } => cmd_imports(cli, file.as_deref(), *write),
         Command::Translate {
             file,
             language,
@@ -578,7 +588,7 @@ pub fn run() -> Result<()> {
             out,
             force,
         } => cmd_translate(
-            &cli,
+            cli,
             file,
             language.as_deref(),
             *write,
@@ -589,23 +599,23 @@ pub fn run() -> Result<()> {
             target,
             destination,
             write,
-        } => cmd_move(&cli, target, destination, *write),
+        } => cmd_move(cli, target, destination, *write),
         Command::Signature {
             target,
             change,
             write,
-        } => cmd_signature(&cli, target, change, *write),
-        Command::Stitch { env, orphaned } => cmd_stitch(&cli, env.as_deref(), *orphaned),
+        } => cmd_signature(cli, target, change, *write),
+        Command::Stitch { env, orphaned } => cmd_stitch(cli, env.as_deref(), *orphaned),
         Command::Impact {
             target,
             caller_depth,
-        } => cmd_impact(&cli, target, *caller_depth),
-        Command::Graph { dot } => cmd_graph(&cli, *dot),
+        } => cmd_impact(cli, target, *caller_depth),
+        Command::Graph { dot } => cmd_graph(cli, *dot),
         Command::Entrypoints {
             kind,
             catalogs,
             unreachable,
-        } => cmd_entrypoints(&cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
+        } => cmd_entrypoints(cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
     }
 }
 
@@ -624,15 +634,31 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
     let trace = graph.trace(symbol.id, direction, depth);
 
     if cli.json {
+        // Name and depth alone flattened the tree, and no caller could rebuild the
+        // walk from two branches at the same depth. The parent names the node each
+        // row hangs off, and the line says where to go.
+        let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+        let mut line_of = |s: &Symbol| {
+            let source = sources
+                .entry(s.file.clone())
+                .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
+            LineIndex::new(source).line_col(s.name_span.start, source).line
+        };
         let nodes: Vec<_> = trace
             .nodes
             .iter()
             .map(|n| {
                 let s = index.symbol(n.symbol);
+                let parent = n
+                    .caller
+                    .and_then(|(id, _)| index.symbol(id))
+                    .map(|p| serde_json::json!({ "name": p.qualified_name(), "file": p.file }));
                 serde_json::json!({
                     "name": s.map(|s| s.qualified_name()),
                     "file": s.map(|s| s.file.clone()),
+                    "line": s.map(&mut line_of),
                     "depth": n.depth,
+                    "parent": parent,
                     "confidence": n.caller.map(|(_, c)| c.as_str()),
                 })
             })
@@ -711,9 +737,9 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
 
 /// What `fr extract` pulls out.
 ///
-/// An enum instead of a `bool`, because the call site passed three booleans in a row,
-/// `cmd_extract(&cli, range, name, *function, *all, *write)`, where any two could swap
-/// and still compile. Each of the three now has a type of its own.
+/// An enum instead of a `bool`, because the call site passed three booleans in a row:
+/// `cmd_extract(&cli, range, name, *function, *all, *write)`. Any two of them could
+/// swap and still compile. Each of the three now has a type of its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Extract {
     Variable,
@@ -867,7 +893,7 @@ fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::
     let parent = parent.canonicalize().map_err(|e| {
         anyhow::anyhow!(
             "cannot resolve the destination directory {}: {e}. Create it first, or \
-             give a path inside an existing directory",
+             give a path inside an existing directory.",
             parent.display()
         )
     })?;
@@ -923,8 +949,8 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 ///
 /// Relative paths resolve against the workspace root, not the shell's working directory: `-C`
 /// says which workspace to operate on. `fr -C ../helm refs pkg/x.go:3:6` means that file in
-/// that workspace. Canonical, because the index is, and a path that does not exist is an error,
-/// resolving it to itself and letting the file read fail two frames later says "reading
+/// that workspace. Canonical, because the index is, and a path that does not exist is an
+/// error. Resolving it to itself lets the file read fail two frames later with "reading
 /// pkg/x.go. No such file", which is true and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
@@ -973,7 +999,7 @@ fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
 ///
 /// Resolved against the workspace root instead of the shell's cwd, and canonical,
 /// because the index holds canonical paths. The default root is `.`, so a filter
-/// built from it reads `./pkg/action` and matches no absolute path at all, the
+/// built from it reads `./pkg/action` and matches no absolute path at all. The
 /// report then comes back empty and looks like a clean bill of health.
 fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
@@ -1046,7 +1072,7 @@ fn cmd_duplicates(
         // saying only "3 duplicated block(s)" reads as all of them.
         println!(
             "\n{} duplicated block(s) of {min_tokens} tokens or more, {redundant} \
-             redundant token(s)",
+             redundant token(s).",
             classes.len()
         );
         println!(
@@ -1075,6 +1101,20 @@ fn cmd_duplicates(
     }
     Ok(())
 }
+
+/// The caveat both renderings of `fr unused` carry, one copy so they cannot drift.
+///
+/// The JSON lacked it entirely, and a list of "unused" symbols read without this
+/// sentence claims more than the analysis can. The newlines are terminal wrapping;
+/// the JSON path strips them and sends one line.
+const UNUSED_CAVEAT: &str =
+    "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
+     candidates. So a method reached only through a trait object, an interface \n\
+     value or a base class is no longer listed. A function held in a map or a \n\
+     struct field and called through it, and a name assembled at runtime, still \n\
+     can be. Symbols whose name is spelled in any string literal are deliberately \n\
+     left off. So are names beginning with an underscore, which say the author \n\
+     meant them to go unused.";
 
 fn cmd_unused(
     cli: &Cli,
@@ -1105,9 +1145,9 @@ fn cmd_unused(
         .collect();
 
     // The position, because the next command a reader runs is `fr delete`. A name is not enough
-    // to name a symbol with: 34 of the first 40 candidates in `helm/helm` are defined twice, so
-    // `fr delete <name>` answers "defined 2 times; give a position". The list said which symbol
-    // it meant and had no way to say it.
+    // to name a symbol with: 34 of the first 40 candidates in `helm/helm` are defined twice.
+    // So `fr delete <name>` answers "defined 2 times; give a position". The list said which
+    // symbol it meant and had no way to say it.
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
     let mut locate = |symbol: &crate::model::Symbol| {
         let source = sources
@@ -1133,7 +1173,13 @@ fn cmd_unused(
                 })
             })
             .collect();
-        println!("{}", serde_json::to_string_pretty(&payload)?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "unused": payload,
+                "caveat": UNUSED_CAVEAT.replace('\n', ""),
+            }))?
+        );
         return Ok(());
     }
 
@@ -1191,15 +1237,7 @@ fn cmd_unused(
             }
         }
     }
-    println!(
-        "Reachability follows resolved call edges plus class-hierarchy dispatch \n\
-         candidates, so a method reached only through a trait object, an interface \n\
-         value or a base class is no longer listed. A function held in a map or a \n\
-         struct field and called through it, and a name assembled at runtime, still \n\
-         can be. Symbols whose name is spelled in any string literal are deliberately \n\
-         left off, as are names beginning with an underscore, which say the author \n\
-         meant them to go unused."
-    );
+    println!("{UNUSED_CAVEAT}");
     if exported_count > 0 && !internal_only {
         println!(
             "\n{exported_count} of these are exported. In a library that is the public \n\
@@ -1695,18 +1733,24 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         true => serde_yaml::to_string(&baseline.document)?,
         false => serde_json::to_string_pretty(&baseline.document)?,
     };
-    match out {
-        Some(path) => {
-            crate::vfs::write(path, format!("{text}\n"))?;
-            if !cli.json {
-                println!(
-                    "{} route file(s) from a {side} -> {}",
-                    baseline.routes.len(),
-                    path.display()
-                );
-            }
+    if let Some(path) = out {
+        crate::vfs::write(path, format!("{text}\n"))?;
+        if !cli.json {
+            println!(
+                "{} route file(s) from a {side} -> {}",
+                baseline.routes.len(),
+                path.display()
+            );
         }
-        None => println!("{text}"),
+    }
+    if cli.json {
+        // A human run keeps the notes on stderr so the document stays a document. A
+        // JSON caller reads one stream, so the notes ride in the payload beside it.
+        let mut payload = baseline.document.clone();
+        payload["notes"] = serde_json::json!(baseline.notes);
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else if out.is_none() {
+        println!("{text}");
     }
 
     // The notes go to stderr so the document on stdout stays a document.
@@ -1847,7 +1891,7 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
 
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     // A position, for the ambiguity the refusal tells the reader to resolve this way.
-    let target = match parse_position(flag) {
+    let target = match parse_target_position(cli, flag)? {
         Some(pos) => {
             let path = workspace_path(cli, &pos.path)?;
             let source = crate::vfs::read_to_string(&path)
@@ -2061,13 +2105,20 @@ fn cmd_flow(
     };
 
     if cli.json {
+        let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
         let steps: Vec<_> = result
             .steps
             .iter()
             .map(|s| {
+                let source = sources
+                    .entry(s.file.clone())
+                    .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
+                let at = LineIndex::new(source).line_col(s.span.start, source);
                 serde_json::json!({
                     "text": s.text,
                     "file": s.file,
+                    "line": at.line,
+                    "col": at.col,
                     "depth": s.depth,
                     "confidence": s.confidence.as_str(),
                 })
@@ -2078,11 +2129,14 @@ fn cmd_flow(
             .iter()
             .map(|(depth, reason)| serde_json::json!({ "depth": depth, "reason": reason.to_string() }))
             .collect();
+        // The provenance answer names its model, and a reader dispatching on the
+        // shape needs this side to name its own as well.
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "symbol": symbol.qualified_name(),
                 "direction": direction,
+                "model": "value-flow",
                 "steps": steps,
                 "stops": stops,
             }))?
@@ -2295,8 +2349,8 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     }
     println!("unresolved calls  {}", graph.unresolved.len());
 
-    // A call site the dispatch scan and the index disagree about is reported, since
-    // an edge on the wrong offset misreports; a missing one does not.
+    // A call site the dispatch scan and the index disagree about is reported. An
+    // edge on the wrong offset misreports; a missing one does not.
     if !graph.hierarchy_gaps.is_empty() {
         println!(
             "\n{} call site(s) the hierarchy scan could not line up with the index:",
@@ -2504,6 +2558,127 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
     Ok(())
 }
 
+/// What went wrong, named so a program can branch on it.
+///
+/// The prose on stderr already tells a person. A caller that passed `--json` gets the
+/// same failure as `{"error": {...}}` on stdout, and this kind is the field it
+/// dispatches on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FaultKind {
+    NotFound,
+    Ambiguous,
+    InvalidInput,
+}
+
+impl FaultKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            FaultKind::NotFound => "not-found",
+            FaultKind::Ambiguous => "ambiguous",
+            FaultKind::InvalidInput => "invalid-input",
+        }
+    }
+}
+
+/// One definition an ambiguous name could have meant, carried as data.
+///
+/// The disambiguation prose lists the same symbols. An agent reading JSON should get
+/// them as fields and never have to parse that prose back apart.
+#[derive(Debug, Clone)]
+struct Candidate {
+    name: String,
+    kind: &'static str,
+    file: PathBuf,
+    line: usize,
+    col: usize,
+}
+
+/// A failure whose kind the JSON error object can name.
+///
+/// `message` is the exact prose a human reads. The kind and any candidates are the
+/// same facts for a machine, threaded from the site that knew them.
+#[derive(Debug)]
+struct Fault {
+    kind: FaultKind,
+    message: String,
+    candidates: Vec<Candidate>,
+}
+
+impl Fault {
+    fn not_found(message: String) -> anyhow::Error {
+        anyhow::Error::new(Fault {
+            kind: FaultKind::NotFound,
+            message,
+            candidates: Vec::new(),
+        })
+    }
+
+    fn invalid_input(message: String) -> anyhow::Error {
+        anyhow::Error::new(Fault {
+            kind: FaultKind::InvalidInput,
+            message,
+            candidates: Vec::new(),
+        })
+    }
+
+    fn ambiguous(message: String, candidates: Vec<Candidate>) -> anyhow::Error {
+        anyhow::Error::new(Fault {
+            kind: FaultKind::Ambiguous,
+            message,
+            candidates,
+        })
+    }
+}
+
+impl std::fmt::Display for Fault {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for Fault {}
+
+/// The failure as one JSON object on stdout, beside the prose on stderr.
+///
+/// Every error path used to print prose to stderr and nothing to stdout, so a caller
+/// that asked for JSON had nothing to parse. The exit code and the stderr prose are
+/// unchanged; this only fills the stdout half of the contract.
+fn report_json_error(error: &anyhow::Error) {
+    let fault = error.downcast_ref::<Fault>();
+    let kind = match fault {
+        Some(fault) => fault.kind.as_str(),
+        None if error.chain().any(|c| c.is::<crate::refactor::Refusal>()) => "refused",
+        None if error.chain().any(|c| c.is::<std::io::Error>()) => "io",
+        None => "error",
+    };
+    let mut object = serde_json::json!({
+        "kind": kind,
+        "message": format!("{error:#}"),
+    });
+    if let Some(fault) = fault {
+        if !fault.candidates.is_empty() {
+            object["candidates"] = fault
+                .candidates
+                .iter()
+                .map(|c| {
+                    serde_json::json!({
+                        "name": c.name,
+                        "kind": c.kind,
+                        "path": c.file,
+                        "line": c.line,
+                        "col": c.col,
+                    })
+                })
+                .collect();
+        }
+    }
+    let payload = serde_json::json!({ "error": object });
+    match serde_json::to_string_pretty(&payload) {
+        Ok(text) => println!("{text}"),
+        Err(error) => println!("{{\"error\":{{\"kind\":\"error\",\"message\":\"unprintable: {error}\"}}}}"),
+    }
+}
+
 /// A position in a file, given as `path:line:col`.
 struct Position {
     path: PathBuf,
@@ -2525,9 +2700,87 @@ fn parse_position(target: &str) -> Option<Position> {
     })
 }
 
+/// A target meant as a position, parsed, with a malformed one refused.
+///
+/// `py/app.py:abc:1` fails to parse, and falling through to name lookup answered "no
+/// symbol named 'py/app.py:abc:1'". That sends the reader hunting for a naming problem
+/// when the fault is a typo in the position. Anything shaped like one, an existing
+/// file followed by colon-separated parts, is treated as one and refused with the
+/// part that is wrong.
+fn parse_target_position(cli: &Cli, target: &str) -> Result<Option<Position>> {
+    if let Some(pos) = parse_position(target) {
+        return Ok(Some(pos));
+    }
+    match position_shape_problem(cli, target) {
+        Some(problem) => Err(Fault::invalid_input(format!(
+            "that looks like a position; {problem}"
+        ))),
+        None => Ok(None),
+    }
+}
+
+/// Why a position-shaped target did not parse as one, or `None` for a plain name.
+fn position_shape_problem(cli: &Cli, target: &str) -> Option<String> {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let is_file = |path: &str| {
+        let path = std::path::Path::new(path);
+        match path.is_absolute() {
+            true => path.is_file(),
+            false => root.join(path).is_file(),
+        }
+    };
+    let parts: Vec<&str> = target.rsplitn(3, ':').collect();
+    match parts.as_slice() {
+        [col, line, path] if is_file(path) => {
+            if line.parse::<usize>().is_err() {
+                return Some(format!(
+                    "'{line}' is not a line number. Positions are path:line:col."
+                ));
+            }
+            if col.parse::<usize>().is_err() {
+                return Some(format!(
+                    "'{col}' is not a column number. Positions are path:line:col."
+                ));
+            }
+            None
+        }
+        [digits, path]
+            if is_file(path)
+                && !digits.is_empty()
+                && digits.chars().all(|c| c.is_ascii_digit()) =>
+        {
+            Some(format!(
+                "'{target}' names a file and a line but no column. Positions are path:line:col."
+            ))
+        }
+        _ => None,
+    }
+}
+
+/// Where each rival definition sits, as data for the JSON error object.
+fn candidates_of(symbols: &[&Symbol]) -> Vec<Candidate> {
+    let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+    symbols
+        .iter()
+        .map(|s| {
+            let source = sources
+                .entry(s.file.clone())
+                .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
+            let at = LineIndex::new(source).line_col(s.name_span.start, source);
+            Candidate {
+                name: s.qualified_name(),
+                kind: s.kind.as_str(),
+                file: s.file.clone(),
+                line: at.line,
+                col: at.col,
+            }
+        })
+        .collect()
+}
+
 /// Resolve a CLI target to a symbol, accepting either a position or a name.
 fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a Symbol> {
-    if let Some(pos) = parse_position(target) {
+    if let Some(pos) = parse_target_position(cli, target)? {
         let path = workspace_path(cli, &pos.path)?;
         let source = crate::vfs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
@@ -2542,12 +2795,12 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
             .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
 
         return index.definition_at(&path, offset).ok_or_else(|| {
-            anyhow::anyhow!(
+            Fault::not_found(format!(
                 "no symbol or resolved reference at {}:{}:{}",
                 path.display(),
                 pos.line,
                 pos.col
-            )
+            ))
         });
     }
 
@@ -2571,16 +2824,19 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         for symbol in &matches {
             listing.push_str(&format!("\n  {} in {}", target, symbol.file.display()));
         }
-        anyhow::bail!(
-            "'{target}' is declared in {} files; specify a position as \
-             path:line:col{listing}",
-            matches.len()
-        );
+        return Err(Fault::ambiguous(
+            format!(
+                "'{target}' is declared in {} files; specify a position as \
+                 path:line:col{listing}",
+                matches.len()
+            ),
+            candidates_of(&matches),
+        ));
     }
 
     let matches = index.find_symbols(target, None);
     match matches.len() {
-        0 => anyhow::bail!("no symbol named '{target}'"),
+        0 => Err(Fault::not_found(format!("no symbol named '{target}'"))),
         1 => Ok(matches[0]),
         // Several sites can declare one entity, a CSS class has no canonical
         // definition, and that is not an ambiguous choice between rivals.
@@ -2598,11 +2854,14 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
                     symbol.file.display()
                 ));
             }
-            anyhow::bail!(
-                "'{target}' is defined {} times; name one of these, or give a position \
-                 as path:line:col{listing}",
-                matches.len()
-            )
+            Err(Fault::ambiguous(
+                format!(
+                    "'{target}' is defined {} times; name one of these, or give a position \
+                     as path:line:col{listing}",
+                    matches.len()
+                ),
+                candidates_of(&matches),
+            ))
         }
     }
 }
@@ -2766,14 +3025,23 @@ fn cmd_symbols(
         .collect();
 
     if cli.json {
+        // The byte spans were already here; the line and column stand beside them
+        // because every position this tool accepts is spelled path:line:col.
+        let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
         let payload: Vec<_> = selected
             .iter()
             .map(|s| {
+                let source = sources
+                    .entry(s.file.clone())
+                    .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
+                let at = LineIndex::new(source).line_col(s.name_span.start, source);
                 serde_json::json!({
                     "name": s.name,
                     "qualified_name": s.qualified_name(),
                     "kind": s.kind.as_str(),
                     "file": s.file,
+                    "line": at.line,
+                    "col": at.col,
                     "language": s.language.name(),
                     "exported": s.exported,
                     "name_span": { "start": s.name_span.start, "end": s.name_span.end },
@@ -2803,7 +3071,7 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
 
     if cli.json {
         // Resolved, not raw. Serializing the analysis directly emitted `"symbol": 1` and
-        // `"defined_at": 0`, `SymbolId`s, which are positions in this run's index and
+        // `"defined_at": 0`, `SymbolId`s. Those are positions in this run's index and
         // mean nothing to a reader of the output. `defined_at` read like a line number.
         // Every other command answers with a qualified name and a place; so does this.
         let place = |id: crate::model::SymbolId| {
