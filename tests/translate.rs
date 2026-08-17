@@ -179,11 +179,15 @@ fn the_offered_targets_all_actually_work_on_a_file_that_suits_them() {
 #[test]
 fn force_replaces_the_previous_translation_instead_of_stacking_a_second() {
     // The overwrite edit was an insertion at byte zero, so an existing destination
-    // kept its old translation below the new one and --force doubled the file on
+    // kept its old translation below the new one. --force doubled the file on
     // every run: two headers, twice the functions, all of it valid syntax.
     let tmp = tempfile::tempdir().unwrap();
     let source = tmp.path().join("c.py");
-    std::fs::write(&source, "def cost(price: float) -> float:\n    return price * 2\n").unwrap();
+    std::fs::write(
+        &source,
+        "def cost(price: float) -> float:\n    return price * 2\n",
+    )
+    .unwrap();
     let destination = tmp.path().join("c.ts");
 
     let first = transpile::plan_to(&source, Language::TypeScript, Some(&destination), false)
@@ -202,5 +206,8 @@ fn force_replaces_the_previous_translation_instead_of_stacking_a_second() {
         1,
         "one translation, one header:\n{replaced}"
     );
-    assert_eq!(written, replaced, "a forced rerun reproduces the file, not two of it");
+    assert_eq!(
+        written, replaced,
+        "a forced rerun reproduces the file, not two of it"
+    );
 }

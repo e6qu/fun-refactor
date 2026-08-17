@@ -1,10 +1,10 @@
 //! A rename must not move a use under a different declaration of its new name.
 //!
 //! The collision check asks whether two names are visible at the same point, scope
-//! for scope. Capture is the nested case that check cannot see: a declaration of
-//! the new name standing between the renamed symbol and one of its uses wins that
-//! use, and the file still compiles, doing something else. `outer()` here returned
-//! 11 before such a rename and 20 after it, with no warning anywhere.
+//! for scope. Capture is the nested case that check cannot see. A declaration of
+//! the new name can stand between the renamed symbol and one of its uses. It wins
+//! that use, and the file still compiles, doing something else. `outer()` here
+//! returned 11 before such a rename and 20 after it, with no warning anywhere.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rename;
@@ -58,7 +58,7 @@ fn renaming_an_inner_binding_over_an_outer_use_refuses() {
 fn a_shadow_whose_scope_holds_no_renamed_use_is_no_capture() {
     // The inner block declares the new name and uses only that; the outer use
     // sits outside it. Nothing changes owners, so nothing refuses.
-    let source = "pub fn outer() -> i32 {\n    let value = 1;\n    let early = value + 1;\n    \
+    let source = "pub fn outer() -> i32 {\n    let value = 1;\n    let early = value + 1;\n\n    \
         let result = {\n        let temp = 10;\n        temp * 2\n    };\n    early + result\n}\n";
     let (_tmp, index) = workspace(&[("lib.rs", source)]);
     let id = symbol_at(&index, source, "let value");

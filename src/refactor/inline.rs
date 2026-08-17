@@ -122,7 +122,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     // Substituting the value more than once evaluates it more than once. That only
     // matters when evaluating can *do* something: `let v = effect(); v + v` inlined
-    // is `effect() + effect()`, the effect twice. `a + b` twice is merely arithmetic
+    // is `effect() + effect()`, the effect twice. `a + b` twice is arithmetic
     // twice, and refusing it swallowed most ordinary inlines.
     if references.len() > 1 && may_run_code(&value_text) {
         anyhow::bail!(
@@ -1021,7 +1021,10 @@ fn may_run_code(value: &str) -> bool {
             }
         }
     }
-    trimmed.contains("await ") || trimmed.contains("new ") || trimmed.contains("++") || trimmed.contains("--")
+    trimmed.contains("await ")
+        || trimmed.contains("new ")
+        || trimmed.contains("++")
+        || trimmed.contains("--")
 }
 
 /// One double-quoted literal and nothing after it.

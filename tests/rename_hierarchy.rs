@@ -153,7 +153,12 @@ fn java_overloads_rename_with_every_call_that_only_they_answer() {
         return items.length;\n    }\n\n    public static void main(String[] args) {\n        \
         System.out.println(size(\"hello\") + size(new int[] { 1, 2 }));\n    }\n}\n";
     let (tmp, index) = workspace(&[("App.java", source)]);
-    let id = symbol_at(&index, &tmp.path().join("App.java"), source, "static int size");
+    let id = symbol_at(
+        &index,
+        &tmp.path().join("App.java"),
+        source,
+        "static int size",
+    );
     let plan = rename::plan(&index, id, "len").unwrap();
     let out = applied(tmp.path(), "App.java", &plan);
     assert!(
@@ -185,7 +190,12 @@ fn a_stranger_answering_the_same_name_keeps_the_calls_in_place() {
     let other = "public class Other {\n    static int size(double d) {\n        \
         return (int) d;\n    }\n}\n";
     let (tmp, index) = workspace(&[("App.java", source), ("Other.java", other)]);
-    let id = symbol_at(&index, &tmp.path().join("App.java"), source, "static int size");
+    let id = symbol_at(
+        &index,
+        &tmp.path().join("App.java"),
+        source,
+        "static int size",
+    );
     let plan = rename::plan(&index, id, "len").unwrap();
     let out = applied(tmp.path(), "App.java", &plan);
     assert!(

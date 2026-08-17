@@ -662,16 +662,38 @@ impl CallGraph {
         counts
     }
 
+    /// Every node in the graph, so an exporter can list the graph itself and
+    /// not only its size.
+    pub fn nodes(&self) -> Vec<SymbolId> {
+        self.graph.node_indices().map(|n| self.graph[n]).collect()
+    }
+
+    /// Every edge with both of its endpoints. The weight says how it resolved.
+    pub fn edges(&self) -> Vec<(SymbolId, SymbolId, &CallEdge)> {
+        self.graph
+            .edge_references()
+            .map(|e| (self.graph[e.source()], self.graph[e.target()], e.weight()))
+            .collect()
+    }
+
     /// Render as Graphviz DOT.
-    pub fn to_dot(&self, index: &Index) -> String {
+    ///
+    /// Each label carries the file under the name, spelled relative to `root`. A
+    /// polyglot workspace declares four functions named `process`, and a label of
+    /// the bare name drew four boxes nothing could tell apart.
+    pub fn to_dot(&self, index: &Index, root: &Path) -> String {
         let mut out = String::from("digraph calls {\n  rankdir=LR;\n  node [shape=box];\n");
         for node in self.graph.node_indices() {
             let id = self.graph[node];
             if let Some(symbol) = index.symbol(id) {
+                // A file outside the root has no relative spelling, so it keeps its
+                // full path rather than dropping off the picture.
+                let file = symbol.file.strip_prefix(root).unwrap_or(&symbol.file);
                 out.push_str(&format!(
-                    "  n{} [label=\"{}\"];\n",
+                    "  n{} [label=\"{}\\n{}\"];\n",
                     id.0,
-                    escape_dot(&symbol.qualified_name())
+                    escape_dot(&symbol.qualified_name()),
+                    escape_dot(&file.display().to_string())
                 ));
             }
         }
@@ -1900,9 +1922,9 @@ mod tests {
 
     #[test]
     fn dot_export_marks_unproven_edges() {
-        let (_tmp, index) = workspace(&[("a.rs", "fn leaf() {}\nfn top() { leaf(); }\n")]);
+        let (tmp, index) = workspace(&[("a.rs", "fn leaf() {}\nfn top() { leaf(); }\n")]);
         let cg = CallGraph::build(&index);
-        let dot = cg.to_dot(&index);
+        let dot = cg.to_dot(&index, tmp.path());
         assert!(dot.starts_with("digraph calls {"));
         assert!(dot.contains("leaf"));
         assert!(dot.contains("style=solid"), "a proven edge should be solid");
@@ -1951,12 +1973,12 @@ mod tests {
 
     #[test]
     fn methods_are_qualified_in_output() {
-        let (_tmp, index) = workspace(&[(
+        let (tmp, index) = workspace(&[(
             "a.rs",
             "struct S;\nimpl S {\n    fn helper(&self) {}\n    fn run(&self) { self.helper(); }\n}\n",
         )]);
         let cg = CallGraph::build(&index);
-        let dot = cg.to_dot(&index);
+        let dot = cg.to_dot(&index, tmp.path());
         assert!(dot.contains("S::helper"), "got:\n{dot}");
     }
 }
