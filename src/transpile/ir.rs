@@ -12,7 +12,8 @@
 //! # Not in it
 //!
 //! Constructs whose meaning is the language: ownership, goroutines, decorators,
-//! generators, pattern matching. A channel has no translation into TypeScript.
+//! generators, pattern matching beyond literal arms. A channel has no
+//! translation into TypeScript.
 //!
 //! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], carrying the original text. The
 //! writer emits each as a comment beside a marker, and the report leads with how many crossed
@@ -324,6 +325,31 @@ pub enum Stmt {
     },
     While {
         condition: Expr,
+        body: Vec<Stmt>,
+    },
+    /// One value branched against literal alternatives.
+    ///
+    /// Rust and Zig spell it with arrows, the C family with `case`, Python with
+    /// `match`. Only arms selected by literals cross. A pattern with structure
+    /// in it, a binding, a range, a payload, is a match in the full sense and
+    /// carries whole. Rust and Zig demand exhaustiveness, so their writers emit
+    /// an empty final arm when the source had no default.
+    Switch {
+        subject: Expr,
+        /// Each arm: the literals that select it, and its body.
+        arms: Vec<(Vec<Expr>, Vec<Stmt>)>,
+        /// The `_` / `else` / `default` body; empty when the source had none.
+        default: Vec<Stmt>,
+    },
+    /// `while let Some(x) = e`, `while (e) |x|`: loop while the optional holds a
+    /// payload, re-evaluating it each pass.
+    ///
+    /// Native in Rust and Zig. The other four have no binding form in a loop
+    /// header. Their writers open an unconditional loop, take the value, and
+    /// break when it is empty, which is the same loop said longhand.
+    WhilePresent {
+        binding: String,
+        value: Expr,
         body: Vec<Stmt>,
     },
     /// `for x in xs`, the shape every language here shares. A C-style `for` is not

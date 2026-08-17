@@ -19,9 +19,10 @@
 //! # Limits
 //!
 //! The result is a draft. Ownership, goroutines, decorators, generators and
-//! pattern matching have no general translation, so each goes into the output
-//! verbatim, inside a comment, under a marker. Error propagation, the optional
-//! payload `if` and named tests do cross, each into the target's own spelling.
+//! pattern matching beyond literal arms have no general translation. Each goes
+//! into the output verbatim, inside a comment, under a marker. Error
+//! propagation, the optional payload `if` and `while`, literal-armed switches
+//! and named tests do cross, each into the target's own spelling.
 //!
 //! Every translation returns a [`Fidelity`] recording how much of it is real.
 

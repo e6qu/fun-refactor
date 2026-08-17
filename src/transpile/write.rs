@@ -112,6 +112,16 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     walk_stmts(then, add);
                     walk_stmts(otherwise, add);
                 }
+                Stmt::WhilePresent { binding, body, .. } => {
+                    add(binding, Kind::Value, false);
+                    walk_stmts(body, add);
+                }
+                Stmt::Switch { arms, default, .. } => {
+                    for (_, body) in arms {
+                        walk_stmts(body, add);
+                    }
+                    walk_stmts(default, add);
+                }
                 Stmt::While { body, .. } => walk_stmts(body, add),
                 _ => {}
             }
@@ -1175,6 +1185,49 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                     out.line("}");
                 }
             }
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                let s = rust_expr(out, subject);
+                out.line(&format!("match {s} {{"));
+                out.open();
+                for (literals, body) in arms {
+                    let pattern: Vec<String> = literals.iter().map(|l| rust_expr(out, l)).collect();
+                    out.line(&format!("{} => {{", pattern.join(" | ")));
+                    out.open();
+                    rust_block(out, body);
+                    out.close();
+                    out.line("}");
+                }
+                // A Rust match must be exhaustive, so the default arm is written
+                // even when the source had none.
+                if default.is_empty() {
+                    out.line("_ => {}");
+                } else {
+                    out.line("_ => {");
+                    out.open();
+                    rust_block(out, default);
+                    out.close();
+                    out.line("}");
+                }
+                out.close();
+                out.line("}");
+            }
+            Stmt::WhilePresent {
+                binding,
+                value,
+                body,
+            } => {
+                let v = rust_expr(out, value);
+                let bound = out.name(binding);
+                out.line(&format!("while let Some({bound}) = {v} {{"));
+                out.open();
+                rust_block(out, body);
+                out.close();
+                out.line("}");
+            }
             Stmt::While { condition, body } => {
                 let c = rust_expr(out, condition);
                 out.line(&format!("while {c} {{"));
@@ -1819,6 +1872,47 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     out.close();
                 }
             }
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                let s = python_expr(out, subject);
+                python_line(out, &format!("match {s}:"));
+                out.open();
+                for (literals, body) in arms {
+                    let pattern: Vec<String> =
+                        literals.iter().map(|l| python_expr(out, l)).collect();
+                    python_line(out, &format!("case {}:", pattern.join(" | ")));
+                    out.open();
+                    python_block(out, body);
+                    out.close();
+                }
+                if !default.is_empty() {
+                    python_line(out, "case _:");
+                    out.open();
+                    python_block(out, default);
+                    out.close();
+                }
+                out.close();
+            }
+            Stmt::WhilePresent {
+                binding,
+                value,
+                body,
+            } => {
+                let v = python_expr(out, value);
+                let bound = out.name(binding);
+                python_line(out, "while True:");
+                out.open();
+                python_line(out, &format!("{bound} = {v}"));
+                python_line(out, &format!("if {bound} is None:"));
+                out.open();
+                python_line(out, "break");
+                out.close();
+                python_block(out, body);
+                out.close();
+            }
             Stmt::While { condition, body } => {
                 let c = python_expr(out, condition);
                 python_line(out, &format!("while {c}:"));
@@ -2342,6 +2436,16 @@ fn go(out: &mut Out, module: &Module) {
     }
 }
 
+/// Does this body leave on its own, making a `break` after it one statement too
+/// many? Java refuses unreachable code outright, so the answer decides whether
+/// the `case` gets one.
+fn leaves_on_its_own(body: &[Stmt]) -> bool {
+    matches!(
+        body.last(),
+        Some(Stmt::Return(_)) | Some(Stmt::Throw(_)) | Some(Stmt::Break) | Some(Stmt::Continue)
+    )
+}
+
 /// A test's prose name as an identifier: the words joined, everything else gone.
 fn test_slug(name: &str) -> String {
     let mut out = String::new();
@@ -2533,6 +2637,48 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.close();
                     out.line("}");
                 }
+            }
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                let s = go_expr(out, subject);
+                out.line(&format!("switch {s} {{"));
+                for (literals, body) in arms {
+                    let pattern: Vec<String> = literals.iter().map(|l| go_expr(out, l)).collect();
+                    out.line(&format!("case {}:", pattern.join(", ")));
+                    out.open();
+                    go_block(out, body, None);
+                    out.close();
+                }
+                if !default.is_empty() {
+                    out.line("default:");
+                    out.open();
+                    go_block(out, default, None);
+                    out.close();
+                }
+                out.line("}");
+            }
+            Stmt::WhilePresent {
+                binding,
+                value,
+                body,
+            } => {
+                let v = go_expr(out, value);
+                let bound = out.name(binding);
+                out.line("for {");
+                out.open();
+                out.line(&format!("{bound}Ptr := {v}"));
+                out.line(&format!("if {bound}Ptr == nil {{"));
+                out.open();
+                out.line("break");
+                out.close();
+                out.line("}");
+                out.line(&format!("{bound} := *{bound}Ptr"));
+                go_block(out, body, None);
+                out.close();
+                out.line("}");
             }
             Stmt::While { condition, body } => {
                 // Go spells `while` as a one-clause `for`.
@@ -3262,6 +3408,54 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                     out.line("}");
                 }
             }
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                let s = ts_expr(out, subject);
+                out.line(&format!("switch ({s}) {{"));
+                out.open();
+                for (literals, body) in arms {
+                    for literal in literals {
+                        let l = ts_expr(out, literal);
+                        out.line(&format!("case {l}:"));
+                    }
+                    out.open();
+                    ts_block(out, body);
+                    if !leaves_on_its_own(body) {
+                        out.line("break;");
+                    }
+                    out.close();
+                }
+                if !default.is_empty() {
+                    out.line("default:");
+                    out.open();
+                    ts_block(out, default);
+                    out.close();
+                }
+                out.close();
+                out.line("}");
+            }
+            Stmt::WhilePresent {
+                binding,
+                value,
+                body,
+            } => {
+                let v = ts_expr(out, value);
+                let bound = out.name(binding);
+                out.line("while (true) {");
+                out.open();
+                out.line(&format!("const {bound} = {v};"));
+                out.line(&format!("if ({bound} === null) {{"));
+                out.open();
+                out.line("break;");
+                out.close();
+                out.line("}");
+                ts_block(out, body);
+                out.close();
+                out.line("}");
+            }
             Stmt::While { condition, body } => {
                 let c = ts_expr(out, condition);
                 out.line(&format!("while ({c}) {{"));
@@ -3985,6 +4179,55 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 out.close();
                 out.line("}");
             }
+        }
+        Stmt::Switch {
+            subject,
+            arms,
+            default,
+        } => {
+            let s = java_expr(out, subject);
+            out.line(&format!("switch ({s}) {{"));
+            out.open();
+            for (literals, body) in arms {
+                for literal in literals {
+                    let l = java_expr(out, literal);
+                    out.line(&format!("case {l}:"));
+                }
+                out.open();
+                java_block(out, body, None);
+                if !leaves_on_its_own(body) {
+                    out.line("break;");
+                }
+                out.close();
+            }
+            if !default.is_empty() {
+                out.line("default:");
+                out.open();
+                java_block(out, default, None);
+                out.close();
+            }
+            out.close();
+            out.line("}");
+        }
+        Stmt::WhilePresent {
+            binding,
+            value,
+            body,
+        } => {
+            let v = java_expr(out, value);
+            let bound = out.name(binding);
+            out.line("while (true) {");
+            out.open();
+            out.line(&format!("var {bound}Maybe = {v};"));
+            out.line(&format!("if ({bound}Maybe.isEmpty()) {{"));
+            out.open();
+            out.line("break;");
+            out.close();
+            out.line("}");
+            out.line(&format!("var {bound} = {bound}Maybe.get();"));
+            java_block(out, body, None);
+            out.close();
+            out.line("}");
         }
         Stmt::While { condition, body } => {
             let c = java_expr(out, condition);
@@ -4948,6 +5191,49 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.close();
                 out.line("}");
             }
+        }
+        Stmt::Switch {
+            subject,
+            arms,
+            default,
+        } => {
+            let s = zig_expr(out, subject);
+            zig_line(out, &format!("switch ({s}) {{"));
+            out.open();
+            for (literals, body) in arms {
+                let pattern: Vec<String> = literals.iter().map(|l| zig_expr(out, l)).collect();
+                out.line(&format!("{} => {{", pattern.join(", ")));
+                out.open();
+                zig_block(out, body, None, mutated);
+                out.close();
+                out.line("},");
+            }
+            // A Zig switch must be exhaustive, so the else arm is written even
+            // when the source had none.
+            if default.is_empty() {
+                out.line("else => {},");
+            } else {
+                out.line("else => {");
+                out.open();
+                zig_block(out, default, None, mutated);
+                out.close();
+                out.line("},");
+            }
+            out.close();
+            out.line("}");
+        }
+        Stmt::WhilePresent {
+            binding,
+            value,
+            body,
+        } => {
+            let v = zig_expr(out, value);
+            let bound = out.name(binding);
+            zig_line(out, &format!("while ({v}) |{bound}| {{"));
+            out.open();
+            zig_block(out, body, None, mutated);
+            out.close();
+            out.line("}");
         }
         Stmt::While { condition, body } => {
             let c = zig_expr(out, condition);

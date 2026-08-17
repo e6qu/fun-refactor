@@ -124,3 +124,82 @@ fn a_rejected_edit_names_the_line_it_stops_parsing_at() {
         "the refusal carries no evidence:\n{text}"
     );
 }
+
+#[test]
+fn a_directory_translates_as_a_sweep_with_every_skip_named() {
+    let tmp = tempfile::tempdir().unwrap();
+    let pkg = tmp.path().join("pkg");
+    std::fs::create_dir_all(&pkg).unwrap();
+    std::fs::write(
+        pkg.join("twice.py"),
+        "def twice(n: int) -> int:\n    return n * 2\n",
+    )
+    .unwrap();
+    std::fs::write(
+        pkg.join("thrice.py"),
+        "def thrice(n: int) -> int:\n    return n * 3\n",
+    )
+    .unwrap();
+    std::fs::write(pkg.join("style.css"), "body { color: red; }\n").unwrap();
+    std::fs::write(
+        pkg.join("half.go"),
+        "package main\n\nfunc half(n int) int {\n\treturn n / 2\n}\n",
+    )
+    .unwrap();
+
+    let (text, ok) = run(tmp.path(), &["translate", "pkg", "go"]);
+    assert!(ok, "{text}");
+    assert!(
+        text.contains("2 file(s) under"),
+        "the sweep counts what it translated. {text}"
+    );
+    assert!(
+        text.contains("1 file(s) are already go."),
+        "a file already in the target is counted, never re-translated. {text}"
+    );
+    assert!(
+        text.contains("1 css file(s) have no reader"),
+        "a language with no reader is skipped by name. {text}"
+    );
+    assert!(
+        text.contains("func Twice(n int) int"),
+        "the diff shows the drafts. {text}"
+    );
+    assert!(!pkg.join("twice.go").exists(), "a dry run writes nothing");
+
+    let (text, ok) = run(tmp.path(), &["translate", "pkg", "go", "--write"]);
+    assert!(ok, "{text}");
+    assert!(pkg.join("twice.go").exists(), "{text}");
+    assert!(pkg.join("thrice.go").exists(), "{text}");
+}
+
+#[test]
+fn a_directory_without_a_target_language_is_refused_by_name() {
+    let tmp = tempfile::tempdir().unwrap();
+    let pkg = tmp.path().join("pkg");
+    std::fs::create_dir_all(&pkg).unwrap();
+    std::fs::write(pkg.join("a.py"), "def a():\n    pass\n").unwrap();
+
+    let (text, ok) = run(tmp.path(), &["translate", "pkg"]);
+    assert!(!ok);
+    assert!(
+        text.contains("name the target language"),
+        "the refusal says what is missing: {text}"
+    );
+}
+
+#[test]
+fn a_sweep_skips_an_occupied_destination_and_says_so() {
+    let tmp = tempfile::tempdir().unwrap();
+    let pkg = tmp.path().join("pkg");
+    std::fs::create_dir_all(&pkg).unwrap();
+    std::fs::write(pkg.join("a.py"), "def a(n: int) -> int:\n    return n\n").unwrap();
+    std::fs::write(pkg.join("a.go"), "package main\n").unwrap();
+
+    let (text, ok) = run(tmp.path(), &["translate", "pkg", "go"]);
+    assert!(ok, "{text}");
+    assert!(
+        text.contains("already exists, so its source was skipped. --force overwrites."),
+        "an occupied destination is a named skip: {text}"
+    );
+}

@@ -312,7 +312,7 @@ enum Command {
     ///
     /// Prints a diff by default; pass --write to apply it.
     Translate {
-        /// File to rewrite.
+        /// File to rewrite, or a directory to sweep file by file.
         file: PathBuf,
         /// Target language, or `fastapi` for a Next.js API route.
         language: Option<String>,
@@ -1309,6 +1309,9 @@ fn cmd_translate(
     force: bool,
 ) -> Result<()> {
     let path = workspace_path(cli, file)?;
+    if path.is_dir() {
+        return cmd_translate_directory(cli, &path, language, write, force);
+    }
     // The destination may not exist yet, so it cannot go through `workspace_path`,
     // which canonicalizes. Same rule though: a relative path is relative to the
     // workspace root, not to wherever this process happens to run.
@@ -1457,6 +1460,157 @@ fn cmd_translate(
 }
 
 /// `fr translate <route.ts> fastapi`, a Next.js API route as a FastAPI module.
+/// Translate everything under a directory into one language, atomically.
+///
+/// Every file is accounted for: translated, skipped for a named reason, or
+/// failed with the error beside it. A silent skip reads as coverage.
+fn cmd_translate_directory(
+    cli: &Cli,
+    dir: &std::path::Path,
+    language: Option<&str>,
+    write: bool,
+    force: bool,
+) -> Result<()> {
+    let Some(language) = language else {
+        anyhow::bail!(
+            "{} is a directory; name the target language to translate everything under it.",
+            dir.display()
+        );
+    };
+    if language.eq_ignore_ascii_case("fastapi") {
+        anyhow::bail!(
+            "fastapi reads a route file's path as well as its text, so routes translate \
+             one at a time."
+        );
+    }
+    let to = crate::lang::Language::from_name(language)
+        .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
+
+    let scanned = scan(dir, &ScanOptions::default())?;
+    let mut edits = crate::edit::EditSet::new();
+    let mut fidelity = crate::transpile::Fidelity::default();
+    let mut translated: Vec<PathBuf> = Vec::new();
+    let mut already_target = 0usize;
+    let mut unreadable: BTreeMap<&'static str, usize> = BTreeMap::new();
+    let mut occupied: Vec<PathBuf> = Vec::new();
+    let mut failed: Vec<(PathBuf, String)> = Vec::new();
+    let mut claimed: std::collections::BTreeSet<PathBuf> = std::collections::BTreeSet::new();
+
+    for file in &scanned.files {
+        if file.language == to {
+            already_target += 1;
+            continue;
+        }
+        if !crate::transpile::can_be_read(file.language) {
+            *unreadable.entry(file.language.name()).or_default() += 1;
+            continue;
+        }
+        let destination = crate::translate::destination_for(&file.path, to)?;
+        if !claimed.insert(destination.clone()) {
+            failed.push((
+                file.path.clone(),
+                format!(
+                    "{} is already claimed by another file in this sweep.",
+                    destination.display()
+                ),
+            ));
+            continue;
+        }
+        if crate::vfs::exists(&destination) && !force {
+            occupied.push(destination);
+            continue;
+        }
+        match crate::transpile::plan_to(&file.path, to, Some(&destination), force) {
+            Ok(plan) => {
+                translated.push(file.path.clone());
+                fidelity.functions += plan.fidelity.functions;
+                fidelity.records += plan.fidelity.records;
+                fidelity.constants += plan.fidelity.constants;
+                fidelity.newtypes += plan.fidelity.newtypes;
+                fidelity.sums += plan.fidelity.sums;
+                fidelity.signatures_complete += plan.fidelity.signatures_complete;
+                fidelity.signatures_with_foreign_types +=
+                    plan.fidelity.signatures_with_foreign_types;
+                fidelity.carried_verbatim += plan.fidelity.carried_verbatim;
+                edits.extend(plan.edits);
+            }
+            Err(error) => failed.push((file.path.clone(), error.to_string())),
+        }
+    }
+
+    if cli.json {
+        let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
+        let changes: Vec<_> = outcomes
+            .iter()
+            .map(|o| serde_json::json!({ "path": o.path, "diff": o.unified_diff() }))
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "target": to.name(),
+                "translated": translated,
+                "functions": fidelity.functions,
+                "records": fidelity.records,
+                "constants": fidelity.constants,
+                "newtypes": fidelity.newtypes,
+                "sums": fidelity.sums,
+                "signatures_complete": fidelity.signatures_complete,
+                "signatures_with_foreign_types": fidelity.signatures_with_foreign_types,
+                "carried_verbatim": fidelity.carried_verbatim,
+                "already_target": already_target,
+                "unreadable": unreadable,
+                "destination_exists": occupied,
+                "failed": failed
+                    .iter()
+                    .map(|(p, e)| serde_json::json!({ "path": p, "error": e }))
+                    .collect::<Vec<_>>(),
+                "applied": write,
+                "changes": changes,
+            }))?
+        );
+        if write && !outcomes.is_empty() {
+            crate::edit::commit(&outcomes)?;
+        }
+        return Ok(());
+    }
+
+    println!(
+        "{} file(s) under {} translate to {to}: {} function(s), {} record(s), {} \
+         constant(s), {} construct(s) carried.",
+        translated.len(),
+        dir.display(),
+        fidelity.functions,
+        fidelity.records,
+        fidelity.constants,
+        fidelity.carried_verbatim
+    );
+    if already_target > 0 {
+        println!("  {already_target} file(s) are already {to}.");
+    }
+    for (name, count) in &unreadable {
+        println!("  {count} {name} file(s) have no reader, so they were skipped.");
+    }
+    for destination in &occupied {
+        println!(
+            "  {} already exists, so its source was skipped. --force overwrites.",
+            destination.display()
+        );
+    }
+    for (path, error) in &failed {
+        println!("  {} failed: {error}", path.display());
+    }
+    if translated.is_empty() {
+        println!("Nothing to translate.");
+        return Ok(());
+    }
+    let summary = format!(
+        "{} file(s) translated to {to} under {}",
+        translated.len(),
+        dir.display()
+    );
+    present(cli, &edits, &summary, write)
+}
+
 fn cmd_translate_fastapi(
     cli: &Cli,
     path: &std::path::Path,
