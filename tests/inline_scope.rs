@@ -107,3 +107,35 @@ fn a_declaration_spanning_several_lines_is_removed_whole() {
     );
     assert!(after.contains("Service = local.name"), "{after}");
 }
+
+#[test]
+fn a_side_effecting_value_used_twice_refuses_to_double() {
+    // `let v = effect(); v + v` inlined is `effect() + effect()`, the effect run
+    // twice. The call inliner refuses this for arguments; the variable inliner
+    // owes its callers the same promise.
+    let (_tmp, index) = workspace(&[(
+        "src/lib.rs",
+        "fn effect() -> i32 {\n    println!(\"side effect\");\n    5\n}\n\n\
+         pub fn run() -> i32 {\n    let v = effect();\n    v + v\n}\n",
+    )]);
+    let err = inline::variable(&index, nth_named(&index, "v", 0)).unwrap_err();
+    assert!(
+        err.to_string().contains("evaluate it more than once"),
+        "the refusal names the hazard: {err}"
+    );
+}
+
+#[test]
+fn a_string_literal_used_twice_still_inlines() {
+    // A message string repeats safely; the effect check must not swallow it.
+    let (_tmp, index) = workspace(&[(
+        "src/lib.rs",
+        "pub fn greet() -> String {\n    let msg = \"hello world\";\n    \
+         let a = String::from(msg);\n    let b = String::from(msg);\n    a + &b\n}\n",
+    )]);
+    let plan = inline::variable(&index, nth_named(&index, "msg", 0)).unwrap();
+    assert!(
+        !plan.edits.is_empty(),
+        "two uses of a plain literal inline without complaint"
+    );
+}

@@ -120,6 +120,20 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
+    // Substituting the value more than once evaluates it more than once. A call may
+    // do something each time it runs: `let v = effect(); v + v` inlined is
+    // `effect() + effect()`, the effect twice. The same rule the call inliner
+    // applies to its arguments.
+    if references.len() > 1 && !is_duplicable(&value_text) {
+        anyhow::bail!(
+            "'{}' is used {} times and `{}` is not a simple value; \
+             inlining would evaluate it more than once",
+            sym.name,
+            references.len(),
+            value_text
+        );
+    }
+
     // A name inside the value must mean the same thing at every use site, or the
     // substituted expression would silently bind to something else.
     if let Some(captured) = shadowed_name(index, &value_span, &references, &sym.file) {
@@ -973,15 +987,41 @@ pub fn supports_call(language: crate::lang::Language) -> bool {
     )
 }
 
-/// May this argument be substituted more than once without changing behaviour?
+/// May this value be substituted more than once without changing behaviour?
 fn is_duplicable(argument: &str) -> bool {
     // A bare name or a literal has no effects and costs nothing to repeat.
     let trimmed = argument.trim();
+    if whole_string_literal(trimmed) {
+        return true;
+    }
     !trimmed.is_empty()
         && trimmed
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '.' || c == '"')
         && !trimmed.contains('(')
+}
+
+/// One double-quoted literal and nothing after it.
+///
+/// `"hello world"` repeats safely; the character test above rejects its space, and a
+/// message string is the most ordinary constant there is. `"a" + f()` also begins and
+/// ends with a quote, so the interior has to prove the first literal runs to the end.
+fn whole_string_literal(text: &str) -> bool {
+    let Some(interior) = text
+        .strip_prefix('"')
+        .and_then(|t| t.strip_suffix('"'))
+        .filter(|_| text.len() >= 2)
+    else {
+        return false;
+    };
+    let mut escaped = false;
+    for c in interior.chars() {
+        if !escaped && c == '"' {
+            return false;
+        }
+        escaped = !escaped && c == '\\';
+    }
+    true
 }
 
 /// Count whole-word occurrences of `word`.
