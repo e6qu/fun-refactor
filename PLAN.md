@@ -1376,3 +1376,23 @@ an edit, and a closed pipe ends a listing quietly. Diffs now apply under
 exit code names the failure. `fr scan` accounts for symlinks, an empty
 `restructure` pattern stops a recipe, and `fr remove-flag` names the mentions
 it cannot rewrite.
+
+### The pass where the two probes met in the middle
+
+Three more probes: one adversarial against the fixes of the pass before, one
+into translation with compilers and runtimes waiting, one for scale and the
+agent loop. The refactoring side closed the holes the attribute work had
+opened (B407, B408) and the ones dispatch still had (B409, B410), and `fr
+move` and `fr inline --call` stopped writing Python that raises on first use
+(B411, B412). The edit engine grew the two guarantees concurrent use needs:
+a commit verifies its basis and holds a lock, so the race that silently
+dropped a rename now refuses with the reason (B399). The rest of the
+robustness ledger, B400 through B406, is exit codes an agent can branch on,
+diff headers `git apply` accepts, a scan that says what it skipped, and the
+figures that disagreed brought into one truth.
+
+On the translation side the corpus ledger kept falling: identifier-named Zig
+tests cross with a collision-proof name, `errdefer` cleans up on the failure
+path in the languages whose failures are exceptions, and a base class in the
+same module lays flat into its extenders where nothing inherits, so the
+supertype marker stands only for what is truly out of reach.

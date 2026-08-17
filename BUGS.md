@@ -175,6 +175,48 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B412: **`fr inline --call` pasted a callee's module globals across files.**
+  `clamp` read `LIMIT` from beside itself; pasted into another file the name
+  meant nothing there, and the paste compiled, ran, and raised NameError with
+  no warning. A body name defined beside the callee and invisible at the call
+  site refuses, named. Pinned in `tests/inline_call.rs`.
+
+- [x] B411: **`fr move` broke Python importers twice over.** Code moved into the
+  file it imported from carried the import along, a module importing itself
+  half-initialised; and an importer holding the whole module (`import mod;
+  mod.foo()`) gained a dead named import while every call kept dereferencing
+  the module that no longer held the name. The self-import is dropped, and the
+  module-attribute receivers rewrite to the new module, which the importer now
+  imports. Pinned in `tests/move_languages.rs`.
+
+- [x] B410: **a receiver's declared type did not hold its call still.** Renaming
+  `A`'s overloads took `b.size(2)` with them as a dispatch candidate, though
+  `b` is declared `B` and `B` answers `size` itself; javac refused the result.
+  A dispatch-candidate site whose receiver's declared type sits outside the
+  family stays, and the warning names the type instead of claiming it unknown.
+  The same evidence holds `fr signature` still. Pinned in
+  `tests/rename_hierarchy.rs`.
+
+- [x] B409: **TypeScript overload signatures renamed apart from their
+  implementation.** Two `function pick` declarations over one body are one
+  function; renaming any alone left `error TS2389`. Same name, same file, same
+  container is the entity. Pinned in `tests/rename_hierarchy.rs`.
+
+- [x] B408: **deleting the only statement of a Python suite wrote a file that
+  does not parse.** The hole gets a `pass`, judged against every span of the
+  plan so a multi-site delete still empties cleanly.
+  Pinned in `tests/python_attributes.rs`.
+
+- [x] B407: **instance attributes and locals fed each other's renames.** A bare
+  `count` never names a member in the languages that spell members through a
+  receiver, and `self.count` in a sibling method is a member of the enclosing
+  class wherever its definition sites sit; both resolutions said otherwise, so
+  a local's rename took one line of three and an attribute's skipped the
+  sibling method and the subclass. Bare names now exclude members, the
+  enclosing instance resolves by the class the code sits in, and the attribute
+  family crosses the declared class chain. Pinned in
+  `tests/python_attributes.rs`.
+
 - [x] B399: **two racing `fr rename --write` runs both reported applied and one
   rename vanished.** Whole-file writes let the last writer win in silence. The
   commit now re-reads every file and refuses whenever the text differs from what
