@@ -574,6 +574,14 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.sum_items = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some((s.name.clone(), s.clone())),
+            _ => None,
+        })
+        .collect();
     // A target without inheritance can still hold what a base in the same module
     // contributed. The base's own fields and methods lay flat into the extending
     // record. The supertype marker then only stands where the base is truly out
@@ -677,6 +685,12 @@ struct Out {
     /// matches, the positions map onto these; otherwise the construction
     /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
+    /// The module's own choices, whole, for building a variant of one.
+    ///
+    /// The name set in `sums` answers "is this a choice"; making a value of one
+    /// needs the declaration itself, for the discriminator TypeScript writes and
+    /// the field order Java's record constructor takes.
+    sum_items: std::collections::BTreeMap<String, Sum>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
     ///
     /// In a target without the idiom the method is ordinary and its accessors
@@ -770,6 +784,7 @@ impl Out {
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
+            sum_items: std::collections::BTreeMap::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
@@ -1813,6 +1828,19 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(rust_expr(out, operand), operand))
         }
+        Expr::Variant { sum, name, fields } => {
+            let owner = out.name(sum);
+            let variant = out.name(name);
+            match fields.is_empty() {
+                true => format!("{owner}::{variant}"),
+                false => {
+                    let rendered = joined(fields, |(f, v)| {
+                        format!("{}: {}", out.field(f), rust_expr(out, v))
+                    });
+                    format!("{owner}::{variant} {{ {rendered} }}")
+                }
+            }
+        }
         Expr::Tuple(items) => match items.as_slice() {
             [one] => format!("({},)", rust_expr(out, one)),
             _ => format!("({})", joined(items, |i| rust_expr(out, i))),
@@ -2811,6 +2839,14 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Not => format!("not {rendered}"),
                 UnaryOp::Neg => format!("-{rendered}"),
             }
+        }
+        // A variant is its own dataclass here, and the sum only an alias over
+        // them, so the variant's constructor is the whole spelling.
+        Expr::Variant { name, fields, .. } => {
+            let rendered = joined(fields, |(f, v)| {
+                format!("{}={}", out.field(f), python_expr(out, v))
+            });
+            format!("{}({rendered})", out.name(name))
         }
         // `(a,)` and not `(a)`: without the comma the parentheses are grouping.
         Expr::Tuple(items) => match items.as_slice() {
@@ -3983,6 +4019,16 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(go_expr(out, operand), operand))
         }
+        // The variant is a struct of Go's marker-interface convention, so
+        // building one is building that struct.
+        Expr::Variant { name, fields, .. } => {
+            let rendered = joined(fields, |(f, v)| {
+                format!("{}: {}", out.field(f), go_expr(out, v))
+            });
+            // Parenthesised because Go refuses a bare composite literal where a
+            // block could follow: `if x == Go{}` reads the brace as the body.
+            format!("({}{{{rendered}}})", out.name(name))
+        }
         // Outside a return Go has no way to say several-values-as-one, and the return
         // is handled where returns are written. What lands here is carried, visibly.
         // An element may carry a marker of its own, and comments do not nest.
@@ -4921,6 +4967,20 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => "-",
             };
             format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
+        }
+        // The discriminator field is what the checker narrows on, so the
+        // literal must be the one the type declared.
+        Expr::Variant { sum, name, fields } => {
+            let tag = out
+                .sum_items
+                .get(sum)
+                .map(discriminator)
+                .unwrap_or_else(|| "kind".to_string());
+            let mut parts = vec![format!("{tag}: \"{}\"", snake_always(name))];
+            for (f, v) in fields {
+                parts.push(format!("{}: {}", out.field(f), ts_expr(out, v)));
+            }
+            format!("{{ {} }}", parts.join(", "))
         }
         // A tuple's value in TypeScript is an array; only its type is written apart.
         Expr::Tuple(items) => format!("[{}]", joined(items, |i| ts_expr(out, i))),
@@ -5958,6 +6018,23 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(java_expr(out, operand), operand))
         }
+        // A variant is a record of the sealed interface, and a record takes
+        // its components positionally, in declared order.
+        Expr::Variant { sum, name, fields } => {
+            let declared: Vec<String> = out
+                .sum_items
+                .get(sum)
+                .and_then(|s| s.variants.iter().find(|v| &v.name == name))
+                .map(|v| v.fields.iter().map(|f| f.name.clone()).collect())
+                .unwrap_or_else(|| fields.iter().map(|(f, _)| f.clone()).collect());
+            let mut ordered: Vec<String> = Vec::new();
+            for field in &declared {
+                if let Some((_, value)) = fields.iter().find(|(f, _)| f == field) {
+                    ordered.push(java_expr(out, value));
+                }
+            }
+            format!("new {}({})", out.name(name), ordered.join(", "))
+        }
         // Java has no tuple value. `List.of` would erase the types and claim a
         // collection the source never had, so the tuple is carried, visibly.
         // An element may carry a marker of its own, and comments do not nest.
@@ -6959,6 +7036,20 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(zig_expr(out, operand), operand))
         }
+        // The union's own spelling: a dot-literal for a bare tag, the
+        // one-field initializer for a payload.
+        Expr::Variant { name, fields, .. } => match fields.as_slice() {
+            [] => format!(".{}", snake_always(name)),
+            [(single, value)] if single == "value" => {
+                format!(".{{ .{} = {} }}", snake_always(name), zig_expr(out, value))
+            }
+            _ => {
+                let rendered = joined(fields, |(f, v)| {
+                    format!(".{} = {}", out.field(f), zig_expr(out, v))
+                });
+                format!(".{{ .{} = .{{ {rendered} }} }}", snake_always(name))
+            }
+        },
         // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
         Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
         // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
@@ -7175,6 +7266,7 @@ fn result_ok(declared: &std::collections::BTreeSet<String>, ty: Option<&Type>) -
 fn contains_unsupported(e: &Expr) -> bool {
     match e {
         Expr::Unsupported(_) => true,
+        Expr::Variant { fields, .. } => fields.iter().any(|(_, v)| contains_unsupported(v)),
         Expr::Field { of, .. } => contains_unsupported(of),
         Expr::Index { of, index } => contains_unsupported(of) || contains_unsupported(index),
         Expr::Call { callee, args } | Expr::New { callee, args } => {

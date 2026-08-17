@@ -285,6 +285,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::Await(inner) | Expr::Propagate(inner) => bad(inner),
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::RecordLit { fields, .. } => fields.iter().any(|(_, value)| bad(value)),
+            Expr::Variant { fields, .. } => fields.iter().any(|(_, value)| bad(value)),
             Expr::InstanceOf { value, ty } => bad(value) || bad(ty),
             Expr::Cast { ty, value } => bad(ty) || bad(value),
             Expr::Keyword { value, .. } => bad(value),
@@ -537,6 +538,7 @@ mod rust {
             }
         }
         settle_builtins(&mut module);
+        super::settle_variants(&mut module);
         module
     }
 
@@ -1326,6 +1328,8 @@ mod rust {
                 | "index_expression"
                 | "macro_invocation"
                 | "unit_expression"
+                | "struct_expression"
+                | "scoped_identifier"
         )
     }
 
@@ -1427,6 +1431,16 @@ mod rust {
                     .map(|a| cx.children(a).iter().map(|n| expr(cx, *n)).collect())
                     .unwrap_or_default(),
             ),
+            // `Shape::Point` read as a value: a variant candidate, kept only where
+            // the settle pass finds the sum among this module's own.
+            "scoped_identifier" => match cx.text(node).rsplit_once("::") {
+                Some((head, tail)) => Expr::Variant {
+                    sum: head.to_string(),
+                    name: tail.to_string(),
+                    fields: Vec::new(),
+                },
+                None => Expr::Name(cx.text(node)),
+            },
             // `Counter { value: 0, step }`, the one way Rust builds a record, and the
             // line every constructor is made of. Nothing read it, so every constructor
             // body in every target came out as "not translated".
@@ -1435,11 +1449,30 @@ mod rust {
                     .field(node, "name")
                     .map(|n| cx.text(n))
                     .unwrap_or_default();
-                // `StopReason::Conditional { … }` builds an enum variant, not a record. No
-                // target here has a tagged union to build one in. Writing the path through
-                // produced Go that says `StopReason::Conditional{…}`, which Go does not parse.
-                if ty.contains("::") {
-                    return Expr::Unsupported(cx.unsupported(node));
+                // `StopReason::Conditional { … }` builds an enum variant. It reads
+                // as one here and the settle pass at the end of the module keeps it
+                // only where the head names one of this module's own sums; anything
+                // else goes back to being carried, as it always was.
+                if let Some((head, tail)) = ty.rsplit_once("::") {
+                    let mut fields = Vec::new();
+                    if let Some(body) = cx.field(node, "body") {
+                        for initialiser in cx.children(body) {
+                            if initialiser.kind() == "field_initializer" {
+                                let name =
+                                    cx.field_text(initialiser, "field").unwrap_or_default();
+                                let value = cx
+                                    .field(initialiser, "value")
+                                    .map(|v| expr(cx, v))
+                                    .unwrap_or(Expr::Null);
+                                fields.push((name, value));
+                            }
+                        }
+                    }
+                    return Expr::Variant {
+                        sum: head.to_string(),
+                        name: tail.to_string(),
+                        fields,
+                    };
                 }
                 let mut fields = Vec::new();
                 if let Some(body) = cx.field(node, "body") {
@@ -7141,6 +7174,11 @@ fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(value, visit);
             }
         }
+        Expr::Variant { fields, .. } => {
+            for (_, value) in fields {
+                each_expr(value, visit);
+            }
+        }
         Expr::Coalesce { value, fallback } => {
             each_expr(value, visit);
             each_expr(fallback, visit);
@@ -7211,6 +7249,75 @@ fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
             Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
         }
     }
+}
+
+/// Keep the variant candidates this module's own sums answer for; carry the rest.
+///
+/// A reader cannot know the sums while it reads expressions, so `Shape::Point`
+/// and `Vec::new` both arrive as candidates. Here the sums are known. A candidate
+/// the module declares stays and takes the sum's plain name; a candidate in
+/// callee position or naming anything else goes back to being carried, which is
+/// what every such path was before candidates existed.
+fn settle_variants(module: &mut Module) {
+    use std::collections::{BTreeMap, BTreeSet};
+    let sums: BTreeMap<String, BTreeSet<String>> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some((
+                s.name.clone(),
+                s.variants.iter().map(|v| v.name.clone()).collect(),
+            )),
+            _ => None,
+        })
+        .collect();
+    let demoted = |sum: &str, name: &str, fields: &[(String, Expr)]| {
+        let source = match fields.is_empty() {
+            true => format!("{sum}::{name}"),
+            false => format!("{sum}::{name} {{ .. }}"),
+        };
+        Expr::Unsupported(Unsupported {
+            construct: "a name reached through a path".to_string(),
+            source,
+            line: 0,
+        })
+    };
+    each_expr_in_module(module, &mut |e| {
+        if let Expr::Call { callee, args } = e {
+            // A path used as a callee is `Vec::new()` or a tuple-variant build;
+            // neither has a crossing. The walk settles children first, so by now
+            // the callee is either a still-valid variant (a tuple-variant build)
+            // or the carried path this pass demoted it to; either way, demoting
+            // only the callee left the marker being called, and `None()` ran in
+            // Python. The whole call carries.
+            let path_callee = match callee.as_ref() {
+                Expr::Variant { sum, name, .. } => Some(format!("{sum}::{name}")),
+                Expr::Unsupported(u) if u.construct == "a name reached through a path" => {
+                    Some(u.source.clone())
+                }
+                _ => None,
+            };
+            if let Some(path) = path_callee {
+                let source = format!("{path}({} argument(s))", args.len());
+                *e = Expr::Unsupported(Unsupported {
+                    construct: "a call through a path".to_string(),
+                    source,
+                    line: 0,
+                });
+                return;
+            }
+        }
+        if let Expr::Variant { sum, name, fields } = e {
+            let plain = sum.rsplit([':', '.']).next().unwrap_or(sum).to_string();
+            let answered = sums
+                .get(&plain)
+                .is_some_and(|variants| variants.contains(name.as_str()));
+            match answered {
+                true => *sum = plain,
+                false => *e = demoted(sum, name, fields),
+            }
+        }
+    });
 }
 
 /// The pieces between top-level commas, nesting respected.

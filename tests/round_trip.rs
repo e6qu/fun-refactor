@@ -164,6 +164,7 @@ fn fields(module: &Module) -> Vec<(String, String)> {
 /// which this check must not call an unexplained loss.
 fn untranslatable(e: &Expr) -> bool {
     match e {
+        Expr::Variant { fields, .. } => fields.iter().any(|(_, v)| untranslatable(v)),
         Expr::Unsupported(_) => true,
         Expr::Field { of, .. } => untranslatable(of),
         Expr::Index { of, index } => untranslatable(of) || untranslatable(index),

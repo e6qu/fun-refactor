@@ -575,6 +575,19 @@ pub enum Expr {
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
+    /// One variant of a closed choice, made: `Shape::Circle { radius }`,
+    /// `.{ .one = n }`, `{ kind: "circle", radius }`.
+    ///
+    /// The types crossed for eleven passes while every value of one carried, in
+    /// every direction at once. Each language builds the same thing its own way:
+    /// Rust names the path, Zig the dot-literal, TypeScript writes the
+    /// discriminator field, Python and Java call the variant's own constructor,
+    /// Go builds the variant struct. Fields are empty for a bare tag.
+    Variant {
+        sum: String,
+        name: String,
+        fields: Vec<(String, Expr)>,
+    },
     /// `(a, b)`: several values travelling as one, without a name for the whole.
     ///
     /// Go returns them, and dropping the payload of `return a, b` turned a two-value
