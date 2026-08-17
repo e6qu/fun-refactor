@@ -29,6 +29,12 @@ pub struct Report {
     pub files_changed: usize,
     /// Did every expectation hold, and was every refusal permitted?
     pub ok: bool,
+    /// Why the run ended early, when a refusal stopped it.
+    ///
+    /// This used to ride along as one more [`StepReport`], which made a stopped two-step
+    /// recipe report three steps. A stop is a verdict on the run, so it is carried apart
+    /// from the steps and the step count stays the count of steps.
+    pub stopped: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -160,22 +166,11 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
                 expectations,
                 files_changed: 0,
                 ok: false,
+                stopped: Some(why),
             },
             // Nothing is written: the transaction did not complete.
             originals,
-        ))
-        .map(|(mut report, sources)| {
-            report.steps.push(StepReport {
-                step: format!("stopped: {why}"),
-                selector: String::new(),
-                matched: 0,
-                applied: 0,
-                refusals: Vec::new(),
-                warnings: Vec::new(),
-                files_changed: 0,
-            });
-            (report, sources)
-        });
+        ));
     }
 
     Ok((
@@ -186,6 +181,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
             expectations,
             files_changed,
             ok,
+            stopped: None,
         },
         sources,
     ))

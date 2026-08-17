@@ -821,7 +821,7 @@ mod tests {
     #[test]
     fn adjacent_actions_in_a_value_still_parse() {
         // `name: {{.Release.Name}}-{{.Chart.Name}}` is ordinary Helm. Masking with
-        // spaces left `name:` followed by a lone `-`, which YAML rejects — 28 of the
+        // spaces left `name:` followed by a lone `-`, which YAML rejects: 28 of the
         // 37 parse failures across the Helm repository were this one shape.
         let src = "metadata:\n  name: {{.Release.Name}}-{{.Chart.Name}}\n";
         let parsed = parse(Language::Helm, src);

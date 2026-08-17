@@ -112,6 +112,52 @@ fn a_flag_with_no_conditional_just_disappears() {
 }
 
 #[test]
+fn a_flag_used_negated_collapses_all_the_same() {
+    // `if !USE_NEW` substitutes into `if !true`, which is as constant as the literal.
+    // The dead branch used to stay behind while the report claimed the collapse ran.
+    let tmp = workspace(&[(
+        "a.rs",
+        "const USE_NEW: bool = true;\n\nfn run() {\n    if !USE_NEW {\n        old_path();\n    }\n    always();\n}\n",
+    )]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("a cascade must not leave the file broken");
+    assert!(!outcomes.is_empty());
+    let out = result_for(tmp.path(), "a.rs", &plan);
+
+    assert!(
+        !out.contains("old_path();"),
+        "dead branch should go:\n{out}"
+    );
+    assert!(!out.contains("!true"), "the test should collapse:\n{out}");
+    assert!(out.contains("always();"), "got:\n{out}");
+}
+
+#[test]
+fn a_python_flag_used_under_not_collapses_all_the_same() {
+    let tmp = workspace(&[(
+        "a.py",
+        "USE_NEW = True\n\n\ndef run():\n    if not USE_NEW:\n        old_path()\n    always()\n",
+    )]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("a cascade must not leave the file broken");
+    assert!(!outcomes.is_empty());
+    let out = result_for(tmp.path(), "a.py", &plan);
+
+    assert!(!out.contains("old_path()"), "dead branch should go:\n{out}");
+    assert!(
+        !out.contains("not True"),
+        "the test should collapse:\n{out}"
+    );
+    assert!(out.contains("always()"), "got:\n{out}");
+}
+
+#[test]
 fn works_across_files() {
     let tmp = workspace(&[
         ("flags.rs", "pub const USE_NEW: bool = true;\n"),
