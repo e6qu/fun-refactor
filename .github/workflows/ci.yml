@@ -16,7 +16,16 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  # The gate's two feature sets share no compilation, and in one job the two test
+  # suites ran in sequence for nearly all of a 23-minute wall clock. Each slice is a
+  # parallel job now, and `tools/check.sh` stays the one definition of passing: the
+  # slices are its arguments, and a laptop with no argument still runs both. Both
+  # slices run the full test suite, so both need every validator installed.
   check:
+    strategy:
+      fail-fast: false
+      matrix:
+        slice: [default, wasm]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,8 +85,11 @@ jobs:
         working-directory: tests/typesafety/typescript
 
       # The tree-sitter grammars are C, and there is one per language, so a cold
-      # build is minutes and not seconds.
+      # build is minutes and not seconds. Keyed by slice, because each slice compiles
+      # its own feature set and one cache holding both halves evicts itself.
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.slice }}
 
       # Formatting, clippy and the tests, on the default feature set and again with
       # the browser API compiled in — the latter because it is a feature set neither
@@ -93,7 +105,7 @@ jobs:
       # accept the language, not that anything ever ran it; the report fails when a claimed
       # cell went undriven, so the 270/270 is defended here and not merely checkable.
       - name: Check
-        run: ./tools/check.sh
+        run: ./tools/check.sh ${{ matrix.slice }}
 
   # The site's playground is a WebAssembly build plus a Vite bundle, and it is
   # published by a workflow that only runs on main. Without this, a pull request goes
