@@ -370,9 +370,10 @@ reproduces, and is pinned by a test that fails when it stops being true.
   covers a CSS class assembled inside a helper call. Each stands on the report, not on the
   gap. `tests/open_defects.rs` asserts both halves: a rename that quietly skipped the
   helper call would satisfy the first half of B14 and fail the second.
-- **A dispatch family renames as a unit (B382).** The `Hierarchy` that spares
-  implementations from `fr unused` now carries `fr rename` too. The declaration,
-  every implementation, and the unresolved dispatch sites move together. The
+- **A dispatch family renames, re-signs and deletes as a unit (B382, B383).**
+  One `Hierarchy`, four commands. What spares implementations from `fr unused`
+  carries `fr rename`, `fr signature` and `fr delete` now. The declaration,
+  the implementations, and the unresolved dispatch sites move together. The
   last of those is reported for review.
 - **B286 was a decision, and then a fix.** Inlining bracketed by the value; it
   brackets by the use site now. A use held by its own delimiters, a declaration, an

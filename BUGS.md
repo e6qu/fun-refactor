@@ -175,6 +175,20 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B383: **a signature change and a delete ignored the dispatch family.
+  `remove:0` took `&self` off a trait method.** Three holes in one probe. The
+  receiver sat in the declaration's parameter list. Position 0 addressed it,
+  while every call site counted from the first real argument. `fr signature`
+  now takes the receiver off the addressable list for Rust, Python and Zig.
+  The change and the delete now follow the same family `fr rename` learned in
+  B382: every member's declaration changes or goes, each member's body guards
+  the change, and the dispatch sites that resolve to no single implementation
+  are updated with the declared default and named in the notes. The family
+  expands only through declared relationships; the name-only tier that fans a
+  Java call out for reachability is deliberately too weak to merge a change,
+  which the first version of this fix learned from two unrelated `width`
+  methods in the compile gate.
+
 - [x] B382: **renaming a trait method left its implementations behind.** Silent
   broken code. `fr rename` on `Shape::area` renamed the declaration alone.
   `impl Shape for Circle` kept `area`, the dyn-dispatch call kept `area`, and
