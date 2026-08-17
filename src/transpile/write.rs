@@ -1382,6 +1382,11 @@ fn rust_type(ty: &Type) -> String {
             rust_type(v)
         ),
         Type::Optional(inner) => format!("Option<{}>", rust_type(inner)),
+        // `(A,)` and not `(A)`: without the comma the parentheses are grouping.
+        Type::Tuple(parts) => match parts.as_slice() {
+            [one] => format!("({},)", rust_type(one)),
+            _ => format!("({})", joined(parts, rust_type)),
+        },
         Type::Named { name, args } => generic(name, args, "<", ">", "::", rust_type),
     }
 }
@@ -1549,6 +1554,10 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(rust_expr(out, operand), operand))
         }
+        Expr::Tuple(items) => match items.as_slice() {
+            [one] => format!("({},)", rust_expr(out, one)),
+            _ => format!("({})", joined(items, |i| rust_expr(out, i))),
+        },
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
             format!("vec![{}]", rendered.join(", "))
@@ -2143,6 +2152,7 @@ fn python_type(ty: &Type) -> String {
         Type::Float => "float".to_string(),
         Type::String => "str".to_string(),
         Type::List(inner) => format!("list[{}]", python_type(inner)),
+        Type::Tuple(parts) => format!("tuple[{}]", joined(parts, python_type)),
         Type::Map(k, v) => format!("dict[{}, {}]", python_type(k), python_type(v)),
         Type::Optional(inner) => format!("{} | None", python_type(inner)),
         // Python spells generics with brackets, so the arguments are kept
@@ -2351,6 +2361,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => format!("-{rendered}"),
             }
         }
+        // `(a,)` and not `(a)`: without the comma the parentheses are grouping.
+        Expr::Tuple(items) => match items.as_slice() {
+            [one] => format!("({},)", python_expr(out, one)),
+            _ => format!("({})", joined(items, |i| python_expr(out, i))),
+        },
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
@@ -2714,6 +2729,13 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         .collect();
     let returns = match &f.returns {
         Some(Type::Unit) | None => String::new(),
+        // `(int, error)`: the one position Go writes several types at once.
+        Some(Type::Tuple(parts)) => {
+            if parts.iter().any(|p| out.is_foreign(p)) {
+                foreign = true;
+            }
+            format!(" ({})", joined(parts, go_type))
+        }
         Some(t) => {
             if out.is_foreign(t) {
                 foreign = true;
@@ -2835,10 +2857,15 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.line("}");
             }
             Stmt::Return(value) => {
-                let text = value
-                    .as_ref()
-                    .map(|v| format!(" {}", go_expr(out, v)))
-                    .unwrap_or_default();
+                // `return a, b`: the one place Go spells a tuple, so the tuple
+                // dissolves into the statement instead of reaching go_expr.
+                let text = match value {
+                    Some(Expr::Tuple(items)) => {
+                        format!(" {}", joined(items, |i| go_expr(out, i)))
+                    }
+                    Some(v) => format!(" {}", go_expr(out, v)),
+                    None => String::new(),
+                };
                 out.line(&format!("return{text}"));
             }
             Stmt::Let { name, value, .. } => {
@@ -3035,6 +3062,11 @@ fn go_type(ty: &Type) -> String {
         Type::List(inner) => format!("[]{}", go_type(inner)),
         Type::Map(k, v) => format!("map[{}]{}", go_type(k), go_type(v)),
         Type::Optional(inner) => format!("*{}", go_type(inner)),
+        // Go can only say several-types-as-one in a function's results, and the
+        // signature writer spells that itself. In any other position — a field, an
+        // argument — the name will not compile, which is honest; `[](A, B)` from a
+        // Rust `Vec<(A, B)>` field did not compile either, unreadably.
+        Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => go_named(name, args),
     }
 }
@@ -3069,6 +3101,8 @@ fn go_zero(ty: &Type) -> String {
         Type::String => "\"\"".to_string(),
         Type::List(_) | Type::Map(_, _) | Type::Optional(_) => "nil".to_string(),
         Type::Unit => String::new(),
+        // The zero of several results is each one's zero, which only a return can say.
+        Type::Tuple(parts) => joined(parts, go_zero),
         Type::Named { name, .. } => format!("{}{{}}", go_named(name, &[])),
     }
 }
@@ -3230,6 +3264,17 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => "-",
             };
             format!("{sign}{}", unary_operand(go_expr(out, operand), operand))
+        }
+        // Outside a return Go has no way to say several-values-as-one, and the return
+        // is handled where returns are written. What lands here is carried, visibly.
+        // An element may carry a marker of its own, and comments do not nest.
+        Expr::Tuple(items) => {
+            let rendered = joined(items, |i| go_expr(out, i)).replace("*/", "* /");
+            out.fidelity.carried_verbatim += 1;
+            out.fidelity
+                .notes
+                .push("outside a return: tuple carried over unchanged".to_string());
+            format!("nil /* {MARKER}: tuple ({rendered}) */")
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
@@ -3917,6 +3962,7 @@ fn ts_type(ty: &Type) -> String {
         Type::List(inner) => format!("{}[]", ts_type(inner)),
         Type::Map(k, v) => format!("Record<{}, {}>", ts_type(k), ts_type(v)),
         Type::Optional(inner) => format!("{} | null", ts_type(inner)),
+        Type::Tuple(parts) => format!("[{}]", joined(parts, ts_type)),
         Type::Named { name, args } => generic(name, args, "<", ">", ".", ts_type),
     }
 }
@@ -4021,6 +4067,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
         }
+        // A tuple's value in TypeScript is an array; only its type is written apart.
+        Expr::Tuple(items) => format!("[{}]", joined(items, |i| ts_expr(out, i))),
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| ts_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
@@ -4828,6 +4876,9 @@ fn java_type(ty: &Type) -> String {
         // Java's `Optional<T>` is the closest thing it has, and it is a real type
         // instead of a nullable annotation.
         Type::Optional(inner) => format!("Optional<{}>", java_boxed(inner)),
+        // Java has no tuple type. The name will not compile, which is the point:
+        // an invented Pair class would compile and claim a shape the source never had.
+        Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => generic(name, args, "<", ">", ".", java_boxed),
     }
 }
@@ -4970,6 +5021,17 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => "-",
             };
             format!("{sign}{}", unary_operand(java_expr(out, operand), operand))
+        }
+        // Java has no tuple value. `List.of` would erase the types and claim a
+        // collection the source never had, so the tuple is carried, visibly.
+        // An element may carry a marker of its own, and comments do not nest.
+        Expr::Tuple(items) => {
+            let rendered = joined(items, |i| java_expr(out, i)).replace("*/", "* /");
+            out.fidelity.carried_verbatim += 1;
+            out.fidelity
+                .notes
+                .push("no tuple here: tuple carried over unchanged".to_string());
+            format!("null /* {MARKER}: tuple ({rendered}) */")
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
@@ -5727,6 +5789,7 @@ fn zig_type(ty: &Type) -> String {
             other => format!("std.AutoHashMap({}, {})", zig_type(other), zig_type(value)),
         },
         Type::Optional(inner) => format!("?{}", zig_type(inner)),
+        Type::Tuple(parts) => format!("struct {{ {} }}", joined(parts, zig_type)),
         // A generic type is a function of its arguments, so it is applied and not
         // bracketed: `ArrayList(u8)`, not `ArrayList<u8>`.
         Type::Named { name, args } => {
@@ -5908,6 +5971,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(zig_expr(out, operand), operand))
         }
+        // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
+        Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
         // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
         // is used and not by the literal.
         Expr::ListLit(items) => {
@@ -6025,6 +6090,11 @@ fn zig_binary(op: BinaryOp) -> &'static str {
 /// admits a gap. A qualified name arrives spelled the source language's way: Go's `sync.Mutex`
 /// is not Rust, and Rust's `std::sync::Mutex` is not Go. The path is kept. It says where the
 /// type came from, and only `separator` changes.
+/// The parts rendered and comma-joined, the shape every tuple spelling shares.
+fn joined<T>(parts: &[T], mut render: impl FnMut(&T) -> String) -> String {
+    parts.iter().map(&mut render).collect::<Vec<_>>().join(", ")
+}
+
 fn generic(
     name: &str,
     args: &[Type],

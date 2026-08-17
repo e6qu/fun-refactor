@@ -232,6 +232,12 @@ pub enum Type {
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Optional(Box<Type>),
+    /// `(int, error)`, `tuple[int, str]`, `[number, string]`: several types as one.
+    ///
+    /// Go's multiple return is the reason this exists: its result type has to cross
+    /// as the pair it is, and flattening it to a name produced `Unwritable_int__error`
+    /// in a signature that every target could in fact spell.
+    Tuple(Vec<Type>),
     /// A type the reader recognised the shape of but not the meaning.
     ///
     /// Structured and not opaque text, because generic syntax differs: writing
@@ -280,6 +286,10 @@ impl fmt::Display for Type {
             Type::List(inner) => write!(f, "list<{inner}>"),
             Type::Map(k, v) => write!(f, "map<{k}, {v}>"),
             Type::Optional(inner) => write!(f, "optional<{inner}>"),
+            Type::Tuple(parts) => {
+                let rendered: Vec<String> = parts.iter().map(|p| p.to_string()).collect();
+                write!(f, "tuple<{}>", rendered.join(", "))
+            }
             Type::Named { name, args } if args.is_empty() => write!(f, "{name}"),
             Type::Named { name, args } => {
                 let rendered: Vec<String> = args.iter().map(|a| a.to_string()).collect();
@@ -537,6 +547,13 @@ pub enum Expr {
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
+    /// `(a, b)`: several values travelling as one, without a name for the whole.
+    ///
+    /// Go returns them, and dropping the payload of `return a, b` turned a two-value
+    /// return into a bare `return` with nothing said, which is the silent wrong answer
+    /// this node exists to end. Rust and Python write tuples anywhere; TypeScript
+    /// spells the value as an array. Java has no spelling and says so.
+    Tuple(Vec<Expr>),
     /// `[a, b, c]`
     ListLit(Vec<Expr>),
     /// `{"a": 1}` in Python, `{ a: 1 }` in TypeScript, a map literal in Go.

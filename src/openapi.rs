@@ -279,6 +279,10 @@ fn json_type(ty: &Type) -> Value {
             json!({ "type": "object", "additionalProperties": json_type(value) })
         }
         Type::Optional(inner) => json_type(inner),
+        Type::Tuple(parts) => json!({
+            "type": "array",
+            "prefixItems": parts.iter().map(json_type).collect::<Vec<_>>(),
+        }),
         Type::Named { name, .. } => match name.as_str() {
             "datetime" => json!({ "type": "string", "format": "date-time" }),
             // A type this tool does not know is not a type OpenAPI can be told about.

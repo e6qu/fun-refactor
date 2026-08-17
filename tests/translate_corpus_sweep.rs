@@ -50,7 +50,7 @@ const CARRIED: &[(&str, usize)] = &[
     ("throw", 4),
     ("try", 10),
     ("try/catch", 5),
-    ("tuple", 5),
+    ("tuple", 2),
     ("variable_declaration", 655),
 ];
 

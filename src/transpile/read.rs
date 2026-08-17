@@ -254,7 +254,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
                 then,
                 otherwise,
             } => bad(condition) || bad(then) || bad(otherwise),
-            Expr::ListLit(items) => items.iter().any(bad),
+            Expr::Tuple(items) | Expr::ListLit(items) => items.iter().any(bad),
             Expr::MapLit(entries) => entries.iter().any(|(k, v)| bad(k) || bad(v)),
             Expr::Template(parts) => parts.iter().any(|part| match part {
                 TemplatePart::Expr(e) => bad(e),
@@ -813,6 +813,20 @@ mod rust {
             return Type::List(Box::new(ty_text(element)));
         }
 
+        // `(A, B)` is a tuple; `(A)` is only grouping, and `(A,)` says tuple anyway.
+        if let Some(inside) = bare.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
+            let mut parts = super::comma_parts(inside);
+            let trailing = parts.last().is_some_and(String::is_empty);
+            if trailing {
+                parts.pop();
+            }
+            if (parts.len() >= 2 || (trailing && parts.len() == 1))
+                && parts.iter().all(|p| !p.is_empty())
+            {
+                return Type::Tuple(parts.iter().map(|p| ty_text(p)).collect());
+            }
+        }
+
         // `std::collections::HashMap<K, V>` is a `HashMap`. The writer spells the path
         // in full, so a reader that only knew the bare name could not read back what
         // this tool writes.
@@ -1087,6 +1101,9 @@ mod rust {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            "tuple_expression" => {
+                Expr::Tuple(cx.children(node).iter().map(|n| expr(cx, *n)).collect())
+            }
             // `if a { b } else { c }` used as a value. Only where each branch is a block
             // holding one expression and nothing else: anything longer is a statement. There is
             // nowhere inside an argument list to put one.
@@ -1727,6 +1744,19 @@ mod python {
         if let Some(t) = super::scalar(trimmed) {
             return t;
         }
+        for prefix in ["tuple[", "Tuple["] {
+            if let Some(inside) = trimmed
+                .strip_prefix(prefix)
+                .and_then(|s| s.strip_suffix(']'))
+            {
+                let parts = super::comma_parts(inside);
+                // `tuple[X, ...]` is "any number of X", which is a list's shape and
+                // not this one; the ellipsis falls through and is carried by name.
+                if parts.len() >= 2 && parts.iter().all(|p| !p.is_empty() && p != "...") {
+                    return Type::Tuple(parts.iter().map(|p| named_or_scalar(p)).collect());
+                }
+            }
+        }
         for (prefix, build) in [
             ("list[", 0usize),
             ("List[", 0),
@@ -2043,6 +2073,10 @@ mod python {
             "true" => Expr::Bool(true),
             "false" => Expr::Bool(false),
             "none" => Expr::Null,
+            // `(a, b)` and the bare `a, b` of `return a, b` are the same tuple.
+            "tuple" | "expression_list" => {
+                Expr::Tuple(cx.children(node).iter().map(|n| expr(cx, *n)).collect())
+            }
             "string" => {
                 // An f-string interpolates. Dropping the braces would turn
                 // `f"{c} below the floor"` into the literal text `{c} below the
@@ -2529,6 +2563,23 @@ mod go {
     }
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
+        // `(int, error)`: Go writes several results as a parenthesised list, and the
+        // grammar hands it over as the same `parameter_list` a signature uses. Read
+        // as text it became an unwritable name in every target's signature; read as
+        // the tuple it is, every target can spell it or say it cannot.
+        if node.kind() == "parameter_list" {
+            let parts: Vec<Type> = cx
+                .children(node)
+                .iter()
+                .filter(|c| c.kind() == "parameter_declaration")
+                .filter_map(|c| cx.field(*c, "type").map(|t| ty(cx, t)))
+                .collect();
+            match parts.as_slice() {
+                [only] => return only.clone(),
+                [] => {}
+                _ => return Type::Tuple(parts),
+            }
+        }
         ty_text(cx.text(node).trim())
     }
 
@@ -2597,14 +2648,16 @@ mod go {
                 Stmt::Comment(super::uncomment(&cx.text(node)))
             }
             // `return x` wraps its value in an `expression_list`, the same shape that hid every
-            // function body. A single value is the only one that has a counterpart: `return a,
-            // b` is Go's multiple return and nothing else here has one. So it stays unsupported
-            // and is carried with the original.
-            "return_statement" => Stmt::Return(cx.children(node).first().and_then(|e| {
+            // function body. `return a, b` is Go's multiple return, and it crosses as a tuple.
+            // Mapping it to nothing, as this arm once did, turned a two-value return into a
+            // bare `return` with nothing said.
+            "return_statement" => Stmt::Return(cx.children(node).first().map(|e| {
                 match (e.kind(), cx.children(*e).as_slice()) {
-                    ("expression_list", [only]) => Some(expr(cx, *only)),
-                    ("expression_list", _) => None,
-                    _ => Some(expr(cx, *e)),
+                    ("expression_list", [only]) => expr(cx, *only),
+                    ("expression_list", several) => {
+                        Expr::Tuple(several.iter().map(|n| expr(cx, *n)).collect())
+                    }
+                    _ => expr(cx, *e),
                 }
             })),
             "break_statement" => Stmt::Break,
@@ -3532,6 +3585,11 @@ mod zig {
                     }
                 }
                 Type::List(inner) | Type::Optional(inner) => in_type(inner, from, to),
+                Type::Tuple(parts) => {
+                    for part in parts {
+                        in_type(part, from, to);
+                    }
+                }
                 Type::Map(key, value) => {
                     in_type(key, from, to);
                     in_type(value, from, to);
@@ -4013,11 +4071,29 @@ mod zig {
                 other => Type::List(Box::new(from_text(other))),
             };
         }
+        // `struct { A, B }` with only types inside is Zig's tuple, and it is what this
+        // tool's own writer emits for one. A `:` inside names a field, a real struct.
+        if let Some(inside) = text
+            .strip_prefix("struct")
+            .map(str::trim_start)
+            .and_then(|s| s.strip_prefix('{'))
+            .and_then(|s| s.strip_suffix('}'))
+        {
+            let parts = super::comma_parts(inside);
+            if parts.len() >= 2 && parts.iter().all(|p| !p.is_empty() && !p.contains(':')) {
+                return Type::Tuple(parts.iter().map(|p| from_text(p)).collect());
+            }
+        }
         if let Some((head, rest)) = text.split_once('(') {
             if let Some(args) = rest.strip_suffix(')') {
                 let head = head.trim();
                 if !head.is_empty() {
-                    let arguments: Vec<Type> = args.split(',').map(from_text).collect();
+                    // Depth-aware: `HashSet(struct { A, B })` has one argument, and a
+                    // bare split at every comma read it as two halves of nothing.
+                    let arguments: Vec<Type> = super::comma_parts(args)
+                        .iter()
+                        .map(|a| from_text(a))
+                        .collect();
                     // The two maps this tool's own Zig writer emits. Reading them back
                     // as ordinary named types made a `dict[str, str]` cross once and
                     // never come home.
@@ -5074,6 +5150,13 @@ mod typescript {
         if let Some(element) = trimmed.strip_suffix("[]") {
             return Type::List(Box::new(named_or_scalar(element)));
         }
+        // `[A, B]` between brackets is TypeScript's tuple type, one element included.
+        if let Some(inside) = trimmed.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+            let parts = super::comma_parts(inside);
+            if !parts.is_empty() && parts.iter().all(|p| !p.is_empty()) {
+                return Type::Tuple(parts.iter().map(|p| named_or_scalar(p)).collect());
+            }
+        }
         for prefix in ["Array<", "ReadonlyArray<"] {
             if let Some(element) = trimmed
                 .strip_prefix(prefix)
@@ -5584,6 +5667,36 @@ mod typescript {
 ///
 /// Nesting is respected, so `Result<Vec<T>, E>` yields two arguments instead of
 /// three. A name with no brackets is itself with no arguments.
+/// The pieces between top-level commas, nesting respected.
+///
+/// What the tuple spellings share: Rust and Go put types between `(` and `)`,
+/// TypeScript between `[` and `]`, Zig between `struct {` and `}`. Each reader
+/// strips its own brackets and splits the inside here.
+fn comma_parts(inside: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut depth = 0i32;
+    let mut current = String::new();
+    for c in inside.chars() {
+        match c {
+            '<' | '[' | '(' | '{' => {
+                depth += 1;
+                current.push(c);
+            }
+            '>' | ']' | ')' | '}' => {
+                depth -= 1;
+                current.push(c);
+            }
+            ',' if depth == 0 => {
+                parts.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    parts.push(current.trim().to_string());
+    parts
+}
+
 fn split_generic(text: &str) -> (String, Vec<String>) {
     let trimmed = text.trim();
     let (open, close) = if trimmed.ends_with('>') {
