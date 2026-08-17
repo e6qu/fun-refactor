@@ -50,8 +50,15 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
     // Every definition site of the entity, so a CSS class declared by both `.btn` and
-    // `.btn:hover` goes away as a whole and not half.
-    let group = index.definition_group(symbol);
+    // `.btn:hover` goes away as a whole and not half. A method in declared
+    // dispatch goes as one family for the same reason. A trait declaration
+    // without its implementations, or the reverse, is code that cannot compile.
+    let mut group = index.definition_group(symbol);
+    for member in crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol) {
+        group.extend(index.definition_group(member));
+    }
+    group.sort();
+    group.dedup();
     // Some definitions cannot be removed on their own. A CSS selector leaves an orphaned rule
     // behind, so the span is widened to what has to go.
     let parsers = crate::parse::Parsers::new();

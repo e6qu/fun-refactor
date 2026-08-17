@@ -175,8 +175,20 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         );
     }
 
+    // A method in declared dispatch changes as one family. A trait method
+    // with one more parameter than its implementations is a family answering
+    // two shapes, and the callers compile against neither.
+    let family = crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol);
+    let dispatched = !family.is_empty();
+    let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };
+
     // Every call site must be provable: a missed one is a compile error.
-    let references = index.references_to(symbol);
+    let mut references: Vec<&crate::model::Reference> = Vec::new();
+    for member in &members {
+        references.extend(index.references_to(*member));
+    }
+    references.sort_by_key(|r| (r.file.clone(), r.span));
+    references.dedup_by_key(|r| (r.file.clone(), r.span));
     let weak: Vec<_> = references
         .iter()
         .filter(|r| !r.confidence.is_safe_to_rewrite())
@@ -195,42 +207,50 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     }
     reject_hidden_call_sites(index, sym)?;
 
-    let source = crate::vfs::read_to_string(&sym.file)?;
-    let parsed = Parsers::new().parse(sym.language, &source)?;
-    let declaration = parsed
-        .root()
-        .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
-        .ok_or_else(|| anyhow::anyhow!("could not locate the declaration"))?;
-
     let mut edits = EditSet::new();
-    match parameter_list(declaration) {
-        Some(params) => {
-            let param_spans = list_items(params);
-            still_read(index, sym, &param_spans, &change)?;
-            apply_change(
-                &mut edits,
-                &Site {
-                    file: &sym.file,
-                    source: &source,
-                    language: sym.language,
-                },
-                params.start_byte(),
-                &param_spans,
-                &change,
-                true,
-            )?;
+    let mut notes = Vec::new();
+    for member in &members {
+        let Some(m) = index.symbol(*member) else {
+            continue;
+        };
+        let source = crate::vfs::read_to_string(&m.file)?;
+        let parsed = Parsers::new().parse(m.language, &source)?;
+        let declaration = parsed
+            .root()
+            .descendant_for_byte_range(m.full_span.start, m.full_span.end)
+            .ok_or_else(|| anyhow::anyhow!("could not locate the declaration"))?;
+
+        match parameter_list(declaration) {
+            Some(params) => {
+                let param_spans = without_receiver(m.language, m.kind, &source, list_items(params));
+                still_read(index, m, &param_spans, &change)?;
+                apply_change(
+                    &mut edits,
+                    &Site {
+                        file: &m.file,
+                        source: &source,
+                        language: m.language,
+                    },
+                    params.start_byte(),
+                    &param_spans,
+                    &change,
+                    true,
+                )?;
+            }
+            // A declaration can legitimately have no parameter list to change: SCSS
+            // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
+            // Adding the first parameter has to write them.
+            None => {
+                open_a_parameter_list(&mut edits, &m.file, m.name_span.end, &change, true, &m.name)?
+            }
         }
-        // A declaration can legitimately have no parameter list to change: SCSS
-        // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
-        // Adding the first parameter has to write them.
-        None => open_a_parameter_list(
-            &mut edits,
-            &sym.file,
-            sym.name_span.end,
-            &change,
-            true,
-            &sym.name,
-        )?,
+        if *member != symbol {
+            notes.push(format!(
+                "{} at {} changed with the family",
+                m.name,
+                location(&m.file, m.name_span.start)
+            ));
+        }
     }
 
     let mut call_sites = 0;
@@ -302,13 +322,70 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         call_sites += 1;
     }
 
+    // The call sites dispatch reaches without resolving: `s.area(2.0)` on a
+    // trait object names no single implementation, which is why the family
+    // changes as a unit. With every member changed, a site with the old
+    // argument shape calls a signature nothing answers to. It changes too,
+    // and the note says where.
+    if dispatched {
+        let family_of = crate::analysis::call_graph::Family::of;
+        let mut seen: std::collections::HashSet<(std::path::PathBuf, Span)> = references
+            .iter()
+            .map(|r| (r.file.clone(), r.span))
+            .collect();
+        for reference in index.unresolved_matching(symbol) {
+            let member_shaped = matches!(
+                reference.kind,
+                crate::model::ReferenceKind::Call | crate::model::ReferenceKind::Field
+            );
+            if reference.target.is_some()
+                || !member_shaped
+                || reference.confidence != crate::model::Confidence::FieldBased
+                || family_of(reference.language) != family_of(sym.language)
+            {
+                continue;
+            }
+            if !seen.insert((reference.file.clone(), reference.span)) {
+                continue;
+            }
+            let call_source = crate::vfs::read_to_string(&reference.file)?;
+            let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
+            let Some(call) = call_expression(&call_parsed, reference.span) else {
+                continue;
+            };
+            if call.has_error() {
+                continue;
+            }
+            let Some((opens_at, arg_spans)) = call_arguments(call) else {
+                continue;
+            };
+            apply_change(
+                &mut edits,
+                &Site {
+                    file: &reference.file,
+                    source: &call_source,
+                    language: reference.language,
+                },
+                opens_at,
+                &arg_spans,
+                &change,
+                false,
+            )?;
+            call_sites += 1;
+            notes.push(format!(
+                "dispatch site at {} changed with the family",
+                location(&reference.file, reference.span.start)
+            ));
+        }
+    }
+
     Ok(SignaturePlan {
         subject: sym.name.clone(),
         subject_kind: Subject::Callable,
         change,
         edits,
         call_sites,
-        notes: Vec::new(),
+        notes,
     })
 }
 
@@ -669,6 +746,43 @@ fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
 }
 
 /// Named children of a list node, i.e. its actual items.
+/// The parameter spans a caller can address, with the receiver taken off.
+///
+/// Rust and Python write the receiver inside the parameter list, and a call
+/// never passes it. Counting it put every position out by one, and
+/// `remove:0` took `&self` off a trait method.
+fn without_receiver(
+    language: Language,
+    kind: SymbolKind,
+    source: &str,
+    items: Vec<Span>,
+) -> Vec<Span> {
+    if kind != SymbolKind::Method {
+        return items;
+    }
+    let receiver = items.first().is_some_and(|span| {
+        let text = span.text(source).trim();
+        let bare = text
+            .trim_start_matches('&')
+            .trim_start_matches("mut ")
+            .trim();
+        match language {
+            Language::Rust | Language::Zig => bare == "self" || bare.starts_with("self:"),
+            Language::Python => {
+                bare == "self"
+                    || bare == "cls"
+                    || bare.starts_with("self:")
+                    || bare.starts_with("cls:")
+            }
+            _ => false,
+        }
+    });
+    match receiver {
+        true => items.into_iter().skip(1).collect(),
+        false => items,
+    }
+}
+
 fn list_items(list: Node<'_>) -> Vec<Span> {
     let mut cursor = list.walk();
     list.named_children(&mut cursor)

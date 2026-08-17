@@ -998,14 +998,25 @@ impl Hierarchy {
                 abstractions.push(abstraction.clone());
             }
         }
+        // Only declared relationships expand the family. The name-only tier
+        // that fans a Java call site out for reachability is deliberately too
+        // weak here. It would merge two unrelated methods that happen to share
+        // a name, and a rename would drag the stranger along.
         let mut group = Vec::new();
         for abstraction in &abstractions {
-            for candidate in index.find_symbols(&method.name, None) {
-                if candidate.kind == SymbolKind::Method
-                    && candidate.qualifier.as_deref() == Some(abstraction.as_str())
-                {
-                    group.push(candidate.id);
-                    group.extend(self.implementations_of(index, candidate.id));
+            let mut types = self.subtypes(family, abstraction);
+            if family == Family::Go {
+                types.extend(self.go_implementors(&(family, abstraction.clone())));
+            }
+            types.insert(abstraction.clone());
+            for declared in &types {
+                for candidate in index.find_symbols(&method.name, None) {
+                    if candidate.kind == SymbolKind::Method
+                        && Family::of(candidate.language) == Some(family)
+                        && candidate.qualifier.as_deref() == Some(declared.as_str())
+                    {
+                        group.push(candidate.id);
+                    }
                 }
             }
         }
