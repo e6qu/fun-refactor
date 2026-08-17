@@ -265,7 +265,34 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         // case worth refusing.
         let call = match call_expression(&call_parsed, reference.span) {
             Some(call) => call,
-            None if reference.kind != crate::model::ReferenceKind::Call => continue,
+            // A mention that is not a call and not an import is the function used as
+            // a value: `let f: fn(i32, i32) -> i32 = add;`, a callback pushed into a
+            // list. It has no argument list to rewrite, and after the change every
+            // call through that binding passes the old shape. Skipping it, as this
+            // arm once did, changed the declaration under the binding's feet and
+            // reported success.
+            None if reference.kind != crate::model::ReferenceKind::Call => {
+                let value_shaped = matches!(
+                    reference.kind,
+                    crate::model::ReferenceKind::Identifier | crate::model::ReferenceKind::Field
+                );
+                if value_shaped
+                    && reference.confidence.is_safe_to_rewrite()
+                    && !inside_import(&call_parsed, reference.span)
+                {
+                    return Err(Refusal::NotHere {
+                        operation: "signature".to_string(),
+                        detail: format!(
+                            "`{}` is used as a value at {}, and a value keeps the old \
+                             shape. Change or remove that binding first",
+                            sym.name,
+                            location(&reference.file, reference.span.start)
+                        ),
+                    }
+                    .into());
+                }
+                continue;
+            }
             None => {
                 return Err(Refusal::Unknowable {
                     detail: format!(
@@ -713,6 +740,31 @@ fn call_arguments(node: Node<'_>) -> Option<(usize, Vec<Span>)> {
 }
 
 /// The call expression whose callee is at `span`.
+/// Does this mention sit inside an import, a `use`, or an export of the name?
+///
+/// Those lines restate the name without using the function, so a signature change
+/// leaves them correct as written. Everything else that mentions the name without
+/// calling it holds it as a value.
+fn inside_import(parsed: &Parsed, span: Span) -> bool {
+    let Some(mut node) = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)
+    else {
+        return false;
+    };
+    for _ in 0..8 {
+        let kind = node.kind();
+        if kind.contains("import") || kind.contains("use_") || kind.contains("export") {
+            return true;
+        }
+        match node.parent() {
+            Some(parent) => node = parent,
+            None => return false,
+        }
+    }
+    false
+}
+
 fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
     let mut node = parsed
         .root()
