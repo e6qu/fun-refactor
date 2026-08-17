@@ -795,7 +795,7 @@ fn escape_dot(s: &str) -> String {
 /// each other, so the family is part of every key. TSX is TypeScript: a class in a
 /// `.tsx` file implements an interface declared in a `.ts` one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Family {
+pub(crate) enum Family {
     Rust,
     Go,
     Ts,
@@ -811,7 +811,7 @@ impl Family {
     /// Java is not one of those, and used to fall into the same silent `_` as though
     /// it were, so the one language here that states its hierarchy in as many words
     /// was the one whose hierarchy went unread.
-    fn of(language: Language) -> Option<Family> {
+    pub(crate) fn of(language: Language) -> Option<Family> {
         match language {
             Language::Rust => Some(Family::Rust),
             Language::Go => Some(Family::Go),
@@ -959,6 +959,64 @@ impl Hierarchy {
         found.sort();
         found.dedup();
         found
+    }
+
+    /// Every method in `symbol`'s dispatch family, itself included.
+    ///
+    /// A trait method and its implementations are one entity to a caller: a
+    /// dispatch site reaches whichever the value supplies. Renaming or deleting
+    /// one of them alone leaves the family answering two names, so the family is
+    /// the unit. From an abstract declaration this is the declaration and
+    /// every implementation. From an implementation it is the abstractions
+    /// whose dispatch reaches its owner, their declarations, and every sibling.
+    pub fn method_group(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
+        let Some(method) = index.symbol(symbol) else {
+            return Vec::new();
+        };
+        if method.kind != SymbolKind::Method {
+            return Vec::new();
+        }
+        let Some(family) = Family::of(method.language) else {
+            return Vec::new();
+        };
+        let owner = method.qualifier.clone().unwrap_or_default();
+        let Some(declaring) = self.declarers.get(&(family, method.name.clone())) else {
+            return Vec::new();
+        };
+        let mut abstractions: Vec<String> = Vec::new();
+        for abstraction in declaring {
+            if !self.declares.contains_key(&(family, abstraction.clone())) {
+                continue;
+            }
+            let reaches = *abstraction == owner
+                || self.subtypes(family, abstraction).contains(&owner)
+                || (family == Family::Go
+                    && self
+                        .go_implementors(&(family, abstraction.clone()))
+                        .contains(&owner));
+            if reaches {
+                abstractions.push(abstraction.clone());
+            }
+        }
+        let mut group = Vec::new();
+        for abstraction in &abstractions {
+            for candidate in index.find_symbols(&method.name, None) {
+                if candidate.kind == SymbolKind::Method
+                    && candidate.qualifier.as_deref() == Some(abstraction.as_str())
+                {
+                    group.push(candidate.id);
+                    group.extend(self.implementations_of(index, candidate.id));
+                }
+            }
+        }
+        group.sort();
+        group.dedup();
+        // A family of one is no family: the method dispatches to itself alone,
+        // and expanding it would only re-state the symbol.
+        if group == [symbol] {
+            return Vec::new();
+        }
+        group
     }
 
     /// The concrete types that implement an abstraction.

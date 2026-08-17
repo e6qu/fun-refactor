@@ -9,7 +9,7 @@ use super::{Refusal, Warning, WarningKind};
 use crate::edit::{Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{anchor_slug, Symbol, SymbolId, SymbolKind};
+use crate::model::{anchor_slug, Confidence, ReferenceKind, Symbol, SymbolId, SymbolKind};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
 use std::collections::HashMap;
@@ -41,7 +41,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     validate_name(new_name, symbol.language, symbol.kind)?;
 
     if new_name == symbol.name {
-        anyhow::bail!("'{new_name}' is already the name of this symbol");
+        anyhow::bail!("'{new_name}' is already the name of this symbol.");
     }
 
     check_collision(index, symbol, new_name)?;
@@ -50,8 +50,18 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     let mut warnings = Vec::new();
 
     // Some entities have several definition sites (a CSS class declared by both
-    // `.btn` and `.btn:hover`); all of them must change together.
-    let group = index.definition_group(symbol_id);
+    // `.btn` and `.btn:hover`); all of them must change together. A method in
+    // declared dispatch is one entity with its whole family. A trait method
+    // renamed without its implementations leaves the family answering two
+    // names, and the callers compiling against neither.
+    let mut group = index.definition_group(symbol_id);
+    let family = crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol_id);
+    let dispatched = !family.is_empty();
+    for member in family {
+        group.extend(index.definition_group(member));
+    }
+    group.sort();
+    group.dedup();
     for id in &group {
         let Some(definition) = index.symbol(*id) else {
             continue;
@@ -105,6 +115,46 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     ),
                 ));
             }
+        }
+    }
+
+    // The call sites dispatch reaches without resolving: `s.area()` on a trait
+    // object names no single implementation, which is why the family renames as
+    // a unit. With the whole family renamed, such a site calls a name nothing
+    // answers to any more, so it renames too, reported at its own confidence.
+    if dispatched {
+        let family_of = crate::analysis::call_graph::Family::of;
+        for reference in index.unresolved_matching(symbol_id) {
+            if reference.target.is_some() {
+                continue;
+            }
+            let member_shaped =
+                matches!(reference.kind, ReferenceKind::Field | ReferenceKind::Call)
+                    && reference.confidence == Confidence::FieldBased;
+            if !member_shaped || family_of(reference.language) != family_of(symbol.language) {
+                continue;
+            }
+            if !seen_spans.insert((reference.file.clone(), reference.span)) {
+                continue;
+            }
+            edits.add(
+                reference.file.clone(),
+                Edit::new(
+                    reference.span,
+                    reference_text.as_str(),
+                    format!("rename dispatch site of {}", symbol.name),
+                ),
+            );
+            reference_edits += 1;
+            warnings.push(locate_warning(
+                WarningKind::DispatchCandidate,
+                &reference.file,
+                reference.span.start,
+                format!(
+                    "renamed with the family: dispatch from here can reach '{}'.",
+                    symbol.name
+                ),
+            ));
         }
     }
 

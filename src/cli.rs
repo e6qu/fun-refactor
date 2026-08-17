@@ -2415,8 +2415,10 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
 
     if !plan.warnings.is_empty() {
         let grouped = crate::refactor::rename::group_warnings(&plan.warnings);
-        println!("\nNot changed. Review these yourself:");
-        for (kind, warnings) in grouped {
+        // A dispatch site *was* renamed, with the family it can reach; the
+        // other kinds were left alone. One heading over both called changed
+        // sites unchanged.
+        let show = |kind: &str, warnings: &[&crate::refactor::Warning]| {
             println!("  {} ({}):", kind, warnings.len());
             for w in warnings.iter().take(10) {
                 println!(
@@ -2429,6 +2431,21 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
             }
             if warnings.len() > 10 {
                 println!("    … and {} more", warnings.len() - 10);
+            }
+        };
+        let (changed, unchanged): (Vec<_>, Vec<_>) = grouped
+            .into_iter()
+            .partition(|(kind, _)| *kind == "dispatch-candidate");
+        if !changed.is_empty() {
+            println!("\nChanged with the family. Review these yourself:");
+            for (kind, warnings) in &changed {
+                show(kind, warnings);
+            }
+        }
+        if !unchanged.is_empty() {
+            println!("\nNot changed. Review these yourself:");
+            for (kind, warnings) in &unchanged {
+                show(kind, warnings);
             }
         }
     }

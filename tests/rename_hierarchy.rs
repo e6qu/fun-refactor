@@ -1,0 +1,143 @@
+//! A method that participates in declared dispatch renames as one family.
+//!
+//! A trait method renamed without its implementations leaves the family
+//! answering two names, and the callers compiling against neither. So the
+//! rename covers the declaration, every implementation, and the dispatch
+//! sites that resolve to no single one of them. Each of those is reported
+//! at its own confidence for a person to review.
+
+use fun_refactor::index::Index;
+use fun_refactor::refactor::rename;
+use fun_refactor::scan::{scan, ScanOptions};
+use std::path::Path;
+
+fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
+    let tmp = tempfile::tempdir().unwrap();
+    for (name, content) in files {
+        std::fs::write(tmp.path().join(name), content).unwrap();
+    }
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    (tmp, Index::build_from_scan(&scanned).unwrap())
+}
+
+fn symbol_at(
+    index: &Index,
+    path: &Path,
+    source: &str,
+    needle: &str,
+) -> fun_refactor::model::SymbolId {
+    let offset = source.find(needle).expect("the needle") + needle.len() - 1;
+    index
+        .symbols
+        .iter()
+        .find(|s| s.file == path && s.name_span.contains_offset(offset))
+        .expect("a symbol at the needle")
+        .id
+}
+
+fn applied(index_root: &Path, file: &str, plan: &rename::RenamePlan) -> String {
+    let path = index_root.join(file);
+    let before = std::fs::read_to_string(&path).unwrap();
+    match plan.edits.edits_for(&path) {
+        Some(edits) => fun_refactor::edit::apply_to_string(&before, edits).unwrap(),
+        None => before,
+    }
+}
+
+const SHAPES_RS: &str = "pub trait Shape {\n    fn area(&self) -> f64;\n}\n\n\
+    pub struct Circle {\n    pub radius: f64,\n}\n\n\
+    impl Shape for Circle {\n    fn area(&self) -> f64 {\n        self.radius * 2.0\n    }\n}\n\n\
+    pub fn total(shapes: &[Box<dyn Shape>]) -> f64 {\n    shapes.iter().map(|s| s.area()).sum()\n}\n";
+
+#[test]
+fn renaming_the_trait_method_renames_the_implementations() {
+    let (tmp, index) = workspace(&[("shapes.rs", SHAPES_RS)]);
+    let id = symbol_at(&index, &tmp.path().join("shapes.rs"), SHAPES_RS, "fn area");
+    let plan = rename::plan(&index, id, "surface").unwrap();
+    let out = applied(tmp.path(), "shapes.rs", &plan);
+    assert!(
+        !out.contains("fn area"),
+        "no member of the family keeps the old name.\n{out}"
+    );
+    assert!(
+        out.contains("fn surface(&self) -> f64;") && out.contains("fn surface(&self) -> f64 {"),
+        "declaration and implementation rename together.\n{out}"
+    );
+}
+
+#[test]
+fn renaming_the_implementation_renames_the_trait_method_too() {
+    let (tmp, index) = workspace(&[("shapes.rs", SHAPES_RS)]);
+    let impl_at = SHAPES_RS.rfind("fn area").unwrap() + 3;
+    let id = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "area" && s.name_span.contains_offset(impl_at))
+        .expect("the implementation method")
+        .id;
+    let plan = rename::plan(&index, id, "surface").unwrap();
+    let out = applied(tmp.path(), "shapes.rs", &plan);
+    assert!(
+        !out.contains("fn area"),
+        "the family renames from either end.\n{out}"
+    );
+}
+
+#[test]
+fn the_dispatch_site_renames_and_is_reported_at_its_confidence() {
+    let (tmp, index) = workspace(&[("shapes.rs", SHAPES_RS)]);
+    let id = symbol_at(&index, &tmp.path().join("shapes.rs"), SHAPES_RS, "fn area");
+    let plan = rename::plan(&index, id, "surface").unwrap();
+    let out = applied(tmp.path(), "shapes.rs", &plan);
+    assert!(
+        out.contains("s.surface()"),
+        "the call through the trait object follows the family.\n{out}"
+    );
+    assert!(
+        plan.warnings
+            .iter()
+            .any(|w| w.kind == fun_refactor::refactor::WarningKind::DispatchCandidate),
+        "a dispatch site is renamed and said, for a person to review: {:?}",
+        plan.warnings
+    );
+}
+
+#[test]
+fn a_typescript_interface_family_renames_together() {
+    let source = "interface Carrier {\n    quote(kg: number): number;\n}\n\n\
+        class Post implements Carrier {\n    quote(kg: number): number {\n        \
+        return kg * 120;\n    }\n}\n\n\
+        export function cheapest(carriers: Carrier[], kg: number): number {\n    \
+        return Math.min(...carriers.map((c) => c.quote(kg)));\n}\n";
+    let (tmp, index) = workspace(&[("shapes.ts", source)]);
+    let id = symbol_at(&index, &tmp.path().join("shapes.ts"), source, "    quote");
+    let plan = rename::plan(&index, id, "price").unwrap();
+    let out = applied(tmp.path(), "shapes.ts", &plan);
+    assert!(!out.contains("quote("), "{out}");
+    assert!(
+        out.contains("price(kg: number): number;") && out.contains("c.price(kg)"),
+        "declaration, implementation and dispatch site all follow:\n{out}"
+    );
+}
+
+#[test]
+fn a_method_outside_any_hierarchy_renames_alone() {
+    let source = "pub struct Lone {\n    pub n: f64,\n}\n\n\
+        impl Lone {\n    fn area(&self) -> f64 {\n        self.n\n    }\n}\n\n\
+        pub struct Other;\n\n\
+        impl Other {\n    fn area(&self) -> f64 {\n        1.0\n    }\n}\n";
+    let (tmp, index) = workspace(&[("lone.rs", source)]);
+    let first = source.find("fn area").unwrap() + 3;
+    let id = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "area" && s.name_span.contains_offset(first))
+        .expect("the first method")
+        .id;
+    let plan = rename::plan(&index, id, "surface").unwrap();
+    let out = applied(tmp.path(), "lone.rs", &plan);
+    assert!(
+        out.contains("fn surface") && out.matches("fn area").count() == 1,
+        "a same-named method on an unrelated type is not family:\n{out}"
+    );
+}
