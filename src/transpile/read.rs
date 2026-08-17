@@ -2608,6 +2608,10 @@ mod go {
                 .first()
                 .map(|inner| Stmt::Expr(expr(cx, *inner)))
                 .unwrap_or_else(|| Stmt::Unsupported(cx.unsupported(node))),
+            "defer_statement" => match cx.children(node).first() {
+                Some(deferred) => Stmt::Defer(vec![Stmt::Expr(expr(cx, *deferred))]),
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
             "if_statement" => {
                 let otherwise = cx
                     .field(node, "alternative")
@@ -4255,6 +4259,48 @@ mod zig {
                 Some(switch) => switch,
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
+            "defer_statement" => {
+                let Some(deferred) = cx.children(node).first().copied() else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let body = if is_body(deferred) {
+                    body_of(cx, deferred)
+                } else {
+                    vec![stmt(cx, deferred)]
+                };
+                Stmt::Defer(body)
+            }
+            // At statement level an assignment hides in a `variable_declaration`;
+            // inside a `defer` or a step clause it arrives as itself.
+            "assignment_expression" => {
+                let parts = all(node);
+                let Some(target) = parts.iter().find(|c| c.is_named()).copied() else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let operator = parts
+                    .iter()
+                    .find(|c| !c.is_named() && c.kind().ends_with('=') && c.kind() != "==")
+                    .map(|c| cx.text(*c))
+                    .unwrap_or_default();
+                let value = parts
+                    .iter()
+                    .position(|c| !c.is_named() && cx.text(*c) == operator)
+                    .and_then(|at| parts.get(at + 1))
+                    .copied();
+                let Some(value) = value else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                if operator == "=" {
+                    return Stmt::Assign {
+                        target: expr(cx, target),
+                        value: expr(cx, value),
+                    };
+                }
+                match super::desugar_compound(expr(cx, target), &operator, expr(cx, value)) {
+                    Some(assign) => assign,
+                    None => Stmt::Unsupported(cx.unsupported(node)),
+                }
+            }
             _ => Stmt::Unsupported(cx.unsupported(node)),
         }
     }
@@ -4890,6 +4936,12 @@ mod typescript {
                     "method_definition" | "method_signature" => {
                         let mut method = function(cx, member, Some(name.clone()));
                         method.exported = is_visible(cx, member);
+                        // `constructor(public x: number)` declares the field and
+                        // assigns it, in the parameter list. Read as a parameter
+                        // alone, the class came out with no fields at all.
+                        if method.is_constructor {
+                            fields.extend(parameter_properties(cx, member));
+                        }
                         methods.push(method);
                     }
                     // A member this does not recognise is not a member that is not
@@ -4908,6 +4960,35 @@ mod typescript {
             exported: false,
             methods,
         }
+    }
+
+    /// The fields a constructor's parameter list declares.
+    ///
+    /// An accessibility modifier in front of a parameter, `public x: number`,
+    /// makes it a class field with that name and type.
+    fn parameter_properties(cx: &Cx, constructor: Node<'_>) -> Vec<Field> {
+        let Some(parameters) = cx.field(constructor, "parameters") else {
+            return Vec::new();
+        };
+        cx.children(parameters)
+            .into_iter()
+            .filter(|p| {
+                let mut cursor = p.walk();
+                let modified = p
+                    .children(&mut cursor)
+                    .any(|c| c.kind() == "accessibility_modifier");
+                modified
+            })
+            .filter_map(|p| {
+                let name = cx.field(p, "pattern").map(|n| cx.text(n))?;
+                Some(Field {
+                    doc: Vec::new(),
+                    name,
+                    ty: cx.field(p, "type").map(|t| ty(cx, t)),
+                    exported: is_visible(cx, p),
+                })
+            })
+            .collect()
     }
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {

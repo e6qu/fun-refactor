@@ -327,6 +327,14 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
+    /// Run a body when the enclosing scope exits: Go's and Zig's `defer`.
+    ///
+    /// Go and Zig keep the word. Python, TypeScript and Java say the same thing
+    /// with `try`/`finally`: what follows the defer goes in the `try`, its body
+    /// in the `finally`. Stacked defers nest, which keeps their last-in,
+    /// first-out order. Rust has no scope-exit hook short of inventing a guard
+    /// type, so it carries the body as a comment.
+    Defer(Vec<Stmt>),
     /// One value branched against literal alternatives.
     ///
     /// Rust and Zig spell it with arrows, the C family with `case`, Python with

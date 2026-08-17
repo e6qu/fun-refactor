@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B379: **a call to a declared record wrote a call.** Silent wrong answer.
+  `Point(0, 0)` from Python crossed into Rust as `Point(0, 0)`, which does not
+  compile against named fields. In Go it crossed as a conversion, which means
+  something else entirely. The record is declared in the same module, so its
+  field names are known, and a positional construction now maps onto them:
+  `Point { x: 0, y: 0 }`, `Point{X: 0, Y: 0}`, `Point{ .x = 0, .y = 0 }`. An
+  arity mismatch stays a call, because mapping it would invent a default.
+
+- [x] B380: **TypeScript parameter properties never became fields.** Dropped.
+  `constructor(public x: number)` declares the field and assigns it, in the
+  parameter list. The reader saw only a parameter, so the class crossed with
+  no fields at all. The modifier now declares the field it names.
+
 - [x] B378: **the Go and Java readers read `total += item` as `total = item`.** Silent
   wrong answer. One grammar node covers `=` and `+=` in both languages, and both
   readers took the sides and dropped the operator. A translated accumulator

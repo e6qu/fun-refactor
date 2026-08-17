@@ -496,7 +496,10 @@ to every target in process and ratchets the carried-construct ledger in both
 directions. The ledger has since kept paying. It recorded the day Zig call arguments
 started carrying (B376). It shrank as error propagation, the optional payload `if`
 and `while`, literal-armed switches and named tests each gained a crossing. It was
-the witness when the Go and Java readers were caught reading `+=` as `=` (B378). The paragraph below records why they were last. `remove-flag` has no boolean constant to
+the witness when the Go and Java readers were caught reading `+=` as `=` (B378).
+It watched again when a call to a declared record crossed as a call (B379).
+`defer` crosses now too, native in Go and Zig and said with `try`/`finally`
+everywhere that has one. The paragraph below records why they were last. `remove-flag` has no boolean constant to
 target in this repository, so it needs a corpus that has one. `translate` has
 `tests/round_trip.rs`, which asks more of it than a sweep would. The first two take a
 pattern from the user, so a sweep has to invent the patterns and a poor choice measures
