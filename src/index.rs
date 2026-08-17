@@ -626,7 +626,9 @@ impl Index {
                 _ => None,
             };
             let kind_of = |id: &SymbolId| self.symbol(*id).map(|s| s.kind);
-            let has_both = candidates.iter().any(|id| kind_of(id) == Some(SymbolKind::Field))
+            let has_both = candidates
+                .iter()
+                .any(|id| kind_of(id) == Some(SymbolKind::Field))
                 && candidates
                     .iter()
                     .any(|id| kind_of(id) == Some(SymbolKind::Method));

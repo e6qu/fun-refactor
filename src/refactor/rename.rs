@@ -444,10 +444,10 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
 
 /// Would a use change owners after the rename?
 ///
-/// `check_collision` asks whether the two names could be visible at the same point,
-/// scope for scope. Capture is the nested case it cannot see: a declaration of the
-/// new name in a scope between the renamed symbol and one of its uses wins that use
-/// after the rename, and the file compiles into different behaviour. Both directions
+/// `check_collision` asks whether the two names could be visible at the same
+/// point, scope for scope. Capture is the nested case it cannot see. A
+/// declaration of the new name, in a scope between the renamed symbol and one
+/// of its uses, wins that use after the rename, and the file still compiles. Both directions
 /// are real. The renamed use can fall to an inner declaration, and a use of an
 /// existing outer binding can fall to the renamed one.
 fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), Refusal> {

@@ -1,14 +1,14 @@
 //! The everyday Zig forms read, and a failed initializer keeps its binding.
 //!
 //! `[_]u32{ 1, 2, 3 }`, `items[i]`, `@intCast(u8, b)`, `&a`, `p.*` and the
-//! dot-literal `.empty` are the forms an ordinary Zig file is made of, and every
+//! dot-literal `.empty` are the forms an ordinary Zig file is made of. Every
 //! one carried whole, taking its declaration with it. The statements after each
 //! then read names the output never declared.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
 
-const FORMS_ZIG: &str = "const std = @import(\"std\");\n\n\
+const FORMS_ZIG: &str = "// A probe file.\n const std = @import(\"std\");\n\n\
     pub fn one() u32 {\n    const a: u32 = 1;\n    var list: std.ArrayList(u32) = .empty;\n    \
     const n = @intCast(u8, a);\n    const p = &a;\n    const q = p.*;\n    \
     const items = [_]u32{ 1, 2, 3 };\n    const first = items[0];\n    \
@@ -42,8 +42,9 @@ fn the_everyday_forms_cross() {
 fn a_dot_literal_qualifies_with_the_declared_type() {
     let out = to_typescript(FORMS_ZIG);
     assert!(
-        out.contains(".empty;") && !out.contains("not translated: variable_declaration from line 5"),
-        "`.empty` reads as a member of the annotation's type:\n{out}"
+        out.contains(".empty;")
+            && !out.contains("not translated: variable_declaration from line 5"),
+        "`.empty` reads as a member of the annotation's type.\n{out}"
     );
 }
 

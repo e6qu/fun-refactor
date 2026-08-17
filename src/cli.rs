@@ -642,7 +642,9 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
             let source = sources
                 .entry(s.file.clone())
                 .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
-            LineIndex::new(source).line_col(s.name_span.start, source).line
+            LineIndex::new(source)
+                .line_col(s.name_span.start, source)
+                .line
         };
         let nodes: Vec<_> = trace
             .nodes
@@ -2675,7 +2677,9 @@ fn report_json_error(error: &anyhow::Error) {
     let payload = serde_json::json!({ "error": object });
     match serde_json::to_string_pretty(&payload) {
         Ok(text) => println!("{text}"),
-        Err(error) => println!("{{\"error\":{{\"kind\":\"error\",\"message\":\"unprintable: {error}\"}}}}"),
+        Err(error) => {
+            println!("{{\"error\":{{\"kind\":\"error\",\"message\":\"unprintable: {error}\"}}}}")
+        }
     }
 }
 

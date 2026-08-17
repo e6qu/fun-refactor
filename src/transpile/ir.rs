@@ -101,10 +101,10 @@ pub struct Function {
     /// Is this method read as data at its use sites?
     ///
     /// Python's `@property` and TypeScript's `get` both declare a method whose
-    /// callers write `it.total`, no parentheses. Read as an ordinary method, the
-    /// declaration crossed but the accessors kept their spelling, and in the
-    /// target `it.total` was the function object itself: every comparison against
-    /// it was quietly false. Targets with the idiom keep it; targets without one
+    /// callers write `it.total`, no parentheses. Read as an ordinary method,
+    /// the declaration crossed while the accessors kept their spelling. In the
+    /// target `it.total` was the function object itself, and every comparison
+    /// against it was quietly false. Targets with the idiom keep it; targets without one
     /// write a method and spell the accessors as the calls they become.
     pub is_property: bool,
     /// Does this function make a value of its type?

@@ -284,7 +284,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                         operation: "signature".to_string(),
                         detail: format!(
                             "`{}` is used as a value at {}, and a value keeps the old \
-                             shape. Change or remove that binding first",
+                             shape. Change or remove that binding first.",
                             sym.name,
                             location(&reference.file, reference.span.start)
                         ),

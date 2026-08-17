@@ -1,9 +1,10 @@
 //! The everyday library calls cross as the target's own spelling.
 //!
 //! `print`, `len`, `str`, `.append`, `.upper`, `.lower`, `.strip` and
-//! `sep.join(xs)` have exact counterparts in every language here, and written
-//! through unchanged each was a compile error in every direction: `console.log`
-//! reached Python, `.push` reached Rust, `print` reached TypeScript. The readers
+//! `sep.join(xs)` have exact counterparts in every language here. Written
+//! through unchanged, each was a compile error in every direction.
+//! `console.log` reached Python, `.push` reached Rust, `print` reached
+//! TypeScript. The readers
 //! rewrite their spellings into the canonical ones and the writers rewrite them
 //! out, so one language pair costs two edits and not thirty.
 
@@ -54,7 +55,11 @@ fn typescript_spellings_reach_python_as_python() {
         for (const name of names) {\n        loud.push(name.toUpperCase());\n    }\n    \
         console.log(loud.length);\n    return loud.join(\", \");\n}\n";
     let out = translated(source, "shout.ts", Language::Python);
-    for expected in ["loud.append(name.upper())", "print(len(loud))", "\", \".join(loud)"] {
+    for expected in [
+        "loud.append(name.upper())",
+        "print(len(loud))",
+        "\", \".join(loud)",
+    ] {
         assert!(out.contains(expected), "missing `{expected}`:\n{out}");
     }
 }
@@ -64,7 +69,7 @@ fn go_gains_the_imports_the_body_turned_out_to_need() {
     let out = translated(SHOUT_PY, "shout.py", Language::Go);
     assert!(
         out.contains("import \"fmt\"") && out.contains("import \"strings\""),
-        "the packages the mapped calls need are imported:\n{out}"
+        "the packages the mapped calls need are imported.\n{out}"
     );
     assert!(
         out.contains("loud = append(loud, strings.ToUpper(name))"),
@@ -77,8 +82,7 @@ fn go_gains_the_imports_the_body_turned_out_to_need() {
 }
 
 #[test]
-fn a_module_declaring_its_own_print_keeps_it()
-{
+fn a_module_declaring_its_own_print_keeps_it() {
     let source = "def print(x: str) -> None:\n    pass\n\n\ndef run() -> None:\n    print(\"a\")\n";
     let out = translated(source, "own.py", Language::TypeScript);
     assert!(
@@ -88,8 +92,7 @@ fn a_module_declaring_its_own_print_keeps_it()
 }
 
 #[test]
-fn java_spellings_cross_and_return()
-{
+fn java_spellings_cross_and_return() {
     let source = "public class Log {\n    static void greet(String name) {\n        \
         System.out.println(name.toUpperCase());\n    }\n}\n";
     let out = translated(source, "Log.java", Language::Python);

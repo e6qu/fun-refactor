@@ -1347,3 +1347,22 @@ were missing fields, now present and pinned in `tests/json_surface.rs`:
   its `model` the way the provenance answer already did.
 * `fr unused --json` carries the dynamic-dispatch caveat the human output had.
 * `fr openapi --json` carries the "does not settle" notes in the payload.
+
+### The pass where the drafts started to run
+
+Three probes drove the tool the way its users do: one over the mutating
+commands, one over `translate` with compilers waiting on the other side, one
+over the query surface. Twenty-three findings survived verification. The
+refactoring side gained the refusals it owed (B387 through B391), the index
+stopped conflating a field with a method (B392) and learned Python's instance
+attributes (B398), and the translator crossed the gap between "parses" and
+"runs": tuples (B393), class fields and constructors (B394), entrypoints,
+field defaults and record returns (B395), the builtin table (B396), properties
+(B397), and the everyday Zig forms, with a failed initializer keeping its
+binding instead of poisoning the lines after it.
+
+The measure that matters: a Python module of ordinary classes now compiles
+under `tsc --strict` after translation and prints the same output under Node
+that it printed under CPython, and the same file translated the other way runs
+under Python. The corpus ledger fell by roughly 260 carried constructs, and
+what still cannot cross says so in the file, at the line where it stops.

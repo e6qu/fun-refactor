@@ -1,9 +1,9 @@
 //! A Python class crosses with the fields its `__init__` declares.
 //!
-//! `self.name = name` declares a field as surely as an annotation does. Read as
-//! nothing, every class crossed as an empty struct while its methods went on
-//! reading `self.price` from a field the target never had, and `Item(...)` stayed
-//! a bare call no target accepts.
+//! `self.name = name` declares a field as surely as an annotation does. Read
+//! as nothing, every class crossed as an empty struct while its methods went
+//! on reading `self.price` from a field the target never had. `Item(...)`
+//! stayed a bare call no target accepts.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -29,7 +29,7 @@ fn the_init_assignments_become_rust_fields_and_a_real_constructor() {
     let out = translated(tmp.path(), Language::Rust);
     assert!(
         out.contains("pub name: String") && out.contains("pub price: f64"),
-        "the fields exist, typed from the parameters:\n{out}"
+        "the fields exist, typed from the parameters.\n{out}"
     );
     assert!(
         out.contains("return Item { name: name, price: price };"),
@@ -80,7 +80,8 @@ fn a_computing_constructor_keeps_its_body() {
 fn a_lost_supertype_is_said_in_the_output_itself() {
     // The report already named the dropped `extends`; the draft file did not, and
     // the draft file is what a reader has in front of them.
-    let source = "export class Repo {\n    find(id: number): number {\n        return id;\n    }\n}\n\n\
+    let source =
+        "export class Repo {\n    find(id: number): number {\n        return id;\n    }\n}\n\n\
         export class TaskRepo extends Repo {\n    close(id: number): number {\n        \
         return this.find(id);\n    }\n}\n";
     let tmp = tempfile::tempdir().unwrap();
@@ -89,8 +90,7 @@ fn a_lost_supertype_is_said_in_the_output_itself() {
     let out = tmp.path().join("repo_out.txt");
     let plan = transpile::plan_to(&path, Language::Rust, Some(&out), false).unwrap();
     assert!(
-        plan.output
-            .contains("not translated: extends Repo"),
+        plan.output.contains("not translated: extends Repo"),
         "the marker sits beside the type that lost its base:\n{}",
         plan.output
     );
@@ -110,9 +110,14 @@ fn a_property_keeps_its_reads_where_the_idiom_exists() {
     let path = tmp.path().join("prop.py");
     std::fs::write(&path, source).unwrap();
 
-    let ts = transpile::plan_to(&path, Language::TypeScript, Some(&tmp.path().join("a")), false)
-        .unwrap()
-        .output;
+    let ts = transpile::plan_to(
+        &path,
+        Language::TypeScript,
+        Some(&tmp.path().join("a")),
+        false,
+    )
+    .unwrap()
+    .output;
     assert!(
         ts.contains("get total(): number {") && ts.contains("it.total > cutoff"),
         "TypeScript has the idiom and keeps the reads:\n{ts}"

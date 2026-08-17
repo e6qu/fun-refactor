@@ -175,6 +175,92 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B398: **a Python instance attribute was not a symbol at all.** `fr rename`
+  answered "no symbol or resolved reference at" the most common rename target
+  the language has. Each `self.x = ...` site now defines a field; the class,
+  carried as the qualifier, groups the sites into one entity, and the reads
+  follow the rename. Pinned in `tests/python_attributes.rs`.
+
+- [x] B397: **`@property` crossed as a method while its accessors stayed reads.**
+  In the target `it.total` was the function object, and every comparison
+  against it was quietly false. The flag crosses on the method: TypeScript
+  writes `get total()`, Python writes the decorator back, and the targets
+  without the idiom write the accessors as the calls they become.
+  Pinned in `tests/translate_classes.rs`.
+
+- [x] B396: **the everyday library calls crossed as compile errors.**
+  `console.log` reached Python, `.push` reached Rust, `print` reached
+  TypeScript, all unmarked. The readers rewrite their spellings into one
+  canonical set and the writers rewrite them out, `print`, `len`, `str`,
+  `.append`, `.upper`, `.lower`, `.strip` and `sep.join(xs)`; Go gains the
+  imports its mapped calls need. Pinned in `tests/translate_builtins.rs`.
+
+- [x] B395: **the program's own entry was dropped as unsupported.** `main();`
+  at the bottom of a TypeScript file, the call under Python's `__main__`
+  guard: both became comments, and the translated program ran and printed
+  nothing. A top-level statement is an item now; Python writes it back under
+  its own guard. With it went two shapes around the same story: a field's
+  initializer crosses as a default the dataclass accepts, and a returned
+  object literal builds the record its signature promised.
+  Pinned in `tests/translate_entrypoints.rs`.
+
+- [x] B394: **a class crossed as an empty struct.** The fields Python declares
+  in `__init__` and the ones `record Order(...)` declares in its header were
+  read as nothing, while the methods went on using them. Both derive now;
+  a constructor of plain assignments becomes each target's own constructor,
+  `Item(...)` becomes a construction, a Java static loses the receiver its
+  call sites never passed, and a record's accessor calls become the field
+  reads they are. Pinned in `tests/translate_classes.rs` and
+  `tests/translate_java_records.rs`.
+
+- [x] B393: **`return a, b` translated to a bare `return`.** The reader mapped
+  Go's multiple return to nothing, so a two-value return lost its payload with
+  nothing said, in every target at once. Several values travelling as one are
+  a tuple in the IR now, expression and type both; a writer with no spelling
+  for one says so instead. Pinned in `tests/translate_tuples.rs`.
+
+- [x] B392: **a field and a method under one name shared one use list.** The
+  Rust facts recorded a method call's callee as a field read, so `order.name()`
+  and `order.name` were indistinguishable: the field's uses counted zero and
+  the method collected the field's accesses. The callee records as a call now,
+  and the resolver keeps only the member the syntax allows.
+  Pinned in `tests/member_kinds.rs`.
+
+- [x] B391: **`fr move` broke both of an importer's imports.** An aliased
+  `import { foo as increment } from "./a"` was left naming a gone export while
+  a fresh unaliased import landed beside it. The existing statement repoints,
+  keeping the alias and splitting stayers from movers. The Go half of the same
+  probe: a moved body's bare calls back into its old package now qualify with
+  the package name, the destination gains the import, and an unexported
+  dependency refuses with the visibility problem named.
+  Pinned in `tests/move_imports.rs` and `tests/move_languages.rs`.
+
+- [x] B390: **`fr signature` skipped a function held as a value.** `let f:
+  fn(i32, i32) -> i32 = add;` has no argument list to rewrite, so the site was
+  silently passed over, the declaration changed under the binding, and the
+  command reported clean call sites. A value-shaped mention outside an import
+  refuses, naming the binding. Pinned in `tests/signature_hierarchy.rs`.
+
+- [x] B389: **renaming Java overloads wrote calls to nothing.** Both `size`
+  declarations renamed as one entity while every call stayed behind at
+  name-only confidence, and javac refused the result. When the group holds
+  every declaration the name answers to, a name-only call can only reach a
+  renamed one: it renames too, reported under the dispatch-candidate heading.
+  A stranger answering the same name still holds the calls in place.
+  Pinned in `tests/rename_hierarchy.rs`.
+
+- [x] B388: **`fr inline` ran a side effect twice.** `let v = effect(); v + v`
+  inlined to `effect() + effect()`. The call inliner refused exactly this for
+  arguments; the variable path now applies the same rule, and only to values
+  that can run something, so `a + b` twice still inlines.
+  Pinned in `tests/inline_scope.rs`.
+
+- [x] B387: **a rename could move a use under a shadow and change what runs.**
+  Renaming outer `value` to `temp` under an inner `let temp` rebound the use;
+  the file compiled and returned a different number. Both directions refuse
+  now, naming the capturing declaration, the line, and the fact that the
+  compiler would not have noticed. Pinned in `tests/rename_capture.rs`.
+
 - [x] B386: **the OpenAPI status note spoke FastAPI at a Next.js tree.** The
   note was copied from the translation. That note tells the reader to add
   `status_code=` to a `@router` decorator that exists nowhere in their tree.

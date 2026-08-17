@@ -508,14 +508,19 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
-    // A name that is a property somewhere and never a field: safe to spell every
-    // read of it as the call it becomes in a target without properties. A name
+    // A name that is a property somewhere and never a field is safe to rewrite.
+    // Every read of it becomes the call it is in a target without properties. A name
     // that is both stays a read, and the property side keeps the mismatch visible.
     let mut properties: std::collections::BTreeSet<String> = context
         .items
         .iter()
         .filter_map(|item| match item {
-            Item::Record(r) => Some(r.methods.iter().filter(|m| m.is_property).map(|m| m.name.clone())),
+            Item::Record(r) => Some(
+                r.methods
+                    .iter()
+                    .filter(|m| m.is_property)
+                    .map(|m| m.name.clone()),
+            ),
             _ => None,
         })
         .flatten()
@@ -973,7 +978,7 @@ fn rust(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
-            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| rust_expr(out, e)),
+            Item::Statement(stmt) => carried_statement(out, stmt, rust_expr),
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("/// {line}"));
@@ -1679,12 +1684,10 @@ fn python(out: &mut Out, module: &Module) {
     });
     // A list or map default renders through `field(default_factory=...)`.
     let needs_factory = module.items.iter().any(|i| match i {
-        Item::Record(r) => r.fields.iter().any(|f| {
-            matches!(
-                f.default,
-                Some(Expr::ListLit(_)) | Some(Expr::MapLit(_))
-            )
-        }),
+        Item::Record(r) => r
+            .fields
+            .iter()
+            .any(|f| matches!(f.default, Some(Expr::ListLit(_)) | Some(Expr::MapLit(_)))),
         _ => false,
     });
     if needs_dataclass {
@@ -1702,8 +1705,8 @@ fn python(out: &mut Out, module: &Module) {
     for item in &module.items {
         match item {
             // The module runs top to bottom here too. The guard is Python's own
-            // idiom for "this part is the program", and writing the statement bare
-            // would also run it on import, which the source's entry never did.
+            // idiom for "this part is the program". Written bare, the statement
+            // would also run on import, and the source's entry never did.
             Item::Statement(stmt) => {
                 out.line("if __name__ == \"__main__\":");
                 out.open();
@@ -1756,9 +1759,9 @@ fn python(out: &mut Out, module: &Module) {
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
                     // A mutable default shared between instances is the classic
-                    // Python trap, and the dataclass machinery refuses it outright;
-                    // `field(default_factory=...)` builds one per instance, which is
-                    // what the source's per-instance initializer did.
+                    // Python trap, and the dataclass machinery refuses it outright.
+                    // `field(default_factory=...)` builds one per instance, the
+                    // same thing the source's per-instance initializer did.
                     let default = f.default.as_ref().map(|d| match d {
                         Expr::ListLit(items) if items.is_empty() => {
                             " = field(default_factory=list)".to_string()
@@ -2557,7 +2560,7 @@ fn go(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
-            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| go_expr(out, e)),
+            Item::Statement(stmt) => carried_statement(out, stmt, go_expr),
             Item::Constant(c) => {
                 let name = out.name(&c.name);
                 for line in &c.doc {
@@ -3462,7 +3465,7 @@ fn typescript(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
-            // The module runs top to bottom here too, so the statement simply is one.
+            // The module runs top to bottom here too, so the statement is one of its own.
             Item::Statement(stmt) => {
                 ts_block(out, std::slice::from_ref(stmt));
                 out.blank();
@@ -4427,7 +4430,7 @@ fn java(out: &mut Out, module: &Module) {
                 out.line("}");
                 out.fidelity.functions += 1;
             }
-            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| java_expr(out, e)),
+            Item::Statement(stmt) => carried_statement(out, stmt, java_expr),
             Item::Unsupported(u) => carry(out, u),
             _ => {}
         }
@@ -5301,7 +5304,7 @@ fn zig(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
-            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| zig_expr(out, e)),
+            Item::Statement(stmt) => carried_statement(out, stmt, zig_expr),
             Item::Import { text, line } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
@@ -6327,14 +6330,10 @@ fn escaped(language: Language, value: &str) -> String {
 /// A top-level statement, in a target whose top level only declares.
 ///
 /// In the source that statement is the program: `main();` at the bottom of a
-/// TypeScript file, the call under `if __name__ == "__main__":`. There is nowhere
-/// here for it to run, so it is carried beside a marker, rendered where it is one
-/// expression so the reader sees what the source did.
-fn carried_statement(
-    out: &mut Out,
-    stmt: &Stmt,
-    render: impl FnOnce(&mut Out, &Expr) -> String,
-) {
+/// TypeScript file, the call under `if __name__ == "__main__":`. There is
+/// nowhere here for it to run, so it is carried beside a marker. Where it is one
+/// expression it is rendered, so the reader sees what the source did.
+fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &Expr) -> String) {
     let rendered = match stmt {
         Stmt::Expr(e) => render(out, e),
         _ => String::new(),
@@ -6355,13 +6354,13 @@ fn carried_statement(
 //
 // The canonical spellings are Python's, because its reader needs no normalising:
 // `print(x)`, `len(x)`, `str(x)`, `.append`, `.upper`, `.lower`, `.strip`, and
-// `sep.join(xs)`. Each reader rewrites its own language's spelling into these and
-// each writer rewrites them out into its own, so one language pair costs two edits
-// and not thirty. What the table does not cover is written through unchanged,
-// visible in the output, exactly as before.
+// `sep.join(xs)`. Each reader rewrites its own language's spelling into these.
+// Each writer rewrites them back out into its own, so one language pair costs
+// two edits and not thirty. What the table does not cover is written through
+// unchanged, visible in the output, as before.
 
 /// The receiver and name a call's callee spells, where it spells one.
-fn callee_parts<'e>(callee: &'e Expr) -> (Option<&'e Expr>, Option<&'e str>) {
+fn callee_parts(callee: &Expr) -> (Option<&Expr>, Option<&str>) {
     match callee {
         Expr::Name(n) => (None, Some(n.as_str())),
         Expr::Field { of, name } => (Some(of), Some(name.as_str())),
@@ -6383,18 +6382,31 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
     Some(match (receiver, name, args) {
         (None, "print", _) => {
             let holes = vec!["{}"; args.len()].join(" ");
-            format!("println!(\"{holes}\"{})", args.iter().map(|a| format!(", {}", rust_expr(out, a))).collect::<String>())
+            format!(
+                "println!(\"{holes}\"{})",
+                args.iter()
+                    .map(|a| format!(", {}", rust_expr(out, a)))
+                    .collect::<String>()
+            )
         }
         (None, "len", [x]) => format!("{}.len()", rust_expr(out, x)),
         (None, "str", [x]) => format!("{}.to_string()", rust_expr(out, x)),
         (Some(of), "append", [x]) => {
-            format!("{}.push({})", rust_expr(out, &of.clone()), rust_expr(out, x))
+            format!(
+                "{}.push({})",
+                rust_expr(out, &of.clone()),
+                rust_expr(out, x)
+            )
         }
         (Some(of), "upper", []) => format!("{}.to_uppercase()", rust_expr(out, &of.clone())),
         (Some(of), "lower", []) => format!("{}.to_lowercase()", rust_expr(out, &of.clone())),
         (Some(of), "strip", []) => format!("{}.trim()", rust_expr(out, &of.clone())),
         (Some(of), "join", [xs]) if matches!(of, Expr::Str(_)) => {
-            format!("{}.join({})", rust_expr(out, xs), rust_expr(out, &of.clone()))
+            format!(
+                "{}.join({})",
+                rust_expr(out, xs),
+                rust_expr(out, &of.clone())
+            )
         }
         _ => return None,
     })
@@ -6527,8 +6539,8 @@ fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<S
     if inheritable {
         return Some(base);
     }
-    // Said in the output too, beside the type, because that file is what a reader
-    // of the draft actually has in front of them. A note that lives only in the
+    // Said in the output too, beside the type, because that file is the one a
+    // reader of the draft has in front of them. A note that lives only in the
     // report leaves the struct looking whole.
     out.line(&out.comment(&format!(
         "{MARKER}: extends {base}; whatever `{base}` contributed is not here"
@@ -6632,8 +6644,8 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
             // constructor, and it discarded the one line a Rust constructor is made of.
             _ => {
                 // The canonical build-and-return body is already this shape, whatever
-                // the source bound as a receiver: an `__init__` of plain assignments
-                // arrives as one `Return(RecordLit)` and needs nothing thrown away.
+                // the source bound as a receiver. An `__init__` of plain assignments
+                // arrives as one `Return(RecordLit)`. Nothing needs throwing away.
                 let builds_and_returns = matches!(
                     method.body.as_slice(),
                     [Stmt::Return(Some(Expr::RecordLit { ty, .. }))] if *ty == record.name

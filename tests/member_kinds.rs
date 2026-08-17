@@ -1,8 +1,8 @@
 //! A field and a method under one name stay two symbols with two use lists.
 //!
-//! Rust records the callee of a method call as a call now, so `order.name()` and
-//! `order.name` arrive distinguishable, and the resolver keeps only the member the
-//! syntax allows. Before that, the field's uses counted zero, the method collected
+//! Rust records the callee of a method call as a call now. `order.name()` and
+//! `order.name` arrive distinguishable, and the resolver keeps only the member
+//! the syntax allows. Before that, the field's uses counted zero, the method collected
 //! the field's accesses, and a rename or delete driven by either answer was wrong.
 
 use fun_refactor::index::Index;

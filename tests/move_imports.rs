@@ -111,10 +111,10 @@ fn what_the_moved_code_needs_lands_where_imports_go() {
 
 #[test]
 fn an_aliased_import_repoints_and_keeps_its_alias() {
-    // `import { foo as increment } from "./a"` names the moved symbol under the
-    // name the rest of the file calls it. Leaving that line while adding a plain
-    // `import { foo }` broke the build twice: the old import named a gone export,
-    // and the new one bound a name nothing uses.
+    // `import { foo as increment } from "./a"` names the moved symbol under
+    // the name the rest of the file calls it. Leaving that line while adding a
+    // plain `import { foo }` broke the build twice. The old import named a gone
+    // export, and the new one bound a name nothing uses.
     let files = [
         (
             "a.ts",

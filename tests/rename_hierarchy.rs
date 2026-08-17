@@ -144,9 +144,9 @@ fn a_method_outside_any_hierarchy_renames_alone() {
 
 #[test]
 fn java_overloads_rename_with_every_call_that_only_they_answer() {
-    // Both declarations of `size` rename as one entity. A call resolved by name
-    // alone can then only reach a renamed declaration, so leaving it wrote code
-    // that called nothing while the summary read clean. It renames, reported for
+    // Both declarations of `size` rename as one entity. A call resolved by
+    // name alone can then only reach a renamed declaration. Leaving it wrote
+    // code that called nothing while the summary read clean. It renames, reported for
     // review under the dispatch-candidate heading.
     let source = "public class App {\n    static int size(String s) {\n        \
         return s.length();\n    }\n\n    static int size(int[] items) {\n        \

@@ -481,7 +481,7 @@ mod rust {
                         for item in cx.children(body) {
                             if item.kind() == "function_item" {
                                 let mut f = function(cx, item, Some(owner.clone()));
-                                                                f.is_constructor = super::constructs(
+                                f.is_constructor = super::constructs(
                                     &f.name,
                                     &owner,
                                     f.returns.as_ref(),
@@ -1760,7 +1760,7 @@ mod python {
     /// Calls that build this module's own types are constructions.
     ///
     /// Python spells construction as a call, so `Ledger()` reached the targets as
-    /// one: `Ledger()` in Rust names nothing, and in TypeScript a class cannot be
+    /// one. In Rust that names nothing, and in TypeScript a class cannot be
     /// called without `new`. The names the module itself declares are not a guess.
     fn settle_constructions(module: &mut Module) {
         let types: std::collections::BTreeSet<String> = module
@@ -2538,7 +2538,9 @@ mod go {
     /// turn it back into whatever their language says.
     fn settle_builtins(module: &mut Module) {
         super::each_expr_in_module(module, &mut |e| {
-            let Expr::Call { callee, args } = e else { return };
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
             let Expr::Field { of, name } = callee.as_ref() else {
                 return;
             };
@@ -2771,9 +2773,9 @@ mod go {
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
         // `(int, error)`: Go writes several results as a parenthesised list, and the
-        // grammar hands it over as the same `parameter_list` a signature uses. Read
-        // as text it became an unwritable name in every target's signature; read as
-        // the tuple it is, every target can spell it or say it cannot.
+        // grammar hands it over as the same `parameter_list` a signature uses. Read as
+        // text it became an unwritable name in every signature. Read as the tuple
+        // it is, every target can spell it or say it cannot.
         if node.kind() == "parameter_list" {
             let parts: Vec<Type> = cx
                 .children(node)
@@ -3096,12 +3098,13 @@ mod java {
                     // ever their namespace. An empty `class Orders: pass` beside the
                     // things it held says less than nothing.
                     let shell = |r: &Record| {
-                        hoisted && r.fields.is_empty() && r.methods.is_empty() && r.extends.is_none()
+                        hoisted
+                            && r.fields.is_empty()
+                            && r.methods.is_empty()
+                            && r.extends.is_none()
                     };
                     match record {
-                        Some(record) if !shell(&record) => {
-                            module.items.push(Item::Record(record))
-                        }
+                        Some(record) if !shell(&record) => module.items.push(Item::Record(record)),
                         _ => {}
                     }
                 }
@@ -3120,9 +3123,11 @@ mod java {
     /// every target; written through unchanged, each was a compile error there.
     fn settle_builtins(module: &mut Module) {
         super::each_expr_in_module(module, &mut |e| {
-            let Expr::Call { callee, args } = e else { return };
-            match callee.as_mut() {
-                Expr::Field { of, name } => {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            if let Expr::Field { of, name } = callee.as_mut() {
+                {
                     let is_system_out = matches!(
                         of.as_ref(),
                         Expr::Field { of: inner, name: out_name }
@@ -3135,8 +3140,7 @@ mod java {
                                 args: std::mem::take(args),
                             };
                         }
-                        (false, "valueOf")
-                            if matches!(of.as_ref(), Expr::Name(s) if s == "String") =>
+                        (false, "valueOf") if matches!(of.as_ref(), Expr::Name(s) if s == "String") =>
                         {
                             *e = Expr::Call {
                                 callee: Box::new(Expr::Name("str".to_string())),
@@ -3162,14 +3166,13 @@ mod java {
                         _ => {}
                     }
                 }
-                _ => {}
             }
         });
     }
 
     /// A record's accessor calls become the field reads they are.
     ///
-    /// `record Order(boolean paid)` gives its callers `o.paid()`, and the record
+    /// `record Order(boolean paid)` gives its callers `o.paid()`. The record
     /// crosses as fields, so the call form reaches a target where `paid` is data
     /// and calling it fails. Only a name that is a field of this module's records
     /// and a method of nothing rewrites; anything shared stays a call.
@@ -4217,7 +4220,7 @@ mod zig {
                 },
                 "function_declaration" => match function(cx, member) {
                     Some(mut f) => {
-                                                f.is_constructor = super::constructs(
+                        f.is_constructor = super::constructs(
                             &f.name,
                             &record.name,
                             f.returns.as_ref(),
@@ -4583,9 +4586,9 @@ mod zig {
                     };
                 }
                 if !declares {
-                    // Writing *through* a pointer has no counterpart: stripped, the
-                    // write became a rebinding of the pointer itself, and when the
-                    // pointer was the receiver, an assignment to `this`.
+                    // Writing *through* a pointer has no counterpart. Stripped, the
+                    // write became a rebinding of the pointer itself, and when
+                    // the pointer was the receiver, an assignment to `this`.
                     if target.kind() == "dereference_expression" {
                         return Stmt::Unsupported(cx.unsupported(node));
                     }
@@ -4957,12 +4960,10 @@ mod zig {
                     .map(|a| cx.children(*a))
                     .unwrap_or_default();
                 match (name.as_str(), args.as_slice()) {
-                    ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => {
-                        Expr::Cast {
-                            ty: Box::new(expr(cx, *ty)),
-                            value: Box::new(expr(cx, *value)),
-                        }
-                    }
+                    ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => Expr::Cast {
+                        ty: Box::new(expr(cx, *ty)),
+                        value: Box::new(expr(cx, *value)),
+                    },
                     ("@min" | "@max", _) => Expr::Call {
                         callee: Box::new(Expr::Name(name.trim_start_matches('@').to_string())),
                         args: args.iter().map(|a| expr(cx, *a)).collect(),
@@ -5486,9 +5487,9 @@ mod typescript {
     ///
     /// `summarize(): Summary` returning `{ open, closed, titles }` crossed as a
     /// map, so the Python caller got a dict where the dataclass reader used
-    /// attributes. Only a literal with string keys, every key a field of the
-    /// declared record and every undefaulted field present, rewrites; anything
-    /// else stays the map it is.
+    /// attributes. Only a literal with string keys rewrites, every key a field
+    /// of the declared record, every undefaulted field present. Anything else
+    /// stays the map it is.
     fn settle_record_returns(module: &mut Module) {
         let records: std::collections::BTreeMap<String, (Vec<String>, Vec<String>)> = module
             .items
@@ -5566,9 +5567,9 @@ mod typescript {
     /// compile error there. The canonical names are the Python spellings; the
     /// writers turn them back into whatever their language says.
     fn settle_builtins(module: &mut Module) {
-        let field_named_length = module.items.iter().any(|item| {
-            matches!(item, Item::Record(r) if r.fields.iter().any(|f| f.name == "length"))
-        });
+        let field_named_length = module.items.iter().any(
+            |item| matches!(item, Item::Record(r) if r.fields.iter().any(|f| f.name == "length")),
+        );
         super::each_expr_in_module(module, &mut |e| {
             if let Expr::Field { of, name } = e {
                 if name == "length" && !field_named_length {
@@ -5580,7 +5581,9 @@ mod typescript {
                     return;
                 }
             }
-            let Expr::Call { callee, args } = e else { return };
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
             match callee.as_mut() {
                 Expr::Field { of, name } => match (of.as_ref(), name.as_str()) {
                     (Expr::Name(n), "log") if n == "console" => {
@@ -6255,9 +6258,9 @@ mod typescript {
 /// three. A name with no brackets is itself with no arguments.
 /// Visit every expression under these statements, innermost first, mutably.
 ///
-/// The post-passes that settle what a reader could not know locally, which calls
-/// construct a module's own types, which member reads are properties, all walk the
-/// same tree. Each pass writing its own recursion is how one of them misses the
+/// The post-passes settle what a reader could not know locally: which calls
+/// construct a module's own types, which member reads are properties. All walk
+/// the same tree. Each pass writing its own recursion is how one of them misses the
 /// statement variant added for the other.
 fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
     for stmt in stmts {
@@ -6303,8 +6306,7 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(value, visit);
                 each_expr_in_stmts(body, visit);
             }
-            Stmt::ForEach { iterable, body, .. }
-            | Stmt::ForEachIndexed { iterable, body, .. } => {
+            Stmt::ForEach { iterable, body, .. } | Stmt::ForEachIndexed { iterable, body, .. } => {
                 each_expr(iterable, visit);
                 each_expr_in_stmts(body, visit);
             }
@@ -6343,9 +6345,9 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
 
 /// Visit every statement under these, containers recursed, mutably.
 ///
-/// The statement-level sibling of [`each_expr_in_stmts`], for the passes that care
-/// where an expression stands: a map literal is only a record when a `return`
-/// hands it to a signature that promised one.
+/// The statement-level sibling of [`each_expr_in_stmts`], for the passes that
+/// care where an expression stands. A map literal is only a record when a
+/// `return` hands it to a signature that promised one.
 fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
     for stmt in stmts {
         visit(stmt);

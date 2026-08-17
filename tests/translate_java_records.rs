@@ -1,10 +1,10 @@
 //! A nested Java record crosses as the record it is, and statics as functions.
 //!
-//! `record Order(...)` inside a class was dropped as a comment while the header
-//! counted one record carried; static methods gained a receiver their call sites
-//! never pass. The record's accessor calls, `o.paid()`, become field reads where
-//! the record crossed as fields, and a class emptied by the hoisting is only a
-//! namespace and is not written at all.
+//! `record Order(...)` inside a class was dropped as a comment while the
+//! header counted one record carried. Static methods gained a receiver their
+//! call sites never pass. The record's accessor calls, `o.paid()`, become the
+//! field reads they are. A class emptied by the hoisting is only a namespace,
+//! and is not written at all.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -30,11 +30,11 @@ fn the_nested_record_is_a_dataclass_with_its_fields() {
     let out = to_python(ORDERS_JAVA);
     assert!(
         out.contains("class Order:") && out.contains("paid: bool"),
-        "the record crosses with typed fields:\n{out}"
+        "the record crosses with typed fields.\n{out}"
     );
     assert!(
         !out.contains("not translated: record_declaration"),
-        "nothing about it is a gap any more:\n{out}"
+        "nothing about it is a gap any more.\n{out}"
     );
 }
 

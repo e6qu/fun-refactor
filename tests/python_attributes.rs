@@ -1,8 +1,8 @@
 //! A Python instance attribute is a symbol, and it renames as one thing.
 //!
-//! `self.count = 0` is how a Python object gets its fields, and the most common
-//! rename target the language has answered "no symbol or resolved reference at"
-//! that position. Each assignment site is a definition; the class, carried as
+//! `self.count = 0` is how a Python object gets its fields. The most common
+//! rename target the language has answered "no symbol or resolved reference
+//! at" that position. Each assignment site is a definition; the class, carried as
 //! the qualifier, is the identity that groups them; the reads follow.
 
 use fun_refactor::index::Index;
@@ -31,7 +31,7 @@ fn the_attribute_is_addressable_at_its_assignment() {
     assert_eq!(
         fields.len(),
         2,
-        "each assignment site declares the attribute: {fields:?}"
+        "each assignment site declares the attribute. {fields:?}"
     );
 }
 

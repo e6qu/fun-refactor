@@ -1089,9 +1089,9 @@ fn typescript_and_python_are_unchanged() {
         ws.read("c.ts"),
         "export const y = 2;\n\nexport function moved() { return 1; }\n"
     );
-    // The importer's own statement repoints in place. Its earlier behaviour, the
-    // old import left beside a new one, declared `moved` twice and failed to
-    // compile; this pin is the deliberate change the old pin asked for.
+    // The importer's own statement repoints in place. Its earlier behaviour,
+    // the old import left beside a new one, declared `moved` twice and failed
+    // to compile. This pin is the deliberate change the old pin asked for.
     assert_eq!(
         ws.read("b.ts"),
         "import { moved } from './c';\nexport const x = moved();\n"
@@ -1447,8 +1447,9 @@ fn a_future_import_travels_with_the_code_it_governs() {
 #[test]
 fn a_moved_go_body_qualifies_what_it_left_behind() {
     // `UseShared` calls `Shared`, which stays in package one. Moved bare into
-    // package two, the call named nothing and the tree stopped building, while the
-    // move reported success and a warning stated two things that were not true.
+    // package two, the call named nothing and the tree stopped building. The
+    // move reported success, and its warning stated two things that were not
+    // true.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/m\n\ngo 1.21\n"),
         (
@@ -1487,7 +1488,10 @@ fn a_moved_go_body_using_an_unexported_name_refuses() {
             "package one\n\nfunc shared() int {\n\treturn 7\n}\n\n\
              func UseShared() int {\n\treturn shared()\n}\n",
         ),
-        ("two/two.go", "package two\n\nfunc Twice() int {\n\treturn 6\n}\n"),
+        (
+            "two/two.go",
+            "package two\n\nfunc Twice() int {\n\treturn 6\n}\n",
+        ),
     ]);
     let index = ws.index();
     let id = symbol_id(&index, "UseShared", None);

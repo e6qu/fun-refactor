@@ -504,7 +504,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
             "moving '{}' to {} would make the two files import each other: {} would \
              import '{}' from its new home, and {} would import back what '{}' still \
              uses. Python fails on that cycle at import time. Move the names '{}' uses \
-             as well, or move it to a file neither imports",
+             as well, or move it to a file neither imports.",
             sym.name,
             destination.display(),
             sym.file.display(),
@@ -977,8 +977,8 @@ fn exported(language: Language, text: &str) -> String {
 ///
 /// True when at least one statement bound the moved name from the old file and was
 /// rewritten. The alias stays: it is the name the rest of the file calls. A
-/// statement that also binds names the old file keeps splits in two, the stayers on
-/// the old path and the moved name on the new one.
+/// statement that also binds names the old file keeps splits in two: the
+/// stayers on the old path, the moved name on the new one.
 fn repoint_existing_imports(
     index: &Index,
     file: &Path,
@@ -1000,12 +1000,13 @@ fn repoint_existing_imports(
     let source = crate::vfs::read_to_string(file)?;
     let mut handled = false;
     for statement in import_statements(&info.imports) {
-        if index.resolve_import_path(file, &statement.path).as_deref() != Some(sym.file.as_path())
-        {
+        if index.resolve_import_path(file, &statement.path).as_deref() != Some(sym.file.as_path()) {
             continue;
         }
-        let (moving, staying): (Vec<&crate::model::ImportedName>, Vec<&crate::model::ImportedName>) =
-            statement.names.iter().partition(|n| n.original == sym.name);
+        let (moving, staying): (
+            Vec<&crate::model::ImportedName>,
+            Vec<&crate::model::ImportedName>,
+        ) = statement.names.iter().partition(|n| n.original == sym.name);
         if moving.is_empty() {
             continue;
         }
@@ -1960,7 +1961,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     let source_package = go_package(index, &sym.file).ok_or_else(|| {
         anyhow::anyhow!(
             "{} has no package clause, so what the moved code leaves behind cannot \
-             be qualified",
+             be qualified.",
             sym.file.display()
         )
     })?;
@@ -1981,12 +1982,15 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
                     crate::vfs::describe_dir(source_dir)
                 )
             })?;
-            if go_package_imports(index, source_dir, &go_import_path(dest_dir).unwrap_or_default())
-            {
+            if go_package_imports(
+                index,
+                source_dir,
+                &go_import_path(dest_dir).unwrap_or_default(),
+            ) {
                 bail!(
                     "moving '{}' to {} would make packages {} and {} import each \
                      other: the moved code reaches back into \"{}\", and {} already \
-                     imports the destination. Go does not allow an import cycle",
+                     imports the destination. Go does not allow an import cycle.",
                     sym.name,
                     crate::vfs::describe_dir(dest_dir),
                     crate::vfs::describe_dir(source_dir),
@@ -2064,7 +2068,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
                     "moving '{}' to {} would make packages {} and {} import each other: \
                      {} already imports \"{}\", and moving '{}' makes \"{}\" import back. \
                      Go does not allow an import cycle. Move what '{}' uses as well, or \
-                     move it to a package neither imports",
+                     move it to a package neither imports.",
                     sym.name,
                     crate::vfs::describe_dir(dest_dir),
                     crate::vfs::describe_dir(source_dir),
@@ -2107,9 +2111,9 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
 
 /// Qualify what the moved Go body still reads from the package it is leaving.
 ///
-/// Precise where it can be: only references the index resolved to a symbol the
-/// source file keeps are rewritten, so a local that happens to share a top-level
-/// name stays untouched. A used name with no resolved reference cannot be
+/// Precise where it can be. Only references the index resolved to a symbol the
+/// source file keeps are rewritten, so a local sharing a top-level name stays
+/// untouched. A used name with no resolved reference cannot be
 /// qualified from names alone, and that is said instead of left to the compiler.
 fn go_qualify_back_references(
     index: &Index,
@@ -2142,7 +2146,7 @@ fn go_qualify_back_references(
         if !target.exported {
             bail!(
                 "the moved code uses `{}`, which package {} does not export; a \
-                 qualified `{}.{}` would not compile. Capitalise it or move it too",
+                 qualified `{}.{}` would not compile. Capitalise it or move it too.",
                 target.name,
                 package,
                 package,
@@ -2163,7 +2167,7 @@ fn go_qualify_back_references(
         if !unhandled.is_empty() {
             warnings.push(format!(
                 "the moved code may use {} from the package it left, and those \
-                 mentions did not resolve firmly enough to qualify; check them by hand",
+                 mentions did not resolve firmly enough to qualify; check them by hand.",
                 unhandled.join(", ")
             ));
         }

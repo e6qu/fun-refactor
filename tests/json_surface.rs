@@ -28,14 +28,24 @@ fn run_json(tmp: &tempfile::TempDir, args: &[&str]) -> (serde_json::Value, Strin
         .output()
         .expect("running fr");
     let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-    let parsed = serde_json::from_slice(&out.stdout)
-        .unwrap_or_else(|_| panic!("stdout is not JSON: {:?}", String::from_utf8_lossy(&out.stdout)));
+    let parsed = serde_json::from_slice(&out.stdout).unwrap_or_else(|_| {
+        panic!(
+            "stdout is not JSON: {:?}",
+            String::from_utf8_lossy(&out.stdout)
+        )
+    });
     (parsed, stderr, out.status.success())
 }
 
 const TWO_PROCESSES: [(&str, &str); 2] = [
-    ("go1/a.go", "package a\n\nfunc Process() int {\n\treturn 1\n}\n"),
-    ("go2/b.go", "package b\n\nfunc Process() int {\n\treturn 2\n}\n"),
+    (
+        "go1/a.go",
+        "package a\n\nfunc Process() int {\n\treturn 1\n}\n",
+    ),
+    (
+        "go2/b.go",
+        "package b\n\nfunc Process() int {\n\treturn 2\n}\n",
+    ),
 ];
 
 #[test]
@@ -83,7 +93,10 @@ fn a_target_shaped_like_a_position_is_refused_as_one() {
     assert_eq!(printed["error"]["kind"], "invalid-input");
     let message = printed["error"]["message"].as_str().expect("a message");
     assert!(message.contains("that looks like a position"), "{message}");
-    assert!(message.contains("'abc'"), "the wrong part is named: {message}");
+    assert!(
+        message.contains("'abc'"),
+        "the wrong part is named: {message}"
+    );
     assert!(stderr.contains("that looks like a position"), "{stderr}");
 
     // A name that never resembled a position still resolves as a name.
@@ -144,7 +157,10 @@ fn a_call_tree_can_be_rebuilt_from_the_json() {
     let root = nodes.iter().find(|n| n["name"] == "a").expect("the root");
     assert!(root["parent"].is_null(), "the root hangs off nothing");
     assert_eq!(root["line"], 4);
-    let d = nodes.iter().find(|n| n["name"] == "d").expect("a node for d");
+    let d = nodes
+        .iter()
+        .find(|n| n["name"] == "d")
+        .expect("a node for d");
     assert_eq!(d["parent"]["name"], "b", "d hangs off b, not off c");
     assert!(d["parent"]["file"].as_str().is_some());
     assert_eq!(d["line"], 1);
@@ -188,12 +204,15 @@ fn the_openapi_json_carries_the_notes_in_the_payload() {
     let tmp = workspace(&[("app/api/pets/route.ts", STATUS_ROUTE)]);
     let (printed, _, ok) = run_json(&tmp, &["openapi", "--json"]);
     assert!(ok);
-    assert_eq!(printed["openapi"], "3.1.0", "the document is still the document");
+    assert_eq!(
+        printed["openapi"], "3.1.0",
+        "the document is still the document"
+    );
     let notes = printed["notes"].as_array().expect("a notes array");
     assert!(
-        notes.iter().any(|n| n
-            .as_str()
-            .is_some_and(|n| n.contains("returns status 201"))),
+        notes
+            .iter()
+            .any(|n| n.as_str().is_some_and(|n| n.contains("returns status 201"))),
         "got {notes:?}"
     );
 }

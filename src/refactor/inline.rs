@@ -87,7 +87,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "'{}' has no uses; inlining would only delete it. Use `fr delete` if that is the intent",
+            "'{}' has no uses; inlining would only delete it. Use `fr delete` if that is the intent.",
             sym.name
         );
     }
@@ -1003,9 +1003,9 @@ fn is_duplicable(argument: &str) -> bool {
 
 /// Could evaluating this text run something, rather than only read values?
 ///
-/// A `(` that follows a name, an index or another call is a call about to happen; a
-/// macro's `!(`, an `await`, a `new` and the mutating `++`/`--` are the same hazard
-/// in other spellings. A `(` after an operator is only grouping. Text inside a
+/// A `(` that follows a name, an index or another call is a call about to
+/// happen. A macro's `!(`, an `await`, a `new` and the mutating `++`/`--` are
+/// the same hazard in other spellings. A `(` after an operator is only grouping. Text inside a
 /// string literal does not run, so one whole literal is exempt before any of this.
 fn may_run_code(value: &str) -> bool {
     let trimmed = value.trim();
