@@ -202,3 +202,27 @@ fn works_for_zig() {
     let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
     assert!(out.contains("const y = 3 * 2;"), "got:\n{out}");
 }
+
+#[test]
+fn a_callee_reading_its_own_modules_global_refuses_to_cross_files() {
+    // `clamp` reads `LIMIT` from beside itself. Pasted into another file the
+    // name means nothing there, and the paste compiled, ran, and raised
+    // NameError with no warning.
+    let (tmp, index) = workspace(&[
+        (
+            "lib.py",
+            "LIMIT = 10\n\n\ndef clamp(x: int) -> int:\n    return min(x, LIMIT)\n",
+        ),
+        (
+            "app.py",
+            "from lib import clamp\n\n\ndef run(v: int) -> int:\n    return clamp(v)\n",
+        ),
+    ]);
+    let source = std::fs::read_to_string(tmp.path().join("app.py")).unwrap();
+    let offset = source.find("clamp(v)").unwrap();
+    let err = inline::call(&index, &tmp.path().join("app.py"), offset).unwrap_err();
+    assert!(
+        err.to_string().contains("LIMIT"),
+        "the refusal names the carried global: {err}"
+    );
+}

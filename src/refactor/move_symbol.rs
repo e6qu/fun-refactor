@@ -558,6 +558,15 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
             plan.imports_added.push(file.clone());
             continue;
         }
+        // `import mod` and `mod.foo()` reach the symbol through the module, and
+        // there is no named import to repoint. The receivers rewrite to the new
+        // module and the file imports it; the old behaviour added a dead named
+        // import while every call kept dereferencing the module that no longer
+        // holds the name.
+        if repoint_module_attribute_uses(index, file, sym, destination, &mut plan.edits)? {
+            plan.imports_added.push(file.clone());
+            continue;
+        }
         let statement = import_statement(sym.language, file, destination, &sym.name)?;
         let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
         let insert = import_insertion_point_for(index, file, &target_source);
@@ -730,6 +739,16 @@ fn carried_imports(
             || statement.alias.as_ref().is_some_and(|a| used.contains(a))
             || implicit.as_deref().is_some_and(|b| used.contains(b));
         if !binds_something_used {
+            continue;
+        }
+        // The moved code imported this from the very file it is landing in. There
+        // the names are local, and the carried statement would be a module
+        // importing itself half-initialised: `ImportError` on first use.
+        if index
+            .resolve_import_path(&sym.file, &statement.path)
+            .as_deref()
+            == Some(destination)
+        {
             continue;
         }
         match repoint(&statement.path, &sym.file, destination) {
@@ -1029,6 +1048,102 @@ fn repoint_existing_imports(
             ),
         );
         handled = true;
+    }
+    Ok(handled)
+}
+
+/// Rewrite `mod.foo()` receivers when the module no longer holds the name.
+///
+/// An importer that binds the whole module has no named import to repoint. Each
+/// reference to the moved symbol through that binding rewrites its receiver to
+/// the destination's module, and the file gains `import` of it. Only the
+/// absolute module spelling works as a receiver, so a destination reachable
+/// only relatively is left to the plain-import path.
+fn repoint_module_attribute_uses(
+    index: &Index,
+    file: &Path,
+    sym: &Symbol,
+    destination: &Path,
+    edits: &mut EditSet,
+) -> Result<bool> {
+    if sym.language != Language::Python {
+        return Ok(false);
+    }
+    let Some(info) = index.file(file) else {
+        return Ok(false);
+    };
+    let bindings: Vec<String> = info
+        .imports
+        .iter()
+        .filter(|import| {
+            import.names.is_empty()
+                && index.resolve_import_path(file, &import.path).as_deref()
+                    == Some(sym.file.as_path())
+        })
+        .filter_map(|import| {
+            import
+                .alias
+                .clone()
+                .or_else(|| crate::refactor::imports::implicit_binding(&import.path, sym.language))
+        })
+        .collect();
+    if bindings.is_empty() {
+        return Ok(false);
+    }
+    let Some(module) = python_absolute_module(destination) else {
+        return Ok(false);
+    };
+    let source = crate::vfs::read_to_string(file)?;
+    let parsed = crate::parse::Parsers::new().parse(sym.language, &source)?;
+    let mut handled = false;
+    for reference in index.references_to(sym.id) {
+        if reference.file != *file {
+            continue;
+        }
+        let receiver_matches = reference
+            .receiver
+            .as_deref()
+            .is_some_and(|r| bindings.iter().any(|b| b == r));
+        if !receiver_matches {
+            continue;
+        }
+        let Some(node) = parsed
+            .root()
+            .descendant_for_byte_range(reference.span.start, reference.span.end)
+        else {
+            continue;
+        };
+        let Some(attribute) = node.parent().filter(|p| p.kind() == "attribute") else {
+            continue;
+        };
+        let Some(object) = attribute.child_by_field_name("object") else {
+            continue;
+        };
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                Span::from(object),
+                module.clone(),
+                format!("reach {} in its new module", sym.name),
+            ),
+        );
+        handled = true;
+    }
+    if handled {
+        let already = info.imports.iter().any(|import| {
+            index.resolve_import_path(file, &import.path).as_deref() == Some(destination)
+        });
+        if !already {
+            let at = import_insertion_point_for(index, file, &source);
+            edits.add(
+                file.to_path_buf(),
+                Edit::new(
+                    Span::new(at, at),
+                    format!("import {module}\n"),
+                    format!("import the module now holding {}", sym.name),
+                ),
+            );
+        }
     }
     Ok(handled)
 }

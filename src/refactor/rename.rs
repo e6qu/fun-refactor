@@ -56,9 +56,13 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // renamed without its implementations leaves the family answering two
     // names, and the callers compiling against neither.
     let mut group = index.definition_group(symbol_id);
-    let family = crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol_id);
+    let hierarchy = crate::analysis::call_graph::Hierarchy::scan(index);
+    let family = hierarchy.method_group(index, symbol_id);
     let dispatched = !family.is_empty();
-    for member in family {
+    // An instance attribute is one entity across its class chain the same way a
+    // method is one across its dispatch family.
+    let attribute_family = hierarchy.field_group(index, symbol_id);
+    for member in family.into_iter().chain(attribute_family) {
         group.extend(index.definition_group(member));
     }
     group.sort();
@@ -161,6 +165,15 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // answers to any more, so it renames too, reported at its own confidence.
     if dispatched {
         let family_of = crate::analysis::call_graph::Family::of;
+        // The types the family belongs to. A receiver whose declared type is
+        // outside them cannot reach the family: `b.size(2)` where `b: B` and `B`
+        // has its own `size` was renamed as a dispatch candidate, and javac
+        // refused the result.
+        let owners: std::collections::BTreeSet<String> = group
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter_map(|s| s.qualifier.clone())
+            .collect();
         for reference in index.unresolved_matching(symbol_id) {
             if reference.target.is_some() {
                 continue;
@@ -170,6 +183,11 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     && reference.confidence == Confidence::FieldBased;
             if !member_shaped || family_of(reference.language) != family_of(symbol.language) {
                 continue;
+            }
+            if let Some(declared) = super::receiver_declared_type(index, reference) {
+                if !owners.is_empty() && !owners.contains(&declared) {
+                    continue;
+                }
             }
             if !seen_spans.insert((reference.file.clone(), reference.span)) {
                 continue;
@@ -544,6 +562,7 @@ fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), R
     }
     Ok(())
 }
+
 
 /// Find the old name inside string literals and comments across the workspace.
 ///

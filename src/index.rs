@@ -478,6 +478,16 @@ impl Index {
                 is_member
             } else if bare_call {
                 !is_member
+            } else if reference.receiver.is_none()
+                && reference.kind == ReferenceKind::Identifier
+                && reference.language.members_always_have_a_receiver()
+            {
+                // The mirror of the first rule: a bare `count` in Python or Rust
+                // never names a member, only `self.count` does. With attribute
+                // definitions living in method scopes, the nearest-definition rule
+                // handed a local's own uses to the attribute, and renaming the
+                // local left the rest behind, compiling into UnboundLocalError.
+                !is_member
             } else {
                 true
             }
@@ -653,6 +663,37 @@ impl Index {
             .filter_map(|id| self.symbol(*id))
             .filter(|s| s.file == path)
             .collect();
+
+        // The enclosing instance. `self.count` inside `Base.inc` names a member of
+        // `Base`, wherever in the class its definition sites sit. Lexical scopes
+        // cannot say that: an attribute defined in `__init__` is invisible from a
+        // sibling method's chain, so resolution fell to the name-matched tier and
+        // called the receiver's type unknown, about the one receiver whose type is
+        // never unknown. The innermost enclosing symbol with a qualifier names the
+        // class.
+        if member_access
+            && reference
+                .receiver
+                .as_deref()
+                .is_some_and(|r| matches!(r, "this" | "self"))
+        {
+            let owner = info
+                .symbols
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| s.full_span.contains(reference.span) && s.qualifier.is_some())
+                .min_by_key(|s| s.full_span.end - s.full_span.start)
+                .and_then(|s| s.qualifier.clone());
+            if let Some(owner) = owner {
+                let member = in_file
+                    .iter()
+                    .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
+                    .find(|s| s.qualifier.as_deref() == Some(owner.as_str()));
+                if let Some(member) = member {
+                    return (Some(member.id), Confidence::Exact);
+                }
+            }
+        }
 
         // A member access is a scope lookup only where the scope chain can settle it.
         // `c.run(1)` names a member of whatever `c` is. The lexical scope has nothing to say
@@ -1165,6 +1206,30 @@ impl Index {
             // attributes at all. The class is the identity, and the class is the
             // qualifier: each site's container is the method it sits in. A rename
             // that took one site left the object answering two names at run time.
+            // TypeScript's overloads are separate declarations over one
+            // implementation: two `function pick(...)` signatures and the body all
+            // name one function, and renaming any alone leaves `error TS2389:
+            // Function implementation name must be 'pick'`. The grammar allows the
+            // repetition only for overloads, so same name, same file, same
+            // container is the entity.
+            if matches!(sym.language, Language::TypeScript | Language::Tsx)
+                && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method)
+            {
+                let peers: Vec<SymbolId> = self
+                    .symbols
+                    .iter()
+                    .filter(|s| {
+                        s.name == sym.name
+                            && s.kind == sym.kind
+                            && s.file == sym.file
+                            && s.container == sym.container
+                    })
+                    .map(|s| s.id)
+                    .collect();
+                if peers.len() > 1 {
+                    return peers;
+                }
+            }
             if sym.kind == SymbolKind::Field && sym.qualifier.is_some() {
                 return self
                     .symbols

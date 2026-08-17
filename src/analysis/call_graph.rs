@@ -1205,6 +1205,56 @@ impl Hierarchy {
         targets.into_iter().collect()
     }
 
+    /// The attribute family: same-named fields across one declared class chain.
+    ///
+    /// `Sub(Base)` writing `self.count = 0` assigns the same instance attribute
+    /// `Base.__init__` created. A rename that stopped at the class boundary left
+    /// the subclass writing the old name, and the object answered two names at
+    /// run time. The family is the whole tree the owner stands in: ancestors,
+    /// descendants, and the descendants of every ancestor, because a sibling
+    /// subclass inherits the same attribute.
+    pub fn field_group(&self, index: &Index, symbol: SymbolId) -> Vec<SymbolId> {
+        let Some(field) = index.symbol(symbol) else {
+            return Vec::new();
+        };
+        if field.kind != SymbolKind::Field {
+            return Vec::new();
+        }
+        let Some(family) = Family::of(field.language) else {
+            return Vec::new();
+        };
+        let Some(owner) = field.qualifier.clone() else {
+            return Vec::new();
+        };
+        let mut related: BTreeSet<String> = BTreeSet::new();
+        related.insert(owner.clone());
+        let mut frontier = vec![owner];
+        while let Some(current) = frontier.pop() {
+            for ((f, supertype), children) in &self.direct_subtypes {
+                if *f == family
+                    && children.contains(&current)
+                    && related.insert(supertype.clone())
+                {
+                    frontier.push(supertype.clone());
+                }
+            }
+        }
+        for ancestor in related.clone() {
+            related.extend(self.subtypes(family, &ancestor));
+        }
+        index
+            .symbols
+            .iter()
+            .filter(|s| {
+                s.kind == SymbolKind::Field
+                    && s.name == field.name
+                    && s.language == field.language
+            })
+            .filter(|s| s.qualifier.as_deref().is_some_and(|q| related.contains(q)))
+            .map(|s| s.id)
+            .collect()
+    }
+
     /// Types that name `abstraction` as a supertype, transitively.
     fn subtypes(&self, family: Family, abstraction: &str) -> BTreeSet<String> {
         let mut found: BTreeSet<String> = BTreeSet::new();

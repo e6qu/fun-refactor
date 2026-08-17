@@ -137,12 +137,20 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         // Two adjacent sites can claim the same blank line. One edit per merged run keeps the
         // edit set free of the overlaps the engine would reject.
         spans.sort_by_key(|s| (s.start, s.end));
-        for span in merge_runs(spans) {
+        let merged = merge_runs(spans);
+        for span in &merged {
+            // Python's grammar has no empty suite: deleting the only statement of
+            // a body leaves `def __init__(self):` over nothing, and the file
+            // stops parsing. A `pass` in the hole keeps the deletion deliverable.
+            let replacement = sources
+                .get(file)
+                .and_then(|source| python_pass_filler(file, source, *span, &merged))
+                .unwrap_or_default();
             edits.add(
                 file.clone(),
-                Edit::new(span, "", format!("delete {}", target.name)),
+                Edit::new(*span, replacement, format!("delete {}", target.name)),
             );
-            deleted.push((file.clone(), span));
+            deleted.push((file.clone(), *span));
         }
     }
 
@@ -1029,4 +1037,45 @@ mod tests {
             vec![Span::new(0, 20), Span::new(30, 40)]
         );
     }
+}
+
+/// `pass`, indented for the hole, when this deletion empties a Python suite.
+///
+/// The block's other statements may be going in the same plan, so emptiness is
+/// judged against every merged span and not this one alone.
+fn python_pass_filler(
+    file: &std::path::Path,
+    source: &str,
+    span: Span,
+    all: &[Span],
+) -> Option<String> {
+    if crate::lang::detect(file) != Some(crate::lang::Language::Python) {
+        return None;
+    }
+    let parsed = crate::parse::Parsers::new()
+        .parse(crate::lang::Language::Python, source)
+        .ok()?;
+    // The whole-line span can swallow surrounding blank lines and overshoot the
+    // block; the statement itself begins at the first dark byte.
+    let probe = span.start
+        + source[span.start..span.end]
+            .find(|c: char| !c.is_whitespace())
+            .unwrap_or(0);
+    let mut node = parsed.root().descendant_for_byte_range(probe, probe + 1)?;
+    while node.kind() != "block" {
+        node = node.parent()?;
+    }
+    let mut cursor = node.walk();
+    let emptied = node
+        .named_children(&mut cursor)
+        .all(|child| all.iter().any(|s| s.contains(Span::from(child))));
+    if !emptied {
+        return None;
+    }
+    let line_start = source[..span.start].rfind('\n').map(|at| at + 1).unwrap_or(0);
+    let indent: String = source[line_start..]
+        .chars()
+        .take_while(|c| c.is_whitespace() && *c != '\n')
+        .collect();
+    Some(format!("{indent}pass\n"))
 }

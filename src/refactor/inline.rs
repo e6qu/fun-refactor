@@ -760,6 +760,51 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     let call_span = Span::from(call_node);
 
     let parameters = parameter_names(declaration, &callee_source);
+
+    // The body may read names from the callee's own module, a constant two lines
+    // above it. Pasted into another file those names mean nothing there, or
+    // something else; the paste compiled, ran, and raised NameError. Visible at
+    // the call site is the bar, and an import of the name counts.
+    if callee.file != *file {
+        if let (Some(callee_info), Some(caller_info)) =
+            (index.file(&callee.file), index.file(file))
+        {
+            let body_words = body_expression.text(&callee_source);
+            let words: std::collections::HashSet<&str> = body_words
+                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                .filter(|w| !w.is_empty() && !w.chars().next().is_some_and(|c| c.is_numeric()))
+                .collect();
+            for word in words {
+                if parameters.iter().any(|p| p == word) {
+                    continue;
+                }
+                let defined_beside_callee = callee_info
+                    .symbols
+                    .iter()
+                    .filter_map(|id| index.symbol(*id))
+                    .any(|s| s.name == word && s.is_top_level() && s.id != callee.id);
+                if !defined_beside_callee {
+                    continue;
+                }
+                let visible_here = caller_info
+                    .symbols
+                    .iter()
+                    .filter_map(|id| index.symbol(*id))
+                    .any(|s| s.name == word && s.is_top_level())
+                    || caller_info.imports.iter().any(|import| {
+                        import.alias.as_deref() == Some(word)
+                            || import.names.iter().any(|n| n.local == word)
+                    });
+                if !visible_here {
+                    return Err(Refusal::NameCaptured {
+                        name: word.to_string(),
+                        file: file.to_path_buf(),
+                    }
+                    .into());
+                }
+            }
+        }
+    }
     let arguments = arguments_at(call_node, &caller_source, callee.language);
     if parameters.len() != arguments.len() {
         anyhow::bail!(

@@ -356,6 +356,11 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     // and the note says where.
     if dispatched {
         let family_of = crate::analysis::call_graph::Family::of;
+        let seen_family_owners: std::collections::BTreeSet<String> = members
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter_map(|s| s.qualifier.clone())
+            .collect();
         let mut seen: std::collections::HashSet<(std::path::PathBuf, Span)> = references
             .iter()
             .map(|r| (r.file.clone(), r.span))
@@ -371,6 +376,14 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 || family_of(reference.language) != family_of(sym.language)
             {
                 continue;
+            }
+            // A receiver whose declared type sits outside the family cannot
+            // reach it; the same evidence rename uses to hold such a call still.
+            if let Some(declared) = super::receiver_declared_type(index, reference) {
+                let outside = !seen_family_owners.is_empty() && !seen_family_owners.contains(&declared);
+                if outside {
+                    continue;
+                }
             }
             if !seen.insert((reference.file.clone(), reference.span)) {
                 continue;
