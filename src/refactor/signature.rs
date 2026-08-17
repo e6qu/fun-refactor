@@ -265,9 +265,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         // case worth refusing.
         let call = match call_expression(&call_parsed, reference.span) {
             Some(call) => call,
-            // A mention that is not a call and not an import is the function used as
-            // a value: `let f: fn(i32, i32) -> i32 = add;`, a callback pushed into a
-            // list. It has no argument list to rewrite, and after the change every
+            // A mention that is not a call and not an import is the function used
+            // as a value. Think `let f: fn(i32, i32) -> i32 = add;`, or a callback
+            // pushed into a list. It has no argument list to rewrite, and after the change every
             // call through that binding passes the old shape. Skipping it, as this
             // arm once did, changed the declaration under the binding's feet and
             // reported success.

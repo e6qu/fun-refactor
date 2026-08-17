@@ -93,8 +93,9 @@ pub enum Refusal {
     ///
     /// Neither of the above: nothing collides, and no value is carried anywhere. Both
     /// declarations stay where they are, and what changes is which one a use binds
-    /// to. An inner `let temp` standing between an outer `value` and its use turns a
-    /// renamed `value` into a read of the inner binding, and the file still compiles.
+    /// to. An inner `let temp` can stand between an outer `value` and its use.
+    /// Renaming `value` to `temp` turns that use into a read of the inner binding,
+    /// and the file still compiles.
     ScopeCaptured {
         name: String,
         file: PathBuf,
@@ -187,7 +188,7 @@ impl std::fmt::Display for Refusal {
                 f,
                 "renaming to `{name}` would silently change which declaration a use binds \
                  to: {detail} at {}:{line}. The code would still compile, doing something \
-                 else",
+                 else.",
                 file.display()
             ),
             Refusal::InvalidName { name, reason } => {

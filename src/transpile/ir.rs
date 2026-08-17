@@ -234,9 +234,9 @@ pub enum Type {
     Optional(Box<Type>),
     /// `(int, error)`, `tuple[int, str]`, `[number, string]`: several types as one.
     ///
-    /// Go's multiple return is the reason this exists: its result type has to cross
-    /// as the pair it is, and flattening it to a name produced `Unwritable_int__error`
-    /// in a signature that every target could in fact spell.
+    /// Go's multiple return is why this exists. Its result type has to cross as
+    /// the pair it is; flattening it to a name produced `Unwritable_int__error`
+    /// in a signature every target could spell.
     Tuple(Vec<Type>),
     /// A type the reader recognised the shape of but not the meaning.
     ///
@@ -550,8 +550,8 @@ pub enum Expr {
     /// `(a, b)`: several values travelling as one, without a name for the whole.
     ///
     /// Go returns them, and dropping the payload of `return a, b` turned a two-value
-    /// return into a bare `return` with nothing said, which is the silent wrong answer
-    /// this node exists to end. Rust and Python write tuples anywhere; TypeScript
+    /// return into a bare `return` with nothing said. This node ends that silent
+    /// wrong answer. Rust and Python write tuples anywhere; TypeScript
     /// spells the value as an array. Java has no spelling and says so.
     Tuple(Vec<Expr>),
     /// `[a, b, c]`

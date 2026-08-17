@@ -476,7 +476,10 @@ fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), R
     let binds_bare = |kind| {
         matches!(
             kind,
-            SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter | SymbolKind::Function
+            SymbolKind::Variable
+                | SymbolKind::Constant
+                | SymbolKind::Parameter
+                | SymbolKind::Function
         )
     };
     if !binds_bare(symbol.kind) {

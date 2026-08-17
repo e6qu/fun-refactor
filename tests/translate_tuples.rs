@@ -1,10 +1,10 @@
 //! Several values travelling as one cross as a tuple.
 //!
-//! `return a, b` is Go's multiple return. Before the tuple existed in the IR, the
-//! reader mapped it to nothing and every translated two-value return came out as a
-//! bare `return` — not a marked gap, a silent wrong answer. The tuple also carries
-//! Python's `return a, b` and Rust's `(a, b)`, and a writer with no spelling for
-//! it says so instead of inventing one.
+//! `return a, b` is Go's multiple return. Before the tuple existed in the IR,
+//! the reader mapped it to nothing. Every translated two-value return came out
+//! as a bare `return`: not a marked gap, a silent wrong answer. The tuple also
+//! carries Python's `return a, b` and Rust's `(a, b)`. A writer with no spelling
+//! for it says so instead of inventing one.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -29,7 +29,7 @@ fn a_go_multiple_return_keeps_both_values_in_typescript() {
     let out = translated(tmp.path(), "fetch.go", FETCH_GO, Language::TypeScript);
     assert!(
         out.contains("): [number, error]"),
-        "the result type crosses as a tuple type:\n{out}"
+        "the result type crosses as a tuple type.\n{out}"
     );
     assert!(
         out.contains("return [0, fmt.Errorf(\"empty\")];"),
@@ -37,7 +37,7 @@ fn a_go_multiple_return_keeps_both_values_in_typescript() {
     );
     assert!(
         !out.contains("return;"),
-        "no return loses its values silently:\n{out}"
+        "no return loses its values silently.\n{out}"
     );
 }
 
@@ -47,7 +47,7 @@ fn a_go_multiple_return_is_a_rust_tuple() {
     let out = translated(tmp.path(), "fetch.go", FETCH_GO, Language::Rust);
     assert!(
         out.contains("-> (i64, error)"),
-        "the result type is a tuple there too:\n{out}"
+        "the result type is a tuple there too.\n{out}"
     );
     assert!(
         out.contains("return (0, fmt.Errorf(\"empty\"));"),
@@ -61,8 +61,7 @@ fn a_writer_with_no_tuple_says_so_instead_of_dropping_it() {
     let path = tmp.path().join("fetch.go");
     std::fs::write(&path, FETCH_GO).unwrap();
     let out_path = tmp.path().join("Fetch.java");
-    let plan =
-        transpile::plan_to(&path, Language::Java, Some(&out_path), false).unwrap();
+    let plan = transpile::plan_to(&path, Language::Java, Some(&out_path), false).unwrap();
     assert!(
         plan.output.contains("fun-refactor: not translated: tuple"),
         "Java carries the tuple visibly:\n{}",

@@ -3063,9 +3063,9 @@ fn go_type(ty: &Type) -> String {
         Type::Map(k, v) => format!("map[{}]{}", go_type(k), go_type(v)),
         Type::Optional(inner) => format!("*{}", go_type(inner)),
         // Go can only say several-types-as-one in a function's results, and the
-        // signature writer spells that itself. In any other position — a field, an
-        // argument — the name will not compile, which is honest; `[](A, B)` from a
-        // Rust `Vec<(A, B)>` field did not compile either, unreadably.
+        // signature writer spells that itself. In any other position, a field or
+        // an argument, the name will not compile, which is honest. `[](A, B)` from
+        // a Rust `Vec<(A, B)>` field did not compile either, unreadably.
         Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => go_named(name, args),
     }
@@ -4168,7 +4168,7 @@ fn java(out: &mut Out, module: &Module) {
         if let Item::Import { text, line } = item {
             out.fidelity.imports_listed += 1;
             let header = out.comment(&format!(
-                "the source imported this at line {line}; the equivalent here is yours to add"
+                "the source imported this at line {line}; the equivalent here is yours to add."
             ));
             out.line(&header);
             for l in text.lines() {
@@ -4271,7 +4271,7 @@ fn java(out: &mut Out, module: &Module) {
                 }
                 out.note_once(
                     "a test crossed as a plain method: no runner is part of the \
-                     language, so wiring it into yours is left to you.",
+                     language. Wiring it into yours is left to you.",
                 );
                 out.line(&format!(
                     "static void {}() {{",

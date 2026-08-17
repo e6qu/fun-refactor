@@ -606,8 +606,8 @@ fn a_workspace_with_no_abstraction_gains_no_edges() {
 
 #[test]
 fn dispatch_edges_are_dashed_and_named_in_dot() {
-    let (_tmp, index) = workspace(&rust_shapes());
-    let dot = CallGraph::build(&index).to_dot(&index);
+    let (tmp, index) = workspace(&rust_shapes());
+    let dot = CallGraph::build(&index).to_dot(&index, tmp.path());
     assert!(
         dot.contains("style=dashed, label=\"implemented-trait\""),
         "a picture must not overstate certainty: {dot}"
