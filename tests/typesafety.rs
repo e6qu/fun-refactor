@@ -466,6 +466,21 @@ fn the_page_shows_the_checkers_words() {
 }
 
 #[test]
+fn the_epilogue_names_the_mypy_the_buttons_install() {
+    let page = std::fs::read_to_string(root().join("docs/type-safety.html")).unwrap();
+    let script = std::fs::read_to_string(root().join("docs/type-safety.js")).unwrap();
+    let pin = script
+        .split("mypy==")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the script pins a mypy version");
+    assert!(
+        page.contains(&format!("mypy=={pin}")),
+        "the epilogue claims a mypy version the buttons do not install: the script pins {pin}"
+    );
+}
+
+#[test]
 fn the_examples_carry_no_comments() {
     for example in examples() {
         for (code, marker) in [(&example.python, "#"), (&example.typescript, "//")] {

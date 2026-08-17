@@ -49,6 +49,7 @@
       <li><a href="#exercises">Exercises</a></li>
       <li><a href="#concepts">The concepts</a></li>
       <li><a href="#toolbox">The toolbox, compared</a></li>
+      <li><a href="#how-this-page-works">How does this page work?</a></li>
     </ol>
   </div>
 </section>
@@ -332,6 +333,18 @@
       <p>Parse, don't validate.</p>
       <p>Not everything needs to be its own type.</p>
     </div>
+  </div>
+</section>
+
+<section id="how-this-page-works">
+  <div class="shell prose">
+    <h2>How does this page work?</h2>
+    <p>Every cell is editable, and the buttons run real tools in the tab. There is no server.</p>
+    <p><strong>Run, Python.</strong> <a href="https://pyodide.org">Pyodide</a> is CPython compiled to WebAssembly. The first click loads it from a CDN; each run hands your cell to the interpreter with fresh globals and shows what it printed.</p>
+    <p><strong>Type check, Python.</strong> PyPI carries mypy as a pure-Python wheel, so Pyodide can install it in the browser. The button installs <code>mypy==1.18.2</code>, writes your cell to <code>/cell.py</code> on the virtual filesystem with a strict <code>mypy.ini</code> beside it, and calls mypy's API. The words are mypy's, character for character.</p>
+    <p><strong>TypeScript.</strong> tsc was always JavaScript, so one CDN script is the whole compiler. Diagnostics use the same strict flags as the repository's tests; Run transpiles and evaluates.</p>
+    <p><strong>Lint.</strong> <a href="https://docs.astral.sh/ruff/">Ruff</a> is Rust, compiled to WebAssembly. It is Ruff itself.</p>
+    <p><strong>To edit this page.</strong> The prose is <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/type-safety.html">docs/type-safety.html</a>. The code cells are files under <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety/</a>, one Python and one TypeScript per example; each cell's Edit in GitHub button opens its own pair. Change one, then <code>UPDATE_SITE_DATA=1 cargo test --test typesafety</code> re-checks it and regenerates the page's data. The buttons live in <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/type-safety.js">docs/type-safety.js</a>.</p>
   </div>
 </section>
 </main>
