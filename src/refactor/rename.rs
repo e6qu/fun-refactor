@@ -56,9 +56,13 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // renamed without its implementations leaves the family answering two
     // names, and the callers compiling against neither.
     let mut group = index.definition_group(symbol_id);
-    let family = crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol_id);
+    let hierarchy = crate::analysis::call_graph::Hierarchy::scan(index);
+    let family = hierarchy.method_group(index, symbol_id);
     let dispatched = !family.is_empty();
-    for member in family {
+    // An instance attribute is one entity across its class chain the same way a
+    // method is one across its dispatch family.
+    let attribute_family = hierarchy.field_group(index, symbol_id);
+    for member in family.into_iter().chain(attribute_family) {
         group.extend(index.definition_group(member));
     }
     group.sort();
@@ -147,7 +151,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     reference.span.start,
                     format!(
                         "left unchanged: {} (resolved only as '{}')",
-                        why_it_was_left(reference),
+                        why_it_was_left(index, reference),
                         reference.confidence.as_str()
                     ),
                 ));
@@ -161,6 +165,15 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // answers to any more, so it renames too, reported at its own confidence.
     if dispatched {
         let family_of = crate::analysis::call_graph::Family::of;
+        // The types the family belongs to. A receiver whose declared type sits
+        // outside them cannot reach it. `b.size(2)` with `b` declared `B`, and
+        // `B` holding its own `size`, was renamed as a dispatch candidate, and
+        // javac refused the result.
+        let owners: std::collections::BTreeSet<String> = group
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter_map(|s| s.qualifier.clone())
+            .collect();
         for reference in index.unresolved_matching(symbol_id) {
             if reference.target.is_some() {
                 continue;
@@ -170,6 +183,11 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     && reference.confidence == Confidence::FieldBased;
             if !member_shaped || family_of(reference.language) != family_of(symbol.language) {
                 continue;
+            }
+            if let Some(declared) = super::receiver_declared_type(index, reference) {
+                if !owners.is_empty() && !owners.contains(&declared) {
+                    continue;
+                }
             }
             if !seen_spans.insert((reference.file.clone(), reference.span)) {
                 continue;
@@ -215,7 +233,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                 format!(
                     "occurrence of '{}' left unchanged: {} (resolved only as '{}')",
                     symbol.name,
-                    why_it_was_left(reference),
+                    why_it_was_left(index, reference),
                     reference.confidence.as_str()
                 ),
             ));
@@ -572,15 +590,24 @@ fn textual_sweep(
         .collect())
 }
 
-fn why_it_was_left(reference: &crate::model::Reference) -> &'static str {
+fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String {
     if reference.receiver.is_some() && !reference.receiver_is_path {
+        // Saying "type not known" about a receiver whose declaration names its
+        // type reads as a defect. The true reason is that the named type is not
+        // the renamed symbol's.
+        if let Some(declared) = super::receiver_declared_type(index, reference) {
+            return format!(
+                "its receiver is declared `{declared}`, which is not what is being renamed"
+            );
+        }
         return "it is read from a value whose type is not known here, so it may name \
-                something else of the same name";
+                something else of the same name"
+            .to_string();
     }
     if reference.member_in_macro {
-        return "it is written inside a macro, where the receiver is not recorded";
+        return "it is written inside a macro, where the receiver is not recorded".to_string();
     }
-    "it matched by name alone"
+    "it matched by name alone".to_string()
 }
 
 /// Spans of string literals, comments and Helm template actions.

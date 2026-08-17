@@ -175,6 +175,130 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B412: **`fr inline --call` pasted a callee's module globals across files.**
+  `clamp` read `LIMIT` from beside itself; pasted into another file the name
+  meant nothing there, and the paste compiled, ran, and raised NameError with
+  no warning. A body name defined beside the callee and invisible at the call
+  site refuses, named. Pinned in `tests/inline_call.rs`.
+
+- [x] B411: **`fr move` broke Python importers twice over.** Code moved into the
+  file it imported from carried the import along, a module importing itself
+  half-initialised; and an importer holding the whole module (`import mod;
+  mod.foo()`) gained a dead named import while every call kept dereferencing
+  the module that no longer held the name. The self-import is dropped, and the
+  module-attribute receivers rewrite to the new module, which the importer now
+  imports. Pinned in `tests/move_languages.rs`.
+
+- [x] B410: **a receiver's declared type did not hold its call still.** Renaming
+  `A`'s overloads took `b.size(2)` with them as a dispatch candidate, though
+  `b` is declared `B` and `B` answers `size` itself; javac refused the result.
+  A dispatch-candidate site whose receiver's declared type sits outside the
+  family stays, and the warning names the type instead of claiming it unknown.
+  The same evidence holds `fr signature` still. Pinned in
+  `tests/rename_hierarchy.rs`.
+
+- [x] B409: **TypeScript overload signatures renamed apart from their
+  implementation.** Two `function pick` declarations over one body are one
+  function; renaming any alone left `error TS2389`. Same name, same file, same
+  container is the entity. Pinned in `tests/rename_hierarchy.rs`.
+
+- [x] B408: **deleting the only statement of a Python suite wrote a file that
+  does not parse.** The hole gets a `pass`, judged against every span of the
+  plan so a multi-site delete still empties cleanly.
+  Pinned in `tests/python_attributes.rs`.
+
+- [x] B407: **instance attributes and locals fed each other's renames.** A bare
+  `count` never names a member in the languages that spell members through a
+  receiver, and `self.count` in a sibling method is a member of the enclosing
+  class wherever its definition sites sit; both resolutions said otherwise, so
+  a local's rename took one line of three and an attribute's skipped the
+  sibling method and the subclass. Bare names now exclude members, the
+  enclosing instance resolves by the class the code sits in, and the attribute
+  family crosses the declared class chain. Pinned in
+  `tests/python_attributes.rs`.
+
+- [x] B399: **two racing `fr rename --write` runs both reported applied and one
+  rename vanished.** Whole-file writes let the last writer win in silence. The
+  commit now re-reads every file and refuses whenever the text differs from what
+  the plan read, and nothing partial is written. OS locks held in the system
+  temporary directory serialise the read-verify-write window. Pinned by the
+  commit tests in `src/edit.rs`.
+
+- [x] B400: **`fr symbols --json | head` panicked once `head` closed the pipe.**
+  Exit 101 and a broken-pipe abort, for a reader that had taken what it wanted.
+  Every stdout write now treats a closed pipe as the end of the run and exits 0.
+  Pinned in `tests/cli.rs`.
+
+- [x] B401: **diff headers named absolute paths, which `git apply -p1` refuses.**
+  Headers are now workspace-root-relative, `a/src/x.rs`, while the JSON `path`
+  fields stay absolute. Pinned in `tests/cli.rs` and `tests/json_surface.rs`.
+
+- [x] B402: **`fr usages` and `fr rename` disagreed about the same entity.**
+  Usages excluded definition sites; rename counted them. So `files_changed`
+  said 2 where usages saw 1 file. `fr usages` now lists the definitions apart
+  from the uses, and rename's JSON carries `definition_edits`. Pinned in
+  `tests/json_surface.rs`.
+
+- [x] B403: **every domain failure exited 1.** Not found exits 3, ambiguous 4,
+  a refusal 5. Clap keeps 2 and everything else stays 1. `fr --help`
+  documents the codes. Pinned in `tests/cli.rs`.
+
+- [x] B404: **`fr scan --json` spelled paths its own way and dropped symlinks
+  in silence.** Each item now carries an absolute `file` beside `path`.
+  Skipped symlinks are listed with their targets named. Pinned in
+  `tests/json_surface.rs` and the `src/scan.rs` tests.
+
+- [x] B405: **a `restructure` step that matched nothing reported "matched 1,
+  applied 0" and ok.** The pattern is the step's selector. So an empty match
+  now stops the run unless `allow-empty` says it may. The matched count is the
+  occurrence count. Pinned in `tests/recipe.rs`.
+
+- [x] B406: **`fr remove-flag` left the flag's name behind in strings, comments
+  and config.** The rename sweep now runs over the finished workspace. Every
+  remaining mention lands under "Left undone" with its file and line. Pinned
+  in `tests/remove_flag_sweep.rs`.
+
+- [x] B417: **three markers stopped the build they were drafted into.** Go's
+  inline stand-in was a bare `nil`, untypable at `:=`. It binds as `any(nil)`
+  now, and only a call stands alone as a statement. Rust's `todo!`
+  interpolated braces the carried source brought along; they double. A
+  constant whose value held anything untranslated became a `todo!` a `const`
+  evaluates at compile time; it carries whole as a comment, name and all.
+  Pinned in `tests/translate_markers.rs`.
+
+- [x] B416: **the implicit entry never crossed.** Rust, Go, Java and Zig run
+  `main` without writing a call. Their programs translated to Python and
+  TypeScript did nothing. The readers synthesize the call, and the
+  self-running targets drop it again with a note. Python guards it, passing
+  `sys.argv[1:]` to a `main(String[] args)` and starting an async main under
+  `asyncio.run`. Go keeps a niladic `main` lowercase, so `package main`
+  still starts. Pinned in `tests/translate_entrypoints.rs`.
+
+- [x] B415: **a thrown class was one the target never declared.** `throw new
+  Error(m)` reached Python as `raise Error(m)`. `raise ValueError(m)`
+  reached TypeScript as a call to nothing. The readers fold the everyday
+  names into the canonical ones, and TypeScript declares one-line classes
+  for the builtins it lacks. A caught error read as text is its message
+  everywhere: `str(e)`, `(e as Error).message`, `e.getMessage()`. The probe
+  fixtures run byte-identical to their sources in both directions.
+  Pinned in `tests/translate_exceptions.rs`.
+
+- [x] B414: **a Result crossed as a type nothing could write.** Rust's
+  `Result<T, E>` and Zig's `E!T` read as one shared name now. Go writes the
+  `(T, error)` pair: `Ok` returns beside `nil`, `Err` returns the zero and an
+  error, a propagated call binds beside a checked `err`. The exception
+  languages return the ok value bare and raise the `Err`. Zig spells the
+  union back, error sets cross as sums, and `format!` is a template.
+  Pinned in `tests/translate_results.rs` and `tests/translate_propagation.rs`.
+
+- [x] B413: **a value-position Zig switch carried, and one-statement branches
+  vanished.** `const x = switch (...) {...};` lowers to declare-then-assign.
+  Every writer already says that shape, and the Rust writer folds the pair
+  back into a `match` expression. Found beside it: `if (x) return e;` dropped
+  its return without a word, and a `while` with a step clause lost the step.
+  Both cross or carry visibly now, and the corpus ledger is re-pinned.
+  Pinned in `tests/translate_results.rs` and `tests/translate_corpus_sweep.rs`.
+
 - [x] B398: **a Python instance attribute was not a symbol at all.** `fr rename`
   answered "no symbol or resolved reference at" the most common rename target
   the language has. Each `self.x = ...` site now defines a field; the class,

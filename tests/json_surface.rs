@@ -240,3 +240,88 @@ fn the_openapi_status_note_speaks_the_language_of_the_input() {
     assert!(human.contains("NextResponse.json"), "{human}");
     assert!(!human.contains("status_code="), "{human}");
 }
+
+const HELPER_AND_CALLER: [(&str, &str); 1] = [(
+    "a.go",
+    "package p\n\nfunc Helper() int {\n\treturn 1\n}\n\nfunc Caller() int {\n\treturn Helper()\n}\n",
+)];
+
+#[test]
+fn usages_reports_the_definition_sites_apart_from_the_uses() {
+    // `fr usages` counts uses only, while `fr rename` also edits definitions. An
+    // agent cross-checking the two saw "1 file with usages" against "2 files
+    // changed" and read a contradiction. The definitions make the whole entity
+    // visible from this side, without being folded into the use count.
+    let tmp = workspace(&HELPER_AND_CALLER);
+    let (printed, _, ok) = run_json(&tmp, &["usages", "Helper", "--json"]);
+    assert!(ok);
+    assert_eq!(printed["usages"].as_array().expect("a list").len(), 1);
+    let definitions = printed["definitions"].as_array().expect("a list");
+    assert_eq!(definitions.len(), 1, "got {definitions:?}");
+    assert_eq!(definitions[0]["line"], 3);
+    assert_eq!(definitions[0]["col"], 6);
+    assert!(
+        definitions[0]["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("a.go")),
+        "got {definitions:?}"
+    );
+}
+
+#[test]
+fn a_rename_summary_counts_definition_edits_beside_reference_edits() {
+    let tmp = workspace(&HELPER_AND_CALLER);
+    let (printed, _, ok) = run_json(&tmp, &["rename", "Helper", "Fetched", "--json"]);
+    assert!(ok);
+    assert_eq!(printed["definition_edits"], 1);
+    assert_eq!(printed["reference_edits"], 1);
+    assert_eq!(printed["files_changed"], 1);
+}
+
+#[test]
+fn a_change_diff_header_is_workspace_relative_while_the_path_stays_absolute() {
+    // `git apply -p1` refuses `a//absolute/path`; a joining agent still needs the
+    // absolute `path` field. Each keeps its job.
+    let tmp = workspace(&HELPER_AND_CALLER);
+    let (printed, _, ok) = run_json(&tmp, &["rename", "Helper", "Fetched", "--json"]);
+    assert!(ok);
+    let change = &printed["changes"].as_array().expect("changes")[0];
+    let diff = change["diff"].as_str().expect("a diff");
+    assert!(diff.starts_with("--- a/a.go\n+++ b/a.go\n"), "{diff}");
+    let path = change["path"].as_str().expect("a path");
+    assert!(
+        std::path::Path::new(path).is_absolute(),
+        "the path field stays absolute: {path}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn scan_names_each_file_absolutely_and_lists_skipped_symlinks() {
+    // `scan` said `"path": "./x"` while every other command says `"file"`
+    // absolutely, and a symlinked source file vanished from the listing entirely.
+    let tmp = workspace(&HELPER_AND_CALLER);
+    std::os::unix::fs::symlink(tmp.path().join("a.go"), tmp.path().join("link.go"))
+        .expect("a symlink");
+    let (printed, _, ok) = run_json(&tmp, &["scan", "--json"]);
+    assert!(ok);
+    let files = printed["files"].as_array().expect("files");
+    assert_eq!(files.len(), 1, "the link is not a second copy: {files:?}");
+    let file = files[0]["file"].as_str().expect("an absolute file");
+    assert!(std::path::Path::new(file).is_absolute(), "{file}");
+    assert!(files[0]["path"].is_string(), "the old key survives");
+    let skipped = printed["skipped"].as_array().expect("a skipped list");
+    assert_eq!(skipped.len(), 1, "got {skipped:?}");
+    assert!(
+        skipped[0]["reason"]
+            .as_str()
+            .is_some_and(|r| r.starts_with("symlink to")),
+        "got {skipped:?}"
+    );
+    assert!(
+        skipped[0]["path"]
+            .as_str()
+            .is_some_and(|p| p.ends_with("link.go")),
+        "got {skipped:?}"
+    );
+}

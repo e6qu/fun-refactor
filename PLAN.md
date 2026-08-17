@@ -1366,3 +1366,55 @@ under `tsc --strict` after translation and prints the same output under Node
 that it printed under CPython, and the same file translated the other way runs
 under Python. The corpus ledger fell by roughly 260 carried constructs, and
 what still cannot cross says so in the file, at the line where it stops.
+
+### The pass where the CLI grew a spine
+
+Two probes drove the binary the way scripts and agents do, and eight findings
+survived verification (B399 through B406). A racing `--write` no longer loses
+an edit, and a closed pipe ends a listing quietly. Diffs now apply under
+`git apply -p1`, the counts of `fr usages` and `fr rename` reconcile, and the
+exit code names the failure. `fr scan` accounts for symlinks, an empty
+`restructure` pattern stops a recipe, and `fr remove-flag` names the mentions
+it cannot rewrite.
+
+### The pass where the two probes met in the middle
+
+Three more probes: one adversarial against the fixes of the pass before, one
+into translation with compilers and runtimes waiting, one for scale and the
+agent loop. The refactoring side closed the holes the attribute work had
+opened (B407, B408) and the ones dispatch still had (B409, B410), and `fr
+move` and `fr inline --call` stopped writing Python that raises on first use
+(B411, B412). The edit engine grew the two guarantees concurrent use needs:
+a commit verifies its basis and holds a lock, so the race that silently
+dropped a rename now refuses with the reason (B399). The rest of the
+robustness ledger, B400 through B406, is exit codes an agent can branch on,
+diff headers `git apply` accepts, a scan that says what it skipped, and the
+figures that disagreed brought into one truth.
+
+On the translation side the corpus ledger kept falling: identifier-named Zig
+tests cross with a collision-proof name, `errdefer` cleans up on the failure
+path in the languages whose failures are exceptions, and a base class in the
+same module lays flat into its extenders where nothing inherits, so the
+supertype marker stands only for what is truly out of reach.
+
+### The pass where the drafts stayed running
+
+A second probe drove `translate` with compilers and runtimes on the far side,
+and five findings survived (B413 through B417). Markers compile now: Go's
+stand-in binds, Rust's `todo!` doubles its braces, and an untranslatable
+constant is a comment instead of a build that stops. The entry call crosses
+every pairing once. The self-running readers synthesize it, Python guards it,
+TypeScript writes it bare, and the targets that run `main` themselves drop it
+with a note. Exceptions cross under the target's own names, and a caught
+error read as text is its message everywhere. Rust's `Result<T, E>` and Zig's
+`E!T` read as one shared name. Go writes it as its `(T, error)` pair; the
+exception languages raise the `Err`. A value-position Zig switch lowers to
+declare-then-assign, and the Rust writer folds the pair back into a `match`.
+
+The measure again: the Result fixture builds under `go build`, and its
+functions answer byte-for-byte what the Rust binary answers. The exception
+fixtures run identically in both directions across Python, TypeScript and
+Java. The Zig ledger fixture fell from ten rustc errors to five, and every
+survivor names a foreign API out loud. Carried error propagation fell from 46
+to 20 across the corpus. The Zig reader stopped dropping one-statement
+branches in silence, and the ledger now states them.

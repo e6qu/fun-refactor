@@ -220,3 +220,46 @@ impl std::fmt::Display for Refusal {
 }
 
 impl std::error::Error for Refusal {}
+
+/// The declared type of a reference's receiver, where the source wrote one.
+///
+/// `b.size(2)` with `B b = ...` above it names the type outright; the nearest
+/// binding of the receiver's name in scope carries it. `this` and `self` are the
+/// enclosing instance and answer a different question.
+pub(crate) fn receiver_declared_type(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+) -> Option<String> {
+    let receiver = reference.receiver.as_deref()?;
+    if matches!(receiver, "this" | "self") {
+        return None;
+    }
+    let info = index.file(&reference.file)?;
+    let chain = info.scope_chain(reference.scope);
+    let binding = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| {
+            s.name == receiver
+                && matches!(
+                    s.kind,
+                    crate::model::SymbolKind::Variable
+                        | crate::model::SymbolKind::Parameter
+                        | crate::model::SymbolKind::Constant
+                )
+        })
+        .filter(|s| chain.contains(&s.scope))
+        .min_by_key(|s| {
+            chain
+                .iter()
+                .position(|sc| *sc == s.scope)
+                .unwrap_or(usize::MAX)
+        })?;
+    let declared = crate::analysis::types::of(index, binding.id).ok()?;
+    let written = declared.declared?;
+    // `List<Order>` names `List`; the last plain segment is the type's own name.
+    let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
+    let last = base.rsplit(['.', ':']).next().unwrap_or(base);
+    Some(last.to_string())
+}

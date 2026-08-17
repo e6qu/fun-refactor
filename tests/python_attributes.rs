@@ -79,3 +79,96 @@ fn same_named_attributes_of_two_classes_stay_apart() {
         "the class is the identity:\n{out}"
     );
 }
+
+#[test]
+fn a_local_and_the_attribute_it_copies_stay_two_symbols() {
+    // `count = self.count` binds a local; `count += 1` reads it. Handed to the
+    // attribute, the local's rename took one line of three and the method
+    // raised UnboundLocalError at run time.
+    let source = "class C:\n    def __init__(self) -> None:\n        self.count = 0\n\n    \
+        def bump(self) -> int:\n        count = self.count\n        count += 1\n        \
+        self.count = count\n        return self.count\n";
+    let (tmp, index) = indexed(source);
+    let local = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "count" && s.kind == fun_refactor::model::SymbolKind::Variable)
+        .expect("the local")
+        .id;
+    let plan = rename::plan(&index, local, "tmp").unwrap();
+    let path = tmp.path().join("model.py");
+    let edits = plan.edits.edits_for(&path).expect("edits");
+    let out = fun_refactor::edit::apply_to_string(source, edits).unwrap();
+    assert!(
+        out.contains("tmp = self.count")
+            && out.contains("tmp += 1")
+            && out.contains("self.count = tmp"),
+        "all three local uses move together:\n{out}"
+    );
+    assert_eq!(
+        out.matches("self.count").count(),
+        4,
+        "and the attribute keeps its name everywhere:\n{out}"
+    );
+}
+
+#[test]
+fn the_attribute_family_crosses_the_class_chain() {
+    // `Sub(Base)` writing `self.count = 0` assigns the attribute
+    // `Base.__init__` created. A rename that stopped at the class boundary
+    // left the object answering two names at run time.
+    let source = "class Base:\n    def __init__(self) -> None:\n        self.count = 0\n\n    \
+        def inc(self) -> None:\n        self.count += 1\n\n\nclass Sub(Base):\n    \
+        def reset(self) -> None:\n        self.count = 0\n";
+    let (tmp, index) = indexed(source);
+    let id = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "count" && s.qualifier.as_deref() == Some("Base"))
+        .expect("the attribute")
+        .id;
+    let plan = rename::plan(&index, id, "total").unwrap();
+    let path = tmp.path().join("model.py");
+    let edits = plan.edits.edits_for(&path).expect("edits");
+    let out = fun_refactor::edit::apply_to_string(source, edits).unwrap();
+    assert!(
+        !out.contains("count"),
+        "the subclass writes the same attribute and follows:\n{out}"
+    );
+}
+
+#[test]
+fn deleting_a_used_attribute_refuses_and_an_unused_one_leaves_pass_behind() {
+    let source = "class Holder:\n    def __init__(self) -> None:\n        self.unused = 0\n\n    \
+        def name(self) -> str:\n        return \"holder\"\n";
+    let (tmp, index) = indexed(source);
+    let id = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "unused")
+        .expect("the attribute")
+        .id;
+    let plan = fun_refactor::refactor::delete::plan(&index, id).unwrap();
+    let path = tmp.path().join("model.py");
+    let edits = plan.edits.edits_for(&path).expect("edits");
+    let out = fun_refactor::edit::apply_to_string(source, edits).unwrap();
+    assert!(
+        out.contains("def __init__(self) -> None:\n        pass\n"),
+        "the emptied suite holds a pass, so the file still parses:\n{out}"
+    );
+
+    let used = "class Busy:\n    def __init__(self) -> None:\n        self.count = 0\n\n    \
+        def inc(self) -> None:\n        self.count += 1\n";
+    let (_tmp2, index2) = indexed(used);
+    let id2 = index2
+        .symbols
+        .iter()
+        .find(|s| s.name == "count")
+        .expect("the attribute")
+        .id;
+    let err = fun_refactor::refactor::delete::plan(&index2, id2).unwrap_err();
+    assert!(
+        err.to_string().contains("still resolve to it"),
+        "a used attribute refuses: {err}"
+    );
+}

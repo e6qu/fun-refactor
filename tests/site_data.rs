@@ -934,8 +934,8 @@ const TRANSLATIONS: &[Translation] = &[
         id: "real-python-to-typescript",
         title: "Real code: a FastAPI backend → TypeScript",
         blurb: "Not a sample written to succeed. This is `backend/app/crud.py` from the \
-                full-stack FastAPI template, unmodified, and the report says exactly \
-                where the translation stops being one.",
+                full-stack FastAPI template, unmodified, and the report says where \
+                the translation stops being one.",
         files: &[],
         subject: "crud.py",
         target: "typescript",

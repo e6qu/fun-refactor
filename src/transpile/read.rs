@@ -39,7 +39,47 @@ pub fn read(
         ),
     };
     settle_methods(&mut module);
+    // Only for the languages that run `main` implicitly. Python and TypeScript run a
+    // module top to bottom. A file of theirs without the call genuinely never runs
+    // it, and inventing one would change what importing does.
+    if matches!(
+        language,
+        Language::Rust | Language::Go | Language::Java | Language::Zig
+    ) {
+        settle_entry(&mut module);
+    }
     Ok(module)
+}
+
+/// Append the program's own entry where the source language runs `main` implicitly.
+///
+/// Rust, Go, Java and Zig never write `main();`: declaring the function is the whole
+/// arrangement. Python and TypeScript run a module top to bottom, so their programs
+/// end with a call. Without one, a translated program parsed, ran and printed
+/// nothing. The synthesized statement is that call. The self-running targets drop it
+/// again and say so, which lets the entry cross every pairing without doubling
+/// anywhere.
+fn settle_entry(module: &mut Module) {
+    let declares_main = module
+        .items
+        .iter()
+        .any(|item| matches!(item, Item::Function(f) if f.name == "main"));
+    if !declares_main {
+        return;
+    }
+    let already_called = module.items.iter().any(|item| match item {
+        Item::Statement(Stmt::Expr(Expr::Call { callee, .. })) => {
+            matches!(callee.as_ref(), Expr::Name(name) if name == "main")
+        }
+        _ => false,
+    });
+    if already_called {
+        return;
+    }
+    module.items.push(Item::Statement(Stmt::Expr(Expr::Call {
+        callee: Box::new(Expr::Name("main".to_string())),
+        args: Vec::new(),
+    })));
 }
 
 /// Put every method with the type it belongs to, and bind the receiver of any that has nowhere
@@ -496,7 +536,174 @@ mod rust {
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        settle_builtins(&mut module);
         module
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `s.is_empty()`, `x.to_string()` and friends have exact counterparts in every
+    /// target; written through unchanged, each was a compile error there. The
+    /// canonical names are Python's, and every writer turns them back into its own.
+    fn settle_builtins(module: &mut Module) {
+        super::each_expr_in_module(module, &mut |e| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            let Expr::Field { of, name } = callee.as_mut() else {
+                return;
+            };
+            let call = |callee: &str, args: Vec<Expr>| Expr::Call {
+                callee: Box::new(Expr::Name(callee.to_string())),
+                args,
+            };
+            match (name.as_str(), args.as_slice()) {
+                ("len", []) => *e = call("len", vec![of.as_ref().clone()]),
+                ("to_string" | "to_owned", []) => *e = call("str", vec![of.as_ref().clone()]),
+                // `is_empty` is a length compared with zero, which is the one way
+                // every target here can say it.
+                ("is_empty", []) => {
+                    *e = Expr::Binary {
+                        op: BinaryOp::Eq,
+                        left: Box::new(call("len", vec![of.as_ref().clone()])),
+                        right: Box::new(Expr::Int("0".to_string())),
+                    }
+                }
+                ("push", [_]) => *name = "append".to_string(),
+                ("to_uppercase", []) => *name = "upper".to_string(),
+                ("to_lowercase", []) => *name = "lower".to_string(),
+                ("trim", []) => *name = "strip".to_string(),
+                _ => {}
+            }
+        });
+    }
+
+    /// `format!` and the print macros, read as the interpolation they are.
+    ///
+    /// A macro's arguments arrive as raw tokens, not as parsed expressions. The simple
+    /// calls, one literal and bare arguments, are what real code formats with, and
+    /// those carry as a template. Anything richer, a `{:?}`, an expression between the
+    /// commas, stays carried whole. Rebuilding an expression out of loose tokens would
+    /// be guessing at precedence the parser never decided.
+    fn format_macro(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        let name = cx.field_text(node, "macro")?;
+        let printing = matches!(name.as_str(), "println" | "print" | "eprintln" | "eprint");
+        if !printing && name != "format" {
+            return None;
+        }
+        let tokens = cx
+            .children(node)
+            .into_iter()
+            .find(|c| c.kind() == "token_tree")?;
+        // The token tree's own parentheses are its first and last children; the commas
+        // between them separate the arguments. A nested delimiter arrives as a nested
+        // token tree, so its commas never show up at this level.
+        let mut cursor = tokens.walk();
+        let children: Vec<Node> = tokens.children(&mut cursor).collect();
+        let inner = children.get(1..children.len().saturating_sub(1))?;
+        let mut groups: Vec<Vec<Node>> = vec![Vec::new()];
+        for child in inner {
+            match child.kind() {
+                "," => groups.push(Vec::new()),
+                _ => groups
+                    .last_mut()
+                    .expect("one group always exists")
+                    .push(*child),
+            }
+        }
+        let (first, rest) = groups.split_first()?;
+        let [literal] = first.as_slice() else {
+            return None;
+        };
+        if literal.kind() != "string_literal" {
+            return None;
+        }
+        let mut args = Vec::new();
+        for group in rest {
+            let [only] = group.as_slice() else {
+                return None;
+            };
+            if !only.is_named() || only.kind().contains("comment") {
+                return None;
+            }
+            let read = expr(cx, *only);
+            if matches!(read, Expr::Unsupported(_)) {
+                return None;
+            }
+            args.push(read);
+        }
+        let parts = template_parts(&super::unquote(&cx.text(*literal)), &args)?;
+        let value = match parts.as_slice() {
+            [TemplatePart::Text(text)] => Expr::Str(text.clone()),
+            [] => Expr::Str(String::new()),
+            _ => Expr::Template(parts),
+        };
+        Some(match printing {
+            true => Expr::Call {
+                callee: Box::new(Expr::Name("print".to_string())),
+                args: vec![value],
+            },
+            false => value,
+        })
+    }
+
+    /// A format string's pieces, with each hole filled by its argument.
+    ///
+    /// `{}` takes the next argument and `{name}` reads the binding. A format spec is
+    /// more than interpolation. An argument count that does not match the holes means
+    /// the string was not the simple kind. Either way the caller carries the macro
+    /// whole.
+    fn template_parts(text: &str, args: &[Expr]) -> Option<Vec<TemplatePart>> {
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        let mut used = 0usize;
+        let mut chars = text.chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '{' if chars.peek() == Some(&'{') => {
+                    chars.next();
+                    current.push('{');
+                }
+                '}' if chars.peek() == Some(&'}') => {
+                    chars.next();
+                    current.push('}');
+                }
+                '{' => {
+                    let mut inside = String::new();
+                    loop {
+                        match chars.next() {
+                            Some('}') => break,
+                            Some(c) => inside.push(c),
+                            None => return None,
+                        }
+                    }
+                    let value = if inside.is_empty() {
+                        let arg = args.get(used)?.clone();
+                        used += 1;
+                        arg
+                    } else if inside.chars().all(|c| c.is_alphanumeric() || c == '_')
+                        && !inside.starts_with(|c: char| c.is_ascii_digit())
+                    {
+                        Expr::Name(inside)
+                    } else {
+                        return None;
+                    };
+                    if !current.is_empty() {
+                        parts.push(TemplatePart::Text(std::mem::take(&mut current)));
+                    }
+                    parts.push(TemplatePart::Expr(value));
+                }
+                '}' => return None,
+                c => current.push(c),
+            }
+        }
+        if used != args.len() {
+            return None;
+        }
+        if !current.is_empty() {
+            parts.push(TemplatePart::Text(current));
+        }
+        Some(parts)
     }
 
     /// A `match` whose arms are selected by literals, as a switch.
@@ -1117,6 +1324,8 @@ mod rust {
                 | "unary_expression"
                 | "field_expression"
                 | "index_expression"
+                | "macro_invocation"
+                | "unit_expression"
         )
     }
 
@@ -1177,6 +1386,13 @@ mod rust {
                 Expr::Str(super::unquote(&cx.text(node)))
             }
             "identifier" | "self" => Expr::Name(plain(cx.text(node))),
+            // `()` is the unit value, and the IR calls that a tuple with nothing in
+            // it. Left unread, `Ok(())` carried the whole statement around it.
+            "unit_expression" => Expr::Tuple(Vec::new()),
+            "macro_invocation" => match format_macro(cx, node) {
+                Some(read) => read,
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             "field_expression" => {
                 let name = plain(cx.field_text(node, "field").unwrap_or_default());
                 // `self.0` reaches into a tuple struct, and a tuple struct is a Rust idea. No
@@ -1985,6 +2201,35 @@ mod python {
                 _ if !seen_as && selector.is_none() => selector = Some(ty(cx, child)),
                 _ => {}
             }
+        }
+        // In Python, `print(e)` prints `str(e)`: the exception used as text is its
+        // message. Carried bare, a target printed the object its own way. TypeScript's
+        // `console.log` leads with the class name and a stack, and the words stopped
+        // matching. The rewrite is scoped to this binding, inside this catch, where it
+        // stands as text: a print argument or an f-string hole.
+        if let Some(bound) = &binding {
+            let as_text = |e: &mut Expr| {
+                if matches!(e, Expr::Name(n) if n == bound) {
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Name("str".to_string())),
+                        args: vec![std::mem::replace(e, Expr::Null)],
+                    };
+                }
+            };
+            super::each_expr_in_stmts(&mut body, &mut |e| match e {
+                Expr::Call { callee, args } if matches!(callee.as_ref(), Expr::Name(n) if n == "print") =>
+                {
+                    args.iter_mut().for_each(as_text);
+                }
+                Expr::Template(parts) => {
+                    for part in parts.iter_mut() {
+                        if let TemplatePart::Expr(inner) = part {
+                            as_text(inner);
+                        }
+                    }
+                }
+                _ => {}
+            });
         }
         Catch {
             binding,
@@ -3463,7 +3708,7 @@ mod java {
             }
             "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
             "throw_statement" => match cx.children(node).first() {
-                Some(value) => Stmt::Throw(expr(cx, *value)),
+                Some(value) => Stmt::Throw(thrown(expr(cx, *value))),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
             "break_statement" => Stmt::Break,
@@ -3565,19 +3810,55 @@ mod java {
                                 .find(|c| c.kind() == "catch_formal_parameter");
                             let parts: Vec<Node> =
                                 parameter.map(|p| cx.children(p)).unwrap_or_default();
+                            let binding = parts
+                                .iter()
+                                .find(|c| c.kind() == "identifier")
+                                .map(|c| cx.text(*c));
+                            // The clause's type crosses under its canonical name too,
+                            // or `except IllegalArgumentException` selected a class
+                            // the target never declared while the raises said
+                            // `ValueError`.
+                            let selector = parts.iter().find(|c| c.kind() == "catch_type").map(
+                                |t| match ty_of(cx, *t) {
+                                    Type::Named { name, args }
+                                        if args.is_empty() && exception_name(&name).is_some() =>
+                                    {
+                                        Type::named(exception_name(&name).expect("checked"))
+                                    }
+                                    other => other,
+                                },
+                            );
+                            let mut body = cx
+                                .field(child, "body")
+                                .map(|b| block(cx, b))
+                                .unwrap_or_default();
+                            // `e.getMessage()` inside the catch is the exception as
+                            // text, and the canonical spelling of that is `str(e)`.
+                            if let Some(bound) = &binding {
+                                super::each_expr_in_stmts(&mut body, &mut |e| {
+                                    let Expr::Call { callee, args } = e else {
+                                        return;
+                                    };
+                                    if !args.is_empty() {
+                                        return;
+                                    }
+                                    let Expr::Field { of, name } = callee.as_ref() else {
+                                        return;
+                                    };
+                                    let ours = name == "getMessage"
+                                        && matches!(of.as_ref(), Expr::Name(n) if n == bound);
+                                    if ours {
+                                        *e = Expr::Call {
+                                            callee: Box::new(Expr::Name("str".to_string())),
+                                            args: vec![Expr::Name(bound.clone())],
+                                        };
+                                    }
+                                });
+                            }
                             catches.push(Catch {
-                                binding: parts
-                                    .iter()
-                                    .find(|c| c.kind() == "identifier")
-                                    .map(|c| cx.text(*c)),
-                                ty: parts
-                                    .iter()
-                                    .find(|c| c.kind() == "catch_type")
-                                    .map(|t| ty_of(cx, *t)),
-                                body: cx
-                                    .field(child, "body")
-                                    .map(|b| block(cx, b))
-                                    .unwrap_or_default(),
+                                binding,
+                                ty: selector,
+                                body,
                             });
                         }
                         "finally_clause" => {
@@ -3607,6 +3888,38 @@ mod java {
                 _ => Stmt::Unsupported(cx.unsupported(node)),
             },
             _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// Java's everyday exception names, spelled as the canonical (Python) ones.
+    ///
+    /// `IllegalArgumentException` is the complaint `ValueError` makes, and the general
+    /// `Exception` and `RuntimeException` are the general `Exception`. Written through
+    /// unchanged, every `raise` in a translated file named a class the target never
+    /// declared. A name outside the table is the program's own and is not touched.
+    fn exception_name(name: &str) -> Option<&'static str> {
+        Some(match name {
+            "IllegalArgumentException" => "ValueError",
+            "Exception" | "RuntimeException" => "Exception",
+            _ => return None,
+        })
+    }
+
+    /// A thrown `new SomeException(...)`, with the class name crossed to canonical.
+    fn thrown(value: Expr) -> Expr {
+        let Expr::New { callee, args } = value else {
+            return value;
+        };
+        let mapped = match callee.as_ref() {
+            Expr::Name(name) => exception_name(name),
+            _ => None,
+        };
+        match mapped {
+            Some(name) => Expr::New {
+                callee: Box::new(Expr::Name(name.to_string())),
+                args,
+            },
+            None => Expr::New { callee, args },
         }
     }
 
@@ -3843,6 +4156,9 @@ mod zig {
         // A method a record cannot keep still has to reach the reader, and a record has
         // no room for one. It goes beside the type instead, as a carried comment.
         let mut carried: Vec<Item> = Vec::new();
+        // The error sets the file declares, so the return pass can tell an error
+        // variant from a success value.
+        let mut error_sets: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
 
         // The file-as-struct idiom: fields at file scope make the file itself a
         // struct, and `const Self = @This();` says so in as many words. The type's
@@ -3896,7 +4212,12 @@ mod zig {
                     record_at.get_or_insert(module.items.len());
                 }
                 "variable_declaration" => match declaration(cx, child, &mut carried) {
-                    Some(item) => module.items.push(item),
+                    Some(item) => {
+                        if let (Item::Sum(sum), true) = (&item, is_error_set(child)) {
+                            error_sets.insert(sum.name.clone());
+                        }
+                        module.items.push(item);
+                    }
                     None => module.items.push(Item::Unsupported(cx.unsupported(child))),
                 },
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
@@ -3921,7 +4242,91 @@ mod zig {
                 .insert(at.min(module.items.len()), Item::Record(record));
         }
         module.items.extend(carried);
+        settle_builtins(&mut module);
+        settle_error_returns(&mut module, &error_sets);
         module
+    }
+
+    /// Is this declaration's value an error set?
+    fn is_error_set(node: Node<'_>) -> bool {
+        let parts = all(node);
+        after(&parts, "=", ";").is_some_and(|value| value.kind() == "error_set_declaration")
+    }
+
+    /// The everyday spelling, rewritten to the table's canonical one.
+    ///
+    /// `.len` on a slice is the length every other language asks for with `len(x)`,
+    /// `.length` or `.size()`. Written through as a field, it was a compile error in
+    /// every target. Only where no record of the module declares a field called
+    /// `len`, because then the read might be that field.
+    fn settle_builtins(module: &mut Module) {
+        let field_named_len = module.items.iter().any(
+            |item| matches!(item, Item::Record(r) if r.fields.iter().any(|f| f.name == "len")),
+        );
+        if field_named_len {
+            return;
+        }
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Field { of, name } = e {
+                if name == "len" {
+                    let of = of.clone();
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Name("len".to_string())),
+                        args: vec![*of],
+                    };
+                }
+            }
+        });
+    }
+
+    /// The success and failure paths of an error-union function, said as `Ok` and
+    /// `Err`.
+    ///
+    /// Zig coerces at the `return`: a plain value succeeds and an error variant
+    /// fails, written nowhere but the value itself. The IR's `Result` keeps the two
+    /// apart the way Rust spells them. The Go writer turns the same body into its
+    /// `(T, error)` returns from there. A function that can only fail may also fall
+    /// off its end: the success path with nothing to say. It gains the
+    /// `return Ok(())` the targets need to hear.
+    fn settle_error_returns(module: &mut Module, error_sets: &std::collections::BTreeSet<String>) {
+        let failing = |value: &Expr| match value {
+            Expr::Field { of, .. } => {
+                matches!(of.as_ref(), Expr::Name(n) if n == "error" || error_sets.contains(n))
+            }
+            _ => false,
+        };
+        let wrap = |name: &str, value: Expr| Expr::Call {
+            callee: Box::new(Expr::Name(name.to_string())),
+            args: vec![value],
+        };
+        let mut settle = |f: &mut Function| {
+            let Some(Type::Named { name, args }) = &f.returns else {
+                return;
+            };
+            if name != "Result" || args.len() != 2 {
+                return;
+            }
+            let unit = args[0] == Type::Unit;
+            super::each_stmt_in_stmts(&mut f.body, &mut |stmt| {
+                let Stmt::Return(value) = stmt else { return };
+                match value.take() {
+                    Some(read) if failing(&read) => *value = Some(wrap("Err", read)),
+                    Some(read) => *value = Some(wrap("Ok", read)),
+                    None => *value = Some(wrap("Ok", Expr::Tuple(Vec::new()))),
+                }
+            });
+            if unit && !matches!(f.body.last(), Some(Stmt::Return(_))) {
+                f.body
+                    .push(Stmt::Return(Some(wrap("Ok", Expr::Tuple(Vec::new())))));
+            }
+        };
+        for item in module.items.iter_mut() {
+            match item {
+                Item::Function(f) => settle(f),
+                Item::Record(r) => r.methods.iter_mut().for_each(&mut settle),
+                _ => {}
+            }
+        }
     }
 
     /// Substitute one type name for another everywhere a signature says it.
@@ -4035,10 +4440,19 @@ mod zig {
     /// `test "name" { … }`, with the name unquoted.
     fn test_block(cx: &Cx, node: Node<'_>) -> Option<Item> {
         let children = cx.children(node);
+        // `test "prose name" { … }` and `test declName { … }` are both tests; the
+        // identifier form names the declaration it covers. Requiring the string
+        // dropped every identifier-named test in a file, whole.
         let name = children
             .iter()
             .find(|c| c.kind() == "string")
-            .map(|s| super::unquote(&cx.text(*s)))?;
+            .map(|s| super::unquote(&cx.text(*s)))
+            .or_else(|| {
+                children
+                    .iter()
+                    .find(|c| c.kind() == "identifier")
+                    .map(|s| cx.text(*s))
+            })?;
         let body = children
             .iter()
             .find(|c| c.kind() == "block")
@@ -4094,6 +4508,13 @@ mod zig {
             }
             return None;
         }
+        // `const E = error{A, B};` declares a closed set of failure names, which is a
+        // sum with unit variants. Read as a constant, the value had no counterpart.
+        // The set crossed as a comment while every signature naming it went through
+        // as an unwritable type.
+        if value.kind() == "error_set_declaration" {
+            return Some(Item::Sum(error_set(cx, node, name, exported, value)));
+        }
 
         Some(Item::Constant(Constant {
             doc: doc_above(cx, node, &["///", "//"]),
@@ -4102,6 +4523,26 @@ mod zig {
             value: expr(cx, value),
             exported,
         }))
+    }
+
+    /// `error{A, B}`: the failure names, one unit variant each.
+    fn error_set(cx: &Cx, node: Node<'_>, name: String, exported: bool, body: Node<'_>) -> Sum {
+        let variants = cx
+            .children(body)
+            .into_iter()
+            .filter(|c| c.kind() == "identifier")
+            .map(|c| Variant {
+                doc: doc_above(cx, c, &["///", "//"]),
+                name: cx.text(c),
+                fields: Vec::new(),
+            })
+            .collect();
+        Sum {
+            doc: doc_above(cx, node, &["///", "//"]),
+            name,
+            variants,
+            exported,
+        }
     }
 
     /// `enum { a, b }`: a choice whose variants carry nothing.
@@ -4385,13 +4826,57 @@ mod zig {
                 .next_back()
                 .map(|inner| ty_of(cx, inner))
                 .unwrap_or_else(|| Type::named("anytype")),
-            // `!T` is an error union: the error set is part of the type and none of the targets
-            // has one. So the type is written through by name.
-            "error_union_type" => Type::named(type_text(&text)),
+            // `E!T` models failure in the return type, and so does `Result<T, E>`: the
+            // shared name the Rust reader already produces. Carrying it as that name
+            // lets the writers that translate Results translate this too, instead of
+            // writing an unwritable type through every signature.
+            "error_union_type" => match split_error_union(&type_text(&text)) {
+                Some((err, ok)) => Type::Named {
+                    name: "Result".to_string(),
+                    args: vec![from_text(ok), error_side(err)],
+                },
+                None => Type::named(type_text(&text)),
+            },
             // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a
             // field expression whose left side is a nullable `http`, inside out. The
             // text is the only way back to what was written.
             _ => from_text(&type_text(&text)),
+        }
+    }
+
+    /// The two sides of `E!T`, split at the union's own `!`.
+    ///
+    /// Depth matters: `error{A, B}!void` keeps its braces together, and a `!` inside a
+    /// nested set belongs to that set. No top-level `!` means the text was not an
+    /// error union after all.
+    fn split_error_union(text: &str) -> Option<(&str, &str)> {
+        let mut depth = 0i32;
+        for (at, c) in text.char_indices() {
+            match c {
+                '{' | '(' | '[' => depth += 1,
+                '}' | ')' | ']' => depth -= 1,
+                '!' if depth == 0 => return Some((&text[..at], &text[at + 1..])),
+                _ => {}
+            }
+        }
+        None
+    }
+
+    /// The error half of an error union, as a type the targets can carry.
+    ///
+    /// A named set keeps its name, and the writers can point at the sum it became.
+    /// `anyerror`, a bare `!T` and an inline `error{...}` name nothing that outlives
+    /// this signature, so they cross as the generic `error`.
+    fn error_side(err: &str) -> Type {
+        let err = err.trim();
+        let anonymous = err.is_empty()
+            || err == "anyerror"
+            || err.starts_with("error{")
+            || err.starts_with("error {")
+            || !Type::is_writable_name(err);
+        match anonymous {
+            true => Type::named("error"),
+            false => Type::named(err),
         }
     }
 
@@ -4500,10 +4985,152 @@ mod zig {
     }
 
     fn block(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
-        cx.children_with_comments(node)
+        let mut out = Vec::new();
+        for n in cx.children_with_comments(node) {
+            if let Some(lowered) = value_switch(cx, n) {
+                out.extend(lowered);
+                continue;
+            }
+            if let Some(switch) = return_switch(cx, n) {
+                out.push(switch);
+                continue;
+            }
+            out.push(keep_whole(cx, n, stmt(cx, n)));
+        }
+        out
+    }
+
+    /// A switch whose every case is a literal selecting one value expression.
+    ///
+    /// The shape a switch must have to stand where a value goes. A payload, a range,
+    /// a block body or a missing `else` makes it the full construct, and the caller
+    /// carries it whole. Without the `else`, some path would never produce the value.
+    #[allow(clippy::type_complexity)]
+    fn switch_arm_values(cx: &Cx, node: Node<'_>) -> Option<(Expr, Vec<(Vec<Expr>, Expr)>, Expr)> {
+        if node.kind() != "switch_expression" {
+            return None;
+        }
+        let children = cx.children(node);
+        let subject = expr(cx, *children.first()?);
+        if matches!(subject, Expr::Unsupported(_)) {
+            return None;
+        }
+        let mut arms: Vec<(Vec<Expr>, Expr)> = Vec::new();
+        let mut default = None;
+        for case in children.iter().skip(1) {
+            if case.kind() == "comment" {
+                continue;
+            }
+            if case.kind() != "switch_case" {
+                return None;
+            }
+            let parts = all(*case);
+            if parts
+                .iter()
+                .any(|c| matches!(c.kind(), "payload" | "..." | ".."))
+            {
+                return None;
+            }
+            let arrow = parts.iter().position(|c| c.kind() == "=>")?;
+            let body_node = parts.get(arrow + 1).copied()?;
+            if is_body(body_node) {
+                return None;
+            }
+            let value = expr(cx, body_node);
+            if matches!(value, Expr::Unsupported(_)) {
+                return None;
+            }
+            if parts[..arrow].iter().any(|c| c.kind() == "else") {
+                default = Some(value);
+                continue;
+            }
+            let mut literals = Vec::new();
+            for selector in parts[..arrow].iter().filter(|c| c.is_named()) {
+                if !matches!(
+                    selector.kind(),
+                    "integer" | "float" | "string" | "char_literal"
+                ) {
+                    return None;
+                }
+                literals.push(expr(cx, *selector));
+            }
+            if literals.is_empty() {
+                return None;
+            }
+            arms.push((literals, value));
+        }
+        Some((subject, arms, default?))
+    }
+
+    /// `const x = switch (s) { a => va, else => ve };`: a switch standing where a
+    /// value goes.
+    ///
+    /// The IR's switch is a statement, so the reader says the same thing longhand:
+    /// declare the binding, then a switch whose every arm assigns it. Every writer
+    /// already writes that shape, and the Rust writer folds the pair back into a
+    /// `match` expression.
+    fn value_switch(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
+        if node.kind() != "variable_declaration" {
+            return None;
+        }
+        let text = cx.text(node);
+        let declares =
+            text.trim_start().starts_with("var ") || text.trim_start().starts_with("const ");
+        if !declares {
+            return None;
+        }
+        let parts = all(node);
+        if parts.iter().any(|c| c.kind() == ",") {
+            return None;
+        }
+        let value = after(&parts, "=", ";")?;
+        let (subject, arms, default) = switch_arm_values(cx, value)?;
+        let name = parts
             .iter()
-            .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
-            .collect()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))?;
+        let assign = |value: Expr| Stmt::Assign {
+            target: Expr::Name(name.clone()),
+            value,
+        };
+        Some(vec![
+            Stmt::Let {
+                name: name.clone(),
+                ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
+                value: None,
+                mutable: true,
+            },
+            Stmt::Switch {
+                subject,
+                arms: arms
+                    .into_iter()
+                    .map(|(literals, value)| (literals, vec![assign(value)]))
+                    .collect(),
+                default: vec![assign(default)],
+            },
+        ])
+    }
+
+    /// `return switch (s) { a => va, else => ve };`, said as a switch whose arms
+    /// return.
+    fn return_switch(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        let node = match node.kind() {
+            "expression_statement" => cx.children(node).into_iter().next()?,
+            _ => node,
+        };
+        if node.kind() != "return_expression" {
+            return None;
+        }
+        let value = cx.children(node).into_iter().next()?;
+        let (subject, arms, default) = switch_arm_values(cx, value)?;
+        Some(Stmt::Switch {
+            subject,
+            arms: arms
+                .into_iter()
+                .map(|(literals, value)| (literals, vec![Stmt::Return(Some(value))]))
+                .collect(),
+            default: vec![Stmt::Return(Some(default))],
+        })
     }
 
     /// The statements inside a `block_expression`, or the one statement without braces.
@@ -4621,16 +5248,24 @@ mod zig {
             }
             "if_statement" => {
                 let children = cx.children(node);
+                // The branch may be a block, and it may be one bare statement:
+                // `if (x) return y;` has no braces. Requiring a block dropped that
+                // return without a word, and the translated guard tested its
+                // condition and did nothing.
                 let then = children
                     .iter()
                     .skip(1)
-                    .find(|c| is_body(**c))
+                    .find(|c| !matches!(c.kind(), "payload" | "else_clause" | "comment"))
                     .map(|b| body_of(cx, *b))
                     .unwrap_or_default();
                 // The else branch is one level down, inside an `else_clause`.
                 let else_clause = children.iter().find(|c| c.kind() == "else_clause");
                 let otherwise = else_clause
-                    .and_then(|e| cx.children(*e).into_iter().find(|c| is_body(*c)))
+                    .and_then(|e| {
+                        cx.children(*e)
+                            .into_iter()
+                            .find(|c| !matches!(c.kind(), "payload" | "comment"))
+                    })
                     .map(|b| body_of(cx, b))
                     .unwrap_or_default();
                 // `if (maybe) |value| { … }` tests an optional and binds its
@@ -4669,10 +5304,19 @@ mod zig {
             }
             "while_statement" => {
                 let children = cx.children(node);
+                // A step clause is a bare `:` with an expression, and it is not the
+                // body. A loop that has one and no block would hand the step over as
+                // the body, so only the stepless loop takes the one-statement form.
+                let stepped = all(node).iter().any(|c| c.kind() == ":");
                 let body = children
                     .iter()
                     .skip(1)
                     .find(|c| is_body(**c))
+                    .or_else(|| {
+                        children.iter().skip(1).find(|c| {
+                            !stepped && !matches!(c.kind(), "payload" | "else_clause" | "comment")
+                        })
+                    })
                     .map(|b| body_of(cx, *b))
                     .unwrap_or_default();
                 // `while (it.next()) |item|` loops on an optional's payload. A
@@ -4701,6 +5345,11 @@ mod zig {
                     }
                     return Stmt::Unsupported(cx.unsupported(node));
                 }
+                // A stepless loop crosses; one with a step clause has nowhere to put
+                // it, and dropping the step turned a counting loop into a spin.
+                if stepped {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
                 Stmt::While {
                     condition: children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null),
                     body,
@@ -4722,9 +5371,13 @@ mod zig {
                     .take_while(|c| c.kind() != "payload")
                     .copied()
                     .collect();
+                // The body follows the payload, braced or not: `for (xs) |x| use(x);`
+                // is a loop too, and requiring a block dropped its one statement.
                 let body = children
                     .iter()
-                    .find(|c| is_body(**c))
+                    .skip_while(|c| c.kind() != "payload")
+                    .skip(1)
+                    .find(|c| c.kind() != "comment")
                     .map(|b| body_of(cx, *b))
                     .unwrap_or_default();
                 // `for (xs, 0..) |x, i|` counts as it goes, and every target can
@@ -4767,7 +5420,12 @@ mod zig {
                 Some(switch) => switch,
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
-            "defer_statement" => {
+            "defer_statement" | "errdefer_statement" => {
+                // `errdefer |err| ...` binds the error; the binding has nowhere to
+                // cross, so the payload form carries whole.
+                if all(node).iter().any(|c| c.kind() == "payload") {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
                 let Some(deferred) = cx.children(node).first().copied() else {
                     return Stmt::Unsupported(cx.unsupported(node));
                 };
@@ -4776,7 +5434,10 @@ mod zig {
                 } else {
                     vec![stmt(cx, deferred)]
                 };
-                Stmt::Defer(body)
+                match node.kind() {
+                    "errdefer_statement" => Stmt::ErrDefer(body),
+                    _ => Stmt::Defer(body),
+                }
             }
             // At statement level an assignment hides in a `variable_declaration`;
             // inside a `defer` or a step clause it arrives as itself.
@@ -5797,21 +6458,41 @@ mod typescript {
             }
             "return_statement" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
             "throw_statement" => match cx.children(node).first() {
-                Some(value) => Stmt::Throw(expr(cx, *value)),
+                Some(value) => Stmt::Throw(thrown(expr(cx, *value))),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
             "try_statement" => {
                 let mut catches = Vec::new();
                 let mut finally = Vec::new();
                 if let Some(clause) = cx.field(node, "handler") {
+                    let binding = cx.field(clause, "parameter").map(|p| cx.text(p));
+                    let mut body = cx
+                        .field(clause, "body")
+                        .map(|b| block(cx, b))
+                        .unwrap_or_default();
+                    // `e.message` inside the catch is the exception as text, and the
+                    // canonical spelling of that is `str(e)`. Scoped to this clause's
+                    // own binding: a `.message` on anything else is somebody's field.
+                    if let Some(bound) = &binding {
+                        super::each_expr_in_stmts(&mut body, &mut |e| {
+                            let Expr::Field { of, name } = e else {
+                                return;
+                            };
+                            let ours = name == "message"
+                                && matches!(of.as_ref(), Expr::Name(n) if n == bound);
+                            if ours {
+                                *e = Expr::Call {
+                                    callee: Box::new(Expr::Name("str".to_string())),
+                                    args: vec![Expr::Name(bound.clone())],
+                                };
+                            }
+                        });
+                    }
                     catches.push(Catch {
-                        binding: cx.field(clause, "parameter").map(|p| cx.text(p)),
+                        binding,
                         // TypeScript catches everything; there is no type to select on.
                         ty: None,
-                        body: cx
-                            .field(clause, "body")
-                            .map(|b| block(cx, b))
-                            .unwrap_or_default(),
+                        body,
                     });
                 }
                 if let Some(clause) = cx.field(node, "finalizer") {
@@ -5933,6 +6614,35 @@ mod typescript {
                 }
             }
             _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// A thrown `new Error(...)`, with the class name crossed to the canonical one.
+    ///
+    /// The canonical names are Python's: `Error` is the general `Exception`,
+    /// `RangeError` is the complaint `ValueError` makes, and `TypeError` keeps its
+    /// name in both. Written through unchanged, every `raise` in a translated file
+    /// named a class the target never declared. A name outside the table is the
+    /// program's own and is not touched.
+    fn thrown(value: Expr) -> Expr {
+        let Expr::New { callee, args } = value else {
+            return value;
+        };
+        let mapped = match callee.as_ref() {
+            Expr::Name(name) => match name.as_str() {
+                "Error" => Some("Exception"),
+                "RangeError" => Some("ValueError"),
+                "TypeError" => Some("TypeError"),
+                _ => None,
+            },
+            _ => None,
+        };
+        match mapped {
+            Some(name) => Expr::New {
+                callee: Box::new(Expr::Name(name.to_string())),
+                args,
+            },
+            None => Expr::New { callee, args },
         }
     }
 
@@ -6310,7 +7020,7 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(iterable, visit);
                 each_expr_in_stmts(body, visit);
             }
-            Stmt::Defer(body) => each_expr_in_stmts(body, visit),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) => each_expr_in_stmts(body, visit),
             Stmt::Switch {
                 subject,
                 arms,
@@ -6365,7 +7075,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             | Stmt::WhilePresent { body, .. }
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
-            Stmt::Defer(body) => each_stmt_in_stmts(body, visit),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) => each_stmt_in_stmts(body, visit),
             Stmt::Switch { arms, default, .. } => {
                 for (_, body) in arms {
                     each_stmt_in_stmts(body, visit);

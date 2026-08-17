@@ -20,9 +20,16 @@ use std::path::PathBuf;
 /// crossing that empties a big container, the payload `if`, the `test` block,
 /// surfaces the losses its body used to swallow under one line. One count
 /// falls; its contents' counts rise.
+///
+/// The same happened when the Zig reader learned that a branch or a loop body can
+/// be one bare statement: `if (x) return e;` used to drop its return without a
+/// word, and reading it made the statements that cannot cross carry visibly, so
+/// `return_expression` and `expression_statement` rose. A `while` with a step
+/// clause now carries whole instead of quietly losing its step, which is the
+/// `while_statement` line.
 const CARRIED: &[(&str, usize)] = &[
     ("await", 26),
-    ("anonymous_struct_initializer", 35),
+    ("anonymous_struct_initializer", 55),
     ("binary_expression", 5),
     ("boolean", 10),
     ("call_expression", 15),
@@ -34,12 +41,13 @@ const CARRIED: &[(&str, usize)] = &[
     ("comptime_declaration", 5),
     ("comptime_statement", 20),
     ("conditional expression", 6),
-    ("defer", 58),
-    ("errdefer_statement", 55),
-    ("error propagation", 35),
+    ("defer", 60),
+    ("errdefer", 22),
+    ("comptime_expression", 6),
+    ("error propagation", 20),
     ("error_set_declaration", 10),
     ("enum_declaration", 5),
-    ("expression_statement", 305),
+    ("expression_statement", 620),
     ("field_expression", 5),
     ("for_statement", 15),
     ("function_declaration", 5),
@@ -47,18 +55,21 @@ const CARRIED: &[(&str, usize)] = &[
     ("instanceof", 66),
     ("joining two strings, which needs an allocator here", 2),
     ("keyword argument", 25),
-    ("labeled_statement", 25),
+    ("labeled_statement", 45),
     ("lexical_declaration", 5),
     ("map literal", 11),
+    ("multiline_string", 5),
     ("new", 39),
+    ("return_expression", 20),
     ("return_statement", 10),
-    ("switch_expression", 55),
-    ("test_declaration", 60),
+    ("switch_expression", 58),
+    ("test_declaration", 10),
     ("throw", 4),
     ("try", 10),
     ("try/catch", 5),
     ("tuple", 2),
-    ("variable_declaration", 415),
+    ("variable_declaration", 420),
+    ("while_statement", 5),
 ];
 
 fn corpus_files() -> Vec<(PathBuf, Language)> {

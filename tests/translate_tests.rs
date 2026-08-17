@@ -95,15 +95,21 @@ fn a_go_test_function_reads_back_as_a_test() {
 }
 
 #[test]
-fn a_test_referencing_a_declaration_carries() {
-    // `test someDecl {}` reruns that declaration's tests; there is nothing to
-    // translate it into.
+fn a_test_named_after_a_declaration_crosses_and_steps_aside() {
+    // `test double {}` is Zig's doctest form: a test named by the declaration it
+    // covers. It crosses as a test. Its name steps aside from the declaration it
+    // would otherwise collide with in a target that puts both in one namespace.
     let source = "fn double(n: i64) i64 {\n    return n * 2;\n}\n\ntest double {}\n";
     let (_tmp, root) = workspace(&[("d.zig", source)]);
     let plan = transpile::plan(&root.join("d.zig"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains(transpile::MARKER),
-        "the declaration-referencing form has no crossing and must say so:\n{}",
+        plan.output.contains("#[test]") && plan.output.contains("fn test_double() {"),
+        "the doctest crosses as a test under a name of its own:\n{}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains(transpile::MARKER),
+        "a test that crossed is not a loss:\n{}",
         plan.output
     );
 }

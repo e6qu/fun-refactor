@@ -1501,3 +1501,52 @@ fn a_moved_go_body_using_an_unexported_name_refuses() {
         "the refusal states the visibility problem: {err}"
     );
 }
+
+#[test]
+fn moving_beside_a_dependency_adds_no_self_import() {
+    // `f` used `g` through `from b import g`, and `f` lands in `b`. There `g` is
+    // local; the carried statement was a module importing itself while half
+    // initialised, and the first use raised ImportError.
+    let ws = Workspace::new(&[
+        ("b.py", "def g() -> int:\n    return 2\n"),
+        (
+            "a.py",
+            "from b import g\n\n\ndef f() -> int:\n    return g() + 1\n",
+        ),
+        ("main.py", "from a import f\n\nprint(f())\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "f", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("b.py")).expect("a move");
+    commit(&plan);
+    let landed = ws.read("b.py");
+    assert!(
+        !landed.contains("from b import"),
+        "no module imports itself:\n{landed}"
+    );
+}
+
+#[test]
+fn a_module_attribute_consumer_repoints_to_the_new_module() {
+    // `user.py` binds the whole module and dereferences it. There is no named
+    // import to repoint, so the receivers rewrite and the file imports the new
+    // module. The old behaviour added a dead named import, and every call kept
+    // dereferencing the module that no longer held the name.
+    let ws = Workspace::new(&[
+        ("mod.py", "def foo() -> int:\n    return 1\n"),
+        ("other.py", "X = 1\n"),
+        (
+            "user.py",
+            "import mod\n\n\ndef run() -> int:\n    return mod.foo()\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "foo", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("other.py")).expect("a move");
+    commit(&plan);
+    let user = ws.read("user.py");
+    assert!(
+        user.contains("return other.foo()") && user.contains("import other"),
+        "the receiver follows the symbol:\n{user}"
+    );
+}

@@ -200,6 +200,58 @@ fn a_stranger_answering_the_same_name_keeps_the_calls_in_place() {
     let out = applied(tmp.path(), "App.java", &plan);
     assert!(
         out.contains("size(\"hello\")"),
-        "the call could reach the stranger, so it stays:\n{out}"
+        "the call could reach the stranger, so it stays.\n{out}"
+    );
+}
+
+#[test]
+fn typescript_overload_signatures_rename_with_their_implementation() {
+    // Two `function pick` signatures over one implementation are one function;
+    // renaming any alone left `error TS2389: Function implementation name must
+    // be 'pick'`.
+    let source = "export function pick(value: string): string;\n\
+        export function pick(value: number): number;\n\
+        export function pick(value: string | number): string | number {\n    \
+        return value;\n}\n\nexport const chosen = pick(\"a\");\n";
+    let (tmp, index) = workspace(&[("over.ts", source)]);
+    let at = source.rfind("function pick").expect("the implementation") + 10;
+    let id = index
+        .symbols
+        .iter()
+        .find(|sym| sym.name == "pick" && sym.name_span.contains_offset(at))
+        .expect("the implementation symbol")
+        .id;
+    let plan = rename::plan(&index, id, "choose").unwrap();
+    let out = applied(tmp.path(), "over.ts", &plan);
+    assert_eq!(
+        out.matches("function choose").count(),
+        3,
+        "both signatures and the implementation:\n{out}"
+    );
+    assert!(out.contains("choose(\"a\")"), "and the call:\n{out}");
+}
+
+#[test]
+fn a_receiver_with_a_declared_type_outside_the_family_holds_its_call() {
+    // `b` is declared `B`, and `B` has its own `size`; renaming A's overloads
+    // took `b.size(2)` with them as a dispatch candidate, and javac refused.
+    let shapes = "public class A {\n    int size(int n) {\n        return n;\n    }\n\n    \
+        int size(String s) {\n        return s.length();\n    }\n}\n\n\
+        class B {\n    int size(int n) {\n        return n + 1;\n    }\n}\n";
+    // A caller in a second file.
+    let main = "public class Main {\n    public static void main(String[] args) {\n        \
+        A a = new A();\n        B b = new B();\n        \
+        System.out.println(a.size(1) + b.size(2) + a.size(\"hey\"));\n    }\n}\n";
+    let (tmp, index) = workspace(&[("Shapes.java", shapes), ("Main.java", main)]);
+    let id = symbol_at(&index, &tmp.path().join("Shapes.java"), shapes, "int size");
+    let plan = rename::plan(&index, id, "count").unwrap();
+    let out = applied(tmp.path(), "Main.java", &plan);
+    assert!(
+        out.contains("a.count(1)") && out.contains("a.count(\"hey\")"),
+        "the family's own calls follow:\n{out}"
+    );
+    assert!(
+        out.contains("b.size(2)"),
+        "the declared type says this call is not the family's:\n{out}"
     );
 }

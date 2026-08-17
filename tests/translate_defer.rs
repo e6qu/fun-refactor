@@ -153,3 +153,46 @@ fn typescript_parameter_properties_become_fields() {
         plan.output
     );
 }
+
+#[test]
+fn errdefer_cleans_up_only_on_the_failure_path() {
+    // Zig's `errdefer` runs when the scope is left failing, and here failure
+    // is an exception. The cleanup wraps the rest of the scope, runs on the
+    // way out, and the exception keeps flying. Carried whole, 55 of these vanished
+    // into comments while the code after them read the names they managed.
+    let source = "pub fn build(allocator: anytype) !u32 {\n    \
+        var list = try makeList(allocator);\n    errdefer list.deinit(allocator);\n    \
+        try fill(&list);\n    return list.len;\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("build.zig");
+    std::fs::write(&path, source).unwrap();
+
+    let py = transpile::plan_to(&path, Language::Python, Some(&tmp.path().join("a")), false)
+        .unwrap()
+        .output;
+    assert!(
+        py.contains("except BaseException:") && py.contains("raise"),
+        "Python cleans up and lets the failure keep flying.\n{py}"
+    );
+
+    let ts = transpile::plan_to(
+        &path,
+        Language::TypeScript,
+        Some(&tmp.path().join("b")),
+        false,
+    )
+    .unwrap()
+    .output;
+    assert!(
+        ts.contains("catch (fr_err)") && ts.contains("throw fr_err;"),
+        "TypeScript rethrows after the cleanup:\n{ts}"
+    );
+
+    let go = transpile::plan_to(&path, Language::Go, Some(&tmp.path().join("c")), false)
+        .unwrap()
+        .output;
+    assert!(
+        go.contains("errdefer runs this when the scope fails"),
+        "Go has no failure path a block can watch, and says so:\n{go}"
+    );
+}

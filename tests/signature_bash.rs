@@ -704,7 +704,7 @@ fn refuses_when_a_script_naming_it_does_not_parse() {
         index
             .file(&ws.path("broken.sh"))
             .is_some_and(|f| !f.gaps.is_empty()),
-        "the sample must actually fail to parse for this test to mean anything"
+        "the sample must fail to parse for this test to mean anything"
     );
     let message = refusal(signature::change(
         &index,
