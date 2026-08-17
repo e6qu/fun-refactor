@@ -160,14 +160,10 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     let mut callers_beyond_the_depth_limit = 0;
     if caller_depth > 0 && sym.kind.is_callable() {
         let graph = CallGraph::build(index);
-        let trace = graph.trace(
-            symbol,
-            crate::analysis::call_graph::Direction2::Callers,
-            caller_depth,
-        );
-        callers_beyond_the_depth_limit = trace.unexplored.len();
-        for node in trace.nodes.iter().filter(|n| n.depth > 0) {
-            let Some(caller) = index.symbol(node.symbol) else {
+        let walk = tainted_callers(&graph, symbol, caller_depth);
+        callers_beyond_the_depth_limit = walk.stopped_short;
+        for (id, confidence, depth) in walk.callers {
+            let Some(caller) = index.symbol(id) else {
                 continue;
             };
             let at = locate(&caller.file, caller.name_span.start);
@@ -177,12 +173,8 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
                 line: at.line,
                 col: at.col,
                 kind: ImpactKind::Caller,
-                confidence: node.caller.map(|(_, c)| c).unwrap_or(Confidence::Exact),
-                detail: format!(
-                    "{} calls it (depth {})",
-                    caller.qualified_name(),
-                    node.depth
-                ),
+                confidence,
+                detail: format!("{} calls it (depth {})", caller.qualified_name(), depth),
             });
         }
     }
@@ -211,6 +203,70 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
         items,
         callers_beyond_the_depth_limit,
     })
+}
+
+/// The callers reached from `start`, each with the confidence of its whole route.
+struct TaintedCallers {
+    /// `(caller, confidence, depth)`, outward from the symbol. The confidence is
+    /// the weakest edge on the strongest route. An edge crossed at field-based
+    /// taints everything reached only through it. A second, fully resolved route
+    /// restores what it proves.
+    callers: Vec<(SymbolId, Confidence, usize)>,
+    /// Nodes the depth limit stopped at that still had callers beyond them.
+    stopped_short: usize,
+}
+
+/// Walk the caller graph carrying a per-route confidence.
+///
+/// A route is as trustworthy as its weakest edge, and a node reached by several
+/// routes deserves the best of them. The plain trace carried only each caller's
+/// last hop. So a caller five steps beyond an unproven dispatch edge landed under
+/// "would definitely change".
+fn tainted_callers(graph: &CallGraph, start: SymbolId, max_depth: usize) -> TaintedCallers {
+    use std::collections::{HashMap, HashSet, VecDeque};
+
+    let mut best: HashMap<SymbolId, (Confidence, usize)> = HashMap::new();
+    let mut stopped: HashSet<SymbolId> = HashSet::new();
+    let mut queue: VecDeque<(SymbolId, Confidence, usize)> = VecDeque::new();
+    best.insert(start, (Confidence::Exact, 0));
+    queue.push_back((start, Confidence::Exact, 0));
+
+    while let Some((id, confidence, depth)) = queue.pop_front() {
+        // A node improved after this entry was queued has already re-queued itself.
+        if best.get(&id) != Some(&(confidence, depth)) {
+            continue;
+        }
+        let callers = graph.callers(id);
+        if depth >= max_depth {
+            if !callers.is_empty() {
+                stopped.insert(id);
+            }
+            continue;
+        }
+        for (caller, edge) in callers {
+            // Weakest edge on the route: the tiers order strongest first.
+            let route = confidence.max(edge.confidence);
+            let stronger = match best.get(&caller) {
+                None => true,
+                Some((existing, _)) => route < *existing,
+            };
+            if stronger {
+                best.insert(caller, (route, depth + 1));
+                queue.push_back((caller, route, depth + 1));
+            }
+        }
+    }
+
+    let mut callers: Vec<(SymbolId, Confidence, usize)> = best
+        .into_iter()
+        .filter(|(id, _)| *id != start)
+        .map(|(id, (confidence, depth))| (id, confidence, depth))
+        .collect();
+    callers.sort_by_key(|(id, _, depth)| (*depth, *id));
+    TaintedCallers {
+        callers,
+        stopped_short: stopped.len(),
+    }
 }
 
 /// Render a human-readable report.
@@ -267,9 +323,6 @@ pub fn format_report(index: &Index, impact: &Impact) -> String {
                 item.confidence.as_str(),
                 item.detail
             ));
-        }
-        if review.len() > 20 {
-            out.push_str(&format!("  … and {} more\n", review.len() - 20));
         }
         if review.len() > 20 {
             out.push_str(&format!("  … and {} more\n", review.len() - 20));
@@ -380,6 +433,72 @@ mod tests {
             .certain()
             .iter()
             .all(|i| i.confidence.is_safe_to_rewrite()));
+    }
+
+    const DISPATCH_CHAIN: &str = "trait Speaker {\n    fn speak(&self) -> String;\n}\n\nstruct Dog;\n\nimpl Speaker for Dog {\n    fn speak(&self) -> String {\n        noise()\n    }\n}\n\nfn noise() -> String {\n    String::from(\"woof\")\n}\n\nfn announce(s: &dyn Speaker) -> String {\n    s.speak()\n}\n\nfn page() -> String {\n    announce(&Dog)\n}\n\nfn render() -> String {\n    page()\n}\n\nfn main() {\n    println!(\"{}\", render());\n}\n";
+
+    fn caller_confidence(impact: &Impact, name: &str) -> Confidence {
+        impact
+            .items
+            .iter()
+            .find(|i| i.kind == ImpactKind::Caller && i.detail.starts_with(&format!("{name} ")))
+            .unwrap_or_else(|| panic!("no caller {name}: {:?}", impact.items))
+            .confidence
+    }
+
+    #[test]
+    fn an_unproven_edge_taints_everything_reached_only_through_it() {
+        // `announce` reaches `speak` through dynamic dispatch, so that edge is a
+        // candidate. Everything above it is reached only across that edge, and used
+        // to land under "would definitely change" because each hop's own edge was
+        // exact.
+        let (_tmp, index) = workspace(&[("chain.rs", DISPATCH_CHAIN)]);
+        let noise = index.find_symbols("noise", None)[0].id;
+        let impact = analyse(&index, noise, 10).unwrap();
+
+        assert!(
+            caller_confidence(&impact, "Dog::speak").is_safe_to_rewrite(),
+            "the direct caller is proven"
+        );
+        for name in ["announce", "page", "render", "main"] {
+            assert!(
+                !caller_confidence(&impact, name).is_safe_to_rewrite(),
+                "{name} sits beyond the dispatch edge and needs review: {:?}",
+                impact.items
+            );
+        }
+        let review_names: Vec<&str> = impact
+            .needs_review()
+            .into_iter()
+            .map(|i| i.detail.as_str())
+            .collect();
+        assert!(
+            review_names.iter().any(|d| d.starts_with("render ")),
+            "the tainted caller is reported for review: {review_names:?}"
+        );
+    }
+
+    #[test]
+    fn a_fully_resolved_second_route_restores_certainty() {
+        // `main` also calls `noise` directly, so the weak dispatch route is not the
+        // only way to reach it. The best route decides.
+        let source = DISPATCH_CHAIN.replace(
+            "fn main() {\n    println!(\"{}\", render());\n}\n",
+            "fn main() {\n    noise();\n    println!(\"{}\", render());\n}\n",
+        );
+        let (_tmp, index) = workspace(&[("chain.rs", &source)]);
+        let noise = index.find_symbols("noise", None)[0].id;
+        let impact = analyse(&index, noise, 10).unwrap();
+
+        assert!(
+            caller_confidence(&impact, "main").is_safe_to_rewrite(),
+            "a direct call outweighs the dispatch route: {:?}",
+            impact.items
+        );
+        assert!(
+            !caller_confidence(&impact, "render").is_safe_to_rewrite(),
+            "render is still only reached across dispatch"
+        );
     }
 
     #[test]

@@ -498,7 +498,7 @@ fn subchart_parent_and_user_values_all_compete_with_the_winner_marked() {
     assert_eq!(
         sources,
         vec![
-            ("user-supplied -f values-prod.yaml", "tag: \"8.4\""),
+            ("would win under -f values-prod.yaml", "tag: \"8.4\""),
             ("parent chart values (app)", "tag: \"8.0\""),
             ("chart defaults (mysql)", "tag: \"5.7\""),
         ],
