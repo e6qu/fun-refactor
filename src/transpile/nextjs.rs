@@ -634,6 +634,7 @@ fn object_fields(value: &Expr) -> Option<Vec<Field>> {
                     doc: Vec::new(),
                     ty: Some(zod_type(spec)),
                     name,
+                    default: None,
                     exported: true,
                 })
             })

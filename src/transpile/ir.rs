@@ -65,6 +65,12 @@ pub enum Item {
         name: String,
         body: Vec<Stmt>,
     },
+    /// A statement at the top of the file: `main();`, the program's own entry.
+    ///
+    /// Python and TypeScript run a module top to bottom, so such a statement is the
+    /// program. Dropped as unsupported, a translated program parsed cleanly, ran,
+    /// and printed nothing. The targets whose top level only declares say so instead.
+    Statement(Stmt),
     /// A top-level construct with no counterpart: a Rust `impl Trait for T`, a Go
     /// `init()`, a Python decorator that is not a known one.
     Unsupported(Unsupported),
@@ -155,6 +161,12 @@ pub struct Field {
     pub doc: Vec<String>,
     pub name: String,
     pub ty: Option<Type>,
+    /// The value the field starts with, where the source gave one.
+    ///
+    /// `rows: T[] = [];` lost its initializer, so the dataclass it became had a
+    /// required argument nothing passes and construction raised. A target that
+    /// cannot write a default says so in the report instead of dropping it.
+    pub default: Option<Expr>,
     pub exported: bool,
 }
 

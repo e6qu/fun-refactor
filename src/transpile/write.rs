@@ -156,6 +156,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     for item in &module.items {
         match item {
             Item::Function(f) => walk_function(f, &mut add),
+            Item::Statement(stmt) => walk_stmts(std::slice::from_ref(stmt), &mut add),
             Item::Newtype(n) => add(&n.name, Kind::Type, n.exported),
             Item::Record(r) => {
                 add(&r.name, Kind::Type, r.exported);
@@ -940,6 +941,7 @@ fn rust(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| rust_expr(out, e)),
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("/// {line}"));
@@ -1635,8 +1637,21 @@ fn python(out: &mut Out, module: &Module) {
         Item::Sum(s) => s.variants.iter().any(|v| !v.fields.is_empty()),
         _ => false,
     });
+    // A list or map default renders through `field(default_factory=...)`.
+    let needs_factory = module.items.iter().any(|i| match i {
+        Item::Record(r) => r.fields.iter().any(|f| {
+            matches!(
+                f.default,
+                Some(Expr::ListLit(_)) | Some(Expr::MapLit(_))
+            )
+        }),
+        _ => false,
+    });
     if needs_dataclass {
-        out.line("from dataclasses import dataclass");
+        match needs_factory {
+            true => out.line("from dataclasses import dataclass, field"),
+            false => out.line("from dataclasses import dataclass"),
+        }
         out.blank();
     }
     if module.items.iter().any(|i| matches!(i, Item::Newtype(_))) {
@@ -1646,6 +1661,16 @@ fn python(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            // The module runs top to bottom here too. The guard is Python's own
+            // idiom for "this part is the program", and writing the statement bare
+            // would also run it on import, which the source's entry never did.
+            Item::Statement(stmt) => {
+                out.line("if __name__ == \"__main__\":");
+                out.open();
+                python_block(out, std::slice::from_ref(stmt));
+                out.close();
+                out.blank();
+            }
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("# {line}"));
@@ -1690,7 +1715,26 @@ fn python(out: &mut Out, module: &Module) {
                             .map(python_type)
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
-                    out.line(&format!("{field_name}: {annotation}"));
+                    // A mutable default shared between instances is the classic
+                    // Python trap, and the dataclass machinery refuses it outright;
+                    // `field(default_factory=...)` builds one per instance, which is
+                    // what the source's per-instance initializer did.
+                    let default = f.default.as_ref().map(|d| match d {
+                        Expr::ListLit(items) if items.is_empty() => {
+                            " = field(default_factory=list)".to_string()
+                        }
+                        Expr::MapLit(entries) if entries.is_empty() => {
+                            " = field(default_factory=dict)".to_string()
+                        }
+                        Expr::ListLit(_) | Expr::MapLit(_) => {
+                            format!(" = field(default_factory=lambda: {})", python_expr(out, d))
+                        }
+                        _ => format!(" = {}", python_expr(out, d)),
+                    });
+                    out.line(&format!(
+                        "{field_name}: {annotation}{}",
+                        default.unwrap_or_default()
+                    ));
                 }
                 if r.fields.is_empty() && r.methods.is_empty() && r.doc.is_empty() {
                     out.line("pass");
@@ -2470,6 +2514,7 @@ fn go(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| go_expr(out, e)),
             Item::Constant(c) => {
                 let name = out.name(&c.name);
                 for line in &c.doc {
@@ -3339,6 +3384,11 @@ fn typescript(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            // The module runs top to bottom here too, so the statement simply is one.
+            Item::Statement(stmt) => {
+                ts_block(out, std::slice::from_ref(stmt));
+                out.blank();
+            }
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -3396,7 +3446,12 @@ fn typescript(out: &mut Out, module: &Module) {
                                 .map(ts_type)
                                 .unwrap_or_else(|| unknown(out, &f.name));
                         let field_name = out.field(&f.name);
-                        out.line(&format!("{field_name}: {ty};"));
+                        let default = f
+                            .default
+                            .as_ref()
+                            .map(|d| format!(" = {}", ts_expr(out, d)))
+                            .unwrap_or_default();
+                        out.line(&format!("{field_name}: {ty}{default};"));
                     }
                     for m in &methods_of(out, r, false) {
                         out.blank();
@@ -4190,6 +4245,7 @@ fn java(out: &mut Out, module: &Module) {
                     | Item::Function(_)
                     | Item::Newtype(_)
                     | Item::Test { .. }
+                    | Item::Statement(_)
                     | Item::Unsupported(_)
             )
         })
@@ -4283,6 +4339,7 @@ fn java(out: &mut Out, module: &Module) {
                 out.line("}");
                 out.fidelity.functions += 1;
             }
+            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| java_expr(out, e)),
             Item::Unsupported(u) => carry(out, u),
             _ => {}
         }
@@ -5148,6 +5205,7 @@ fn zig(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) => carried_statement(out, stmt, |out, e| zig_expr(out, e)),
             Item::Import { text, line } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
@@ -6160,6 +6218,33 @@ fn escaped(language: Language, value: &str) -> String {
         }
     }
     out
+}
+
+/// A top-level statement, in a target whose top level only declares.
+///
+/// In the source that statement is the program: `main();` at the bottom of a
+/// TypeScript file, the call under `if __name__ == "__main__":`. There is nowhere
+/// here for it to run, so it is carried beside a marker, rendered where it is one
+/// expression so the reader sees what the source did.
+fn carried_statement(
+    out: &mut Out,
+    stmt: &Stmt,
+    render: impl FnOnce(&mut Out, &Expr) -> String,
+) {
+    let rendered = match stmt {
+        Stmt::Expr(e) => render(out, e),
+        _ => String::new(),
+    };
+    out.fidelity.carried_verbatim += 1;
+    out.fidelity
+        .notes
+        .push("at the top level: top-level statement carried over unchanged".to_string());
+    let text = match rendered.is_empty() {
+        true => format!("{MARKER}: a top-level statement runs here in the source"),
+        false => format!("{MARKER}: at the top level the source runs `{rendered}`"),
+    };
+    out.line(&out.comment(&text));
+    out.blank();
 }
 
 /// The type this record extends, where the target can express one.
