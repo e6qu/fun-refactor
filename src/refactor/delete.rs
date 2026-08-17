@@ -998,47 +998,6 @@ impl Sources {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn whole_line_deletion_takes_indentation_and_newline() {
-        let source = "fn a() {}\nfn b() {}\n";
-        assert_eq!(deletion_span(source, Span::new(0, 9)), Span::new(0, 10));
-    }
-
-    #[test]
-    fn a_definition_sharing_its_line_loses_only_its_own_bytes() {
-        let source = "fn a() {} fn b() {}\n";
-        assert_eq!(deletion_span(source, Span::new(0, 9)), Span::new(0, 9));
-    }
-
-    #[test]
-    fn a_leading_blank_line_is_not_left_behind() {
-        // Deleting the first definition must not leave the file starting blank.
-        let source = "fn a() {}\n\nfn b() {}\n";
-        assert_eq!(deletion_span(source, Span::new(0, 9)), Span::new(0, 11));
-    }
-
-    #[test]
-    fn a_separator_blank_line_belonging_to_the_survivor_is_kept() {
-        // `b` is not preceded by a gap, so the blank line after it separates `a` from
-        // `c` once `b` is gone and must stay.
-        let source = "fn a() {}\nfn b() {}\n\nfn c() {}\n";
-        assert_eq!(deletion_span(source, Span::new(10, 19)), Span::new(10, 20));
-    }
-
-    #[test]
-    fn merge_runs_collapses_touching_spans() {
-        let spans = [Span::new(0, 10), Span::new(10, 20), Span::new(30, 40)];
-        assert_eq!(
-            merge_runs(&spans),
-            vec![Span::new(0, 20), Span::new(30, 40)]
-        );
-    }
-}
-
 /// `pass`, indented for the hole, when this deletion empties a Python suite.
 ///
 /// The block's other statements may be going in the same plan, so emptiness is
@@ -1078,4 +1037,45 @@ fn python_pass_filler(
         .take_while(|c| c.is_whitespace() && *c != '\n')
         .collect();
     Some(format!("{indent}pass\n"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn whole_line_deletion_takes_indentation_and_newline() {
+        let source = "fn a() {}\nfn b() {}\n";
+        assert_eq!(deletion_span(source, Span::new(0, 9)), Span::new(0, 10));
+    }
+
+    #[test]
+    fn a_definition_sharing_its_line_loses_only_its_own_bytes() {
+        let source = "fn a() {} fn b() {}\n";
+        assert_eq!(deletion_span(source, Span::new(0, 9)), Span::new(0, 9));
+    }
+
+    #[test]
+    fn a_leading_blank_line_is_not_left_behind() {
+        // Deleting the first definition must not leave the file starting blank.
+        let source = "fn a() {}\n\nfn b() {}\n";
+        assert_eq!(deletion_span(source, Span::new(0, 9)), Span::new(0, 11));
+    }
+
+    #[test]
+    fn a_separator_blank_line_belonging_to_the_survivor_is_kept() {
+        // `b` is not preceded by a gap, so the blank line after it separates `a` from
+        // `c` once `b` is gone and must stay.
+        let source = "fn a() {}\nfn b() {}\n\nfn c() {}\n";
+        assert_eq!(deletion_span(source, Span::new(10, 19)), Span::new(10, 20));
+    }
+
+    #[test]
+    fn merge_runs_collapses_touching_spans() {
+        let spans = [Span::new(0, 10), Span::new(10, 20), Span::new(30, 40)];
+        assert_eq!(
+            merge_runs(&spans),
+            vec![Span::new(0, 20), Span::new(30, 40)]
+        );
+    }
 }
