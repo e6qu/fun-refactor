@@ -593,6 +593,13 @@ struct Out {
     /// the file's own records as foreign made a perfect translation confess to a
     /// problem it did not have, which is how a fidelity report stops being read.
     declared_types: std::collections::BTreeSet<String>,
+    /// Packages the Go this writer produced needs to import.
+    ///
+    /// `print` becomes `fmt.Println` and `.upper()` becomes `strings.ToUpper`;
+    /// discovered while the body is written, inserted under the package clause
+    /// after, because Go will not compile a file that names a package it never
+    /// imported.
+    go_imports: std::collections::BTreeSet<&'static str>,
     /// The distinct types this module declares, name to base.
     ///
     /// A call to one is a construction. Two targets spell that their own way:
@@ -651,6 +658,7 @@ impl Out {
             unnameable: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
+            go_imports: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
             functions: std::collections::BTreeMap::new(),
@@ -1475,6 +1483,9 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             format!("{}[{}]", rust_expr(out, of), rust_expr(out, index))
         }
         Expr::Call { callee, args } => {
+            if let Some(mapped) = rust_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
@@ -2636,6 +2647,21 @@ fn go(out: &mut Out, module: &Module) {
             }
         }
     }
+
+    // The packages the body turned out to need, inserted under the package
+    // clause, where Go requires them, after the body said which they are.
+    if !out.go_imports.is_empty() {
+        let block: String = out
+            .go_imports
+            .iter()
+            .map(|package| format!("import \"{package}\"\n"))
+            .chain(std::iter::once("\n".to_string()))
+            .collect();
+        let clause = "package main\n\n";
+        if let Some(at) = out.text.find(clause) {
+            out.text.insert_str(at + clause.len(), &block);
+        }
+    }
 }
 
 /// The field names to construct this callee's record with, when a positional
@@ -3066,6 +3092,18 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             }
             Stmt::Expr(Expr::Null) => {}
             Stmt::Expr(e) => {
+                // `rows.append(x)` grows in place everywhere else; Go's `append`
+                // returns the grown slice, so as a statement it must assign back.
+                if let Expr::Call { callee, args } = e {
+                    if let (Some(of), Some("append")) = callee_parts(callee) {
+                        if let [x] = args.as_slice() {
+                            let target = go_expr(out, &of.clone());
+                            let value = go_expr(out, x);
+                            out.line(&format!("{target} = append({target}, {value})"));
+                            continue;
+                        }
+                    }
+                }
                 let text = go_expr(out, e);
                 out.line(&text);
             }
@@ -3209,6 +3247,9 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Index { of, index } => format!("{}[{}]", go_expr(out, of), go_expr(out, index)),
         Expr::Call { callee, args } => {
+            if let Some(mapped) = go_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
@@ -4069,6 +4110,9 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Index { of, index } => format!("{}[{}]", ts_expr(out, of), ts_expr(out, index)),
         Expr::Call { callee, args } => {
+            if let Some(mapped) = ts_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
@@ -5024,6 +5068,9 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}.get({at})")
         }
         Expr::Call { callee, args } => {
+            if let Some(mapped) = java_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
@@ -5936,6 +5983,9 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}[{at}]")
         }
         Expr::Call { callee, args } => {
+            if let Some(mapped) = zig_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
@@ -6245,6 +6295,170 @@ fn carried_statement(
     };
     out.line(&out.comment(&text));
     out.blank();
+}
+
+// ------------------------------------------------------------ the builtin table
+//
+// The canonical spellings are Python's, because its reader needs no normalising:
+// `print(x)`, `len(x)`, `str(x)`, `.append`, `.upper`, `.lower`, `.strip`, and
+// `sep.join(xs)`. Each reader rewrites its own language's spelling into these and
+// each writer rewrites them out into its own, so one language pair costs two edits
+// and not thirty. What the table does not cover is written through unchanged,
+// visible in the output, exactly as before.
+
+/// The receiver and name a call's callee spells, where it spells one.
+fn callee_parts<'e>(callee: &'e Expr) -> (Option<&'e Expr>, Option<&'e str>) {
+    match callee {
+        Expr::Name(n) => (None, Some(n.as_str())),
+        Expr::Field { of, name } => (Some(of), Some(name.as_str())),
+        _ => (None, None),
+    }
+}
+
+/// A module that declares its own `print` or `len` means those, not the builtin.
+fn shadows_builtin(out: &Out, name: &str) -> bool {
+    out.functions.contains_key(name) || out.declared_types.contains(name)
+}
+
+fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let holes = vec!["{}"; args.len()].join(" ");
+            format!("println!(\"{holes}\"{})", args.iter().map(|a| format!(", {}", rust_expr(out, a))).collect::<String>())
+        }
+        (None, "len", [x]) => format!("{}.len()", rust_expr(out, x)),
+        (None, "str", [x]) => format!("{}.to_string()", rust_expr(out, x)),
+        (Some(of), "append", [x]) => {
+            format!("{}.push({})", rust_expr(out, &of.clone()), rust_expr(out, x))
+        }
+        (Some(of), "upper", []) => format!("{}.to_uppercase()", rust_expr(out, &of.clone())),
+        (Some(of), "lower", []) => format!("{}.to_lowercase()", rust_expr(out, &of.clone())),
+        (Some(of), "strip", []) => format!("{}.trim()", rust_expr(out, &of.clone())),
+        (Some(of), "join", [xs]) if matches!(of, Expr::Str(_)) => {
+            format!("{}.join({})", rust_expr(out, xs), rust_expr(out, &of.clone()))
+        }
+        _ => return None,
+    })
+}
+
+fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let rendered = joined(args, |a| ts_expr(out, a));
+            format!("console.log({rendered})")
+        }
+        (None, "len", [x]) => format!("{}.length", ts_expr(out, x)),
+        (None, "str", [x]) => format!("String({})", ts_expr(out, x)),
+        (Some(of), "append", [x]) => {
+            format!("{}.push({})", ts_expr(out, &of.clone()), ts_expr(out, x))
+        }
+        (Some(of), "upper", []) => format!("{}.toUpperCase()", ts_expr(out, &of.clone())),
+        (Some(of), "lower", []) => format!("{}.toLowerCase()", ts_expr(out, &of.clone())),
+        (Some(of), "strip", []) => format!("{}.trim()", ts_expr(out, &of.clone())),
+        (Some(of), "join", [xs]) => {
+            format!("{}.join({})", ts_expr(out, xs), ts_expr(out, &of.clone()))
+        }
+        _ => return None,
+    })
+}
+
+fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            out.go_imports.insert("fmt");
+            let rendered = joined(args, |a| go_expr(out, a));
+            format!("fmt.Println({rendered})")
+        }
+        (None, "str", [x]) => {
+            out.go_imports.insert("fmt");
+            format!("fmt.Sprint({})", go_expr(out, x))
+        }
+        (Some(of), "upper", []) => {
+            out.go_imports.insert("strings");
+            format!("strings.ToUpper({})", go_expr(out, &of.clone()))
+        }
+        (Some(of), "lower", []) => {
+            out.go_imports.insert("strings");
+            format!("strings.ToLower({})", go_expr(out, &of.clone()))
+        }
+        (Some(of), "strip", []) => {
+            out.go_imports.insert("strings");
+            format!("strings.TrimSpace({})", go_expr(out, &of.clone()))
+        }
+        (Some(of), "join", [xs]) => {
+            out.go_imports.insert("strings");
+            format!(
+                "strings.Join({}, {})",
+                go_expr(out, xs),
+                go_expr(out, &of.clone())
+            )
+        }
+        _ => return None,
+    })
+}
+
+fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let rendered = args
+                .iter()
+                .map(|a| java_expr(out, a))
+                .collect::<Vec<_>>()
+                .join(" + \" \" + ");
+            format!("System.out.println({rendered})")
+        }
+        (None, "str", [x]) => format!("String.valueOf({})", java_expr(out, x)),
+        (Some(of), "append", [x]) => {
+            format!("{}.add({})", java_expr(out, &of.clone()), java_expr(out, x))
+        }
+        (Some(of), "upper", []) => format!("{}.toUpperCase()", java_expr(out, &of.clone())),
+        (Some(of), "lower", []) => format!("{}.toLowerCase()", java_expr(out, &of.clone())),
+        (Some(of), "join", [xs]) => {
+            format!(
+                "String.join({}, {})",
+                java_expr(out, &of.clone()),
+                java_expr(out, xs)
+            )
+        }
+        _ => return None,
+    })
+}
+
+fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let holes = vec!["{any}"; args.len()].join(" ");
+            let rendered = joined(args, |a| zig_expr(out, a));
+            format!("std.debug.print(\"{holes}\\n\", .{{ {rendered} }})")
+        }
+        (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
+        _ => return None,
+    })
 }
 
 /// The type this record extends, where the target can express one.

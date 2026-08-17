@@ -2500,7 +2500,58 @@ mod go {
             }
         }
         settle_sums(&mut module);
+        settle_builtins(&mut module);
         module
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `fmt.Println` and the `strings` helpers have exact counterparts everywhere;
+    /// written through unchanged, each was a compile error in every target. The
+    /// package-qualified call becomes the canonical method form, and the writers
+    /// turn it back into whatever their language says.
+    fn settle_builtins(module: &mut Module) {
+        super::each_expr_in_module(module, &mut |e| {
+            let Expr::Call { callee, args } = e else { return };
+            let Expr::Field { of, name } = callee.as_ref() else {
+                return;
+            };
+            let Expr::Name(package) = of.as_ref() else {
+                return;
+            };
+            let method = |target: &Expr, name: &str| Expr::Field {
+                of: Box::new(target.clone()),
+                name: name.to_string(),
+            };
+            let replacement = match (package.as_str(), name.as_str(), args.as_slice()) {
+                ("fmt", "Println", _) => Expr::Call {
+                    callee: Box::new(Expr::Name("print".to_string())),
+                    args: std::mem::take(args),
+                },
+                ("strings", "ToUpper", [x]) => Expr::Call {
+                    callee: Box::new(method(x, "upper")),
+                    args: Vec::new(),
+                },
+                ("strings", "ToLower", [x]) => Expr::Call {
+                    callee: Box::new(method(x, "lower")),
+                    args: Vec::new(),
+                },
+                ("strings", "TrimSpace", [x]) => Expr::Call {
+                    callee: Box::new(method(x, "strip")),
+                    args: Vec::new(),
+                },
+                ("strings", "Join", [xs, sep]) => Expr::Call {
+                    callee: Box::new(method(sep, "join")),
+                    args: vec![xs.clone()],
+                },
+                ("strconv", "Itoa", _) => Expr::Call {
+                    callee: Box::new(Expr::Name("str".to_string())),
+                    args: std::mem::take(args),
+                },
+                _ => return,
+            };
+            *e = replacement;
+        });
     }
 
     /// Turn the marker-interface convention back into the sum it spells.
@@ -3032,7 +3083,61 @@ mod java {
         }
         module.items.extend(carried);
         settle_accessors(&mut module);
+        settle_builtins(&mut module);
         module
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `System.out.println` and the `String` statics have exact counterparts in
+    /// every target; written through unchanged, each was a compile error there.
+    fn settle_builtins(module: &mut Module) {
+        super::each_expr_in_module(module, &mut |e| {
+            let Expr::Call { callee, args } = e else { return };
+            match callee.as_mut() {
+                Expr::Field { of, name } => {
+                    let is_system_out = matches!(
+                        of.as_ref(),
+                        Expr::Field { of: inner, name: out_name }
+                            if out_name == "out" && matches!(inner.as_ref(), Expr::Name(s) if s == "System")
+                    );
+                    match (is_system_out, name.as_str()) {
+                        (true, "println") => {
+                            *e = Expr::Call {
+                                callee: Box::new(Expr::Name("print".to_string())),
+                                args: std::mem::take(args),
+                            };
+                        }
+                        (false, "valueOf")
+                            if matches!(of.as_ref(), Expr::Name(s) if s == "String") =>
+                        {
+                            *e = Expr::Call {
+                                callee: Box::new(Expr::Name("str".to_string())),
+                                args: std::mem::take(args),
+                            };
+                        }
+                        (false, "join")
+                            if matches!(of.as_ref(), Expr::Name(s) if s == "String")
+                                && args.len() == 2 =>
+                        {
+                            let xs = args.pop().expect("two arguments");
+                            let sep = args.pop().expect("two arguments");
+                            *e = Expr::Call {
+                                callee: Box::new(Expr::Field {
+                                    of: Box::new(sep),
+                                    name: "join".to_string(),
+                                }),
+                                args: vec![xs],
+                            };
+                        }
+                        (false, "toUpperCase") if args.is_empty() => *name = "upper".to_string(),
+                        (false, "toLowerCase") if args.is_empty() => *name = "lower".to_string(),
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        });
     }
 
     /// A record's accessor calls become the field reads they are.
@@ -4852,6 +4957,7 @@ mod typescript {
             }
         }
         settle_record_returns(&mut module);
+        settle_builtins(&mut module);
         settle_unions(&mut module, unions);
         // A brand travels with a constructor function bearing its own name; this
         // tool's TypeScript writer emits one. Read back as content it duplicates
@@ -5323,6 +5429,61 @@ mod typescript {
             }
         }
         module.items = items;
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `console.log`, `.push`, `.toUpperCase`, `.trim` and `.length` all have exact
+    /// counterparts in every target, and written through unchanged each was a
+    /// compile error there. The canonical names are the Python spellings; the
+    /// writers turn them back into whatever their language says.
+    fn settle_builtins(module: &mut Module) {
+        let field_named_length = module.items.iter().any(|item| {
+            matches!(item, Item::Record(r) if r.fields.iter().any(|f| f.name == "length"))
+        });
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Field { of, name } = e {
+                if name == "length" && !field_named_length {
+                    let of = of.clone();
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Name("len".to_string())),
+                        args: vec![*of],
+                    };
+                    return;
+                }
+            }
+            let Expr::Call { callee, args } = e else { return };
+            match callee.as_mut() {
+                Expr::Field { of, name } => match (of.as_ref(), name.as_str()) {
+                    (Expr::Name(n), "log") if n == "console" => {
+                        *e = Expr::Call {
+                            callee: Box::new(Expr::Name("print".to_string())),
+                            args: std::mem::take(args),
+                        };
+                    }
+                    (_, "push") if args.len() == 1 => *name = "append".to_string(),
+                    (_, "toUpperCase") if args.is_empty() => *name = "upper".to_string(),
+                    (_, "toLowerCase") if args.is_empty() => *name = "lower".to_string(),
+                    (_, "trim") if args.is_empty() => *name = "strip".to_string(),
+                    // `xs.join(sep)` and the canonical `sep.join(xs)` put the
+                    // separator on opposite sides; the swap is the translation.
+                    (_, "join") if args.len() == 1 => {
+                        let xs = of.clone();
+                        let sep = args.pop().expect("one argument");
+                        *e = Expr::Call {
+                            callee: Box::new(Expr::Field {
+                                of: Box::new(sep),
+                                name: "join".to_string(),
+                            }),
+                            args: vec![*xs],
+                        };
+                    }
+                    _ => {}
+                },
+                Expr::Name(n) if n == "String" && args.len() == 1 => *n = "str".to_string(),
+                _ => {}
+            }
+        });
     }
 
     /// Is this class member reachable from outside the class?

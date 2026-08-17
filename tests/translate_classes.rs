@@ -70,8 +70,8 @@ fn a_computing_constructor_keeps_its_body() {
         plan.output
     );
     assert!(
-        plan.output.contains("print(seconds)"),
-        "the computing statement survives where the target can keep it:\n{}",
+        plan.output.contains("console.log(seconds)"),
+        "the computing statement survives, in the target's own spelling:\n{}",
         plan.output
     );
 }
