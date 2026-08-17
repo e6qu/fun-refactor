@@ -254,7 +254,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
                 then,
                 otherwise,
             } => bad(condition) || bad(then) || bad(otherwise),
-            Expr::ListLit(items) => items.iter().any(bad),
+            Expr::Tuple(items) | Expr::ListLit(items) => items.iter().any(bad),
             Expr::MapLit(entries) => entries.iter().any(|(k, v)| bad(k) || bad(v)),
             Expr::Template(parts) => parts.iter().any(|part| match part {
                 TemplatePart::Expr(e) => bad(e),
@@ -295,7 +295,23 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
 /// nowhere in the file. Carrying the whole statement instead puts the source in front
 /// of whoever finishes the draft, which is the point.
 fn keep_whole(cx: &Cx, node: Node<'_>, built: Stmt) -> Stmt {
-    if has_unsupported_expr(&built) || binds_a_pattern(&built) {
+    if binds_a_pattern(&built) {
+        return Stmt::Unsupported(cx.unsupported(node));
+    }
+    // A binding whose initializer failed *as a whole* keeps its name: the marker
+    // stands alone as the value and composes with nothing. Carried whole, the
+    // declaration vanished into a comment while every later statement still read
+    // the name, so one untranslatable initializer poisoned the lines after it. An
+    // initializer with a failure *inside* it still carries whole, because a marker
+    // spliced mid-expression reads as an operand and produced `None.id`.
+    if let Stmt::Let {
+        value: Some(Expr::Unsupported(_)),
+        ..
+    } = &built
+    {
+        return built;
+    }
+    if has_unsupported_expr(&built) {
         return Stmt::Unsupported(cx.unsupported(node));
     }
     built
@@ -623,6 +639,7 @@ mod rust {
                 .children(&mut node.walk())
                 .any(|c| c.kind() == "visibility_modifier"),
             is_async: cx.text(node).starts_with("async ") || cx.text(node).contains("async fn"),
+            is_property: false,
             is_constructor: false,
         }
     }
@@ -651,6 +668,7 @@ mod rust {
                     doc: doc_above(cx, f, &["///", "//"]),
                     name: plain(cx.field_text(f, "name").unwrap_or_default()),
                     ty: cx.field(f, "type").map(|t| ty(cx, t)),
+                    default: None,
                     exported: f
                         .children(&mut f.walk())
                         .any(|c| c.kind() == "visibility_modifier"),
@@ -702,6 +720,7 @@ mod rust {
                                 name: plain(cx.field_text(f, "name").unwrap_or_default()),
                                 ty: cx.field(f, "type").map(|t| ty(cx, t)),
                                 // A variant's fields are as reachable as the enum.
+                                default: None,
                                 exported: true,
                             });
                         }
@@ -725,6 +744,7 @@ mod rust {
                                 doc: Vec::new(),
                                 name: "value".to_string(),
                                 ty: Some(ty(cx, *only)),
+                                default: None,
                                 exported: true,
                             }),
                             many => {
@@ -738,6 +758,7 @@ mod rust {
                                         doc: Vec::new(),
                                         name: format!("f{index}"),
                                         ty: Some(ty(cx, *t)),
+                                        default: None,
                                         exported: true,
                                     });
                                 }
@@ -811,6 +832,20 @@ mod rust {
         if let Some(inner) = bare.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
             let element = inner.split(';').next().unwrap_or(inner);
             return Type::List(Box::new(ty_text(element)));
+        }
+
+        // `(A, B)` is a tuple; `(A)` is only grouping, and `(A,)` says tuple anyway.
+        if let Some(inside) = bare.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
+            let mut parts = super::comma_parts(inside);
+            let trailing = parts.last().is_some_and(String::is_empty);
+            if trailing {
+                parts.pop();
+            }
+            if (parts.len() >= 2 || (trailing && parts.len() == 1))
+                && parts.iter().all(|p| !p.is_empty())
+            {
+                return Type::Tuple(parts.iter().map(|p| ty_text(p)).collect());
+            }
         }
 
         // `std::collections::HashMap<K, V>` is a `HashMap`. The writer spells the path
@@ -1087,6 +1122,9 @@ mod rust {
 
     fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
+            "tuple_expression" => {
+                Expr::Tuple(cx.children(node).iter().map(|n| expr(cx, *n)).collect())
+            }
             // `if a { b } else { c }` used as a value. Only where each branch is a block
             // holding one expression and nothing else: anything longer is a statement. There is
             // nowhere inside an argument list to put one.
@@ -1313,7 +1351,8 @@ mod python {
                     }
                 }
                 "expression_statement" => {
-                    // A module docstring, or a module-level constant.
+                    // A module docstring, a module-level constant, or a statement
+                    // the module runs on import, which is part of the program.
                     let inner = cx.children(child);
                     match inner.first() {
                         Some(n) if n.kind() == "string" && module.items.is_empty() => {
@@ -1328,13 +1367,28 @@ mod python {
                                 module.items.push(Item::Unsupported(cx.unsupported(child)));
                             }
                         }
+                        Some(n) if n.kind() == "call" => {
+                            module.items.push(Item::Statement(Stmt::Expr(expr(cx, *n))));
+                        }
                         _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                    }
+                }
+                // `if __name__ == "__main__":` is how a Python file says "this part
+                // is the program". The guard itself has no counterpart; what it
+                // guards does, and dropping both left translated programs that ran
+                // and did nothing.
+                "if_statement" if main_guard(cx, child) => {
+                    if let Some(body) = cx.field(child, "consequence") {
+                        for statement in block(cx, body) {
+                            module.items.push(Item::Statement(statement));
+                        }
                     }
                 }
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
         settle_unions(&mut module);
+        settle_constructions(&mut module);
         module.items.extend(carried);
         module
     }
@@ -1496,6 +1550,7 @@ mod python {
                 .unwrap_or_default()
                 .starts_with('_'),
             is_async: cx.text(node).starts_with("async "),
+            is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("__init__"),
         }
     }
@@ -1613,7 +1668,7 @@ mod python {
                 }
             }
         }
-        Record {
+        let mut record = Record {
             doc: docstring(cx, cx.field(node, "body")),
             name,
             fields,
@@ -1627,7 +1682,114 @@ mod python {
                 .and_then(|bases| bases.first().map(|b| cx.text(*b))),
             exported: true,
             methods,
+        };
+        derive_constructor_shape(&mut record);
+        record
+    }
+
+    /// What `__init__` says the instances hold.
+    ///
+    /// `self.name = name` declares a field as surely as an annotation does, and most
+    /// classes declare most of their fields this way. Read as nothing, every record
+    /// crossed as an empty struct while its methods went on reading `self.price`
+    /// from a field the target never had. A field assigned from a parameter takes
+    /// the parameter's type; one assigned a literal takes the literal's.
+    ///
+    /// A constructor that only assigns becomes the build-and-return shape the
+    /// writers already turn into each target's own constructor. One that computes
+    /// anything else keeps its body: rewriting it would be a guess about what the
+    /// rest was for.
+    fn derive_constructor_shape(record: &mut Record) {
+        let name = record.name.clone();
+        let Some(ctor) = record.methods.iter_mut().find(|m| m.is_constructor) else {
+            return;
+        };
+        let receiver = ctor
+            .receiver_binding
+            .clone()
+            .unwrap_or_else(|| "self".to_string());
+        let mut assigns: Vec<(String, Expr)> = Vec::new();
+        let mut only_assigns = true;
+        for stmt in &ctor.body {
+            match stmt {
+                Stmt::Assign {
+                    target: Expr::Field { of, name },
+                    value,
+                } if matches!(of.as_ref(), Expr::Name(n) if *n == receiver) => {
+                    assigns.push((name.clone(), value.clone()));
+                }
+                Stmt::Comment(_) => {}
+                _ => only_assigns = false,
+            }
         }
+        if assigns.is_empty() {
+            return;
+        }
+        for (field, value) in &assigns {
+            if record.fields.iter().any(|f| f.name == *field) {
+                continue;
+            }
+            let ty = ctor
+                .params
+                .iter()
+                .find(|p| matches!(value, Expr::Name(n) if n == &p.name))
+                .and_then(|p| p.ty.clone())
+                .or(match value {
+                    Expr::Int(_) => Some(Type::Int),
+                    Expr::Float(_) => Some(Type::Float),
+                    Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+                    Expr::Bool(_) => Some(Type::Bool),
+                    _ => None,
+                });
+            record.fields.push(Field {
+                doc: Vec::new(),
+                name: field.clone(),
+                ty,
+                default: None,
+                exported: !field.starts_with('_'),
+            });
+        }
+        if only_assigns {
+            ctor.body = vec![Stmt::Return(Some(Expr::RecordLit {
+                ty: name,
+                fields: assigns,
+            }))];
+        }
+    }
+
+    /// Calls that build this module's own types are constructions.
+    ///
+    /// Python spells construction as a call, so `Ledger()` reached the targets as
+    /// one. In Rust that names nothing, and in TypeScript a class cannot be
+    /// called without `new`. The names the module itself declares are not a guess.
+    fn settle_constructions(module: &mut Module) {
+        let types: std::collections::BTreeSet<String> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Record(r) => Some(r.name.clone()),
+                _ => None,
+            })
+            .collect();
+        if types.is_empty() {
+            return;
+        }
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Call { callee, args } = e {
+                if matches!(callee.as_ref(), Expr::Name(n) if types.contains(n)) {
+                    let callee = callee.clone();
+                    let args = std::mem::take(args);
+                    *e = Expr::New { callee, args };
+                }
+            }
+        });
+    }
+
+    /// Is this `if __name__ == "__main__":`, either quoting?
+    fn main_guard(cx: &Cx, node: Node<'_>) -> bool {
+        cx.field(node, "condition")
+            .map(|c| cx.text(c).split_whitespace().collect::<String>())
+            .is_some_and(|c| c == "__name__==\"__main__\"" || c == "__name__=='__main__'")
     }
 
     /// A decorated method, when the decorators only say what kind of method it is.
@@ -1653,10 +1815,18 @@ mod python {
                 let text = cx.text(*n);
                 SHAPE.contains(&text.trim_start_matches('@').trim())
             });
+        let is_property = children
+            .iter()
+            .filter(|n| n.kind() == "decorator")
+            .any(|n| cx.text(*n).trim_start_matches('@').trim() == "property");
         let inner = children
             .into_iter()
             .find(|n| n.kind() == "function_definition")?;
-        structural.then(|| function(cx, inner, Some(owner.to_string())))
+        structural.then(|| {
+            let mut method = function(cx, inner, Some(owner.to_string()));
+            method.is_property = is_property;
+            method
+        })
     }
 
     fn annotated_field(cx: &Cx, node: Node<'_>) -> Option<Field> {
@@ -1665,6 +1835,7 @@ mod python {
             doc: Vec::new(),
             name: name.clone(),
             ty: cx.field(node, "type").map(|t| ty(cx, t)),
+            default: None,
             exported: !name.starts_with('_'),
         })
     }
@@ -1726,6 +1897,19 @@ mod python {
         let trimmed = text.trim();
         if let Some(t) = super::scalar(trimmed) {
             return t;
+        }
+        for prefix in ["tuple[", "Tuple["] {
+            if let Some(inside) = trimmed
+                .strip_prefix(prefix)
+                .and_then(|s| s.strip_suffix(']'))
+            {
+                let parts = super::comma_parts(inside);
+                // `tuple[X, ...]` is "any number of X", which is a list's shape and
+                // not this one; the ellipsis falls through and is carried by name.
+                if parts.len() >= 2 && parts.iter().all(|p| !p.is_empty() && p != "...") {
+                    return Type::Tuple(parts.iter().map(|p| named_or_scalar(p)).collect());
+                }
+            }
         }
         for (prefix, build) in [
             ("list[", 0usize),
@@ -2043,6 +2227,10 @@ mod python {
             "true" => Expr::Bool(true),
             "false" => Expr::Bool(false),
             "none" => Expr::Null,
+            // `(a, b)` and the bare `a, b` of `return a, b` are the same tuple.
+            "tuple" | "expression_list" => {
+                Expr::Tuple(cx.children(node).iter().map(|n| expr(cx, *n)).collect())
+            }
             "string" => {
                 // An f-string interpolates. Dropping the braces would turn
                 // `f"{c} below the floor"` into the literal text `{c} below the
@@ -2338,7 +2526,60 @@ mod go {
             }
         }
         settle_sums(&mut module);
+        settle_builtins(&mut module);
         module
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `fmt.Println` and the `strings` helpers have exact counterparts everywhere;
+    /// written through unchanged, each was a compile error in every target. The
+    /// package-qualified call becomes the canonical method form, and the writers
+    /// turn it back into whatever their language says.
+    fn settle_builtins(module: &mut Module) {
+        super::each_expr_in_module(module, &mut |e| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            let Expr::Field { of, name } = callee.as_ref() else {
+                return;
+            };
+            let Expr::Name(package) = of.as_ref() else {
+                return;
+            };
+            let method = |target: &Expr, name: &str| Expr::Field {
+                of: Box::new(target.clone()),
+                name: name.to_string(),
+            };
+            let replacement = match (package.as_str(), name.as_str(), args.as_slice()) {
+                ("fmt", "Println", _) => Expr::Call {
+                    callee: Box::new(Expr::Name("print".to_string())),
+                    args: std::mem::take(args),
+                },
+                ("strings", "ToUpper", [x]) => Expr::Call {
+                    callee: Box::new(method(x, "upper")),
+                    args: Vec::new(),
+                },
+                ("strings", "ToLower", [x]) => Expr::Call {
+                    callee: Box::new(method(x, "lower")),
+                    args: Vec::new(),
+                },
+                ("strings", "TrimSpace", [x]) => Expr::Call {
+                    callee: Box::new(method(x, "strip")),
+                    args: Vec::new(),
+                },
+                ("strings", "Join", [xs, sep]) => Expr::Call {
+                    callee: Box::new(method(sep, "join")),
+                    args: vec![xs.clone()],
+                },
+                ("strconv", "Itoa", _) => Expr::Call {
+                    callee: Box::new(Expr::Name("str".to_string())),
+                    args: std::mem::take(args),
+                },
+                _ => return,
+            };
+            *e = replacement;
+        });
     }
 
     /// Turn the marker-interface convention back into the sum it spells.
@@ -2468,6 +2709,7 @@ mod go {
                 .map(|b| block(cx, b))
                 .unwrap_or_default(),
             is_async: false,
+            is_property: false,
             is_constructor: false,
         }
     }
@@ -2492,6 +2734,7 @@ mod go {
                     let field_name = cx.text(n);
                     fields.push(Field {
                         doc: doc_above(cx, f, &["//"]),
+                        default: None,
                         exported: field_name.chars().next().is_some_and(|c| c.is_uppercase()),
                         name: field_name,
                         ty: field_ty.clone(),
@@ -2529,6 +2772,23 @@ mod go {
     }
 
     fn ty(cx: &Cx, node: Node<'_>) -> Type {
+        // `(int, error)`: Go writes several results as a parenthesised list, and the
+        // grammar hands it over as the same `parameter_list` a signature uses. Read as
+        // text it became an unwritable name in every signature. Read as the tuple
+        // it is, every target can spell it or say it cannot.
+        if node.kind() == "parameter_list" {
+            let parts: Vec<Type> = cx
+                .children(node)
+                .iter()
+                .filter(|c| c.kind() == "parameter_declaration")
+                .filter_map(|c| cx.field(*c, "type").map(|t| ty(cx, t)))
+                .collect();
+            match parts.as_slice() {
+                [only] => return only.clone(),
+                [] => {}
+                _ => return Type::Tuple(parts),
+            }
+        }
         ty_text(cx.text(node).trim())
     }
 
@@ -2597,14 +2857,16 @@ mod go {
                 Stmt::Comment(super::uncomment(&cx.text(node)))
             }
             // `return x` wraps its value in an `expression_list`, the same shape that hid every
-            // function body. A single value is the only one that has a counterpart: `return a,
-            // b` is Go's multiple return and nothing else here has one. So it stays unsupported
-            // and is carried with the original.
-            "return_statement" => Stmt::Return(cx.children(node).first().and_then(|e| {
+            // function body. `return a, b` is Go's multiple return, and it crosses as a tuple.
+            // Mapping it to nothing, as this arm once did, turned a two-value return into a
+            // bare `return` with nothing said.
+            "return_statement" => Stmt::Return(cx.children(node).first().map(|e| {
                 match (e.kind(), cx.children(*e).as_slice()) {
-                    ("expression_list", [only]) => Some(expr(cx, *only)),
-                    ("expression_list", _) => None,
-                    _ => Some(expr(cx, *e)),
+                    ("expression_list", [only]) => expr(cx, *only),
+                    ("expression_list", several) => {
+                        Expr::Tuple(several.iter().map(|n| expr(cx, *n)).collect())
+                    }
+                    _ => expr(cx, *e),
                 }
             })),
             "break_statement" => Stmt::Break,
@@ -2826,19 +3088,125 @@ mod java {
                     line: cx.line(child),
                 }),
                 "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    let before = carried.len();
                     let (record, constants) = type_declaration(cx, child, &mut carried);
                     module
                         .items
                         .extend(constants.into_iter().map(Item::Constant));
-                    if let Some(record) = record {
-                        module.items.push(Item::Record(record));
+                    let hoisted = carried.len() > before;
+                    // A class whose every member left as a hoisted sibling was only
+                    // ever their namespace. An empty `class Orders: pass` beside the
+                    // things it held says less than nothing.
+                    let shell = |r: &Record| {
+                        hoisted
+                            && r.fields.is_empty()
+                            && r.methods.is_empty()
+                            && r.extends.is_none()
+                    };
+                    match record {
+                        Some(record) if !shell(&record) => module.items.push(Item::Record(record)),
+                        _ => {}
                     }
                 }
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
         module.items.extend(carried);
+        settle_accessors(&mut module);
+        settle_builtins(&mut module);
         module
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `System.out.println` and the `String` statics have exact counterparts in
+    /// every target; written through unchanged, each was a compile error there.
+    fn settle_builtins(module: &mut Module) {
+        super::each_expr_in_module(module, &mut |e| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            if let Expr::Field { of, name } = callee.as_mut() {
+                {
+                    let is_system_out = matches!(
+                        of.as_ref(),
+                        Expr::Field { of: inner, name: out_name }
+                            if out_name == "out" && matches!(inner.as_ref(), Expr::Name(s) if s == "System")
+                    );
+                    match (is_system_out, name.as_str()) {
+                        (true, "println") => {
+                            *e = Expr::Call {
+                                callee: Box::new(Expr::Name("print".to_string())),
+                                args: std::mem::take(args),
+                            };
+                        }
+                        (false, "valueOf") if matches!(of.as_ref(), Expr::Name(s) if s == "String") =>
+                        {
+                            *e = Expr::Call {
+                                callee: Box::new(Expr::Name("str".to_string())),
+                                args: std::mem::take(args),
+                            };
+                        }
+                        (false, "join")
+                            if matches!(of.as_ref(), Expr::Name(s) if s == "String")
+                                && args.len() == 2 =>
+                        {
+                            let xs = args.pop().expect("two arguments");
+                            let sep = args.pop().expect("two arguments");
+                            *e = Expr::Call {
+                                callee: Box::new(Expr::Field {
+                                    of: Box::new(sep),
+                                    name: "join".to_string(),
+                                }),
+                                args: vec![xs],
+                            };
+                        }
+                        (false, "toUpperCase") if args.is_empty() => *name = "upper".to_string(),
+                        (false, "toLowerCase") if args.is_empty() => *name = "lower".to_string(),
+                        _ => {}
+                    }
+                }
+            }
+        });
+    }
+
+    /// A record's accessor calls become the field reads they are.
+    ///
+    /// `record Order(boolean paid)` gives its callers `o.paid()`. The record
+    /// crosses as fields, so the call form reaches a target where `paid` is data
+    /// and calling it fails. Only a name that is a field of this module's records
+    /// and a method of nothing rewrites; anything shared stays a call.
+    fn settle_accessors(module: &mut Module) {
+        let mut fields: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        let mut methods: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for item in &module.items {
+            match item {
+                Item::Record(r) => {
+                    fields.extend(r.fields.iter().map(|f| f.name.clone()));
+                    methods.extend(r.methods.iter().map(|m| m.name.clone()));
+                }
+                Item::Function(f) => {
+                    methods.insert(f.name.clone());
+                }
+                _ => {}
+            }
+        }
+        let accessors: std::collections::BTreeSet<String> =
+            fields.difference(&methods).cloned().collect();
+        if accessors.is_empty() {
+            return;
+        }
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Call { callee, args } = e {
+                if args.is_empty() {
+                    if let Expr::Field { name, .. } = callee.as_ref() {
+                        if accessors.contains(name) {
+                            *e = (**callee).clone();
+                        }
+                    }
+                }
+            }
+        });
     }
 
     /// A class, interface or record, plus the module constants hidden inside it.
@@ -2877,6 +3245,7 @@ mod java {
                         doc: Vec::new(),
                         name,
                         ty: Some(ty_of(cx, ty)),
+                        default: None,
                         exported: true,
                     });
                 }
@@ -2914,6 +3283,7 @@ mod java {
                             doc: doc_above(cx, member, &["///", "//", "/**", "*"]),
                             name,
                             ty,
+                            default: None,
                             exported: public,
                         });
                     }
@@ -2921,8 +3291,28 @@ mod java {
                 // A constructor is a method that makes the type and not acting on one, and
                 // every target spells it its own way. So what carries is that it *is* one, not
                 // what it is called.
+                //
+                // A static method never touches the instance, so the class is only its
+                // namespace. It crosses as a module function: written as a method, every
+                // target gave it a receiver its Java call sites never pass.
                 "method_declaration" | "constructor_declaration" => {
-                    record.methods.push(function(cx, member))
+                    let is_static = member.kind() == "method_declaration"
+                        && modifier_text(cx, member).contains("static");
+                    match is_static {
+                        true => carried.push(Item::Function(function(cx, member))),
+                        false => record.methods.push(function(cx, member)),
+                    }
+                }
+                // A type declared inside another is still a type; Java nests them for
+                // namespacing and the record it declares crosses as a sibling. Dropped,
+                // `record Order(...)` left `main` constructing a name nothing defined,
+                // while the fidelity header still counted the record as carried.
+                "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    let (inner, inner_constants) = type_declaration(cx, member, carried);
+                    carried.extend(inner_constants.into_iter().map(Item::Constant));
+                    if let Some(inner) = inner {
+                        carried.push(Item::Record(inner));
+                    }
                 }
                 "comment" | "{" | "}" => {}
                 // A member this does not recognise is not a member that is not
@@ -3003,6 +3393,7 @@ mod java {
                 .unwrap_or_default(),
             exported: is_public(cx, node),
             is_async: false,
+            is_property: false,
             is_constructor: node.kind() == "constructor_declaration",
         }
     }
@@ -3433,6 +3824,20 @@ mod zig {
         parts.get(at + 1).filter(|c| c.kind() != stop).copied()
     }
 
+    /// `.empty`: a field expression with no object, only the leading dot.
+    fn dot_literal(cx: &Cx, node: Node<'_>) -> Option<String> {
+        if node.kind() != "field_expression" {
+            return None;
+        }
+        let parts = all(node);
+        match parts.as_slice() {
+            [dot, member] if dot.kind() == "." && member.kind() == "identifier" => {
+                Some(cx.text(*member))
+            }
+            _ => None,
+        }
+    }
+
     pub fn module(cx: &Cx, root: Node<'_>, file_stem: Option<&str>) -> Module {
         let mut module = Module::default();
         // A method a record cannot keep still has to reach the reader, and a record has
@@ -3532,6 +3937,11 @@ mod zig {
                     }
                 }
                 Type::List(inner) | Type::Optional(inner) => in_type(inner, from, to),
+                Type::Tuple(parts) => {
+                    for part in parts {
+                        in_type(part, from, to);
+                    }
+                }
                 Type::Map(key, value) => {
                     in_type(key, from, to);
                     in_type(value, from, to);
@@ -3760,6 +4170,7 @@ mod zig {
                             doc: Vec::new(),
                             name: "value".to_string(),
                             ty: Some(ty_of(cx, t)),
+                            default: None,
                             exported,
                         }],
                     };
@@ -3849,6 +4260,7 @@ mod zig {
             // `x: i32`, the type is whatever follows the colon, and stops
             // before the `=` of a default.
             ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
+            default: None,
             // Zig has no per-field visibility; a field of an exported type
             // is reachable wherever the type is.
             exported,
@@ -3932,6 +4344,7 @@ mod zig {
                 .unwrap_or_default(),
             exported: cx.text(node).trim_start().starts_with("pub"),
             is_async: false,
+            is_property: false,
             is_constructor: false,
         })
     }
@@ -4013,11 +4426,29 @@ mod zig {
                 other => Type::List(Box::new(from_text(other))),
             };
         }
+        // `struct { A, B }` with only types inside is Zig's tuple, and it is what this
+        // tool's own writer emits for one. A `:` inside names a field, a real struct.
+        if let Some(inside) = text
+            .strip_prefix("struct")
+            .map(str::trim_start)
+            .and_then(|s| s.strip_prefix('{'))
+            .and_then(|s| s.strip_suffix('}'))
+        {
+            let parts = super::comma_parts(inside);
+            if parts.len() >= 2 && parts.iter().all(|p| !p.is_empty() && !p.contains(':')) {
+                return Type::Tuple(parts.iter().map(|p| from_text(p)).collect());
+            }
+        }
         if let Some((head, rest)) = text.split_once('(') {
             if let Some(args) = rest.strip_suffix(')') {
                 let head = head.trim();
                 if !head.is_empty() {
-                    let arguments: Vec<Type> = args.split(',').map(from_text).collect();
+                    // Depth-aware: `HashSet(struct { A, B })` has one argument, and a
+                    // bare split at every comma read it as two halves of nothing.
+                    let arguments: Vec<Type> = super::comma_parts(args)
+                        .iter()
+                        .map(|a| from_text(a))
+                        .collect();
                     // The two maps this tool's own Zig writer emits. Reading them back
                     // as ordinary named types made a `dict[str, str]` cross once and
                     // never come home.
@@ -4155,15 +4586,36 @@ mod zig {
                     };
                 }
                 if !declares {
+                    // Writing *through* a pointer has no counterpart. Stripped, the
+                    // write became a rebinding of the pointer itself, and when
+                    // the pointer was the receiver, an assignment to `this`.
+                    if target.kind() == "dereference_expression" {
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    }
                     return Stmt::Assign {
                         target: expr(cx, target),
                         value: expr(cx, value),
                     };
                 }
+                let mut read = expr(cx, value);
+                // `.empty` names a member of the declared type, written with the
+                // type left to inference: `var list: ArrayList(u8) = .empty;` means
+                // `ArrayList(u8).empty`. The annotation says what to qualify it
+                // with; without one there is nothing to say, and it stays carried.
+                if matches!(read, Expr::Unsupported(_)) {
+                    if let (Some(member), Some(annotated)) =
+                        (dot_literal(cx, value), after(&parts, ":", "="))
+                    {
+                        read = Expr::Field {
+                            of: Box::new(Expr::Name(cx.text(annotated).trim().to_string())),
+                            name: member,
+                        };
+                    }
+                }
                 Stmt::Let {
                     name: cx.text(target),
                     ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
-                    value: Some(expr(cx, value)),
+                    value: Some(read),
                     mutable: text.trim_start().starts_with("var "),
                 }
             }
@@ -4385,7 +4837,7 @@ mod zig {
             "false" => Expr::Bool(false),
             "null" | "undefined" => Expr::Null,
             "string" => Expr::Str(super::unquote(&cx.text(node))),
-            "identifier" => Expr::Name(cx.text(node)),
+            "identifier" | "builtin_type" => Expr::Name(cx.text(node)),
             "field_expression" => {
                 let parts = cx.children(node);
                 match (parts.first(), parts.last()) {
@@ -4454,6 +4906,67 @@ mod zig {
                     Some("-") => Expr::Unary {
                         op: UnaryOp::Neg,
                         operand: Box::new(operand),
+                    },
+                    // A pointer is how Zig writes a reference, and the languages
+                    // without pointers still have the thing being pointed at. The
+                    // type reader already strips them the same way.
+                    Some("&") => operand,
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `p.*` reads through the pointer; see `&` above.
+            "dereference_expression" => cx
+                .children(node)
+                .first()
+                .map(|inner| expr(cx, *inner))
+                .unwrap_or_else(|| Expr::Unsupported(cx.unsupported(node))),
+            "index_expression" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [of, index] if index.kind() != "range_expression" => Expr::Index {
+                        of: Box::new(expr(cx, *of)),
+                        index: Box::new(expr(cx, *index)),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `[_]u32{ 1, 2, 3 }` over an array type is a list, the same value
+            // every target spells as its own literal.
+            "struct_initializer" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [ty, items]
+                        if ty.kind() == "array_type" && items.kind() == "initializer_list" =>
+                    {
+                        Expr::ListLit(cx.children(*items).iter().map(|i| expr(cx, *i)).collect())
+                    }
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // The cast family reasserts a type over a value, which every language
+            // here can spell. `@min` and `@max` are calls everywhere. The rest of
+            // the builtins have no counterpart and are carried.
+            "builtin_function" => {
+                let name = cx
+                    .children(node)
+                    .first()
+                    .filter(|c| c.kind() == "builtin_identifier")
+                    .map(|c| cx.text(*c))
+                    .unwrap_or_default();
+                let args: Vec<Node> = cx
+                    .children(node)
+                    .iter()
+                    .find(|c| c.kind() == "arguments")
+                    .map(|a| cx.children(*a))
+                    .unwrap_or_default();
+                match (name.as_str(), args.as_slice()) {
+                    ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => Expr::Cast {
+                        ty: Box::new(expr(cx, *ty)),
+                        value: Box::new(expr(cx, *value)),
+                    },
+                    ("@min" | "@max", _) => Expr::Call {
+                        callee: Box::new(Expr::Name(name.trim_start_matches('@').to_string())),
+                        args: args.iter().map(|a| expr(cx, *a)).collect(),
                     },
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
@@ -4564,9 +5077,15 @@ mod typescript {
                         }));
                     }
                 }
+                // The statement is the program: `main();` at the bottom of the file
+                // runs it. As an unsupported construct it crossed as a comment, and
+                // the translated program parsed, ran and did nothing.
+                "expression_statement" => module.items.push(Item::Statement(stmt(cx, node))),
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
+        settle_record_returns(&mut module);
+        settle_builtins(&mut module);
         settle_unions(&mut module, unions);
         // A brand travels with a constructor function bearing its own name; this
         // tool's TypeScript writer emits one. Read back as content it duplicates
@@ -4940,6 +5459,7 @@ mod typescript {
                 .unwrap_or_default(),
             exported: false,
             is_async,
+            is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("constructor"),
         }
     }
@@ -4961,6 +5481,140 @@ mod typescript {
             .into_iter()
             .find(|c| c.kind() == "extends_clause")?;
         cx.children(extends).first().map(|base| cx.text(*base))
+    }
+
+    /// A returned object literal is the record the signature promised.
+    ///
+    /// `summarize(): Summary` returning `{ open, closed, titles }` crossed as a
+    /// map, so the Python caller got a dict where the dataclass reader used
+    /// attributes. Only a literal with string keys rewrites, every key a field
+    /// of the declared record, every undefaulted field present. Anything else
+    /// stays the map it is.
+    fn settle_record_returns(module: &mut Module) {
+        let records: std::collections::BTreeMap<String, (Vec<String>, Vec<String>)> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Record(r) => Some((
+                    r.name.clone(),
+                    (
+                        r.fields.iter().map(|f| f.name.clone()).collect(),
+                        r.fields
+                            .iter()
+                            .filter(|f| f.default.is_none())
+                            .map(|f| f.name.clone())
+                            .collect(),
+                    ),
+                )),
+                _ => None,
+            })
+            .collect();
+        if records.is_empty() {
+            return;
+        }
+        let mut settle = |f: &mut Function| {
+            let Some(Type::Named { name, args }) = f.returns.clone() else {
+                return;
+            };
+            let Some((fields, required)) = records.get(&name).filter(|_| args.is_empty()) else {
+                return;
+            };
+            super::each_stmt_in_stmts(&mut f.body, &mut |stmt| {
+                let Stmt::Return(Some(value)) = stmt else {
+                    return;
+                };
+                let Expr::MapLit(entries) = value else {
+                    return;
+                };
+                let keys: Option<Vec<String>> = entries
+                    .iter()
+                    .map(|(k, _)| match k {
+                        Expr::Str(s) | Expr::Name(s) => Some(s.clone()),
+                        _ => None,
+                    })
+                    .collect();
+                let Some(keys) = keys else { return };
+                let shaped = keys.iter().all(|k| fields.contains(k))
+                    && required.iter().all(|r| keys.contains(r));
+                if !shaped {
+                    return;
+                }
+                let fields_out: Vec<(String, Expr)> = keys
+                    .into_iter()
+                    .zip(entries.iter().map(|(_, v)| v.clone()))
+                    .collect();
+                *value = Expr::RecordLit {
+                    ty: name.clone(),
+                    fields: fields_out,
+                };
+            });
+        };
+        let mut items = std::mem::take(&mut module.items);
+        for item in items.iter_mut() {
+            match item {
+                Item::Function(f) => settle(f),
+                Item::Record(r) => r.methods.iter_mut().for_each(&mut settle),
+                _ => {}
+            }
+        }
+        module.items = items;
+    }
+
+    /// The everyday library spellings, rewritten to the table's canonical ones.
+    ///
+    /// `console.log`, `.push`, `.toUpperCase`, `.trim` and `.length` all have exact
+    /// counterparts in every target, and written through unchanged each was a
+    /// compile error there. The canonical names are the Python spellings; the
+    /// writers turn them back into whatever their language says.
+    fn settle_builtins(module: &mut Module) {
+        let field_named_length = module.items.iter().any(
+            |item| matches!(item, Item::Record(r) if r.fields.iter().any(|f| f.name == "length")),
+        );
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Field { of, name } = e {
+                if name == "length" && !field_named_length {
+                    let of = of.clone();
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Name("len".to_string())),
+                        args: vec![*of],
+                    };
+                    return;
+                }
+            }
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            match callee.as_mut() {
+                Expr::Field { of, name } => match (of.as_ref(), name.as_str()) {
+                    (Expr::Name(n), "log") if n == "console" => {
+                        *e = Expr::Call {
+                            callee: Box::new(Expr::Name("print".to_string())),
+                            args: std::mem::take(args),
+                        };
+                    }
+                    (_, "push") if args.len() == 1 => *name = "append".to_string(),
+                    (_, "toUpperCase") if args.is_empty() => *name = "upper".to_string(),
+                    (_, "toLowerCase") if args.is_empty() => *name = "lower".to_string(),
+                    (_, "trim") if args.is_empty() => *name = "strip".to_string(),
+                    // `xs.join(sep)` and the canonical `sep.join(xs)` put the
+                    // separator on opposite sides; the swap is the translation.
+                    (_, "join") if args.len() == 1 => {
+                        let xs = of.clone();
+                        let sep = args.pop().expect("one argument");
+                        *e = Expr::Call {
+                            callee: Box::new(Expr::Field {
+                                of: Box::new(sep),
+                                name: "join".to_string(),
+                            }),
+                            args: vec![*xs],
+                        };
+                    }
+                    _ => {}
+                },
+                Expr::Name(n) if n == "String" && args.len() == 1 => *n = "str".to_string(),
+                _ => {}
+            }
+        });
     }
 
     /// Is this class member reachable from outside the class?
@@ -4987,11 +5641,21 @@ mod typescript {
                         doc: Vec::new(),
                         name: cx.field_text(member, "name").unwrap_or_default(),
                         ty: cx.field(member, "type").map(|t| ty(cx, t)),
+                        // `rows: T[] = [];` starts every instance somewhere. Lost,
+                        // the dataclass this became required an argument nothing
+                        // passes, and construction raised.
+                        default: cx.field(member, "value").map(|v| expr(cx, v)),
                         exported: is_visible(cx, member),
                     }),
                     "method_definition" | "method_signature" => {
                         let mut method = function(cx, member, Some(name.clone()));
                         method.exported = is_visible(cx, member);
+                        // `get total()` is read as data at its use sites, which is
+                        // a fact about every accessor and not about this body.
+                        let mut cursor = member.walk();
+                        method.is_property =
+                            member.children(&mut cursor).any(|c| c.kind() == "get");
+                        drop(cursor);
                         // `constructor(public x: number)` declares the field and
                         // assigns it, in the parameter list. Read as a parameter
                         // alone, the class came out with no fields at all.
@@ -5041,6 +5705,7 @@ mod typescript {
                     doc: Vec::new(),
                     name,
                     ty: cx.field(p, "type").map(|t| ty(cx, t)),
+                    default: None,
                     exported: is_visible(cx, p),
                 })
             })
@@ -5073,6 +5738,13 @@ mod typescript {
         }
         if let Some(element) = trimmed.strip_suffix("[]") {
             return Type::List(Box::new(named_or_scalar(element)));
+        }
+        // `[A, B]` between brackets is TypeScript's tuple type, one element included.
+        if let Some(inside) = trimmed.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+            let parts = super::comma_parts(inside);
+            if !parts.is_empty() && parts.iter().all(|p| !p.is_empty()) {
+                return Type::Tuple(parts.iter().map(|p| named_or_scalar(p)).collect());
+            }
         }
         for prefix in ["Array<", "ReadonlyArray<"] {
             if let Some(element) = trimmed
@@ -5584,6 +6256,283 @@ mod typescript {
 ///
 /// Nesting is respected, so `Result<Vec<T>, E>` yields two arguments instead of
 /// three. A name with no brackets is itself with no arguments.
+/// Visit every expression under these statements, innermost first, mutably.
+///
+/// The post-passes settle what a reader could not know locally: which calls
+/// construct a module's own types, which member reads are properties. All walk
+/// the same tree. Each pass writing its own recursion is how one of them misses the
+/// statement variant added for the other.
+fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Return(value) => {
+                if let Some(value) = value {
+                    each_expr(value, visit);
+                }
+            }
+            Stmt::Let { value, .. } => {
+                if let Some(value) = value {
+                    each_expr(value, visit);
+                }
+            }
+            Stmt::Assign { target, value } => {
+                each_expr(target, visit);
+                each_expr(value, visit);
+            }
+            Stmt::If {
+                condition,
+                then,
+                otherwise,
+            } => {
+                each_expr(condition, visit);
+                each_expr_in_stmts(then, visit);
+                each_expr_in_stmts(otherwise, visit);
+            }
+            Stmt::IfPresent {
+                value,
+                then,
+                otherwise,
+                ..
+            } => {
+                each_expr(value, visit);
+                each_expr_in_stmts(then, visit);
+                each_expr_in_stmts(otherwise, visit);
+            }
+            Stmt::While { condition, body } => {
+                each_expr(condition, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::WhilePresent { value, body, .. } => {
+                each_expr(value, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::ForEach { iterable, body, .. } | Stmt::ForEachIndexed { iterable, body, .. } => {
+                each_expr(iterable, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::Defer(body) => each_expr_in_stmts(body, visit),
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                each_expr(subject, visit);
+                for (literals, body) in arms {
+                    for literal in literals {
+                        each_expr(literal, visit);
+                    }
+                    each_expr_in_stmts(body, visit);
+                }
+                each_expr_in_stmts(default, visit);
+            }
+            Stmt::Expr(e) | Stmt::Throw(e) => each_expr(e, visit),
+            Stmt::Try {
+                body,
+                catches,
+                finally,
+                ..
+            } => {
+                each_expr_in_stmts(body, visit);
+                for catch in catches {
+                    each_expr_in_stmts(&mut catch.body, visit);
+                }
+                each_expr_in_stmts(finally, visit);
+            }
+            Stmt::Comment(_) | Stmt::Break | Stmt::Continue | Stmt::Unsupported(_) => {}
+        }
+    }
+}
+
+/// Visit every statement under these, containers recursed, mutably.
+///
+/// The statement-level sibling of [`each_expr_in_stmts`], for the passes that
+/// care where an expression stands. A map literal is only a record when a
+/// `return` hands it to a signature that promised one.
+fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
+    for stmt in stmts {
+        visit(stmt);
+        match stmt {
+            Stmt::If {
+                then, otherwise, ..
+            }
+            | Stmt::IfPresent {
+                then, otherwise, ..
+            } => {
+                each_stmt_in_stmts(then, visit);
+                each_stmt_in_stmts(otherwise, visit);
+            }
+            Stmt::While { body, .. }
+            | Stmt::WhilePresent { body, .. }
+            | Stmt::ForEach { body, .. }
+            | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
+            Stmt::Defer(body) => each_stmt_in_stmts(body, visit),
+            Stmt::Switch { arms, default, .. } => {
+                for (_, body) in arms {
+                    each_stmt_in_stmts(body, visit);
+                }
+                each_stmt_in_stmts(default, visit);
+            }
+            Stmt::Try {
+                body,
+                catches,
+                finally,
+                ..
+            } => {
+                each_stmt_in_stmts(body, visit);
+                for catch in catches {
+                    each_stmt_in_stmts(&mut catch.body, visit);
+                }
+                each_stmt_in_stmts(finally, visit);
+            }
+            Stmt::Return(_)
+            | Stmt::Let { .. }
+            | Stmt::Assign { .. }
+            | Stmt::Expr(_)
+            | Stmt::Comment(_)
+            | Stmt::Throw(_)
+            | Stmt::Break
+            | Stmt::Continue
+            | Stmt::Unsupported(_) => {}
+        }
+    }
+}
+
+/// Children first, then the node itself, so a rewrite sees settled children.
+fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
+    match e {
+        Expr::Field { of, .. } => each_expr(of, visit),
+        Expr::Index { of, index } => {
+            each_expr(of, visit);
+            each_expr(index, visit);
+        }
+        Expr::Call { callee, args } | Expr::New { callee, args } => {
+            each_expr(callee, visit);
+            for arg in args {
+                each_expr(arg, visit);
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            each_expr(left, visit);
+            each_expr(right, visit);
+        }
+        Expr::Unary { operand, .. } => each_expr(operand, visit),
+        Expr::Await(inner) | Expr::Propagate(inner) => each_expr(inner, visit),
+        Expr::Keyword { value, .. } => each_expr(value, visit),
+        Expr::Cast { ty, value } => {
+            each_expr(ty, visit);
+            each_expr(value, visit);
+        }
+        Expr::InstanceOf { value, ty } => {
+            each_expr(value, visit);
+            each_expr(ty, visit);
+        }
+        Expr::RecordLit { fields, .. } => {
+            for (_, value) in fields {
+                each_expr(value, visit);
+            }
+        }
+        Expr::Coalesce { value, fallback } => {
+            each_expr(value, visit);
+            each_expr(fallback, visit);
+        }
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => {
+            each_expr(condition, visit);
+            each_expr(then, visit);
+            each_expr(otherwise, visit);
+        }
+        Expr::Tuple(items) | Expr::ListLit(items) => {
+            for item in items {
+                each_expr(item, visit);
+            }
+        }
+        Expr::MapLit(entries) => {
+            for (key, value) in entries {
+                each_expr(key, visit);
+                each_expr(value, visit);
+            }
+        }
+        Expr::Template(parts) => {
+            for part in parts {
+                if let TemplatePart::Expr(inner) = part {
+                    each_expr(inner, visit);
+                }
+            }
+        }
+        Expr::Comprehension {
+            element,
+            iterable,
+            condition,
+            ..
+        } => {
+            each_expr(element, visit);
+            each_expr(iterable, visit);
+            if let Some(condition) = condition {
+                each_expr(condition, visit);
+            }
+        }
+        Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::Bool(_)
+        | Expr::Null
+        | Expr::Name(_)
+        | Expr::Unsupported(_) => {}
+    }
+    visit(e);
+}
+
+/// The same walk over everything a module holds.
+fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => each_expr_in_stmts(&mut f.body, visit),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    each_expr_in_stmts(&mut method.body, visit);
+                }
+            }
+            Item::Constant(c) => each_expr(&mut c.value, visit),
+            Item::Test { body, .. } => each_expr_in_stmts(body, visit),
+            Item::Statement(stmt) => each_expr_in_stmts(std::slice::from_mut(stmt), visit),
+            Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
+        }
+    }
+}
+
+/// The pieces between top-level commas, nesting respected.
+///
+/// What the tuple spellings share: Rust and Go put types between `(` and `)`,
+/// TypeScript between `[` and `]`, Zig between `struct {` and `}`. Each reader
+/// strips its own brackets and splits the inside here.
+fn comma_parts(inside: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut depth = 0i32;
+    let mut current = String::new();
+    for c in inside.chars() {
+        match c {
+            '<' | '[' | '(' | '{' => {
+                depth += 1;
+                current.push(c);
+            }
+            '>' | ']' | ')' | '}' => {
+                depth -= 1;
+                current.push(c);
+            }
+            ',' if depth == 0 => {
+                parts.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    parts.push(current.trim().to_string());
+    parts
+}
+
 fn split_generic(text: &str) -> (String, Vec<String>) {
     let trimmed = text.trim();
     let (open, close) = if trimmed.ends_with('>') {

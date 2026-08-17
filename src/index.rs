@@ -607,17 +607,52 @@ impl Index {
         }
 
         let scope_chain = self.scope_chain(info, reference.scope);
-        let in_file: Vec<&Symbol> = candidates
-            .iter()
-            .filter_map(|id| self.symbol(*id))
-            .filter(|s| s.file == path && plausible(s))
-            .collect();
         let candidates: Vec<SymbolId> = candidates
             .iter()
             .copied()
             .filter(|id| self.symbol(*id).is_some_and(plausible))
             .collect();
+
+        // A field and a method may share one name, and the use site's syntax says
+        // which is meant: `order.name()` is the method, `order.name` the field. With
+        // both left in the set, every later rule was a coin flip. The field's uses
+        // counted zero while the method collected the field's accesses, and a delete
+        // or rename driven by either answer was wrong. Settled here, once, so no
+        // downstream rule has to remember it.
+        let candidates: Vec<SymbolId> = {
+            let preferred = match reference.kind {
+                ReferenceKind::Call => Some(SymbolKind::Method),
+                ReferenceKind::Field => Some(SymbolKind::Field),
+                _ => None,
+            };
+            let kind_of = |id: &SymbolId| self.symbol(*id).map(|s| s.kind);
+            let has_both = candidates
+                .iter()
+                .any(|id| kind_of(id) == Some(SymbolKind::Field))
+                && candidates
+                    .iter()
+                    .any(|id| kind_of(id) == Some(SymbolKind::Method));
+            match (member_access, preferred, has_both) {
+                (true, Some(kind), true) => candidates
+                    .into_iter()
+                    .filter(|id| match kind_of(id) {
+                        Some(SymbolKind::Field) | Some(SymbolKind::Method) => {
+                            kind_of(id) == Some(kind)
+                        }
+                        _ => true,
+                    })
+                    .collect(),
+                _ => candidates,
+            }
+        };
         let candidates = &candidates;
+        // Derived after the field-or-method split above, so the scope lookup cannot
+        // resurrect the member the syntax ruled out.
+        let in_file: Vec<&Symbol> = candidates
+            .iter()
+            .filter_map(|id| self.symbol(*id))
+            .filter(|s| s.file == path)
+            .collect();
 
         // A member access is a scope lookup only where the scope chain can settle it.
         // `c.run(1)` names a member of whatever `c` is. The lexical scope has nothing to say
@@ -1125,6 +1160,24 @@ impl Index {
             return Vec::new();
         };
         if !sym.kind.allows_multiple_definitions() {
+            // `self.count = 0` in `__init__` and `self.count = n` in another method
+            // are one attribute declared twice, which is how Python declares
+            // attributes at all. The class is the identity, and the class is the
+            // qualifier: each site's container is the method it sits in. A rename
+            // that took one site left the object answering two names at run time.
+            if sym.kind == SymbolKind::Field && sym.qualifier.is_some() {
+                return self
+                    .symbols
+                    .iter()
+                    .filter(|s| {
+                        s.name == sym.name
+                            && s.kind == sym.kind
+                            && s.qualifier == sym.qualifier
+                            && s.file == sym.file
+                    })
+                    .map(|s| s.id)
+                    .collect();
+            }
             return vec![symbol];
         }
         self.symbols

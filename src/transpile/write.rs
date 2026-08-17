@@ -156,6 +156,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     for item in &module.items {
         match item {
             Item::Function(f) => walk_function(f, &mut add),
+            Item::Statement(stmt) => walk_stmts(std::slice::from_ref(stmt), &mut add),
             Item::Newtype(n) => add(&n.name, Kind::Type, n.exported),
             Item::Record(r) => {
                 add(&r.name, Kind::Type, r.exported);
@@ -507,6 +508,29 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    // A name that is a property somewhere and never a field is safe to rewrite.
+    // Every read of it becomes the call it is in a target without properties. A name
+    // that is both stays a read, and the property side keeps the mismatch visible.
+    let mut properties: std::collections::BTreeSet<String> = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(
+                r.methods
+                    .iter()
+                    .filter(|m| m.is_property)
+                    .map(|m| m.name.clone()),
+            ),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    for fields in out.records.values() {
+        for field in fields {
+            properties.remove(field);
+        }
+    }
+    out.properties = properties;
     out.functions = context
         .items
         .iter()
@@ -592,6 +616,13 @@ struct Out {
     /// the file's own records as foreign made a perfect translation confess to a
     /// problem it did not have, which is how a fidelity report stops being read.
     declared_types: std::collections::BTreeSet<String>,
+    /// Packages the Go this writer produced needs to import.
+    ///
+    /// `print` becomes `fmt.Println` and `.upper()` becomes `strings.ToUpper`;
+    /// discovered while the body is written, inserted under the package clause
+    /// after, because Go will not compile a file that names a package it never
+    /// imported.
+    go_imports: std::collections::BTreeSet<&'static str>,
     /// The distinct types this module declares, name to base.
     ///
     /// A call to one is a construction. Two targets spell that their own way:
@@ -604,6 +635,11 @@ struct Out {
     /// matches, the positions map onto these; otherwise the construction
     /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
+    /// Method names the module reads as data: `@property`, a TypeScript getter.
+    ///
+    /// In a target without the idiom the method is ordinary and its accessors
+    /// become calls, and this set is how the field-access writer knows which.
+    properties: std::collections::BTreeSet<String>,
     /// Each declared function's parameters, in order, with their defaults.
     ///
     /// A keyword argument names its parameter, and five of these languages
@@ -650,8 +686,10 @@ impl Out {
             unnameable: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
+            go_imports: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
+            properties: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
@@ -940,6 +978,7 @@ fn rust(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) => carried_statement(out, stmt, rust_expr),
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("/// {line}"));
@@ -1382,6 +1421,11 @@ fn rust_type(ty: &Type) -> String {
             rust_type(v)
         ),
         Type::Optional(inner) => format!("Option<{}>", rust_type(inner)),
+        // `(A,)` and not `(A)`: without the comma the parentheses are grouping.
+        Type::Tuple(parts) => match parts.as_slice() {
+            [one] => format!("({},)", rust_type(one)),
+            _ => format!("({})", joined(parts, rust_type)),
+        },
         Type::Named { name, args } => generic(name, args, "<", ">", "::", rust_type),
     }
 }
@@ -1462,12 +1506,20 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = rust_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
             format!("{}[{}]", rust_expr(out, of), rust_expr(out, index))
         }
         Expr::Call { callee, args } => {
+            if let Some(mapped) = rust_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
@@ -1549,6 +1601,10 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(rust_expr(out, operand), operand))
         }
+        Expr::Tuple(items) => match items.as_slice() {
+            [one] => format!("({},)", rust_expr(out, one)),
+            _ => format!("({})", joined(items, |i| rust_expr(out, i))),
+        },
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
             format!("vec![{}]", rendered.join(", "))
@@ -1626,8 +1682,19 @@ fn python(out: &mut Out, module: &Module) {
         Item::Sum(s) => s.variants.iter().any(|v| !v.fields.is_empty()),
         _ => false,
     });
+    // A list or map default renders through `field(default_factory=...)`.
+    let needs_factory = module.items.iter().any(|i| match i {
+        Item::Record(r) => r
+            .fields
+            .iter()
+            .any(|f| matches!(f.default, Some(Expr::ListLit(_)) | Some(Expr::MapLit(_)))),
+        _ => false,
+    });
     if needs_dataclass {
-        out.line("from dataclasses import dataclass");
+        match needs_factory {
+            true => out.line("from dataclasses import dataclass, field"),
+            false => out.line("from dataclasses import dataclass"),
+        }
         out.blank();
     }
     if module.items.iter().any(|i| matches!(i, Item::Newtype(_))) {
@@ -1637,6 +1704,16 @@ fn python(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            // The module runs top to bottom here too. The guard is Python's own
+            // idiom for "this part is the program". Written bare, the statement
+            // would also run on import, and the source's entry never did.
+            Item::Statement(stmt) => {
+                out.line("if __name__ == \"__main__\":");
+                out.open();
+                python_block(out, std::slice::from_ref(stmt));
+                out.close();
+                out.blank();
+            }
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("# {line}"));
@@ -1681,7 +1758,26 @@ fn python(out: &mut Out, module: &Module) {
                             .map(python_type)
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
-                    out.line(&format!("{field_name}: {annotation}"));
+                    // A mutable default shared between instances is the classic
+                    // Python trap, and the dataclass machinery refuses it outright.
+                    // `field(default_factory=...)` builds one per instance, the
+                    // same thing the source's per-instance initializer did.
+                    let default = f.default.as_ref().map(|d| match d {
+                        Expr::ListLit(items) if items.is_empty() => {
+                            " = field(default_factory=list)".to_string()
+                        }
+                        Expr::MapLit(entries) if entries.is_empty() => {
+                            " = field(default_factory=dict)".to_string()
+                        }
+                        Expr::ListLit(_) | Expr::MapLit(_) => {
+                            format!(" = field(default_factory=lambda: {})", python_expr(out, d))
+                        }
+                        _ => format!(" = {}", python_expr(out, d)),
+                    });
+                    out.line(&format!(
+                        "{field_name}: {annotation}{}",
+                        default.unwrap_or_default()
+                    ));
                 }
                 if r.fields.is_empty() && r.methods.is_empty() && r.doc.is_empty() {
                     out.line("pass");
@@ -1692,6 +1788,9 @@ fn python(out: &mut Out, module: &Module) {
                     // will pass it one anyway unless told otherwise.
                     if m.receiver_binding.is_none() {
                         out.line("@staticmethod");
+                    }
+                    if m.is_property {
+                        out.line("@property");
                     }
                     python_function(out, m, m.receiver_binding.is_some());
                 }
@@ -2143,6 +2242,7 @@ fn python_type(ty: &Type) -> String {
         Type::Float => "float".to_string(),
         Type::String => "str".to_string(),
         Type::List(inner) => format!("list[{}]", python_type(inner)),
+        Type::Tuple(parts) => format!("tuple[{}]", joined(parts, python_type)),
         Type::Map(k, v) => format!("dict[{}, {}]", python_type(k), python_type(v)),
         Type::Optional(inner) => format!("{} | None", python_type(inner)),
         // Python spells generics with brackets, so the arguments are kept
@@ -2351,6 +2451,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => format!("-{rendered}"),
             }
         }
+        // `(a,)` and not `(a)`: without the comma the parentheses are grouping.
+        Expr::Tuple(items) => match items.as_slice() {
+            [one] => format!("({},)", python_expr(out, one)),
+            _ => format!("({})", joined(items, |i| python_expr(out, i))),
+        },
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
@@ -2455,6 +2560,7 @@ fn go(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) => carried_statement(out, stmt, go_expr),
             Item::Constant(c) => {
                 let name = out.name(&c.name);
                 for line in &c.doc {
@@ -2574,6 +2680,21 @@ fn go(out: &mut Out, module: &Module) {
                 carry(out, u);
                 out.blank();
             }
+        }
+    }
+
+    // The packages the body turned out to need, inserted under the package
+    // clause, where Go requires them, after the body said which they are.
+    if !out.go_imports.is_empty() {
+        let block: String = out
+            .go_imports
+            .iter()
+            .map(|package| format!("import \"{package}\"\n"))
+            .chain(std::iter::once("\n".to_string()))
+            .collect();
+        let clause = "package main\n\n";
+        if let Some(at) = out.text.find(clause) {
+            out.text.insert_str(at + clause.len(), &block);
         }
     }
 }
@@ -2714,6 +2835,13 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         .collect();
     let returns = match &f.returns {
         Some(Type::Unit) | None => String::new(),
+        // `(int, error)`: the one position Go writes several types at once.
+        Some(Type::Tuple(parts)) => {
+            if parts.iter().any(|p| out.is_foreign(p)) {
+                foreign = true;
+            }
+            format!(" ({})", joined(parts, go_type))
+        }
         Some(t) => {
             if out.is_foreign(t) {
                 foreign = true;
@@ -2835,10 +2963,15 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.line("}");
             }
             Stmt::Return(value) => {
-                let text = value
-                    .as_ref()
-                    .map(|v| format!(" {}", go_expr(out, v)))
-                    .unwrap_or_default();
+                // `return a, b`: the one place Go spells a tuple, so the tuple
+                // dissolves into the statement instead of reaching go_expr.
+                let text = match value {
+                    Some(Expr::Tuple(items)) => {
+                        format!(" {}", joined(items, |i| go_expr(out, i)))
+                    }
+                    Some(v) => format!(" {}", go_expr(out, v)),
+                    None => String::new(),
+                };
                 out.line(&format!("return{text}"));
             }
             Stmt::Let { name, value, .. } => {
@@ -2994,6 +3127,18 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             }
             Stmt::Expr(Expr::Null) => {}
             Stmt::Expr(e) => {
+                // `rows.append(x)` grows in place everywhere else; Go's `append`
+                // returns the grown slice, so as a statement it must assign back.
+                if let Expr::Call { callee, args } = e {
+                    if let (Some(of), Some("append")) = callee_parts(callee) {
+                        if let [x] = args.as_slice() {
+                            let target = go_expr(out, &of.clone());
+                            let value = go_expr(out, x);
+                            out.line(&format!("{target} = append({target}, {value})"));
+                            continue;
+                        }
+                    }
+                }
                 let text = go_expr(out, e);
                 out.line(&text);
             }
@@ -3035,6 +3180,11 @@ fn go_type(ty: &Type) -> String {
         Type::List(inner) => format!("[]{}", go_type(inner)),
         Type::Map(k, v) => format!("map[{}]{}", go_type(k), go_type(v)),
         Type::Optional(inner) => format!("*{}", go_type(inner)),
+        // Go can only say several-types-as-one in a function's results, and the
+        // signature writer spells that itself. In any other position, a field or
+        // an argument, the name will not compile, which is honest. `[](A, B)` from
+        // a Rust `Vec<(A, B)>` field did not compile either, unreadably.
+        Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => go_named(name, args),
     }
 }
@@ -3069,6 +3219,8 @@ fn go_zero(ty: &Type) -> String {
         Type::String => "\"\"".to_string(),
         Type::List(_) | Type::Map(_, _) | Type::Optional(_) => "nil".to_string(),
         Type::Unit => String::new(),
+        // The zero of several results is each one's zero, which only a return can say.
+        Type::Tuple(parts) => joined(parts, go_zero),
         Type::Named { name, .. } => format!("{}{{}}", go_named(name, &[])),
     }
 }
@@ -3126,10 +3278,18 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         // this does not know, and `reading.Get(…)` is a different method.
         Expr::Field { of, name } => {
             let object = go_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => format!("{}[{}]", go_expr(out, of), go_expr(out, index)),
         Expr::Call { callee, args } => {
+            if let Some(mapped) = go_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
@@ -3231,6 +3391,17 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(go_expr(out, operand), operand))
         }
+        // Outside a return Go has no way to say several-values-as-one, and the return
+        // is handled where returns are written. What lands here is carried, visibly.
+        // An element may carry a marker of its own, and comments do not nest.
+        Expr::Tuple(items) => {
+            let rendered = joined(items, |i| go_expr(out, i)).replace("*/", "* /");
+            out.fidelity.carried_verbatim += 1;
+            out.fidelity
+                .notes
+                .push("outside a return: tuple carried over unchanged".to_string());
+            format!("nil /* {MARKER}: tuple ({rendered}) */")
+        }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
             format!("[]any{{{}}}", rendered.join(", "))
@@ -3294,6 +3465,11 @@ fn typescript(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            // The module runs top to bottom here too, so the statement is one of its own.
+            Item::Statement(stmt) => {
+                ts_block(out, std::slice::from_ref(stmt));
+                out.blank();
+            }
             Item::Constant(c) => {
                 for line in &c.doc {
                     out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -3351,7 +3527,12 @@ fn typescript(out: &mut Out, module: &Module) {
                                 .map(ts_type)
                                 .unwrap_or_else(|| unknown(out, &f.name));
                         let field_name = out.field(&f.name);
-                        out.line(&format!("{field_name}: {ty};"));
+                        let default = f
+                            .default
+                            .as_ref()
+                            .map(|d| format!(" = {}", ts_expr(out, d)))
+                            .unwrap_or_default();
+                        out.line(&format!("{field_name}: {ty}{default};"));
                     }
                     for m in &methods_of(out, r, false) {
                         out.blank();
@@ -3607,7 +3788,14 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
             true => "",
             false => "static ",
         };
-        format!("{modifier}{asynchrony}")
+        // `get total()`: the accessors read it as data, and TypeScript has the
+        // idiom to keep that true.
+        let accessor = if f.is_property && f.params.is_empty() {
+            "get "
+        } else {
+            ""
+        };
+        format!("{modifier}{accessor}{asynchrony}")
     } else if f.exported {
         format!("export {asynchrony}function ")
     } else {
@@ -3917,6 +4105,7 @@ fn ts_type(ty: &Type) -> String {
         Type::List(inner) => format!("{}[]", ts_type(inner)),
         Type::Map(k, v) => format!("Record<{}, {}>", ts_type(k), ts_type(v)),
         Type::Optional(inner) => format!("{} | null", ts_type(inner)),
+        Type::Tuple(parts) => format!("[{}]", joined(parts, ts_type)),
         Type::Named { name, args } => generic(name, args, "<", ">", ".", ts_type),
     }
 }
@@ -3968,6 +4157,9 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Index { of, index } => format!("{}[{}]", ts_expr(out, of), ts_expr(out, index)),
         Expr::Call { callee, args } => {
+            if let Some(mapped) = ts_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
@@ -4021,6 +4213,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
         }
+        // A tuple's value in TypeScript is an array; only its type is written apart.
+        Expr::Tuple(items) => format!("[{}]", joined(items, |i| ts_expr(out, i))),
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| ts_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
@@ -4120,7 +4314,7 @@ fn java(out: &mut Out, module: &Module) {
         if let Item::Import { text, line } = item {
             out.fidelity.imports_listed += 1;
             let header = out.comment(&format!(
-                "the source imported this at line {line}; the equivalent here is yours to add"
+                "the source imported this at line {line}; the equivalent here is yours to add."
             ));
             out.line(&header);
             for l in text.lines() {
@@ -4142,6 +4336,7 @@ fn java(out: &mut Out, module: &Module) {
                     | Item::Function(_)
                     | Item::Newtype(_)
                     | Item::Test { .. }
+                    | Item::Statement(_)
                     | Item::Unsupported(_)
             )
         })
@@ -4223,7 +4418,7 @@ fn java(out: &mut Out, module: &Module) {
                 }
                 out.note_once(
                     "a test crossed as a plain method: no runner is part of the \
-                     language, so wiring it into yours is left to you.",
+                     language. Wiring it into yours is left to you.",
                 );
                 out.line(&format!(
                     "static void {}() {{",
@@ -4235,6 +4430,7 @@ fn java(out: &mut Out, module: &Module) {
                 out.line("}");
                 out.fidelity.functions += 1;
             }
+            Item::Statement(stmt) => carried_statement(out, stmt, java_expr),
             Item::Unsupported(u) => carry(out, u),
             _ => {}
         }
@@ -4828,6 +5024,9 @@ fn java_type(ty: &Type) -> String {
         // Java's `Optional<T>` is the closest thing it has, and it is a real type
         // instead of a nullable annotation.
         Type::Optional(inner) => format!("Optional<{}>", java_boxed(inner)),
+        // Java has no tuple type. The name will not compile, which is the point:
+        // an invented Pair class would compile and claim a shape the source never had.
+        Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => generic(name, args, "<", ">", ".", java_boxed),
     }
 }
@@ -4906,6 +5105,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = java_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
@@ -4916,6 +5120,9 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}.get({at})")
         }
         Expr::Call { callee, args } => {
+            if let Some(mapped) = java_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
@@ -4970,6 +5177,17 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => "-",
             };
             format!("{sign}{}", unary_operand(java_expr(out, operand), operand))
+        }
+        // Java has no tuple value. `List.of` would erase the types and claim a
+        // collection the source never had, so the tuple is carried, visibly.
+        // An element may carry a marker of its own, and comments do not nest.
+        Expr::Tuple(items) => {
+            let rendered = joined(items, |i| java_expr(out, i)).replace("*/", "* /");
+            out.fidelity.carried_verbatim += 1;
+            out.fidelity
+                .notes
+                .push("no tuple here: tuple carried over unchanged".to_string());
+            format!("null /* {MARKER}: tuple ({rendered}) */")
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
@@ -5086,6 +5304,7 @@ fn zig(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) => carried_statement(out, stmt, zig_expr),
             Item::Import { text, line } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
@@ -5727,6 +5946,7 @@ fn zig_type(ty: &Type) -> String {
             other => format!("std.AutoHashMap({}, {})", zig_type(other), zig_type(value)),
         },
         Type::Optional(inner) => format!("?{}", zig_type(inner)),
+        Type::Tuple(parts) => format!("struct {{ {} }}", joined(parts, zig_type)),
         // A generic type is a function of its arguments, so it is applied and not
         // bracketed: `ArrayList(u8)`, not `ArrayList<u8>`.
         Type::Named { name, args } => {
@@ -5805,6 +6025,11 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = zig_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         // `[…]` on a slice or an array and `.get(…)` on a map, and which this is
@@ -5815,6 +6040,9 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}[{at}]")
         }
         Expr::Call { callee, args } => {
+            if let Some(mapped) = zig_builtin(out, callee, args) {
+                return mapped;
+            }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
@@ -5908,6 +6136,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(zig_expr(out, operand), operand))
         }
+        // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
+        Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
         // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
         // is used and not by the literal.
         Expr::ListLit(items) => {
@@ -6025,6 +6255,11 @@ fn zig_binary(op: BinaryOp) -> &'static str {
 /// admits a gap. A qualified name arrives spelled the source language's way: Go's `sync.Mutex`
 /// is not Rust, and Rust's `std::sync::Mutex` is not Go. The path is kept. It says where the
 /// type came from, and only `separator` changes.
+/// The parts rendered and comma-joined, the shape every tuple spelling shares.
+fn joined<T>(parts: &[T], mut render: impl FnMut(&T) -> String) -> String {
+    parts.iter().map(&mut render).collect::<Vec<_>>().join(", ")
+}
+
 fn generic(
     name: &str,
     args: &[Type],
@@ -6092,6 +6327,206 @@ fn escaped(language: Language, value: &str) -> String {
     out
 }
 
+/// A top-level statement, in a target whose top level only declares.
+///
+/// In the source that statement is the program: `main();` at the bottom of a
+/// TypeScript file, the call under `if __name__ == "__main__":`. There is
+/// nowhere here for it to run, so it is carried beside a marker. Where it is one
+/// expression it is rendered, so the reader sees what the source did.
+fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &Expr) -> String) {
+    let rendered = match stmt {
+        Stmt::Expr(e) => render(out, e),
+        _ => String::new(),
+    };
+    out.fidelity.carried_verbatim += 1;
+    out.fidelity
+        .notes
+        .push("at the top level: top-level statement carried over unchanged".to_string());
+    let text = match rendered.is_empty() {
+        true => format!("{MARKER}: a top-level statement runs here in the source"),
+        false => format!("{MARKER}: at the top level the source runs `{rendered}`"),
+    };
+    out.line(&out.comment(&text));
+    out.blank();
+}
+
+// ------------------------------------------------------------ the builtin table
+//
+// The canonical spellings are Python's, because its reader needs no normalising:
+// `print(x)`, `len(x)`, `str(x)`, `.append`, `.upper`, `.lower`, `.strip`, and
+// `sep.join(xs)`. Each reader rewrites its own language's spelling into these.
+// Each writer rewrites them back out into its own, so one language pair costs
+// two edits and not thirty. What the table does not cover is written through
+// unchanged, visible in the output, as before.
+
+/// The receiver and name a call's callee spells, where it spells one.
+fn callee_parts(callee: &Expr) -> (Option<&Expr>, Option<&str>) {
+    match callee {
+        Expr::Name(n) => (None, Some(n.as_str())),
+        Expr::Field { of, name } => (Some(of), Some(name.as_str())),
+        _ => (None, None),
+    }
+}
+
+/// A module that declares its own `print` or `len` means those, not the builtin.
+fn shadows_builtin(out: &Out, name: &str) -> bool {
+    out.functions.contains_key(name) || out.declared_types.contains(name)
+}
+
+fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let holes = vec!["{}"; args.len()].join(" ");
+            format!(
+                "println!(\"{holes}\"{})",
+                args.iter()
+                    .map(|a| format!(", {}", rust_expr(out, a)))
+                    .collect::<String>()
+            )
+        }
+        (None, "len", [x]) => format!("{}.len()", rust_expr(out, x)),
+        (None, "str", [x]) => format!("{}.to_string()", rust_expr(out, x)),
+        (Some(of), "append", [x]) => {
+            format!(
+                "{}.push({})",
+                rust_expr(out, &of.clone()),
+                rust_expr(out, x)
+            )
+        }
+        (Some(of), "upper", []) => format!("{}.to_uppercase()", rust_expr(out, &of.clone())),
+        (Some(of), "lower", []) => format!("{}.to_lowercase()", rust_expr(out, &of.clone())),
+        (Some(of), "strip", []) => format!("{}.trim()", rust_expr(out, &of.clone())),
+        (Some(of), "join", [xs]) if matches!(of, Expr::Str(_)) => {
+            format!(
+                "{}.join({})",
+                rust_expr(out, xs),
+                rust_expr(out, &of.clone())
+            )
+        }
+        _ => return None,
+    })
+}
+
+fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let rendered = joined(args, |a| ts_expr(out, a));
+            format!("console.log({rendered})")
+        }
+        (None, "len", [x]) => format!("{}.length", ts_expr(out, x)),
+        (None, "str", [x]) => format!("String({})", ts_expr(out, x)),
+        (Some(of), "append", [x]) => {
+            format!("{}.push({})", ts_expr(out, &of.clone()), ts_expr(out, x))
+        }
+        (Some(of), "upper", []) => format!("{}.toUpperCase()", ts_expr(out, &of.clone())),
+        (Some(of), "lower", []) => format!("{}.toLowerCase()", ts_expr(out, &of.clone())),
+        (Some(of), "strip", []) => format!("{}.trim()", ts_expr(out, &of.clone())),
+        (Some(of), "join", [xs]) => {
+            format!("{}.join({})", ts_expr(out, xs), ts_expr(out, &of.clone()))
+        }
+        _ => return None,
+    })
+}
+
+fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            out.go_imports.insert("fmt");
+            let rendered = joined(args, |a| go_expr(out, a));
+            format!("fmt.Println({rendered})")
+        }
+        (None, "str", [x]) => {
+            out.go_imports.insert("fmt");
+            format!("fmt.Sprint({})", go_expr(out, x))
+        }
+        (Some(of), "upper", []) => {
+            out.go_imports.insert("strings");
+            format!("strings.ToUpper({})", go_expr(out, &of.clone()))
+        }
+        (Some(of), "lower", []) => {
+            out.go_imports.insert("strings");
+            format!("strings.ToLower({})", go_expr(out, &of.clone()))
+        }
+        (Some(of), "strip", []) => {
+            out.go_imports.insert("strings");
+            format!("strings.TrimSpace({})", go_expr(out, &of.clone()))
+        }
+        (Some(of), "join", [xs]) => {
+            out.go_imports.insert("strings");
+            format!(
+                "strings.Join({}, {})",
+                go_expr(out, xs),
+                go_expr(out, &of.clone())
+            )
+        }
+        _ => return None,
+    })
+}
+
+fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let rendered = args
+                .iter()
+                .map(|a| java_expr(out, a))
+                .collect::<Vec<_>>()
+                .join(" + \" \" + ");
+            format!("System.out.println({rendered})")
+        }
+        (None, "str", [x]) => format!("String.valueOf({})", java_expr(out, x)),
+        (Some(of), "append", [x]) => {
+            format!("{}.add({})", java_expr(out, &of.clone()), java_expr(out, x))
+        }
+        (Some(of), "upper", []) => format!("{}.toUpperCase()", java_expr(out, &of.clone())),
+        (Some(of), "lower", []) => format!("{}.toLowerCase()", java_expr(out, &of.clone())),
+        (Some(of), "join", [xs]) => {
+            format!(
+                "String.join({}, {})",
+                java_expr(out, &of.clone()),
+                java_expr(out, xs)
+            )
+        }
+        _ => return None,
+    })
+}
+
+fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
+    let (receiver, name) = callee_parts(callee);
+    let name = name?;
+    if receiver.is_none() && shadows_builtin(out, name) {
+        return None;
+    }
+    Some(match (receiver, name, args) {
+        (None, "print", _) => {
+            let holes = vec!["{any}"; args.len()].join(" ");
+            let rendered = joined(args, |a| zig_expr(out, a));
+            format!("std.debug.print(\"{holes}\\n\", .{{ {rendered} }})")
+        }
+        (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
+        _ => return None,
+    })
+}
+
 /// The type this record extends, where the target can express one.
 ///
 /// Three of these six languages have inheritance and three do not, so `inheritable` says which
@@ -6104,6 +6539,12 @@ fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<S
     if inheritable {
         return Some(base);
     }
+    // Said in the output too, beside the type, because that file is the one a
+    // reader of the draft has in front of them. A note that lives only in the
+    // report leaves the struct looking whole.
+    out.line(&out.comment(&format!(
+        "{MARKER}: extends {base}; whatever `{base}` contributed is not here"
+    )));
     out.fidelity.notes.push(format!(
         "`{}` extends `{base}` in the source; {} has no inheritance, so whatever \
          `{base}` contributed is not here",
@@ -6202,7 +6643,15 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
             // away was a rule about receiver-assigning constructors applied to every
             // constructor, and it discarded the one line a Rust constructor is made of.
             _ => {
-                let assigns_through_a_receiver = method.receiver_binding.is_some();
+                // The canonical build-and-return body is already this shape, whatever
+                // the source bound as a receiver. An `__init__` of plain assignments
+                // arrives as one `Return(RecordLit)`. Nothing needs throwing away.
+                let builds_and_returns = matches!(
+                    method.body.as_slice(),
+                    [Stmt::Return(Some(Expr::RecordLit { ty, .. }))] if *ty == record.name
+                );
+                let assigns_through_a_receiver =
+                    method.receiver_binding.is_some() && !builds_and_returns;
                 if !method.body.is_empty() && assigns_through_a_receiver {
                     out.fidelity.notes.push(format!(
                         "`{}` has a constructor whose body assigns through a receiver; \

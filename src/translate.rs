@@ -299,11 +299,15 @@ pub fn plan_to(
     // The bytes are unchanged; what changes is which grammar reads them. Writing the
     // whole text as one edit lets the engine's own reparse check see the new file in
     // its new language, which is the same proof again from the other side.
+    // Overwriting is replacing; see the same edit in `transpile::plan_to`.
+    let existing = crate::vfs::read_to_string(&destination)
+        .map(|s| s.len())
+        .unwrap_or(0);
     let mut edits = EditSet::new();
     edits.add(
         destination.clone(),
         Edit::new(
-            crate::span::Span::new(0, 0),
+            crate::span::Span::new(0, existing),
             &source,
             format!("rewrite {} as {to}", path.display()),
         ),

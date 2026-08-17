@@ -224,11 +224,16 @@ pub fn plan_to(
         );
     }
 
+    // Overwriting is replacing. An insertion at byte zero of an existing file kept
+    // the old translation below the new one, and every --force run doubled the file.
+    let existing = crate::vfs::read_to_string(&destination)
+        .map(|s| s.len())
+        .unwrap_or(0);
     let mut edits = EditSet::new();
     edits.add(
         destination.clone(),
         Edit::new(
-            crate::span::Span::new(0, 0),
+            crate::span::Span::new(0, existing),
             &output,
             format!("translate {} to {to}", path.display()),
         ),

@@ -87,7 +87,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let references = index.references_to(symbol);
     if references.is_empty() {
         anyhow::bail!(
-            "'{}' has no uses; inlining would only delete it. Use `fr delete` if that is the intent",
+            "'{}' has no uses; inlining would only delete it. Use `fr delete` if that is the intent.",
             sym.name
         );
     }
@@ -117,6 +117,20 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             "'{}' is assigned again at line {}; inlining would change behaviour",
             sym.name,
             pos.line
+        );
+    }
+
+    // Substituting the value more than once evaluates it more than once. That only
+    // matters when evaluating can *do* something: `let v = effect(); v + v` inlined
+    // is `effect() + effect()`, the effect twice. `a + b` twice is arithmetic
+    // twice, and refusing it swallowed most ordinary inlines.
+    if references.len() > 1 && may_run_code(&value_text) {
+        anyhow::bail!(
+            "'{}' is used {} times and `{}` is not a simple value; \
+             inlining would evaluate it more than once",
+            sym.name,
+            references.len(),
+            value_text
         );
     }
 
@@ -973,15 +987,67 @@ pub fn supports_call(language: crate::lang::Language) -> bool {
     )
 }
 
-/// May this argument be substituted more than once without changing behaviour?
+/// May this value be substituted more than once without changing behaviour?
 fn is_duplicable(argument: &str) -> bool {
     // A bare name or a literal has no effects and costs nothing to repeat.
     let trimmed = argument.trim();
+    if whole_string_literal(trimmed) {
+        return true;
+    }
     !trimmed.is_empty()
         && trimmed
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '.' || c == '"')
         && !trimmed.contains('(')
+}
+
+/// Could evaluating this text run something, rather than only read values?
+///
+/// A `(` that follows a name, an index or another call is a call about to
+/// happen. A macro's `!(`, an `await`, a `new` and the mutating `++`/`--` are
+/// the same hazard in other spellings. A `(` after an operator is only grouping. Text inside a
+/// string literal does not run, so one whole literal is exempt before any of this.
+fn may_run_code(value: &str) -> bool {
+    let trimmed = value.trim();
+    if whole_string_literal(trimmed) {
+        return false;
+    }
+    for (at, c) in trimmed.char_indices() {
+        if c == '(' {
+            let before = trimmed[..at].trim_end().chars().last();
+            if matches!(before, Some(b) if b.is_alphanumeric() || matches!(b, '_' | ']' | ')' | '!' | '?'))
+            {
+                return true;
+            }
+        }
+    }
+    trimmed.contains("await ")
+        || trimmed.contains("new ")
+        || trimmed.contains("++")
+        || trimmed.contains("--")
+}
+
+/// One double-quoted literal and nothing after it.
+///
+/// `"hello world"` repeats safely; the character test above rejects its space, and a
+/// message string is the most ordinary constant there is. `"a" + f()` also begins and
+/// ends with a quote, so the interior has to prove the first literal runs to the end.
+fn whole_string_literal(text: &str) -> bool {
+    let Some(interior) = text
+        .strip_prefix('"')
+        .and_then(|t| t.strip_suffix('"'))
+        .filter(|_| text.len() >= 2)
+    else {
+        return false;
+    };
+    let mut escaped = false;
+    for c in interior.chars() {
+        if !escaped && c == '"' {
+            return false;
+        }
+        escaped = !escaped && c == '\\';
+    }
+    true
 }
 
 /// Count whole-word occurrences of `word`.

@@ -65,6 +65,12 @@ pub enum Item {
         name: String,
         body: Vec<Stmt>,
     },
+    /// A statement at the top of the file: `main();`, the program's own entry.
+    ///
+    /// Python and TypeScript run a module top to bottom, so such a statement is the
+    /// program. Dropped as unsupported, a translated program parsed cleanly, ran,
+    /// and printed nothing. The targets whose top level only declares say so instead.
+    Statement(Stmt),
     /// A top-level construct with no counterpart: a Rust `impl Trait for T`, a Go
     /// `init()`, a Python decorator that is not a known one.
     Unsupported(Unsupported),
@@ -92,6 +98,15 @@ pub struct Function {
     /// Reported and not translated: a Rust `async fn` written as Python must say
     /// so, and a Go one cannot be written at all.
     pub is_async: bool,
+    /// Is this method read as data at its use sites?
+    ///
+    /// Python's `@property` and TypeScript's `get` both declare a method whose
+    /// callers write `it.total`, no parentheses. Read as an ordinary method,
+    /// the declaration crossed while the accessors kept their spelling. In the
+    /// target `it.total` was the function object itself, and every comparison
+    /// against it was quietly false. Targets with the idiom keep it; targets without one
+    /// write a method and spell the accessors as the calls they become.
+    pub is_property: bool,
     /// Does this function make a value of its type?
     ///
     /// Three of these six languages have a constructor and three have a convention. Java names
@@ -155,6 +170,12 @@ pub struct Field {
     pub doc: Vec<String>,
     pub name: String,
     pub ty: Option<Type>,
+    /// The value the field starts with, where the source gave one.
+    ///
+    /// `rows: T[] = [];` lost its initializer, so the dataclass it became had a
+    /// required argument nothing passes and construction raised. A target that
+    /// cannot write a default says so in the report instead of dropping it.
+    pub default: Option<Expr>,
     pub exported: bool,
 }
 
@@ -232,6 +253,12 @@ pub enum Type {
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Optional(Box<Type>),
+    /// `(int, error)`, `tuple[int, str]`, `[number, string]`: several types as one.
+    ///
+    /// Go's multiple return is why this exists. Its result type has to cross as
+    /// the pair it is; flattening it to a name produced `Unwritable_int__error`
+    /// in a signature every target could spell.
+    Tuple(Vec<Type>),
     /// A type the reader recognised the shape of but not the meaning.
     ///
     /// Structured and not opaque text, because generic syntax differs: writing
@@ -280,6 +307,10 @@ impl fmt::Display for Type {
             Type::List(inner) => write!(f, "list<{inner}>"),
             Type::Map(k, v) => write!(f, "map<{k}, {v}>"),
             Type::Optional(inner) => write!(f, "optional<{inner}>"),
+            Type::Tuple(parts) => {
+                let rendered: Vec<String> = parts.iter().map(|p| p.to_string()).collect();
+                write!(f, "tuple<{}>", rendered.join(", "))
+            }
             Type::Named { name, args } if args.is_empty() => write!(f, "{name}"),
             Type::Named { name, args } => {
                 let rendered: Vec<String> = args.iter().map(|a| a.to_string()).collect();
@@ -537,6 +568,13 @@ pub enum Expr {
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
+    /// `(a, b)`: several values travelling as one, without a name for the whole.
+    ///
+    /// Go returns them, and dropping the payload of `return a, b` turned a two-value
+    /// return into a bare `return` with nothing said. This node ends that silent
+    /// wrong answer. Rust and Python write tuples anywhere; TypeScript
+    /// spells the value as an array. Java has no spelling and says so.
+    Tuple(Vec<Expr>),
     /// `[a, b, c]`
     ListLit(Vec<Expr>),
     /// `{"a": 1}` in Python, `{ a: 1 }` in TypeScript, a map literal in Go.

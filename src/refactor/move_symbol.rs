@@ -504,7 +504,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
             "moving '{}' to {} would make the two files import each other: {} would \
              import '{}' from its new home, and {} would import back what '{}' still \
              uses. Python fails on that cycle at import time. Move the names '{}' uses \
-             as well, or move it to a file neither imports",
+             as well, or move it to a file neither imports.",
             sym.name,
             destination.display(),
             sym.file.display(),
@@ -550,6 +550,14 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     }
 
     for file in &needs_import {
+        // The importer may already bind the name from the file it is leaving, under
+        // an alias the rest of the file calls it by. That statement repoints; adding
+        // a fresh `import { foo }` beside a dangling `import { foo as increment }
+        // from "./a"` broke the build both ways at once.
+        if repoint_existing_imports(index, file, sym, destination, &mut plan.edits)? {
+            plan.imports_added.push(file.clone());
+            continue;
+        }
         let statement = import_statement(sym.language, file, destination, &sym.name)?;
         let target_source = crate::vfs::read_to_string(file).unwrap_or_default();
         let insert = import_insertion_point_for(index, file, &target_source);
@@ -965,6 +973,90 @@ fn exported(language: Language, text: &str) -> String {
 /// Failing to work one out is an error, not something to skip: the reference in `from` makes
 /// the import necessary. A move that drops it leaves code that no longer compiles while
 /// reporting success.
+/// Repoint an importer's existing statements at the symbol's new home.
+///
+/// True when at least one statement bound the moved name from the old file and was
+/// rewritten. The alias stays: it is the name the rest of the file calls. A
+/// statement that also binds names the old file keeps splits in two: the
+/// stayers on the old path, the moved name on the new one.
+fn repoint_existing_imports(
+    index: &Index,
+    file: &Path,
+    sym: &Symbol,
+    destination: &Path,
+    edits: &mut EditSet,
+) -> Result<bool> {
+    let Some(info) = index.file(file) else {
+        return Ok(false);
+    };
+    let module = match sym.language {
+        Language::TypeScript | Language::Tsx => relative_module(file, destination),
+        Language::Python => python_module_path(file, destination),
+        _ => None,
+    };
+    let Some(module) = module else {
+        return Ok(false);
+    };
+    let source = crate::vfs::read_to_string(file)?;
+    let mut handled = false;
+    for statement in import_statements(&info.imports) {
+        if index.resolve_import_path(file, &statement.path).as_deref() != Some(sym.file.as_path()) {
+            continue;
+        }
+        let (moving, staying): (
+            Vec<&crate::model::ImportedName>,
+            Vec<&crate::model::ImportedName>,
+        ) = statement.names.iter().partition(|n| n.original == sym.name);
+        if moving.is_empty() {
+            continue;
+        }
+        let text = statement.span.text(&source);
+        let type_import = text.trim_start().starts_with("import type");
+        let moved_line = named_import(sym.language, type_import, &module, &moving);
+        let replacement = match staying.is_empty() {
+            true => moved_line,
+            false => format!(
+                "{}\n{moved_line}",
+                named_import(sym.language, type_import, &statement.path, &staying)
+            ),
+        };
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(
+                statement.span,
+                replacement,
+                format!("repoint the import of {}", sym.name),
+            ),
+        );
+        handled = true;
+    }
+    Ok(handled)
+}
+
+/// A named-import statement, each name keeping the alias it was written with.
+fn named_import(
+    language: Language,
+    type_import: bool,
+    module: &str,
+    names: &[&crate::model::ImportedName],
+) -> String {
+    let list = names
+        .iter()
+        .map(|n| match n.local == n.original {
+            true => n.original.clone(),
+            false => format!("{} as {}", n.original, n.local),
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    match language {
+        Language::Python => format!("from {module} import {list}"),
+        _ => {
+            let modifier = if type_import { "type " } else { "" };
+            format!("import {modifier}{{ {list} }} from '{module}';")
+        }
+    }
+}
+
 fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> Result<String> {
     let unresolvable = || {
         anyhow::anyhow!(
@@ -1860,11 +1952,83 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         bail!("{message}");
     }
 
-    let header = if go_package(index, destination).is_none() {
-        format!("package {package}\n\n")
-    } else {
-        String::new()
+    // The moved body may reach back to what the source package keeps: a bare
+    // `Shared()` moved into another package names nothing there. Each such
+    // reference gains the source package's qualifier, which is what a Go author
+    // would have written, and the destination imports the package. An unexported
+    // name has no reachable spelling from the destination at all, so the move
+    // refuses instead of writing a body that cannot compile.
+    let source_package = go_package(index, &sym.file).ok_or_else(|| {
+        anyhow::anyhow!(
+            "{} has no package clause, so what the moved code leaves behind cannot \
+             be qualified.",
+            sym.file.display()
+        )
+    })?;
+    let (moved_text, reaches_back) = go_qualify_back_references(
+        index,
+        sym,
+        removal,
+        moved_text,
+        &source_package,
+        &mut plan.warnings,
+    )?;
+    let source_import = match reaches_back {
+        true => {
+            let path = go_import_path(source_dir).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "no go.mod above {}, so the moved code cannot import what it \
+                     left behind",
+                    crate::vfs::describe_dir(source_dir)
+                )
+            })?;
+            if go_package_imports(
+                index,
+                source_dir,
+                &go_import_path(dest_dir).unwrap_or_default(),
+            ) {
+                bail!(
+                    "moving '{}' to {} would make packages {} and {} import each \
+                     other: the moved code reaches back into \"{}\", and {} already \
+                     imports the destination. Go does not allow an import cycle.",
+                    sym.name,
+                    crate::vfs::describe_dir(dest_dir),
+                    crate::vfs::describe_dir(source_dir),
+                    crate::vfs::describe_dir(dest_dir),
+                    path,
+                    crate::vfs::describe_dir(source_dir)
+                );
+            }
+            Some(path)
+        }
+        false => None,
     };
+
+    let destination_exists = go_package(index, destination).is_some();
+    let header = match (destination_exists, &source_import) {
+        (false, Some(path)) => format!("package {package}\n\nimport \"{path}\"\n\n"),
+        (false, None) => format!("package {package}\n\n"),
+        (true, _) => String::new(),
+    };
+    if let (true, Some(path)) = (destination_exists, &source_import) {
+        let existing = crate::vfs::read_to_string(destination).unwrap_or_default();
+        if !existing.contains(&format!("\"{path}\"")) {
+            let at = go_import_insertion_point(index, destination).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "{} has no package clause, so an import cannot be placed in it",
+                    destination.display()
+                )
+            })?;
+            plan.edits.add(
+                destination.to_path_buf(),
+                Edit::new(
+                    Span::new(at, at),
+                    format!("\nimport \"{path}\"\n"),
+                    format!("import what {} left behind", sym.name),
+                ),
+            );
+        }
+    }
     append_to_destination(
         &mut plan.edits,
         destination,
@@ -1904,7 +2068,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
                     "moving '{}' to {} would make packages {} and {} import each other: \
                      {} already imports \"{}\", and moving '{}' makes \"{}\" import back. \
                      Go does not allow an import cycle. Move what '{}' uses as well, or \
-                     move it to a package neither imports",
+                     move it to a package neither imports.",
                     sym.name,
                     crate::vfs::describe_dir(dest_dir),
                     crate::vfs::describe_dir(source_dir),
@@ -1942,8 +2106,83 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     }
 
     warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
-    carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
+}
+
+/// Qualify what the moved Go body still reads from the package it is leaving.
+///
+/// Precise where it can be. Only references the index resolved to a symbol the
+/// source file keeps are rewritten, so a local sharing a top-level name stays
+/// untouched. A used name with no resolved reference cannot be
+/// qualified from names alone, and that is said instead of left to the compiler.
+fn go_qualify_back_references(
+    index: &Index,
+    sym: &Symbol,
+    removal: Span,
+    moved_text: String,
+    package: &str,
+    warnings: &mut Vec<String>,
+) -> Result<(String, bool)> {
+    let Some(info) = index.file(&sym.file) else {
+        return Ok((moved_text, false));
+    };
+    let kept: BTreeMap<crate::model::SymbolId, &Symbol> = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.id != sym.id && s.is_top_level() && !removal.contains(s.name_span))
+        .map(|s| (s.id, s))
+        .collect();
+
+    let mut offsets: Vec<usize> = Vec::new();
+    let mut qualified: BTreeSet<String> = BTreeSet::new();
+    for reference in info.references.iter().map(|i| &index.references[*i]) {
+        if !removal.contains(reference.span) || reference.receiver.is_some() {
+            continue;
+        }
+        let Some(target) = reference.target.and_then(|id| kept.get(&id)) else {
+            continue;
+        };
+        if !target.exported {
+            bail!(
+                "the moved code uses `{}`, which package {} does not export; a \
+                 qualified `{}.{}` would not compile. Capitalise it or move it too.",
+                target.name,
+                package,
+                package,
+                target.name
+            );
+        }
+        offsets.push(reference.span.start - removal.start);
+        qualified.insert(target.name.clone());
+    }
+
+    let source_text = crate::vfs::read_to_string(&sym.file)?;
+    if let Ok(used) = names_used_in(sym.language, &source_text, removal) {
+        let unhandled: Vec<&str> = kept
+            .values()
+            .filter(|s| used.contains(&s.name) && !qualified.contains(&s.name))
+            .map(|s| s.name.as_str())
+            .collect();
+        if !unhandled.is_empty() {
+            warnings.push(format!(
+                "the moved code may use {} from the package it left, and those \
+                 mentions did not resolve firmly enough to qualify; check them by hand.",
+                unhandled.join(", ")
+            ));
+        }
+    }
+
+    if offsets.is_empty() {
+        return Ok((moved_text, false));
+    }
+    offsets.sort_unstable();
+    offsets.dedup();
+    let mut text = moved_text;
+    for at in offsets.into_iter().rev() {
+        text.insert_str(at, &format!("{package}."));
+    }
+    Ok((text, true))
 }
 
 /// Whether any file in `dir` imports `import_path`.

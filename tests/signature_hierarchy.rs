@@ -129,3 +129,21 @@ fn two_unrelated_methods_sharing_a_name_stay_apart() {
         "the addressed method changes alone.\n{out}"
     );
 }
+
+#[test]
+fn a_function_held_as_a_value_refuses_the_change() {
+    // `let f: fn(i32, i32) -> i32 = add;` has no argument list to rewrite, and a
+    // changed `add` no longer matches the binding's type. This site was silently
+    // skipped once, and the command reported one clean call site while the build
+    // broke on the binding.
+    let source = "fn add(a: i32, _unused: i32) -> i32 {\n    a\n}\n\n\
+        pub fn run() -> i32 {\n    let f: fn(i32, i32) -> i32 = add;\n    \
+        let direct = add(1, 2);\n    f(3, 4) + direct\n}\n";
+    let (_tmp, index) = workspace(&[("held.rs", source)]);
+    let id = method_at(&index, source, "fn add");
+    let err = signature::change(&index, id, signature::Change::Remove(1)).unwrap_err();
+    assert!(
+        err.to_string().contains("used as a value"),
+        "the refusal names the binding: {err}"
+    );
+}

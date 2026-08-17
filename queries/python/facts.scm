@@ -117,6 +117,25 @@
    (assignment left: (identifier) @name) @definition.field)))
  (#match? @name "^_"))
 
+; `self.count = 0` declares an instance attribute, the ordinary way a Python
+; object gets its fields. Without a definition for it, every read of
+; `self.count` referred to nothing: `fr rename` answered "no symbol here" at
+; the most common rename target the language has. The receiver has to be
+; `self` by text, since Python only binds the convention, not the word.
+((assignment
+   left: (attribute
+     object: (identifier) @_receiver
+     attribute: (identifier) @name) @definition.field)
+ (#eq? @_receiver "self")
+ (#not-match? @name "^_"))
+
+((assignment
+   left: (attribute
+     object: (identifier) @_receiver
+     attribute: (identifier) @name) @definition.field)
+ (#eq? @_receiver "self")
+ (#match? @name "^_"))
+
 ; ---------------------------------------------------------------- locals
 ; A local is an assignment inside a block. The pattern is repeated once per
 ; construct that owns a block instead of being written against (block) directly,

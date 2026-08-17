@@ -141,3 +141,65 @@ fn a_method_outside_any_hierarchy_renames_alone() {
         "a same-named method on an unrelated type is not family:\n{out}"
     );
 }
+
+#[test]
+fn java_overloads_rename_with_every_call_that_only_they_answer() {
+    // Both declarations of `size` rename as one entity. A call resolved by
+    // name alone can then only reach a renamed declaration. Leaving it wrote
+    // code that called nothing while the summary read clean. It renames, reported for
+    // review under the dispatch-candidate heading.
+    let source = "public class App {\n    static int size(String s) {\n        \
+        return s.length();\n    }\n\n    static int size(int[] items) {\n        \
+        return items.length;\n    }\n\n    public static void main(String[] args) {\n        \
+        System.out.println(size(\"hello\") + size(new int[] { 1, 2 }));\n    }\n}\n";
+    let (tmp, index) = workspace(&[("App.java", source)]);
+    let id = symbol_at(
+        &index,
+        &tmp.path().join("App.java"),
+        source,
+        "static int size",
+    );
+    let plan = rename::plan(&index, id, "len").unwrap();
+    let out = applied(tmp.path(), "App.java", &plan);
+    assert!(
+        !out.contains("size("),
+        "no call keeps the dead name:\n{out}"
+    );
+    assert_eq!(
+        out.matches("len(").count(),
+        4,
+        "two declarations and two calls:\n{out}"
+    );
+    assert!(
+        plan.warnings
+            .iter()
+            .any(|w| w.kind == fun_refactor::refactor::WarningKind::DispatchCandidate),
+        "each renamed call is said, for a person to review: {:?}",
+        plan.warnings
+    );
+}
+
+#[test]
+fn a_stranger_answering_the_same_name_keeps_the_calls_in_place() {
+    // `Other` also declares a `size`, outside the renamed group. A name-only call
+    // might reach it, so the calls stay and the warning stands.
+    let source = "public class App {\n    static int size(String s) {\n        \
+        return s.length();\n    }\n\n    static int size(int[] items) {\n        \
+        return items.length;\n    }\n\n    public static void main(String[] args) {\n        \
+        System.out.println(size(\"hello\"));\n    }\n}\n";
+    let other = "public class Other {\n    static int size(double d) {\n        \
+        return (int) d;\n    }\n}\n";
+    let (tmp, index) = workspace(&[("App.java", source), ("Other.java", other)]);
+    let id = symbol_at(
+        &index,
+        &tmp.path().join("App.java"),
+        source,
+        "static int size",
+    );
+    let plan = rename::plan(&index, id, "len").unwrap();
+    let out = applied(tmp.path(), "App.java", &plan);
+    assert!(
+        out.contains("size(\"hello\")"),
+        "the call could reach the stranger, so it stays:\n{out}"
+    );
+}

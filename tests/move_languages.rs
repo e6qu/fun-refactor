@@ -1089,11 +1089,12 @@ fn typescript_and_python_are_unchanged() {
         ws.read("c.ts"),
         "export const y = 2;\n\nexport function moved() { return 1; }\n"
     );
-    // The old import stays and a new one is added beside it: TypeScript's existing
-    // behaviour, pinned so a later change to it is deliberate.
+    // The importer's own statement repoints in place. Its earlier behaviour,
+    // the old import left beside a new one, declared `moved` twice and failed
+    // to compile. This pin is the deliberate change the old pin asked for.
     assert_eq!(
         ws.read("b.ts"),
-        "import { moved } from './a';\nimport { moved } from './c';\nexport const x = moved();\n"
+        "import { moved } from './c';\nexport const x = moved();\n"
     );
 }
 
@@ -1116,11 +1117,11 @@ fn python_move_outside_a_package_writes_an_absolute_import() {
     commit(&plan);
 
     assert_eq!(ws.read("dest.py"), "X = 1\n\ndef shared():\n    return 1\n");
-    // The old import stays beside the new one, which is TypeScript and Python's
-    // existing behaviour.
+    // The importer's own statement repoints in place; a stale `from lib import
+    // shared` would name something the module no longer defines.
     assert_eq!(
         ws.read("app.py"),
-        "from lib import shared\nfrom dest import shared\n\n\ndef use():\n    return shared()\n"
+        "from dest import shared\n\n\ndef use():\n    return shared()\n"
     );
 }
 
@@ -1440,5 +1441,63 @@ fn a_future_import_travels_with_the_code_it_governs() {
     assert!(
         moved.starts_with("from __future__"),
         "and it has to come first:\n{moved}"
+    );
+}
+
+#[test]
+fn a_moved_go_body_qualifies_what_it_left_behind() {
+    // `UseShared` calls `Shared`, which stays in package one. Moved bare into
+    // package two, the call named nothing and the tree stopped building. The
+    // move reported success, and its warning stated two things that were not
+    // true.
+    let ws = Workspace::new(&[
+        ("go.mod", "module example.com/m\n\ngo 1.21\n"),
+        (
+            "one/one.go",
+            "package one\n\nfunc Shared() int {\n\treturn 7\n}\n\n\
+             func UseShared() int {\n\treturn Shared()\n}\n",
+        ),
+        (
+            "two/two.go",
+            "package two\n\nimport \"example.com/m/one\"\n\n\
+             func Twice() int {\n\treturn one.Shared() * 2\n}\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "UseShared", None);
+    let plan = move_symbol::to_file(&index, id, &ws.path("two/two.go")).expect("a move");
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("a valid plan");
+    fun_refactor::edit::commit(&outcomes).expect("writing");
+    let landed = ws.read("two/two.go");
+    assert!(
+        landed.contains("return one.Shared()"),
+        "the back-reference gains its qualifier:\n{landed}"
+    );
+}
+
+#[test]
+fn a_moved_go_body_using_an_unexported_name_refuses() {
+    // `shared` is invisible from package two; `one.shared()` would not compile
+    // either. Nothing true can be written, so nothing is.
+    let ws = Workspace::new(&[
+        ("go.mod", "module example.com/m\n\ngo 1.21\n"),
+        (
+            "one/one.go",
+            "package one\n\nfunc shared() int {\n\treturn 7\n}\n\n\
+             func UseShared() int {\n\treturn shared()\n}\n",
+        ),
+        (
+            "two/two.go",
+            "package two\n\nfunc Twice() int {\n\treturn 6\n}\n",
+        ),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "UseShared", None);
+    let err = move_symbol::to_file(&index, id, &ws.path("two/two.go")).unwrap_err();
+    assert!(
+        err.to_string().contains("does not export"),
+        "the refusal states the visibility problem: {err}"
     );
 }

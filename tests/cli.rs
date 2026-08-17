@@ -331,7 +331,7 @@ fn what_unused_reports_can_be_given_to_delete() {
     let (json, ok) = ws.run(&["unused", "--json"]);
     assert!(ok, "{json}");
     let listed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
-    let dead = listed
+    let dead = listed["unused"]
         .as_array()
         .expect("a list")
         .iter()
