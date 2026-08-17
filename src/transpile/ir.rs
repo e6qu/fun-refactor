@@ -327,6 +327,19 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
+    /// `for i, x in enumerate(xs)`, `for (xs, 0..) |x, i|`: each element beside
+    /// its position, counted from zero.
+    ///
+    /// Go and Zig write it in the loop header, Python through `enumerate`,
+    /// Rust through `.iter().enumerate()`. TypeScript and Java have no indexed
+    /// form over an arbitrary iterable, so both count alongside. A counter is
+    /// declared before the loop and stepped at its end.
+    ForEachIndexed {
+        index: String,
+        binding: String,
+        iterable: Expr,
+        body: Vec<Stmt>,
+    },
     /// Run a body when the enclosing scope exits: Go's and Zig's `defer`.
     ///
     /// Go and Zig keep the word. Python, TypeScript and Java say the same thing

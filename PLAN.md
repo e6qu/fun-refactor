@@ -499,7 +499,9 @@ and `while`, literal-armed switches and named tests each gained a crossing. It w
 the witness when the Go and Java readers were caught reading `+=` as `=` (B378).
 It watched again when a call to a declared record crossed as a call (B379).
 `defer` crosses now too, native in Go and Zig and said with `try`/`finally`
-everywhere that has one. The paragraph below records why they were last. `remove-flag` has no boolean constant to
+everywhere that has one. So do counted loops, keyword arguments against a callee
+declared in the same file, and the statement-shaped ternary that Go unfolds into
+its `if`/`else`. The paragraph below records why they were last. `remove-flag` has no boolean constant to
 target in this repository, so it needs a corpus that has one. `translate` has
 `tests/round_trip.rs`, which asks more of it than a sweep would. The first two take a
 pattern from the user, so a sweep has to invent the patterns and a poor choice measures

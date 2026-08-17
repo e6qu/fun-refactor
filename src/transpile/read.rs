@@ -283,7 +283,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
         Stmt::Switch { subject, arms, .. } => {
             bad(subject) || arms.iter().any(|(literals, _)| literals.iter().any(bad))
         }
-        Stmt::ForEach { iterable, .. } => bad(iterable),
+        Stmt::ForEach { iterable, .. } | Stmt::ForEachIndexed { iterable, .. } => bad(iterable),
         _ => false,
     }
 }
@@ -1942,19 +1942,62 @@ mod python {
                     .map(|b| block(cx, b))
                     .unwrap_or_default(),
             },
-            "for_statement" => Stmt::ForEach {
-                binding: cx.field_text(node, "left").unwrap_or_default(),
-                iterable: cx
-                    .field(node, "right")
-                    .map(|v| expr(cx, v))
-                    .unwrap_or(Expr::Null),
-                body: cx
+            "for_statement" => {
+                let body = cx
                     .field(node, "body")
                     .map(|b| block(cx, b))
-                    .unwrap_or_default(),
-            },
+                    .unwrap_or_default();
+                // `for i, item in enumerate(xs)` is the element beside its
+                // position, which every target can say.
+                if let Some(counted) = enumerated(cx, node) {
+                    let (index, binding, iterable) = counted;
+                    return Stmt::ForEachIndexed {
+                        index,
+                        binding,
+                        iterable,
+                        body,
+                    };
+                }
+                Stmt::ForEach {
+                    binding: cx.field_text(node, "left").unwrap_or_default(),
+                    iterable: cx
+                        .field(node, "right")
+                        .map(|v| expr(cx, v))
+                        .unwrap_or(Expr::Null),
+                    body,
+                }
+            }
             _ => Stmt::Unsupported(cx.unsupported(node)),
         }
+    }
+
+    /// The pieces of `for i, item in enumerate(xs)`, when the loop is that
+    /// shape. Two bare names sit on the left, `enumerate` of one expression on
+    /// the right.
+    fn enumerated(cx: &Cx, node: Node<'_>) -> Option<(String, String, Expr)> {
+        let left = cx.field(node, "left")?;
+        if left.kind() != "pattern_list" {
+            return None;
+        }
+        let names: Vec<Node> = cx.children(left);
+        let [index, binding] = names.as_slice() else {
+            return None;
+        };
+        if index.kind() != "identifier" || binding.kind() != "identifier" {
+            return None;
+        }
+        let right = cx.field(node, "right")?;
+        if right.kind() != "call"
+            || cx.field_text(right, "function").as_deref() != Some("enumerate")
+        {
+            return None;
+        }
+        let arguments = cx.field(right, "arguments")?;
+        let arguments: Vec<Node> = cx.children(arguments);
+        let [sequence] = arguments.as_slice() else {
+            return None;
+        };
+        Some((cx.text(*index), cx.text(*binding), expr(cx, *sequence)))
     }
 
     /// Python does not distinguish declaration from assignment. Treated as a binding
@@ -4227,20 +4270,33 @@ mod zig {
                     .take_while(|c| c.kind() != "payload")
                     .copied()
                     .collect();
-                // `for (xs, ys) |x, y|` walks two sequences in step, and `for (xs, 0..)
-                // |x, i|` counts as it goes. The IR binds one name to one iterable, so
-                // either would have to drop half of what the loop said.
+                let body = children
+                    .iter()
+                    .find(|c| is_body(**c))
+                    .map(|b| body_of(cx, *b))
+                    .unwrap_or_default();
+                // `for (xs, 0..) |x, i|` counts as it goes, and every target can
+                // say that. Two real sequences in step, `for (xs, ys) |x, y|`,
+                // still carry: the IR binds one name to one iterable.
+                if bindings.len() == 2 && sequences.len() == 2 {
+                    let counted = sequences[1].kind() == "range_expression"
+                        && cx.text(sequences[1]).trim() == "0..";
+                    if counted {
+                        return Stmt::ForEachIndexed {
+                            index: cx.text(bindings[1]),
+                            binding: cx.text(bindings[0]),
+                            iterable: expr(cx, sequences[0]),
+                            body,
+                        };
+                    }
+                }
                 if bindings.len() != 1 || sequences.len() != 1 {
                     return Stmt::Unsupported(cx.unsupported(node));
                 }
                 Stmt::ForEach {
                     binding: cx.text(bindings[0]),
                     iterable: expr(cx, sequences[0]),
-                    body: children
-                        .iter()
-                        .find(|c| is_body(**c))
-                        .map(|b| body_of(cx, *b))
-                        .unwrap_or_default(),
+                    body,
                 }
             }
             // A `for` or `while` may carry a label; the loop is inside it.
