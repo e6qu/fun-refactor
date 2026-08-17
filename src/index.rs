@@ -1158,6 +1158,24 @@ impl Index {
             return Vec::new();
         };
         if !sym.kind.allows_multiple_definitions() {
+            // `self.count = 0` in `__init__` and `self.count = n` in another method
+            // are one attribute declared twice, which is how Python declares
+            // attributes at all. The class is the identity, and the class is the
+            // qualifier: each site's container is the method it sits in. A rename
+            // that took one site left the object answering two names at run time.
+            if sym.kind == SymbolKind::Field && sym.qualifier.is_some() {
+                return self
+                    .symbols
+                    .iter()
+                    .filter(|s| {
+                        s.name == sym.name
+                            && s.kind == sym.kind
+                            && s.qualifier == sym.qualifier
+                            && s.file == sym.file
+                    })
+                    .map(|s| s.id)
+                    .collect();
+            }
             return vec![symbol];
         }
         self.symbols
