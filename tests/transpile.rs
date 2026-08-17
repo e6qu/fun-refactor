@@ -758,12 +758,22 @@ fn a_conditional_expression_crosses_between_the_five_that_have_one() {
                 "{name} -> {target} should say `{expected}`:\n{output}"
             );
         }
+        // Go has no ternary, and this one is the whole of a return, an
+        // `if`/`else` said shorter, so Go writes the `if`/`else`. One buried in
+        // an argument list still carries; tests/translate_ternary.rs holds that.
         let (output, fidelity) = translate(&[(name, source)], name, Language::Go);
         assert!(
-            output.contains(&format!("{MARKER}: a > 0 ? 1 : 2")),
-            "{name} -> go should carry it verbatim:\n{output}"
+            output.contains("if a > 0 {"),
+            "{name} -> go returns from each branch.\n{output}"
         );
-        assert!(fidelity.carried_verbatim > 0, "and count it:\n{output}");
+        assert!(
+            output.contains("return 1") && output.contains("return 2"),
+            "{name} -> go returns from each branch.\n{output}"
+        );
+        assert_eq!(
+            fidelity.carried_verbatim, 0,
+            "a lowered ternary is not a loss:\n{output}"
+        );
     }
 }
 

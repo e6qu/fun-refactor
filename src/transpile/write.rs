@@ -123,6 +123,16 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     walk_stmts(default, add);
                 }
                 Stmt::Defer(cleanup) => walk_stmts(cleanup, add),
+                Stmt::ForEachIndexed {
+                    index,
+                    binding,
+                    body,
+                    ..
+                } => {
+                    add(index, Kind::Value, false);
+                    add(binding, Kind::Value, false);
+                    walk_stmts(body, add);
+                }
                 Stmt::While { body, .. } => walk_stmts(body, add),
                 _ => {}
             }
@@ -497,6 +507,21 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.functions = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) => Some((
+                f.name.clone(),
+                f.params
+                    .iter()
+                    .filter(|p| p.kind == ParamKind::Normal)
+                    .map(|p| (p.name.clone(), p.default.clone()))
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
     match language {
         Language::Rust => rust(&mut out, module),
         Language::Python => python(&mut out, module),
@@ -579,6 +604,13 @@ struct Out {
     /// matches, the positions map onto these; otherwise the construction
     /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
+    /// Each declared function's parameters, in order, with their defaults.
+    ///
+    /// A keyword argument names its parameter, and five of these languages
+    /// call by position alone. When the callee is declared right here, the
+    /// keywords settle into their declared positions, defaults filling any
+    /// gap; otherwise the argument carries.
+    functions: std::collections::BTreeMap<String, Vec<(String, Option<Expr>)>>,
     /// Text a writer could not put where the expression it replaced stood.
     ///
     /// Zig is the only target here with no block comment: `//` runs to the end of the line, so
@@ -620,6 +652,7 @@ impl Out {
             declared_types: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
+            functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
@@ -1277,6 +1310,21 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 out.close();
                 out.line("}");
             }
+            Stmt::ForEachIndexed {
+                index,
+                binding,
+                iterable,
+                body,
+            } => {
+                let it = rust_expr(out, iterable);
+                let i = out.name(index);
+                let bound = out.name(binding);
+                out.line(&format!("for ({i}, {bound}) in {it}.iter().enumerate() {{"));
+                out.open();
+                rust_block(out, body);
+                out.close();
+                out.line("}");
+            }
             Stmt::ForEach {
                 binding,
                 iterable,
@@ -1420,6 +1468,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             format!("{}[{}]", rust_expr(out, of), rust_expr(out, index))
         }
         Expr::Call { callee, args } => {
+            let settled = resolve_keywords(out, callee, args);
+            let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
             // `Point(0, 0)` from a language whose classes are called is a
             // construction, and this struct's fields are named, so calling it
@@ -1998,6 +2048,20 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 python_block(out, body);
                 out.close();
             }
+            Stmt::ForEachIndexed {
+                index,
+                binding,
+                iterable,
+                body,
+            } => {
+                let it = python_expr(out, iterable);
+                let i = out.name(index);
+                let bound = out.name(binding);
+                python_line(out, &format!("for {i}, {bound} in enumerate({it}):"));
+                out.open();
+                python_block(out, body);
+                out.close();
+            }
             Stmt::ForEach {
                 binding,
                 iterable,
@@ -2527,6 +2591,45 @@ fn positional_record(out: &Out, callee: &Expr, arity: usize) -> Option<Vec<Strin
         .cloned()
 }
 
+/// The call's arguments settled into their declared positions, when its
+/// keywords can be. The callee must be a function declared in this module.
+/// Each keyword must name one of its parameters, and every position left
+/// unfilled must have a declared default to fill it.
+fn resolve_keywords(out: &Out, callee: &Expr, args: &[Expr]) -> Option<Vec<Expr>> {
+    if !args.iter().any(|a| matches!(a, Expr::Keyword { .. })) {
+        return None;
+    }
+    let Expr::Name(name) = callee else {
+        return None;
+    };
+    let parameters = out.functions.get(name)?;
+    let mut slots: Vec<Option<Expr>> = vec![None; parameters.len()];
+    let mut position = 0usize;
+    for argument in args {
+        match argument {
+            Expr::Keyword { name, value } => {
+                let at = parameters.iter().position(|(p, _)| p == name)?;
+                if slots[at].is_some() {
+                    return None;
+                }
+                slots[at] = Some(value.as_ref().clone());
+            }
+            plain => {
+                if position >= slots.len() || slots[position].is_some() {
+                    return None;
+                }
+                slots[position] = Some(plain.clone());
+                position += 1;
+            }
+        }
+    }
+    slots
+        .into_iter()
+        .zip(parameters.iter())
+        .map(|(slot, (_, default))| slot.or_else(|| default.clone()))
+        .collect()
+}
+
 /// Does this body leave on its own, making a `break` after it one statement too
 /// many? Java refuses unreachable code outright, so the answer decides whether
 /// the `case` gets one.
@@ -2663,6 +2766,74 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     }
     for stmt in body {
         match stmt {
+            // Go has no ternary. One that is the whole of a return, an
+            // assignment, or a typed binding is an `if`/`else` said shorter, so
+            // Go writes the `if`/`else`. Each arm renders inside its own
+            // branch, which keeps the evaluation the source chose.
+            Stmt::Return(Some(Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            })) => {
+                let c = go_expr(out, condition);
+                out.line(&format!("if {c} {{"));
+                out.open();
+                let a = go_expr(out, then);
+                out.line(&format!("return {a}"));
+                out.close();
+                out.line("}");
+                let b = go_expr(out, otherwise);
+                out.line(&format!("return {b}"));
+            }
+            Stmt::Let {
+                name,
+                ty: Some(ty),
+                value:
+                    Some(Expr::Ternary {
+                        condition,
+                        then,
+                        otherwise,
+                    }),
+                ..
+            } => {
+                let bound = out.name(name);
+                out.line(&format!("var {bound} {}", go_type(ty)));
+                let c = go_expr(out, condition);
+                out.line(&format!("if {c} {{"));
+                out.open();
+                let a = go_expr(out, then);
+                out.line(&format!("{bound} = {a}"));
+                out.close();
+                out.line("} else {");
+                out.open();
+                let b = go_expr(out, otherwise);
+                out.line(&format!("{bound} = {b}"));
+                out.close();
+                out.line("}");
+            }
+            Stmt::Assign {
+                target,
+                value:
+                    Expr::Ternary {
+                        condition,
+                        then,
+                        otherwise,
+                    },
+            } => {
+                let t = go_expr(out, target);
+                let c = go_expr(out, condition);
+                out.line(&format!("if {c} {{"));
+                out.open();
+                let a = go_expr(out, then);
+                out.line(&format!("{t} = {a}"));
+                out.close();
+                out.line("} else {");
+                out.open();
+                let b = go_expr(out, otherwise);
+                out.line(&format!("{t} = {b}"));
+                out.close();
+                out.line("}");
+            }
             Stmt::Return(value) => {
                 let text = value
                     .as_ref()
@@ -2788,6 +2959,21 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 // Go spells `while` as a one-clause `for`.
                 let c = go_expr(out, condition);
                 out.line(&format!("for {c} {{"));
+                out.open();
+                go_block(out, body, None);
+                out.close();
+                out.line("}");
+            }
+            Stmt::ForEachIndexed {
+                index,
+                binding,
+                iterable,
+                body,
+            } => {
+                let it = go_expr(out, iterable);
+                let i = out.name(index);
+                let bound = out.name(binding);
+                out.line(&format!("for {i}, {bound} := range {it} {{"));
                 out.open();
                 go_block(out, body, None);
                 out.close();
@@ -2944,6 +3130,8 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Index { of, index } => format!("{}[{}]", go_expr(out, of), go_expr(out, index)),
         Expr::Call { callee, args } => {
+            let settled = resolve_keywords(out, callee, args);
+            let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
             // A call to a declared record is a construction; Go's conversion
             // syntax `Point(x)` means something else entirely.
@@ -3605,6 +3793,25 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.close();
                 out.line("}");
             }
+            Stmt::ForEachIndexed {
+                index,
+                binding,
+                iterable,
+                body,
+            } => {
+                // No indexed form over an arbitrary iterable, so the counter
+                // walks alongside.
+                let it = ts_expr(out, iterable);
+                let i = out.name(index);
+                let bound = out.name(binding);
+                out.line(&format!("let {i} = 0;"));
+                out.line(&format!("for (const {bound} of {it}) {{"));
+                out.open();
+                ts_block(out, body);
+                out.line(&format!("{i} += 1;"));
+                out.close();
+                out.line("}");
+            }
             Stmt::ForEach {
                 binding,
                 iterable,
@@ -3761,6 +3968,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Index { of, index } => format!("{}[{}]", ts_expr(out, of), ts_expr(out, index)),
         Expr::Call { callee, args } => {
+            let settled = resolve_keywords(out, callee, args);
+            let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
             format!("{}({})", ts_expr(out, callee), rendered.join(", "))
         }
@@ -4405,6 +4614,25 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             out.close();
             out.line("}");
         }
+        Stmt::ForEachIndexed {
+            index,
+            binding,
+            iterable,
+            body,
+        } => {
+            // No indexed form over an arbitrary iterable, so the counter walks
+            // alongside.
+            let it = java_expr(out, iterable);
+            let i = out.name(index);
+            let bound = out.name(binding);
+            out.line(&format!("int {i} = 0;"));
+            out.line(&format!("for (var {bound} : {it}) {{"));
+            out.open();
+            java_block(out, body, None);
+            out.line(&format!("{i} += 1;"));
+            out.close();
+            out.line("}");
+        }
         Stmt::ForEach {
             binding,
             iterable,
@@ -4688,6 +4916,8 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}.get({at})")
         }
         Expr::Call { callee, args } => {
+            let settled = resolve_keywords(out, callee, args);
+            let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
             if let Expr::Name(name) = callee.as_ref() {
                 if out.newtypes.contains_key(name) {
@@ -5426,6 +5656,21 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
         }
         // `for (xs) |x| { … }`, the binding goes in a payload after the header rather
         // than inside it.
+        Stmt::ForEachIndexed {
+            index,
+            binding,
+            iterable,
+            body,
+        } => {
+            let it = zig_expr(out, iterable);
+            let i = out.name(index);
+            let bound = out.name(binding);
+            zig_line(out, &format!("for ({it}, 0..) |{bound}, {i}| {{"));
+            out.open();
+            zig_block(out, body, None, mutated);
+            out.close();
+            out.line("}");
+        }
         Stmt::ForEach {
             binding,
             iterable,
@@ -5570,6 +5815,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}[{at}]")
         }
         Expr::Call { callee, args } => {
+            let settled = resolve_keywords(out, callee, args);
+            let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = zig_expr(out, callee);
