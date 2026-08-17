@@ -3074,8 +3074,28 @@ mod java {
                 // A constructor is a method that makes the type and not acting on one, and
                 // every target spells it its own way. So what carries is that it *is* one, not
                 // what it is called.
+                //
+                // A static method never touches the instance, so the class is only its
+                // namespace. It crosses as a module function: written as a method, every
+                // target gave it a receiver its Java call sites never pass.
                 "method_declaration" | "constructor_declaration" => {
-                    record.methods.push(function(cx, member))
+                    let is_static = member.kind() == "method_declaration"
+                        && modifier_text(cx, member).contains("static");
+                    match is_static {
+                        true => carried.push(Item::Function(function(cx, member))),
+                        false => record.methods.push(function(cx, member)),
+                    }
+                }
+                // A type declared inside another is still a type; Java nests them for
+                // namespacing and the record it declares crosses as a sibling. Dropped,
+                // `record Order(...)` left `main` constructing a name nothing defined,
+                // while the fidelity header still counted the record as carried.
+                "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    let (inner, inner_constants) = type_declaration(cx, member, carried);
+                    carried.extend(inner_constants.into_iter().map(Item::Constant));
+                    if let Some(inner) = inner {
+                        carried.push(Item::Record(inner));
+                    }
                 }
                 "comment" | "{" | "}" => {}
                 // A member this does not recognise is not a member that is not
