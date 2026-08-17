@@ -1366,3 +1366,13 @@ under `tsc --strict` after translation and prints the same output under Node
 that it printed under CPython, and the same file translated the other way runs
 under Python. The corpus ledger fell by roughly 260 carried constructs, and
 what still cannot cross says so in the file, at the line where it stops.
+
+### The pass where the CLI grew a spine
+
+Two probes drove the binary the way scripts and agents do, and eight findings
+survived verification (B399 through B406). A racing `--write` no longer loses
+an edit, and a closed pipe ends a listing quietly. Diffs now apply under
+`git apply -p1`, the counts of `fr usages` and `fr rename` reconcile, and the
+exit code names the failure. `fr scan` accounts for symlinks, an empty
+`restructure` pattern stops a recipe, and `fr remove-flag` names the mentions
+it cannot rewrite.

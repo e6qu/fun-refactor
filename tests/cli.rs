@@ -360,6 +360,95 @@ fn what_unused_reports_can_be_given_to_delete() {
 }
 
 #[test]
+fn a_closed_stdout_ends_the_run_quietly_instead_of_panicking() {
+    // `fr symbols --json | head -c 100` used to panic with a broken-pipe abort once
+    // `head` had taken its fill. A reader closing the pipe early is an ordinary end
+    // of the run. The fixture is large enough that the pipe buffer cannot hide the
+    // closed read end from the writer.
+    let mut source = String::new();
+    for i in 0..900 {
+        source.push_str(&format!("pub fn generated_{i}() -> i64 {{\n    {i}\n}}\n"));
+    }
+    let ws = Workspace::new(&[("big.rs", &source)]);
+
+    let mut child = Command::new(FR)
+        .arg("-C")
+        .arg(ws.root())
+        .args(["symbols", "--json"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("fr should start");
+    // Dropping the read end is `head` exiting; every later write meets a closed pipe.
+    drop(child.stdout.take());
+    let status = child.wait().expect("fr should finish");
+    assert_eq!(
+        status.code(),
+        Some(0),
+        "a closed pipe is a quiet, successful end"
+    );
+}
+
+#[test]
+fn each_kind_of_domain_failure_has_its_own_exit_code() {
+    // Every domain failure used to exit 1. A script had to parse prose to tell
+    // "no such symbol" from "two symbols answer to that name". The codes are in
+    // `fr --help`; this pins them.
+    let ws = Workspace::new(&[
+        (
+            "one/a.go",
+            "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc Other() int {\n\treturn 2\n}\n",
+        ),
+        ("two/b.go", "package two\n\nfunc Handle() int {\n\treturn 2\n}\n"),
+    ]);
+    let code = |args: &[&str]| {
+        Command::new(FR)
+            .arg("-C")
+            .arg(ws.root())
+            .args(args)
+            .env("FUN_REFACTOR_CACHE", ws.cache.path())
+            .output()
+            .expect("fr should run")
+            .status
+            .code()
+    };
+    assert_eq!(code(&["def", "nosuch"]), Some(3), "not found is 3");
+    assert_eq!(code(&["def", "Handle"]), Some(4), "ambiguous is 4");
+    // Renaming onto a name the same package already declares is a refusal.
+    assert_eq!(
+        code(&["rename", "one/a.go:3:6", "Other"]),
+        Some(5),
+        "a refusal is 5"
+    );
+    let (out, ok) = ws.run(&["--help"]);
+    assert!(ok, "{out}");
+    assert!(
+        out.contains("Exit codes:"),
+        "the long help documents the codes:\n{out}"
+    );
+}
+
+#[test]
+fn a_diff_header_is_workspace_relative_so_git_apply_accepts_it() {
+    // Headers used to read `--- a//absolute/path`, which `git apply -p1` refuses.
+    let ws = Workspace::new(&[(
+        "src/a.go",
+        "package p\n\nfunc helper() int {\n\treturn 1\n}\n\nfunc caller() int {\n\treturn helper()\n}\n",
+    )]);
+    let (out, ok) = ws.run(&["rename", "src/a.go:3:6", "renamed"]);
+    assert!(ok, "{out}");
+    assert!(
+        out.contains("--- a/src/a.go") && out.contains("+++ b/src/a.go"),
+        "headers are relative to the workspace root:\n{out}"
+    );
+    assert!(
+        !out.contains("--- a//"),
+        "no absolute header survives:\n{out}"
+    );
+}
+
+#[test]
 fn the_language_filter_has_one_name() {
     // Five commands took `--lang` and two took `--language`, for the same filter, with
     // nothing to say which was which. It cost two mistyped invocations while writing

@@ -569,7 +569,68 @@ fn a_misspelled_predicate_value_names_itself() {
         assert!(message.contains(typo), "should quote `{typo}`: {message}");
         assert!(
             message.contains(expected),
-            "should say what would have worked: {message}"
+            "should say what would have worked: {message}."
         );
     }
+}
+
+// ------------------------------------------------------- restructure counting
+
+#[test]
+fn a_restructure_pattern_that_matches_nothing_stops_the_run() {
+    // The pattern is the step's selector, and a selector that chooses nothing stops
+    // the recipe. This step used to report "matched 1, applied 0" and carry on, a
+    // silent no-op wearing a success flag.
+    let (tmp, sources) = workspace(&[("a.py", "def entry():\n    return modern()\n")]);
+    let file =
+        recipe::parse("schema 1\nrecipe r { restructure python 'legacy($X)' => 'modern($X)' }")
+            .expect("the recipe parses");
+    let err = recipe::run(
+        &file.recipes[0],
+        sources,
+        &Options {
+            root: tmp.path(),
+            catalogs: &[],
+        },
+    )
+    .expect_err("matching nothing is a stop, never a success.");
+    fun_refactor::vfs::use_filesystem();
+    assert!(
+        format!("{err:#}").contains("matched nothing"),
+        "the stop names the empty match: {err:#}."
+    );
+}
+
+#[test]
+fn allow_empty_lets_a_conditional_restructure_match_nothing() {
+    let (_tmp, report, _after) = run(
+        &[("a.py", "def entry():\n    return modern()\n")],
+        "schema 1\nrecipe r { restructure python 'legacy($X)' => 'modern($X)' allow-empty }",
+    );
+    assert!(report.ok, "{report:?}");
+    assert_eq!(
+        report.steps[0].matched, 0,
+        "the count is honest: {report:?}"
+    );
+    assert_eq!(report.steps[0].applied, 0);
+}
+
+#[test]
+fn a_restructure_step_counts_occurrences_rather_than_a_constant_one() {
+    // Two call sites in one file. The step used to say "matched 1" for both of them
+    // together, so the report disagreed with the diff right underneath it.
+    let (_tmp, report, after) = run(
+        &[(
+            "a.py",
+            "def entry():\n    legacy(1)\n\n    legacy(2)\n    return 0\n",
+        )],
+        "schema 1\nrecipe r { restructure python 'legacy($X)' => 'modern($X)' }",
+    );
+    assert_eq!(report.steps[0].matched, 2, "{report:?}");
+    assert_eq!(report.steps[0].applied, 2, "{report:?}");
+    let (_, text) = after.values().next().expect("one file");
+    assert!(
+        text.contains("modern(1)") && text.contains("modern(2)"),
+        "{text}"
+    );
 }

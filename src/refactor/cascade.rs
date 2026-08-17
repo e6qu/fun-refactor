@@ -138,9 +138,9 @@ pub fn remove_flag_in_for(
     }
     let mut sources = sources;
 
-    // The name, resolved once. Everything downstream, which uses are left, which
-    // imports were orphaned, what the rounds are called, looks the flag up by name, so
-    // a target given as a position has to become a name here and not later.
+    // The name, resolved once. Everything downstream looks the flag up by name: which
+    // uses are left, which imports were orphaned, what the rounds are called. So a
+    // target given as a position has to become a name here and not later.
     let flag_name = match target {
         FlagTarget::Named(name) => name.clone(),
         FlagTarget::At(path, offset) => {
@@ -164,7 +164,7 @@ pub fn remove_flag_in_for(
 
     // Only symbols that had a use before any of this started can be *orphaned* by
     // the cascade. Anything already unreferenced was unused before we arrived and is
-    // not this refactoring's business, removing it would turn a flag cleanup into an
+    // not this refactoring's business. Removing it would turn a flag cleanup into an
     // unrelated purge of the workspace.
     let initially_used: HashSet<(String, PathBuf)> = {
         let snapshot: Vec<(PathBuf, Language, String)> = sources
@@ -274,6 +274,7 @@ pub fn remove_flag_in_for(
     unfinished.extend(remaining_uses(&sources, flag, flag_kind)?);
     unfinished.extend(unfinished_work(&sources, &originals)?);
     unfinished.extend(dangling_resource_uses(&sources, &originals)?);
+    unfinished.extend(textual_mentions(&sources, flag)?);
     unfinished.sort();
     unfinished.dedup();
 
@@ -500,9 +501,9 @@ fn substitute_flag(
 /// What the declaration says the named symbol holds, where that rules a flag out.
 ///
 /// Removing a flag replaces every use of a name with `true` or `false`. A Zig module import and
-/// a Zig feature flag are both `const`. So the symbol's kind cannot tell the two apart: asking
+/// a Zig feature flag are both `const`. So the symbol's kind cannot tell the two apart. Asking
 /// to remove `DocumentScope` from a file that opens `const DocumentScope =
-/// @import("DocumentScope.zig")` rewrote a type into `*const true`, which is text no compiler
+/// @import("DocumentScope.zig")` rewrote a type into `*const true`, text no compiler
 /// accepts. The declaration says what the kind cannot.
 ///
 /// The question is whether the source rules a boolean out, and not whether the source proves
@@ -689,7 +690,7 @@ fn hcl_block_argument(block: Node<'_>, source: &str, name: &str) -> Option<Strin
 /// point at the file the caller will open.
 ///
 /// The declaration is read from the finished text as well. Where it survived, it survived
-/// because a use of it did, and reporting it as one more unrewritable use of itself said
+/// because a use of it did. Reporting it as one more unrewritable use of itself said
 /// something that is not true.
 fn remaining_uses(
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -747,6 +748,42 @@ fn remaining_uses(
 /// Node kinds that spell a name a flag could be referred to by.
 fn is_name_token(kind: &str) -> bool {
     kind.ends_with("identifier") || kind == "variable_name"
+}
+
+/// Where the flag's name survives as text after the cascade: strings, comments,
+/// YAML keys and values, shell scripts.
+///
+/// No resolution reaches these, so the cascade cannot rewrite them, and it used to
+/// leave them without a word. The code lost the flag while a chart value or a CI
+/// script kept configuring it. This is the same whole-word sweep `fr rename` warns
+/// with, run over the workspace the cascade leaves behind.
+fn textual_mentions(
+    sources: &BTreeMap<PathBuf, (Language, String)>,
+    flag: &str,
+) -> Result<Vec<String>> {
+    let parsers = Parsers::new();
+    let mut mentions = Vec::new();
+    for (path, (language, text)) in sources {
+        if !text.contains(flag) {
+            continue;
+        }
+        let parsed = parsers.parse(*language, text)?;
+        for span in crate::mentions::string_and_comment_spans(&parsed) {
+            let haystack = span.text(text);
+            for (offset, _) in haystack.match_indices(flag) {
+                if !crate::mentions::is_word_boundary(haystack, offset, flag.len()) {
+                    continue;
+                }
+                mentions.push(describe(
+                    path,
+                    text,
+                    Span::new(span.start + offset, span.start + offset + flag.len()),
+                    &format!("'{flag}' is still mentioned here, in text no command edits"),
+                ));
+            }
+        }
+    }
+    Ok(mentions)
 }
 
 /// A message about one place in one file, carrying its line number.
@@ -1323,7 +1360,7 @@ fn zig_block(node: Node<'_>) -> Option<Node<'_>> {
 /// Shell `if`s whose test provably succeeds or fails.
 ///
 /// Shell has no boolean type: substituting the flag leaves a *string* where the test
-/// used to read a variable, and only some of the ways a script can test a string are
+/// used to read a variable. Only some of the ways a script can test a string are
 /// decidable from the text alone. Everything else is reported and not guessed.
 fn bash_conditionals(parsed: &Parsed, source: &str) -> Collapse {
     let mut out = Collapse::default();
@@ -2135,7 +2172,7 @@ fn apply_in_memory(
 /// neighbour, so removing a definition does not leave a widening gap behind.
 ///
 /// Only one blank line is taken, and only when the deleted text had a blank line
-/// before it (or began the file), otherwise the blank belonged to the code that
+/// before it or began the file. Otherwise the blank belonged to the code that
 /// remains, as a separator it still needs.
 fn widen_to_blank_separator(source: &str, line: Span) -> Span {
     let preceded_by_blank = line.start == 0 || {

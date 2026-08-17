@@ -13,12 +13,63 @@ use clap::{Parser, Subcommand};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+/// Whether [`emit`] ends the write with a newline.
+enum Newline {
+    Yes,
+    No,
+}
+
+/// Write to stdout, taking a closed pipe as the reader saying it has enough.
+///
+/// The standard `println!` panics when stdout has gone away, which turned
+/// `fr symbols --json | head` into a crash after `head` took what it wanted. A
+/// reader closing the pipe early is an ordinary end of the run, so the process
+/// ends quietly and successfully. Every other write failure still panics, as the
+/// standard macros would.
+fn emit(newline: Newline, text: std::fmt::Arguments<'_>) {
+    use std::io::Write;
+    let mut out = std::io::stdout().lock();
+    let result = out.write_fmt(text).and_then(|()| match newline {
+        Newline::Yes => out.write_all(b"\n"),
+        Newline::No => Ok(()),
+    });
+    match result {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => std::process::exit(0),
+        Err(e) => panic!("failed printing to stdout: {e}"),
+    }
+}
+
+// These shadow the standard macros for the rest of this file, which is where every
+// stdout write in the binary lives. Keeping the standard spelling means a new
+// report cannot forget to opt in to the closed-pipe behaviour.
+macro_rules! println {
+    () => { emit(Newline::Yes, format_args!("")) };
+    ($($arg:tt)*) => { emit(Newline::Yes, format_args!($($arg)*)) };
+}
+macro_rules! print {
+    ($($arg:tt)*) => { emit(Newline::No, format_args!($($arg)*)) };
+}
+
+/// The tail of `fr --help`, naming the exit codes a script can branch on.
+///
+/// Every domain failure used to exit 1. A wrapper had to parse prose to tell "no
+/// such symbol" from "two symbols answer to that name". The codes say it directly.
+const EXIT_CODES_HELP: &str = "Exit codes:\n  \
+     0  success.\n  \
+     1  failure without a more specific code below.\n  \
+     2  the command line itself was invalid.\n  \
+     3  the target was not found.\n  \
+     4  the target is ambiguous; the error lists the candidates.\n  \
+     5  the refactoring refused to proceed; the error says why.";
+
 #[derive(Parser)]
 #[command(
     name = "fr",
     version,
     about = "Multi-language refactoring and code intelligence",
-    long_about = None
+    long_about = None,
+    after_long_help = EXIT_CODES_HELP
 )]
 struct Cli {
     /// Emit machine-readable JSON instead of human-readable text.
@@ -461,12 +512,34 @@ pub fn run() -> Result<()> {
         .init();
 
     let result = dispatch(&cli);
+    let Err(error) = result else {
+        return Ok(());
+    };
     if cli.json {
-        if let Err(error) = &result {
-            report_json_error(error);
-        }
+        report_json_error(&error);
     }
-    result
+    // The same prose, in the same shape, that returning the error from `main` printed.
+    // It is printed here because the exit code is chosen here, and `main` can only
+    // say 0 or 1.
+    eprintln!("Error: {error:?}");
+    std::process::exit(exit_code(&error));
+}
+
+/// The exit code a failure earns, mirroring the JSON error's `kind`.
+///
+/// Clap owns 2 for a command line that did not parse, so domain failures start at 3.
+fn exit_code(error: &anyhow::Error) -> i32 {
+    if let Some(fault) = error.downcast_ref::<Fault>() {
+        return match fault.kind {
+            FaultKind::NotFound => 3,
+            FaultKind::Ambiguous => 4,
+            FaultKind::InvalidInput => 1,
+        };
+    }
+    if error.chain().any(|c| c.is::<crate::refactor::Refusal>()) {
+        return 5;
+    }
+    1
 }
 
 fn dispatch(cli: &Cli) -> Result<()> {
@@ -700,6 +773,22 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
     Ok(())
 }
 
+/// A unified diff whose headers `git apply -p1` accepts.
+///
+/// The edit engine names files absolutely, so its own headers read `--- a//home/...`,
+/// which git refuses to apply. Headers here are workspace-root-relative; every other
+/// field in the JSON keeps the absolute path. A file outside the root, a translation
+/// written elsewhere, keeps its full path because no relative spelling exists for it.
+fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
+    let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
+    let shown = outcome.path.strip_prefix(&root).unwrap_or(&outcome.path);
+    crate::edit::unified_diff(
+        &outcome.original,
+        &outcome.updated,
+        &shown.display().to_string(),
+    )
+}
+
 /// Render a plan's diff, report what it did, and optionally commit it.
 fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) -> Result<()> {
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
@@ -707,7 +796,7 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
     if cli.json {
         let changes: Vec<_> = outcomes
             .iter()
-            .map(|o| serde_json::json!({ "path": o.path, "diff": o.unified_diff() }))
+            .map(|o| serde_json::json!({ "path": o.path, "diff": workspace_diff(cli, o) }))
             .collect();
         println!(
             "{}",
@@ -725,7 +814,7 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
     }
 
     for outcome in &outcomes {
-        print!("{}", outcome.unified_diff());
+        print!("{}", workspace_diff(cli, outcome));
     }
     println!("\n{summary}");
     if write {
@@ -1582,7 +1671,7 @@ fn cmd_translate_directory(
         let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
         let changes: Vec<_> = outcomes
             .iter()
-            .map(|o| serde_json::json!({ "path": o.path, "diff": o.unified_diff() }))
+            .map(|o| serde_json::json!({ "path": o.path, "diff": workspace_diff(cli, o) }))
             .collect();
         println!(
             "{}",
@@ -2480,7 +2569,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
             .map(|o| {
                 serde_json::json!({
                     "path": o.path,
-                    "diff": o.unified_diff(),
+                    "diff": workspace_diff(cli, o),
                 })
             })
             .collect();
@@ -2491,6 +2580,10 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
                 "new_name": plan.new_name,
                 "files_changed": outcomes.len(),
                 "reference_edits": plan.reference_edits,
+                // Definition sites edited, kept beside `reference_edits` so the counts
+                // add up for a reader who also ran `fr usages`. A file with only a
+                // definition edit still counts in `files_changed`; this field says why.
+                "definition_edits": plan.edits.edit_count() - plan.reference_edits,
                 "applied": write,
                 "changes": files,
                 "warnings": plan.warnings,
@@ -2503,14 +2596,14 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
     }
 
     for outcome in &outcomes {
-        print!("{}", outcome.unified_diff());
+        print!("{}", workspace_diff(cli, outcome));
     }
 
     println!(
         "\n{} → {}: {} site(s) across {} file(s)",
         plan.old_name,
         plan.new_name,
-        plan.reference_edits + 1,
+        plan.edits.edit_count(),
         outcomes.len()
     );
 
@@ -3254,6 +3347,11 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(cli, &index, target)?;
     let found = navigate::usages_of(&index, symbol.id);
+    // The definition sites, kept apart from the uses. `fr usages` counts uses only,
+    // while `fr rename` also edits definitions. So an agent comparing the two saw
+    // "1 file with usages" against "2 files changed" and read it as a contradiction.
+    // Listing the definitions makes the whole entity visible from this side.
+    let defined = navigate::definitions_of(&index, symbol.id);
 
     if cli.json {
         let render = |list: &[&navigate::Usage]| {
@@ -3272,10 +3370,23 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         };
         let all: Vec<&navigate::Usage> = found.usages.iter().collect();
         let weak: Vec<&navigate::Usage> = found.same_name_elsewhere.iter().collect();
+        let definitions: Vec<_> = defined
+            .definitions
+            .iter()
+            .map(|d| {
+                serde_json::json!({
+                    "file": d.location.file,
+                    "line": d.location.line,
+                    "col": d.location.col,
+                    "role": d.role,
+                })
+            })
+            .collect();
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "symbol": found.query,
+                "definitions": definitions,
                 "usages": render(&all),
                 "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
             }))?
@@ -3303,6 +3414,20 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
         }
     }
     println!("\n{} use(s) of {}", found.usages.len(), found.query);
+
+    println!(
+        "\n{} definition site(s), not counted among the uses:",
+        defined.definitions.len()
+    );
+    for definition in &defined.definitions {
+        println!(
+            "  {}:{}:{}  {}",
+            definition.location.file.display(),
+            definition.location.line,
+            definition.location.col,
+            definition.role.label()
+        );
+    }
 
     if include_unresolved && !found.same_name_elsewhere.is_empty() {
         println!(
@@ -3459,20 +3584,30 @@ fn cmd_scan(cli: &Cli, languages: &[String]) -> Result<()> {
             .map(|f| {
                 serde_json::json!({
                     "path": f.path,
+                    // The absolute spelling, because every other command's JSON says
+                    // `file` absolutely and a reader joining the two needs one key
+                    // that matches without path arithmetic.
+                    "file": f.path.canonicalize().unwrap_or_else(|_| f.path.clone()),
                     "language": f.language.name(),
                 })
             })
             .collect();
-        let skipped: Vec<_> = result
+        let too_large: Vec<_> = result
             .skipped_too_large
             .iter()
             .map(|(p, size)| serde_json::json!({ "path": p, "bytes": size }))
+            .collect();
+        let skipped: Vec<_> = result
+            .skipped_symlinks
+            .iter()
+            .map(|(p, reason)| serde_json::json!({ "path": p, "reason": reason }))
             .collect();
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "files": files,
-                "skipped_too_large": skipped,
+                "skipped": skipped,
+                "skipped_too_large": too_large,
             }))?
         );
     } else {
@@ -3609,6 +3744,15 @@ fn report_skipped(result: &crate::scan::ScanResult) {
         );
         for (path, size) in &result.skipped_too_large {
             println!("  {} ({} bytes)", path.display(), size);
+        }
+    }
+    if !result.skipped_symlinks.is_empty() {
+        println!(
+            "\n{} symlink(s) skipped; each file is read where it really lives:",
+            result.skipped_symlinks.len()
+        );
+        for (path, reason) in &result.skipped_symlinks {
+            println!("  {} ({reason})", path.display());
         }
     }
 }

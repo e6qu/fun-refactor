@@ -118,3 +118,38 @@ fn bash_removes_the_flag_and_keeps_the_live_branch() {
         &["echo two"],
     );
 }
+
+#[test]
+fn mentions_left_in_config_and_scripts_are_reported_after_the_removal() {
+    // The cascade rewrites the code it can resolve. A chart value or a CI script
+    // that names the flag is invisible to resolution, and it used to be left
+    // behind without a word. The flag was gone while its configuration lived on.
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        tmp.path().join("a.go"),
+        "package p\n\nconst SHINY = true\n\n\
+         func Greet() int {\n\tif SHINY {\n\t\treturn 2\n\t}\n\treturn 1\n}\n",
+    )
+    .unwrap();
+    std::fs::write(tmp.path().join("config.yaml"), "canary:\n  gate: SHINY\n").unwrap();
+    std::fs::write(
+        tmp.path().join("deploy.sh"),
+        "#!/bin/sh\n# SHINY gates the canary rollout.\necho rollout\n",
+    )
+    .unwrap();
+
+    let (text, ok) = run(tmp.path(), &["remove-flag", "SHINY", "--write"]);
+    assert!(ok, "{text}");
+    assert!(text.contains("Left undone:"), "{text}");
+    assert!(
+        text.contains("config.yaml:2") && text.contains("still mentioned"),
+        "the YAML value is named with its line:\n{text}"
+    );
+    assert!(
+        text.contains("deploy.sh:2"),
+        "the shell comment is named with its line:\n{text}"
+    );
+    // The code itself is clean; only the prose mentions remain.
+    let code = std::fs::read_to_string(tmp.path().join("a.go")).unwrap();
+    assert!(!code.contains("SHINY"), "{code}");
+}

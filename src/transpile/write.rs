@@ -1352,9 +1352,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                     true => out.comment(&format!(
                         "{MARKER}: an errdefer runs this when the scope fails:"
                     )),
-                    false => {
-                        out.comment(&format!("{MARKER}: a defer runs this at scope exit:"))
-                    }
+                    false => out.comment(&format!("{MARKER}: a defer runs this at scope exit:")),
                 };
                 out.line(&header);
                 for line in rendered.lines() {
@@ -3128,8 +3126,9 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.fidelity
                     .notes
                     .push("on the failure path: errdefer carried over unchanged".to_string());
-                let header =
-                    out.comment(&format!("{MARKER}: an errdefer runs this when the scope fails"));
+                let header = out.comment(&format!(
+                    "{MARKER}: an errdefer runs this when the scope fails"
+                ));
                 out.line(&header);
             }
             Stmt::WhilePresent {
