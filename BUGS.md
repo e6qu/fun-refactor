@@ -258,6 +258,47 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   remaining mention lands under "Left undone" with its file and line. Pinned
   in `tests/remove_flag_sweep.rs`.
 
+- [x] B417: **three markers stopped the build they were drafted into.** Go's
+  inline stand-in was a bare `nil`, untypable at `:=`. It binds as `any(nil)`
+  now, and only a call stands alone as a statement. Rust's `todo!`
+  interpolated braces the carried source brought along; they double. A
+  constant whose value held anything untranslated became a `todo!` a `const`
+  evaluates at compile time; it carries whole as a comment, name and all.
+  Pinned in `tests/translate_markers.rs`.
+
+- [x] B416: **the implicit entry never crossed.** Rust, Go, Java and Zig run
+  `main` without writing a call. Their programs translated to Python and
+  TypeScript did nothing. The readers synthesize the call, and the
+  self-running targets drop it again with a note. Python guards it, passing
+  `sys.argv[1:]` to a `main(String[] args)` and starting an async main under
+  `asyncio.run`. Go keeps a niladic `main` lowercase, so `package main`
+  still starts. Pinned in `tests/translate_entrypoints.rs`.
+
+- [x] B415: **a thrown class was one the target never declared.** `throw new
+  Error(m)` reached Python as `raise Error(m)`. `raise ValueError(m)`
+  reached TypeScript as a call to nothing. The readers fold the everyday
+  names into the canonical ones, and TypeScript declares one-line classes
+  for the builtins it lacks. A caught error read as text is its message
+  everywhere: `str(e)`, `(e as Error).message`, `e.getMessage()`. The probe
+  fixtures run byte-identical to their sources in both directions.
+  Pinned in `tests/translate_exceptions.rs`.
+
+- [x] B414: **a Result crossed as a type nothing could write.** Rust's
+  `Result<T, E>` and Zig's `E!T` read as one shared name now. Go writes the
+  `(T, error)` pair: `Ok` returns beside `nil`, `Err` returns the zero and an
+  error, a propagated call binds beside a checked `err`. The exception
+  languages return the ok value bare and raise the `Err`. Zig spells the
+  union back, error sets cross as sums, and `format!` is a template.
+  Pinned in `tests/translate_results.rs` and `tests/translate_propagation.rs`.
+
+- [x] B413: **a value-position Zig switch carried, and one-statement branches
+  vanished.** `const x = switch (...) {...};` lowers to declare-then-assign.
+  Every writer already says that shape, and the Rust writer folds the pair
+  back into a `match` expression. Found beside it: `if (x) return e;` dropped
+  its return without a word, and a `while` with a step clause lost the step.
+  Both cross or carry visibly now, and the corpus ledger is re-pinned.
+  Pinned in `tests/translate_results.rs` and `tests/translate_corpus_sweep.rs`.
+
 - [x] B398: **a Python instance attribute was not a symbol at all.** `fr rename`
   answered "no symbol or resolved reference at" the most common rename target
   the language has. Each `self.x = ...` site now defines a field; the class,

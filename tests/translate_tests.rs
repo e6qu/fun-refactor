@@ -95,25 +95,21 @@ fn a_go_test_function_reads_back_as_a_test() {
 }
 
 #[test]
-fn a_test_referencing_a_declaration_carries() {
-    // `test double { ... }` names the declaration it covers, and it crosses
-    // as a test like the quoted form. The covering test takes a suffix where
-    // its slug would collide with the declaration itself.
-    let source = "pub fn double(n: u32) u32 {\n    return n * 2;\n}\n\n\
-        test double {\n    const four = double(2);\n    _ = four;\n}\n";
-    let tmp = tempfile::tempdir().unwrap();
-    let path = tmp.path().join("d.zig");
-    std::fs::write(&path, source).unwrap();
-    let out = tmp.path().join("d_out.txt");
-    let plan = transpile::plan_to(&path, Language::Rust, Some(&out), false).unwrap();
+fn a_test_named_after_a_declaration_crosses_and_steps_aside() {
+    // `test double {}` is Zig's doctest form: a test named by the declaration it
+    // covers. It crosses as a test. Its name steps aside from the declaration it
+    // would otherwise collide with in a target that puts both in one namespace.
+    let source = "fn double(n: i64) i64 {\n    return n * 2;\n}\n\ntest double {}\n";
+    let (_tmp, root) = workspace(&[("d.zig", source)]);
+    let plan = transpile::plan(&root.join("d.zig"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains("fn double_covers()"),
-        "the test crosses under a name nothing else holds:\n{}",
+        plan.output.contains("#[test]") && plan.output.contains("fn test_double() {"),
+        "the doctest crosses as a test under a name of its own:\n{}",
         plan.output
     );
     assert!(
-        !plan.output.contains("not translated: test_declaration"),
-        "and it is not a gap:\n{}",
+        !plan.output.contains(transpile::MARKER),
+        "a test that crossed is not a loss:\n{}",
         plan.output
     );
 }

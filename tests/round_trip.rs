@@ -17,7 +17,7 @@
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use fun_refactor::transpile::ir::{Function, Item, Module, ParamKind, Type};
+use fun_refactor::transpile::ir::{Expr, Function, Item, Module, ParamKind, TemplatePart, Type};
 use std::path::{Path, PathBuf};
 
 /// Every function in a module, wherever it is written.
@@ -156,6 +156,72 @@ fn fields(module: &Module) -> Vec<(String, String)> {
     out
 }
 
+/// Does anything under this expression carry no translation?
+///
+/// The Rust writer refuses to commit such a value to a `const`. A marker that is a
+/// fine draft in a body stops the build at compile-time evaluation there. The
+/// constant carries whole as a comment instead, which the fidelity report states, and
+/// which this check must not call an unexplained loss.
+fn untranslatable(e: &Expr) -> bool {
+    match e {
+        Expr::Unsupported(_) => true,
+        Expr::Field { of, .. } => untranslatable(of),
+        Expr::Index { of, index } => untranslatable(of) || untranslatable(index),
+        Expr::Call { callee, args } | Expr::New { callee, args } => {
+            untranslatable(callee) || args.iter().any(untranslatable)
+        }
+        Expr::Binary { left, right, .. } => untranslatable(left) || untranslatable(right),
+        Expr::Unary { operand, .. } => untranslatable(operand),
+        Expr::Await(inner) | Expr::Propagate(inner) => untranslatable(inner),
+        Expr::Keyword { value, .. } => untranslatable(value),
+        Expr::Cast { ty, value } => untranslatable(ty) || untranslatable(value),
+        Expr::InstanceOf { value, ty } => untranslatable(value) || untranslatable(ty),
+        Expr::RecordLit { fields, .. } => fields.iter().any(|(_, value)| untranslatable(value)),
+        Expr::Coalesce { value, fallback } => untranslatable(value) || untranslatable(fallback),
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => untranslatable(condition) || untranslatable(then) || untranslatable(otherwise),
+        Expr::Tuple(items) | Expr::ListLit(items) => items.iter().any(untranslatable),
+        Expr::MapLit(entries) => entries
+            .iter()
+            .any(|(k, v)| untranslatable(k) || untranslatable(v)),
+        Expr::Template(parts) => parts.iter().any(|part| match part {
+            TemplatePart::Expr(e) => untranslatable(e),
+            TemplatePart::Text(_) => false,
+        }),
+        Expr::Comprehension {
+            element,
+            iterable,
+            condition,
+            ..
+        } => {
+            untranslatable(element)
+                || untranslatable(iterable)
+                || condition.as_deref().is_some_and(untranslatable)
+        }
+        Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::Bool(_)
+        | Expr::Null
+        | Expr::Name(_) => false,
+    }
+}
+
+/// The constants Rust carries as comments: their values did not translate.
+fn comment_carried_constants(module: &Module) -> Vec<(String, String)> {
+    module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Constant(c) if untranslatable(&c.value) => Some((String::new(), plain(&c.name))),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Translate `file` into `to`, and read the result back.
 fn there_and_back(file: &Path, to: Language) -> Module {
     let plan =
@@ -277,9 +343,17 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             );
 
             let after = fields(&there);
+            // The Rust writer carries a constant whose value did not translate as a
+            // comment, since a `todo!()` in a `const` stops the build. It does not
+            // come back from there. The fidelity report states that loss; this check
+            // is for the ones nothing states.
+            let stated = match to {
+                Language::Rust => comment_carried_constants(&source),
+                _ => Vec::new(),
+            };
             let lost: Vec<_> = fields_before
                 .iter()
-                .filter(|f| !after.contains(f))
+                .filter(|f| !after.contains(f) && !stated.contains(f))
                 .collect();
             assert!(
                 lost.is_empty(),
