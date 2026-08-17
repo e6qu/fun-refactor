@@ -1085,7 +1085,14 @@ fn rust(out: &mut Out, module: &Module) {
                     out.line(&format!("/// {line}"));
                 }
                 out.line("#[test]");
-                out.line(&format!("fn {}() {{", test_slug(name)));
+                // A Zig `test double` names the declaration it covers, and the
+                // slug of that is the declaration's own name; two `fn double`s
+                // do not compile. The covering test takes a suffix.
+                let slug = match out.functions.contains_key(name.as_str()) {
+                    true => format!("{}_covers", test_slug(name)),
+                    false => test_slug(name),
+                };
+                out.line(&format!("fn {slug}() {{"));
                 out.open();
                 rust_block(out, body);
                 out.close();
