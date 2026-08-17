@@ -127,9 +127,12 @@
   function: (scoped_identifier
     name: (identifier) @reference.call))
 
+; The callee of a method call is a call, not a field read. `order.name()` and
+; `order.name` must record apart: a struct may declare both a field and a method
+; under one name, and only the syntax here says which one a use meant.
 (call_expression
   function: (field_expression
-    field: (field_identifier) @reference.field))
+    field: (field_identifier) @reference.call))
 
 (macro_invocation
   macro: (identifier) @reference.call)
