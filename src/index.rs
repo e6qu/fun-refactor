@@ -487,7 +487,14 @@ impl Index {
                 // definitions living in method scopes, the nearest-definition rule
                 // handed a local's own uses to the attribute. Renaming the
                 // local left the rest behind, compiling into UnboundLocalError.
-                !is_member
+                //
+                // One bare name does reach a method: `@size.setter` reads the
+                // `size` the previous `def` bound in the class namespace, from
+                // that same namespace. A method declared in the reference's own
+                // scope is a lexical binding, not a member reached through a
+                // receiver. Attributes stay out: `self.count = 0` binds no name
+                // in the scope it sits in.
+                !is_member || (s.kind == SymbolKind::Method && s.scope == reference.scope)
             } else {
                 true
             }
@@ -711,11 +718,20 @@ impl Index {
             .receiver
             .as_deref()
             .is_some_and(|r| matches!(r, "this" | "self"));
-        let member_candidates = candidates
-            .iter()
-            .filter_map(|id| self.symbol(*id))
-            .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
-            .count();
+        // Two members that are one definition group are one candidate: a
+        // property's getter and setter, an overload set. Counting them as two
+        // called `b.size` ambiguous inside the very class that declares it.
+        let member_candidates = {
+            let members: Vec<SymbolId> = candidates
+                .iter()
+                .copied()
+                .filter(|id| {
+                    self.symbol(*id)
+                        .is_some_and(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
+                })
+                .collect();
+            self.count_entities(&members)
+        };
         let scope_can_settle_it = !member_access || receiver_is_self || member_candidates <= 1;
         let scoped = in_file
             .iter()
@@ -776,6 +792,12 @@ impl Index {
         //    branch at once instead of each branch remembering to.
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
+        }
+        if in_file.len() > 1 {
+            let ids: Vec<SymbolId> = in_file.iter().map(|s| s.id).collect();
+            if self.count_entities(&ids) == 1 {
+                return (Some(ids[0]), Confidence::Exact);
+            }
         }
         if in_file.len() > 1 && !member_access {
             // Ambiguous within the file: report the nearest but do not claim certainty.
@@ -1212,8 +1234,12 @@ impl Index {
             // TS2389: Function implementation name must be 'pick'`. The grammar allows the
             // repetition only for overloads, so same name, same file, same
             // container is the entity.
-            if matches!(sym.language, Language::TypeScript | Language::Tsx)
-                && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method)
+            // Python allows the repetition for a property family: `@property def
+            // size` and `@size.setter def size` are one attribute with two doors.
+            // Renaming the getter alone left the setter answering the old name.
+            if (matches!(sym.language, Language::TypeScript | Language::Tsx)
+                && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method))
+                || (sym.language == Language::Python && sym.kind == SymbolKind::Method)
             {
                 let peers: Vec<SymbolId> = self
                     .symbols
@@ -1250,6 +1276,19 @@ impl Index {
             .filter(|s| s.name == sym.name && s.kind == sym.kind)
             .map(|s| s.id)
             .collect()
+    }
+
+    /// How many distinct entities these symbols denote, with each
+    /// definition group counted once.
+    pub fn count_entities(&self, ids: &[SymbolId]) -> usize {
+        let mut remaining: Vec<SymbolId> = ids.to_vec();
+        let mut count = 0usize;
+        while let Some(first) = remaining.first().copied() {
+            let group = self.definition_group(first);
+            remaining.retain(|id| !group.contains(id) && *id != first);
+            count += 1;
+        }
+        count
     }
 
     /// Do these symbols all denote the same entity?

@@ -107,6 +107,30 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
             .iter()
             .all(|s| group.contains(&s.id));
 
+    // The types that can reach this entity through a declared receiver: the
+    // group's own containers and everything below them. `b: Box` reaches the
+    // property `Box` declares, and `s: Sub2` reaches the method `Base` does.
+    let owners: std::collections::BTreeSet<String> = {
+        let mut owners: std::collections::BTreeSet<String> = group
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter_map(|s| s.qualifier.clone())
+            .collect();
+        if let Some(family) = crate::analysis::call_graph::Family::of(symbol.language) {
+            let subs: Vec<String> = owners
+                .iter()
+                .flat_map(|owner| hierarchy.subtypes_of(family, owner))
+                .collect();
+            owners.extend(subs);
+        }
+        owners
+    };
+    let declared_receiver_reaches = |reference: &crate::model::Reference| {
+        matches!(reference.kind, ReferenceKind::Field | ReferenceKind::Call)
+            && super::receiver_known_type(index, reference)
+                .is_some_and(|declared| owners.contains(&declared))
+    };
+
     let mut reference_edits = 0;
     let mut seen_spans = std::collections::HashSet::new();
     for id in &group {
@@ -114,7 +138,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
             if !seen_spans.insert((reference.file.clone(), reference.span)) {
                 continue;
             }
-            if reference.confidence.is_safe_to_rewrite() {
+            if reference.confidence.is_safe_to_rewrite() || declared_receiver_reaches(reference) {
                 edits.add(
                     reference.file.clone(),
                     Edit::new(
@@ -169,11 +193,6 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         // outside them cannot reach it. `b.size(2)` with `b` declared `B`, and
         // `B` holding its own `size`, was renamed as a dispatch candidate, and
         // javac refused the result.
-        let owners: std::collections::BTreeSet<String> = group
-            .iter()
-            .filter_map(|id| index.symbol(*id))
-            .filter_map(|s| s.qualifier.clone())
-            .collect();
         for reference in index.unresolved_matching(symbol_id) {
             if reference.target.is_some() {
                 continue;
@@ -211,6 +230,56 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                 ),
             ));
         }
+    }
+
+    // A weak member reference whose receiver's declared type owns the renamed
+    // entity. `var b = new B(); b.size(2)` was attributed to a same-named
+    // method elsewhere by proximity, then skipped because the winner was not
+    // ours. The declaration already says which one dispatch reaches, provided
+    // nothing outside the group answers the name on that type: an overload the
+    // group does not hold keeps this hands-off, since which overload a call
+    // takes is not this rename's question.
+    for reference in index.unresolved_matching(symbol_id) {
+        if reference.confidence.is_safe_to_rewrite() {
+            continue;
+        }
+        if !matches!(reference.kind, ReferenceKind::Field | ReferenceKind::Call) {
+            continue;
+        }
+        let Some(declared) = super::receiver_known_type(index, reference) else {
+            continue;
+        };
+        if !owners.contains(&declared) {
+            continue;
+        }
+        let strangers = index
+            .find_symbols(&symbol.name, None)
+            .iter()
+            .any(|s| s.qualifier.as_deref() == Some(declared.as_str()) && !group.contains(&s.id));
+        if strangers {
+            continue;
+        }
+        if !seen_spans.insert((reference.file.clone(), reference.span)) {
+            continue;
+        }
+        edits.add(
+            reference.file.clone(),
+            Edit::new(
+                reference.span,
+                reference_text.as_str(),
+                format!("rename declared-receiver site of {}", symbol.name),
+            ),
+        );
+        reference_edits += 1;
+        warnings.push(locate_warning(
+            WarningKind::DispatchCandidate,
+            &reference.file,
+            reference.span.start,
+            format!(
+                "renamed: its receiver is declared `{declared}`, and what `{declared}` \
+                 answers here is being renamed.",
+            ),
+        ));
     }
 
     // Same-named references that resolved somewhere else, or nowhere. These are not ours to

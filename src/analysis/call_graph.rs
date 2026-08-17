@@ -983,6 +983,26 @@ impl Hierarchy {
         found
     }
 
+    /// Every type below `name`: its direct subtypes and theirs, transitively.
+    ///
+    /// A receiver declared `Sub2` reaches every member `Base` declares, so any
+    /// question of the form "can this declared type reach the family?" has to
+    /// look down the whole chain and not at the family's own types alone.
+    pub(crate) fn subtypes_of(&self, family: Family, name: &str) -> BTreeSet<String> {
+        let mut out = BTreeSet::new();
+        let mut queue = vec![name.to_string()];
+        while let Some(current) = queue.pop() {
+            if let Some(subs) = self.direct_subtypes.get(&(family, current)) {
+                for sub in subs {
+                    if out.insert(sub.clone()) {
+                        queue.push(sub.clone());
+                    }
+                }
+            }
+        }
+        out
+    }
+
     /// Every method in `symbol`'s dispatch family, itself included.
     ///
     /// A trait method and its implementations are one entity to a caller: a
