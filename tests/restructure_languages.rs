@@ -1073,14 +1073,17 @@ fn a_pattern_that_is_only_a_metavariable_is_refused_in_every_language() {
 }
 
 #[test]
-fn an_unparseable_fragment_names_the_wrappers_tried() {
+fn an_unparseable_fragment_is_refused_in_the_language_s_own_words() {
+    // The error used to enumerate the fragment wrappers, which describes the parsing
+    // machinery instead of the mistake in the pattern.
     let ws = workspace(&[("a.css", ".b { color: red; }\n")]);
     let err = restructure::apply(&ws.index, Language::Css, "} not css {", "x").unwrap_err();
     let message = err.to_string();
     assert!(
-        message.contains("not a valid css fragment") && message.contains("<pattern>"),
-        "the error must say what was tried: {message}"
+        message.contains("'} not css {' is not valid css; check for unbalanced brackets."),
+        "the mistake is named: {message}"
     );
+    assert!(!message.contains("wrapper"), "no wrapper jargon: {message}");
 }
 
 #[test]

@@ -67,25 +67,31 @@ by appearing in a refactoring someone wants.
 **Does not extend what the tool can do.** A recipe composes existing operations. If a
 step could not be typed as an `fr` command, it is not a step.
 
-**Not a linter.** It changes code. Reporting without changing is a mode (`--check`),
-not a purpose.
+**Not a linter.** It changes code. Reporting without changing is the default run:
+nothing is written without `--write`, so every run is its own check.
 
 ## The cost of a bespoke syntax, and how it gets paid
 
 This is a third mini-language in one repository, after the entry-point catalogs and
 the `$META` patterns in `restructure`. That is a real cost and it buys terseness. To
-be worth it, three things have to ship *with* the parser and not after it:
+be worth it, three things have to come with the language, and here is where each
+stands:
 
-1. **Errors that name the mistake and where it is**, with a caret and a suggestion
-   from the closed vocabulary. `unknown predicate 'exportd'` with `did you mean
-   'exported'?` is the difference between a language and a chore.
-2. **`fr recipe fmt`**, one canonical layout, so nobody argues about alignment and a
-   diff of a recipe is a diff of its meaning.
-3. **`fr recipe explain`**, print what a recipe would select and do, in prose,
-   without running it. A terse language earns its terseness only if you can ask it
-   what it means.
+1. **Errors that name the mistake and where it is**, with a suggestion from the
+   closed vocabulary. Built: a mistyped predicate is answered with `there is no
+   predicate called 'exportd'. Did you mean 'exported'?`, which is the difference
+   between a language and a chore.
+2. **`fr recipe <file> --explain`**, print what a recipe would do, without running
+   it. Built: it parses the file and prints the steps, the selectors and the
+   expectations, and nothing is selected or run. A terse language earns its
+   terseness only if you can ask it what it means.
+3. **One canonical layout.** Not built. The parser keeps no layout and has no
+   printer that round-trips a file. So an `fr recipe fmt` would be new machinery
+   rather than a flag on what exists. Until it is written, the layout is the
+   author's, and a diff of a recipe is still a diff of its meaning.
 
-Anything less and the YAML we did not write would have been the better choice.
+Anything less on the first two and the YAML we did not write would have been the
+better choice.
 
 ## Lexical structure
 
@@ -403,7 +409,7 @@ recipe drop-dead-adapters {
 ## Sharing, staged, and honest about it
 
 v1 recipes are **local**: a file beside the code it changes, run as
-`fr recipe recipes/retire-legacy-auth.fr --write`. No registry, no fetching, no
+`fr recipe recipes/retire-legacy-auth.recipe --write`. No registry, no fetching, no
 running someone else's file against your source.
 
 `schema 1` is carried from day one anyway, because it costs one line now and is

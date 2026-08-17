@@ -22,4 +22,5 @@ pub use parse::{
     parse, Comparison, Expect, File, OnRefusal, Operation, Predicate, Recipe, Requirement, Step,
     RESERVED, SCHEMA,
 };
+pub(crate) use run::distance;
 pub use run::{run, ExpectReport, Options, Refusal, Report, StepReport, PREDICATES};

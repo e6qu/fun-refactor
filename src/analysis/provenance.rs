@@ -335,6 +335,14 @@ impl Provenance {
     }
 
     pub fn format_tree(&self) -> String {
+        self.format_tree_under(Path::new(""))
+    }
+
+    /// [`Self::format_tree`], with each path under `root` spelled relative to it.
+    ///
+    /// The CLI passes its workspace root so the listing matches the paths a reader
+    /// types back in. A file outside the root keeps its absolute spelling.
+    pub fn format_tree_under(&self, root: &Path) -> String {
         let mut out = String::new();
         for hop in &self.hops {
             let confidence = if hop.confidence.is_safe_to_rewrite() {
@@ -347,7 +355,7 @@ impl Provenance {
                 "  ".repeat(hop.depth),
                 hop.kind.as_str(),
                 hop.text,
-                hop.file.display(),
+                hop.file.strip_prefix(root).unwrap_or(&hop.file).display(),
                 hop.line,
                 confidence
             ));
@@ -369,7 +377,12 @@ impl Provenance {
                     if source.wins { "WINS " } else { "loses" },
                     source.hop.text,
                     source.precedence.label,
-                    source.hop.file.display(),
+                    source
+                        .hop
+                        .file
+                        .strip_prefix(root)
+                        .unwrap_or(&source.hop.file)
+                        .display(),
                     source.hop.line,
                     source.reason
                 ));

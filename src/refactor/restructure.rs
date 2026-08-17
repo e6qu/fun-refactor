@@ -308,16 +308,10 @@ fn parse_fragment(
         return Ok((parsed, source, offset, trim_trailing));
     }
 
-    let tried: Vec<String> = wrappers
-        .iter()
-        .map(|(p, s)| format!("`{}`", format!("{p}<pattern>{s}").replace('\n', "\\n")))
-        .collect();
-    anyhow::bail!(
-        "'{display}' is not a valid {language} fragment: it did not parse in any of the \
-         {} wrapper(s) tried ({})",
-        wrappers.len(),
-        tried.join(", ")
-    )
+    // The wrappers are how a fragment gets parsed, and naming them here described the
+    // machinery instead of the mistake. The mistake is nearly always a pattern that is
+    // not a whole piece of code.
+    anyhow::bail!("'{display}' is not valid {language}; check for unbalanced brackets.")
 }
 
 /// Minimal syntax that makes a fragment parse as a whole file, most specific first.
