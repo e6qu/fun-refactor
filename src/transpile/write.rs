@@ -122,6 +122,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     }
                     walk_stmts(default, add);
                 }
+                Stmt::Defer(cleanup) => walk_stmts(cleanup, add),
                 Stmt::While { body, .. } => walk_stmts(body, add),
                 _ => {}
             }
@@ -485,6 +486,17 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.records = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some((
+                r.name.clone(),
+                r.fields.iter().map(|f| f.name.clone()).collect(),
+            )),
+            _ => None,
+        })
+        .collect();
     match language {
         Language::Rust => rust(&mut out, module),
         Language::Python => python(&mut out, module),
@@ -560,6 +572,13 @@ struct Out {
     /// A call to one is a construction. Two targets spell that their own way:
     /// Java needs `new`, and Zig has no call syntax for a type at all.
     newtypes: std::collections::BTreeMap<String, Type>,
+    /// Each declared record's field names, in order.
+    ///
+    /// `new Point(3, 4)` names no fields, and Rust, Go and Zig construct by
+    /// naming them. When the record is declared right here and the arity
+    /// matches, the positions map onto these; otherwise the construction
+    /// carries.
+    records: std::collections::BTreeMap<String, Vec<String>>,
     /// Text a writer could not put where the expression it replaced stood.
     ///
     /// Zig is the only target here with no block comment: `//` runs to the end of the line, so
@@ -600,6 +619,7 @@ impl Out {
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
+            records: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
@@ -1215,6 +1235,27 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 out.close();
                 out.line("}");
             }
+            Stmt::Defer(cleanup) => {
+                // Rust has no scope-exit hook short of inventing a guard type,
+                // so the body is rendered as Rust and carried as a comment.
+                let mut scratch = Out::new(out.language);
+                scratch.names = out.names.clone();
+                scratch.fields = out.fields.clone();
+                scratch.declared_types = out.declared_types.clone();
+                rust_block(&mut scratch, cleanup);
+                let rendered = scratch.finish();
+                out.carried(&Unsupported {
+                    construct: "defer".into(),
+                    source: rendered.trim().to_string(),
+                    line: 0,
+                });
+                let header = out.comment(&format!("{MARKER}: a defer runs this at scope exit:"));
+                out.line(&header);
+                for line in rendered.lines() {
+                    let commented = out.comment(line);
+                    out.line(&commented);
+                }
+            }
             Stmt::WhilePresent {
                 binding,
                 value,
@@ -1380,6 +1421,18 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Call { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
+            // `Point(0, 0)` from a language whose classes are called is a
+            // construction, and this struct's fields are named, so calling it
+            // would not compile.
+            if let Some(fields) = positional_record(out, callee, args.len()) {
+                let target = rust_expr(out, callee);
+                let pairs: Vec<String> = fields
+                    .iter()
+                    .zip(rendered.iter())
+                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
+                    .collect();
+                return format!("{target} {{ {} }}", pairs.join(", "));
+            }
             format!("{}({})", rust_expr(out, callee), rendered.join(", "))
         }
         Expr::Binary { op, left, right } => format!(
@@ -1395,6 +1448,15 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         // a builder are all idiomatic and which one applies is a fact about the type.
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
+            if let Some(fields) = positional_record(out, callee, args.len()) {
+                let target = rust_expr(out, callee);
+                let pairs: Vec<String> = fields
+                    .iter()
+                    .zip(rendered.iter())
+                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
+                    .collect();
+                return format!("{target} {{ {} }}", pairs.join(", "));
+            }
             let target = rust_expr(out, callee);
             let source = format!("new {target}({})", rendered.join(", "));
             out.carried(&Unsupported {
@@ -1792,7 +1854,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
         return;
     }
     let mut wrote = false;
-    for stmt in body {
+    for (at, stmt) in body.iter().enumerate() {
         // Whether a statement was produced is a property of the statement, asked once here and
         // not set inside each arm. An arm that forgot left a stray `raise NotImplementedError`
         // after a perfectly good body, which is how the `try` arm arrived broken. How the next
@@ -1895,6 +1957,22 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     out.close();
                 }
                 out.close();
+            }
+            Stmt::Defer(cleanup) => {
+                python_line(out, "try:");
+                out.open();
+                let rest = &body[at + 1..];
+                if rest.is_empty() {
+                    python_line(out, "pass");
+                } else {
+                    python_block(out, rest);
+                }
+                out.close();
+                python_line(out, "finally:");
+                out.open();
+                python_block(out, cleanup);
+                out.close();
+                return;
             }
             Stmt::WhilePresent {
                 binding,
@@ -2436,6 +2514,19 @@ fn go(out: &mut Out, module: &Module) {
     }
 }
 
+/// The field names to construct this callee's record with, when a positional
+/// construction can be mapped onto them. The callee must name a record declared
+/// in this module, and the argument count must be the field count.
+fn positional_record(out: &Out, callee: &Expr, arity: usize) -> Option<Vec<String>> {
+    let Expr::Name(name) = callee else {
+        return None;
+    };
+    out.records
+        .get(name)
+        .filter(|fields| fields.len() == arity && arity > 0)
+        .cloned()
+}
+
 /// Does this body leave on its own, making a `break` after it one statement too
 /// many? Java refuses unreachable code outright, so the answer decides whether
 /// the `case` gets one.
@@ -2660,6 +2751,19 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 }
                 out.line("}");
             }
+            Stmt::Defer(cleanup) => match cleanup.as_slice() {
+                [Stmt::Expr(call)] => {
+                    let rendered = go_expr(out, call);
+                    out.line(&format!("defer {rendered}"));
+                }
+                _ => {
+                    out.line("defer func() {");
+                    out.open();
+                    go_block(out, cleanup, None);
+                    out.close();
+                    out.line("}()");
+                }
+            },
             Stmt::WhilePresent {
                 binding,
                 value,
@@ -2841,6 +2945,17 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Index { of, index } => format!("{}[{}]", go_expr(out, of), go_expr(out, index)),
         Expr::Call { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
+            // A call to a declared record is a construction; Go's conversion
+            // syntax `Point(x)` means something else entirely.
+            if let Some(fields) = positional_record(out, callee, args.len()) {
+                let target = go_expr(out, callee);
+                let pairs: Vec<String> = fields
+                    .iter()
+                    .zip(rendered.iter())
+                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
+                    .collect();
+                return format!("{target}{{{}}}", pairs.join(", "));
+            }
             format!("{}({})", go_expr(out, callee), rendered.join(", "))
         }
         Expr::Binary { op, left, right } => format!(
@@ -2873,9 +2988,20 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // `NewThing(..)` is the Go convention, but it is a convention and not a rule. A
-        // constructor this tool invented would be a name that does not exist.
+        // constructor this tool invented would be a name that does not exist. A
+        // record declared right here is different: its fields are known, and a
+        // positional construction maps onto them.
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
+            if let Some(fields) = positional_record(out, callee, args.len()) {
+                let target = go_expr(out, callee);
+                let pairs: Vec<String> = fields
+                    .iter()
+                    .zip(rendered.iter())
+                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
+                    .collect();
+                return format!("{target}{{{}}}", pairs.join(", "));
+            }
             let target = go_expr(out, callee);
             let source = format!("new {target}({})", rendered.join(", "));
             out.carried(&Unsupported {
@@ -3333,7 +3459,7 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
         out.line(&format!("throw new Error(\"{MARKER}\");"));
         return;
     }
-    for stmt in body {
+    for (at, stmt) in body.iter().enumerate() {
         match stmt {
             Stmt::Return(value) => {
                 let text = value
@@ -3436,6 +3562,21 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 }
                 out.close();
                 out.line("}");
+            }
+            Stmt::Defer(cleanup) => {
+                out.line("try {");
+                out.open();
+                let rest = &body[at + 1..];
+                if !rest.is_empty() {
+                    ts_block(out, rest);
+                }
+                out.close();
+                out.line("} finally {");
+                out.open();
+                ts_block(out, cleanup);
+                out.close();
+                out.line("}");
+                return;
             }
             Stmt::WhilePresent {
                 binding,
@@ -4080,7 +4221,22 @@ fn java_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
         }
         return;
     }
-    for stmt in body {
+    for (at, stmt) in body.iter().enumerate() {
+        if let Stmt::Defer(cleanup) = stmt {
+            out.line("try {");
+            out.open();
+            let rest = &body[at + 1..];
+            if !rest.is_empty() {
+                java_block(out, rest, returns);
+            }
+            out.close();
+            out.line("} finally {");
+            out.open();
+            java_block(out, cleanup, None);
+            out.close();
+            out.line("}");
+            return;
+        }
         java_stmt(out, stmt);
     }
 }
@@ -4206,6 +4362,18 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 java_block(out, default, None);
                 out.close();
             }
+            out.close();
+            out.line("}");
+        }
+        // The block above takes a defer together with what follows it; one that
+        // arrives here alone still runs its body at the same point.
+        Stmt::Defer(cleanup) => {
+            out.line("try {");
+            out.open();
+            out.close();
+            out.line("} finally {");
+            out.open();
+            java_block(out, cleanup, None);
             out.close();
             out.line("}");
         }
@@ -5222,6 +5390,19 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.close();
             out.line("}");
         }
+        Stmt::Defer(cleanup) => match cleanup.as_slice() {
+            [Stmt::Expr(call)] => {
+                let rendered = zig_expr(out, call);
+                zig_line(out, &format!("defer {rendered};"));
+            }
+            _ => {
+                zig_line(out, "defer {");
+                out.open();
+                zig_block(out, cleanup, None, mutated);
+                out.close();
+                out.line("}");
+            }
+        },
         Stmt::WhilePresent {
             binding,
             value,
@@ -5390,6 +5571,15 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Call { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
+            if let Some(fields) = positional_record(out, callee, args.len()) {
+                let target = zig_expr(out, callee);
+                let pairs: Vec<String> = fields
+                    .iter()
+                    .zip(rendered.iter())
+                    .map(|(field, value)| format!(".{} = {value}", out.field(field)))
+                    .collect();
+                return format!("{target}{{ {} }}", pairs.join(", "));
+            }
             if let Expr::Name(name) = callee.as_ref() {
                 if let Some(base) = out.newtypes.get(name) {
                     let inner = rendered.join(", ");
@@ -5405,9 +5595,19 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         }
         // Zig has no `new`. A value is made by whatever function on the type returns one, which
         // function that is, `init`, a literal, an allocator call, is a fact about the type and
-        // not about this expression.
+        // not about this expression. A record declared right here is different:
+        // its fields are known, and a positional construction maps onto them.
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
+            if let Some(fields) = positional_record(out, callee, args.len()) {
+                let target = zig_expr(out, callee);
+                let pairs: Vec<String> = fields
+                    .iter()
+                    .zip(rendered.iter())
+                    .map(|(field, value)| format!(".{} = {value}", out.field(field)))
+                    .collect();
+                return format!("{target}{{ {} }}", pairs.join(", "));
+            }
             let target = zig_expr(out, callee);
             zig_carry(out, "new", format!("new {target}({})", rendered.join(", ")))
         }
