@@ -6174,6 +6174,12 @@ fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<S
     if inheritable {
         return Some(base);
     }
+    // Said in the output too, beside the type, because that file is what a reader
+    // of the draft actually has in front of them. A note that lives only in the
+    // report leaves the struct looking whole.
+    out.line(&out.comment(&format!(
+        "{MARKER}: extends {base}; whatever `{base}` contributed is not here"
+    )));
     out.fidelity.notes.push(format!(
         "`{}` extends `{base}` in the source; {} has no inheritance, so whatever \
          `{base}` contributed is not here",

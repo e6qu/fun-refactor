@@ -75,3 +75,23 @@ fn a_computing_constructor_keeps_its_body() {
         plan.output
     );
 }
+
+#[test]
+fn a_lost_supertype_is_said_in_the_output_itself() {
+    // The report already named the dropped `extends`; the draft file did not, and
+    // the draft file is what a reader has in front of them.
+    let source = "export class Repo {\n    find(id: number): number {\n        return id;\n    }\n}\n\n\
+        export class TaskRepo extends Repo {\n    close(id: number): number {\n        \
+        return this.find(id);\n    }\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("repo.ts");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("repo_out.txt");
+    let plan = transpile::plan_to(&path, Language::Rust, Some(&out), false).unwrap();
+    assert!(
+        plan.output
+            .contains("not translated: extends Repo"),
+        "the marker sits beside the type that lost its base:\n{}",
+        plan.output
+    );
+}
