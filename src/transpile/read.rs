@@ -1449,10 +1449,11 @@ mod rust {
                     .field(node, "name")
                     .map(|n| cx.text(n))
                     .unwrap_or_default();
-                // `StopReason::Conditional { … }` builds an enum variant. It reads
-                // as one here and the settle pass at the end of the module keeps it
-                // only where the head names one of this module's own sums; anything
-                // else goes back to being carried, as it always was.
+                // `StopReason::Conditional { … }` builds an enum variant, and it
+                // reads as one here. The settle pass at the end of the module
+                // keeps it only where the head names one of this module's own
+                // sums. Anything else goes back to being carried, as it always
+                // was.
                 if let Some((head, tail)) = ty.rsplit_once("::") {
                     let mut fields = Vec::new();
                     if let Some(body) = cx.field(node, "body") {
@@ -2019,7 +2020,7 @@ mod python {
                 _ => None,
             })
             .collect();
-        // A class consumed into a sum is constructed the same way; the call
+        // A class consumed into a sum is constructed the same way. The call
         // becomes that variant, keyword arguments as its fields and positional
         // ones matched against the variant's declared order.
         let variants: std::collections::BTreeMap<String, (String, Vec<String>)> = module
@@ -5694,9 +5695,9 @@ mod zig {
                 }
             }
             // `.{ .one = n }` builds a variant of whatever union the position
-            // expects. Which union is settled at the end of the module, where the
-            // sums are known; a candidate no sum answers for goes back to being
-            // carried.
+            // expects. Which union is settled at the end of the module, where
+            // the sums are known. A candidate no sum answers for goes back to
+            // being carried.
             "anonymous_struct_initializer" => {
                 let assignments: Vec<Node> = cx
                     .children(node)
@@ -7367,9 +7368,9 @@ fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
 ///
 /// A reader cannot know the sums while it reads expressions, so `Shape::Point`
 /// and `Vec::new` both arrive as candidates. Here the sums are known. A candidate
-/// the module declares stays and takes the sum's plain name; a candidate in
-/// callee position or naming anything else goes back to being carried, which is
-/// what every such path was before candidates existed.
+/// the module declares stays and takes the sum's plain name. A candidate in
+/// callee position or naming anything else goes back to being carried, which
+/// every such path was before candidates existed.
 fn settle_variants(module: &mut Module) {
     use std::collections::{BTreeMap, BTreeSet};
     let sums: BTreeMap<String, BTreeSet<String>> = module
@@ -7420,9 +7421,9 @@ fn settle_variants(module: &mut Module) {
             }
         }
         if let Expr::Variant { sum, name, fields } = e {
-            // An anonymous candidate names no sum at all; it is attributed when
-            // exactly one of the module's sums answers to the variant's name,
-            // and carried when none or several do.
+            // An anonymous candidate names no sum at all. It is attributed
+            // when exactly one of the module's sums answers to the variant's
+            // name, and carried when none or several do.
             if sum.is_empty() {
                 let answering: Vec<&String> = sums
                     .iter()

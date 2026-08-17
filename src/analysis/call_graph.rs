@@ -985,9 +985,9 @@ impl Hierarchy {
 
     /// Every type below `name`: its direct subtypes and theirs, transitively.
     ///
-    /// A receiver declared `Sub2` reaches every member `Base` declares, so any
-    /// question of the form "can this declared type reach the family?" has to
-    /// look down the whole chain and not at the family's own types alone.
+    /// A receiver declared `Sub2` reaches every member `Base` declares. So a
+    /// question of the form "can this declared type reach the family?" looks
+    /// down the whole chain, never at the family's own types alone.
     pub(crate) fn subtypes_of(&self, family: Family, name: &str) -> BTreeSet<String> {
         let mut out = BTreeSet::new();
         let mut queue = vec![name.to_string()];

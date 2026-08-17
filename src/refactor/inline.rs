@@ -777,9 +777,9 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
                 if parameters.iter().any(|p| p == word) {
                     continue;
                 }
-                // A name the callee's own file imported travels the same way a
-                // module global does: `os.environ` pasted where nothing imports
-                // `os` raised NameError just as `LIMIT` did.
+                // A name the callee's own file imported travels the same way
+                // a module global does. `os.environ` pasted where nothing
+                // imports `os` raised NameError just as `LIMIT` did.
                 let defined_beside_callee = callee_info
                     .symbols
                     .iter()

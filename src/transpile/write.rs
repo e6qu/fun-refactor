@@ -687,9 +687,9 @@ struct Out {
     records: std::collections::BTreeMap<String, Vec<String>>,
     /// The module's own choices, whole, for building a variant of one.
     ///
-    /// The name set in `sums` answers "is this a choice"; making a value of one
-    /// needs the declaration itself, for the discriminator TypeScript writes and
-    /// the field order Java's record constructor takes.
+    /// The name set in `sums` answers "is this a choice". Making a value of
+    /// one needs the declaration itself, for the discriminator TypeScript
+    /// writes and the field order Java's record constructor takes.
     sum_items: std::collections::BTreeMap<String, Sum>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
     ///
@@ -4968,8 +4968,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
         }
-        // The discriminator field is what the checker narrows on, so the
-        // literal must be the one the type declared.
+        // The checker narrows on the discriminator field, so the literal
+        // must be the one the type declared.
         Expr::Variant { sum, name, fields } => {
             let tag = out
                 .sum_items

@@ -188,36 +188,37 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   being carried whole. Pinned in `tests/translate_variants.rs`.
 
 - [x] B419: **`fr inline --call` pasted a callee that read its own file's
-  imports.** B412 held module globals back and stopped there: `os.environ`
+  imports.** B412 held module globals back and stopped there. `os.environ`
   crossed into a file that never imports `os` and raised NameError the same
   way. A name bound by the callee file's imports counts as carried now, both
-  ways; visible at the call site, through any import form, and the inline goes
+  ways. Visible at the call site, through any import form, the inline goes
   through. Pinned in `tests/inline_call.rs`.
 
 - [x] B420: **a Python property renamed one door of two.** `@property def size`
   and `@size.setter def size` are one attribute; renaming the getter left the
   setter answering the old name and left `@size.setter` reading a binding the
-  class no longer had. Both defs are one definition group now, and the
+  class no longer had. Both defs are one definition group now. The
   decorator's bare `size` resolves lexically, since a `def` in a class body
   binds the name in the namespace the decorator reads. Pinned in
   `tests/rename_property_family.rs`.
 
 - [x] B421: **a use site inside the owner counted the property's two doors as
-  two candidates.** `b.size` with `b: Box` was called ambiguous inside the very
-  class that declares it. Ambiguity is counted in entities now, never in
-  symbols: candidates that form one definition group are one answer wherever
-  the count decides. Pinned in `tests/rename_property_family.rs`.
+  two candidates.** `b: Box` made `b.size` ambiguous. The very class that
+  declares the property could not reach it, because ambiguity was counted in
+  symbols. It is counted in entities now: candidates that form one definition
+  group are one answer wherever the count decides. Pinned in
+  `tests/rename_property_family.rs`.
 
 - [x] B422: **a receiver the source typed did not carry its member sites.**
   Three forms of the same silence: `b.size` with `b: Box` stayed behind at
   field-based confidence though `Box` declares the property; `s.area()` with
   `s: Sub2` stayed though `Sub2` extends the owner; and `var b = new B()`
   claimed the type unknown though the construction writes it on the right of
-  the `=`. The family's owners now include every declared subtype, the
-  derivation feeds the receiver's type where no annotation exists, and a weak
-  member site whose receiver's known type owns the renamed entity renames with
-  it, provided nothing outside the group answers that name on that type.
-  Pinned in `tests/rename_property_family.rs`.
+  the `=`. The family's owners now include every declared subtype, and the
+  derivation feeds the receiver's type where no annotation exists. A weak
+  member site renames when its receiver's known type owns the renamed entity
+  and nothing else answers that name on that type. Pinned in
+  `tests/rename_property_family.rs`.
 
 - [x] B423: **`self.count` in a subclass one import away stayed behind.** B407
   crossed the class chain inside a file; an attribute family whose base class

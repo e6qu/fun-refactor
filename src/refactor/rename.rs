@@ -236,7 +236,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // entity. `var b = new B(); b.size(2)` was attributed to a same-named
     // method elsewhere by proximity, then skipped because the winner was not
     // ours. The declaration already says which one dispatch reaches, provided
-    // nothing outside the group answers the name on that type: an overload the
+    // nothing outside the group answers the name on that type. An overload the
     // group does not hold keeps this hands-off, since which overload a call
     // takes is not this rename's question.
     for reference in index.unresolved_matching(symbol_id) {

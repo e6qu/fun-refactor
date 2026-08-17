@@ -1,11 +1,10 @@
 //! A value of a closed choice crosses as the variant it is.
 //!
-//! The types crossed for eleven passes while every value of one carried, in
-//! every direction at once: `Shape::Point` reached Python as a comment, and a
-//! Zig `.{ .one = n }` took its whole `if` with it. Each language builds the
-//! same thing its own way, and a path that names anything else, `Vec::new`,
-//! an enum from another crate, goes back to being carried, which is what every
-//! such path was before.
+//! The types crossed for eleven passes while every value of one carried.
+//! `Shape::Point` reached Python as a comment, and a Zig `.{ .one = n }` took
+//! its whole `if` with it. Each language builds the same thing its own way.
+//! A path that names anything else, `Vec::new`, an enum from another crate,
+//! goes back to being carried, which every such path was before.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -29,23 +28,23 @@ fn rust_variants_reach_every_target_as_constructions() {
     let py = translated(SHAPES_RS, "shapes.rs", Language::Python);
     assert!(
         py.contains("return Point()") && py.contains("return Circle(radius=n)"),
-        "Python calls the variant's own constructor:\n{py}"
+        "Python calls the variant's own constructor.\n{py}"
     );
     let ts = translated(SHAPES_RS, "shapes.rs", Language::TypeScript);
     assert!(
         ts.contains("return { kind: \"point\" };")
             && ts.contains("return { kind: \"circle\", radius: n };"),
-        "TypeScript writes the discriminator the type declared:\n{ts}"
+        "TypeScript writes the discriminator the type declared.\n{ts}"
     );
     let go = translated(SHAPES_RS, "shapes.rs", Language::Go);
     assert!(
         go.contains("return (Point{})") && go.contains("return (Circle{Radius: n})"),
-        "Go builds the variant struct, parenthesised out of the composite-literal trap:\n{go}"
+        "Go builds the variant struct, parenthesised out of the composite-literal trap.\n{go}"
     );
     let java = translated(SHAPES_RS, "shapes.rs", Language::Java);
     assert!(
         java.contains("return new Point();") && java.contains("return new Circle(n);"),
-        "Java calls the record constructor positionally:\n{java}"
+        "Java calls the record constructor positionally.\n{java}"
     );
 }
 

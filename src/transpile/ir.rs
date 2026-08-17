@@ -579,7 +579,7 @@ pub enum Expr {
     /// `.{ .one = n }`, `{ kind: "circle", radius }`.
     ///
     /// The types crossed for eleven passes while every value of one carried, in
-    /// every direction at once. Each language builds the same thing its own way:
+    /// every direction at once. Each language builds the same thing its own way.
     /// Rust names the path, Zig the dot-literal, TypeScript writes the
     /// discriminator field, Python and Java call the variant's own constructor,
     /// Go builds the variant struct. Fields are empty for a bare tag.
