@@ -175,6 +175,45 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B429: **`fr flow back` claimed a `-f` nobody passed.** Without inputs the
+  strongest source printed as `user-supplied -f values-prod.yaml`. The label now
+  reads `would win under -f values-prod.yaml`, and a loser says when the
+  override would apply. The hedging around the undecided answer stays. Pinned
+  in `tests/helm_inputs.rs`.
+
+- [x] B428: **`fr impact` promoted callers past an unproven edge to certain.**
+  Each caller carried only its last hop's confidence. So everything above a
+  field-based dispatch edge read as "would definitely change". A route is now as
+  trustworthy as its weakest edge, and a node keeps the best route's confidence.
+  Pinned in `src/analysis/impact.rs` tests.
+
+- [x] B427: **a call through an import alias resolved to nothing.** `from lib
+  import helper as h2` then `h2()` left `helper` with no callers. A bare name an
+  import binds resolves through the import under the imported original, at
+  import-qualified confidence. An aliased re-export chain carries each hop's own
+  original name. Pinned in `src/index.rs` tests.
+
+- [x] B426: **declared Python console scripts read as dead code.** `fr
+  entrypoints --unreachable` flagged a function that `[project.scripts]`
+  installs as a command. setup.py `console_scripts`, pyproject
+  `[project.scripts]` and a package's `__main__.py` are entry points now. The
+  packaging files are read line by line, and each detection's rule says so.
+  Pinned in `src/analysis/entrypoints.rs` tests.
+
+- [x] B425: **docker-compose `environment` entries were invisible to `fr
+  stitch`.** Both spellings count now, `APP_MODE: x` and `- APP_MODE=x`.
+  Compose files are recognised by shape, a
+  top-level `services:` mapping with an `environment` key under it. Their
+  variables join chains and orphan detection beside the Kubernetes `env:`
+  shapes. Pinned in `src/analysis/stitch.rs` tests.
+
+- [x] B424: **a chart value declared in two values files was two symbols.**
+  Usages found nothing. A rename moved one file, and delete removed a value
+  the template still read. A Helm values key now groups
+  with its same-path keys across one chart's `values*.yaml` files, the way CSS
+  classes group. Usages, rename and delete act on the whole entity, and the
+  template read blocks delete. Pinned in `tests/helm_values_refs.rs` and
+  `src/index.rs` tests.
 - [x] B418: **a value of a sum type never crossed.** The types crossed for
   eleven passes while every value of one carried: Rust's `Shape::Point` reached
   Python as a comment, Zig's `.{ .one = n }` took its whole `if` with it, and

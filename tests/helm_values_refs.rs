@@ -132,3 +132,71 @@ fn renaming_a_values_key_rewrites_the_templates_and_leaves_builtins_alone() {
         "a builtin of the same name is not a values key:\n{template}"
     );
 }
+
+#[test]
+fn a_value_in_two_values_files_renames_everywhere_at_once() {
+    // values.yaml and values-prod.yaml declare one value; the rename has to move
+    // both layers and the template read, or the chart splits in two.
+    let tmp = chart(&[
+        ("c/Chart.yaml", "apiVersion: v2\nname: c\nversion: 0.1.0\n"),
+        ("c/values.yaml", "replicaCount: 1\n"),
+        ("c/values-prod.yaml", "replicaCount: 5\n"),
+        (
+            "c/templates/deploy.yaml",
+            "spec:\n  replicas: {{ .Values.replicaCount }}\n",
+        ),
+    ]);
+    let index = index_of(&tmp);
+    let key = index.find_symbols("replicaCount", Some(&tmp.path().join("c/values.yaml")))[0].id;
+
+    let plan = fun_refactor::refactor::rename::plan(&index, key, "replicas").unwrap();
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .unwrap();
+    fun_refactor::edit::commit(&outcomes).unwrap();
+
+    let defaults = std::fs::read_to_string(tmp.path().join("c/values.yaml")).unwrap();
+    let prod = std::fs::read_to_string(tmp.path().join("c/values-prod.yaml")).unwrap();
+    let template = std::fs::read_to_string(tmp.path().join("c/templates/deploy.yaml")).unwrap();
+    assert!(defaults.contains("replicas: 1"), "got:\n{defaults}");
+    assert!(prod.contains("replicas: 5"), "got:\n{prod}");
+    assert!(
+        template.contains("{{ .Values.replicas }}"),
+        "got:\n{template}"
+    );
+}
+
+#[test]
+fn deleting_a_value_a_template_reads_is_refused_from_either_site() {
+    let tmp = chart(&[
+        ("c/Chart.yaml", "apiVersion: v2\nname: c\nversion: 0.1.0\n"),
+        ("c/values.yaml", "replicaCount: 1\n"),
+        ("c/values-prod.yaml", "replicaCount: 5\n"),
+        (
+            "c/templates/deploy.yaml",
+            "spec:\n  replicas: {{ .Values.replicaCount }}\n",
+        ),
+    ]);
+    let index = index_of(&tmp);
+    for file in ["c/values.yaml", "c/values-prod.yaml"] {
+        let key = index.find_symbols("replicaCount", Some(&tmp.path().join(file)))[0].id;
+        let err = fun_refactor::refactor::delete::plan(&index, key)
+            .expect_err("a value the template still reads must not be deletable");
+        assert!(err.to_string().contains("refusing to delete"), "got: {err}");
+    }
+}
+
+#[test]
+fn deleting_a_value_nothing_reads_removes_every_layer() {
+    let tmp = chart(&[
+        ("c/Chart.yaml", "apiVersion: v2\nname: c\nversion: 0.1.0\n"),
+        ("c/values.yaml", "replicaCount: 1\nkept: yes\n"),
+        ("c/values-prod.yaml", "replicaCount: 5\n"),
+        ("c/templates/deploy.yaml", "spec:\n  name: static\n"),
+    ]);
+    let index = index_of(&tmp);
+    let key = index.find_symbols("replicaCount", Some(&tmp.path().join("c/values.yaml")))[0].id;
+
+    let plan = fun_refactor::refactor::delete::plan(&index, key).unwrap();
+    assert_eq!(plan.sites, 2, "both layers go together");
+}

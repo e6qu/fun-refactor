@@ -2138,10 +2138,13 @@ impl Ctx<'_> {
                 }
                 out.push(ValuesSource {
                     rank: USER_SUPPLIED,
+                    // With no inputs described, nobody supplied this file. It sits
+                    // at the rank a `-f` would give it. The label keeps the win
+                    // conditional instead of claiming a flag that was never passed.
                     label: if supplied {
                         format!("-f {} (not passed)", file_name(&file))
                     } else {
-                        format!("user-supplied -f {}", file_name(&file))
+                        format!("would win under -f {}", file_name(&file))
                     },
                     origin: ValuesOrigin::Key { file, symbol },
                     participates: !supplied,
@@ -2405,7 +2408,12 @@ impl Ctx<'_> {
             };
         }
         match winning_label {
-            Some(label) => format!("overridden by {label}"),
+            // The conditional label does not name a source, so "overridden by" would
+            // read as a sentence about a sentence. Spell the condition out instead.
+            Some(label) => match label.strip_prefix("would win under ") {
+                Some(flag) => format!("overridden when the command line passes {flag}"),
+                None => format!("overridden by {label}"),
+            },
             None => "no source here supplies the value".to_string(),
         }
     }

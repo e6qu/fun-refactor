@@ -9,7 +9,7 @@
 
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Symbol, SymbolId, SymbolKind};
+use crate::model::{ReferenceKind, Symbol, SymbolId, SymbolKind};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -385,10 +385,228 @@ impl Catalog {
                 }
             }
         }
+        found.extend(python_packaging_entrypoints(index));
         found.sort_by_key(|e| (e.kind, e.symbol));
         found.dedup_by_key(|e| (e.symbol, e.kind));
         found
     }
+}
+
+/// Entry points Python packaging declares, which no catalog rule can express.
+///
+/// Every catalog condition speaks about the symbol and its own file. These
+/// conventions point across files. A package's `__main__.py` runs functions
+/// defined elsewhere. A `console_scripts` or `[project.scripts]` entry names a
+/// function by module path from a packaging file the function never mentions.
+fn python_packaging_entrypoints(index: &Index) -> Vec<Entrypoint> {
+    let mut found = dunder_main_entrypoints(index);
+    found.extend(console_script_entrypoints(index));
+    found
+}
+
+/// Functions a package's `__main__.py` calls at module level.
+///
+/// `python -m pkg` executes the module's top-level statements, so those statements
+/// are the entry the way a script's are. The guard block is a top-level statement
+/// too. Calls inside a function defined here are the function's business, so only
+/// calls outside every callable count.
+fn dunder_main_entrypoints(index: &Index) -> Vec<Entrypoint> {
+    let mut found = Vec::new();
+    for (path, info) in index.files() {
+        if info.language != Language::Python {
+            continue;
+        }
+        if path.file_name().and_then(|n| n.to_str()) != Some("__main__.py") {
+            continue;
+        }
+        let callables: Vec<&Symbol> = info
+            .symbols
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter(|s| s.kind.is_callable())
+            .collect();
+        for reference in info.references.iter().map(|i| &index.references[*i]) {
+            if reference.kind != ReferenceKind::Call {
+                continue;
+            }
+            if callables
+                .iter()
+                .any(|c| c.full_span.contains(reference.span))
+            {
+                continue;
+            }
+            let Some(target) = reference.target.and_then(|t| index.symbol(t)) else {
+                continue;
+            };
+            if !target.kind.is_callable() {
+                continue;
+            }
+            found.push(Entrypoint {
+                symbol: target.id,
+                kind: EntryKind::CliMain,
+                threat_model: ThreatModel::Local,
+                rule: format!(
+                    "python-package-main (called at module level of {})",
+                    path.display()
+                ),
+            });
+        }
+    }
+    found
+}
+
+/// Functions that setup.py `console_scripts` or pyproject.toml `[project.scripts]`
+/// declare as installed commands.
+///
+/// The packaging files are read line by line, and each detection's rule says so.
+/// A target assembled by code or spread over several lines is not seen, which is
+/// a real gap instead of a hidden one.
+fn console_script_entrypoints(index: &Index) -> Vec<Entrypoint> {
+    let mut found = Vec::new();
+    for (file, basis) in packaging_files(index) {
+        let Ok(text) = crate::vfs::read_to_string(&file) else {
+            continue;
+        };
+        for (script, module, function) in script_targets(&text, &basis) {
+            let Some(symbol) = module_function(index, &module, &function) else {
+                continue;
+            };
+            found.push(Entrypoint {
+                symbol,
+                kind: EntryKind::CliMain,
+                threat_model: ThreatModel::Local,
+                rule: format!(
+                    "python-console-script ({} declares {} = {}:{}, matched line by line)",
+                    basis, script, module, function
+                ),
+            });
+        }
+    }
+    found
+}
+
+/// The packaging files near this workspace's code, each with the label a detection
+/// cites as its basis.
+///
+/// `setup.py` is Python and already indexed. `pyproject.toml` is not an indexed
+/// language, so it is probed for on every ancestor directory down to the deepest
+/// one the indexed files share. A project keeps it at the root while the code
+/// sits in a package below, so the immediate parents alone missed it.
+fn packaging_files(index: &Index) -> Vec<(std::path::PathBuf, String)> {
+    let mut out = Vec::new();
+    let mut root: Option<std::path::PathBuf> = None;
+    for (path, _) in index.files() {
+        if path.file_name().and_then(|n| n.to_str()) == Some("setup.py") {
+            out.push((path.clone(), "setup.py console_scripts".to_string()));
+        }
+        root = match root {
+            None => path.parent().map(Path::to_path_buf),
+            Some(mut shared) => {
+                while !path.starts_with(&shared) {
+                    let Some(up) = shared.parent() else { break };
+                    shared = up.to_path_buf();
+                }
+                Some(shared)
+            }
+        };
+    }
+    let Some(root) = root else { return out };
+    let mut dirs = std::collections::BTreeSet::new();
+    // One level above the deepest shared directory as well. A project keeps
+    // pyproject.toml at its root while every indexed file sits inside the one
+    // package below it. One level and no further, so the probe cannot wander up
+    // the filesystem.
+    if let Some(above) = root.parent() {
+        dirs.insert(above.to_path_buf());
+    }
+    for (path, _) in index.files() {
+        let mut dir = path.parent();
+        while let Some(d) = dir {
+            dirs.insert(d.to_path_buf());
+            if d == root {
+                break;
+            }
+            dir = d.parent();
+        }
+    }
+    for dir in dirs {
+        let candidate = dir.join("pyproject.toml");
+        if crate::vfs::exists(&candidate) {
+            out.push((candidate, "pyproject.toml [project.scripts]".to_string()));
+        }
+    }
+    out
+}
+
+/// The `(script, module, function)` entries a packaging file declares.
+///
+/// Both formats put one entry per line inside a named section. For setup.py the
+/// section opens at `console_scripts` and closes at `]`; for pyproject.toml it opens
+/// at `[project.scripts]` and closes at the next `[` heading.
+fn script_targets(text: &str, basis: &str) -> Vec<(String, String, String)> {
+    let toml = basis.starts_with("pyproject");
+    let mut out = Vec::new();
+    let mut inside = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if !inside {
+            inside = match toml {
+                true => trimmed == "[project.scripts]",
+                false => trimmed.contains("console_scripts"),
+            };
+            continue;
+        }
+        let closed = match toml {
+            true => trimmed.starts_with('['),
+            false => trimmed.starts_with(']') || trimmed.contains(']'),
+        };
+        if closed {
+            inside = false;
+            continue;
+        }
+        let entry = trimmed
+            .trim_end_matches(',')
+            .trim_matches(['"', '\''])
+            .replace(['"', '\''], "");
+        let Some((script, target)) = entry.split_once('=') else {
+            continue;
+        };
+        let Some((module, function)) = target.split_once(':') else {
+            continue;
+        };
+        out.push((
+            script.trim().to_string(),
+            module.trim().to_string(),
+            function.trim().to_string(),
+        ));
+    }
+    out
+}
+
+/// The top-level function `module:function` names, when the workspace holds it.
+///
+/// `pkg.mod` maps onto `pkg/mod.py` or `pkg/mod/__init__.py`. The path suffix is
+/// matched against the indexed files, so two same-named modules in different
+/// trees stay apart as long as their package paths differ.
+fn module_function(index: &Index, module: &str, function: &str) -> Option<SymbolId> {
+    let relative: std::path::PathBuf = module.split('.').collect();
+    let suffixes = [relative.with_extension("py"), relative.join("__init__.py")];
+    for (path, info) in index.files() {
+        if !suffixes.iter().any(|suffix| path.ends_with(suffix)) {
+            continue;
+        }
+        let hit = info
+            .symbols
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .find(|s| {
+                s.name == function && s.kind == SymbolKind::Function && s.container.is_none()
+            });
+        if let Some(symbol) = hit {
+            return Some(symbol.id);
+        }
+    }
+    None
 }
 
 /// The roots a reachability question starts from.
@@ -818,10 +1036,11 @@ mod tests {
                 std::fs::create_dir_all(parent).unwrap();
             }
             crate::vfs::write(&path, content).unwrap();
-            scanned.files.push(SourceFile {
-                language: crate::lang::detect(&path).unwrap(),
-                path,
-            });
+            // A file with no detected language stays on disk without joining the
+            // index, the footing pyproject.toml has in a real scan.
+            if let Some(language) = crate::lang::detect(&path) {
+                scanned.files.push(SourceFile { language, path });
+            }
         }
         (tmp, Index::build_from_scan(&scanned).unwrap())
     }
@@ -992,6 +1211,114 @@ mod tests {
             entries.iter().any(|e| e.rule == "xml-maven-project"),
             "a build descriptor is external input: {entries:?}"
         );
+    }
+
+    const CLI_PY: &str = "def main():\n    print(\"main\", shared())\n\n\ndef other_main():\n    print(\"other\", shared())\n\n\ndef shared():\n    return 7\n";
+
+    #[test]
+    fn a_packages_dunder_main_makes_what_it_calls_an_entry_point() {
+        let (_tmp, index) = workspace(&[
+            ("mypkg/__init__.py", "\n"),
+            (
+                "mypkg/__main__.py",
+                "from mypkg.cli import main\n\nif __name__ == \"__main__\":\n    main()\n",
+            ),
+            ("mypkg/cli.py", CLI_PY),
+        ]);
+        let entries = Catalog::builtin().unwrap().detect(&index);
+        let main = index
+            .find_symbols("main", None)
+            .into_iter()
+            .find(|s| s.file.ends_with("cli.py"))
+            .unwrap();
+        let entry = entries
+            .iter()
+            .find(|e| e.symbol == main.id && e.kind == EntryKind::CliMain)
+            .unwrap_or_else(|| panic!("main is an entry point: {entries:?}"));
+        assert!(!entry.rule.is_empty(), "the detection names its basis");
+    }
+
+    #[test]
+    fn a_call_inside_a_function_of_dunder_main_is_not_itself_an_entry() {
+        // Only module-level statements run under `python -m pkg`. A call inside a
+        // helper defined here is that helper's business.
+        let (_tmp, index) = workspace(&[
+            ("mypkg/__init__.py", "\n"),
+            (
+                "mypkg/__main__.py",
+                "def wrapper():\n    inner()\n\n\ndef inner():\n    pass\n",
+            ),
+        ]);
+        let entries = Catalog::builtin().unwrap().detect(&index);
+        let inner = index.find_symbols("inner", None)[0];
+        assert!(
+            !entries
+                .iter()
+                .any(|e| e.symbol == inner.id && e.rule.starts_with("python-package-main")),
+            "got {entries:?}"
+        );
+    }
+
+    #[test]
+    fn a_setup_py_console_script_is_an_entry_point() {
+        let (_tmp, index) = workspace(&[
+            (
+                "setup.py",
+                "from setuptools import setup\n\nsetup(\n    name=\"mypkg\",\n    entry_points={\n        \"console_scripts\": [\n            \"mytool=mypkg.cli:run_tool\",\n        ]\n    },\n)\n",
+            ),
+            ("mypkg/__init__.py", "\n"),
+            ("mypkg/cli.py", "def run_tool():\n    return 7\n"),
+        ]);
+        let entries = Catalog::builtin().unwrap().detect(&index);
+        let run_tool = index
+            .find_symbols("run_tool", None)
+            .into_iter()
+            .find(|s| s.file.ends_with("cli.py"))
+            .unwrap();
+        let entry = entries
+            .iter()
+            .find(|e| e.symbol == run_tool.id && e.kind == EntryKind::CliMain)
+            .unwrap_or_else(|| panic!("the console script is an entry: {entries:?}"));
+        assert!(
+            entry.rule.contains("setup.py"),
+            "the provenance names the packaging file: {}",
+            entry.rule
+        );
+    }
+
+    #[test]
+    fn a_pyproject_scripts_entry_keeps_its_function_reachable() {
+        // The probe saw `other_main` flagged for deletion although
+        // `[project.scripts]` installs it as a command.
+        let (_tmp, index) = workspace(&[
+            (
+                "pyproject.toml",
+                "[project]\nname = \"mypkg\"\nversion = \"0.1.0\"\n\n[project.scripts]\nothertool = \"mypkg.cli:other_main\"\n",
+            ),
+            ("mypkg/__init__.py", "\n"),
+            ("mypkg/cli.py", CLI_PY),
+            ("mypkg/extra.py", "def dead():\n    return \"never called\"\n"),
+        ]);
+        let entries = Catalog::builtin().unwrap().detect(&index);
+        let other_main = index.find_symbols("other_main", None)[0];
+        let entry = entries
+            .iter()
+            .find(|e| e.symbol == other_main.id)
+            .unwrap_or_else(|| panic!("other_main is declared as a script: {entries:?}"));
+        assert!(
+            entry.rule.contains("pyproject.toml"),
+            "the provenance names its basis: {}",
+            entry.rule
+        );
+
+        let graph = crate::analysis::call_graph::CallGraph::build(&index);
+        let seeds: Vec<SymbolId> = entries.iter().map(|e| e.symbol).collect();
+        let reachable = graph.reachable_from(&seeds);
+        assert!(reachable.contains(&other_main.id));
+        let shared = index.find_symbols("shared", None)[0];
+        assert!(reachable.contains(&shared.id), "what a script calls lives");
+        let dead = index.find_symbols("dead", None)[0];
+        assert!(!reachable.contains(&dead.id), "truly dead code stays dead");
     }
 
     #[test]

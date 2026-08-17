@@ -1418,3 +1418,15 @@ Java. The Zig ledger fixture fell from ten rustc errors to five, and every
 survivor names a foreign API out loud. Carried error propagation fell from 46
 to 20 across the corpus. The Zig reader stopped dropping one-statement
 branches in silence, and the ledger now states them.
+
+### The pass where the analyses told the whole truth
+
+A chart value with two values files is one entity now: every command acts on
+every layer, and a template read blocks delete. `fr stitch` reads
+docker-compose `environment` blocks in both spellings, so compose variables
+join chains and orphan detection. Python packaging declares entry points, and
+declared console scripts stopped reading as dead code. A call through an
+import alias reaches the call graph, and an aliased re-export chain resolves
+to its declaration. `fr impact` carries a route's weakest confidence, so a
+caller past a dispatch edge lands under needs-review. And `fr flow back`
+stopped claiming a `-f` that nobody passed. (B424 through B429.)
