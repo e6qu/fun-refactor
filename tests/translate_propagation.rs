@@ -4,8 +4,8 @@
 //! failure leave the function with the failure. Python, TypeScript and Java mean
 //! the same thing by writing nothing, because an exception propagates unless
 //! something catches it. Their drafts say the expression bare and note it once.
-//! Go has no propagation at all; a dropped `?` would turn an early return into a
-//! plain call, so Go carries it.
+//! Go says it longhand, the way every Go function does: bind the error beside the
+//! value, check it, and return the Result's zero with it.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -72,17 +72,25 @@ fn python_writes_the_expression_bare_and_says_so_once() {
 }
 
 #[test]
-fn go_carries_propagation_instead_of_dropping_the_early_return() {
+fn go_writes_propagation_as_the_error_check_it_means() {
     let (_tmp, root) = workspace(&[("reader.rs", READER_RS)]);
     let plan = transpile::plan(&root.join("reader.rs"), Language::Go).expect("a draft");
+    for expected in [
+        "func readAll(path string) (int, error) {",
+        "n, err := parse(path)",
+        "if err != nil {",
+        "return 0, err",
+        "return n, nil",
+    ] {
+        assert!(
+            plan.output.contains(expected),
+            "missing `{expected}`:\n{}",
+            plan.output
+        );
+    }
     assert!(
-        plan.output.contains(transpile::MARKER),
-        "a bare call would lose the early return.\n{}",
-        plan.output
-    );
-    assert!(
-        plan.output.contains("parse(path)?"),
-        "the carried text keeps the original:\n{}",
+        !plan.output.contains(transpile::MARKER),
+        "the early return is Go's own idiom, not a loss.\n{}",
         plan.output
     );
 }

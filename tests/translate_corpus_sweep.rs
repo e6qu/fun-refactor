@@ -20,6 +20,13 @@ use std::path::PathBuf;
 /// crossing that empties a big container, the payload `if`, the `test` block,
 /// surfaces the losses its body used to swallow under one line. One count
 /// falls; its contents' counts rise.
+///
+/// The same happened when the Zig reader learned that a branch or a loop body can
+/// be one bare statement: `if (x) return e;` used to drop its return without a
+/// word, and reading it made the statements that cannot cross carry visibly, so
+/// `return_expression` and `expression_statement` rose. A `while` with a step
+/// clause now carries whole instead of quietly losing its step, which is the
+/// `while_statement` line.
 const CARRIED: &[(&str, usize)] = &[
     ("await", 26),
     ("anonymous_struct_initializer", 55),
@@ -37,10 +44,10 @@ const CARRIED: &[(&str, usize)] = &[
     ("defer", 60),
     ("errdefer", 22),
     ("comptime_expression", 6),
-    ("error propagation", 46),
+    ("error propagation", 20),
     ("error_set_declaration", 10),
     ("enum_declaration", 5),
-    ("expression_statement", 615),
+    ("expression_statement", 620),
     ("field_expression", 5),
     ("for_statement", 15),
     ("function_declaration", 5),
@@ -53,6 +60,7 @@ const CARRIED: &[(&str, usize)] = &[
     ("map literal", 11),
     ("multiline_string", 5),
     ("new", 39),
+    ("return_expression", 20),
     ("return_statement", 10),
     ("switch_expression", 58),
     ("test_declaration", 10),
@@ -60,7 +68,8 @@ const CARRIED: &[(&str, usize)] = &[
     ("try", 10),
     ("try/catch", 5),
     ("tuple", 2),
-    ("variable_declaration", 425),
+    ("variable_declaration", 420),
+    ("while_statement", 5),
 ];
 
 fn corpus_files() -> Vec<(PathBuf, Language)> {

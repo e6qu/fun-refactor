@@ -1,6 +1,6 @@
 //! Writing the IR out as a language.
 //!
-//! Each writer targets idiom and not transliteration: a record becomes a Rust
+//! Each writer targets idiom and not transliteration. A record becomes a Rust
 //! `struct` with an `impl` block, a Python `@dataclass`, a Go `struct` with methods
 //! beside it, a TypeScript `class`. Naming follows the target's convention,
 //! `snake_case` in Rust and Python, `camelCase` in TypeScript, `PascalCase` for
@@ -41,7 +41,7 @@ enum Kind {
 ///
 /// Only its own. A name absent from this map is foreign, a library, a builtin,
 /// somebody else's field, and is written as the source had it. That is the
-/// whole of the safety argument: the tool renames what the file declares and nothing
+/// whole of the safety argument. The tool renames what the file declares and nothing
 /// else, which is the same rule its refactorings follow.
 type Spellings = (BTreeMap<String, String>, BTreeMap<String, String>);
 
@@ -169,9 +169,8 @@ fn spellings(language: Language, module: &Module) -> Spellings {
             }
             // A `const` bound to a literal is a constant and takes the
             // `SCREAMING_SNAKE` convention. One bound to a call is a binding that
-            // happens to be immutable, `const schema = z.object({...})`, and
-            // shouting its name would be wrong in Python and unstable across a
-            // round trip.
+            // happens to be immutable, `const schema = z.object({...})`. Shouting
+            // its name would be wrong in Python and unstable across a round trip.
             Item::Constant(c) => {
                 let kind = match c.value {
                     Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Bool(_) | Expr::Null => {
@@ -194,6 +193,17 @@ fn spellings(language: Language, module: &Module) -> Spellings {
             Item::Import { .. } | Item::Unsupported(_) => {}
         }
     }
+    // Go's entry point is the one name whose spelling is load-bearing. The runtime
+    // calls `main`, lowercase and niladic, and an exported `Main` is a program that
+    // never starts. Python reads its own `def main` as exported, so the convention
+    // wanted a capital, and `package main` came out with no entry point at all.
+    if language == Language::Go
+        && module.items.iter().any(
+            |item| matches!(item, Item::Function(f) if f.name == "main" && f.params.is_empty()),
+        )
+    {
+        map.remove("main");
+    }
     (map, fields)
 }
 
@@ -201,9 +211,9 @@ fn spellings(language: Language, module: &Module) -> Spellings {
 ///
 /// A `*` marker is not a parameter and is never written. `*args` is exact wherever the target
 /// has a variadic and a change of convention where it does not. `**kwargs` is a change of
-/// convention everywhere but Python. `changed` is reported and not hidden, because a caller of
-/// the translated function writes the call differently and nothing else in the output would say
-/// so.
+/// convention everywhere but Python. `changed` is reported and not hidden. A caller of
+/// the translated function writes the call differently, and nothing else in the output
+/// would say so.
 fn spell_param(out: &Out, kind: ParamKind, raw: &str, changed: &mut bool) -> Option<String> {
     // A bare `*` or `/` is punctuation standing where a parameter would go. Putting it through
     // the naming map asked what `*` is called in TypeScript. The answer, "not a name this
@@ -447,7 +457,7 @@ fn receiver_word(language: Language) -> &'static str {
         Language::Java | Language::TypeScript | Language::Tsx => "this",
         // Go's convention is a one- or two-letter abbreviation of the type. There is no way to
         // pick one that is guaranteed not to collide with a parameter. `self` is not a keyword
-        // there and cannot collide with anything the source declared, because a Go file that
+        // there and cannot collide with anything the source declared. A Go file that
         // used it would have been read as a receiver.
         _ => "self",
     }
@@ -462,9 +472,9 @@ pub fn write(language: Language, module: &Module) -> Result<(String, Fidelity)> 
 
 /// Write `module`, spelling names as declared by `context`.
 ///
-/// The two are the same module except where a caller writes a *piece* of a file on its own, the
-/// Next.js translation writes each handler body as its own module so it can indent it into a
-/// decorated `def`. Spelling from the piece alone means a call to a helper declared elsewhere
+/// The two are the same module, except where a caller writes a *piece* of a file on its own.
+/// The Next.js translation writes each handler body as its own module so it can indent it into
+/// a decorated `def`. Spelling from the piece alone means a call to a helper declared elsewhere
 /// in the same file keeps its original casing. So the declaration says
 /// `verify_current_user_has_access_to_post` and the call still says
 /// `verifyCurrentUserHasAccessToPost`.
@@ -546,8 +556,26 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.result_returns = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) => {
+                result_ok(&out.declared_types, f.returns.as_ref()).map(|ok| (f.name.clone(), ok))
+            }
+            _ => None,
+        })
+        .collect();
+    out.sums = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some(s.name.clone()),
+            _ => None,
+        })
+        .collect();
     // A target without inheritance can still hold what a base in the same module
-    // contributed: the base's own fields and methods, laid flat into the extending
+    // contributed. The base's own fields and methods lay flat into the extending
     // record. The supertype marker then only stands where the base is truly out
     // of reach.
     let flattened = match language {
@@ -613,8 +641,8 @@ struct Out {
     names: BTreeMap<String, String>,
     /// Names that are not identifiers at all in any of these languages.
     ///
-    /// Reported and not quietly reshaped, because the replacement is a name the
-    /// source never used and every call to it has to be found by hand.
+    /// Reported and not quietly reshaped. The replacement is a name the source
+    /// never used, and every call to it has to be found by hand.
     unnameable: std::cell::RefCell<std::collections::BTreeSet<String>>,
     /// Names that had to be escaped because the target reserves them.
     ///
@@ -626,14 +654,14 @@ struct Out {
     /// The types this module declares.
     ///
     /// A signature mentioning one of them is complete, not "mentioning a type this
-    /// tool does not know", the record is right there in the same output. Reporting
+    /// tool does not know". The record is right there in the same output. Reporting
     /// the file's own records as foreign made a perfect translation confess to a
-    /// problem it did not have, which is how a fidelity report stops being read.
+    /// problem it did not have. A fidelity report treated that way stops being read.
     declared_types: std::collections::BTreeSet<String>,
     /// Packages the Go this writer produced needs to import.
     ///
-    /// `print` becomes `fmt.Println` and `.upper()` becomes `strings.ToUpper`;
-    /// discovered while the body is written, inserted under the package clause
+    /// `print` becomes `fmt.Println` and `.upper()` becomes `strings.ToUpper`.
+    /// Discovered while the body is written, and inserted under the package clause
     /// after, because Go will not compile a file that names a package it never
     /// imported.
     go_imports: std::collections::BTreeSet<&'static str>,
@@ -687,6 +715,44 @@ struct Out {
     /// receiver and a binding is not, so they do not share a namespace in any of these
     /// languages either.
     fields: BTreeMap<String, String>,
+    /// The ok type of the `Result` the Go function being written returns, if it is one.
+    ///
+    /// Go spells that Result as its own `(T, error)` pair, and the body's `Ok`, `Err`
+    /// and propagations become the returns and checks that pair means. The type lives
+    /// here because a `return Err(...)` sits inside nested blocks that know nothing
+    /// of the signature. Each needs the ok side's zero to return beside the error.
+    go_result: Option<Type>,
+    /// How many error bindings the Go body being written has introduced.
+    ///
+    /// `:=` needs a new name on its left, and a body with two propagated calls
+    /// declared `err` twice. Numbering from the second one on keeps every check its
+    /// own binding.
+    go_errors: usize,
+    /// Each declared function's `Result` ok type, where its return is one.
+    ///
+    /// A propagated call whose value the source discards still has to bind the
+    /// callee's results. How many there are is a fact about the callee, and a callee
+    /// whose ok side is unit returns the error alone here.
+    result_returns: BTreeMap<String, Type>,
+    /// The sums this module declares.
+    ///
+    /// A variant is reached through its type, `ParseError.Empty`, and how a target
+    /// spells that reach is its own. Rust says `ParseError::Empty`. Go's marker
+    /// convention has no reach at all and takes the variant's name as the message.
+    sums: std::collections::BTreeSet<String>,
+    /// The bindings of the catch clauses currently being written, innermost last.
+    ///
+    /// The canonical `str(e)` on one of these is the exception as text, and Python is
+    /// the only target whose plain conversion says the message alone. TypeScript and
+    /// Java reach for `.message` and `.getMessage()` instead, and this list is how
+    /// their expression writers know the name is a caught error.
+    catch_bindings: Vec<String>,
+    /// The exception classes this TypeScript module throws or catches and the
+    /// language does not have.
+    ///
+    /// Collected while the bodies are written, and declared once at the top so a
+    /// thrown name is always a class the file declares.
+    ts_exceptions: std::collections::BTreeSet<&'static str>,
 }
 
 impl Out {
@@ -708,6 +774,21 @@ impl Out {
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
+            go_result: None,
+            go_errors: 0,
+            result_returns: BTreeMap::new(),
+            sums: std::collections::BTreeSet::new(),
+            catch_bindings: Vec::new(),
+            ts_exceptions: std::collections::BTreeSet::new(),
+        }
+    }
+
+    /// A name for the next error binding this Go body introduces.
+    fn fresh_go_error(&mut self) -> String {
+        self.go_errors += 1;
+        match self.go_errors {
+            1 => "err".to_string(),
+            n => format!("err{n}"),
         }
     }
 
@@ -992,8 +1073,28 @@ fn rust(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) if calls_declared_main(out, stmt) => {
+                out.note_once(ENTRY_DROPPED);
+            }
             Item::Statement(stmt) => carried_statement(out, stmt, rust_expr),
             Item::Constant(c) => {
+                // A constant is evaluated at compile time here. A `todo!()` in its
+                // value stops the build before anything runs, where a body's marker
+                // stays a draft. A value holding anything untranslated carries whole
+                // instead, name and all, and the inner markers ride along inside the
+                // comment.
+                if contains_unsupported(&c.value) {
+                    let rendered = rust_expr(out, &c.value);
+                    let header = out.comment(&format!(
+                        "{MARKER}: a constant whose value did not translate; written \
+                         as a const it would stop the build at compile-time evaluation."
+                    ));
+                    out.line(&header);
+                    let declaration = out.comment(&format!("const {} = {rendered};", c.name));
+                    out.line(&declaration);
+                    out.blank();
+                    continue;
+                }
                 for line in &c.doc {
                     out.line(&format!("/// {line}"));
                 }
@@ -1084,8 +1185,15 @@ fn rust(out: &mut Out, module: &Module) {
                 for line in doc {
                     out.line(&format!("/// {line}"));
                 }
+                // Zig's doctest form names a test after the declaration it covers,
+                // and here the two would share one namespace; the prefix keeps both.
+                let slug = test_slug(name);
+                let slug = match out.functions.contains_key(&slug) {
+                    true => format!("test_{slug}"),
+                    false => slug,
+                };
                 out.line("#[test]");
-                out.line(&format!("fn {}() {{", test_slug(name)));
+                out.line(&format!("fn {slug}() {{"));
                 out.open();
                 rust_block(out, body);
                 out.close();
@@ -1212,12 +1320,84 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     }
 }
 
+/// `var x; switch { every arm assigns x }` folded back into `let x = match ...;`.
+///
+/// The Zig reader lowers a value-position switch into that pair, and the other targets
+/// write the pair as it stands. Rust cannot. A binding declared without a value has
+/// no `Default::default()` the compiler can infer a type for. Assigning arms into a
+/// plain `let` does not compile either. The pair is one `match` expression again,
+/// which is also what a Rust author would have written.
+fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<String> {
+    let Stmt::Let {
+        name,
+        ty,
+        value: None,
+        ..
+    } = &body[at]
+    else {
+        return None;
+    };
+    let Some(Stmt::Switch {
+        subject,
+        arms,
+        default,
+    }) = body.get(at + 1)
+    else {
+        return None;
+    };
+    let assigned = |stmts: &[Stmt]| -> Option<Expr> {
+        match stmts {
+            [Stmt::Assign {
+                target: Expr::Name(n),
+                value,
+            }] if n == name => Some(value.clone()),
+            _ => None,
+        }
+    };
+    // Every value is collected before anything is rendered. Rendering can carry
+    // notes, and a pair that turns out not to fold must leave no trace of the
+    // attempt.
+    let mut values = Vec::new();
+    for (_, arm) in arms {
+        values.push(assigned(arm)?);
+    }
+    let default_value = assigned(default)?;
+    let mut rendered = Vec::new();
+    for ((literals, _), value) in arms.iter().zip(&values) {
+        let pattern: Vec<String> = literals.iter().map(|l| rust_expr(out, l)).collect();
+        rendered.push(format!(
+            "{} => {}",
+            pattern.join(" | "),
+            rust_expr(out, value)
+        ));
+    }
+    rendered.push(format!("_ => {}", rust_expr(out, &default_value)));
+    let annotation = ty
+        .as_ref()
+        .map(|t| format!(": {}", rust_type(t)))
+        .unwrap_or_default();
+    Some(format!(
+        "let {}{annotation} = match {} {{ {} }};",
+        out.name(name),
+        rust_expr(out, subject),
+        rendered.join(", ")
+    ))
+}
+
 fn rust_block(out: &mut Out, body: &[Stmt]) {
     if body.is_empty() {
         out.line("todo!()");
         return;
     }
-    for stmt in body {
+    let mut at = 0usize;
+    while at < body.len() {
+        if let Some(folded) = switch_binding_expression(out, body, at) {
+            out.line(&folded);
+            at += 2;
+            continue;
+        }
+        let stmt = &body[at];
+        at += 1;
         match stmt {
             Stmt::Return(value) => {
                 let text = value
@@ -1345,9 +1525,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                     true => out.comment(&format!(
                         "{MARKER}: an errdefer runs this when the scope fails:"
                     )),
-                    false => {
-                        out.comment(&format!("{MARKER}: a defer runs this at scope exit:"))
-                    }
+                    false => out.comment(&format!("{MARKER}: a defer runs this at scope exit:")),
                 };
                 out.line(&header);
                 for line in rendered.lines() {
@@ -1532,6 +1710,13 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
+            // A sum's variant is reached through the type, and Rust spells that
+            // reach `::`. A dot there would read as a field access on a type, and
+            // Rust has no such thing.
+            if matches!(of.as_ref(), Expr::Name(n) if out.sums.contains(n)) {
+                let owner = rust_expr(out, of);
+                return format!("{owner}::{}", out.name(name));
+            }
             let object = rust_expr(out, of);
             // A read of a property is a call here; the idiom that hid the
             // parentheses does not exist in this language.
@@ -1687,7 +1872,15 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Unsupported(u) => {
             out.carried(u);
-            format!("todo!(\"{}: {}\")", MARKER, u.source.replace('"', "'"))
+            // The carried text rides inside `todo!`'s format string, where a brace
+            // from the source reads as a hole and stops the build. Doubling is how
+            // Rust spells a brace that is only a brace.
+            let payload = u
+                .source
+                .replace('"', "'")
+                .replace('{', "{{")
+                .replace('}', "}}");
+            format!("todo!(\"{MARKER}: {payload}\")")
         }
     }
 }
@@ -1728,6 +1921,22 @@ fn python(out: &mut Out, module: &Module) {
         out.line("from typing import NewType");
         out.blank();
     }
+    // The guarded entry may need a module of its own. `asyncio.run` starts an async
+    // main, and `sys.argv` holds the arguments a main that takes them receives.
+    let entry = module.items.iter().find_map(|item| match item {
+        Item::Statement(stmt) => entry_function(module, stmt),
+        _ => None,
+    });
+    if let Some(f) = entry {
+        if f.is_async {
+            out.line("import asyncio");
+            out.blank();
+        }
+        if entry_takes_arguments(f) {
+            out.line("import sys");
+            out.blank();
+        }
+    }
 
     for item in &module.items {
         match item {
@@ -1737,7 +1946,25 @@ fn python(out: &mut Out, module: &Module) {
             Item::Statement(stmt) => {
                 out.line("if __name__ == \"__main__\":");
                 out.open();
-                python_block(out, std::slice::from_ref(stmt));
+                match entry_function(module, stmt) {
+                    // A Java `main(String[] args)` receives the program's arguments,
+                    // which Python spells `sys.argv` less the interpreter's own name.
+                    // An async main needs a loop to run on, which `asyncio.run`
+                    // provides; called bare it would build a coroutine and drop it.
+                    Some(f) => {
+                        let name = out.name(&f.name);
+                        let arguments = match entry_takes_arguments(f) {
+                            true => "sys.argv[1:]",
+                            false => "",
+                        };
+                        let call = match f.is_async {
+                            true => format!("asyncio.run({name}({arguments}))"),
+                            false => format!("{name}({arguments})"),
+                        };
+                        python_line(out, &call);
+                    }
+                    None => python_block(out, std::slice::from_ref(stmt)),
+                }
                 out.close();
                 out.blank();
             }
@@ -2038,6 +2265,30 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
         wrote |= !matches!(stmt, Stmt::Unsupported(_) | Stmt::Expr(Expr::Null));
         match stmt {
             Stmt::Return(value) => {
+                // A returned Result speaks this language's own failure handling: the
+                // ok value returns bare, and the Err raises. A propagated call's
+                // error already goes the same way.
+                if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
+                    out.note_once(RESULT_RAISED);
+                    match (ok, payload) {
+                        (true, Some(p)) => {
+                            let rendered = python_expr(out, p);
+                            python_line(out, &format!("return {rendered}"));
+                        }
+                        (true, None) => python_line(out, "return"),
+                        (false, payload) => {
+                            let rendered = match payload {
+                                Some(p) => match error_variant(out, p) {
+                                    Some(variant) => quoted(Language::Python, variant),
+                                    None => python_expr(out, p),
+                                },
+                                None => String::new(),
+                            };
+                            python_line(out, &format!("raise Exception({rendered})"));
+                        }
+                    }
+                    continue;
+                }
                 let text = value
                     .as_ref()
                     .map(|v| format!(" {}", python_expr(out, v)))
@@ -2309,14 +2560,55 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
             types.insert(p.name.clone(), ty.clone());
         }
     }
-    for stmt in &f.body {
-        if let Stmt::Let {
-            name, ty: Some(ty), ..
-        } = stmt
-        {
-            types.insert(name.clone(), ty.clone());
+    // The whole body, nested blocks included. An `int v = ...` inside a `try` is as
+    // declared as one at the top. Reading only the top level left every such binding
+    // untyped for the operators that ask.
+    fn walk(stmts: &[Stmt], types: &mut std::collections::BTreeMap<String, Type>) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Let {
+                    name, ty: Some(ty), ..
+                } => {
+                    types.insert(name.clone(), ty.clone());
+                }
+                Stmt::If {
+                    then, otherwise, ..
+                }
+                | Stmt::IfPresent {
+                    then, otherwise, ..
+                } => {
+                    walk(then, types);
+                    walk(otherwise, types);
+                }
+                Stmt::While { body, .. }
+                | Stmt::WhilePresent { body, .. }
+                | Stmt::ForEach { body, .. }
+                | Stmt::ForEachIndexed { body, .. }
+                | Stmt::Defer(body)
+                | Stmt::ErrDefer(body) => walk(body, types),
+                Stmt::Try {
+                    body,
+                    catches,
+                    finally,
+                    ..
+                } => {
+                    walk(body, types);
+                    for catch in catches {
+                        walk(&catch.body, types);
+                    }
+                    walk(finally, types);
+                }
+                Stmt::Switch { arms, default, .. } => {
+                    for (_, body) in arms {
+                        walk(body, types);
+                    }
+                    walk(default, types);
+                }
+                _ => {}
+            }
         }
     }
+    walk(&f.body, &mut types);
     types
 }
 
@@ -2462,6 +2754,29 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                     binary_operand(python_expr(out, right), right, *op, true)
                 );
             }
+            // `"n: " + x` concatenates in TypeScript and Java by turning the number
+            // into text; Python raises instead. `str` says the coercion out loud,
+            // which builds the same string the source built. Only where the source
+            // declared both sides: wrapping a value of unknown type would be a guess.
+            if *op == BinaryOp::Add {
+                let text = |e: &Expr| static_type(out, e) == Some(Type::String);
+                let number =
+                    |e: &Expr| matches!(static_type(out, e), Some(Type::Int | Type::Float));
+                if text(left) && number(right) {
+                    return format!(
+                        "{} + str({})",
+                        binary_operand(python_expr(out, left), left, *op, false),
+                        python_expr(out, right)
+                    );
+                }
+                if number(left) && text(right) {
+                    return format!(
+                        "str({}) + {}",
+                        python_expr(out, left),
+                        binary_operand(python_expr(out, right), right, *op, true)
+                    );
+                }
+            }
             format!(
                 "{} {spelling} {}",
                 binary_operand(python_expr(out, left), left, *op, false),
@@ -2606,6 +2921,9 @@ fn go(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) if calls_declared_main(out, stmt) => {
+                out.note_once(ENTRY_DROPPED);
+            }
             Item::Statement(stmt) => carried_statement(out, stmt, go_expr),
             Item::Constant(c) => {
                 let name = out.name(&c.name);
@@ -2879,22 +3197,43 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             Some(format!("{spelled} {ty}"))
         })
         .collect();
-    let returns = match &f.returns {
-        Some(Type::Unit) | None => String::new(),
-        // `(int, error)`: the one position Go writes several types at once.
-        Some(Type::Tuple(parts)) => {
-            if parts.iter().any(|p| out.is_foreign(p)) {
-                foreign = true;
-            }
-            format!(" ({})", joined(parts, go_type))
+    // A declared `Result<T, E>` is Go's own `(T, error)` pair, and the body's `Ok`,
+    // `Err` and propagations become the returns and checks that pair means. A unit ok
+    // side leaves the error alone, which is how Go spells a function that can only
+    // fail. The error type's own identity does not carry: Go's `error` is the message.
+    let result = result_ok(&out.declared_types, f.returns.as_ref());
+    let returns = if let Some(ok) = &result {
+        if out.is_foreign(ok) {
+            foreign = true;
         }
-        Some(t) => {
-            if out.is_foreign(t) {
-                foreign = true;
+        out.note_once(
+            "a Result's error side is written as Go's own error: the error's identity \
+             becomes its message.",
+        );
+        match ok {
+            Type::Unit => " error".to_string(),
+            ok => format!(" ({}, error)", go_type(ok)),
+        }
+    } else {
+        match &f.returns {
+            Some(Type::Unit) | None => String::new(),
+            // `(int, error)`: the one position Go writes several types at once.
+            Some(Type::Tuple(parts)) => {
+                if parts.iter().any(|p| out.is_foreign(p)) {
+                    foreign = true;
+                }
+                format!(" ({})", joined(parts, go_type))
             }
-            format!(" {}", go_type(t))
+            Some(t) => {
+                if out.is_foreign(t) {
+                    foreign = true;
+                }
+                format!(" {}", go_type(t))
+            }
         }
     };
+    out.go_result = result;
+    out.go_errors = 0;
     // Go's convention is a one- or two-letter abbreviation, and there is no letter
     // guaranteed not to be a parameter's name already. The word the body uses and the
     // word the signature binds have to be the same one, so both come from here.
@@ -2909,6 +3248,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     go_block(out, &f.body, f.returns.as_ref());
     out.close();
     out.line("}");
+    out.go_result = None;
 
     if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
         out.unbind_receiver(b, p);
@@ -2929,6 +3269,175 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
 }
 
+/// An `Err(...)` payload as the error value Go returns.
+///
+/// A formatted payload is `fmt.Errorf`, a literal is `errors.New`, and anything else
+/// is rendered through `%v`, which makes the value the message whatever it was.
+fn go_error_value(out: &mut Out, e: &Expr) -> String {
+    let errorf = |out: &mut Out, literal: &str, args: &[String]| {
+        out.go_imports.insert("fmt");
+        format!(
+            "fmt.Errorf({}, {})",
+            quoted(Language::Go, literal),
+            args.join(", ")
+        )
+    };
+    match e {
+        Expr::Template(parts) => match literal_text(parts) {
+            Some(text) => {
+                out.go_imports.insert("errors");
+                format!("errors.New({})", quoted(Language::Go, &text))
+            }
+            None => {
+                // A literal `%` in the text would read as a verb of its own.
+                let mut literal = String::new();
+                let mut args = Vec::new();
+                for part in parts {
+                    match part {
+                        TemplatePart::Text(text) => literal.push_str(&text.replace('%', "%%")),
+                        TemplatePart::Expr(e) => {
+                            literal.push_str("%v");
+                            args.push(go_expr(out, e));
+                        }
+                    }
+                }
+                errorf(out, &literal, &args)
+            }
+        },
+        Expr::Str(text) => {
+            out.go_imports.insert("errors");
+            format!("errors.New({})", quoted(Language::Go, text))
+        }
+        // A sum's variant as the failure, `ParseError.Empty`: Go's error has no
+        // variants, so the variant's name becomes the message. Zig's own
+        // `@errorName` answers the same.
+        Expr::Field { of, name } if matches!(of.as_ref(), Expr::Name(n) if out.sums.contains(n)) => {
+            out.go_imports.insert("errors");
+            format!("errors.New({})", quoted(Language::Go, name))
+        }
+        other => {
+            let rendered = go_expr(out, other);
+            errorf(out, "%v", &[rendered])
+        }
+    }
+}
+
+/// The Result mechanics of the enclosing function, written as Go's error returns.
+///
+/// `return Ok(x)` is `return x, nil`, and `return Err(e)` is the ok side's zero
+/// beside an error. A propagated call binds its value next to an `err` that is
+/// checked and returned. Only inside a function whose declared return is the shared
+/// Result. Anywhere else `Ok` is a name like any other, and the statement falls
+/// through to the ordinary arms.
+fn go_result_stmt(out: &mut Out, stmt: &Stmt) -> bool {
+    let Some(ok_ty) = out.go_result.clone() else {
+        return false;
+    };
+    let failure = |err: &str| match &ok_ty {
+        Type::Unit => format!("return {err}"),
+        ty => format!("return {}, {err}", go_zero(ty)),
+    };
+    let named = |callee: &Expr, name: &str| matches!(callee, Expr::Name(n) if n == name);
+    match stmt {
+        Stmt::Return(Some(Expr::Call { callee, args })) if named(callee.as_ref(), "Ok") => {
+            match args.as_slice() {
+                [] => out.line("return nil"),
+                [Expr::Tuple(items)] if items.is_empty() => {
+                    let line = match &ok_ty {
+                        Type::Unit => "return nil".to_string(),
+                        ty => format!("return {}, nil", go_zero(ty)),
+                    };
+                    out.line(&line);
+                }
+                // `return Ok(f()?)`: the propagated call binds beside its error, and
+                // only the settled value travels back with `nil`.
+                [Expr::Propagate(inner)] => {
+                    let call = go_expr(out, inner);
+                    let err = out.fresh_go_error();
+                    let value = format!("value{}", out.go_errors);
+                    out.line(&format!("{value}, {err} := {call}"));
+                    out.line(&format!("if {err} != nil {{"));
+                    out.open();
+                    out.line(&failure(&err));
+                    out.close();
+                    out.line("}");
+                    out.line(&format!("return {value}, nil"));
+                }
+                [value] => {
+                    let v = go_expr(out, value);
+                    out.line(&format!("return {v}, nil"));
+                }
+                _ => return false,
+            }
+            true
+        }
+        Stmt::Return(Some(Expr::Call { callee, args })) if named(callee.as_ref(), "Err") => {
+            let [value] = args.as_slice() else {
+                return false;
+            };
+            let err = go_error_value(out, value);
+            out.line(&failure(&err));
+            true
+        }
+        // Zig's `return;` inside an `E!void` function is the success path.
+        Stmt::Return(None) if ok_ty == Type::Unit => {
+            out.line("return nil");
+            true
+        }
+        Stmt::Let {
+            name,
+            value: Some(Expr::Propagate(inner)),
+            ..
+        } => {
+            let call = go_expr(out, inner);
+            let err = out.fresh_go_error();
+            let bound = out.name(name);
+            out.line(&format!("{bound}, {err} := {call}"));
+            out.line(&format!("if {err} != nil {{"));
+            out.open();
+            out.line(&failure(&err));
+            out.close();
+            out.line("}");
+            true
+        }
+        stmt => {
+            // A propagated call whose value the source discards: `try f();` in Zig.
+            // The Zig reader hands `_ = try f();` over as an assignment to the blank
+            // name.
+            let inner = match stmt {
+                Stmt::Expr(Expr::Propagate(inner)) => inner,
+                Stmt::Assign {
+                    target: Expr::Name(discard),
+                    value: Expr::Propagate(inner),
+                } if discard == "_" => inner,
+                _ => return false,
+            };
+            let call = go_expr(out, inner);
+            let err = out.fresh_go_error();
+            // The callee decides how many results the binding takes: a known unit ok
+            // side returns the error alone here.
+            let error_alone = matches!(
+                inner.as_ref(),
+                Expr::Call { callee, .. }
+                    if matches!(
+                        callee.as_ref(),
+                        Expr::Name(n) if matches!(out.result_returns.get(n), Some(Type::Unit))
+                    )
+            );
+            match error_alone {
+                true => out.line(&format!("{err} := {call}")),
+                false => out.line(&format!("_, {err} := {call}")),
+            }
+            out.line(&format!("if {err} != nil {{"));
+            out.open();
+            out.line(&failure(&err));
+            out.close();
+            out.line("}");
+            true
+        }
+    }
+}
+
 fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     if body.is_empty() {
         out.line(&out.comment(&format!("{MARKER}: the source had no body to translate")));
@@ -2939,6 +3448,9 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
         return;
     }
     for stmt in body {
+        if go_result_stmt(out, stmt) {
+            continue;
+        }
         match stmt {
             // Go has no ternary. One that is the whole of a return, an
             // assignment, or a typed binding is an `if`/`else` said shorter, so
@@ -3020,11 +3532,27 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 };
                 out.line(&format!("return{text}"));
             }
-            Stmt::Let { name, value, .. } => {
-                let v = value
+            // A binding with no value is a `var` declaration: `x := nil` is not Go at
+            // all, because `nil` alone has no type to infer.
+            Stmt::Let {
+                name,
+                ty,
+                value: None,
+                ..
+            } => {
+                let bound = out.name(name);
+                let declared = ty
                     .as_ref()
-                    .map(|v| go_expr(out, v))
-                    .unwrap_or_else(|| "nil".to_string());
+                    .map(go_type)
+                    .unwrap_or_else(|| "any".to_string());
+                out.line(&format!("var {bound} {declared}"));
+            }
+            Stmt::Let {
+                name,
+                value: Some(value),
+                ..
+            } => {
+                let v = go_expr(out, value);
                 let bound = out.name(name);
                 out.line(&format!("{bound} := {v}"));
             }
@@ -3121,8 +3649,9 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.fidelity
                     .notes
                     .push("on the failure path: errdefer carried over unchanged".to_string());
-                let header =
-                    out.comment(&format!("{MARKER}: an errdefer runs this when the scope fails"));
+                let header = out.comment(&format!(
+                    "{MARKER}: an errdefer runs this when the scope fails"
+                ));
                 out.line(&header);
             }
             Stmt::WhilePresent {
@@ -3196,8 +3725,14 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                         }
                     }
                 }
+                // Only a call can stand as a statement in Go. Everything else, which
+                // is mostly a carried marker, is discarded into `_`, the same thing
+                // the Zig writer does for the same reason.
                 let text = go_expr(out, e);
-                out.line(&text);
+                match e {
+                    Expr::Call { .. } | Expr::New { .. } => out.line(&text),
+                    _ => out.line(&format!("_ = {text}")),
+                }
             }
             Stmt::Break => out.line("break"),
             Stmt::Continue => out.line("continue"),
@@ -3302,7 +3837,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: source.clone(),
                 line: 0,
             });
-            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // Go is the one language here with no conditional expression. Turning one into an `if`
         // statement needs somewhere to put the result, which does not exist inside an argument
@@ -3323,7 +3858,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: source.clone(),
                 line: 0,
             });
-            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
@@ -3379,7 +3914,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: source.clone(),
                 line: 0,
             });
-            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // Go propagates nothing: an error is a value somebody must return. Writing
         // the expression bare would turn an early return into a plain call.
@@ -3390,7 +3925,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: source.clone(),
                 line: 0,
             });
-            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // `NewThing(..)` is the Go convention, but it is a convention and not a rule. A
         // constructor this tool invented would be a name that does not exist. A
@@ -3414,7 +3949,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: source.clone(),
                 line: 0,
             });
-            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // Go spells this as a two-value type assertion, which is a statement.
         Expr::Cast { ty, value } => {
@@ -3439,7 +3974,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: source.clone(),
                 line: 0,
             });
-            format!("nil /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         Expr::Unary { op, operand } => {
             let sign = match op {
@@ -3457,7 +3992,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             out.fidelity
                 .notes
                 .push("outside a return: tuple carried over unchanged".to_string());
-            format!("nil /* {MARKER}: tuple ({rendered}) */")
+            format!("any(nil) /* {MARKER}: tuple ({rendered}) */")
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
@@ -3501,11 +4036,12 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 source: "a comprehension, which Go spells as a loop".into(),
                 line: 0,
             });
-            "nil".to_string()
+            // A bare `nil` has no type for `:=` to infer, so the stand-in asserts one.
+            "any(nil)".to_string()
         }
         Expr::Unsupported(u) => {
             out.carried(u);
-            format!("nil /* {MARKER}: {} */", u.source.replace("*/", "* /"))
+            format!("any(nil) /* {MARKER}: {} */", u.source.replace("*/", "* /"))
         }
     }
 }
@@ -3708,6 +4244,59 @@ fn typescript(out: &mut Out, module: &Module) {
             }
         }
     }
+
+    // The exception classes the bodies turned out to throw or catch, declared once
+    // at the top. Every thrown name is then a class the file has. Hoisting after the
+    // fact is the same move the Go writer makes with its imports.
+    if !out.ts_exceptions.is_empty() {
+        let block: String = out
+            .ts_exceptions
+            .iter()
+            .map(|name| format!("class {name} extends Error {{}}\n"))
+            .chain(std::iter::once("\n".to_string()))
+            .collect();
+        out.text.insert_str(0, &block);
+    }
+}
+
+/// A canonical exception name, as TypeScript spells it, noted for declaration.
+///
+/// Python's `Exception` is the base `Error` here and `TypeError` exists natively; the
+/// rest keep their names over one-line classes this writer declares. A name the module
+/// declares itself is the module's own and is left alone.
+fn ts_exception_name(out: &mut Out, name: &str) -> Option<&'static str> {
+    if out.declared_types.contains(name) {
+        return None;
+    }
+    let mapped = match name {
+        "Exception" => "Error",
+        "TypeError" => "TypeError",
+        "ValueError" => "ValueError",
+        "KeyError" => "KeyError",
+        "RuntimeError" => "RuntimeError",
+        _ => return None,
+    };
+    if mapped != "Error" && mapped != "TypeError" {
+        out.ts_exceptions.insert(mapped);
+    }
+    Some(mapped)
+}
+
+/// A thrown canonical exception, as a `new` of the class this file spells it with.
+///
+/// Python spells raising as a call, so `raise ValueError(m)` arrives as one; written
+/// through, the output called a class without `new` and TypeScript refused it.
+fn ts_thrown(out: &mut Out, value: &Expr) -> Option<String> {
+    let (callee, args) = match value {
+        Expr::Call { callee, args } | Expr::New { callee, args } => (callee, args),
+        _ => return None,
+    };
+    let Expr::Name(name) = callee.as_ref() else {
+        return None;
+    };
+    let mapped = ts_exception_name(out, name)?;
+    let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
+    Some(format!("new {mapped}({})", rendered.join(", ")))
 }
 
 /// What each variant is called where it must live beside every other type.
@@ -3895,6 +4484,29 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
     for (at, stmt) in body.iter().enumerate() {
         match stmt {
             Stmt::Return(value) => {
+                // A returned Result speaks this language's own failure handling: the
+                // ok value returns bare, and the Err becomes a throw.
+                if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
+                    out.note_once(RESULT_RAISED);
+                    match (ok, payload) {
+                        (true, Some(p)) => {
+                            let rendered = ts_expr(out, p);
+                            out.line(&format!("return {rendered};"));
+                        }
+                        (true, None) => out.line("return;"),
+                        (false, payload) => {
+                            let rendered = match payload {
+                                Some(p) => match error_variant(out, p) {
+                                    Some(variant) => quoted(out.language, variant),
+                                    None => ts_expr(out, p),
+                                },
+                                None => String::new(),
+                            };
+                            out.line(&format!("throw new Error({rendered});"));
+                        }
+                    }
+                    continue;
+                }
                 let text = value
                     .as_ref()
                     .map(|v| format!(" {}", ts_expr(out, v)))
@@ -4114,6 +4726,11 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                         .find_map(|c| c.binding.clone())
                         .unwrap_or_else(|| "error".to_string());
                     let bound = out.name(&bound);
+                    // The clause bodies render knowing which names are caught errors,
+                    // so their `str(e)` can say `.message` instead of `String(e)`.
+                    let caught: Vec<String> =
+                        catches.iter().filter_map(|c| c.binding.clone()).collect();
+                    out.catch_bindings.extend(caught.iter().cloned());
                     out.line(&format!("}} catch ({bound}) {{"));
                     out.open();
                     let typed: Vec<&Catch> = catches.iter().filter(|c| c.ty.is_some()).collect();
@@ -4126,7 +4743,16 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                             match &clause.ty {
                                 Some(ty) => {
                                     let keyword = if index == 0 { "if" } else { "} else if" };
-                                    let rendered = ts_type(ty);
+                                    // A canonical exception narrows against the class
+                                    // this file declares for it, so the names line up.
+                                    let rendered = match ty {
+                                        Type::Named { name, args } if args.is_empty() => {
+                                            ts_exception_name(out, name)
+                                                .map(str::to_string)
+                                                .unwrap_or_else(|| ts_type(ty))
+                                        }
+                                        _ => ts_type(ty),
+                                    };
                                     out.line(&format!(
                                         "{keyword} ({bound} instanceof {rendered}) {{"
                                     ));
@@ -4146,6 +4772,8 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                         out.line("}");
                     }
                     out.close();
+                    out.catch_bindings
+                        .truncate(out.catch_bindings.len() - caught.len());
                 }
                 if !finally.is_empty() {
                     out.line("} finally {");
@@ -4156,7 +4784,7 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.line("}");
             }
             Stmt::Throw(value) => {
-                let rendered = ts_expr(out, value);
+                let rendered = ts_thrown(out, value).unwrap_or_else(|| ts_expr(out, value));
                 out.line(&format!("throw {rendered};"));
             }
             Stmt::Comment(text) => {
@@ -4268,6 +4896,13 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::InstanceOf { value, ty } => {
             let rendered = ts_expr(out, value);
+            // A canonical exception narrows against the class this file declares for
+            // it, so `isinstance(e, ValueError)` and the throws name one class.
+            if let Expr::Name(name) = ty.as_ref() {
+                if let Some(mapped) = ts_exception_name(out, name) {
+                    return format!("{rendered} instanceof {mapped}");
+                }
+            }
             format!("{rendered} instanceof {}", ts_expr(out, ty))
         }
         Expr::Keyword { name, value } => {
@@ -4312,9 +4947,14 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             let mut body = String::new();
             for part in parts {
                 match part {
-                    TemplatePart::Text(text) => {
-                        body.push_str(&text.replace('\\', "\\\\").replace('`', "\\`"))
-                    }
+                    // A literal `${` in the text would open a substitution of its
+                    // own, so it is escaped along with the delimiters.
+                    TemplatePart::Text(text) => body.push_str(
+                        &text
+                            .replace('\\', "\\\\")
+                            .replace('`', "\\`")
+                            .replace("${", "\\${"),
+                    ),
                     TemplatePart::Expr(e) => {
                         body.push_str("${");
                         body.push_str(&ts_expr(out, e));
@@ -4503,6 +5143,9 @@ fn java(out: &mut Out, module: &Module) {
                 out.close();
                 out.line("}");
                 out.fidelity.functions += 1;
+            }
+            Item::Statement(stmt) if calls_declared_main(out, stmt) => {
+                out.note_once(ENTRY_DROPPED);
             }
             Item::Statement(stmt) => carried_statement(out, stmt, java_expr),
             Item::Unsupported(u) => carry(out, u),
@@ -4745,6 +5388,30 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             out.line(&line);
         }
         Stmt::Return(value) => {
+            // A returned Result speaks this language's own failure handling: the ok
+            // value returns bare, and the Err becomes a throw. `RuntimeException` is
+            // the unchecked kind, because this writer declares no `throws` clauses.
+            if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
+                out.note_once(RESULT_RAISED);
+                match (ok, payload) {
+                    (true, Some(p)) => {
+                        let rendered = java_expr(out, p);
+                        out.line(&format!("return {rendered};"));
+                    }
+                    (true, None) => out.line("return;"),
+                    (false, payload) => {
+                        let rendered = match payload {
+                            Some(p) => match error_variant(out, p) {
+                                Some(variant) => quoted(Language::Java, variant),
+                                None => java_expr(out, p),
+                            },
+                            None => String::new(),
+                        };
+                        out.line(&format!("throw new RuntimeException({rendered});"));
+                    }
+                }
+                return;
+            }
             let text = value
                 .as_ref()
                 .map(|e| format!(" {}", java_expr(out, e)))
@@ -4973,7 +5640,15 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                     .unwrap_or_else(|| "error".to_string());
                 out.line(&format!("}} catch ({selector} {bound}) {{"));
                 out.open();
+                // The body renders knowing its binding is a caught error, so a
+                // `str(e)` can say `.getMessage()` instead of `String.valueOf`.
+                if let Some(b) = &clause.binding {
+                    out.catch_bindings.push(b.clone());
+                }
                 java_block(out, &clause.body, None);
+                if clause.binding.is_some() {
+                    out.catch_bindings.pop();
+                }
                 out.close();
             }
             if !finally.is_empty() {
@@ -5409,6 +6084,9 @@ fn zig(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            Item::Statement(stmt) if calls_declared_main(out, stmt) => {
+                out.note_once(ENTRY_DROPPED);
+            }
             Item::Statement(stmt) => carried_statement(out, stmt, zig_expr),
             Item::Import { text, line } => {
                 out.fidelity.imports_listed += 1;
@@ -5644,7 +6322,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     if f.is_async {
         let note = out.comment(
             "declared async in the source; Zig removed `async` in 0.11 and has not \
-             brought it back. This runs to completion",
+             brought it back. This runs to completion.",
         );
         out.line(&note);
     }
@@ -5826,6 +6504,15 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.line(&line);
         }
         Stmt::Return(value) => {
+            // A returned Result is native here: the coercion at the `return` decides
+            // success or failure by the value, so both sides return bare.
+            if let Some((_, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
+                let text = payload
+                    .map(|p| format!(" {}", zig_expr(out, p)))
+                    .unwrap_or_default();
+                zig_line(out, &format!("return{text};"));
+                return;
+            }
             let text = value
                 .as_ref()
                 .map(|e| format!(" {}", zig_expr(out, e)))
@@ -6065,6 +6752,24 @@ fn zig_type(ty: &Type) -> String {
         },
         Type::Optional(inner) => format!("?{}", zig_type(inner)),
         Type::Tuple(parts) => format!("struct {{ {} }}", joined(parts, zig_type)),
+        // The shared `Result<T, E>` is this language's own error union, `E!T`. Only a
+        // named error side can stand before the `!`. A Rust `Result<T, String>`
+        // carries a payload no Zig error set can hold. It crosses as `anyerror`, and
+        // the message's identity is the part that does not.
+        Type::Named { name, args } if name == "Result" && args.len() == 2 => {
+            // A qualified error name keeps its path, spelled with dots the way every
+            // other Zig name here is: `anyhow::Error` is not something this grammar
+            // reads.
+            let err = match &args[1] {
+                Type::Named { name, args }
+                    if args.is_empty() && name != "error" && Type::is_writable_name(name) =>
+                {
+                    zig_path(&generic(name, &[], "(", ")", ".", zig_type))
+                }
+                _ => "anyerror".to_string(),
+            };
+            format!("{err}!{}", zig_type(&args[0]))
+        }
         // A generic type is a function of its arguments, so it is applied and not
         // bracketed: `ArrayList(u8)`, not `ArrayList<u8>`.
         Type::Named { name, args } => {
@@ -6445,6 +7150,177 @@ fn escaped(language: Language, value: &str) -> String {
     out
 }
 
+/// The ok type of `Result<T, E>`, where the name means the shared Result.
+///
+/// The Rust reader spells `Result<T, E>` this way and the Zig reader spells `E!T` the
+/// same, which is what lets one writer translate both. A module that declares its own
+/// type called `Result` means that one, and gets no translation invented for it.
+fn result_ok(declared: &std::collections::BTreeSet<String>, ty: Option<&Type>) -> Option<Type> {
+    match ty {
+        Some(Type::Named { name, args })
+            if name == "Result" && args.len() == 2 && !declared.contains("Result") =>
+        {
+            Some(args[0].clone())
+        }
+        _ => None,
+    }
+}
+
+/// Does anything under this expression carry no translation?
+///
+/// Exhaustive on purpose, no `_` arm, for the same reason the reader's own walk is.
+/// A new variant must not be able to slip through quietly. The Rust writer asks
+/// before committing a constant, because a marker that is fine in a body stops the
+/// build in a `const`.
+fn contains_unsupported(e: &Expr) -> bool {
+    match e {
+        Expr::Unsupported(_) => true,
+        Expr::Field { of, .. } => contains_unsupported(of),
+        Expr::Index { of, index } => contains_unsupported(of) || contains_unsupported(index),
+        Expr::Call { callee, args } | Expr::New { callee, args } => {
+            contains_unsupported(callee) || args.iter().any(contains_unsupported)
+        }
+        Expr::Binary { left, right, .. } => {
+            contains_unsupported(left) || contains_unsupported(right)
+        }
+        Expr::Unary { operand, .. } => contains_unsupported(operand),
+        Expr::Await(inner) | Expr::Propagate(inner) => contains_unsupported(inner),
+        Expr::Keyword { value, .. } => contains_unsupported(value),
+        Expr::Cast { ty, value } => contains_unsupported(ty) || contains_unsupported(value),
+        Expr::InstanceOf { value, ty } => contains_unsupported(value) || contains_unsupported(ty),
+        Expr::RecordLit { fields, .. } => {
+            fields.iter().any(|(_, value)| contains_unsupported(value))
+        }
+        Expr::Coalesce { value, fallback } => {
+            contains_unsupported(value) || contains_unsupported(fallback)
+        }
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => {
+            contains_unsupported(condition)
+                || contains_unsupported(then)
+                || contains_unsupported(otherwise)
+        }
+        Expr::Tuple(items) | Expr::ListLit(items) => items.iter().any(contains_unsupported),
+        Expr::MapLit(entries) => entries
+            .iter()
+            .any(|(k, v)| contains_unsupported(k) || contains_unsupported(v)),
+        Expr::Template(parts) => parts.iter().any(|part| match part {
+            TemplatePart::Expr(e) => contains_unsupported(e),
+            TemplatePart::Text(_) => false,
+        }),
+        Expr::Comprehension {
+            element,
+            iterable,
+            condition,
+            ..
+        } => {
+            contains_unsupported(element)
+                || contains_unsupported(iterable)
+                || condition.as_deref().is_some_and(contains_unsupported)
+        }
+        Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::Bool(_)
+        | Expr::Null
+        | Expr::Name(_) => false,
+    }
+}
+
+/// A returned `Ok(...)` or `Err(...)`, where the value is one.
+///
+/// `true` is the success side. A payload of `()` counts as none, which is how a
+/// function that succeeds with nothing to say returns. A module that declares its own
+/// `Ok` or `Err` means those, and gets no translation invented for it.
+fn result_call<'e>(out: &Out, value: &'e Expr) -> Option<(bool, Option<&'e Expr>)> {
+    let Expr::Call { callee, args } = value else {
+        return None;
+    };
+    let Expr::Name(name) = callee.as_ref() else {
+        return None;
+    };
+    let ok = match name.as_str() {
+        "Ok" => true,
+        "Err" => false,
+        _ => return None,
+    };
+    if out.functions.contains_key(name) || out.declared_types.contains(name) {
+        return None;
+    }
+    match args.as_slice() {
+        [] => Some((ok, None)),
+        [Expr::Tuple(items)] if items.is_empty() => Some((ok, None)),
+        [one] => Some((ok, Some(one))),
+        _ => None,
+    }
+}
+
+/// Is this Err payload a sum's variant, and what is the variant called?
+///
+/// The exception languages and Go have no variant to hand back, so the name becomes
+/// the message, which is also what Zig's own `@errorName` answers.
+fn error_variant<'e>(out: &Out, payload: &'e Expr) -> Option<&'e str> {
+    let Expr::Field { of, name } = payload else {
+        return None;
+    };
+    matches!(of.as_ref(), Expr::Name(n) if out.sums.contains(n)).then_some(name.as_str())
+}
+
+/// The words the exception languages translate a returned `Err` with.
+const RESULT_RAISED: &str = "a Result crosses as its own failure here: Ok returns, Err raises.";
+
+/// Is this top-level statement exactly the entry call to a `main` this module declares?
+///
+/// Four of these six targets run `main` themselves, so the call is not information
+/// there. Written anywhere, it would either run the program twice or fail to parse.
+/// Dropping it is a translation and not a loss, and the note says which.
+fn calls_declared_main(out: &Out, stmt: &Stmt) -> bool {
+    let Stmt::Expr(Expr::Call { callee, .. }) = stmt else {
+        return false;
+    };
+    matches!(callee.as_ref(), Expr::Name(name) if name == "main")
+        && out.functions.contains_key("main")
+}
+
+/// The words every self-running target drops the entry call with.
+const ENTRY_DROPPED: &str = "the source's entry call is dropped: the target runs main itself.";
+
+/// The module function the entry statement calls with no arguments, if that is one.
+fn entry_function<'m>(module: &'m Module, stmt: &Stmt) -> Option<&'m Function> {
+    let Stmt::Expr(Expr::Call { callee, args }) = stmt else {
+        return None;
+    };
+    if !args.is_empty() {
+        return None;
+    }
+    let Expr::Name(name) = callee.as_ref() else {
+        return None;
+    };
+    module.items.iter().find_map(|item| match item {
+        Item::Function(f) if f.name == *name => Some(f),
+        _ => None,
+    })
+}
+
+/// How many arguments a call to this function cannot leave out.
+fn required_parameters(f: &Function) -> usize {
+    f.params
+        .iter()
+        .filter(|p| p.kind == ParamKind::Normal && p.default.is_none())
+        .count()
+}
+
+/// Does this entry function receive the program's arguments?
+///
+/// Only `main(String[] args)` and its shape: the one-parameter convention is main's.
+/// Inventing arguments for any other entry would be a guess about what it takes.
+fn entry_takes_arguments(f: &Function) -> bool {
+    f.name == "main" && required_parameters(f) == 1
+}
+
 /// A top-level statement, in a target whose top level only declares.
 ///
 /// In the source that statement is the program: `main();` at the bottom of a
@@ -6625,6 +7501,11 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("console.log({rendered})")
         }
         (None, "len", [x]) => format!("{}.length", ts_expr(out, x)),
+        // Inside a catch, the exception as text is its message: `String(e)` leads
+        // with the class name, which is not what the source printed.
+        (None, "str", [Expr::Name(bound)]) if out.catch_bindings.iter().any(|b| b == bound) => {
+            format!("({} as Error).message", out.name(bound))
+        }
         (None, "str", [x]) => format!("String({})", ts_expr(out, x)),
         (Some(of), "append", [x]) => {
             format!("{}.push({})", ts_expr(out, &of.clone()), ts_expr(out, x))
@@ -6693,6 +7574,11 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 .collect::<Vec<_>>()
                 .join(" + \" \" + ");
             format!("System.out.println({rendered})")
+        }
+        // Inside a catch, the exception as text is its message: `String.valueOf(e)`
+        // leads with the class name, which is not what the source printed.
+        (None, "str", [Expr::Name(bound)]) if out.catch_bindings.iter().any(|b| b == bound) => {
+            format!("{}.getMessage()", out.name(bound))
         }
         (None, "str", [x]) => format!("String.valueOf({})", java_expr(out, x)),
         (Some(of), "append", [x]) => {

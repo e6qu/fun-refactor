@@ -1366,3 +1366,25 @@ under `tsc --strict` after translation and prints the same output under Node
 that it printed under CPython, and the same file translated the other way runs
 under Python. The corpus ledger fell by roughly 260 carried constructs, and
 what still cannot cross says so in the file, at the line where it stops.
+
+### The pass where the drafts stayed running
+
+A second probe drove `translate` with compilers and runtimes on the far side,
+and five findings survived (B399 through B403). Markers compile now: Go's
+stand-in binds, Rust's `todo!` doubles its braces, and an untranslatable
+constant is a comment instead of a build that stops. The entry call crosses
+every pairing once. The self-running readers synthesize it, Python guards it,
+TypeScript writes it bare, and the targets that run `main` themselves drop it
+with a note. Exceptions cross under the target's own names, and a caught
+error read as text is its message everywhere. Rust's `Result<T, E>` and Zig's
+`E!T` read as one shared name. Go writes it as its `(T, error)` pair; the
+exception languages raise the `Err`. A value-position Zig switch lowers to
+declare-then-assign, and the Rust writer folds the pair back into a `match`.
+
+The measure again: the Result fixture builds under `go build`, and its
+functions answer byte-for-byte what the Rust binary answers. The exception
+fixtures run identically in both directions across Python, TypeScript and
+Java. The Zig ledger fixture fell from ten rustc errors to five, and every
+survivor names a foreign API out loud. Carried error propagation fell from 46
+to 20 across the corpus. The Zig reader stopped dropping one-statement
+branches in silence, and the ledger now states them.

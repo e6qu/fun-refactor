@@ -149,7 +149,8 @@ fn a_local_base_lays_flat_where_nothing_inherits() {
     let out = tmp.path().join("repo_out.txt");
     let plan = transpile::plan_to(&path, Language::Rust, Some(&out), false).unwrap();
     assert!(
-        plan.output.contains("pub struct TaskRepo {\n    pub rows: Vec<f64>,\n}"),
+        plan.output
+            .contains("pub struct TaskRepo {\n    pub rows: Vec<f64>,\n}"),
         "the base's field belongs to the extender:\n{}",
         plan.output
     );
