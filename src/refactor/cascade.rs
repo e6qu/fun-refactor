@@ -1124,6 +1124,17 @@ fn boolean_literal(text: &str) -> Option<bool> {
     while let Some(inner) = text.strip_prefix('(').and_then(|t| t.strip_suffix(')')) {
         text = inner.trim();
     }
+    // A flag read under negation substitutes into `if !true` or `if not True`, which is
+    // as constant as the literal itself. Without this the dead branch stayed behind.
+    if let Some(rest) = text.strip_prefix('!') {
+        return boolean_literal(rest).map(|truth| !truth);
+    }
+    if let Some(rest) = text
+        .strip_prefix("not")
+        .filter(|rest| rest.starts_with([' ', '\t', '(']))
+    {
+        return boolean_literal(rest).map(|truth| !truth);
+    }
     match text {
         "true" | "True" => Some(true),
         "false" | "False" => Some(false),
@@ -2202,6 +2213,36 @@ mod tests {
         let found = collapse(Language::Rust, source).changes;
         assert_eq!(found.len(), 1);
         assert!(found[0].1.contains("go();"), "got {:?}", found[0].1);
+    }
+
+    #[test]
+    fn a_negated_constant_conditional_is_still_constant() {
+        let source = "fn f() {\n    if !true {\n        go();\n    }\n}\n";
+        let found = collapse(Language::Rust, source).changes;
+        assert_eq!(found.len(), 1, "got {found:?}");
+        assert!(found[0].1.trim().is_empty(), "got {:?}", found[0].1);
+
+        let source = "fn f() {\n    if !false {\n        go();\n    }\n}\n";
+        let found = collapse(Language::Rust, source).changes;
+        assert_eq!(found.len(), 1, "got {found:?}");
+        assert!(found[0].1.contains("go();"), "got {:?}", found[0].1);
+    }
+
+    #[test]
+    fn a_python_not_of_a_constant_is_still_constant() {
+        let source = "def f():\n    if not True:\n        go()\n    stay()\n";
+        let found = collapse(Language::Python, source).changes;
+        assert_eq!(found.len(), 1, "got {found:?}");
+        assert!(found[0].1.trim().is_empty(), "got {:?}", found[0].1);
+    }
+
+    #[test]
+    fn a_negation_of_something_unprovable_is_left_alone() {
+        let source = "fn f() {\n    if !ready {\n        go();\n    }\n}\n";
+        assert!(collapse(Language::Rust, source).changes.is_empty());
+        // `notable` begins with `not` and is a name, so it must not read as a negation.
+        let source = "def f():\n    if notable:\n        go()\n";
+        assert!(collapse(Language::Python, source).changes.is_empty());
     }
 
     #[test]

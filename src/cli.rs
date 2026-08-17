@@ -1825,6 +1825,9 @@ fn print_recipe_report(report: &crate::recipe::Report) {
             println!("       left     {warning}");
         }
     }
+    if let Some(why) = &report.stopped {
+        println!("\nstopped: {why}");
+    }
     if !report.expectations.is_empty() {
         println!("\nexpect");
         for expectation in &report.expectations {

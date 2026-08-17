@@ -1075,7 +1075,7 @@ fn a_language_without_a_collapse_step_refuses_rather_than_going_quiet() {
         std::fs::read_to_string(tmp.path().join("doc.xml")).expect("the file"),
         "<?xml version=\"1.0\"?>\n<!DOCTYPE doc [\n<!ENTITY use_new \"true\">\n]>\n\
          <doc>\n  <flag>&use_new;</flag>\n</doc>\n",
-        "and leaves the document exactly as it was"
+        "and leaves the document as it was"
     );
 }
 

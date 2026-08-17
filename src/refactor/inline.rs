@@ -1021,7 +1021,10 @@ fn may_run_code(value: &str) -> bool {
             }
         }
     }
-    trimmed.contains("await ") || trimmed.contains("new ") || trimmed.contains("++") || trimmed.contains("--")
+    trimmed.contains("await ")
+        || trimmed.contains("new ")
+        || trimmed.contains("++")
+        || trimmed.contains("--")
 }
 
 /// One double-quoted literal and nothing after it.

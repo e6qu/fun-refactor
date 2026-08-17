@@ -92,6 +92,125 @@ fn a_statement_binding_several_names_survives_if_any_one_is_used() {
 }
 
 #[test]
+fn a_grouped_plain_import_prunes_its_unused_names() {
+    // `import os, sys` binds two modules with one statement. Only the dead one goes.
+    let (plan, updated, _) = organize(
+        &[("a.py", "import os, sys\n\nprint(os.path.sep)\n")],
+        "a.py",
+    );
+
+    assert_eq!(
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
+        vec!["sys"],
+        "got {:?}",
+        plan.removed
+    );
+    assert_eq!(plan.removed[0].bindings, vec!["sys".to_string()]);
+    assert_eq!(updated, "import os\n\nprint(os.path.sep)\n");
+}
+
+#[test]
+fn a_grouped_plain_import_nothing_uses_is_removed_whole() {
+    let (plan, updated, _) = organize(&[("a.py", "import os, sys\n\nprint(1)\n")], "a.py");
+
+    assert_eq!(plan.removed.len(), 1, "got {:?}", plan.removed);
+    assert_eq!(
+        plan.removed[0].bindings,
+        vec!["os".to_string(), "sys".to_string()]
+    );
+    assert_eq!(updated, "\nprint(1)\n");
+}
+
+#[test]
+fn a_grouped_plain_import_keeps_an_aliased_module_something_names() {
+    // The alias is the binding, so the clause that carries it survives whole.
+    let (plan, updated, _) = organize(
+        &[("a.py", "import os, sys as system\n\nprint(system.path)\n")],
+        "a.py",
+    );
+
+    assert_eq!(
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
+        vec!["os"]
+    );
+    assert_eq!(updated, "import sys as system\n\nprint(system.path)\n");
+}
+
+#[test]
+fn a_grouped_plain_import_narrows_around_a_kept_submodule() {
+    // `app.handlers` may exist for its registration side effects, so it stays and is
+    // reported. The dead `sys` clause still leaves.
+    let (plan, updated, _) = organize(
+        &[("a.py", "import app.handlers, sys\n\nprint(1)\n")],
+        "a.py",
+    );
+
+    assert_eq!(
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
+        vec!["sys"]
+    );
+    assert_eq!(updated, "import app.handlers\n\nprint(1)\n");
+    assert!(
+        plan.warnings.iter().any(|w| w.detail.contains("submodule")),
+        "the kept clause must be explained: {:?}",
+        plan.warnings
+    );
+}
+
+#[test]
+fn an_unused_namespace_import_is_pruned_like_a_named_one() {
+    // `import * as fs` is recorded as a glob for resolution's sake, but it binds exactly
+    // one name. It used to be kept in silence; an unused binding is this command's job.
+    let (plan, updated, _) = organize(
+        &[(
+            "a.ts",
+            "import * as fs from \"fs\";\n\nexport const x = 1;\n",
+        )],
+        "a.ts",
+    );
+
+    assert_eq!(
+        plan.removed
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect::<Vec<_>>(),
+        vec!["fs"]
+    );
+    assert_eq!(updated, "\nexport const x = 1;\n");
+    assert!(
+        !plan
+            .warnings
+            .iter()
+            .any(|w| w.detail.contains("glob import")),
+        "an enumerable binding is not the glob case: {:?}",
+        plan.warnings
+    );
+}
+
+#[test]
+fn a_used_namespace_import_is_kept() {
+    let (plan, updated, _) = organize(
+        &[(
+            "a.ts",
+            "import * as path from \"path\";\n\nexport const x = path.sep;\n",
+        )],
+        "a.ts",
+    );
+
+    assert!(plan.removed.is_empty(), "got {:?}", plan.removed);
+    assert!(updated.contains("import * as path from \"path\";"));
+}
+
+#[test]
 fn a_glob_import_is_never_removed_and_says_why() {
     let (plan, updated, _) = organize(
         &[("a.rs", "use zed::*;\nuse std::fmt;\n\nfn main() {}\n")],

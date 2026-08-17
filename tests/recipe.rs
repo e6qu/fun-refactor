@@ -506,8 +506,30 @@ fn a_refusal_stops_the_run_and_writes_nothing() {
     assert_eq!(
         after[&tmp.path().join("a.py")].1,
         "def used():\n    return 1\n\n\ndef entry():\n    return used()\n",
-        "a stopped run must leave the workspace exactly as it found it"
+        "a stopped run must leave the workspace as it found it"
     );
+}
+
+#[test]
+fn a_stopped_run_counts_only_the_steps_that_ran() {
+    // The stop used to ride along as one more step report, so a two-step recipe whose
+    // second step refused presented itself as three steps. The stop is a verdict on the
+    // run and is reported apart from the steps.
+    let (_tmp, report, _after) = run(
+        &[(
+            "a.py",
+            "def dead():\n    return 1\n\n\ndef used():\n    return 2\n\n\ndef entry():\n    return used()\n",
+        )],
+        "schema 1\n\
+         recipe r {\n\
+           delete where name=\"dead\"\n\
+           delete where name=\"used\"\n\
+         }\n",
+    );
+    assert_eq!(report.steps.len(), 2, "got {:?}", report.steps);
+    let stopped = report.stopped.as_deref().expect("the second step refused");
+    assert!(stopped.contains("step 2 refused"), "got {stopped}");
+    assert!(!report.ok);
 }
 
 /// A misspelled predicate *value* blamed the repository.

@@ -229,6 +229,31 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
 }
 
 #[test]
+fn an_intra_doc_link_to_the_deleted_symbol_is_reported_and_left_alone() {
+    // Deleting `legacy` strands the `[`legacy`]` link in another item's rustdoc. The doc
+    // comment is prose, so nothing edits it; the plan has to say where it dangles.
+    let source = "/// Successor to [`legacy`].\npub fn modern() -> u32 {\n    2\n}\n\npub fn legacy() -> u32 {\n    1\n}\n";
+    let (tmp, index) = workspace(&[("lib.rs", source)]);
+
+    let plan = delete::plan(&index, only_symbol(&index, "legacy")).unwrap();
+    let textual: Vec<_> = plan
+        .warnings
+        .iter()
+        .filter(|w| w.kind == WarningKind::TextualOccurrence)
+        .collect();
+    assert_eq!(textual.len(), 1, "got {:?}", plan.warnings);
+    assert_eq!(textual[0].file, tmp.path().join("lib.rs"));
+    assert_eq!(textual[0].line, 1);
+
+    let after = applied(&plan, &tmp.path().join("lib.rs"));
+    assert!(
+        after.contains("/// Successor to [`legacy`]."),
+        "the doc comment must come through untouched:\n{after}"
+    );
+    assert!(!after.contains("fn legacy"), "got:\n{after}");
+}
+
+#[test]
 fn files_that_failed_to_parse_are_reported_as_possibly_hiding_uses() {
     let (_tmp, index) = workspace(&[("a.rs", "fn alone() {}\n"), ("broken.rs", "fn oops( {\n")]);
     let plan = delete::plan(&index, only_symbol(&index, "alone")).unwrap();
@@ -814,7 +839,7 @@ fn a_name_merely_starting_with_get_is_not_an_accessor() {
 
 /// An attribute value is a string the HTML grammar happens not to call one.
 ///
-/// It is also where a template names the code behind it. So the rule meant to catch that —
+/// It is also where a template names the code behind it. So the rule meant to catch that,
 /// "spared because its name is spelled in a string", could not see the whole Thymeleaf, Vue and
 /// Angular way of referring to code.
 #[test]

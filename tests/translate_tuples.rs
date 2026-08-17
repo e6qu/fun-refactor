@@ -61,8 +61,7 @@ fn a_writer_with_no_tuple_says_so_instead_of_dropping_it() {
     let path = tmp.path().join("fetch.go");
     std::fs::write(&path, FETCH_GO).unwrap();
     let out_path = tmp.path().join("Fetch.java");
-    let plan =
-        transpile::plan_to(&path, Language::Java, Some(&out_path), false).unwrap();
+    let plan = transpile::plan_to(&path, Language::Java, Some(&out_path), false).unwrap();
     assert!(
         plan.output.contains("fun-refactor: not translated: tuple"),
         "Java carries the tuple visibly:\n{}",

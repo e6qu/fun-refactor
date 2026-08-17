@@ -240,7 +240,7 @@ fn the_published_totals_match_the_matrix() {
             assert!(
                 text.contains(&needle),
                 "{name} does not say `{needle}`. The matrix has {yes} supported and \
-                 {rest} not applicable out of {total} — regenerate the sentence as well \
+                 {rest} not applicable out of {total}: regenerate the sentence as well \
                  as the table, or update the phrasing here if it changed."
             );
         }

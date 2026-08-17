@@ -3,10 +3,11 @@
 //! *Removal* follows the index's records: an import goes only when no reference outside
 //! an import statement names anything it binds. A glob import binds names nobody can
 //! enumerate and a side-effect import binds nothing, so this reports both instead of
-//! removing them.
+//! removing them. A TypeScript namespace import is recorded as a glob for resolution.
+//! It binds exactly one name, so liveness judges it like any other import.
 //!
 //! Name-based liveness is exact for a value or type that must be spelled where it is
-//! used, and blind to whatever a language brings into scope invisibly. `hold_back_reason`
+//! used. It is blind to whatever a language brings into scope invisibly. `hold_back_reason`
 //! lists every such form this tool knows, keeps the import, and says why. Removing a live
 //! import breaks a build; keeping a dead one leaves a line.
 //!
@@ -250,7 +251,7 @@ fn hold_back_reason(
 
         // Zig needs no guard: `@import` yields an ordinary container-level `const`, and
         // every use of it spells that const's name. There is no Zig construct that
-        // brings an imported name into scope without naming it, `usingnamespace` does,
+        // brings an imported name into scope without naming it. `usingnamespace` does,
         // but it binds nothing for this pass to remove.
         _ => None,
     }
@@ -355,7 +356,7 @@ fn go_binding_is_certain(path: &str) -> bool {
 
 /// The package clause of an imported Go package, when the scan can see it.
 ///
-/// The directory a Go package lives in is named by the tail of its import path, but the module
+/// The directory a Go package lives in is named by the tail of its import path. The module
 /// prefix (`example.com/app`) lives in `go.mod` and not on disk. So the only thing to match on
 /// is how many trailing components agree. The longest agreement wins; two equally good
 /// directories disagreeing about the package name means the answer is unknown, not whichever
@@ -422,15 +423,15 @@ pub struct RemovedImport {
 /// not.
 ///
 /// Liveness is decided by name. That is exact for a value or type that must be spelled where it
-/// is used, and blind to anything a language brings into scope invisibly. A Rust trait imported
-/// only so its methods resolve, a Python module imported for its registration side effects
-/// under a name that is never mentioned again, a TypeScript type used only in a JSDoc comment.
+/// is used. It is blind to anything a language brings into scope invisibly. A Rust trait
+/// imported only so its methods resolve. A Python module imported for its registration side
+/// effects under a name never mentioned again. A TypeScript type used only in a JSDoc comment.
 /// Every such form `hold_back_reason` knows about keeps its import and produces a warning
-/// saying which binding and why; check the [`ImportsPlan::removed`] list before committing all
+/// saying which binding and why. Check the [`ImportsPlan::removed`] list before committing all
 /// the same.
 pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
     // The index first. Reading the file before asking answers "no such file" about a path
-    // whose real problem is that nothing indexed it, which is a different thing to fix.
+    // whose real problem is that nothing indexed it. That is a different thing to fix.
     index
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
@@ -524,7 +525,9 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
     let mut drop_statement = vec![false; statements.len()];
     for (i, statement) in statements.iter().enumerate() {
         let position = line_index.line_col(statement.span.start, source);
-        if statement.is_glob {
+        // A namespace import carries the glob flag for resolution's sake, yet it binds one
+        // spelled-out name. Only a glob that binds invisibly is beyond liveness.
+        if statement.is_glob && !statement.explicit_binding {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
                 file: file.to_path_buf(),
@@ -538,7 +541,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
             });
             continue;
         }
-        // A Go `import _ "embed"` is the one form that binds nothing on purpose; every
+        // A Go `import _ "embed"` is the one form that binds nothing on purpose. Every
         // other empty-binding statement either binds nothing (a TypeScript side-effect
         // import) or defeated the guess, which the language guard below sorts out.
         if statement.bindings.is_empty() && statement.binding_certain {
@@ -564,8 +567,25 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         }
         // Nothing names it, which for some constructs means nothing *can* name it. Removing one
         // of those leaves a file that still parses but no longer builds, which the reparse
-        // check cannot catch. So it is kept and reported instead.
-        if let Some(detail) = hold_back_reason(info.language, statement, &invisible) {
+        // check cannot catch. So it is kept and reported instead. A name with a path of its
+        // own, one clause of a plain Python `import a, b`, is asked under that path. The
+        // narrowing pass below still removes the clauses that can go.
+        let held = hold_back_reason(info.language, statement, &invisible).or_else(|| {
+            statement
+                .named
+                .iter()
+                .filter(|name| name.path != statement.path)
+                .find_map(|name| {
+                    let alone = Statement {
+                        path: name.path.clone(),
+                        bindings: vec![name.local.clone()],
+                        named: vec![name.clone()],
+                        ..statement.clone()
+                    };
+                    hold_back_reason(info.language, &alone, &invisible)
+                })
+        });
+        if let Some(detail) = held {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
                 file: file.to_path_buf(),
@@ -585,7 +605,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
     }
 
     // A statement may lose some of what it binds and keep the rest. Dropping only whole
-    // statements left `import { up, down }` intact with nothing naming `down`, which is
+    // statements left `import { up, down }` intact with nothing naming `down`. That is
     // an error under `noUnusedLocals` and a lint failure everywhere else, from the one
     // command whose whole job is removing imports nothing uses.
     let mut narrowed_statements: Vec<(usize, String)> = Vec::new();
@@ -601,6 +621,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
             // the same one, asked of one binding instead of all of them.
             .filter(|name| {
                 let alone = Statement {
+                    path: name.path.clone(),
                     bindings: vec![name.local.clone()],
                     named: vec![(*name).clone()],
                     ..(*statement).clone()
@@ -614,12 +635,25 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         if let Some(text) = without_names(source, &parsed, statement, &dead) {
             narrowed_statements.push((i, text));
             let position = line_index.line_col(statement.span.start, source);
-            removed.push(RemovedImport {
-                path: statement.path.clone(),
-                bindings: dead.iter().map(|n| n.local.clone()).collect(),
-                span: statement.span,
-                line: position.line,
-            });
+            if dead.iter().all(|name| name.path == statement.path) {
+                removed.push(RemovedImport {
+                    path: statement.path.clone(),
+                    bindings: dead.iter().map(|n| n.local.clone()).collect(),
+                    span: statement.span,
+                    line: position.line,
+                });
+            } else {
+                // Each clause of a plain Python `import a, b` names its own module.
+                // Reporting them under the statement's first path would name the wrong one.
+                for name in &dead {
+                    removed.push(RemovedImport {
+                        path: name.path.clone(),
+                        bindings: vec![name.local.clone()],
+                        span: statement.span,
+                        line: position.line,
+                    });
+                }
+            }
         }
     }
     for (i, text) in narrowed_statements {
@@ -780,7 +814,7 @@ struct Statement {
 ///
 /// Every edit that ends at or before the span shifts it by the difference between what it
 /// removed and what it wrote. A span that overlaps an edit has no position in the original
-/// and is answered `None`, an import statement inside a region being rewritten is not one
+/// and is answered `None`. An import statement inside a region being rewritten is not one
 /// this may also rewrite.
 fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
     let mut shift: isize = 0;
@@ -875,6 +909,9 @@ struct NamedImport {
     local: String,
     /// The bytes of the whole clause, `original as local` included.
     span: Span,
+    /// The module path this one name comes from. It matches the statement's path except
+    /// in a plain Python `import a, b`, where every name has a path of its own.
+    path: String,
 }
 
 /// Collapse import records into statements, in source order.
@@ -934,6 +971,7 @@ fn statements<'a>(
                 named.extend(record.names.iter().map(|n| NamedImport {
                     local: n.local.clone(),
                     span: n.span,
+                    path: record.path.clone(),
                 }));
                 if let Some(alias) = &record.alias {
                     bindings.push(alias.clone());
@@ -942,6 +980,17 @@ fn statements<'a>(
             let explicit_binding = !bindings.is_empty();
             if bindings.is_empty() {
                 bindings.extend(implicit_binding(&records[0].path, language));
+            }
+            // A plain Python `import a, b` arrives as one record per module and no name
+            // spans. So `import os, sys` bound only `os` and had nothing to narrow by.
+            // The parse tree still holds each clause; reading it here is what lets one
+            // dead module leave and the rest stay.
+            if language == Language::Python {
+                let plain = python_plain_names(parsed, span, source);
+                if !plain.is_empty() {
+                    bindings.extend(plain.iter().map(|name| name.local.clone()));
+                    named = plain;
+                }
             }
             // Go's `import _ "embed"` binds deliberately nothing.
             bindings.retain(|b| b != "_");
@@ -968,11 +1017,61 @@ fn statements<'a>(
         .collect()
 }
 
+/// The clauses of a plain Python `import a, b as c`, one [`NamedImport`] each.
+///
+/// Nothing here is spelled the way `from m import a, b` spells its names, so the fact
+/// query cannot report name spans for it. The tree can: each `name` child is one module
+/// clause, whose local binding is the first path segment, or the alias when it has one.
+fn python_plain_names(parsed: &Parsed, statement: Span, source: &str) -> Vec<NamedImport> {
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(statement.start, statement.end)
+    else {
+        return Vec::new();
+    };
+    if node.kind() != "import_statement" {
+        return Vec::new();
+    }
+    let mut cursor = node.walk();
+    let mut out = Vec::new();
+    for child in node.children_by_field_name("name", &mut cursor) {
+        let clause = Span::from(child);
+        match child.kind() {
+            "dotted_name" => {
+                let path = clause.text(source).to_string();
+                let Some(local) = implicit_binding(&path, Language::Python) else {
+                    continue;
+                };
+                out.push(NamedImport {
+                    local,
+                    span: clause,
+                    path,
+                });
+            }
+            "aliased_import" => {
+                let (Some(name), Some(alias)) = (
+                    child.child_by_field_name("name"),
+                    child.child_by_field_name("alias"),
+                ) else {
+                    continue;
+                };
+                out.push(NamedImport {
+                    local: Span::from(alias).text(source).to_string(),
+                    span: clause,
+                    path: Span::from(name).text(source).to_string(),
+                });
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
 /// The name a whole-module import binds without naming it.
 ///
 /// The three languages that have such a form disagree about which segment it is. `use
 /// std::fmt;` binds the last one. `import "net/http"` binds the imported package's package
-/// clause, which the path can only suggest, hence the version-suffix and `gopkg.in` handling
+/// clause, which the path can only suggest. Hence the version-suffix and `gopkg.in` handling
 /// here and the certainty check in [`go_binding_is_certain`]. Python's `import a.b` binds `a`,
 /// the *first* segment: the statement makes the whole package reachable, and `b` is only
 /// spelled through it.
@@ -1015,7 +1114,7 @@ pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String>
 /// `use` decides whether that import exists. Sorting moves whole lines, so an attribute left
 /// where it was lands on whichever import sorts into its place. This crate's own `src/index.rs`
 /// came out of `fr imports` with `use anyhow::…` behind the `cfg` and `use crate::scan::…`
-/// unconditional, which compiles under neither setting of the feature.
+/// unconditional. That compiles under neither setting of the feature.
 ///
 /// Read from the tree and not by looking for `#[`. So a multi-line attribute is one span and a
 /// `#[` inside a string is not an attribute at all.
@@ -1064,8 +1163,8 @@ fn sorted<'a>(statements: &[&'a Statement]) -> Vec<&'a Statement> {
 ///
 /// The index records where a name is *bound*, which for `down as lower` is `lower`. Taking only
 /// that out leaves `down as` behind. So the span is widened to the clause the grammar wraps it
-/// in, `import_specifier` in TypeScript, `aliased_import` in Python, `use_as_clause` in Rust,
-/// stopping before it could swallow the statement itself.
+/// in, `import_specifier` in TypeScript, `aliased_import` in Python, `use_as_clause` in Rust.
+/// The widening stops before it could swallow the statement itself.
 fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
     let Some(node) = parsed
         .root()
