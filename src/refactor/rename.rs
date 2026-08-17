@@ -87,6 +87,22 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     };
 
     // References that resolved strongly enough to rewrite.
+    // Java's overloads are one entity: the group holds every `size` the class
+    // declares, and they rename together. A call that matched by name alone can then
+    // only reach a renamed declaration, provided nothing outside the group answers
+    // to the name. Leaving such a call was writing code that called nothing, while
+    // the summary counted the sites it did change and said nothing of the rest.
+    let overload_peers = group
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.name == symbol.name)
+        .count();
+    let group_answers_alone = overload_peers > 1
+        && index
+            .find_symbols(&symbol.name, None)
+            .iter()
+            .all(|s| group.contains(&s.id));
+
     let mut reference_edits = 0;
     let mut seen_spans = std::collections::HashSet::new();
     for id in &group {
@@ -104,6 +120,26 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     ),
                 );
                 reference_edits += 1;
+            } else if group_answers_alone && reference.kind == ReferenceKind::Call {
+                edits.add(
+                    reference.file.clone(),
+                    Edit::new(
+                        reference.span,
+                        reference_text.as_str(),
+                        format!("rename overloaded call to {}", symbol.name),
+                    ),
+                );
+                reference_edits += 1;
+                warnings.push(locate_warning(
+                    WarningKind::DispatchCandidate,
+                    &reference.file,
+                    reference.span.start,
+                    format!(
+                        "renamed with the overloads: only a declaration of '{}' answers \
+                         this call, and every one of them renames here.",
+                        symbol.name
+                    ),
+                ));
             } else {
                 warnings.push(locate_warning(
                     WarningKind::WeaklyResolved,

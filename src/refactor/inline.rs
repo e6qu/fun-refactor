@@ -120,11 +120,11 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    // Substituting the value more than once evaluates it more than once. A call may
-    // do something each time it runs: `let v = effect(); v + v` inlined is
-    // `effect() + effect()`, the effect twice. The same rule the call inliner
-    // applies to its arguments.
-    if references.len() > 1 && !is_duplicable(&value_text) {
+    // Substituting the value more than once evaluates it more than once. That only
+    // matters when evaluating can *do* something: `let v = effect(); v + v` inlined
+    // is `effect() + effect()`, the effect twice. `a + b` twice is merely arithmetic
+    // twice, and refusing it swallowed most ordinary inlines.
+    if references.len() > 1 && may_run_code(&value_text) {
         anyhow::bail!(
             "'{}' is used {} times and `{}` is not a simple value; \
              inlining would evaluate it more than once",
@@ -999,6 +999,29 @@ fn is_duplicable(argument: &str) -> bool {
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '.' || c == '"')
         && !trimmed.contains('(')
+}
+
+/// Could evaluating this text run something, rather than only read values?
+///
+/// A `(` that follows a name, an index or another call is a call about to happen; a
+/// macro's `!(`, an `await`, a `new` and the mutating `++`/`--` are the same hazard
+/// in other spellings. A `(` after an operator is only grouping. Text inside a
+/// string literal does not run, so one whole literal is exempt before any of this.
+fn may_run_code(value: &str) -> bool {
+    let trimmed = value.trim();
+    if whole_string_literal(trimmed) {
+        return false;
+    }
+    for (at, c) in trimmed.char_indices() {
+        if c == '(' {
+            let before = trimmed[..at].trim_end().chars().last();
+            if matches!(before, Some(b) if b.is_alphanumeric() || matches!(b, '_' | ']' | ')' | '!' | '?'))
+            {
+                return true;
+            }
+        }
+    }
+    trimmed.contains("await ") || trimmed.contains("new ") || trimmed.contains("++") || trimmed.contains("--")
 }
 
 /// One double-quoted literal and nothing after it.
