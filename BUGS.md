@@ -175,6 +175,47 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B399: **two racing `fr rename --write` runs both reported applied and one
+  rename vanished.** Whole-file writes let the last writer win in silence. The
+  commit now re-reads every file and refuses whenever the text differs from what
+  the plan read, and nothing partial is written. OS locks held in the system
+  temporary directory serialise the read-verify-write window. Pinned by the
+  commit tests in `src/edit.rs`.
+
+- [x] B400: **`fr symbols --json | head` panicked once `head` closed the pipe.**
+  Exit 101 and a broken-pipe abort, for a reader that had taken what it wanted.
+  Every stdout write now treats a closed pipe as the end of the run and exits 0.
+  Pinned in `tests/cli.rs`.
+
+- [x] B401: **diff headers named absolute paths, which `git apply -p1` refuses.**
+  Headers are now workspace-root-relative, `a/src/x.rs`, while the JSON `path`
+  fields stay absolute. Pinned in `tests/cli.rs` and `tests/json_surface.rs`.
+
+- [x] B402: **`fr usages` and `fr rename` disagreed about the same entity.**
+  Usages excluded definition sites; rename counted them. So `files_changed`
+  said 2 where usages saw 1 file. `fr usages` now lists the definitions apart
+  from the uses, and rename's JSON carries `definition_edits`. Pinned in
+  `tests/json_surface.rs`.
+
+- [x] B403: **every domain failure exited 1.** Not found exits 3, ambiguous 4,
+  a refusal 5. Clap keeps 2 and everything else stays 1. `fr --help`
+  documents the codes. Pinned in `tests/cli.rs`.
+
+- [x] B404: **`fr scan --json` spelled paths its own way and dropped symlinks
+  in silence.** Each item now carries an absolute `file` beside `path`.
+  Skipped symlinks are listed with their targets named. Pinned in
+  `tests/json_surface.rs` and the `src/scan.rs` tests.
+
+- [x] B405: **a `restructure` step that matched nothing reported "matched 1,
+  applied 0" and ok.** The pattern is the step's selector. So an empty match
+  now stops the run unless `allow-empty` says it may. The matched count is the
+  occurrence count. Pinned in `tests/recipe.rs`.
+
+- [x] B406: **`fr remove-flag` left the flag's name behind in strings, comments
+  and config.** The rename sweep now runs over the finished workspace. Every
+  remaining mention lands under "Left undone" with its file and line. Pinned
+  in `tests/remove_flag_sweep.rs`.
+
 - [x] B398: **a Python instance attribute was not a symbol at all.** `fr rename`
   answered "no symbol or resolved reference at" the most common rename target
   the language has. Each `self.x = ...` site now defines a field; the class,

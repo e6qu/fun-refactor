@@ -46,8 +46,8 @@ pub struct StepReport {
     pub refusals: Vec<Refusal>,
     /// What the operation left alone and said so about.
     ///
-    /// A refusal is the operation declining; a warning is it succeeding and telling you what it
-    /// could not verify, a reference that resolved too weakly to rewrite, a name in a comment.
+    /// A refusal is the operation declining. A warning is it succeeding and telling you what it
+    /// could not verify: a reference that resolved too weakly to rewrite, a name in a comment.
     /// Dropping these on the floor is the accept-and-ignore this codebase bans elsewhere: `fr
     /// rename` prints them and a recipe was swallowing them. So a step that left work behind
     /// reported a clean run.
@@ -92,9 +92,9 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
     let mut stopped = None;
 
     // Only what an expectation asks for. Both analyses run over the whole
-    // workspace and both ran twice, before and after, even for a recipe with no
-    // `expect no-new` in it at all, which over helm is most of a minute spent
-    // answering a question nobody asked.
+    // workspace, and both ran twice, before and after, even for a recipe with no
+    // `expect no-new` in it. Over helm that is most of a minute spent answering a
+    // question nobody asked.
     let wanted: BTreeSet<&str> = recipe
         .expects
         .iter()
@@ -349,8 +349,9 @@ fn run_step(
     let mut applied = 0usize;
     let permitted = step.on_refusal == OnRefusal::Allow;
 
-    // The three workspace-wide operations select nothing: their target is the shape
-    // they are given, and the signature table already rejected a `where` on them.
+    // The workspace-wide operations take no `where`: the signature table already
+    // rejected one. `remove-flag` and the extracts name their one target directly,
+    // while a `restructure` pattern selects its occurrences, so its count is real.
     let matched = match &step.operation {
         Operation::RemoveFlag { flag, value } => {
             match crate::refactor::cascade::remove_flag_in(sources.clone(), flag, *value) {
@@ -376,16 +377,25 @@ fn run_step(
             };
             match crate::refactor::restructure::apply(index, language, pattern, template) {
                 Ok(plan) => {
-                    applied = plan.edits.file_count();
+                    // The pattern is this step's selector, so the counts are per
+                    // occurrence. A constant 1 here reported "matched 1, applied 0"
+                    // for a pattern that matched nothing. That read as a quiet
+                    // success and slipped past the empty-match stop below.
+                    applied = plan.matches.len();
                     merge(&mut edits, &plan.edits);
+                    plan.matches.len()
                 }
-                Err(e) => refusals.push(Refusal {
-                    subject: pattern.clone(),
-                    reason: e.to_string(),
-                    permitted,
-                }),
+                Err(e) => {
+                    refusals.push(Refusal {
+                        subject: pattern.clone(),
+                        reason: e.to_string(),
+                        permitted,
+                    });
+                    // A refusal is its own verdict; the count only has to keep the
+                    // empty-match stop from speaking over it.
+                    1
+                }
             }
-            1
         }
         Operation::ExtractVariable { at, name } | Operation::ExtractFunction { at, name } => {
             let function = matches!(step.operation, Operation::ExtractFunction { .. });
@@ -411,8 +421,8 @@ fn run_step(
                 None => chosen,
             };
 
-            // Each subject is planned against the workspace the previous one left, but
-            // rebuilding the index after every one of them makes a step unusable at scale. Five
+            // Each subject is planned against the workspace the previous one left.
+            // Rebuilding the index after every one of them makes a step unusable at scale. Five
             // files of helm took two minutes because each subject re-indexed all five hundred
             // and thirty-nine.
             //
@@ -552,9 +562,9 @@ impl Subject {
 
 /// What an operation did, what it left alone, and how many sites it touched.
 ///
-/// The count is 1 for anything acting on a symbol and however many sites a `rewrite`
-/// found in one file, the unit that matters there is the site. It is not the file, which is
-/// what `limit` is for.
+/// The count is 1 for anything acting on a symbol. A `rewrite` counts however many
+/// sites it found in one file, because the unit that matters there is the site. It is
+/// not the file, which is what `limit` is for.
 type Outcome = (EditSet, Vec<String>, usize);
 
 /// The warnings a plan carried, flattened into lines a report can print.
@@ -689,8 +699,8 @@ fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<(EditSet, usiz
         }
     }
     // A file where the transformation applies nowhere is not a refusal. The selector
-    // chose *files*; a file with no wrapping `if` in it had nothing to do, and
-    // treating that as a failure made `on-refusal stop`, the default, abandon the run
+    // chose *files*, and a file with no wrapping `if` in it had nothing to do.
+    // Treating that as a failure made `on-refusal stop`, the default, abandon the run
     // on the first ordinary file. Over one package of helm that was three of five.
     Ok((edits, applied))
 }

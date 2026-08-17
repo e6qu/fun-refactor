@@ -41,6 +41,12 @@ pub struct ScanResult {
     pub files: Vec<SourceFile>,
     /// Paths skipped for exceeding `max_file_bytes`, with their size.
     pub skipped_too_large: Vec<(PathBuf, u64)>,
+    /// Symlinks that look like source files, with the reason each was skipped.
+    ///
+    /// The walker does not follow links, so these used to vanish without a word. A
+    /// reader comparing the listing against `ls` saw files the tool never mentioned.
+    /// The real file is scanned where it lives; the link is reported here.
+    pub skipped_symlinks: Vec<(PathBuf, String)>,
 }
 
 /// Walk `root` and collect source files in a language we support.
@@ -58,10 +64,18 @@ pub fn scan(root: &Path, options: &ScanOptions) -> Result<ScanResult> {
 
     for entry in walker {
         let entry = entry?;
+        let path = entry.path();
+        if entry.path_is_symlink() && crate::lang::detect(path).is_some() {
+            let reason = match std::fs::read_link(path) {
+                Ok(target) => format!("symlink to {}", target.display()),
+                Err(e) => format!("symlink whose target cannot be read: {e}"),
+            };
+            result.skipped_symlinks.push((path.to_path_buf(), reason));
+            continue;
+        }
         if !entry.file_type().is_some_and(|t| t.is_file()) {
             continue;
         }
-        let path = entry.path();
         let Some(language) = crate::lang::detect(path) else {
             continue;
         };
@@ -81,6 +95,7 @@ pub fn scan(root: &Path, options: &ScanOptions) -> Result<ScanResult> {
 
     result.files.sort_by(|a, b| a.path.cmp(&b.path));
     result.skipped_too_large.sort();
+    result.skipped_symlinks.sort();
     Ok(result)
 }
 
@@ -164,6 +179,30 @@ mod tests {
             .skipped_too_large
             .iter()
             .any(|(p, _)| p.ends_with("main.rs")));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_symlinked_source_file_is_reported_rather_than_silently_dropped() {
+        let tmp = workspace();
+        std::os::unix::fs::symlink(tmp.path().join("src/main.rs"), tmp.path().join("link.rs"))
+            .unwrap();
+
+        let result = scan(tmp.path(), &ScanOptions::default()).unwrap();
+        assert!(
+            !result.files.iter().any(|f| f.path.ends_with("link.rs")),
+            "the link itself is not a second copy of the file"
+        );
+        let (path, reason) = result
+            .skipped_symlinks
+            .iter()
+            .find(|(p, _)| p.ends_with("link.rs"))
+            .expect("the skipped link is listed");
+        assert!(path.ends_with("link.rs"));
+        assert!(
+            reason.contains("symlink to") && reason.contains("main.rs"),
+            "the reason names the target: {reason}"
+        );
     }
 
     #[test]

@@ -1439,7 +1439,7 @@ mod tests {
                 path: path.clone(),
                 language: Language::Rust,
             }],
-            skipped_too_large: Vec::new(),
+            ..ScanResult::default()
         };
         let index = Index::build_from_scan(&scanned).unwrap();
         assert_eq!(index.file_count(), 0);

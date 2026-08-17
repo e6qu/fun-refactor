@@ -175,9 +175,14 @@ fn errdefer_cleans_up_only_on_the_failure_path() {
         "Python cleans up and lets the failure keep flying:\n{py}"
     );
 
-    let ts = transpile::plan_to(&path, Language::TypeScript, Some(&tmp.path().join("b")), false)
-        .unwrap()
-        .output;
+    let ts = transpile::plan_to(
+        &path,
+        Language::TypeScript,
+        Some(&tmp.path().join("b")),
+        false,
+    )
+    .unwrap()
+    .output;
     assert!(
         ts.contains("catch (fr_err)") && ts.contains("throw fr_err;"),
         "TypeScript rethrows after the cleanup:\n{ts}"

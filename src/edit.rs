@@ -289,6 +289,11 @@ fn rejection_evidence(after: &crate::parse::Parsed, updated: &str) -> String {
 ///
 /// Every file is staged as a temporary file next to its target and only then renamed into
 /// place. So a mid-run failure cannot leave a half-applied refactoring.
+///
+/// The plan captured each file's text when it was read, and the commit re-reads every
+/// file and compares before writing anything. A file that changed in between fails the
+/// whole set. Two `fr rename --write` runs racing on one workspace used to both report
+/// success while the second silently overwrote the first's edits.
 pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     // Without a filesystem there is nothing to stage against: a write goes into the same
     // in-memory workspace every read comes from. A partial write cannot survive a failure
@@ -299,6 +304,7 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     // would stage a temporary file beside a path that is in a browser's memory and has no
     // directory on disk.
     if crate::vfs::is_in_memory() {
+        verify_basis_unchanged(outcomes)?;
         let mut written = 0;
         for outcome in outcomes.iter().filter(|o| o.changed()) {
             crate::vfs::write(&outcome.path, &outcome.updated)?;
@@ -316,6 +322,7 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     // what the branch above did.
     #[cfg(not(feature = "cli"))]
     {
+        verify_basis_unchanged(outcomes)?;
         let mut written = 0;
         for outcome in outcomes.iter().filter(|o| o.changed()) {
             crate::vfs::write(&outcome.path, &outcome.updated)?;
@@ -325,10 +332,112 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     }
 }
 
+/// Refuse the whole commit when any file no longer holds the text the plan read.
+///
+/// The comparison is on the recorded text itself, which the plan already carries; a
+/// separate hash would only re-derive it. A file the plan would create reads as empty,
+/// matching how [`plan`] read it.
+fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
+    for outcome in outcomes.iter().filter(|o| o.changed()) {
+        let current = match crate::vfs::read_to_string(&outcome.path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => {
+                return Err(anyhow::Error::from(e))
+                    .with_context(|| format!("re-reading {}", outcome.path.display()))
+            }
+        };
+        if current != outcome.original {
+            bail!(
+                "{} changed since the plan was made; nothing was written. \
+                 Re-run the command against the current text.",
+                outcome.path.display()
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Exclusive advisory locks over the commit window, one per directory written to.
+///
+/// Two processes committing into the same workspace at the same time could each pass
+/// the re-read check and then overwrite each other. Any file both would write shares a
+/// parent directory. So an OS lock per written directory serialises the whole
+/// read-verify-write window. The locks are taken in sorted order, so two commits
+/// cannot end up waiting on each other.
+///
+/// The lock files live in the system temporary directory, named by a hash of the
+/// canonical directory path, never inside the workspace. A commit that added files
+/// beside the sources it edits would show up in listings, backups and demo captures.
+/// The canonical spelling makes two processes agree: `/var` and `/private/var` name
+/// the same directory and must name the same lock.
+///
+/// The lock files themselves are left in place. Deleting one that another process is
+/// blocked on would quietly hand out a second lock on a file nobody else can see.
+/// Dropping the handles releases the locks, and the OS releases them if the process
+/// dies, so there is no staleness to detect.
+#[cfg(feature = "cli")]
+struct CommitLocks {
+    /// Held for the locks the open handles carry, never read.
+    _held: Vec<std::fs::File>,
+}
+
+#[cfg(feature = "cli")]
+impl CommitLocks {
+    fn acquire(outcomes: &[FileOutcome]) -> Result<CommitLocks> {
+        use sha2::{Digest, Sha256};
+
+        let mut directories: Vec<PathBuf> = outcomes
+            .iter()
+            .filter(|o| o.changed())
+            .map(|o| {
+                o.path
+                    .parent()
+                    .unwrap_or_else(|| Path::new("."))
+                    .to_path_buf()
+            })
+            .collect();
+        directories.sort();
+        directories.dedup();
+
+        let lock_dir = std::env::temp_dir().join("fun-refactor-locks");
+        std::fs::create_dir_all(&lock_dir)
+            .with_context(|| format!("creating {}", lock_dir.display()))?;
+
+        let mut held = Vec::new();
+        for dir in directories {
+            // The directory is created here as well. A plan may introduce a file in a
+            // directory that does not exist yet, and its lock must name the real path.
+            std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+            let canonical = dir
+                .canonicalize()
+                .with_context(|| format!("resolving {}", dir.display()))?;
+            let digest = Sha256::digest(canonical.as_os_str().as_encoded_bytes());
+            let name: String = digest.iter().take(16).map(|b| format!("{b:02x}")).collect();
+            let lock_path = lock_dir.join(format!("{name}.lock"));
+            let file = std::fs::OpenOptions::new()
+                .create(true)
+                .truncate(false)
+                .write(true)
+                .open(&lock_path)
+                .with_context(|| format!("opening {}", lock_path.display()))?;
+            file.lock()
+                .with_context(|| format!("locking {}", lock_path.display()))?;
+            held.push(file);
+        }
+        Ok(CommitLocks { _held: held })
+    }
+}
+
 /// Stage each file beside its target and rename it into place, so a mid-run failure
 /// cannot leave a half-applied refactoring.
 #[cfg(feature = "cli")]
 fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
+    // The locks first, then the check, then the writes. Checking before locking would
+    // let another commit slip its writes in between the two.
+    let locks = CommitLocks::acquire(outcomes)?;
+    verify_basis_unchanged(outcomes)?;
+
     let mut staged: Vec<(PathBuf, PathBuf)> = Vec::new();
 
     let result = (|| -> Result<()> {
@@ -359,6 +468,7 @@ fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
         std::fs::rename(&tmp_path, &target)
             .with_context(|| format!("committing {}", target.display()))?;
     }
+    drop(locks);
     Ok(count)
 }
 
@@ -677,6 +787,60 @@ mod tests {
         assert_eq!(commit(&outcomes).unwrap(), 2);
         assert_eq!(crate::vfs::read_to_string(&a).unwrap(), "fn x() {}\n");
         assert_eq!(crate::vfs::read_to_string(&b).unwrap(), "fn y() {}\n");
+    }
+
+    #[test]
+    fn a_commit_refuses_when_the_file_changed_since_the_plan_was_made() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("a.rs");
+        crate::vfs::write(&path, "fn one() {}\n").unwrap();
+
+        // Two plans from the same basis, the shape of two `--write` runs racing on
+        // one workspace. Both used to report success and the second overwrote the
+        // first, so one rename vanished without a word.
+        let mut first = EditSet::new();
+        first.add(&path, Edit::new(Span::new(3, 6), "won", "rename"));
+        let mut second = EditSet::new();
+        second.add(&path, Edit::new(Span::new(3, 6), "two", "rename"));
+        let plan_a = plan(&first, Validation::ReparseStrict).unwrap();
+        let plan_b = plan(&second, Validation::ReparseStrict).unwrap();
+
+        assert_eq!(commit(&plan_a).unwrap(), 1);
+        let err = commit(&plan_b).unwrap_err().to_string();
+        assert!(
+            err.contains("changed since the plan was made"),
+            "unexpected error: {err}"
+        );
+        assert_eq!(
+            crate::vfs::read_to_string(&path).unwrap(),
+            "fn won() {}\n",
+            "the first edit must survive"
+        );
+    }
+
+    #[test]
+    fn a_stale_commit_writes_none_of_its_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let a = tmp.path().join("a.rs");
+        let b = tmp.path().join("b.rs");
+        crate::vfs::write(&a, "fn a() {}\n").unwrap();
+        crate::vfs::write(&b, "fn b() {}\n").unwrap();
+
+        let mut set = EditSet::new();
+        set.add(&a, Edit::new(Span::new(3, 4), "x", "rename"));
+        set.add(&b, Edit::new(Span::new(3, 4), "y", "rename"));
+        let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
+
+        // Only one of the two files moved on, and the fresh one must not be written
+        // either. Half a refactoring is the state the staging design exists to prevent.
+        crate::vfs::write(&b, "fn moved() {}\n").unwrap();
+        let err = commit(&outcomes).unwrap_err().to_string();
+        assert!(
+            err.contains("changed since the plan was made"),
+            "unexpected error: {err}"
+        );
+        assert_eq!(crate::vfs::read_to_string(&a).unwrap(), "fn a() {}\n");
+        assert_eq!(crate::vfs::read_to_string(&b).unwrap(), "fn moved() {}\n");
     }
 
     #[test]
