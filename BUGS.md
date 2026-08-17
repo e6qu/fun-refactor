@@ -175,6 +175,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B378: **the Go and Java readers read `total += item` as `total = item`.** Silent
+  wrong answer. One grammar node covers `=` and `+=` in both languages, and both
+  readers took the sides and dropped the operator. A translated accumulator
+  assigned its last element instead of its sum. Python, TypeScript, Zig and Rust
+  carried the statement instead, a gap rather than a lie. All six now desugar
+  `target op= value` into `target = target op value`, and an operator with no
+  counterpart, `>>=`, carries whole. Covered in `tests/translate_while_present.rs`.
+
+
 - [x] B373: **`fr extract --function` lost a mutation to an outside binding.** Silent
   wrong answer. A binding declared before the region, assigned inside it and read
   after became a parameter. A parameter is a copy in every one of these

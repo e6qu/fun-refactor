@@ -279,7 +279,10 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
         Stmt::Let { value: Some(e), .. } => bad(e),
         Stmt::Assign { target, value } => bad(target) || bad(value),
         Stmt::If { condition, .. } | Stmt::While { condition, .. } => bad(condition),
-        Stmt::IfPresent { value, .. } => bad(value),
+        Stmt::IfPresent { value, .. } | Stmt::WhilePresent { value, .. } => bad(value),
+        Stmt::Switch { subject, arms, .. } => {
+            bad(subject) || arms.iter().any(|(literals, _)| literals.iter().any(bad))
+        }
         Stmt::ForEach { iterable, .. } => bad(iterable),
         _ => false,
     }
@@ -478,6 +481,76 @@ mod rust {
             }
         }
         module
+    }
+
+    /// A `match` whose arms are selected by literals, as a switch.
+    ///
+    /// A guard, a binding, a range, or any pattern with structure makes this a
+    /// match in the full sense; the caller carries those whole. An arm's bare
+    /// expression becomes a return when the match sits in tail position, which
+    /// is Rust's implicit one.
+    fn match_switch(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        let subject = cx.field(node, "value")?;
+        let body = cx.field(node, "body")?;
+        let as_return = node.parent().is_some_and(|p| {
+            p.kind() == "expression_statement"
+                && p.next_named_sibling().is_none()
+                && !cx.text(p).trim_end().ends_with(';')
+        });
+        let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+        let mut default: Vec<Stmt> = Vec::new();
+        for arm in cx.children(body) {
+            if arm.kind() != "match_arm" {
+                continue;
+            }
+            if cx.field(arm, "condition").is_some() {
+                return None;
+            }
+            let pattern = cx.field(arm, "pattern")?;
+            let value = cx.field(arm, "value")?;
+            let arm_body = if value.kind() == "block" {
+                block(cx, value)
+            } else if as_return {
+                vec![Stmt::Return(Some(expr(cx, value)))]
+            } else {
+                vec![Stmt::Expr(expr(cx, value))]
+            };
+            if cx.text(pattern).trim() == "_" {
+                default = arm_body;
+                continue;
+            }
+            let literals = literal_patterns(cx, pattern)?;
+            arms.push((literals, arm_body));
+        }
+        Some(Stmt::Switch {
+            subject: expr(cx, subject),
+            arms,
+            default,
+        })
+    }
+
+    /// The literals under a match pattern: one, or several joined by `|`.
+    fn literal_patterns(cx: &Cx, pattern: Node<'_>) -> Option<Vec<Expr>> {
+        fn gather(cx: &Cx, node: Node<'_>, out: &mut Vec<Expr>) -> bool {
+            match node.kind() {
+                "or_pattern" => cx
+                    .children(node)
+                    .into_iter()
+                    .all(|part| gather(cx, part, out)),
+                "integer_literal" | "string_literal" | "raw_string_literal" | "char_literal"
+                | "boolean_literal" => {
+                    out.push(expr(cx, node));
+                    true
+                }
+                _ => false,
+            }
+        }
+        let mut out = Vec::new();
+        cx.children(pattern)
+            .into_iter()
+            .all(|part| gather(cx, part, &mut out))
+            .then_some(out)
+            .filter(|literals| !literals.is_empty())
     }
 
     /// The binding and the tested value of `let Some(x) = e`, when the pattern is
@@ -861,7 +934,9 @@ mod rust {
                     | "if_expression"
                     | "while_expression"
                     | "for_expression"
-                    | "assignment_expression" => stmt(cx, *inner),
+                    | "assignment_expression"
+                    | "compound_assignment_expr"
+                    | "match_expression" => stmt(cx, *inner),
                     _ => Stmt::Expr(expr(cx, *inner)),
                 },
                 None => Stmt::Unsupported(cx.unsupported(node)),
@@ -876,6 +951,25 @@ mod rust {
                     .map(|r| expr(cx, r))
                     .unwrap_or(Expr::Null),
             },
+            "match_expression" => match match_switch(cx, node) {
+                Some(switch) => switch,
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "compound_assignment_expr" => {
+                let target = cx
+                    .field(node, "left")
+                    .map(|l| expr(cx, l))
+                    .unwrap_or(Expr::Null);
+                let value = cx
+                    .field(node, "right")
+                    .map(|r| expr(cx, r))
+                    .unwrap_or(Expr::Null);
+                let operator = cx.field_text(node, "operator").unwrap_or_default();
+                match super::desugar_compound(target, &operator, value) {
+                    Some(assign) => assign,
+                    None => Stmt::Unsupported(cx.unsupported(node)),
+                }
+            }
             "if_expression" => {
                 let otherwise = cx
                     .field(node, "alternative")
@@ -920,16 +1014,34 @@ mod rust {
                     otherwise,
                 }
             }
-            "while_expression" => Stmt::While {
-                condition: cx
-                    .field(node, "condition")
-                    .map(|c| expr(cx, c))
-                    .unwrap_or(Expr::Null),
-                body: cx
+            "while_expression" => {
+                let body = cx
                     .field(node, "body")
                     .map(|b| block(cx, b))
-                    .unwrap_or_default(),
-            },
+                    .unwrap_or_default();
+                // `while let Some(x) = e` loops on an optional's payload, which
+                // every target can say. Any other pattern is a match in disguise
+                // and carries whole.
+                if let Some(condition) = cx.field(node, "condition") {
+                    if condition.kind() == "let_condition" {
+                        return match some_capture(cx, condition) {
+                            Some((binding, value)) => Stmt::WhilePresent {
+                                binding,
+                                value,
+                                body,
+                            },
+                            None => Stmt::Unsupported(cx.unsupported(node)),
+                        };
+                    }
+                }
+                Stmt::While {
+                    condition: cx
+                        .field(node, "condition")
+                        .map(|c| expr(cx, c))
+                        .unwrap_or(Expr::Null),
+                    body,
+                }
+            }
             "for_expression" => Stmt::ForEach {
                 binding: plain(cx.field_text(node, "pattern").unwrap_or_default()),
                 iterable: cx
@@ -1747,6 +1859,21 @@ mod python {
             "break_statement" => Stmt::Break,
             "continue_statement" => Stmt::Continue,
             "expression_statement" => match cx.children(node).first() {
+                Some(inner) if inner.kind() == "augmented_assignment" => {
+                    let target = cx
+                        .field(*inner, "left")
+                        .map(|l| expr(cx, l))
+                        .unwrap_or(Expr::Null);
+                    let value = cx
+                        .field(*inner, "right")
+                        .map(|r| expr(cx, r))
+                        .unwrap_or(Expr::Null);
+                    let operator = cx.field_text(*inner, "operator").unwrap_or_default();
+                    match super::desugar_compound(target, &operator, value) {
+                        Some(assign) => assign,
+                        None => Stmt::Unsupported(cx.unsupported(node)),
+                    }
+                }
                 Some(inner) if inner.kind() == "assignment" => {
                     let target = cx.field(*inner, "left");
                     let value = cx.field(*inner, "right").map(|v| expr(cx, v));
@@ -2448,16 +2575,34 @@ mod go {
                 value: cx.field(node, "right").map(|v| unlisted(cx, v)),
                 mutable: true,
             },
-            "assignment_statement" => Stmt::Assign {
-                target: cx
+            "assignment_statement" => {
+                let target = cx
                     .field(node, "left")
                     .map(|l| unlisted(cx, l))
-                    .unwrap_or(Expr::Null),
-                value: cx
+                    .unwrap_or(Expr::Null);
+                let value = cx
                     .field(node, "right")
                     .map(|r| unlisted(cx, r))
-                    .unwrap_or(Expr::Null),
-            },
+                    .unwrap_or(Expr::Null);
+                // One node covers `=` and `+=` alike, and reading them alike
+                // turned `total += item` into `total = item`.
+                let operator = {
+                    let mut cursor = node.walk();
+                    let found = node
+                        .children(&mut cursor)
+                        .find(|c| !c.is_named())
+                        .map(|c| cx.text(c));
+                    found.unwrap_or_default()
+                };
+                if operator == "=" {
+                    Stmt::Assign { target, value }
+                } else {
+                    match super::desugar_compound(target, &operator, value) {
+                        Some(assign) => assign,
+                        None => Stmt::Unsupported(cx.unsupported(node)),
+                    }
+                }
+            }
             "expression_statement" => cx
                 .children(node)
                 .first()
@@ -2905,16 +3050,27 @@ mod java {
                 }
             }
             "expression_statement" => match cx.children(node).first().copied() {
-                Some(inner) if inner.kind() == "assignment_expression" => Stmt::Assign {
-                    target: cx
+                Some(inner) if inner.kind() == "assignment_expression" => {
+                    let target = cx
                         .field(inner, "left")
                         .map(|l| expr(cx, l))
-                        .unwrap_or(Expr::Null),
-                    value: cx
+                        .unwrap_or(Expr::Null);
+                    let value = cx
                         .field(inner, "right")
                         .map(|r| expr(cx, r))
-                        .unwrap_or(Expr::Null),
-                },
+                        .unwrap_or(Expr::Null);
+                    // One node covers `=` and `+=` alike, and reading them alike
+                    // turned `total += item` into `total = item`.
+                    let operator = cx.field_text(inner, "operator").unwrap_or_default();
+                    if operator == "=" {
+                        Stmt::Assign { target, value }
+                    } else {
+                        match super::desugar_compound(target, &operator, value) {
+                            Some(assign) => assign,
+                            None => Stmt::Unsupported(cx.unsupported(node)),
+                        }
+                    }
+                }
                 Some(inner) => Stmt::Expr(expr(cx, inner)),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
@@ -3361,6 +3517,62 @@ mod zig {
                     .find(|part| part.kind() == "identifier")
                     .map(|part| cx.text(*part))
             })
+    }
+
+    /// A `switch` whose cases are selected by literals, as the shared switch.
+    ///
+    /// A range (`200...299`), a capture (`|v|`), or anything else with structure
+    /// makes this the full construct, and the caller carries it whole.
+    fn switch_stmt(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        let children = cx.children(node);
+        let subject = children.first().copied()?;
+        let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+        let mut default: Vec<Stmt> = Vec::new();
+        for case in children.iter().skip(1) {
+            if case.kind() == "comment" {
+                continue;
+            }
+            if case.kind() != "switch_case" {
+                return None;
+            }
+            let parts = all(*case);
+            if parts
+                .iter()
+                .any(|c| matches!(c.kind(), "payload" | "..." | ".."))
+            {
+                return None;
+            }
+            let arrow = parts.iter().position(|c| c.kind() == "=>")?;
+            let body_node = parts.get(arrow + 1).copied()?;
+            let body = if is_body(body_node) {
+                body_of(cx, body_node)
+            } else {
+                vec![stmt(cx, body_node)]
+            };
+            if parts[..arrow].iter().any(|c| c.kind() == "else") {
+                default = body;
+                continue;
+            }
+            let mut literals = Vec::new();
+            for value in parts[..arrow].iter().filter(|c| c.is_named()) {
+                if !matches!(
+                    value.kind(),
+                    "integer" | "float" | "string" | "char_literal"
+                ) {
+                    return None;
+                }
+                literals.push(expr(cx, *value));
+            }
+            if literals.is_empty() {
+                return None;
+            }
+            arms.push((literals, body));
+        }
+        Some(Stmt::Switch {
+            subject: expr(cx, subject),
+            arms,
+            default,
+        })
     }
 
     /// `test "name" { … }`, with the name unquoted.
@@ -3869,9 +4081,32 @@ mod zig {
                 let Some(target) = parts.iter().find(|c| c.is_named()).copied() else {
                     return Stmt::Unsupported(cx.unsupported(node));
                 };
-                let Some(value) = after(&parts, "=", ";") else {
+                // The operator may be `=` or a compound `+=`; both end in the
+                // one character, and `==` never appears in statement position.
+                let operator = parts
+                    .iter()
+                    .find(|c| !c.is_named() && c.kind().ends_with('=') && c.kind() != "==")
+                    .map(|c| cx.text(*c))
+                    .unwrap_or_default();
+                let value = parts
+                    .iter()
+                    .position(|c| !c.is_named() && cx.text(*c) == operator)
+                    .and_then(|at| parts.get(at + 1))
+                    .filter(|c| c.kind() != ";")
+                    .copied();
+                let Some(value) = value else {
                     return Stmt::Unsupported(cx.unsupported(node));
                 };
+                if !declares && operator != "=" {
+                    return match super::desugar_compound(
+                        expr(cx, target),
+                        &operator,
+                        expr(cx, value),
+                    ) {
+                        Some(assign) => assign,
+                        None => Stmt::Unsupported(cx.unsupported(node)),
+                    };
+                }
                 if !declares {
                     return Stmt::Assign {
                         target: expr(cx, target),
@@ -3935,19 +4170,41 @@ mod zig {
             }
             "while_statement" => {
                 let children = cx.children(node);
-                // `while (it.next()) |item|` is the same binding form as `if`, and the
-                // same reason to refuse it.
-                if children.iter().any(|c| c.kind() == "payload") {
+                let body = children
+                    .iter()
+                    .skip(1)
+                    .find(|c| is_body(**c))
+                    .map(|b| body_of(cx, *b))
+                    .unwrap_or_default();
+                // `while (it.next()) |item|` loops on an optional's payload. A
+                // `|*item|` pointer capture writes through the original, a
+                // continue-expression (`: (i += 1)`) has no slot, and an `else`
+                // here runs on exhaustion; none of the three crosses.
+                if let Some(payload) = children.iter().find(|c| c.kind() == "payload") {
+                    let bindings: Vec<Node> = cx
+                        .children(*payload)
+                        .into_iter()
+                        .filter(|c| c.kind() == "identifier")
+                        .collect();
+                    let by_pointer = all(*payload).iter().any(|c| c.kind() == "*");
+                    let has_else = children.iter().any(|c| c.kind() == "else_clause");
+                    // The step clause is a bare `:` and a parenthesised expression,
+                    // with no wrapper node to name.
+                    let extras = all(node).iter().any(|c| c.kind() == ":");
+                    if let ([binding], false, false, false) =
+                        (bindings.as_slice(), by_pointer, has_else, extras)
+                    {
+                        return Stmt::WhilePresent {
+                            binding: cx.text(*binding),
+                            value: children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null),
+                            body,
+                        };
+                    }
                     return Stmt::Unsupported(cx.unsupported(node));
                 }
                 Stmt::While {
                     condition: children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null),
-                    body: children
-                        .iter()
-                        .skip(1)
-                        .find(|c| is_body(**c))
-                        .map(|b| body_of(cx, *b))
-                        .unwrap_or_default(),
+                    body,
                 }
             }
             // `for (xs) |x| { … }`, the binding is in the payload.
@@ -3994,6 +4251,10 @@ mod zig {
             "call_expression" | "field_expression" | "identifier" | "try_expression" => {
                 Stmt::Expr(expr(cx, node))
             }
+            "switch_expression" => match switch_stmt(cx, node) {
+                Some(switch) => switch,
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
             _ => Stmt::Unsupported(cx.unsupported(node)),
         }
     }
@@ -4321,6 +4582,79 @@ mod typescript {
         module
             .items
             .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
+    }
+
+    /// A `switch` whose cases are selected by literals and leave before the
+    /// next case, as the shared switch.
+    ///
+    /// A case that falls through with statements of its own has no slot, since
+    /// the IR's arms are disjoint. An empty case stacks its literal onto the
+    /// next arm, which is the same construct spelled with fall-through.
+    fn ts_switch(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        let subject = cx.field(node, "value")?;
+        let subject = cx.children(subject).into_iter().next().unwrap_or(subject);
+        let body = cx.field(node, "body")?;
+        let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+        let mut default: Vec<Stmt> = Vec::new();
+        let mut pending: Vec<Expr> = Vec::new();
+        for case in cx.children(body) {
+            match case.kind() {
+                "comment" => {}
+                "switch_case" => {
+                    let value = cx.field(case, "value")?;
+                    if !matches!(value.kind(), "number" | "string" | "true" | "false") {
+                        return None;
+                    }
+                    let statements: Vec<Node> = cx
+                        .children(case)
+                        .into_iter()
+                        .filter(|c| c.id() != value.id())
+                        .collect();
+                    if statements.is_empty() {
+                        pending.push(expr(cx, value));
+                        continue;
+                    }
+                    let (arm_body, leaves) = case_body(cx, &statements);
+                    if !leaves {
+                        return None;
+                    }
+                    let mut literals = std::mem::take(&mut pending);
+                    literals.push(expr(cx, value));
+                    arms.push((literals, arm_body));
+                }
+                "switch_default" => {
+                    if !pending.is_empty() {
+                        return None;
+                    }
+                    let statements: Vec<Node> = cx.children(case);
+                    let (body, _) = case_body(cx, &statements);
+                    default = body;
+                }
+                _ => return None,
+            }
+        }
+        if !pending.is_empty() {
+            return None;
+        }
+        Some(Stmt::Switch {
+            subject: expr(cx, subject),
+            arms,
+            default,
+        })
+    }
+
+    /// The case's statements with the trailing `break` taken off, and whether
+    /// the case leaves on its own.
+    fn case_body(cx: &Cx, statements: &[Node]) -> (Vec<Stmt>, bool) {
+        let mut nodes: Vec<Node> = statements.to_vec();
+        let had_break = nodes.last().is_some_and(|n| n.kind() == "break_statement");
+        if had_break {
+            nodes.pop();
+        }
+        let body: Vec<Stmt> = nodes.iter().map(|n| stmt(cx, *n)).collect();
+        let leaves =
+            had_break || matches!(body.last(), Some(Stmt::Return(_)) | Some(Stmt::Throw(_)));
+        (body, leaves)
     }
 
     /// `const { a, b } = e`, lowered to what every target can say.
@@ -4714,6 +5048,21 @@ mod typescript {
                         .map(|r| expr(cx, r))
                         .unwrap_or(Expr::Null),
                 },
+                Some(inner) if inner.kind() == "augmented_assignment_expression" => {
+                    let target = cx
+                        .field(inner, "left")
+                        .map(|l| expr(cx, l))
+                        .unwrap_or(Expr::Null);
+                    let value = cx
+                        .field(inner, "right")
+                        .map(|r| expr(cx, r))
+                        .unwrap_or(Expr::Null);
+                    let operator = cx.field_text(inner, "operator").unwrap_or_default();
+                    match super::desugar_compound(target, &operator, value) {
+                        Some(assign) => assign,
+                        None => Stmt::Unsupported(cx.unsupported(node)),
+                    }
+                }
                 Some(inner) => Stmt::Expr(expr(cx, inner)),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
@@ -4741,6 +5090,10 @@ mod typescript {
                     otherwise,
                 }
             }
+            "switch_statement" => match ts_switch(cx, node) {
+                Some(switch) => switch,
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
             "while_statement" => Stmt::While {
                 condition: cx
                     .field(node, "condition")
@@ -5163,6 +5516,24 @@ fn scalar(text: &str) -> Option<Type> {
         // pretending an integer type it does not have.
         "number" => Type::Float,
         _ => return None,
+    })
+}
+
+/// `target op= value` as the statement it abbreviates: `target = target op value`.
+///
+/// The IR has one assignment and no operator on it, so the operator moves into
+/// the value. An operator this does not recognise returns nothing, and the
+/// caller carries the statement whole. The alternative was the Go reader
+/// quietly turning `total += item` into `total = item`.
+fn desugar_compound(target: Expr, operator: &str, value: Expr) -> Option<Stmt> {
+    let op = binary_op(operator.trim().trim_end_matches('='))?;
+    Some(Stmt::Assign {
+        target: target.clone(),
+        value: Expr::Binary {
+            op,
+            left: Box::new(target),
+            right: Box::new(value),
+        },
     })
 }
 

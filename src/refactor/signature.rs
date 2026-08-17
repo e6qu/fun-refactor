@@ -382,7 +382,11 @@ fn apply_change(
                 // A declaration must have the parameter; a call may legitimately
                 // omit a defaulted one, so only the declaration is an error.
                 if is_declaration {
-                    anyhow::bail!("there is no parameter at position {index}");
+                    anyhow::bail!(
+                        "there is no parameter at position {index}: the declaration has {} \
+                         parameter(s), counted from 0",
+                        items.len()
+                    );
                 }
                 return Ok(());
             };
@@ -396,7 +400,11 @@ fn apply_change(
         Change::Move { from, to } => {
             let (Some(a), Some(b)) = (items.get(*from), items.get(*to)) else {
                 if is_declaration {
-                    anyhow::bail!("positions {from} and {to} are not both present");
+                    anyhow::bail!(
+                        "positions {from} and {to} are not both present: the declaration \
+                         has {} parameter(s), counted from 0",
+                        items.len()
+                    );
                 }
                 return Ok(());
             };
