@@ -295,7 +295,23 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
 /// nowhere in the file. Carrying the whole statement instead puts the source in front
 /// of whoever finishes the draft, which is the point.
 fn keep_whole(cx: &Cx, node: Node<'_>, built: Stmt) -> Stmt {
-    if has_unsupported_expr(&built) || binds_a_pattern(&built) {
+    if binds_a_pattern(&built) {
+        return Stmt::Unsupported(cx.unsupported(node));
+    }
+    // A binding whose initializer failed *as a whole* keeps its name: the marker
+    // stands alone as the value and composes with nothing. Carried whole, the
+    // declaration vanished into a comment while every later statement still read
+    // the name, so one untranslatable initializer poisoned the lines after it. An
+    // initializer with a failure *inside* it still carries whole, because a marker
+    // spliced mid-expression reads as an operand and produced `None.id`.
+    if let Stmt::Let {
+        value: Some(Expr::Unsupported(_)),
+        ..
+    } = &built
+    {
+        return built;
+    }
+    if has_unsupported_expr(&built) {
         return Stmt::Unsupported(cx.unsupported(node));
     }
     built
@@ -3793,6 +3809,20 @@ mod zig {
         parts.get(at + 1).filter(|c| c.kind() != stop).copied()
     }
 
+    /// `.empty`: a field expression with no object, only the leading dot.
+    fn dot_literal(cx: &Cx, node: Node<'_>) -> Option<String> {
+        if node.kind() != "field_expression" {
+            return None;
+        }
+        let parts = all(node);
+        match parts.as_slice() {
+            [dot, member] if dot.kind() == "." && member.kind() == "identifier" => {
+                Some(cx.text(*member))
+            }
+            _ => None,
+        }
+    }
+
     pub fn module(cx: &Cx, root: Node<'_>, file_stem: Option<&str>) -> Module {
         let mut module = Module::default();
         // A method a record cannot keep still has to reach the reader, and a record has
@@ -4540,15 +4570,36 @@ mod zig {
                     };
                 }
                 if !declares {
+                    // Writing *through* a pointer has no counterpart: stripped, the
+                    // write became a rebinding of the pointer itself, and when the
+                    // pointer was the receiver, an assignment to `this`.
+                    if target.kind() == "dereference_expression" {
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    }
                     return Stmt::Assign {
                         target: expr(cx, target),
                         value: expr(cx, value),
                     };
                 }
+                let mut read = expr(cx, value);
+                // `.empty` names a member of the declared type, written with the
+                // type left to inference: `var list: ArrayList(u8) = .empty;` means
+                // `ArrayList(u8).empty`. The annotation says what to qualify it
+                // with; without one there is nothing to say, and it stays carried.
+                if matches!(read, Expr::Unsupported(_)) {
+                    if let (Some(member), Some(annotated)) =
+                        (dot_literal(cx, value), after(&parts, ":", "="))
+                    {
+                        read = Expr::Field {
+                            of: Box::new(Expr::Name(cx.text(annotated).trim().to_string())),
+                            name: member,
+                        };
+                    }
+                }
                 Stmt::Let {
                     name: cx.text(target),
                     ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
-                    value: Some(expr(cx, value)),
+                    value: Some(read),
                     mutable: text.trim_start().starts_with("var "),
                 }
             }
@@ -4770,7 +4821,7 @@ mod zig {
             "false" => Expr::Bool(false),
             "null" | "undefined" => Expr::Null,
             "string" => Expr::Str(super::unquote(&cx.text(node))),
-            "identifier" => Expr::Name(cx.text(node)),
+            "identifier" | "builtin_type" => Expr::Name(cx.text(node)),
             "field_expression" => {
                 let parts = cx.children(node);
                 match (parts.first(), parts.last()) {
@@ -4839,6 +4890,69 @@ mod zig {
                     Some("-") => Expr::Unary {
                         op: UnaryOp::Neg,
                         operand: Box::new(operand),
+                    },
+                    // A pointer is how Zig writes a reference, and the languages
+                    // without pointers still have the thing being pointed at. The
+                    // type reader already strips them the same way.
+                    Some("&") => operand,
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `p.*` reads through the pointer; see `&` above.
+            "dereference_expression" => cx
+                .children(node)
+                .first()
+                .map(|inner| expr(cx, *inner))
+                .unwrap_or_else(|| Expr::Unsupported(cx.unsupported(node))),
+            "index_expression" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [of, index] if index.kind() != "range_expression" => Expr::Index {
+                        of: Box::new(expr(cx, *of)),
+                        index: Box::new(expr(cx, *index)),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `[_]u32{ 1, 2, 3 }` over an array type is a list, the same value
+            // every target spells as its own literal.
+            "struct_initializer" => {
+                let parts = cx.children(node);
+                match parts.as_slice() {
+                    [ty, items]
+                        if ty.kind() == "array_type" && items.kind() == "initializer_list" =>
+                    {
+                        Expr::ListLit(cx.children(*items).iter().map(|i| expr(cx, *i)).collect())
+                    }
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // The cast family reasserts a type over a value, which every language
+            // here can spell. `@min` and `@max` are calls everywhere. The rest of
+            // the builtins have no counterpart and are carried.
+            "builtin_function" => {
+                let name = cx
+                    .children(node)
+                    .first()
+                    .filter(|c| c.kind() == "builtin_identifier")
+                    .map(|c| cx.text(*c))
+                    .unwrap_or_default();
+                let args: Vec<Node> = cx
+                    .children(node)
+                    .iter()
+                    .find(|c| c.kind() == "arguments")
+                    .map(|a| cx.children(*a))
+                    .unwrap_or_default();
+                match (name.as_str(), args.as_slice()) {
+                    ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => {
+                        Expr::Cast {
+                            ty: Box::new(expr(cx, *ty)),
+                            value: Box::new(expr(cx, *value)),
+                        }
+                    }
+                    ("@min" | "@max", _) => Expr::Call {
+                        callee: Box::new(Expr::Name(name.trim_start_matches('@').to_string())),
+                        args: args.iter().map(|a| expr(cx, *a)).collect(),
                     },
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
