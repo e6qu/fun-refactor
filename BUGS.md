@@ -175,6 +175,58 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B418: **a value of a sum type never crossed.** The types crossed for
+  eleven passes while every value of one carried: Rust's `Shape::Point` reached
+  Python as a comment, Zig's `.{ .one = n }` took its whole `if` with it, and
+  a Python class consumed into a union kept constructing as a class the target
+  never declared. The IR holds the variant now, validated against the module's
+  own sums, and each writer builds it the way its language does: Python calls
+  the constructor, TypeScript writes the declared discriminator, Go
+  parenthesises the composite literal out of the `if x == Go{}` trap, Java
+  orders the record's fields, Zig infers the union from the position. A path
+  naming anything else, `Vec::new`, an enum from another crate, goes back to
+  being carried whole. Pinned in `tests/translate_variants.rs`.
+
+- [x] B419: **`fr inline --call` pasted a callee that read its own file's
+  imports.** B412 held module globals back and stopped there: `os.environ`
+  crossed into a file that never imports `os` and raised NameError the same
+  way. A name bound by the callee file's imports counts as carried now, both
+  ways; visible at the call site, through any import form, and the inline goes
+  through. Pinned in `tests/inline_call.rs`.
+
+- [x] B420: **a Python property renamed one door of two.** `@property def size`
+  and `@size.setter def size` are one attribute; renaming the getter left the
+  setter answering the old name and left `@size.setter` reading a binding the
+  class no longer had. Both defs are one definition group now, and the
+  decorator's bare `size` resolves lexically, since a `def` in a class body
+  binds the name in the namespace the decorator reads. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B421: **a use site inside the owner counted the property's two doors as
+  two candidates.** `b.size` with `b: Box` was called ambiguous inside the very
+  class that declares it. Ambiguity is counted in entities now, never in
+  symbols: candidates that form one definition group are one answer wherever
+  the count decides. Pinned in `tests/rename_property_family.rs`.
+
+- [x] B422: **a receiver the source typed did not carry its member sites.**
+  Three forms of the same silence: `b.size` with `b: Box` stayed behind at
+  field-based confidence though `Box` declares the property; `s.area()` with
+  `s: Sub2` stayed though `Sub2` extends the owner; and `var b = new B()`
+  claimed the type unknown though the construction writes it on the right of
+  the `=`. The family's owners now include every declared subtype, the
+  derivation feeds the receiver's type where no annotation exists, and a weak
+  member site whose receiver's known type owns the renamed entity renames with
+  it, provided nothing outside the group answers that name on that type.
+  Pinned in `tests/rename_property_family.rs`.
+
+- [x] B423: **`self.count` in a subclass one import away stayed behind.** B407
+  crossed the class chain inside a file; an attribute family whose base class
+  lives in another module still skipped the subclass sites, because the
+  enclosing instance is the one receiver `receiver_declared_type` refused to
+  answer for. The enclosing class is the answer, and the subclass sits among
+  the family's owners, so the site renames. Pinned in
+  `tests/rename_property_family.rs`.
+
 - [x] B412: **`fr inline --call` pasted a callee's module globals across files.**
   `clamp` read `LIMIT` from beside itself; pasted into another file the name
   meant nothing there, and the paste compiled, ran, and raised NameError with
