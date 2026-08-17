@@ -107,13 +107,13 @@ fn callers_and_callees_are_two_views_of_one_edge() {
             edges += 1;
             assert!(
                 graph.callees(caller).iter().any(|(c, _)| *c == symbol.id),
-                "{:?} lists a caller that does not list it back",
+                "{:?} lists a caller that does not list it back.",
                 symbol.name
             );
         }
     }
     // A graph that resolved no call at all agrees with itself trivially.
-    assert!(edges > 0, "no call edge was checked in either direction");
+    assert!(edges > 0, "no call edge was checked in either direction.");
 }
 
 #[test]
@@ -143,18 +143,32 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
         let report = navigate::usages_of(index, symbol.id);
         assert!(
             report.usages.len() >= per_target.get(&symbol.id).copied().unwrap_or(0),
-            "usages left out references that resolved to {:?}: {} reported, {} resolved",
+            "usages left out references that resolved to {:?}: {} reported, {} resolved.",
             symbol.name,
             report.usages.len(),
             per_target.get(&symbol.id).copied().unwrap_or(0)
         );
+        // A polymorphic declaration is used through its implementations, so a
+        // reported use may resolve to one of those by name. `new RoyalPost()`
+        // is a use of `Carrier`. The agreement is with the target set the
+        // report was built from.
+        let mut answers: Vec<&str> = vec![symbol.name.as_str()];
+        for target in index
+            .definition_group(symbol.id)
+            .into_iter()
+            .chain(navigate::implementations_of(index, symbol.id))
+        {
+            if let Some(implementation) = index.symbol(target) {
+                answers.push(implementation.name.as_str());
+            }
+        }
         for usage in &report.usages {
             let at = (usage.location.file.as_path(), usage.location.span.start);
             let found = spelled.get(&at);
-            assert_eq!(
-                found,
-                Some(&symbol.name.as_str()),
-                "usages reports {:?} at {}:{} where the index has {:?}",
+            assert!(
+                found.is_none_or(|name| answers.contains(name)),
+                "usages reports {:?} at {}:{} where the index has {:?}. That is \
+                 neither the symbol nor an implementation of it.",
                 symbol.name,
                 usage.location.file.display(),
                 usage.location.line,
@@ -201,7 +215,7 @@ fn impact_covers_every_reference_it_could_rewrite() {
     // leave nothing compared and the test passing.
     assert!(
         checked > 0,
-        "no rewritable reference was checked against any impact report"
+        "no rewritable reference was checked against any impact report."
     );
 }
 

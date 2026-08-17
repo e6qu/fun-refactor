@@ -446,6 +446,65 @@ fn a_statement_range_without_function_is_refused_by_name() {
         .to_string();
     assert!(
         err.contains("--function"),
-        "the refusal points at the flag that does this: {err}"
+        "the refusal points at the flag that does this. {err}"
     );
+}
+
+#[test]
+fn java_extracts_with_types_copied_and_the_mutation_carried_back() {
+    let src = "public final class Calc {\n    static int tally(int[] items) { // Sums.\n        \
+               int total = 0;\n        for (int item : items) {\n            \
+               total += item;\n        }\n        return total; // The sum.\n    }\n}\n";
+    let (tmp, index) = workspace(&[("Calc.java", src)]);
+    let path = tmp.path().join("Calc.java");
+
+    let plan = extract::function(&index, &path, lines(src, 4, 6), "addUp").unwrap();
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("total = addUp(items, total);"),
+        "the changed value is assigned back, never re-declared.\n{out}"
+    );
+    assert!(
+        out.contains("    static int addUp(int[] items, int total) {"),
+        "types copied, member indent kept:\n{out}"
+    );
+}
+
+#[test]
+fn java_refuses_when_a_local_is_declared_with_var() {
+    // `var` is the word for "the compiler worked it out", which is the type this
+    // has no way to recover.
+    let src = "public final class Calc {\n    static int twice() { // Doubles.\n        \
+               var n = 2;\n        int m = n * 2;\n        return m; // Done.\n    }\n}\n";
+    let (tmp, index) = workspace(&[("Calc.java", src)]);
+    let path = tmp.path().join("Calc.java");
+
+    let err = extract::function(&index, &path, lines(src, 4, 4), "double")
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("never written down"), "got: {err}");
+    assert!(err.contains("n"), "the blocking name is named: {err}");
+}
+
+#[test]
+fn java_extracts_an_expression_into_a_var_binding() {
+    let src = "public final class Calc {\n    static int twice(int n) {\n        \
+               return n * 2 + 1;\n    }\n}\n";
+    let (tmp, index) = workspace(&[("Calc.java", src)]);
+    let path = tmp.path().join("Calc.java");
+
+    let start = src.find("n * 2").unwrap();
+    let plan =
+        extract::variable(&index, &path, Span::new(start, start + 5), "doubled", false).unwrap();
+    let out = apply2(&plan, &path);
+    assert!(
+        out.contains("var doubled = n * 2;"),
+        "`var` infers the way `let` does:\n{out}"
+    );
+    assert!(out.contains("return doubled + 1;"), "got:\n{out}");
+}
+
+fn apply2(plan: &extract::ExtractPlan, path: &PathBuf) -> String {
+    let original = std::fs::read_to_string(path).unwrap();
+    apply_to_string(&original, plan.edits.edits_for(path).unwrap()).unwrap()
 }

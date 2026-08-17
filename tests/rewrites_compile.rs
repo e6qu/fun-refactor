@@ -427,8 +427,7 @@ fn fixtures() -> Vec<Fixture> {
             file: "Main.java",
             files: &[("Main.java", JAVA)],
             expressions: &["w * 2 + h * 3", "a && b", "oldApi(1)", "first + 1"],
-            // Java claims no extract at all, which is a claim this checks by asking.
-            statements: None,
+            statements: Some(("int first = 1;", "emit(second);")),
             invert_if: Some("if (a) {"),
             de_morgan: Some("!(a && b)"),
             guard_clause: Some("if (ready) {"),
@@ -502,9 +501,7 @@ fn extracting_an_expression_compiles_in_every_language() {
             run.record(fixture.language.name(), compiled);
         }
     }
-    // Java has no binding form the matrix claims, and every expression in it refused
-    // while this test reported success.
-    run.expect_refusals("extract variable", &["java"]);
+    run.expect_refusals("extract variable", &[]);
 }
 
 #[test]
@@ -691,43 +688,6 @@ fn needle_now(ws: &Workspace, file: &str, original: &'static str, round: usize) 
         }
     }
     panic!("nothing in {file} looks like an inverted `{original}`:\n{source}");
-}
-
-#[test]
-fn a_language_the_matrix_marks_unavailable_refuses_by_name() {
-    // Java is the one language here that claims neither kind of extraction. A claim that
-    // nothing checks is a claim that drifts, so this asks for both and reads the answer.
-    let fixture = fixtures()
-        .into_iter()
-        .find(|f| f.language == Language::Java)
-        .expect("the Java fixture");
-    if skip(&fixture) {
-        return;
-    }
-    let ws = fixture.workspace();
-    let index = ws.index();
-    let span = fixture.span_of(&ws, fixture.expressions[0]);
-
-    let variable = fun_refactor::refactor::extract::variable(
-        &index,
-        &ws.path(fixture.file),
-        span,
-        "scaled",
-        false,
-    )
-    .expect_err("the matrix marks extract variable unavailable for java");
-    assert!(
-        variable.to_string().contains("java"),
-        "the refusal names the language: {variable}"
-    );
-
-    let function =
-        fun_refactor::refactor::extract::function(&index, &ws.path(fixture.file), span, "announce")
-            .expect_err("the matrix marks extract function unavailable for java");
-    assert!(
-        function.to_string().contains("java"),
-        "the refusal names the language: {function}"
-    );
 }
 
 /// Every position in the fixture where any rewrite applies.
