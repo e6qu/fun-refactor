@@ -2979,19 +2979,70 @@ mod java {
                     line: cx.line(child),
                 }),
                 "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    let before = carried.len();
                     let (record, constants) = type_declaration(cx, child, &mut carried);
                     module
                         .items
                         .extend(constants.into_iter().map(Item::Constant));
-                    if let Some(record) = record {
-                        module.items.push(Item::Record(record));
+                    let hoisted = carried.len() > before;
+                    // A class whose every member left as a hoisted sibling was only
+                    // ever their namespace. An empty `class Orders: pass` beside the
+                    // things it held says less than nothing.
+                    let shell = |r: &Record| {
+                        hoisted && r.fields.is_empty() && r.methods.is_empty() && r.extends.is_none()
+                    };
+                    match record {
+                        Some(record) if !shell(&record) => {
+                            module.items.push(Item::Record(record))
+                        }
+                        _ => {}
                     }
                 }
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
         module.items.extend(carried);
+        settle_accessors(&mut module);
         module
+    }
+
+    /// A record's accessor calls become the field reads they are.
+    ///
+    /// `record Order(boolean paid)` gives its callers `o.paid()`, and the record
+    /// crosses as fields, so the call form reaches a target where `paid` is data
+    /// and calling it fails. Only a name that is a field of this module's records
+    /// and a method of nothing rewrites; anything shared stays a call.
+    fn settle_accessors(module: &mut Module) {
+        let mut fields: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        let mut methods: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for item in &module.items {
+            match item {
+                Item::Record(r) => {
+                    fields.extend(r.fields.iter().map(|f| f.name.clone()));
+                    methods.extend(r.methods.iter().map(|m| m.name.clone()));
+                }
+                Item::Function(f) => {
+                    methods.insert(f.name.clone());
+                }
+                _ => {}
+            }
+        }
+        let accessors: std::collections::BTreeSet<String> =
+            fields.difference(&methods).cloned().collect();
+        if accessors.is_empty() {
+            return;
+        }
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Call { callee, args } = e {
+                if args.is_empty() {
+                    if let Expr::Field { name, .. } = callee.as_ref() {
+                        if accessors.contains(name) {
+                            *e = (**callee).clone();
+                        }
+                    }
+                }
+            }
+        });
     }
 
     /// A class, interface or record, plus the module constants hidden inside it.
