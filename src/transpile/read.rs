@@ -2020,7 +2020,27 @@ mod python {
                 _ => None,
             })
             .collect();
-        if types.is_empty() {
+        // A class consumed into a sum is constructed the same way; the call
+        // becomes that variant, keyword arguments as its fields and positional
+        // ones matched against the variant's declared order.
+        let variants: std::collections::BTreeMap<String, (String, Vec<String>)> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                    (
+                        v.name.clone(),
+                        (
+                            s.name.clone(),
+                            v.fields.iter().map(|f| f.name.clone()).collect(),
+                        ),
+                    )
+                })),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        if types.is_empty() && variants.is_empty() {
             return;
         }
         super::each_expr_in_module(module, &mut |e| {
@@ -2029,6 +2049,33 @@ mod python {
                     let callee = callee.clone();
                     let args = std::mem::take(args);
                     *e = Expr::New { callee, args };
+                    return;
+                }
+                if let Expr::Name(n) = callee.as_ref() {
+                    if let Some((sum, declared)) = variants.get(n) {
+                        let name = n.clone();
+                        let taken = std::mem::take(args);
+                        let mut fields = Vec::new();
+                        let mut position = 0usize;
+                        for arg in taken {
+                            match arg {
+                                Expr::Keyword { name, value } => fields.push((name, *value)),
+                                other => {
+                                    let field = declared
+                                        .get(position)
+                                        .cloned()
+                                        .unwrap_or_else(|| "value".to_string());
+                                    position += 1;
+                                    fields.push((field, other));
+                                }
+                            }
+                        }
+                        *e = Expr::Variant {
+                            sum: sum.clone(),
+                            name,
+                            fields,
+                        };
+                    }
                 }
             }
         });
@@ -4170,6 +4217,15 @@ mod zig {
         parts.get(at + 1).filter(|c| c.kind() != stop).copied()
     }
 
+    /// The one `.name = value` pair of an anonymous initializer.
+    fn variant_field<'t>(cx: &Cx, a: Node<'t>) -> Option<(String, Node<'t>)> {
+        let parts = cx.children(a);
+        let target = parts.first()?;
+        let name = dot_literal(cx, *target)?;
+        let value = parts.get(1).copied()?;
+        Some((name, value))
+    }
+
     /// `.empty`: a field expression with no object, only the leading dot.
     fn dot_literal(cx: &Cx, node: Node<'_>) -> Option<String> {
         if node.kind() != "field_expression" {
@@ -4277,6 +4333,7 @@ mod zig {
         module.items.extend(carried);
         settle_builtins(&mut module);
         settle_error_returns(&mut module, &error_sets);
+        super::settle_variants(&mut module);
         module
     }
 
@@ -5634,6 +5691,57 @@ mod zig {
                     {
                         Expr::ListLit(cx.children(*items).iter().map(|i| expr(cx, *i)).collect())
                     }
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `.{ .one = n }` builds a variant of whatever union the position
+            // expects. Which union is settled at the end of the module, where the
+            // sums are known; a candidate no sum answers for goes back to being
+            // carried.
+            "anonymous_struct_initializer" => {
+                let assignments: Vec<Node> = cx
+                    .children(node)
+                    .iter()
+                    .find(|c| c.kind() == "initializer_list")
+                    .map(|list| {
+                        cx.children(*list)
+                            .into_iter()
+                            .filter(|c| c.kind() == "assignment_expression")
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                match assignments.as_slice() {
+                    [one] => match variant_field(cx, *one) {
+                        Some((name, value)) => {
+                            let fields = match value.kind() {
+                                // `{}` is void: the variant is a bare tag.
+                                "block" if cx.children(value).is_empty() => Vec::new(),
+                                // A nested anonymous initializer is the payload's
+                                // own fields, laid out flat.
+                                "anonymous_struct_initializer" => {
+                                    match expr(cx, value) {
+                                        Expr::Variant { name: f, fields, .. }
+                                            if fields.len() == 1 =>
+                                        {
+                                            vec![(f, fields.into_iter().next().map(|(_, v)| v).unwrap_or(Expr::Null))]
+                                        }
+                                        Expr::RecordLit { fields, .. } => fields,
+                                        other => vec![("value".to_string(), other)],
+                                    }
+                                }
+                                _ => vec![("value".to_string(), expr(cx, value))],
+                            };
+                            Expr::Variant {
+                                sum: String::new(),
+                                name,
+                                fields,
+                            }
+                        }
+                        None => Expr::Unsupported(cx.unsupported(node)),
+                    },
+                    // Several assignments are a record built anonymously; the
+                    // settle pass has nothing to attribute one to, so it carries.
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -7308,6 +7416,28 @@ fn settle_variants(module: &mut Module) {
             }
         }
         if let Expr::Variant { sum, name, fields } = e {
+            // An anonymous candidate names no sum at all; it is attributed when
+            // exactly one of the module's sums answers to the variant's name,
+            // and carried when none or several do.
+            if sum.is_empty() {
+                let answering: Vec<&String> = sums
+                    .iter()
+                    .filter(|(_, variants)| variants.contains(name.as_str()))
+                    .map(|(owner, _)| owner)
+                    .collect();
+                match answering.as_slice() {
+                    [only] => *sum = (*only).clone(),
+                    _ => {
+                        let source = format!(".{{ .{name} = .. }}");
+                        *e = Expr::Unsupported(Unsupported {
+                            construct: "an anonymous variant".to_string(),
+                            source,
+                            line: 0,
+                        });
+                    }
+                }
+                return;
+            }
             let plain = sum.rsplit([':', '.']).next().unwrap_or(sum).to_string();
             let answered = sums
                 .get(&plain)
