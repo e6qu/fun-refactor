@@ -108,3 +108,50 @@ fn what_the_moved_code_needs_lands_where_imports_go() {
         "the import belongs above the code:\n{to}"
     );
 }
+
+#[test]
+fn an_aliased_import_repoints_and_keeps_its_alias() {
+    // `import { foo as increment } from "./a"` names the moved symbol under the
+    // name the rest of the file calls it. Leaving that line while adding a plain
+    // `import { foo }` broke the build twice: the old import named a gone export,
+    // and the new one bound a name nothing uses.
+    let files = [
+        (
+            "a.ts",
+            "export function foo(n: number): number {\n    return n + 1;\n}\n\n\
+             export function keep(n: number): number {\n    return n;\n}\n",
+        ),
+        (
+            "b.ts",
+            "import { foo as increment, keep } from \"./a\";\n\n\
+             export function use(): number {\n    return increment(41) + keep(1);\n}\n",
+        ),
+        ("c.ts", "export const placeholder = 1;\n"),
+    ];
+    let (_tmp, root) = workspace(&files);
+    let index = Index::build(&root, &ScanOptions::default()).expect("an index");
+    let id = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "foo" && s.file.ends_with("a.ts"))
+        .expect("foo")
+        .id;
+    let plan = move_symbol::to_file(&index, id, &root.join("c.ts")).expect("a move");
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("a valid plan");
+    fun_refactor::edit::commit(&outcomes).expect("writing");
+    let importer = std::fs::read_to_string(root.join("b.ts")).expect("the importer");
+    assert!(
+        importer.contains("import { foo as increment } from './c';"),
+        "the alias follows the symbol:\n{importer}"
+    );
+    assert!(
+        importer.contains("import { keep } from './a';"),
+        "the stayer keeps its old path:\n{importer}"
+    );
+    assert!(
+        !importer.contains("from \"./a\""),
+        "no dangling import of the gone export:\n{importer}"
+    );
+}
