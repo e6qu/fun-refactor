@@ -191,6 +191,7 @@ pub(crate) fn supports_imperative_extract(language: Language) -> bool {
             | Language::TypeScript
             | Language::Tsx
             | Language::Python
+            | Language::Java
     )
 }
 
@@ -222,6 +223,9 @@ fn render_binding(language: Language, name: &str, value: &str) -> String {
         Language::Zig => format!("const {name} = {value};"),
         Language::TypeScript | Language::Tsx => format!("const {name} = {value};"),
         Language::Python => format!("{name} = {value}"),
+        // `var` infers, the way `let` and `:=` do; a spelled type would need
+        // inference this tool does not do.
+        Language::Java => format!("var {name} = {value};"),
         _ => format!("{name} = {value}"),
     }
 }
@@ -605,8 +609,10 @@ impl Parameter {
         };
         match (language, &self.type_annotation) {
             (Language::Python, _) => self.name.clone(),
-            // Go writes the type after the name with no colon between them.
+            // Go writes the type after the name with no colon between them;
+            // Java writes it before.
             (Language::Go, Some(ty)) => format!("{} {ty}", self.name),
+            (Language::Java, Some(ty)) => format!("{ty} {}", self.name),
             (_, Some(ty)) => format!("{mutability}{}: {ty}", self.name),
             (_, None) => format!("{mutability}{}", self.name),
         }
@@ -981,7 +987,10 @@ fn is_value_binding(kind: crate::model::SymbolKind) -> bool {
 
 /// Does this language require a written type on every parameter and return?
 fn requires_explicit_types(language: Language) -> bool {
-    matches!(language, Language::Rust | Language::Go | Language::Zig)
+    matches!(
+        language,
+        Language::Rust | Language::Go | Language::Zig | Language::Java
+    )
 }
 
 /// Languages whose extraction goes through the generic data-flow path.
@@ -999,6 +1008,7 @@ fn supports_imperative_extract_function(language: Language) -> bool {
             | Language::TypeScript
             | Language::Tsx
             | Language::Python
+            | Language::Java
     )
 }
 
@@ -1194,10 +1204,16 @@ fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Str
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;
-    let ty = node.child_by_field_name("type")?;
+    // Java puts the type on the declaration and the name on a declarator
+    // inside it. The symbol's own node has no type field; its parent does.
+    let ty = node
+        .child_by_field_name("type")
+        .or_else(|| node.parent().and_then(|p| p.child_by_field_name("type")))?;
     let text = Span::from(ty).text(source).trim();
     let bare = text.strip_prefix(':').unwrap_or(text).trim();
-    (!bare.is_empty()).then(|| bare.to_string())
+    // `var` is the word for "the compiler worked it out", which is exactly the
+    // type this has no way to recover.
+    (!bare.is_empty() && bare != "var").then(|| bare.to_string())
 }
 
 /// The call that replaces the extracted region.
@@ -1233,6 +1249,8 @@ fn render_call(
         (1, Language::Rust) => format!("let {} = {call};", returns[0]),
         (1, Language::Go) if all_carried => format!("{} = {call}", returns[0]),
         (1, Language::Go) => format!("{} := {call}", returns[0]),
+        (1, Language::Java) if all_carried => format!("{} = {call};", returns[0]),
+        (1, Language::Java) => format!("var {} = {call};", returns[0]),
         (1, _) if all_carried => format!("{} = {call};", returns[0]),
         (1, _) => format!("const {} = {call};", returns[0]),
         (_, Language::Python) => format!("{} = {call}", returns.join(", ")),
@@ -1348,6 +1366,30 @@ fn render_function(
                 _ => format!("\n{body_indent}return {}", returns.join(", ")),
             };
             format!("\n\nfunc {name}({params}){ret} {{\n{reindented}{tail}\n}}")
+        }
+        Language::Java => {
+            // The new method sits beside the one it came from, inside the same
+            // class. `static` keeps it callable from anywhere the region was,
+            // and the class's own member indent puts it where a member goes.
+            let ret = return_type.unwrap_or("void");
+            let lead = body_indent;
+            let reindented = body
+                .lines()
+                .map(|line| {
+                    if line.trim().is_empty() {
+                        String::new()
+                    } else {
+                        let stripped = line.strip_prefix(indent).unwrap_or(line);
+                        format!("{lead}{body_indent}{stripped}")
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            let tail = match returns.first() {
+                Some(r) => format!("\n{lead}{body_indent}return {r};"),
+                None => String::new(),
+            };
+            format!("\n\n{lead}static {ret} {name}({params}) {{\n{reindented}{tail}\n{lead}}}")
         }
         _ => {
             let tail = match returns.first() {

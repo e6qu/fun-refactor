@@ -175,6 +175,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B381: **Java was the one language refused both kinds of extraction.** The
+  machinery already fit it. `requires_explicit_types` copies declared types the
+  way it does for Rust, Go and Zig, and `var` infers a binding the way `let`
+  does. What was missing was the arms. Java now extracts an expression into a
+  `var` binding, and statements into a `static` method at the class's member
+  indent. A mutated outside binding travels back the way it does everywhere
+  else. A local declared with `var` refuses by name, because the type it would
+  need was never written down. The compile gate drives both through `javac` now
+  instead of pinning the refusal, and the capability matrix moved to 272 of
+  384.
+
 - [x] B379: **a call to a declared record wrote a call.** Silent wrong answer.
   `Point(0, 0)` from Python crossed into Rust as `Point(0, 0)`, which does not
   compile against named fields. In Go it crossed as a conversion, which means
