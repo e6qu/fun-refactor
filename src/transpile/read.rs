@@ -1352,6 +1352,7 @@ mod python {
             }
         }
         settle_unions(&mut module);
+        settle_constructions(&mut module);
         module.items.extend(carried);
         module
     }
@@ -1630,7 +1631,7 @@ mod python {
                 }
             }
         }
-        Record {
+        let mut record = Record {
             doc: docstring(cx, cx.field(node, "body")),
             name,
             fields,
@@ -1644,7 +1645,106 @@ mod python {
                 .and_then(|bases| bases.first().map(|b| cx.text(*b))),
             exported: true,
             methods,
+        };
+        derive_constructor_shape(&mut record);
+        record
+    }
+
+    /// What `__init__` says the instances hold.
+    ///
+    /// `self.name = name` declares a field as surely as an annotation does, and most
+    /// classes declare most of their fields this way. Read as nothing, every record
+    /// crossed as an empty struct while its methods went on reading `self.price`
+    /// from a field the target never had. A field assigned from a parameter takes
+    /// the parameter's type; one assigned a literal takes the literal's.
+    ///
+    /// A constructor that only assigns becomes the build-and-return shape the
+    /// writers already turn into each target's own constructor. One that computes
+    /// anything else keeps its body: rewriting it would be a guess about what the
+    /// rest was for.
+    fn derive_constructor_shape(record: &mut Record) {
+        let name = record.name.clone();
+        let Some(ctor) = record.methods.iter_mut().find(|m| m.is_constructor) else {
+            return;
+        };
+        let receiver = ctor
+            .receiver_binding
+            .clone()
+            .unwrap_or_else(|| "self".to_string());
+        let mut assigns: Vec<(String, Expr)> = Vec::new();
+        let mut only_assigns = true;
+        for stmt in &ctor.body {
+            match stmt {
+                Stmt::Assign {
+                    target: Expr::Field { of, name },
+                    value,
+                } if matches!(of.as_ref(), Expr::Name(n) if *n == receiver) => {
+                    assigns.push((name.clone(), value.clone()));
+                }
+                Stmt::Comment(_) => {}
+                _ => only_assigns = false,
+            }
         }
+        if assigns.is_empty() {
+            return;
+        }
+        for (field, value) in &assigns {
+            if record.fields.iter().any(|f| f.name == *field) {
+                continue;
+            }
+            let ty = ctor
+                .params
+                .iter()
+                .find(|p| matches!(value, Expr::Name(n) if n == &p.name))
+                .and_then(|p| p.ty.clone())
+                .or(match value {
+                    Expr::Int(_) => Some(Type::Int),
+                    Expr::Float(_) => Some(Type::Float),
+                    Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+                    Expr::Bool(_) => Some(Type::Bool),
+                    _ => None,
+                });
+            record.fields.push(Field {
+                doc: Vec::new(),
+                name: field.clone(),
+                ty,
+                exported: !field.starts_with('_'),
+            });
+        }
+        if only_assigns {
+            ctor.body = vec![Stmt::Return(Some(Expr::RecordLit {
+                ty: name,
+                fields: assigns,
+            }))];
+        }
+    }
+
+    /// Calls that build this module's own types are constructions.
+    ///
+    /// Python spells construction as a call, so `Ledger()` reached the targets as
+    /// one: `Ledger()` in Rust names nothing, and in TypeScript a class cannot be
+    /// called without `new`. The names the module itself declares are not a guess.
+    fn settle_constructions(module: &mut Module) {
+        let types: std::collections::BTreeSet<String> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Record(r) => Some(r.name.clone()),
+                _ => None,
+            })
+            .collect();
+        if types.is_empty() {
+            return;
+        }
+        super::each_expr_in_module(module, &mut |e| {
+            if let Expr::Call { callee, args } = e {
+                if matches!(callee.as_ref(), Expr::Name(n) if types.contains(n)) {
+                    let callee = callee.clone();
+                    let args = std::mem::take(args);
+                    *e = Expr::New { callee, args };
+                }
+            }
+        });
     }
 
     /// A decorated method, when the decorators only say what kind of method it is.
@@ -5667,6 +5767,199 @@ mod typescript {
 ///
 /// Nesting is respected, so `Result<Vec<T>, E>` yields two arguments instead of
 /// three. A name with no brackets is itself with no arguments.
+/// Visit every expression under these statements, innermost first, mutably.
+///
+/// The post-passes that settle what a reader could not know locally, which calls
+/// construct a module's own types, which member reads are properties, all walk the
+/// same tree. Each pass writing its own recursion is how one of them misses the
+/// statement variant added for the other.
+fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Return(value) => {
+                if let Some(value) = value {
+                    each_expr(value, visit);
+                }
+            }
+            Stmt::Let { value, .. } => {
+                if let Some(value) = value {
+                    each_expr(value, visit);
+                }
+            }
+            Stmt::Assign { target, value } => {
+                each_expr(target, visit);
+                each_expr(value, visit);
+            }
+            Stmt::If {
+                condition,
+                then,
+                otherwise,
+            } => {
+                each_expr(condition, visit);
+                each_expr_in_stmts(then, visit);
+                each_expr_in_stmts(otherwise, visit);
+            }
+            Stmt::IfPresent {
+                value,
+                then,
+                otherwise,
+                ..
+            } => {
+                each_expr(value, visit);
+                each_expr_in_stmts(then, visit);
+                each_expr_in_stmts(otherwise, visit);
+            }
+            Stmt::While { condition, body } => {
+                each_expr(condition, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::WhilePresent { value, body, .. } => {
+                each_expr(value, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::ForEach { iterable, body, .. }
+            | Stmt::ForEachIndexed { iterable, body, .. } => {
+                each_expr(iterable, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::Defer(body) => each_expr_in_stmts(body, visit),
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                each_expr(subject, visit);
+                for (literals, body) in arms {
+                    for literal in literals {
+                        each_expr(literal, visit);
+                    }
+                    each_expr_in_stmts(body, visit);
+                }
+                each_expr_in_stmts(default, visit);
+            }
+            Stmt::Expr(e) | Stmt::Throw(e) => each_expr(e, visit),
+            Stmt::Try {
+                body,
+                catches,
+                finally,
+                ..
+            } => {
+                each_expr_in_stmts(body, visit);
+                for catch in catches {
+                    each_expr_in_stmts(&mut catch.body, visit);
+                }
+                each_expr_in_stmts(finally, visit);
+            }
+            Stmt::Comment(_) | Stmt::Break | Stmt::Continue | Stmt::Unsupported(_) => {}
+        }
+    }
+}
+
+/// Children first, then the node itself, so a rewrite sees settled children.
+fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
+    match e {
+        Expr::Field { of, .. } => each_expr(of, visit),
+        Expr::Index { of, index } => {
+            each_expr(of, visit);
+            each_expr(index, visit);
+        }
+        Expr::Call { callee, args } | Expr::New { callee, args } => {
+            each_expr(callee, visit);
+            for arg in args {
+                each_expr(arg, visit);
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            each_expr(left, visit);
+            each_expr(right, visit);
+        }
+        Expr::Unary { operand, .. } => each_expr(operand, visit),
+        Expr::Await(inner) | Expr::Propagate(inner) => each_expr(inner, visit),
+        Expr::Keyword { value, .. } => each_expr(value, visit),
+        Expr::Cast { ty, value } => {
+            each_expr(ty, visit);
+            each_expr(value, visit);
+        }
+        Expr::InstanceOf { value, ty } => {
+            each_expr(value, visit);
+            each_expr(ty, visit);
+        }
+        Expr::RecordLit { fields, .. } => {
+            for (_, value) in fields {
+                each_expr(value, visit);
+            }
+        }
+        Expr::Coalesce { value, fallback } => {
+            each_expr(value, visit);
+            each_expr(fallback, visit);
+        }
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => {
+            each_expr(condition, visit);
+            each_expr(then, visit);
+            each_expr(otherwise, visit);
+        }
+        Expr::Tuple(items) | Expr::ListLit(items) => {
+            for item in items {
+                each_expr(item, visit);
+            }
+        }
+        Expr::MapLit(entries) => {
+            for (key, value) in entries {
+                each_expr(key, visit);
+                each_expr(value, visit);
+            }
+        }
+        Expr::Template(parts) => {
+            for part in parts {
+                if let TemplatePart::Expr(inner) = part {
+                    each_expr(inner, visit);
+                }
+            }
+        }
+        Expr::Comprehension {
+            element,
+            iterable,
+            condition,
+            ..
+        } => {
+            each_expr(element, visit);
+            each_expr(iterable, visit);
+            if let Some(condition) = condition {
+                each_expr(condition, visit);
+            }
+        }
+        Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::Bool(_)
+        | Expr::Null
+        | Expr::Name(_)
+        | Expr::Unsupported(_) => {}
+    }
+    visit(e);
+}
+
+/// The same walk over everything a module holds.
+fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => each_expr_in_stmts(&mut f.body, visit),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    each_expr_in_stmts(&mut method.body, visit);
+                }
+            }
+            Item::Constant(c) => each_expr(&mut c.value, visit),
+            Item::Test { body, .. } => each_expr_in_stmts(body, visit),
+            Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
+        }
+    }
+}
+
 /// The pieces between top-level commas, nesting respected.
 ///
 /// What the tuple spellings share: Rust and Go put types between `(` and `)`,

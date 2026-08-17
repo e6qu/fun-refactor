@@ -6272,7 +6272,15 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
             // away was a rule about receiver-assigning constructors applied to every
             // constructor, and it discarded the one line a Rust constructor is made of.
             _ => {
-                let assigns_through_a_receiver = method.receiver_binding.is_some();
+                // The canonical build-and-return body is already this shape, whatever
+                // the source bound as a receiver: an `__init__` of plain assignments
+                // arrives as one `Return(RecordLit)` and needs nothing thrown away.
+                let builds_and_returns = matches!(
+                    method.body.as_slice(),
+                    [Stmt::Return(Some(Expr::RecordLit { ty, .. }))] if *ty == record.name
+                );
+                let assigns_through_a_receiver =
+                    method.receiver_binding.is_some() && !builds_and_returns;
                 if !method.body.is_empty() && assigns_through_a_receiver {
                     out.fidelity.notes.push(format!(
                         "`{}` has a constructor whose body assigns through a receiver; \
