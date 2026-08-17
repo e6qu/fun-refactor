@@ -89,6 +89,18 @@ pub enum Refusal {
     /// different binding changes what the code does. Saying "renaming would shadow or collide
     /// with it" describes neither the operation nor the fault.
     NameCaptured { name: String, file: PathBuf },
+    /// The rename would move a use under a different declaration of the same name.
+    ///
+    /// Neither of the above: nothing collides, and no value is carried anywhere. Both
+    /// declarations stay where they are, and what changes is which one a use binds
+    /// to. An inner `let temp` standing between an outer `value` and its use turns a
+    /// renamed `value` into a read of the inner binding, and the file still compiles.
+    ScopeCaptured {
+        name: String,
+        file: PathBuf,
+        line: usize,
+        detail: String,
+    },
     /// The requested name is not a valid identifier for the language.
     InvalidName { name: String, reason: String },
     /// The operation is not implemented for this language. The operation has no meaning in this
@@ -164,6 +176,18 @@ impl std::fmt::Display for Refusal {
                 f,
                 "the value uses `{name}`, which means something else where it would be \
                  moved to in {}; substituting it would change what the code does",
+                file.display()
+            ),
+            Refusal::ScopeCaptured {
+                name,
+                file,
+                line,
+                detail,
+            } => write!(
+                f,
+                "renaming to `{name}` would silently change which declaration a use binds \
+                 to: {detail} at {}:{line}. The code would still compile, doing something \
+                 else",
                 file.display()
             ),
             Refusal::InvalidName { name, reason } => {

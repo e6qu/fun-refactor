@@ -45,6 +45,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     }
 
     check_collision(index, symbol, new_name)?;
+    check_capture(index, symbol, new_name)?;
 
     let mut edits = EditSet::new();
     let mut warnings = Vec::new();
@@ -405,10 +406,106 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
     Ok(())
 }
 
-/// Find the old name inside string literals and comments across the workspace.
+/// Would a use change owners after the rename?
 ///
-/// These are exactly the references that defeat both syntax analysis and language
-/// servers, so they are surfaced for review and never edited automatically.
+/// `check_collision` asks whether the two names could be visible at the same point,
+/// scope for scope. Capture is the nested case it cannot see: a declaration of the
+/// new name in a scope between the renamed symbol and one of its uses wins that use
+/// after the rename, and the file compiles into different behaviour. Both directions
+/// are real. The renamed use can fall to an inner declaration, and a use of an
+/// existing outer binding can fall to the renamed one.
+fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), Refusal> {
+    let Some(info) = index.file(&symbol.file) else {
+        return Ok(());
+    };
+    let parent_of = |id| {
+        info.scopes
+            .iter()
+            .find(|s| s.id == id)
+            .and_then(|s| s.parent)
+    };
+    let contains = |outer, inner| {
+        let mut at = Some(inner);
+        while let Some(id) = at {
+            if id == outer {
+                return true;
+            }
+            at = parent_of(id);
+        }
+        false
+    };
+    let span_of = |id| info.scopes.iter().find(|s| s.id == id).map(|s| s.span);
+    // Only a declaration a bare name resolves to can win a bare use. A field or a
+    // method is reached through a receiver, and a receiver keeps its meaning.
+    let binds_bare = |kind| {
+        matches!(
+            kind,
+            SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter | SymbolKind::Function
+        )
+    };
+    if !binds_bare(symbol.kind) {
+        return Ok(());
+    }
+    let line_of = |offset| {
+        crate::vfs::read_to_string(&symbol.file)
+            .map(|source| LineIndex::new(&source).line_col(offset, &source).line)
+            .unwrap_or(0)
+    };
+
+    for other in index.find_symbols(new_name, Some(&symbol.file)) {
+        if other.file != symbol.file || other.scope == symbol.scope || !binds_bare(other.kind) {
+            continue;
+        }
+        // A renamed use inside the inner declaration's scope falls to it.
+        if contains(symbol.scope, other.scope) {
+            if let Some(span) = span_of(other.scope) {
+                for reference in index.references_to(symbol.id) {
+                    if reference.file == symbol.file
+                        && reference.receiver.is_none()
+                        && reference.confidence.is_safe_to_rewrite()
+                        && span.contains_offset(reference.span.start)
+                    {
+                        return Err(Refusal::ScopeCaptured {
+                            name: new_name.to_string(),
+                            file: symbol.file.clone(),
+                            line: line_of(reference.span.start),
+                            detail: format!(
+                                "a declaration of `{new_name}` encloses this renamed use of \
+                                 `{}` and would win it",
+                                symbol.name
+                            ),
+                        });
+                    }
+                }
+            }
+        }
+        // A use of the existing outer binding inside the renamed symbol's scope
+        // falls to the renamed declaration.
+        if contains(other.scope, symbol.scope) {
+            if let Some(span) = span_of(symbol.scope) {
+                for reference in index.references_to(other.id) {
+                    if reference.file == symbol.file
+                        && reference.receiver.is_none()
+                        && span.contains_offset(reference.span.start)
+                    {
+                        return Err(Refusal::ScopeCaptured {
+                            name: new_name.to_string(),
+                            file: symbol.file.clone(),
+                            line: line_of(reference.span.start),
+                            detail: format!(
+                                "the renamed `{}` would enclose this use of the existing \
+                                 `{new_name}` and win it",
+                                symbol.name
+                            ),
+                        });
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Find the old name inside string literals and comments across the workspace.
 ///
 /// These defeat both syntax analysis and language servers, so they are surfaced for
