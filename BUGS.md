@@ -175,6 +175,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B382: **renaming a trait method left its implementations behind.** Silent
+  broken code. `fr rename` on `Shape::area` renamed the declaration alone.
+  `impl Shape for Circle` kept `area`, the dyn-dispatch call kept `area`, and
+  the plan reported one clean site. The reverse direction was as wrong from the
+  other end. A method in declared dispatch now renames as one family, through
+  the same `Hierarchy` the call graph and `fr unused` already trust. The family
+  is the declaration, every implementation, and the dispatch sites that resolve
+  to no single one of them. The dispatch sites are reported under their own
+  heading at field-based confidence, for a person to review. A same-named
+  method on an unrelated type stays untouched.
+
 - [x] B381: **Java was the one language refused both kinds of extraction.** The
   machinery already fit it. `requires_explicit_types` copies declared types the
   way it does for Rust, Go and Zig, and `var` infers a binding the way `let`

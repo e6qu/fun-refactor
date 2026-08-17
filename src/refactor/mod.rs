@@ -62,6 +62,8 @@ pub enum WarningKind {
     TextualOccurrence,
     /// Some of the file did not reach the index, so uses hidden there were not seen.
     IncompleteFacts,
+    /// A dispatch site renamed with the method family it could reach.
+    DispatchCandidate,
 }
 
 impl WarningKind {
@@ -70,6 +72,7 @@ impl WarningKind {
             WarningKind::WeaklyResolved => "weakly-resolved",
             WarningKind::TextualOccurrence => "textual-occurrence",
             WarningKind::IncompleteFacts => "incomplete-facts",
+            WarningKind::DispatchCandidate => "dispatch-candidate",
         }
     }
 }
