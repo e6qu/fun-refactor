@@ -268,8 +268,5 @@ fn a_callee_import_also_present_at_the_call_site_inlines() {
     let offset = source.find("home_dir()").unwrap();
     let path = tmp.path().join("app.py");
     let out = apply(&inline::call(&index, &path, offset).unwrap(), &path);
-    assert!(
-        out.contains("return os.environ[\"HOME\"]"),
-        "got:\n{out}"
-    );
+    assert!(out.contains("return os.environ[\"HOME\"]"), "got:\n{out}");
 }

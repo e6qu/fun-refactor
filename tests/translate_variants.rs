@@ -58,10 +58,7 @@ fn a_path_naming_no_sum_of_the_module_still_carries() {
         out.contains("items = None") && out.contains("Vec::new"),
         "the binding stays and the call is carried, never called as a marker:\n{out}"
     );
-    assert!(
-        !out.contains("None()"),
-        "a marker must not run:\n{out}"
-    );
+    assert!(!out.contains("None()"), "a marker must not run:\n{out}");
 }
 
 #[test]

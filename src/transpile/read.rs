@@ -1458,8 +1458,7 @@ mod rust {
                     if let Some(body) = cx.field(node, "body") {
                         for initialiser in cx.children(body) {
                             if initialiser.kind() == "field_initializer" {
-                                let name =
-                                    cx.field_text(initialiser, "field").unwrap_or_default();
+                                let name = cx.field_text(initialiser, "field").unwrap_or_default();
                                 let value = cx
                                     .field(initialiser, "value")
                                     .map(|v| expr(cx, v))
@@ -5719,17 +5718,22 @@ mod zig {
                                 "block" if cx.children(value).is_empty() => Vec::new(),
                                 // A nested anonymous initializer is the payload's
                                 // own fields, laid out flat.
-                                "anonymous_struct_initializer" => {
-                                    match expr(cx, value) {
-                                        Expr::Variant { name: f, fields, .. }
-                                            if fields.len() == 1 =>
-                                        {
-                                            vec![(f, fields.into_iter().next().map(|(_, v)| v).unwrap_or(Expr::Null))]
-                                        }
-                                        Expr::RecordLit { fields, .. } => fields,
-                                        other => vec![("value".to_string(), other)],
+                                "anonymous_struct_initializer" => match expr(cx, value) {
+                                    Expr::Variant {
+                                        name: f, fields, ..
+                                    } if fields.len() == 1 => {
+                                        vec![(
+                                            f,
+                                            fields
+                                                .into_iter()
+                                                .next()
+                                                .map(|(_, v)| v)
+                                                .unwrap_or(Expr::Null),
+                                        )]
                                     }
-                                }
+                                    Expr::RecordLit { fields, .. } => fields,
+                                    other => vec![("value".to_string(), other)],
+                                },
                                 _ => vec![("value".to_string(), expr(cx, value))],
                             };
                             Expr::Variant {
