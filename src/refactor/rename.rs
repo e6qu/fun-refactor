@@ -151,7 +151,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                     reference.span.start,
                     format!(
                         "left unchanged: {} (resolved only as '{}')",
-                        why_it_was_left(reference),
+                        why_it_was_left(index, reference),
                         reference.confidence.as_str()
                     ),
                 ));
@@ -233,7 +233,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                 format!(
                     "occurrence of '{}' left unchanged: {} (resolved only as '{}')",
                     symbol.name,
-                    why_it_was_left(reference),
+                    why_it_was_left(index, reference),
                     reference.confidence.as_str()
                 ),
             ));
@@ -591,15 +591,24 @@ fn textual_sweep(
         .collect())
 }
 
-fn why_it_was_left(reference: &crate::model::Reference) -> &'static str {
+fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String {
     if reference.receiver.is_some() && !reference.receiver_is_path {
+        // Saying "type not known" about a receiver whose declaration names its
+        // type reads as a defect; the true reason is that the type it names is
+        // not the renamed symbol's.
+        if let Some(declared) = super::receiver_declared_type(index, reference) {
+            return format!(
+                "its receiver is declared `{declared}`, which is not what is being renamed"
+            );
+        }
         return "it is read from a value whose type is not known here, so it may name \
-                something else of the same name";
+                something else of the same name"
+            .to_string();
     }
     if reference.member_in_macro {
-        return "it is written inside a macro, where the receiver is not recorded";
+        return "it is written inside a macro, where the receiver is not recorded".to_string();
     }
-    "it matched by name alone"
+    "it matched by name alone".to_string()
 }
 
 /// Spans of string literals, comments and Helm template actions.
