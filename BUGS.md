@@ -177,26 +177,26 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 - [x] B430: **an inverted extract range died on the span constructor's
   assertion.** `fr extract --range file:8:20-8:5` printed byte offsets and a
-  panic. It is refused where both ends are known, with both ends named, and
-  invalid input exits 2, the code clap uses for a command line that does not
+  panic. It is refused where both ends are known, with both ends named.
+  Invalid input exits 2, the code clap uses for a command line that does not
   parse. A column of 0 is refused with "columns start at 1." instead of
   quietly reading as column 1. Pinned in `src/span.rs` tests and
   `tests/cli.rs`.
 
 - [x] B431: **two refusals broke the exit-code promise.** Delete's "refusing
-  to delete" was a plain error and exited 1 while the help promised 5; it is
-  a typed refusal now. `fr remove-flag` on a name nothing declares also
-  exited 1; it goes through the same not-found path rename uses, exits 3, and
-  suggests the nearest declared names. Pinned in `tests/cli.rs`.
+  to delete" exited 1 while the help promised 5. It is a typed refusal now.
+  `fr remove-flag` on a name nothing declares also exited 1. It goes through
+  the not-found path rename uses, exits 3, and suggests the nearest declared
+  names. Pinned in `tests/cli.rs`.
 
 - [x] B432: **human listings printed absolute paths.** Every site in a rename
-  report carried the workspace prefix, which `git apply` does not read and a
-  reader has to skip over. Human output is workspace-relative through one
+  report carried the workspace prefix, noise a reader skips over. Human
+  output is workspace-relative through one
   helper, error prose is relativised at one choke point, and JSON keeps
   absolute paths. Pinned in `tests/cli.rs`.
 
 - [x] B433: **RECIPES.md promised `fr recipe --explain` and `fr recipe fmt`,
-  and neither existed.** `--explain` exists now and prints each step's
+  and neither existed.** `--explain` exists now. It prints each step's
   selector and expectation without running it. `fmt` stayed unbuilt, and the
   document says so and why. The `.fr` example extension became `.recipe`, the
   one the tool reads. Pinned in `tests/cli.rs`.
