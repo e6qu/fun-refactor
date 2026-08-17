@@ -968,6 +968,19 @@ footer a { color: var(--ink-soft); }
 .ts-cell-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .ts-cell-button:disabled { opacity: 0.45; cursor: default; }
 
+.ts-edit-link {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: var(--raised);
+  color: inherit;
+  text-decoration: none;
+}
+.ts-edit-link:hover { border-color: var(--accent); color: var(--accent); }
+
 .ts-run-out {
   margin: 0;
   padding: 0.6rem 0.75rem 0.6rem 1rem;

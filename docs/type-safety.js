@@ -388,13 +388,20 @@ async function runCell(action, code, language, out) {
 
 // ------------------------------------------------------------ the pieces
 
-function pane(codes, code) {
+function editUrl(id) {
+  const file = lang === "python" ? `python/${id}.py` : `typescript/${id}.ts`;
+  return `https://github.com/e6qu/fun-refactor/edit/main/tests/typesafety/${file}`;
+}
+
+function pane(codes, code, id) {
   codes.push(code);
   return `
     <div class="ts-pane ts-cell">
       <div class="ts-pane-head"><span>${LABELS[lang]}</span>
         <span class="ts-cell-buttons">
           <button type="button" class="ts-reset-button" hidden>Reset</button>
+          <a class="ts-edit-link" href="${editUrl(id)}" target="_blank"
+            rel="noopener">Edit in GitHub</a>
           <button type="button" class="ts-cell-button" data-action="check">Type check</button>
           <button type="button" class="ts-cell-button" data-action="lint">Lint</button>
           <button type="button" class="ts-cell-button" data-action="run">Run</button>
@@ -528,7 +535,7 @@ for (const slot of document.querySelectorAll("[data-example]")) {
     const codes = [];
     slot.innerHTML = `
       <div class="ts-block-head"><h4>${escape(example.title)}</h4>${langToggle()}</div>
-      ${pane(codes, example[lang])}`;
+      ${pane(codes, example[lang], slot.dataset.example)}`;
     wireCommon(slot, codes);
   };
   rerenders.push(render);
@@ -551,12 +558,12 @@ for (const slot of document.querySelectorAll("[data-block]")) {
 
     const codes = [];
     const afterRows =
-      row("After.", after.title + ".", pane(codes, after[lang])) +
+      row("After.", after.title + ".", pane(codes, after[lang], slot.dataset.block)) +
       (misuse
         ? row(
             "Now a type error.",
             misuse.title + ".",
-            pane(codes, misuse[lang]) + checkerWords(misuseId),
+            pane(codes, misuse[lang], misuseId) + checkerWords(misuseId),
           )
         : "");
 
@@ -566,7 +573,7 @@ for (const slot of document.querySelectorAll("[data-block]")) {
         <button type="button" class="ts-diff-button" aria-pressed="false">Diff</button>
       </div>
       <div class="ts-view-code">
-        ${row("Before.", before.title + ".", pane(codes, before[lang]))}
+        ${row("Before.", before.title + ".", pane(codes, before[lang], after.improves))}
         ${collapsed ? `<details class="ts-solution"><summary>Show one solution</summary>${afterRows}</details>` : afterRows}
       </div>
       <div class="ts-view-diff" hidden>
@@ -618,7 +625,7 @@ for (const slot of document.querySelectorAll("[data-quiz]")) {
       <div class="ts-quiz-card">
         <div class="ts-block-head"><h4>You be the checker (${at + 1} of ${ids.length})</h4>${langToggle()}</div>
         <p class="ts-quiz-question">Does the strict scan accept this?</p>
-        ${pane(codes, example[lang])}
+        ${pane(codes, example[lang], id)}
         <div class="ts-quiz-controls">
           <button type="button" class="ts-quiz-button" data-answer="passes">It passes</button>
           <button type="button" class="ts-quiz-button" data-answer="fails">Type error</button>
