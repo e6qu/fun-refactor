@@ -31,6 +31,7 @@ const asJs = source
   .replace(/^export /gm, "")
   .replace(/: (string|number|Record<string, string>|string\[\])(?=[,)])/g, "")
   .replace(/\): string \{/g, ") {")
+  .replace(/\): \[string\[\], boolean\] \{/g, ") {")
   .replace(/const CONTEXT: number/, "const CONTEXT");
 const { diffOf, patchOf } = await import(
   "data:text/javascript," + encodeURIComponent(asJs + "\nexport { diffOf, patchOf };")
@@ -225,5 +226,43 @@ check("several refactorings in one session make one patch", () => {
   return `${Object.keys(changed).length} file(s), git says: ${gitAccepts(patch, changed)}`;
 });
 
+
+check("a change reaching the end of the file still applies", () => {
+  // `split("\n")` on a newline-terminated file ends with an empty string that is
+  // not a line. Counted as context, a hunk that reached the end of the file
+  // claimed one old line more than the file has, and git refused the patch.
+  const before = "fn a() {}\n\nfn b() {\n    old();\n}\n";
+  const afterText = "fn a() {}\n\nfn b() {\n    new_call();\n}\n";
+  const patch = diffOf("src/tail.rs", before, afterText);
+  const dir = mkdtempSync(join(tmpdir(), "fr-tail-"));
+  try {
+    mkdirSync(join(dir, "src"), { recursive: true });
+    writeFileSync(join(dir, "src/tail.rs"), before);
+    const git = (...args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" });
+    git("init", "-q");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "test");
+    git("add", "-A");
+    git("commit", "-qm", "base");
+    writeFileSync(join(dir, "session.patch"), patch);
+    git("apply", "--check", "session.patch");
+    git("apply", "session.patch");
+    assert(
+      readFileSync(join(dir, "src/tail.rs"), "utf8") === afterText,
+      "the applied file is not the after text",
+    );
+    return "";
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+check("a file without a trailing newline says so", () => {
+  const patch = diffOf("x.txt", "a\nb", "a\nc");
+  assert(patch.includes("\\ No newline at end of file"), "the marker is missing");
+  return "";
+});
+
 console.log(`\n${checks - failures}/${checks} passed`);
 process.exit(failures === 0 ? 0 : 1);
+
