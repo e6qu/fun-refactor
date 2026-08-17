@@ -95,3 +95,34 @@ fn a_lost_supertype_is_said_in_the_output_itself() {
         plan.output
     );
 }
+
+#[test]
+fn a_property_keeps_its_reads_where_the_idiom_exists() {
+    // `@property def total` is read as data at every use site. As an ordinary
+    // method, `it.total` in the target was the function object, and every
+    // comparison against it was quietly false.
+    let source = "class Item:\n    def __init__(self, price: float, qty: int):\n        \
+        self.price = price\n        self.qty = qty\n\n    @property\n    \
+        def total(self) -> float:\n        return self.price * self.qty\n\n\n\
+        def expensive(items: list[Item], cutoff: float) -> list[Item]:\n    \
+        return [it for it in items if it.total > cutoff]\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("prop.py");
+    std::fs::write(&path, source).unwrap();
+
+    let ts = transpile::plan_to(&path, Language::TypeScript, Some(&tmp.path().join("a")), false)
+        .unwrap()
+        .output;
+    assert!(
+        ts.contains("get total(): number {") && ts.contains("it.total > cutoff"),
+        "TypeScript has the idiom and keeps the reads:\n{ts}"
+    );
+
+    let rust = transpile::plan_to(&path, Language::Rust, Some(&tmp.path().join("b")), false)
+        .unwrap()
+        .output;
+    assert!(
+        rust.contains("it.total() > cutoff"),
+        "Rust has no properties, so the read becomes the call it is:\n{rust}"
+    );
+}

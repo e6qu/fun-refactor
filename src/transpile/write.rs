@@ -508,6 +508,24 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    // A name that is a property somewhere and never a field: safe to spell every
+    // read of it as the call it becomes in a target without properties. A name
+    // that is both stays a read, and the property side keeps the mismatch visible.
+    let mut properties: std::collections::BTreeSet<String> = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(r.methods.iter().filter(|m| m.is_property).map(|m| m.name.clone())),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    for fields in out.records.values() {
+        for field in fields {
+            properties.remove(field);
+        }
+    }
+    out.properties = properties;
     out.functions = context
         .items
         .iter()
@@ -612,6 +630,11 @@ struct Out {
     /// matches, the positions map onto these; otherwise the construction
     /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
+    /// Method names the module reads as data: `@property`, a TypeScript getter.
+    ///
+    /// In a target without the idiom the method is ordinary and its accessors
+    /// become calls, and this set is how the field-access writer knows which.
+    properties: std::collections::BTreeSet<String>,
     /// Each declared function's parameters, in order, with their defaults.
     ///
     /// A keyword argument names its parameter, and five of these languages
@@ -661,6 +684,7 @@ impl Out {
             go_imports: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
+            properties: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
@@ -1477,6 +1501,11 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = rust_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
@@ -1756,6 +1785,9 @@ fn python(out: &mut Out, module: &Module) {
                     // will pass it one anyway unless told otherwise.
                     if m.receiver_binding.is_none() {
                         out.line("@staticmethod");
+                    }
+                    if m.is_property {
+                        out.line("@property");
                     }
                     python_function(out, m, m.receiver_binding.is_some());
                 }
@@ -3243,6 +3275,11 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         // this does not know, and `reading.Get(…)` is a different method.
         Expr::Field { of, name } => {
             let object = go_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => format!("{}[{}]", go_expr(out, of), go_expr(out, index)),
@@ -3748,7 +3785,14 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
             true => "",
             false => "static ",
         };
-        format!("{modifier}{asynchrony}")
+        // `get total()`: the accessors read it as data, and TypeScript has the
+        // idiom to keep that true.
+        let accessor = if f.is_property && f.params.is_empty() {
+            "get "
+        } else {
+            ""
+        };
+        format!("{modifier}{accessor}{asynchrony}")
     } else if f.exported {
         format!("export {asynchrony}function ")
     } else {
@@ -5058,6 +5102,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = java_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
@@ -5973,6 +6022,11 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = zig_expr(out, of);
+            // A read of a property is a call here; the idiom that hid the
+            // parentheses does not exist in this language.
+            if out.properties.contains(name) {
+                return format!("{object}.{}()", out.field(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         // `[…]` on a slice or an array and `.get(…)` on a map, and which this is

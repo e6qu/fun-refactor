@@ -481,7 +481,7 @@ mod rust {
                         for item in cx.children(body) {
                             if item.kind() == "function_item" {
                                 let mut f = function(cx, item, Some(owner.clone()));
-                                f.is_constructor = super::constructs(
+                                                                f.is_constructor = super::constructs(
                                     &f.name,
                                     &owner,
                                     f.returns.as_ref(),
@@ -639,6 +639,7 @@ mod rust {
                 .children(&mut node.walk())
                 .any(|c| c.kind() == "visibility_modifier"),
             is_async: cx.text(node).starts_with("async ") || cx.text(node).contains("async fn"),
+            is_property: false,
             is_constructor: false,
         }
     }
@@ -1549,6 +1550,7 @@ mod python {
                 .unwrap_or_default()
                 .starts_with('_'),
             is_async: cx.text(node).starts_with("async "),
+            is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("__init__"),
         }
     }
@@ -1813,10 +1815,18 @@ mod python {
                 let text = cx.text(*n);
                 SHAPE.contains(&text.trim_start_matches('@').trim())
             });
+        let is_property = children
+            .iter()
+            .filter(|n| n.kind() == "decorator")
+            .any(|n| cx.text(*n).trim_start_matches('@').trim() == "property");
         let inner = children
             .into_iter()
             .find(|n| n.kind() == "function_definition")?;
-        structural.then(|| function(cx, inner, Some(owner.to_string())))
+        structural.then(|| {
+            let mut method = function(cx, inner, Some(owner.to_string()));
+            method.is_property = is_property;
+            method
+        })
     }
 
     fn annotated_field(cx: &Cx, node: Node<'_>) -> Option<Field> {
@@ -2697,6 +2707,7 @@ mod go {
                 .map(|b| block(cx, b))
                 .unwrap_or_default(),
             is_async: false,
+            is_property: false,
             is_constructor: false,
         }
     }
@@ -3379,6 +3390,7 @@ mod java {
                 .unwrap_or_default(),
             exported: is_public(cx, node),
             is_async: false,
+            is_property: false,
             is_constructor: node.kind() == "constructor_declaration",
         }
     }
@@ -4205,7 +4217,7 @@ mod zig {
                 },
                 "function_declaration" => match function(cx, member) {
                     Some(mut f) => {
-                        f.is_constructor = super::constructs(
+                                                f.is_constructor = super::constructs(
                             &f.name,
                             &record.name,
                             f.returns.as_ref(),
@@ -4329,6 +4341,7 @@ mod zig {
                 .unwrap_or_default(),
             exported: cx.text(node).trim_start().starts_with("pub"),
             is_async: false,
+            is_property: false,
             is_constructor: false,
         })
     }
@@ -5445,6 +5458,7 @@ mod typescript {
                 .unwrap_or_default(),
             exported: false,
             is_async,
+            is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("constructor"),
         }
     }
@@ -5633,6 +5647,12 @@ mod typescript {
                     "method_definition" | "method_signature" => {
                         let mut method = function(cx, member, Some(name.clone()));
                         method.exported = is_visible(cx, member);
+                        // `get total()` is read as data at its use sites, which is
+                        // a fact about every accessor and not about this body.
+                        let mut cursor = member.walk();
+                        method.is_property =
+                            member.children(&mut cursor).any(|c| c.kind() == "get");
+                        drop(cursor);
                         // `constructor(public x: number)` declares the field and
                         // assigns it, in the parameter list. Read as a parameter
                         // alone, the class came out with no fields at all.

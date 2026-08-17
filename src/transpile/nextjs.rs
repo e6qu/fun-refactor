@@ -928,6 +928,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
                 body,
                 exported: false,
                 is_async: false,
+                is_property: false,
                 is_constructor: false,
             })],
         };
