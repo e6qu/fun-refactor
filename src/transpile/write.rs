@@ -122,7 +122,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     }
                     walk_stmts(default, add);
                 }
-                Stmt::Defer(cleanup) => walk_stmts(cleanup, add),
+                Stmt::Defer(cleanup) | Stmt::ErrDefer(cleanup) => walk_stmts(cleanup, add),
                 Stmt::ForEachIndexed {
                     index,
                     binding,
@@ -1321,9 +1321,12 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 out.close();
                 out.line("}");
             }
-            Stmt::Defer(cleanup) => {
+            Stmt::ErrDefer(cleanup) | Stmt::Defer(cleanup) => {
                 // Rust has no scope-exit hook short of inventing a guard type,
-                // so the body is rendered as Rust and carried as a comment.
+                // so the body is rendered as Rust and carried as a comment. The
+                // failure-path variant carries the same way; the guard it would
+                // need is the same guard.
+                let failure_only = matches!(stmt, Stmt::ErrDefer(_));
                 let mut scratch = Out::new(out.language);
                 scratch.names = out.names.clone();
                 scratch.fields = out.fields.clone();
@@ -1331,11 +1334,21 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 rust_block(&mut scratch, cleanup);
                 let rendered = scratch.finish();
                 out.carried(&Unsupported {
-                    construct: "defer".into(),
+                    construct: match failure_only {
+                        true => "errdefer".into(),
+                        false => "defer".into(),
+                    },
                     source: rendered.trim().to_string(),
                     line: 0,
                 });
-                let header = out.comment(&format!("{MARKER}: a defer runs this at scope exit:"));
+                let header = match failure_only {
+                    true => out.comment(&format!(
+                        "{MARKER}: an errdefer runs this when the scope fails:"
+                    )),
+                    false => {
+                        out.comment(&format!("{MARKER}: a defer runs this at scope exit:"))
+                    }
+                };
                 out.line(&header);
                 for line in rendered.lines() {
                     let commented = out.comment(line);
@@ -2134,6 +2147,25 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 python_line(out, "finally:");
                 out.open();
                 python_block(out, cleanup);
+                out.close();
+                return;
+            }
+            // `errdefer` runs only on the failure path, and here failure is an
+            // exception: clean up and let it keep flying.
+            Stmt::ErrDefer(cleanup) => {
+                python_line(out, "try:");
+                out.open();
+                let rest = &body[at + 1..];
+                if rest.is_empty() {
+                    python_line(out, "pass");
+                } else {
+                    python_block(out, rest);
+                }
+                out.close();
+                python_line(out, "except BaseException:");
+                out.open();
+                python_block(out, cleanup);
+                python_line(out, "raise");
                 out.close();
                 return;
             }
@@ -3082,6 +3114,17 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.line("}()");
                 }
             },
+            // Go has no failure path a block can watch, so the failure-only
+            // cleanup is carried, visibly, rather than run on every exit.
+            Stmt::ErrDefer(_) => {
+                out.fidelity.carried_verbatim += 1;
+                out.fidelity
+                    .notes
+                    .push("on the failure path: errdefer carried over unchanged".to_string());
+                let header =
+                    out.comment(&format!("{MARKER}: an errdefer runs this when the scope fails"));
+                out.line(&header);
+            }
             Stmt::WhilePresent {
                 binding,
                 value,
@@ -3968,6 +4011,23 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.line("}");
                 return;
             }
+            // `errdefer` runs only on the failure path: clean up and rethrow.
+            Stmt::ErrDefer(cleanup) => {
+                out.line("try {");
+                out.open();
+                let rest = &body[at + 1..];
+                if !rest.is_empty() {
+                    ts_block(out, rest);
+                }
+                out.close();
+                out.line("} catch (fr_err) {");
+                out.open();
+                ts_block(out, cleanup);
+                out.line("throw fr_err;");
+                out.close();
+                out.line("}");
+                return;
+            }
             Stmt::WhilePresent {
                 binding,
                 value,
@@ -4656,6 +4716,24 @@ fn java_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             out.line("}");
             return;
         }
+        // `errdefer` runs only on the failure path: clean up and rethrow. The
+        // unchecked catch keeps the enclosing signature's `throws` honest.
+        if let Stmt::ErrDefer(cleanup) = stmt {
+            out.line("try {");
+            out.open();
+            let rest = &body[at + 1..];
+            if !rest.is_empty() {
+                java_block(out, rest, returns);
+            }
+            out.close();
+            out.line("} catch (RuntimeException frErr) {");
+            out.open();
+            java_block(out, cleanup, None);
+            out.line("throw frErr;");
+            out.close();
+            out.line("}");
+            return;
+        }
         java_stmt(out, stmt);
     }
 }
@@ -4793,6 +4871,19 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             out.line("} finally {");
             out.open();
             java_block(out, cleanup, None);
+            out.close();
+            out.line("}");
+        }
+        // Reached only when the block walker did not intercept; the failure-only
+        // cleanup wraps nothing, so it can only clean up and rethrow nothing.
+        Stmt::ErrDefer(cleanup) => {
+            out.line("try {");
+            out.open();
+            out.close();
+            out.line("} catch (RuntimeException frErr) {");
+            out.open();
+            java_block(out, cleanup, None);
+            out.line("throw frErr;");
             out.close();
             out.line("}");
         }
@@ -5860,6 +5951,19 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             }
             _ => {
                 zig_line(out, "defer {");
+                out.open();
+                zig_block(out, cleanup, None, mutated);
+                out.close();
+                out.line("}");
+            }
+        },
+        Stmt::ErrDefer(cleanup) => match cleanup.as_slice() {
+            [Stmt::Expr(call)] => {
+                let rendered = zig_expr(out, call);
+                zig_line(out, &format!("errdefer {rendered};"));
+            }
+            _ => {
+                zig_line(out, "errdefer {");
                 out.open();
                 zig_block(out, cleanup, None, mutated);
                 out.close();

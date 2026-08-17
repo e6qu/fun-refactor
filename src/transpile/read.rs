@@ -4776,7 +4776,12 @@ mod zig {
                 Some(switch) => switch,
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
-            "defer_statement" => {
+            "defer_statement" | "errdefer_statement" => {
+                // `errdefer |err| ...` binds the error; the binding has nowhere to
+                // cross, so the payload form carries whole.
+                if all(node).iter().any(|c| c.kind() == "payload") {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
                 let Some(deferred) = cx.children(node).first().copied() else {
                     return Stmt::Unsupported(cx.unsupported(node));
                 };
@@ -4785,7 +4790,10 @@ mod zig {
                 } else {
                     vec![stmt(cx, deferred)]
                 };
-                Stmt::Defer(body)
+                match node.kind() {
+                    "errdefer_statement" => Stmt::ErrDefer(body),
+                    _ => Stmt::Defer(body),
+                }
             }
             // At statement level an assignment hides in a `variable_declaration`;
             // inside a `defer` or a step clause it arrives as itself.
@@ -6319,7 +6327,7 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(iterable, visit);
                 each_expr_in_stmts(body, visit);
             }
-            Stmt::Defer(body) => each_expr_in_stmts(body, visit),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) => each_expr_in_stmts(body, visit),
             Stmt::Switch {
                 subject,
                 arms,
@@ -6374,7 +6382,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             | Stmt::WhilePresent { body, .. }
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
-            Stmt::Defer(body) => each_stmt_in_stmts(body, visit),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) => each_stmt_in_stmts(body, visit),
             Stmt::Switch { arms, default, .. } => {
                 for (_, body) in arms {
                     each_stmt_in_stmts(body, visit);
