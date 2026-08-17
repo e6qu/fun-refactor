@@ -78,12 +78,12 @@ fn a_computing_constructor_keeps_its_body() {
 
 #[test]
 fn a_lost_supertype_is_said_in_the_output_itself() {
-    // The report already named the dropped `extends`; the draft file did not, and
-    // the draft file is what a reader has in front of them.
-    let source =
-        "export class Repo {\n    find(id: number): number {\n        return id;\n    }\n}\n\n\
+    // The base lives in another module, so nothing can lay it flat; the report
+    // already named the loss, and the draft file, the thing a reader has in
+    // front of them, says it too.
+    let source = "import { Repo } from \"./repo\";\n\n\
         export class TaskRepo extends Repo {\n    close(id: number): number {\n        \
-        return this.find(id);\n    }\n}\n";
+        return id;\n    }\n}\n";
     let tmp = tempfile::tempdir().unwrap();
     let path = tmp.path().join("repo.ts");
     std::fs::write(&path, source).unwrap();
@@ -129,5 +129,60 @@ fn a_property_keeps_its_reads_where_the_idiom_exists() {
     assert!(
         rust.contains("it.total() > cutoff"),
         "Rust has no properties, so the read becomes the call it is:\n{rust}"
+    );
+}
+
+#[test]
+fn a_local_base_lays_flat_where_nothing_inherits() {
+    // `TaskRepo extends Repo` and `Repo` sits in the same file: Rust has no
+    // inheritance, and the marker alone left `self.find(id)` calling a method
+    // the struct never had. The base's fields and methods belong to every
+    // instance of the extender, so they lay flat into it, and the marker stands
+    // only for a base the module does not hold.
+    let source = "export class Repo {\n    rows: number[] = [];\n\n    \
+        find(id: number): number {\n        return id;\n    }\n}\n\n\
+        export class TaskRepo extends Repo {\n    close(id: number): number {\n        \
+        return this.find(id);\n    }\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("repo.ts");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("repo_out.txt");
+    let plan = transpile::plan_to(&path, Language::Rust, Some(&out), false).unwrap();
+    assert!(
+        plan.output.contains("pub struct TaskRepo {\n    pub rows: Vec<f64>,\n}"),
+        "the base's field belongs to the extender:\n{}",
+        plan.output
+    );
+    let task_repo = plan.output.split("impl TaskRepo").nth(1).unwrap_or("");
+    assert!(
+        task_repo.contains("pub fn find(&self, id: f64) -> f64"),
+        "and so does its method:\n{}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains("not translated: extends Repo"),
+        "an absorbed base needs no marker:\n{}",
+        plan.output
+    );
+}
+
+#[test]
+fn zig_tests_named_by_declaration_cross_too() {
+    let source = "pub fn double(n: u32) u32 {\n    return n * 2;\n}\n\n\
+        test double {\n    const four = double(2);\n    _ = four;\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("math.zig");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("math_out.txt");
+    let plan = transpile::plan_to(&path, Language::Python, Some(&out), false).unwrap();
+    assert!(
+        plan.output.contains("def test_double"),
+        "the identifier-named test is a test:\n{}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains("not translated: test_declaration"),
+        "not a gap:\n{}",
+        plan.output
     );
 }

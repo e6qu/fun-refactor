@@ -546,6 +546,20 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    // A target without inheritance can still hold what a base in the same module
+    // contributed: the base's own fields and methods, laid flat into the extending
+    // record. The supertype marker then only stands where the base is truly out
+    // of reach.
+    let flattened = match language {
+        Language::Rust | Language::Go | Language::Zig => {
+            let (module, notes) = flatten_local_bases(module);
+            out.fidelity.notes.extend(notes);
+            Some(module)
+        }
+        _ => None,
+    };
+    let module = flattened.as_ref().unwrap_or(module);
+
     match language {
         Language::Rust => rust(&mut out, module),
         Language::Python => python(&mut out, module),
@@ -6358,6 +6372,89 @@ fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &
 // Each writer rewrites them back out into its own, so one language pair costs
 // two edits and not thirty. What the table does not cover is written through
 // unchanged, visible in the output, as before.
+
+/// The module with every same-module base laid flat into its extenders.
+///
+/// `class User(UserBase)` where `UserBase` sits ten lines up loses nothing to a
+/// target without inheritance except the sharing: the base's fields and methods
+/// belong to every instance of `User`, so they lay flat into it. The extends
+/// marker then stands only for a base this module does not hold. Chains flatten
+/// transitively; a cycle, which no source language accepts, stops the walk; a
+/// method the extender overrides is the extender's.
+fn flatten_local_bases(module: &Module) -> (Module, Vec<String>) {
+    let bases: std::collections::BTreeMap<String, Record> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some((r.name.clone(), r.clone())),
+            _ => None,
+        })
+        .collect();
+    let mut notes = Vec::new();
+    let mut flattened = module.clone();
+    for item in flattened.items.iter_mut() {
+        let Item::Record(record) = item else { continue };
+        if record.extends.is_none() {
+            continue;
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        seen.insert(record.name.clone());
+        let mut inherited_fields: Vec<Field> = Vec::new();
+        let mut inherited_methods: Vec<Function> = Vec::new();
+        let mut absorbed: Vec<String> = Vec::new();
+        let mut next = record.extends.clone();
+        let mut fully_local = true;
+        while let Some(base_name) = next {
+            let plain = base_name
+                .split('<')
+                .next()
+                .unwrap_or(base_name.as_str())
+                .trim()
+                .to_string();
+            let Some(base) = bases.get(&plain) else {
+                fully_local = false;
+                break;
+            };
+            if !seen.insert(plain.clone()) {
+                break;
+            }
+            for field in &base.fields {
+                let taken = record.fields.iter().any(|own| own.name == field.name)
+                    || inherited_fields.iter().any(|f| f.name == field.name);
+                if !taken {
+                    inherited_fields.push(field.clone());
+                }
+            }
+            for method in &base.methods {
+                let taken = method.is_constructor
+                    || record.methods.iter().any(|own| own.name == method.name)
+                    || inherited_methods.iter().any(|m| m.name == method.name);
+                if !taken {
+                    inherited_methods.push(method.clone());
+                }
+            }
+            absorbed.push(plain);
+            next = base.extends.clone();
+        }
+        if absorbed.is_empty() {
+            continue;
+        }
+        let own_fields = std::mem::take(&mut record.fields);
+        record.fields = inherited_fields;
+        record.fields.extend(own_fields);
+        record.methods.extend(inherited_methods);
+        notes.push(format!(
+            "`{}` extends `{}`; this language has no inheritance, so what the base \
+             holds is laid flat into the record itself.",
+            record.name,
+            absorbed.join("`, then `")
+        ));
+        if fully_local {
+            record.extends = None;
+        }
+    }
+    (flattened, notes)
+}
 
 /// The receiver and name a call's callee spells, where it spells one.
 fn callee_parts(callee: &Expr) -> (Option<&Expr>, Option<&str>) {

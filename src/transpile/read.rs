@@ -4035,10 +4035,19 @@ mod zig {
     /// `test "name" { … }`, with the name unquoted.
     fn test_block(cx: &Cx, node: Node<'_>) -> Option<Item> {
         let children = cx.children(node);
+        // `test "prose name" { … }` and `test declName { … }` are both tests; the
+        // identifier form names the declaration it covers. Requiring the string
+        // dropped every identifier-named test in a file, whole.
         let name = children
             .iter()
             .find(|c| c.kind() == "string")
-            .map(|s| super::unquote(&cx.text(*s)))?;
+            .map(|s| super::unquote(&cx.text(*s)))
+            .or_else(|| {
+                children
+                    .iter()
+                    .find(|c| c.kind() == "identifier")
+                    .map(|s| cx.text(*s))
+            })?;
         let body = children
             .iter()
             .find(|c| c.kind() == "block")
