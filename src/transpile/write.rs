@@ -1979,6 +1979,35 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         // Rust has no universal spelling for construction: `X::new`, `X { .. }` and
         // a builder are all idiomatic and which one applies is a fact about the type.
         Expr::New { callee, args } => {
+            // A construction whose arguments already name their fields is a
+            // struct literal as written: `Point{}` and `Circle{Radius: n}`
+            // arrive this way from Go.
+            let keywords: Option<Vec<(&String, &Expr)>> = args
+                .iter()
+                .map(|a| match a {
+                    Expr::Keyword { name, value } => Some((name, value.as_ref())),
+                    _ => None,
+                })
+                .collect();
+            if let Some(pairs) = keywords {
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => out.records.contains_key(n),
+                    _ => false,
+                };
+                if named && (args.is_empty() || !pairs.is_empty()) {
+                    let target = rust_expr(out, callee);
+                    let rendered: Vec<String> = pairs
+                        .iter()
+                        .map(|(field, value)| {
+                            format!("{}: {}", out.field(field), rust_expr(out, value))
+                        })
+                        .collect();
+                    return match rendered.is_empty() {
+                        true => format!("{target} {{}}"),
+                        false => format!("{target} {{ {} }}", rendered.join(", ")),
+                    };
+                }
+            }
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = rust_expr(out, callee);

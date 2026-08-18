@@ -2240,6 +2240,62 @@ mod python {
         if variants.is_empty() {
             return;
         }
+        // A carried construct that binds one of these names shadows it for the
+        // whole function: a nested `def Card(...)` means `Card(number)` calls
+        // the local, whatever the module's sums say. The carried source is the
+        // only trace the nested definition leaves, so it is what gets read.
+        let shadowed_in = |body: &[Stmt], name: &str| -> bool {
+            let mut found = false;
+            let mut probe = body.to_vec();
+            super::each_stmt_in_stmts(&mut probe, &mut |stmt| {
+                let carried = match stmt {
+                    Stmt::Unsupported(u) => Some(u),
+                    Stmt::Expr(Expr::Unsupported(u)) => Some(u),
+                    _ => None,
+                };
+                if let Some(u) = carried {
+                    let def = format!("def {name}(");
+                    let bind = format!("{name} =");
+                    if u.source.contains(&def) || u.source.starts_with(&bind) {
+                        found = true;
+                    }
+                }
+            });
+            found
+        };
+        for item in &mut module.items {
+            let Item::Function(f) = item else { continue };
+            let shadowed: Vec<String> = variants
+                .keys()
+                .filter(|name| shadowed_in(&f.body, name))
+                .cloned()
+                .collect();
+            if shadowed.is_empty() {
+                continue;
+            }
+            super::each_expr_in_stmts(&mut f.body, &mut |e| {
+                if let Expr::Call { callee, .. } = e {
+                    if matches!(callee.as_ref(), Expr::Name(n) if shadowed.contains(n)) {
+                        let Expr::Call { callee, args } = e else {
+                            unreachable!("just matched");
+                        };
+                        let source = format!(
+                            "{}({} argument(s))",
+                            match callee.as_ref() {
+                                Expr::Name(n) => n.clone(),
+                                _ => String::new(),
+                            },
+                            args.len()
+                        );
+                        *e = Expr::Unsupported(Unsupported {
+                            construct: "a call to a shadowed name".to_string(),
+                            source,
+                            line: 0,
+                        });
+                    }
+                }
+            });
+        }
         super::each_expr_in_module(module, &mut |e| {
             if let Expr::Call { callee, args } = e {
                 if let Expr::Name(n) = callee.as_ref() {
@@ -3272,6 +3328,51 @@ mod go {
                 .iter()
                 .any(|r| r.methods.iter().any(|m| m.name != marker))
             {
+                continue;
+            }
+            // A member named in a concrete position stays a struct. A function
+            // returning `Point` cannot return a variant of `Shape`; consuming
+            // the struct rewrote its values while the signature kept the type,
+            // which no target accepts.
+            let concrete = |ty: &Type| -> bool {
+                fn names(ty: &Type, out: &mut Vec<String>) {
+                    match ty {
+                        Type::Named { name, args } => {
+                            out.push(name.clone());
+                            for arg in args {
+                                names(arg, out);
+                            }
+                        }
+                        Type::List(t) | Type::Optional(t) => names(t, out),
+                        Type::Map(k, v) => {
+                            names(k, out);
+                            names(v, out);
+                        }
+                        Type::Tuple(parts) => parts.iter().for_each(|t| names(t, out)),
+                        _ => {}
+                    }
+                }
+                let mut found = Vec::new();
+                names(ty, &mut found);
+                found
+                    .iter()
+                    .any(|n| members.iter().any(|m| &m.name == n))
+            };
+            let used_concretely = module.items.iter().any(|item| match item {
+                Item::Function(f) => {
+                    f.params.iter().filter_map(|p| p.ty.as_ref()).any(concrete)
+                        || f.returns.as_ref().is_some_and(concrete)
+                }
+                Item::Record(r) => {
+                    r.fields.iter().filter_map(|f| f.ty.as_ref()).any(concrete)
+                        || r.methods.iter().any(|m| {
+                            m.params.iter().filter_map(|p| p.ty.as_ref()).any(concrete)
+                                || m.returns.as_ref().is_some_and(concrete)
+                        })
+                }
+                _ => None::<()>.is_some(),
+            });
+            if used_concretely {
                 continue;
             }
             let variants: Vec<Variant> = members
