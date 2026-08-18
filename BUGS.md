@@ -185,9 +185,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   the path, where the source line ends in a plain file name, which is what
   `source "$(dirname "$0")/lib.sh"` does. Pinned in `tests/facts_bash.rs`.
 
-- [x] B537: **a textual match was called a comment.** The sweep that finds a
-  name in file text matched the declaration and every resolved use, then
-  listed them again. The heading read "mention(s) in a comment or a string.
+- [x] B537: **a textual match was called a comment.** The sweep matched the
+  declaration and every resolved use, then listed them again. The heading read "mention(s) in a comment or a string.
   No command edits these". A YAML key is neither.
   A reader told a broken reference was a comment has been told it is safe. The
   listing drops what the search already accounts for, and says what the rest
