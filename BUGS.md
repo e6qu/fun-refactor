@@ -176,7 +176,7 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 ## Fixed
 
 - [x] B443: **the wasm slice could not see a cli-only import.** With default
-  features on, an import only the CLI uses looked used to clippy. The unused-import refusal surfaced in the deploy's wasm build
+  features on, an import only the CLI uses looked used. The unused-import refusal surfaced in the deploy's wasm build
   instead. The slice now also runs clippy without default features, on
   the host target, which catches the class without needing a wasm clang.
   Caught by CI on this very pass: `run::distance` was cli-only and ungated.
