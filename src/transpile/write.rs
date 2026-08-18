@@ -3613,6 +3613,14 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                 | Stmt::ForEachIndexed { body, .. }
                 | Stmt::Defer(body)
                 | Stmt::ErrDefer(body) => walk(body, types),
+                // `for (int i = 0; ...)` declares the counter in the header,
+                // and a body dividing by it asks what type it is.
+                Stmt::CountedFor { init, body, .. } => {
+                    if let Some(init) = init {
+                        walk(std::slice::from_ref(init.as_ref()), types);
+                    }
+                    walk(body, types);
+                }
                 Stmt::Try {
                     body,
                     catches,
@@ -5664,6 +5672,9 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
+    // TypeScript has one number type, so `/` needs to know which of them the
+    // source declared: an integer division truncates and this one does not.
+    out.binding_types = declared_bindings(f);
 
     for line in &f.doc {
         out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -6280,6 +6291,17 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             binary_operand(ts_expr(out, right), right, BinaryOp::Div, true)
         ),
         Expr::Binary { op, left, right } => {
+            // TypeScript has one number type and `/` on it never truncates, so
+            // `half(7)` answered 3.5 where the source said 3. Java and the rest
+            // truncate toward zero, which is `Math.trunc` and not `Math.floor`:
+            // the two disagree on every negative quotient.
+            if *op == BinaryOp::Div && holds_an_integer(out, left) && holds_an_integer(out, right) {
+                return format!(
+                    "Math.trunc({} / {})",
+                    binary_operand(ts_expr(out, left), left, *op, false),
+                    binary_operand(ts_expr(out, right), right, *op, true)
+                );
+            }
             let spelling = match op {
                 BinaryOp::Eq => "===",
                 BinaryOp::Ne => "!==",
