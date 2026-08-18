@@ -722,7 +722,10 @@ fn textual_sweep(
             file: m.file,
             line: m.line,
             col: m.col,
-            detail: format!("'{name}' appears in a string or comment; left unchanged"),
+            detail: format!(
+                "'{name}' is written here as text, with nothing linking it to the \
+                 declaration; left unchanged"
+            ),
         })
         .collect())
 }
