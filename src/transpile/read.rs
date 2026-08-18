@@ -3330,51 +3330,54 @@ mod go {
             {
                 continue;
             }
-            // A member named in a concrete position stays a struct. A function
-            // returning `Point` cannot return a variant of `Shape`; consuming
-            // the struct rewrote its values while the signature kept the type,
-            // which no target accepts.
-            let concrete = |ty: &Type| -> bool {
-                fn names(ty: &Type, out: &mut Vec<String>) {
-                    match ty {
-                        Type::Named { name, args } => {
-                            out.push(name.clone());
-                            for arg in args {
-                                names(arg, out);
+            // A member named in a concrete position keeps its struct beside
+            // the variant. A function returning `Point` cannot return a
+            // variant of `Shape`; consuming the struct outright rewrote its
+            // values while the signature kept the type, which no target
+            // accepts. The sum still forms, and a construction of a
+            // dual-named type settles by the position it stands in.
+            fn concrete(ty: &Type, out: &mut Vec<String>) {
+                match ty {
+                    Type::Named { name, args } => {
+                        out.push(name.clone());
+                        for arg in args {
+                            concrete(arg, out);
+                        }
+                    }
+                    Type::List(t) | Type::Optional(t) => concrete(t, out),
+                    Type::Map(k, v) => {
+                        concrete(k, out);
+                        concrete(v, out);
+                    }
+                    Type::Tuple(parts) => parts.iter().for_each(|t| concrete(t, out)),
+                    _ => {}
+                }
+            }
+            let concretely_used: std::collections::BTreeSet<String> = {
+                let mut named = Vec::new();
+                for item in &module.items {
+                    match item {
+                        Item::Function(f) => {
+                            for ty in f.params.iter().filter_map(|p| p.ty.as_ref()) {
+                                concrete(ty, &mut named);
+                            }
+                            if let Some(ty) = &f.returns {
+                                concrete(ty, &mut named);
                             }
                         }
-                        Type::List(t) | Type::Optional(t) => names(t, out),
-                        Type::Map(k, v) => {
-                            names(k, out);
-                            names(v, out);
+                        Item::Record(r) => {
+                            for ty in r.fields.iter().filter_map(|f| f.ty.as_ref()) {
+                                concrete(ty, &mut named);
+                            }
                         }
-                        Type::Tuple(parts) => parts.iter().for_each(|t| names(t, out)),
                         _ => {}
                     }
                 }
-                let mut found = Vec::new();
-                names(ty, &mut found);
-                found
-                    .iter()
-                    .any(|n| members.iter().any(|m| &m.name == n))
+                named
+                    .into_iter()
+                    .filter(|n| members.iter().any(|m| &m.name == n))
+                    .collect()
             };
-            let used_concretely = module.items.iter().any(|item| match item {
-                Item::Function(f) => {
-                    f.params.iter().filter_map(|p| p.ty.as_ref()).any(concrete)
-                        || f.returns.as_ref().is_some_and(concrete)
-                }
-                Item::Record(r) => {
-                    r.fields.iter().filter_map(|f| f.ty.as_ref()).any(concrete)
-                        || r.methods.iter().any(|m| {
-                            m.params.iter().filter_map(|p| p.ty.as_ref()).any(concrete)
-                                || m.returns.as_ref().is_some_and(concrete)
-                        })
-                }
-                _ => None::<()>.is_some(),
-            });
-            if used_concretely {
-                continue;
-            }
             let variants: Vec<Variant> = members
                 .iter()
                 .map(|member| Variant {
@@ -3391,7 +3394,22 @@ mod go {
                 variants,
                 exported,
             });
-            consumed.extend(members.into_iter().map(|m| m.name));
+            consumed.extend(
+                members
+                    .into_iter()
+                    .map(|m| m.name)
+                    .filter(|name| !concretely_used.contains(name)),
+            );
+            // A member kept beside its variant sheds the marker method: the
+            // variant now carries the membership, and the marker written back
+            // out would come home as a function the source never had.
+            for item in &mut module.items {
+                if let Item::Record(r) = item {
+                    if concretely_used.contains(&r.name) {
+                        r.methods.retain(|m| m.name != marker);
+                    }
+                }
+            }
         }
         module
             .items
@@ -8404,18 +8422,24 @@ pub(crate) fn promote_constructions(
 
 fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
     for item in module.items.iter_mut() {
-        match item {
-            Item::Function(f) => each_expr_in_stmts(&mut f.body, visit),
-            Item::Record(r) => {
-                for method in r.methods.iter_mut() {
-                    each_expr_in_stmts(&mut method.body, visit);
-                }
+        each_expr_in_item(item, visit);
+    }
+}
+
+/// One item's slice of [`each_expr_in_module`], for the passes that need to
+/// know which declaration they are inside.
+fn each_expr_in_item(item: &mut Item, visit: &mut dyn FnMut(&mut Expr)) {
+    match item {
+        Item::Function(f) => each_expr_in_stmts(&mut f.body, visit),
+        Item::Record(r) => {
+            for method in r.methods.iter_mut() {
+                each_expr_in_stmts(&mut method.body, visit);
             }
-            Item::Constant(c) => each_expr(&mut c.value, visit),
-            Item::Test { body, .. } => each_expr_in_stmts(body, visit),
-            Item::Statement(stmt) => each_expr_in_stmts(std::slice::from_mut(stmt), visit),
-            Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
         }
+        Item::Constant(c) => each_expr(&mut c.value, visit),
+        Item::Test { body, .. } => each_expr_in_stmts(body, visit),
+        Item::Statement(stmt) => each_expr_in_stmts(std::slice::from_mut(stmt), visit),
+        Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
     }
 }
 
@@ -8685,7 +8709,16 @@ fn settle_variants(module: &mut Module) {
             line: 0,
         })
     };
-    each_expr_in_module(module, &mut |e| {
+    let mut items = std::mem::take(&mut module.items);
+    for item in &mut items {
+        let returning: Option<String> = match item {
+            Item::Function(f) => match &f.returns {
+                Some(Type::Named { name, .. }) => Some(name.clone()),
+                _ => None,
+            },
+            _ => None,
+        };
+        each_expr_in_item(item, &mut |e| {
         if let Expr::Call { callee, args } = e {
             // A path used as a callee is `Vec::new()` or a tuple-variant build;
             // neither has a crossing. The walk settles children first, so by now
@@ -8714,9 +8747,15 @@ fn settle_variants(module: &mut Module) {
             // An anonymous candidate names no sum at all. It is attributed
             // when exactly one of the module's sums answers to the variant's
             // name, and carried when none or several do. A candidate naming
-            // one of the module's own records is that record being built.
+            // one of the module's own records is that record being built. A
+            // name that is both, a struct kept beside its variant, settles by
+            // the enclosing function's return type: returning the struct
+            // builds the struct, anything else builds the variant.
             if sum.is_empty() {
-                if records.contains(name.as_str()) {
+                let also_variant = sums.values().any(|variants| variants.contains(name.as_str()));
+                let build_record = records.contains(name.as_str())
+                    && (!also_variant || returning.as_deref() == Some(name.as_str()));
+                if build_record {
                     let args = std::mem::take(fields)
                         .into_iter()
                         .map(|(field, value)| Expr::Keyword {
@@ -8757,7 +8796,9 @@ fn settle_variants(module: &mut Module) {
                 false => *e = demoted(sum, name, fields),
             }
         }
-    });
+        });
+    }
+    module.items = items;
 }
 
 /// The pieces between top-level commas, nesting respected.
