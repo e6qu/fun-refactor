@@ -52,7 +52,7 @@ fn a_dot_literal_qualifies_with_the_declared_type() {
 fn a_failed_initializer_keeps_its_binding() {
     let out = to_typescript(FORMS_ZIG);
     assert!(
-        out.contains("const src = null /* fun-refactor: not translated: @src() */;"),
-        "the name stays declared and the loss sits inline where it happened:\n{out}"
+        out.contains("const src: any = null /* fun-refactor: not translated: @src() */;"),
+        "the name stays declared as `any`, so strict TypeScript accepts it.\n{out}"
     );
 }

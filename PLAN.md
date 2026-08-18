@@ -1418,3 +1418,27 @@ Java. The Zig ledger fixture fell from ten rustc errors to five, and every
 survivor names a foreign API out loud. Carried error propagation fell from 46
 to 20 across the corpus. The Zig reader stopped dropping one-statement
 branches in silence, and the ledger now states them.
+
+### The pass where the constructs crossed
+
+A third compiler-backed probe found eight gaps, B435 through B442. Asserts
+cross now: Python's statement, Rust's `assert!` family and Zig's
+`std.debug.assert` read as one check. The targets without an assert test the
+condition and throw or panic, so a translated test file can fail again.
+
+One-expression lambdas cross between Python, TypeScript, Rust and Java, and
+Go and Zig carry them visibly. Floor division reaches every target through
+its own flooring call. An optional TypeScript parameter defaults to `None`
+in Python, so its callers stay valid. `super` and the exception bases speak
+the target in both directions, and a constructor whose body was the super
+call stopped gaining a `raise NotImplementedError`. An annotated instance
+field keeps its field and its type. A Go declaration whose initializer
+cannot cross still declares its name. A Java record's `implements` clause
+carries, and a spelled-out accessor no longer collides with its field.
+
+Two bug classes fell on the way. A field or index access on a compound
+receiver takes brackets in every writer, so `(a == b).then(x)` stays one
+expression. A property read spells its name from the method namespace, so a
+two-word property survives the crossing. The measure: the inventory fixture
+crosses to TypeScript, compiles under `tsc --strict`, runs under node, and a
+violated assert stops it with a nonzero exit.
