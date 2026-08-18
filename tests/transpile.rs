@@ -724,7 +724,7 @@ const TERNARY: &[(&str, &str)] = &[
     ),
     (
         "t.rs",
-        "pub fn pick(a: i64) -> i64 {\n    return if a > 0.0 { 1 } else { 2 };\n}\n",
+        "pub fn pick(a: i64) -> i64 {\n    return if a > 0 { 1 } else { 2 };\n}\n",
     ),
     (
         "T.java",
