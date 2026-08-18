@@ -35,6 +35,15 @@ pub struct Report {
     /// recipe report three steps. A stop is a verdict on the run, so it is carried apart
     /// from the steps and the step count stays the count of steps.
     pub stopped: Option<String>,
+    /// True when this run's edits reached the disk.
+    ///
+    /// The run itself only plans; the CLI sets this before printing. Without it an
+    /// agent reading a failed `--write` report could not tell whether the disk
+    /// holds the recipe's changes or the text it started from.
+    pub applied: bool,
+    /// True when `--write` was asked for and the workspace was left untouched
+    /// because the run failed: a stop, or an expectation that did not hold.
+    pub rolled_back: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -51,8 +60,34 @@ pub struct StepReport {
     /// Dropping these on the floor is the accept-and-ignore this codebase bans elsewhere: `fr
     /// rename` prints them and a recipe was swallowing them. So a step that left work behind
     /// reported a clean run.
-    pub warnings: Vec<String>,
+    ///
+    /// The shape is the one `fr rename --json` emits for the same facts. They were
+    /// flat prose here, and an agent reading both surfaces had to parse one of them.
+    pub warnings: Vec<StepWarning>,
     pub files_changed: usize,
+}
+
+/// A warning in the shape the standalone commands emit: place, kind, prose.
+#[derive(Debug, Serialize)]
+pub struct StepWarning {
+    pub file: PathBuf,
+    pub line: usize,
+    pub col: usize,
+    pub kind: String,
+    pub detail: String,
+}
+
+impl StepWarning {
+    /// The one-line spelling the human report prints.
+    pub fn describe(&self) -> String {
+        format!(
+            "{}:{}:{} {}",
+            self.file.display(),
+            self.line,
+            self.col,
+            self.detail
+        )
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -61,6 +96,8 @@ pub struct Refusal {
     pub reason: String,
     /// True when `on-refusal allow` said these were expected.
     pub permitted: bool,
+    /// The positions the refusal is about, where the refusing operation named them.
+    pub references: Vec<crate::refactor::RefusalSite>,
 }
 
 #[derive(Debug, Serialize)]
@@ -167,6 +204,8 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
                 files_changed: 0,
                 ok: false,
                 stopped: Some(why),
+                applied: false,
+                rolled_back: false,
             },
             // Nothing is written: the transaction did not complete.
             originals,
@@ -182,6 +221,8 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
             files_changed,
             ok,
             stopped: None,
+            applied: false,
+            rolled_back: false,
         },
         sources,
     ))
@@ -345,7 +386,7 @@ fn run_step(
 
     let mut edits = EditSet::new();
     let mut refusals = Vec::new();
-    let mut warnings: Vec<String> = Vec::new();
+    let mut warnings: Vec<StepWarning> = Vec::new();
     let mut applied = 0usize;
     let permitted = step.on_refusal == OnRefusal::Allow;
 
@@ -363,6 +404,7 @@ fn run_step(
                     subject: flag.clone(),
                     reason: e.to_string(),
                     permitted,
+                    references: refusal_sites(&e),
                 }),
             }
             1
@@ -390,6 +432,7 @@ fn run_step(
                         subject: pattern.clone(),
                         reason: e.to_string(),
                         permitted,
+                        references: refusal_sites(&e),
                     });
                     // A refusal is its own verdict; the count only has to keep the
                     // empty-match stop from speaking over it.
@@ -408,6 +451,7 @@ fn run_step(
                     subject: at.clone(),
                     reason: e.to_string(),
                     permitted,
+                    references: refusal_sites(&e),
                 }),
             }
             1
@@ -464,6 +508,7 @@ fn run_step(
                         subject: subject.describe(),
                         reason: e.to_string(),
                         permitted,
+                        references: refusal_sites(&e),
                     }),
                 }
             }
@@ -565,14 +610,27 @@ impl Subject {
 /// The count is 1 for anything acting on a symbol. A `rewrite` counts however many
 /// sites it found in one file, because the unit that matters there is the site. It is
 /// not the file, which is what `limit` is for.
-type Outcome = (EditSet, Vec<String>, usize);
+type Outcome = (EditSet, Vec<StepWarning>, usize);
 
-/// The warnings a plan carried, flattened into lines a report can print.
-fn said(warnings: &[crate::refactor::Warning]) -> Vec<String> {
+/// The warnings a plan carried, in the shape the standalone commands emit them.
+fn said(warnings: &[crate::refactor::Warning]) -> Vec<StepWarning> {
     warnings
         .iter()
-        .map(|w| format!("{}:{}:{} {}", w.file.display(), w.line, w.col, w.detail))
+        .map(|w| StepWarning {
+            file: w.file.clone(),
+            line: w.line,
+            col: w.col,
+            kind: w.kind.as_str().to_string(),
+            detail: w.detail.clone(),
+        })
         .collect()
+}
+
+/// The positions a refusal carried, empty when the error was not a refusal.
+fn refusal_sites(error: &anyhow::Error) -> Vec<crate::refactor::RefusalSite> {
+    crate::refactor::refusal_in(error)
+        .map(|refusal| refusal.references().to_vec())
+        .unwrap_or_default()
 }
 
 fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> Result<Outcome> {
@@ -605,8 +663,27 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
             Ok((plan.edits, warnings, 1))
         }
         Operation::Move { to } => {
+            let symbol = index.symbol(id).context("the symbol went away")?;
+            let home = symbol.file.clone();
+            let at = crate::vfs::read_to_string(&home)
+                .map(|source| {
+                    crate::span::LineIndex::new(&source).line_col(symbol.name_span.start, &source)
+                })
+                .unwrap_or(crate::span::LineCol { line: 1, col: 1 });
             let plan = crate::refactor::move_symbol::to_file(index, id, &root.join(to))?;
-            let warnings = plan.warnings.clone();
+            // A move's warnings are prose about the whole move. Each is pinned to
+            // the symbol being moved, the place a reviewer starts from.
+            let warnings = plan
+                .warnings
+                .iter()
+                .map(|detail| StepWarning {
+                    file: home.clone(),
+                    line: at.line,
+                    col: at.col,
+                    kind: "move-check".to_string(),
+                    detail: detail.clone(),
+                })
+                .collect();
             Ok((plan.edits, warnings, 1))
         }
         Operation::Inline { call: false } => Ok((

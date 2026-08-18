@@ -175,6 +175,185 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B530: **a translated Java program only ran on the newest JDKs.** The
+  entry came out as `public static void main()`. The runtime accepts that only
+  where niladic main methods are final. Everywhere else it answered "Main
+  method not found in class", so the draft compiled and would not start. The
+  JDK on this machine allows it and CI's does not, which is where it surfaced.
+  The entry takes `String[] args` now, whatever the source's entry took.
+  Reading Java back, that parameter is convention and not data. A `main` whose
+  body never touches it comes home with no parameter, and one that reads it
+  keeps it. Pinned in `tests/translate_entrypoints.rs` and
+  the round trip.
+
+- [x] B527: **`//` crossed to Rust as arithmetic that disagrees with it.**
+  `div_euclid` rounds so the remainder is never negative. Python's `//` rounds
+  toward negative infinity. They agree only when the divisor is positive, so
+  `7 // -2` was -4 in Python and -3 in the draft, running and unmarked. The
+  Rust writer emits a floor-division helper whose answers match Python for
+  every sign. Pinned in `tests/translate_floor_div.rs`.
+
+- [x] B528: **`fr extract` wrote unparseable code across a loop boundary and
+  called it success.** A selection with one end inside a loop's body and the
+  other outside it kept its bytes, so the loop's outdent landed in the middle
+  of the new function. Such a selection is refused with the boundary named, by
+  a guard shared across languages. Both this refusal and the escaping-`return`
+  one are considered refusals now, and exit 5 as the help promises. Pinned in
+  `tests/extract_function.rs`.
+
+- [x] B529: **a rename trusted an initializer the code had overwritten.** With
+  `b = B()` and then `b = A()` on a live path, `b.size(2)` renamed with `B`'s
+  method under the claim that `b` is declared `B`, and the result raised
+  AttributeError. A type derived from an initializer is evidence only where
+  nothing reassigns the binding. Otherwise the site stays for review, and the
+  reason says the binding is assigned more than once. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B524: **a Python class with two bases lost both of them.** `class
+  Import(Taxed, Levied)` crossed as a class extending nothing. The body kept
+  `super().cost()`, TypeScript answered TS2335, and the report claimed every
+  signature carried. The first base is the one `super()`
+  dispatches to, so it rides in the single slot the targets offer. The rest are
+  named beside the type. The translated class compiles under `tsc --strict`
+  and prints what Python prints. Pinned in
+  `tests/translate_inheritance.rs`.
+
+- [x] B525: **a default that read another parameter died at import.**
+  `function pad(text, width = text.length + 2)` reached Python verbatim. The
+  module raised NameError before anything ran. Python evaluates a default
+  once, at `def` time, where the parameters do not exist yet. Such a default
+  becomes the sentinel idiom, computed in the body, and the annotation widens
+  to admit it. Pinned in `tests/translate_defaults.rs`.
+
+- [x] B526: **a computed assert message was dropped into a comment.** Rust's
+  macro takes a format string and arguments, evaluated only on failure. The
+  other targets already did that. The message rode above the
+  check as prose instead, so the failure said nothing, and any effect
+  computing it had was lost. Pinned in
+  `tests/translate_asserts.rs`.
+
+- [x] B514: **a file skipped for its size falsified every answer, silently.** A
+  workspace holding one file over the scan's limit reported clean success: the
+  rename said applied with no warnings, `usages` counted none, `unused` listed
+  the symbol, and delete removed a function the skipped file still called. Every
+  command that indexes now says what it could not read, on stderr and as
+  `skipped_files` in its JSON. One choke point answers for all of them, and
+  `--max-file-size` raises the limit. Pinned in
+  `tests/json_surface.rs`.
+
+- [x] B515: **`fr imports` stripped a Python package's public API.** A
+  `from .mod import api_func` in `__init__.py` is the package's export. The
+  tidy step deleted it as unused, and importers raised. An import binding in a
+  package `__init__.py` declares what the package offers, and stays.
+  Pinned in `tests/imports_liveness.rs`.
+
+- [x] B516: **a recipe whose expectation failed left its edits on disk.** The
+  documented promise is one transaction. The refusal path honoured it and the
+  expectation path did not. A failed expectation restores the bytes the run
+  started from, and the report says whether anything was written. Pinned in
+  `tests/json_surface.rs`.
+
+- [x] B517: **a refusal's blocking positions lived only in prose.** Ambiguity
+  had structured candidates. A refusal made an agent regex file, line and
+  column out of an English sentence. Refusals carry `references` as data now,
+  and a recipe's refusals carry the same. Pinned in `tests/json_surface.rs`.
+
+- [x] B518: **the exit-code taxonomy leaked into the generic 1.** A recipe
+  stopped by a refusal exited 1 rather than 5. A position naming a file that
+  does not exist exited 1 rather than 3. A malformed position was reinterpreted
+  as a symbol name. Each failure now exits as the help promises.
+  Pinned in `tests/cli.rs`.
+
+- [x] B519: **`fr translate` answered prose to `--json`.** Listing what a file
+  could be written as ignored the flag outright. A single-file translation
+  omitted the fidelity block its own directory sweep emits. Both speak the
+  sweep's schema now. Pinned in `tests/json_surface.rs`.
+
+- [x] B520: **`fr symbols` emitted spans no command could take back.** The
+  extract range wants 1-based line and column. Symbols offered byte offsets
+  beside them, unlabelled, so an agent converted by reading the file itself. A
+  symbol's span carries line and column now, and round-trips into `extract`.
+  Pinned in `tests/json_surface.rs`.
+
+- [x] B521: **one warning had three shapes.** A rename's warnings were
+  structured on their own and flat prose through a recipe. Location keys
+  drifted between `file` and `path`. One shape now, whichever command emits
+  it.
+  Pinned in `tests/json_surface.rs`.
+
+- [x] B522: **`recipe --explain` re-serialised its plan as surface syntax.**
+  Selectors and expectations came back as the strings a reader types. Checking
+  a plan meant re-implementing the recipe parser. They are structures now,
+  beside the text. Pinned in `tests/json_surface.rs`.
+
+- [x] B523: **deleting a definition left the blank lines that framed it.** The
+  runs above and below merged into one. A Python file kept three blank lines
+  where its style puts two. As many trailing blanks go as there were leading
+  ones. Pinned in `tests/refactor_delete.rs`.
+
+- [x] B513: **a Rust `match` on the module's own sum carried whole.** Rust's
+  one spelling for sums took entire function bodies into comments. Unit and struct patterns read into the variant match, bindings
+  and renames included. A match naming a foreign choice, an imported enum this
+  module never declares, still carries, re-rendered from the IR so the carry
+  keeps its body. Pinned in `tests/translate_narrowing.rs`.
+
+- [x] B505: **consuming a sum value never crossed.** Construction landed a pass
+  ago; the question "which variant is this?" did not. `s.kind == "circle"` and
+  `s.radius` went to Rust verbatim, against an enum that declares neither,
+  under a header claiming every signature carried. The IR holds the match now,
+  payload fields bound to plain locals. TypeScript's kind chains and switches
+  read into it, and each writer spells it natively. Rust matches, Python asks
+  `isinstance`, Go switches on type, TypeScript switches on the discriminator,
+  Java tests `instanceof`, Zig switches on the union. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B506: **two sums sharing a tag degraded to a map with a clean header.**
+  Two state unions holding an `"idle"` is ordinary TypeScript. The value
+  became `HashMap::from([("kind", "idle")])` in a position that wants `Fetch`.
+  A return under a declared signature and a binding under an annotation now
+  settle against the type the position names. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B507: **the discriminator literal was derived, not read.** An interface
+  named `FIdle` writing `kind: "idle"` got the derived tag `f_idle`. No
+  consumer matched, and the writers respelled the wire format.
+  A variant carries the literal its source declared, and every reader and
+  writer prefers it. Pinned through `tests/translate_narrowing.rs`.
+
+- [x] B508: **a variant dodging a name collision was built under the name it
+  dodged.** The declaration renamer wrote `class StatusOk`. The construction
+  site wrote `Ok()`, the very record the dodge avoided, and running it
+  raised. The spellings live in one table now, computed before anything is
+  written, and both sides consult it. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B509: **a struct used concretely was consumed into its sum anyway.** Go's
+  `func Standalone() Point` kept the type. Inside it, `Point{}` became
+  `Shape::Point`, and rustc refused both lines. A member named in a concrete
+  position keeps its struct beside the variant and sheds the marker method.
+  A construction settles by the position it stands in. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B510: **a shadowed union member still settled as the variant.** A nested
+  `def Card(...)` means `Card(number)` calls the local. The call became `Payment::Card` and changed the value's type. A
+  name bound by a carried construct in the same function holds its calls back,
+  and they carry visibly. Pinned in `tests/translate_narrowing.rs`.
+
+- [x] B511: **Java's sealed interface never formed a sum.** The most explicit
+  closed-choice declaration of the five crossed as an empty struct. The
+  returns came out wrong-typed under a clean header, while Go's marker idiom
+  had settled for a pass already. An empty interface with method-less implementing
+  records is the sum it declares. `new Point()` builds the variant,
+  `instanceof` plus the cast collapse into the match, and the accessor reads
+  become payload bindings. Pinned in `tests/translate_narrowing.rs`.
+
+- [x] B512: **an integer literal under a float signature stopped Rust.**
+  `return 0` where `f64` was promised, and `n <= 0` against a float parameter:
+  Go and Zig coerce the untyped literal, Rust refuses it, and the draft died
+  in rustc. Returns take the declared type and comparisons take the binding's,
+  so the literal gains its point where the target needs one. Pinned in
+  `tests/translate_narrowing.rs` and `tests/transpile.rs`.
+
 - [x] B443: **the wasm slice could not see a cli-only import.** With default
   features on, an import only the CLI uses looked used. The unused-import refusal surfaced in the deploy's wasm build
   instead. The slice now also runs clippy without default features, on

@@ -610,6 +610,14 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    for item in &context.items {
+        let Item::Sum(sum) = item else { continue };
+        let spellings = hoisted_variant_names(&mut out, context, sum);
+        for (variant, spelled) in sum.variants.iter().zip(spellings) {
+            out.variant_spellings
+                .insert((sum.name.clone(), variant.name.clone()), spelled);
+        }
+    }
     // A target without inheritance can still hold what a base in the same module
     // contributed. The base's own fields and methods lay flat into the extending
     // record. The supertype marker then only stands where the base is truly out
@@ -719,6 +727,11 @@ struct Out {
     /// one needs the declaration itself, for the discriminator TypeScript
     /// writes and the field order Java's record constructor takes.
     sum_items: std::collections::BTreeMap<String, Sum>,
+    /// Each hoisted variant's name in the output, keyed by (sum, variant).
+    /// The declaration renamer dodges a same-named type by prefixing the
+    /// sum's name. A construction site consulting the plain name then called
+    /// the type the variant dodged.
+    variant_spellings: std::collections::BTreeMap<(String, String), String>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
     ///
     /// In a target without the idiom the method is ordinary and its accessors
@@ -802,6 +815,12 @@ struct Out {
     /// Collected while the bodies are written, and declared once at the top so a
     /// thrown name is always a class the file declares.
     ts_exceptions: std::collections::BTreeSet<&'static str>,
+    /// Did the Rust body being written ask for floor division?
+    ///
+    /// Rust has no integer method that rounds toward negative infinity, so this
+    /// writer declares one. Set while an expression is written, read after the
+    /// items are, because a helper nothing calls is dead code.
+    needs_floor_div: bool,
 }
 
 impl Out {
@@ -820,6 +839,7 @@ impl Out {
             records: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
             sum_items: std::collections::BTreeMap::new(),
+            variant_spellings: std::collections::BTreeMap::new(),
             methods: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
@@ -831,6 +851,7 @@ impl Out {
             sums: std::collections::BTreeSet::new(),
             catch_bindings: Vec::new(),
             ts_exceptions: std::collections::BTreeSet::new(),
+            needs_floor_div: false,
         }
     }
 
@@ -1045,6 +1066,50 @@ fn carry(out: &mut Out, what: &Unsupported) {
 
 // ------------------------------------------------------------------ conventions
 
+/// These statements as Rust text, for a carry that keeps its body.
+///
+/// A settle pass that walks the IR has no source text left to carry; the
+/// statements are the only record. Rendering them back as Rust is the same
+/// no-loss carry the source text would have been.
+pub(super) fn render_rust_stmts(stmts: &[Stmt]) -> String {
+    let mut scratch = Out::new(Language::Rust);
+    rust_block(&mut scratch, stmts, None);
+    scratch.text
+}
+
+/// Does this expression read `name` anywhere inside it?
+fn expr_reads(e: &Expr, name: &str) -> bool {
+    let mut found = false;
+    let mut probe = e.clone();
+    crate::transpile::read::each_expr(&mut probe, &mut |inner| {
+        if matches!(inner, Expr::Name(n) if n == name) {
+            found = true;
+        }
+    });
+    found
+}
+
+/// The discriminator literal a variant answers to on the wire.
+///
+/// The source's own spelling where it wrote one, the derived snake case where
+/// it did not. Deriving unconditionally spelled `FIdle`'s tag `f_idle` while
+/// the source and every consumer said `"idle"`.
+fn wire_tag(out: &Out, sum: &str, variant: &str) -> String {
+    out.sum_items
+        .get(sum)
+        .and_then(|s| s.variants.iter().find(|v| v.name == variant))
+        .and_then(|v| v.tag.clone())
+        .unwrap_or_else(|| snake_always(variant))
+}
+
+/// A hoisted variant's class name in the output, collision dodge included.
+fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
+    out.variant_spellings
+        .get(&(sum.to_string(), variant.to_string()))
+        .cloned()
+        .unwrap_or_else(|| out.name(variant))
+}
+
 /// `snake_case`, for Rust and Python.
 ///
 /// A name that already starts with a capital is a type, a class or an imported
@@ -1120,6 +1185,19 @@ pub(super) fn pascal(name: &str) -> String {
 }
 
 // ------------------------------------------------------------------------- Rust
+
+/// What this module calls its floor-division helper.
+///
+/// A module of its own may already declare that name, and shadowing it would
+/// change which function every call site reaches. The suffix keeps both.
+fn floor_div_name(out: &Out) -> String {
+    let taken = out.functions.contains_key("floor_div")
+        || out.names.values().any(|spelled| spelled == "floor_div");
+    match taken {
+        true => "floor_div_helper".to_string(),
+        false => "floor_div".to_string(),
+    }
+}
 
 fn rust(out: &mut Out, module: &Module) {
     for line in &module.doc {
@@ -1253,7 +1331,7 @@ fn rust(out: &mut Out, module: &Module) {
                 out.line("#[test]");
                 out.line(&format!("fn {slug}() {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, None);
                 out.close();
                 out.line("}");
                 out.fidelity.functions += 1;
@@ -1297,9 +1375,32 @@ fn rust(out: &mut Out, module: &Module) {
             }
         }
     }
+
+    if out.needs_floor_div {
+        let name = floor_div_name(out);
+        out.blank();
+        out.line("/// Division that rounds toward negative infinity.");
+        out.line("///");
+        out.line("/// The standard library's Euclidean division keeps the remainder");
+        out.line("/// positive, which is another answer when the divisor is negative.");
+        out.line(&format!("fn {name}(dividend: i64, divisor: i64) -> i64 {{"));
+        out.open();
+        out.line("let quotient = dividend / divisor;");
+        out.line("let remainder = dividend % divisor;");
+        out.line("match remainder != 0 && (remainder < 0) != (divisor < 0) {");
+        out.open();
+        out.line("true => quotient - 1,");
+        out.line("false => quotient,");
+        out.close();
+        out.line("}");
+        out.close();
+        out.line("}");
+        out.blank();
+    }
 }
 
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
+    out.binding_types = declared_bindings(f);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
@@ -1317,6 +1418,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         params.push(format!("&{}", receiver_word(out.language)));
     }
     let mut foreign = false;
+    let mut unannotated = false;
     for p in &f.params {
         let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
@@ -1333,7 +1435,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
                 rust_type(t)
             }
             None => {
-                foreign = true;
+                unannotated = true;
                 unknown(out, &p.name)
             }
         };
@@ -1355,7 +1457,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         params.join(", ")
     ));
     out.open();
-    rust_block(out, &f.body);
+    rust_block(out, &f.body, f.returns.as_ref());
     out.close();
     out.line("}");
 
@@ -1373,7 +1475,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -1442,7 +1544,7 @@ fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<
     ))
 }
 
-fn rust_block(out: &mut Out, body: &[Stmt]) {
+fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     if body.is_empty() {
         out.line("todo!()");
         return;
@@ -1458,10 +1560,15 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
         at += 1;
         match stmt {
             Stmt::Return(value) => {
-                let text = value
+                let mut text = value
                     .as_ref()
                     .map(|v| rust_expr(out, v))
                     .unwrap_or_default();
+                // `return 0` under a signature that promised a float: Go and Zig
+                // coerce the untyped literal, Rust refuses it.
+                if matches!(returns, Some(Type::Float)) && matches!(value, Some(Expr::Int(_))) {
+                    text.push_str(".0");
+                }
                 out.line(&format!("return {text};"));
             }
             Stmt::Let {
@@ -1495,14 +1602,14 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let c = rust_expr(out, condition);
                 out.line(&format!("if {c} {{"));
                 out.open();
-                rust_block(out, then);
+                rust_block(out, then, returns);
                 out.close();
                 if otherwise.is_empty() {
                     out.line("}");
                 } else {
                     out.line("} else {");
                     out.open();
-                    rust_block(out, otherwise);
+                    rust_block(out, otherwise, returns);
                     out.close();
                     out.line("}");
                 }
@@ -1517,17 +1624,66 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("if let Some({bound}) = {v} {{"));
                 out.open();
-                rust_block(out, then);
+                rust_block(out, then, returns);
                 out.close();
                 if otherwise.is_empty() {
                     out.line("}");
                 } else {
                     out.line("} else {");
                     out.open();
-                    rust_block(out, otherwise);
+                    rust_block(out, otherwise, returns);
                     out.close();
                     out.line("}");
                 }
+            }
+            Stmt::MatchVariants {
+                subject,
+                sum,
+                arms,
+                default,
+            } => {
+                let s = rust_expr(out, subject);
+                let owner = out.name(sum);
+                out.line(&format!("match {s} {{"));
+                out.open();
+                for arm in arms {
+                    let variant = out.name(&arm.variant);
+                    let pattern = match arm.bindings.is_empty() {
+                        true => format!("{owner}::{variant}"),
+                        false => {
+                            let bound = arm
+                                .bindings
+                                .iter()
+                                .map(|(field, local)| {
+                                    let field = out.field(field);
+                                    let local = out.name(local);
+                                    match field == local {
+                                        true => field,
+                                        false => format!("{field}: {local}"),
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            format!("{owner}::{variant} {{ {bound}, .. }}")
+                        }
+                    };
+                    out.line(&format!("{pattern} => {{"));
+                    out.open();
+                    rust_block(out, &arm.body, returns);
+                    out.close();
+                    out.line("}");
+                }
+                if default.is_empty() {
+                    out.line("_ => {}");
+                } else {
+                    out.line("_ => {");
+                    out.open();
+                    rust_block(out, default, returns);
+                    out.close();
+                    out.line("}");
+                }
+                out.close();
+                out.line("}");
             }
             Stmt::Switch {
                 subject,
@@ -1541,7 +1697,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                     let pattern: Vec<String> = literals.iter().map(|l| rust_expr(out, l)).collect();
                     out.line(&format!("{} => {{", pattern.join(" | ")));
                     out.open();
-                    rust_block(out, body);
+                    rust_block(out, body, returns);
                     out.close();
                     out.line("}");
                 }
@@ -1552,7 +1708,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 } else {
                     out.line("_ => {");
                     out.open();
-                    rust_block(out, default);
+                    rust_block(out, default, returns);
                     out.close();
                     out.line("}");
                 }
@@ -1569,7 +1725,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 scratch.names = out.names.clone();
                 scratch.fields = out.fields.clone();
                 scratch.declared_types = out.declared_types.clone();
-                rust_block(&mut scratch, cleanup);
+                rust_block(&mut scratch, cleanup, None);
                 let rendered = scratch.finish();
                 out.carried(&Unsupported {
                     construct: match failure_only {
@@ -1600,7 +1756,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("while let Some({bound}) = {v} {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1608,7 +1764,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let c = rust_expr(out, condition);
                 out.line(&format!("while {c} {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1623,7 +1779,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("for ({i}, {bound}) in {it}.iter().enumerate() {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1636,7 +1792,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("for {bound} in {it} {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1657,11 +1813,14 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                             .replace('}', "}}");
                         out.line(&format!("assert!({c}, {literal});"));
                     }
+                    // A message that is not a literal goes in as an argument
+                    // to the macro's own `{}`. The macro evaluates it only on
+                    // failure. The source said the same, and the other targets
+                    // already do it. Rendering it into a comment dropped the
+                    // message and any effect computing it had.
                     Some(other) => {
                         let rendered = rust_expr(out, other);
-                        let note = out.comment(&format!("the assert's message: {rendered}"));
-                        out.line(&note);
-                        out.line(&format!("assert!({c});"));
+                        out.line(&format!("assert!({c}, \"{{}}\", {rendered});"));
                     }
                     None => out.line(&format!("assert!({c});")),
                 }
@@ -1865,29 +2024,99 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             }
             format!("{}({})", rust_expr(out, callee), rendered.join(", "))
         }
-        // Floor division is a method here, and the receiver needs brackets
-        // whenever the method call would bind into it. `7.div_euclid(2)` reads
-        // as a float literal, and `-a.div_euclid(b)` negates the result.
+        // Floor division rounds toward negative infinity, and Rust has no
+        // integer method that does. `div_euclid` keeps the remainder positive
+        // instead, so it answers `-3` where the source's `7 // -2` says `-4`.
+        // A block spells the floor itself and names each operand once, which
+        // matters when an operand is a call.
         Expr::Binary {
             op: BinaryOp::FloorDiv,
             left,
             right,
         } => {
-            let target = receiver(rust_expr(out, left), left);
-            format!("{target}.div_euclid({})", rust_expr(out, right))
+            let dividend = rust_expr(out, left);
+            let divisor = rust_expr(out, right);
+            // A float divides without truncating, so its floor is the method.
+            if static_type(out, left) == Some(Type::Float)
+                || static_type(out, right) == Some(Type::Float)
+            {
+                let target = receiver(
+                    format!(
+                        "{} / {}",
+                        binary_operand(dividend, left, BinaryOp::Div, false),
+                        binary_operand(divisor, right, BinaryOp::Div, true)
+                    ),
+                    &Expr::Binary {
+                        op: BinaryOp::Div,
+                        left: left.clone(),
+                        right: right.clone(),
+                    },
+                );
+                return format!("{target}.floor()");
+            }
+            out.needs_floor_div = true;
+            format!("{}({dividend}, {divisor})", floor_div_name(out))
         }
-        Expr::Binary { op, left, right } => format!(
-            "{} {} {}",
-            binary_operand(rust_expr(out, left), left, *op, false),
-            op.c_like(),
-            binary_operand(rust_expr(out, right), right, *op, true)
-        ),
+        Expr::Binary { op, left, right } => {
+            // `n <= 0` with `n: f64`: Go and the others coerce the untyped
+            // literal, Rust refuses the comparison. The binding's declared
+            // type is on record, so the literal takes the spelling it needs.
+            fn float_side(out: &Out, e: &Expr) -> bool {
+                matches!(e, Expr::Name(n)
+                    if matches!(out.binding_types.get(n.as_str()), Some(Type::Float)))
+            }
+            fn rendered(out: &mut Out, e: &Expr, other: &Expr) -> String {
+                let floats = matches!(e, Expr::Int(_)) && float_side(out, other);
+                let text = rust_expr(out, e);
+                match floats {
+                    true => format!("{text}.0"),
+                    false => text,
+                }
+            }
+            let left_text = rendered(out, left, right);
+            let right_text = rendered(out, right, left);
+            format!(
+                "{} {} {}",
+                binary_operand(left_text, left, *op, false),
+                op.c_like(),
+                binary_operand(right_text, right, *op, true)
+            )
+        }
         // Rust puts it after; the other two put it in front.
         Expr::Await(inner) => format!("{}.await", rust_expr(out, inner)),
         Expr::Propagate(inner) => format!("{}?", rust_expr(out, inner)),
         // Rust has no universal spelling for construction: `X::new`, `X { .. }` and
         // a builder are all idiomatic and which one applies is a fact about the type.
         Expr::New { callee, args } => {
+            // A construction whose arguments already name their fields is a
+            // struct literal as written: `Point{}` and `Circle{Radius: n}`
+            // arrive this way from Go.
+            let keywords: Option<Vec<(&String, &Expr)>> = args
+                .iter()
+                .map(|a| match a {
+                    Expr::Keyword { name, value } => Some((name, value.as_ref())),
+                    _ => None,
+                })
+                .collect();
+            if let Some(pairs) = keywords {
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => out.records.contains_key(n),
+                    _ => false,
+                };
+                if named && (args.is_empty() || !pairs.is_empty()) {
+                    let target = rust_expr(out, callee);
+                    let rendered: Vec<String> = pairs
+                        .iter()
+                        .map(|(field, value)| {
+                            format!("{}: {}", out.field(field), rust_expr(out, value))
+                        })
+                        .collect();
+                    return match rendered.is_empty() {
+                        true => format!("{target} {{}}"),
+                        false => format!("{target} {{ {} }}", rendered.join(", ")),
+                    };
+                }
+            }
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = rust_expr(out, callee);
@@ -2310,6 +2539,7 @@ fn python(out: &mut Out, module: &Module) {
 }
 
 fn python_function(out: &mut Out, f: &Function, method: bool) {
+    let mut deferred_defaults: Vec<(String, Expr)> = Vec::new();
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
@@ -2322,6 +2552,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
         params.push(receiver_word(out.language).to_string());
     }
     let mut foreign = false;
+    let mut unannotated = false;
     for p in &f.params {
         let annotation = match &p.ty {
             Some(t) => {
@@ -2331,21 +2562,42 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
                 format!(": {}", python_type(t))
             }
             None => {
-                foreign = true;
+                unannotated = true;
                 String::new()
             }
         };
-        let default = p
+        // Python evaluates a default once, at `def` time, in module scope.
+        // The languages that evaluate per call let one parameter's default
+        // read another. So `def pad(text, width = text.length + 2)` raised
+        // NameError before the module finished importing. Such a default
+        // becomes the sentinel idiom, computed in the body where the
+        // parameters exist.
+        let reads_a_parameter = p
             .default
             .as_ref()
-            .map(|d| format!(" = {}", python_expr(out, d)))
-            .unwrap_or_default();
+            .is_some_and(|d| f.params.iter().any(|other| expr_reads(d, &other.name)));
+        let default = match (&p.default, reads_a_parameter) {
+            (Some(_), true) => " = None".to_string(),
+            (Some(d), false) => format!(" = {}", python_expr(out, d)),
+            (None, _) => String::new(),
+        };
+        // The sentinel widens the type it stands in for: `width: float = None`
+        // is a lie a checker catches.
+        let annotation = match reads_a_parameter && !annotation.is_empty() {
+            true => format!("{} | None", annotation),
+            false => annotation,
+        };
         let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
         };
         if p.kind != ParamKind::Normal {
             params.push(spelled);
             continue;
+        }
+        if reads_a_parameter {
+            if let Some(d) = &p.default {
+                deferred_defaults.push((spelled.clone(), d.clone()));
+            }
         }
         params.push(format!("{spelled}{annotation}{default}"));
     }
@@ -2377,6 +2629,13 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
             out.line("\"\"\"");
         }
     }
+    for (name, value) in &deferred_defaults {
+        out.line(&format!("if {name} is None:"));
+        out.open();
+        let rendered = python_expr(out, value);
+        out.line(&format!("{name} = {rendered}"));
+        out.close();
+    }
     python_block(out, &f.body);
     out.close();
 
@@ -2394,7 +2653,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -2524,6 +2783,36 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     python_line(out, "else:");
                     out.open();
                     python_block(out, otherwise);
+                    out.close();
+                }
+            }
+            Stmt::MatchVariants {
+                subject,
+                arms,
+                default,
+                ..
+            } => {
+                let s = python_expr(out, subject);
+                for (at, arm) in arms.iter().enumerate() {
+                    let head = if at == 0 { "if" } else { "elif" };
+                    out.line(&format!(
+                        "{head} isinstance({s}, {}):",
+                        out.name(&arm.variant)
+                    ));
+                    out.open();
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!("{} = {s}.{}", out.name(local), out.field(field)));
+                    }
+                    if arm.bindings.is_empty() && arm.body.is_empty() {
+                        out.line("pass");
+                    }
+                    python_block(out, &arm.body);
+                    out.close();
+                }
+                if !default.is_empty() {
+                    out.line("else:");
+                    out.open();
+                    python_block(out, default);
                     out.close();
                 }
             }
@@ -3013,11 +3302,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         }
         // A variant is its own dataclass here, and the sum only an alias over
         // them, so the variant's constructor is the whole spelling.
-        Expr::Variant { name, fields, .. } => {
+        Expr::Variant { sum, name, fields } => {
             let rendered = joined(fields, |(f, v)| {
                 format!("{}={}", out.field(f), python_expr(out, v))
             });
-            format!("{}({rendered})", out.name(name))
+            format!("{}({rendered})", variant_spelling(out, sum, name))
         }
         // `(a,)` and not `(a)`: without the comma the parentheses are grouping.
         Expr::Tuple(items) => match items.as_slice() {
@@ -3387,6 +3676,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         );
     }
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let params: Vec<String> = f
         .params
@@ -3404,7 +3694,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
                     go_type(t)
                 }
                 None => {
-                    foreign = true;
+                    unannotated = true;
                     unknown(out, &p.name)
                 }
             };
@@ -3478,7 +3768,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -3820,6 +4110,35 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.close();
                     out.line("}");
                 }
+            }
+            Stmt::MatchVariants {
+                subject,
+                arms,
+                default,
+                ..
+            } => {
+                let s = go_expr(out, subject);
+                let bound = arms.iter().any(|arm| !arm.bindings.is_empty());
+                match bound {
+                    true => out.line(&format!("switch v := {s}.(type) {{")),
+                    false => out.line(&format!("switch {s}.(type) {{")),
+                }
+                for arm in arms {
+                    out.line(&format!("case {}:", out.name(&arm.variant)));
+                    out.open();
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!("{} := v.{}", out.name(local), out.field(field)));
+                    }
+                    go_block(out, &arm.body, returns);
+                    out.close();
+                }
+                if !default.is_empty() {
+                    out.line("default:");
+                    out.open();
+                    go_block(out, default, returns);
+                    out.close();
+                }
+                out.line("}");
             }
             Stmt::Switch {
                 subject,
@@ -4241,13 +4560,13 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         }
         // The variant is a struct of Go's marker-interface convention, so
         // building one is building that struct.
-        Expr::Variant { name, fields, .. } => {
+        Expr::Variant { sum, name, fields } => {
             let rendered = joined(fields, |(f, v)| {
                 format!("{}: {}", out.field(f), go_expr(out, v))
             });
             // Parenthesised because Go refuses a bare composite literal where a
             // block could follow: `if x == Go{}` reads the brace as the body.
-            format!("({}{{{rendered}}})", out.name(name))
+            format!("({}{{{rendered}}})", variant_spelling(out, sum, name))
         }
         // Outside a return Go has no way to say several-values-as-one, and the return
         // is handled where returns are written. What lands here is carried, visibly.
@@ -4507,7 +4826,10 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.open();
                     out.line(&format!(
                         "readonly {tag}: \"{}\";",
-                        snake_always(&variant.name)
+                        variant
+                            .tag
+                            .clone()
+                            .unwrap_or_else(|| snake_always(&variant.name))
                     ));
                     for f in &variant.fields {
                         for line in &f.doc {
@@ -4631,6 +4953,18 @@ fn ts_thrown(out: &mut Out, value: &Expr) -> Option<String> {
 /// `Hierarchy` variant, and hoisting both would emit two types with one name. The
 /// variant steps aside, prefixed with its sum's name, and the rename is in the notes.
 fn hoisted_variant_names(out: &mut Out, module: &Module, s: &Sum) -> Vec<String> {
+    let cached: Vec<String> = s
+        .variants
+        .iter()
+        .filter_map(|v| {
+            out.variant_spellings
+                .get(&(s.name.clone(), v.name.clone()))
+                .cloned()
+        })
+        .collect();
+    if cached.len() == s.variants.len() {
+        return cached;
+    }
     let mut taken: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for item in &module.items {
         match item {
@@ -4705,6 +5039,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
         out.line(&format!("/** {} */", block_comment_safe(line)));
     }
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let params: Vec<String> = f
         .params
@@ -4719,7 +5054,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
                     format!(": {}", ts_type(t))
                 }
                 None => {
-                    foreign = true;
+                    unannotated = true;
                     ": unknown".to_string()
                 }
             };
@@ -4795,7 +5130,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -4907,6 +5242,48 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                     out.close();
                     out.line("}");
                 }
+            }
+            Stmt::MatchVariants {
+                subject,
+                sum,
+                arms,
+                default,
+            } => {
+                let s = ts_expr(out, subject);
+                let tag = out
+                    .sum_items
+                    .get(sum)
+                    .map(discriminator)
+                    .unwrap_or_else(|| "kind".to_string());
+                out.line(&format!("switch ({s}.{tag}) {{"));
+                out.open();
+                for arm in arms {
+                    out.line(&format!(
+                        "case \"{}\": {{",
+                        wire_tag(out, sum, &arm.variant)
+                    ));
+                    out.open();
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!(
+                            "const {} = {s}.{};",
+                            out.name(local),
+                            out.field(field)
+                        ));
+                    }
+                    ts_block(out, &arm.body);
+                    out.line("break;");
+                    out.close();
+                    out.line("}");
+                }
+                if !default.is_empty() {
+                    out.line("default: {");
+                    out.open();
+                    ts_block(out, default);
+                    out.close();
+                    out.line("}");
+                }
+                out.close();
+                out.line("}");
             }
             Stmt::Switch {
                 subject,
@@ -5298,7 +5675,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 .get(sum)
                 .map(discriminator)
                 .unwrap_or_else(|| "kind".to_string());
-            let mut parts = vec![format!("{tag}: \"{}\"", snake_always(name))];
+            let mut parts = vec![format!("{tag}: \"{}\"", wire_tag(out, sum, name))];
             for (f, v) in fields {
                 parts.push(format!("{}: {}", out.field(f), ts_expr(out, v)));
             }
@@ -5656,6 +6033,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     }
 
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let params: Vec<String> = f
         .params
@@ -5673,7 +6051,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
                     java_type(t)
                 }
                 None => {
-                    foreign = true;
+                    unannotated = true;
                     unknown(out, &p.name)
                 }
             };
@@ -5703,6 +6081,15 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     } else {
         " "
     };
+    // The runtime looks for `main(String[])`, and finds nothing else. A
+    // niladic `main` runs only on the JDKs that finalised instance main
+    // methods. A draft that ran here died on the ordinary ones with "Main
+    // method not found in class". The parameter is written whether or not the
+    // source's entry took one.
+    let params = match is_static && f.name == "main" && params.is_empty() {
+        true => vec!["String[] args".to_string()],
+        false => params,
+    };
     out.line(&format!(
         "{visibility}{modifier}{returns}{}({}) {{",
         out.function_name(f),
@@ -5722,7 +6109,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -5891,6 +6278,38 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 out.line("} else {");
                 out.open();
                 java_block(out, otherwise, None);
+                out.close();
+                out.line("}");
+            }
+        }
+        Stmt::MatchVariants {
+            subject,
+            arms,
+            default,
+            ..
+        } => {
+            let s = java_expr(out, subject);
+            for (at, arm) in arms.iter().enumerate() {
+                let variant = out.name(&arm.variant);
+                let head = if at == 0 { "if" } else { "} else if" };
+                out.line(&format!("{head} ({s} instanceof {variant}) {{"));
+                out.open();
+                for (field, local) in &arm.bindings {
+                    out.line(&format!(
+                        "var {} = (({variant}) {s}).{}();",
+                        out.name(local),
+                        out.field(field)
+                    ));
+                }
+                java_block(out, &arm.body, None);
+                out.close();
+            }
+            if default.is_empty() {
+                out.line("}");
+            } else {
+                out.line("} else {");
+                out.open();
+                java_block(out, default, None);
                 out.close();
                 out.line("}");
             }
@@ -6416,7 +6835,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                     ordered.push(java_expr(out, value));
                 }
             }
-            format!("new {}({})", out.name(name), ordered.join(", "))
+            format!(
+                "new {}({})",
+                variant_spelling(out, sum, name),
+                ordered.join(", ")
+            )
         }
         // Java has no tuple value. `List.of` would erase the types and claim a
         // collection the source never had, so the tuple is carried, visibly.
@@ -6840,6 +7263,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
 
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     // A method takes its own type as an ordinary first parameter; there is no
@@ -6869,8 +7293,9 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             params.push(spelled);
             continue;
         }
-        // Zig writes a type on every parameter and infers none of them, so one the
-        // source never declared becomes `anytype` and is counted.
+        // Zig writes a type on every parameter and infers none. One the source
+        // never declared becomes `anytype`, and the signature counts as
+        // unannotated rather than complete.
         let ty = match &p.ty {
             Some(t) => {
                 if out.is_foreign(t) {
@@ -6879,7 +7304,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
                 zig_type(t)
             }
             None => {
-                foreign = true;
+                unannotated = true;
                 unknown(out, &p.name)
             }
         };
@@ -6921,7 +7346,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -7112,6 +7537,52 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.close();
                 out.line("}");
             }
+        }
+        Stmt::MatchVariants {
+            subject,
+            arms,
+            default,
+            ..
+        } => {
+            let s = zig_expr(out, subject);
+            out.line(&format!("switch ({s}) {{"));
+            out.open();
+            for arm in arms {
+                let tag = snake_always(&arm.variant);
+                match arm.bindings.as_slice() {
+                    [] => out.line(&format!(".{tag} => {{")),
+                    [(field, local)] if field == "value" => {
+                        out.line(&format!(".{tag} => |{}| {{", out.name(local)));
+                    }
+                    _ => out.line(&format!(".{tag} => |fields_of_{tag}| {{")),
+                }
+                out.open();
+                if arm.bindings.len() > 1
+                    || matches!(arm.bindings.as_slice(), [(f, _)] if f != "value")
+                {
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!(
+                            "const {} = fields_of_{tag}.{};",
+                            out.name(local),
+                            out.field(field)
+                        ));
+                    }
+                }
+                zig_block(out, &arm.body, None, mutated);
+                out.close();
+                out.line("},");
+            }
+            if default.is_empty() {
+                out.line("else => {},");
+            } else {
+                out.line("else => {");
+                out.open();
+                zig_block(out, default, None, mutated);
+                out.close();
+                out.line("},");
+            }
+            out.close();
+            out.line("}");
         }
         Stmt::Switch {
             subject,

@@ -1463,6 +1463,52 @@ imports of their translations. The seam gate holds it. Python to TypeScript
 must pass `tsc --strict` and print byte-for-byte what the source printed,
 and the reverse must do the same under python3.
 
+### The pass where the answers stopped lying
+
+Four probes drove the tool as a stranger would. One went adversarial against
+the last pass, one through compilers and runtimes, one over the operations
+least exercised, one as an unattended agent. Two hazards topped the list, and
+both produced clean success over a broken workspace. A file skipped for its
+size was invisible to every command it could falsify. And `fr imports`
+deleted a Python package's public API as unused. Both are answered now.
+
+The machine surface grew the shapes a script needs. Refusals carry their
+blocking positions as data, and a recipe that fails its expectation restores
+the bytes it started from. The exit codes match the taxonomy the help
+documents, and one warning has one shape wherever it comes from. `fr symbols`
+emits positions `fr extract` accepts, so a tool can drive the pair without
+reading the file itself.
+
+Translation stopped answering confidently in the wrong arithmetic. Python's
+`//` and Rust's `div_euclid` disagree for negative divisors, and the draft
+ran and printed the wrong number. A class with two bases kept neither while
+its body still called `super()`. A default reading another parameter reached
+Python verbatim and raised before the module finished importing. Each now
+crosses correctly or says what it could not do.
+
+The refactorings learned two refusals they owed. A selection crossing a
+loop's body cannot be extracted as a call. It is refused with the boundary
+named, instead of writing a file that does not parse. A receiver assigned
+twice is not declared by its first initializer, so the call stays for review
+and the reason says which binding is unsettled. (B505 through B529.)
+
+### The pass where the sums closed the loop
+
+Construction crossed in pass twelve; consumption crosses now. The IR holds
+the variant match, payloads bound to plain locals. TypeScript's kind chains
+and switches read into it, and Java's `instanceof` with its cast collapses
+into it. Rust's own `match` reads its unit and struct patterns in. Every
+writer spells the narrowing natively. Rust matches, Python asks
+`isinstance`, Go switches on the type, Zig on the union. Java's sealed
+interface finally forms the sum it declares, and its constructions and
+narrowings ride the same rails. Around the crossing, the edges hardened.
+Two sums sharing a tag settle by the position's declared type, and the
+discriminator literal is read instead of derived. A collision dodge is
+spelled once and consulted everywhere. A concretely-used struct keeps its
+identity beside its variant, and a shadowed member holds its calls back.
+Integer literals gain their point where a float signature needs one. (B505
+through B512.)
+
 ### The pass where the constructs crossed
 
 A third compiler-backed probe found eight gaps, B435 through B442. Asserts

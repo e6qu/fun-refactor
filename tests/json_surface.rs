@@ -325,3 +325,324 @@ fn scan_names_each_file_absolutely_and_lists_skipped_symlinks() {
         "got {skipped:?}"
     );
 }
+
+// ---------------------------------------------------------------- skipped files
+
+/// A Python module whose one symbol is used by a second, oversized module.
+fn skipping_workspace() -> tempfile::TempDir {
+    let mut big = String::from("from a import helper\n");
+    for i in 0..40 {
+        big.push_str(&format!("def pad_{i}():\n    return helper()\n"));
+    }
+    workspace(&[
+        (
+            "a.py",
+            "def helper():\n    return 1\n\ndef caller():\n    return helper()\n",
+        ),
+        ("big.py", &big),
+    ])
+}
+
+#[test]
+fn a_file_skipped_for_size_rides_in_every_answer_it_could_falsify() {
+    // A skipped file can hold the reference that makes the answer wrong. A
+    // rename reporting clean success while that file still spells the old name
+    // corrupts the workspace. The report has to say what it never saw.
+    let tmp = skipping_workspace();
+    let (printed, _, ok) = run_json(
+        &tmp,
+        &[
+            "--max-file-size",
+            "200",
+            "rename",
+            "helper",
+            "assist",
+            "--json",
+        ],
+    );
+    assert!(ok, "{printed}");
+    let skipped = printed["skipped_files"].as_array().expect("a skipped list");
+    assert_eq!(skipped.len(), 1, "got {printed}");
+    assert!(
+        skipped[0]["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("big.py")),
+        "got {skipped:?}"
+    );
+    assert!(
+        skipped[0]["reason"]
+            .as_str()
+            .is_some_and(|r| r.contains("size limit")),
+        "got {skipped:?}"
+    );
+
+    // The read-only answers carry the same fact.
+    let (printed, _, ok) = run_json(
+        &tmp,
+        &["--max-file-size", "200", "usages", "helper", "--json"],
+    );
+    assert!(ok, "{printed}");
+    assert_eq!(
+        printed["skipped_files"].as_array().map(Vec::len),
+        Some(1),
+        "got {printed}"
+    );
+
+    // And a mutation through the shared presenter, delete, warns loudly on
+    // stderr for a human run.
+    let out = Command::cargo_bin("fr")
+        .expect("the binary")
+        .args(["--max-file-size", "200", "delete", "caller", "-C"])
+        .arg(tmp.path())
+        .output()
+        .expect("running fr");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("were not read") && stderr.contains("big.py"),
+        "the human run warns on stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("--max-file-size"),
+        "the warning says how to widen the scan: {stderr}"
+    );
+}
+
+// --------------------------------------------------------------------- recipes
+
+const RENDER_PY: &str = "def render():\n    return 1\n\ndef user():\n    return render()\n";
+
+#[test]
+fn a_failed_expectation_under_write_rolls_back_and_says_so() {
+    // RECIPES.md promises one transaction. The refusal path already rolled
+    // back. The expectation-failure path applied the edits and then exited 1,
+    // leaving the disk holding a run the report called failed.
+    let tmp = workspace(&[
+        ("m.py", RENDER_PY),
+        (
+            "expectfail.recipe",
+            "schema 1\n\nrecipe expectfail {\n  rename to \"render_label\" \
+             where name=\"render\" kind=function\n  expect changed >= 5 files\n}\n",
+        ),
+    ]);
+    let (printed, _, ok) = run_json(&tmp, &["recipe", "expectfail.recipe", "--write", "--json"]);
+    assert!(!ok, "a failed expectation is a failed run");
+    assert_eq!(printed["ok"], false, "{printed}");
+    assert_eq!(printed["applied"], false, "{printed}");
+    assert_eq!(printed["rolled_back"], true, "{printed}");
+    assert_eq!(
+        std::fs::read_to_string(tmp.path().join("m.py")).expect("the file"),
+        RENDER_PY,
+        "the workspace holds the text it started from"
+    );
+
+    // The dry run says it neither applied nor rolled anything back.
+    let (printed, _, _) = run_json(&tmp, &["recipe", "expectfail.recipe", "--json"]);
+    assert_eq!(printed["applied"], false, "{printed}");
+    assert_eq!(printed["rolled_back"], false, "{printed}");
+}
+
+#[test]
+fn a_recipe_stopped_by_a_refusal_exits_5_with_the_blocking_positions() {
+    // The standalone command's refusal exits 5. The same refusal inside a
+    // recipe exited 1, so a script branching on the documented codes read it
+    // as a crash.
+    let tmp = workspace(&[
+        ("m.py", RENDER_PY),
+        (
+            "break.recipe",
+            "schema 1\n\nrecipe breakme {\n  delete where name=\"render\" kind=function\n}\n",
+        ),
+    ]);
+    let out = Command::cargo_bin("fr")
+        .expect("the binary")
+        .args(["recipe", "break.recipe", "--json", "-C"])
+        .arg(tmp.path())
+        .output()
+        .expect("running fr");
+    assert_eq!(out.status.code(), Some(5), "a refusal-stop is a refusal");
+    let printed: serde_json::Value = serde_json::from_slice(&out.stdout).expect("a report");
+    assert!(printed["stopped"].is_string(), "{printed}");
+    let refusal = &printed["steps"][0]["refusals"][0];
+    let references = refusal["references"].as_array().expect("references");
+    assert_eq!(references.len(), 1, "got {refusal}");
+    assert!(
+        references[0]["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("m.py")),
+        "got {references:?}"
+    );
+    assert_eq!(references[0]["line"], 5, "got {references:?}");
+    assert!(references[0]["col"].is_u64(), "got {references:?}");
+}
+
+#[test]
+fn a_recipe_warning_has_the_same_shape_as_a_standalone_one() {
+    // `fr rename --json` emits warnings as {file, line, col, kind, detail}.
+    // The recipe report flattened the same facts into prose strings, so an
+    // agent reading both surfaces parsed one of them back apart.
+    let tmp = workspace(&[
+        (
+            "m.py",
+            "def render():\n    return 1\n\n# render is drawn here\ndef user():\n    return render()\n",
+        ),
+        (
+            "tidy.recipe",
+            "schema 1\n\nrecipe tidy {\n  rename to \"draw\" where name=\"render\" \
+             kind=function\n}\n",
+        ),
+    ]);
+    let (printed, _, ok) = run_json(&tmp, &["recipe", "tidy.recipe", "--json"]);
+    assert!(ok, "{printed}");
+    let warnings = printed["steps"][0]["warnings"]
+        .as_array()
+        .expect("warnings");
+    let textual = warnings
+        .iter()
+        .find(|w| w["kind"] == "textual-occurrence")
+        .unwrap_or_else(|| panic!("a comment mention warns: {warnings:?}"));
+    assert!(
+        textual["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("m.py")),
+        "got {textual}"
+    );
+    assert!(
+        textual["line"].is_u64() && textual["col"].is_u64(),
+        "{textual}"
+    );
+    assert!(textual["detail"].is_string(), "{textual}");
+}
+
+#[test]
+fn a_delete_refusal_carries_its_blocking_positions_as_data() {
+    let tmp = workspace(&[("m.py", RENDER_PY)]);
+    let (printed, _, ok) = run_json(&tmp, &["delete", "render", "--json"]);
+    assert!(!ok);
+    assert_eq!(printed["error"]["kind"], "refused");
+    let references = printed["error"]["references"]
+        .as_array()
+        .expect("references beside the prose");
+    assert_eq!(references.len(), 1, "got {printed}");
+    assert!(
+        references[0]["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("m.py")),
+        "got {references:?}"
+    );
+    assert_eq!(references[0]["line"], 5, "{references:?}");
+    assert_eq!(references[0]["col"], 12, "{references:?}");
+}
+
+// -------------------------------------------------------------------- translate
+
+#[test]
+fn the_translate_listing_obeys_json() {
+    // List mode ignored --json and printed prose into a parser.
+    let tmp = workspace(&[("m.py", RENDER_PY)]);
+    let (printed, _, ok) = run_json(&tmp, &["translate", "m.py", "--json"]);
+    assert!(ok, "{printed}");
+    assert_eq!(printed["language"], "python", "{printed}");
+    let options = printed["options"].as_array().expect("options");
+    assert!(!options.is_empty(), "{printed}");
+    for option in options {
+        assert!(option["target"].is_string(), "{option}");
+        assert!(option["destination"].is_string(), "{option}");
+    }
+}
+
+#[test]
+fn a_single_file_translation_reports_the_sweeps_fidelity_block() {
+    // The directory sweep said how much of the draft carried. A single file's
+    // JSON said nothing, so an agent could not tell a clean draft from a
+    // gutted one.
+    let tmp = workspace(&[("m.py", RENDER_PY)]);
+    let (printed, _, ok) = run_json(&tmp, &["translate", "m.py", "typescript", "--json"]);
+    assert!(ok, "{printed}");
+    assert_eq!(printed["functions"], 2, "{printed}");
+    assert!(printed["signatures_complete"].is_u64(), "{printed}");
+    assert!(printed["carried_verbatim"].is_u64(), "{printed}");
+    // Nothing here names a type this tool does not know: the defs are unannotated,
+    // which used to be miscounted as "mentioning a foreign type".
+    assert_eq!(printed["signatures_with_foreign_types"], 0, "{printed}");
+
+    // The count still fires for a signature that really carries a foreign name.
+    let tmp = workspace(&[("w.py", "def show(w: Widget) -> Widget:\n    return w\n")]);
+    let (printed, _, ok) = run_json(&tmp, &["translate", "w.py", "typescript", "--json"]);
+    assert!(ok, "{printed}");
+    assert_eq!(printed["signatures_with_foreign_types"], 1, "{printed}");
+}
+
+// ---------------------------------------------------------------------- symbols
+
+#[test]
+fn a_symbols_span_round_trips_into_extract() {
+    // The listing mixed 0-based byte spans with 1-based line and column, and
+    // emitted no end position. So extract's range input could not be built
+    // from fr's own output.
+    let tmp = workspace(&[(
+        "m.py",
+        "def log_line():\n    print(\"hello\")\n\n\ndef caller():\n    log_line()\n",
+    )]);
+    let (printed, _, ok) = run_json(&tmp, &["symbols", "--json"]);
+    assert!(ok);
+    let symbol = printed
+        .as_array()
+        .expect("an array")
+        .iter()
+        .find(|s| s["name"] == "log_line")
+        .expect("the function is listed")
+        .clone();
+    assert_eq!(symbol["start"]["line"], 1, "{symbol}");
+    assert_eq!(symbol["start"]["col"], 1, "{symbol}");
+    assert!(symbol["end"]["line"].is_u64(), "{symbol}");
+    // The byte spans say they are bytes; the old spellings survive one release.
+    assert_eq!(symbol["name_span_bytes"], symbol["name_span"], "{symbol}");
+    assert_eq!(symbol["full_span_bytes"], symbol["full_span"], "{symbol}");
+
+    let range = format!(
+        "{}:{}:{}-{}:{}",
+        symbol["file"].as_str().expect("a file"),
+        symbol["start"]["line"],
+        symbol["start"]["col"],
+        symbol["end"]["line"],
+        symbol["end"]["col"],
+    );
+    Command::cargo_bin("fr")
+        .expect("the binary")
+        .args(["extract", &range, "wrapped", "--function", "-C"])
+        .arg(tmp.path())
+        .assert()
+        .success();
+}
+
+// ----------------------------------------------------------------- explain JSON
+
+#[test]
+fn explain_emits_selectors_and_expectations_as_structures() {
+    // --explain --json re-serialized selectors and expectations as surface
+    // strings, which an agent had to re-parse with the recipe grammar in its head.
+    let tmp = workspace(&[
+        ("m.py", RENDER_PY),
+        (
+            "plan.recipe",
+            "schema 1\n\nrecipe plan {\n  rename to \"draw\" where name=\"render\" \
+             kind=function\n  expect changed >= 1 files\n}\n",
+        ),
+    ]);
+    let (printed, _, ok) = run_json(&tmp, &["recipe", "plan.recipe", "--explain", "--json"]);
+    assert!(ok, "{printed}");
+    let step = &printed[0]["steps"][0];
+    let parts = step["selector_parts"].as_array().expect("selector parts");
+    assert!(
+        parts
+            .iter()
+            .any(|p| p["field"] == "name" && p["op"] == "=" && p["value"] == "render"),
+        "got {parts:?}"
+    );
+    let expects = printed[0]["expectations_parts"]
+        .as_array()
+        .expect("expectation parts");
+    assert_eq!(expects[0]["predicate"], "changed", "{expects:?}");
+    assert_eq!(expects[0]["op"], ">=", "{expects:?}");
+    assert_eq!(expects[0]["value"], 1, "{expects:?}");
+}

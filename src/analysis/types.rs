@@ -39,6 +39,8 @@ pub enum Basis {
     SameBinding,
     /// A field of a record whose declaration names a type.
     FieldOfRecord,
+    /// The binding is a loop variable, and the sequence it walks names what it holds.
+    ElementOfIterable,
 }
 
 impl Basis {
@@ -52,6 +54,7 @@ impl Basis {
             Basis::ReturnOfCall => "from the declared return type of the call",
             Basis::SameBinding => "from the binding it was assigned from",
             Basis::FieldOfRecord => "from the field's declaration",
+            Basis::ElementOfIterable => "from the sequence's element type",
         }
     }
 }
@@ -186,6 +189,119 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
     })
 }
 
+/// What a name holds where it is read, over every assignment to it in its scope.
+///
+/// [`of`] answers about one declaration, which is the right answer to its own question.
+/// A use site asks a different one. `b = B()` above `b = A()` puts two types
+/// into one name. Either initializer states what that name holds on its own
+/// line, and nowhere else.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Held {
+    /// The source states this, and every assignment in scope agrees.
+    Settled(String),
+    /// The name is assigned more than once, and the assignments disagree.
+    Reassigned,
+    /// Nothing in scope writes down what the name holds.
+    Unwritten,
+}
+
+/// What the source says this binding holds, over the whole scope.
+pub fn held_by(index: &Index, symbol: SymbolId) -> Held {
+    let Some(sym) = index.symbol(symbol) else {
+        return Held::Unwritten;
+    };
+    let Ok(answer) = of(index, symbol) else {
+        return Held::Unwritten;
+    };
+    // An annotation is a contract over the name, and a later assignment that
+    // disagrees with it is a defect in the code. So it holds for the whole scope.
+    if let Some(declared) = answer.declared {
+        return Held::Settled(declared);
+    }
+    let Some(inferred) = answer.inferred else {
+        return Held::Unwritten;
+    };
+    let Ok(source) = crate::vfs::read_to_string(&sym.file) else {
+        return Held::Unwritten;
+    };
+    let scope = scope_span(index, sym);
+    let Ok(parsed) = Parsers::new().parse(sym.language, &source) else {
+        return Held::Unwritten;
+    };
+    let mut bound = Vec::new();
+    collect_assignments(parsed.root(), sym, &source, scope, &mut bound);
+    let types: Vec<Option<String>> = bound
+        .iter()
+        .map(|b| infer_bound(index, sym, &source, *b, 0).map(|i| i.ty))
+        .collect();
+    match types.split_first() {
+        None | Some((_, [])) => Held::Settled(inferred.ty),
+        Some((first, rest)) => match first {
+            Some(ty) if rest.iter().all(|other| other.as_ref() == Some(ty)) => {
+                Held::Settled(ty.clone())
+            }
+            _ => Held::Reassigned,
+        },
+    }
+}
+
+/// The span of the scope a symbol was declared in.
+fn scope_span(index: &Index, sym: &Symbol) -> Span {
+    index
+        .file(&sym.file)
+        .and_then(|info| info.scopes.iter().find(|s| s.id == sym.scope))
+        .map(|s| s.span)
+        .unwrap_or(sym.full_span)
+}
+
+/// Every assignment to this name inside the scope, in source order.
+///
+/// A nested function is not this scope: its `b` is another name that reads the same.
+/// So the walk stops at one.
+fn collect_assignments<'a>(
+    node: Node<'a>,
+    sym: &Symbol,
+    source: &str,
+    scope: Span,
+    out: &mut Vec<Bound<'a>>,
+) {
+    let span = Span::from(node);
+    if span.end <= scope.start || span.start >= scope.end {
+        return;
+    }
+    let nested_body = span.start > scope.start
+        && span.end <= scope.end
+        && ["function", "class", "method", "lambda", "closure"]
+            .iter()
+            .any(|shape| node.kind().contains(shape));
+    if nested_body {
+        return;
+    }
+    if let Some(target) = assigned_name(node) {
+        let target_span = Span::from(target);
+        if target_span.text(source).trim() == sym.name {
+            if let Some(bound) = bound_expression(sym.language, node, target_span) {
+                out.push(bound);
+            }
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_assignments(child, sym, source, scope, out);
+    }
+}
+
+/// The name a node assigns to, where it assigns to one name.
+fn assigned_name<'a>(node: Node<'a>) -> Option<Node<'a>> {
+    ["left", "name", "pattern"]
+        .iter()
+        .find_map(|field| node.child_by_field_name(field))
+        .or_else(|| {
+            node.child_by_field_name("declarator")
+                .and_then(|d| d.child_by_field_name("name"))
+        })
+}
+
 /// How far a chain of derivations is followed.
 ///
 /// A binding assigned from a binding assigned from a call is three steps and readable.
@@ -204,8 +320,44 @@ fn infer(
     if depth >= MAX_CHAIN {
         return None;
     }
-    let value = assigned_value(parsed, sym.full_span, sym.name_span)?;
-    infer_expression(index, sym, source, value, depth)
+    let bound = assigned_value(parsed, sym.language, sym.full_span, sym.name_span)?;
+    infer_bound(index, sym, source, bound, depth)
+}
+
+/// What a declaration binds: a value, or one element of a sequence.
+///
+/// `for box in boxes` binds `box` to an element, and the expression the grammar hands
+/// over is the whole sequence. Reading that expression as the value gave `box` the type
+/// `list`, and a member call on it was then attributed to the container.
+#[derive(Debug, Clone, Copy)]
+enum Bound<'a> {
+    Value(Node<'a>),
+    Element(Node<'a>),
+}
+
+/// The type of whatever a declaration bound.
+fn infer_bound(
+    index: &Index,
+    sym: &Symbol,
+    source: &str,
+    bound: Bound<'_>,
+    depth: usize,
+) -> Option<Inferred> {
+    match bound {
+        Bound::Value(node) => infer_expression(index, sym, source, node, depth),
+        Bound::Element(node) => {
+            let sequence = infer_expression(index, sym, source, node, depth)?;
+            // A sequence whose element type is not written down says nothing about
+            // the loop variable. Its own name is the container's and never the
+            // element's.
+            let ty = element_type(&sequence.ty)?;
+            Some(Inferred {
+                ty,
+                basis: Basis::ElementOfIterable,
+                from: sequence.from,
+            })
+        }
+    }
 }
 
 /// The expression a definition binds, where the grammar names one.
@@ -213,21 +365,126 @@ fn infer(
 /// The declaration itself first, through the one reader that knows every grammar's shape, and
 /// only then outwards: a Python `x: int = 1` hangs the value off the assignment and not off
 /// `x`. So the name alone is not always the declaration.
-fn assigned_value<'a>(parsed: &'a Parsed, declaration: Span, name: Span) -> Option<Node<'a>> {
+fn assigned_value<'a>(
+    parsed: &'a Parsed,
+    language: Language,
+    declaration: Span,
+    name: Span,
+) -> Option<Bound<'a>> {
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;
     let mut current = Some(node);
     for _ in 0..4 {
         let here = current?;
-        if let Some(value) = crate::parse::declaration_value(here) {
-            if Span::from(value) != name {
-                return Some(value);
+        if let Some(bound) = bound_expression(language, here, name) {
+            let node = match bound {
+                Bound::Value(node) | Bound::Element(node) => node,
+            };
+            if Span::from(node) != name {
+                return Some(bound);
             }
         }
         current = here.parent();
     }
     None
+}
+
+/// What this node binds, for a node that binds anything.
+///
+/// A loop over a sequence is answered as an element, and only where the loop binds
+/// this one name whole. `for k, v in pairs` takes the pair apart, and which piece
+/// each name gets is a question this does not answer.
+fn bound_expression<'a>(language: Language, node: Node<'a>, name: Span) -> Option<Bound<'a>> {
+    if let Some(sequence) = iterated_sequence(language, node) {
+        let target = ["left", "name", "pattern"]
+            .iter()
+            .find_map(|field| node.child_by_field_name(field))?;
+        return (Span::from(target) == name).then_some(Bound::Element(sequence));
+    }
+    crate::parse::declaration_value(node).map(Bound::Value)
+}
+
+/// The sequence a loop walks, for the loop forms that bind a name to each element.
+///
+/// By language, because one spelling is two statements. A TypeScript `for_statement`
+/// is the three-part C loop, whose initializer binds a value and not an element.
+fn iterated_sequence<'a>(language: Language, node: Node<'a>) -> Option<Node<'a>> {
+    let kind = node.kind();
+    let walks = match language {
+        Language::Python => matches!(kind, "for_statement" | "for_in_clause"),
+        Language::TypeScript | Language::Tsx => kind == "for_in_statement",
+        Language::Java => kind == "enhanced_for_statement",
+        Language::Go => kind == "range_clause",
+        Language::Rust => kind == "for_expression",
+        _ => false,
+    };
+    if !walks {
+        return None;
+    }
+    ["right", "value"]
+        .iter()
+        .find_map(|field| node.child_by_field_name(field))
+}
+
+/// The names of the sequence types whose type argument is the element's.
+///
+/// A closed list, because being wrong here is not a missing answer: it hands a member
+/// call the type of something else and rewrites it. A map's type argument is its value
+/// and its iteration yields its keys, so no map is here.
+const SEQUENCES: &[&str] = &[
+    "list",
+    "List",
+    "Sequence",
+    "Iterable",
+    "Iterator",
+    "Collection",
+    "ArrayList",
+    "LinkedList",
+    "set",
+    "Set",
+    "HashSet",
+    "TreeSet",
+    "BTreeSet",
+    "frozenset",
+    "FrozenSet",
+    "Array",
+    "ReadonlyArray",
+    "Vec",
+    "VecDeque",
+];
+
+/// What one element of this sequence type is, where the type names it.
+fn element_type(written: &str) -> Option<String> {
+    let text = written.trim();
+    // Go's slice and array write the element last, `[]Box` and `[3]Box`; Rust's
+    // slice writes it inside, `[Box]`.
+    if let Some(rest) = text.strip_prefix('[') {
+        let (inside, after) = rest.rsplit_once(']')?;
+        let element = match after.trim().is_empty() {
+            true => inside,
+            false => after,
+        };
+        return bare_name(element).map(str::to_string);
+    }
+    // TypeScript writes it first: `Box[]`.
+    if let Some(element) = text.strip_suffix("[]") {
+        return bare_name(element).map(str::to_string);
+    }
+    // Rust's slice arrives behind a borrow: `&[Box]`.
+    if let Some(rest) = text.strip_prefix('&') {
+        return element_type(rest.trim_start_matches("mut ").trim());
+    }
+    let at = text.find(['[', '<'])?;
+    let container = last_segment(&text[..at]);
+    let inner = text
+        .strip_suffix(']')
+        .or_else(|| text.strip_suffix('>'))?
+        .get(at + 1..)?;
+    if !SEQUENCES.contains(&container) || inner.contains(',') {
+        return None;
+    }
+    bare_name(inner).map(str::to_string)
 }
 
 /// The type of an expression, where one follows from something the source stated.

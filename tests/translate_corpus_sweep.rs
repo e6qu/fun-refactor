@@ -60,7 +60,7 @@ const CARRIED: &[(&str, usize)] = &[
     ("lexical_declaration", 5),
     ("map literal", 11),
     ("multiline_string", 5),
-    ("new", 39),
+    ("new", 38),
     ("return_expression", 20),
     ("return_statement", 10),
     ("switch_expression", 58),

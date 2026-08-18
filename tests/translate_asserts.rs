@@ -93,18 +93,20 @@ fn a_python_assert_is_zigs_own_library_check() {
 }
 
 #[test]
-fn a_python_assert_with_a_computed_message_keeps_it_beside_the_rust_check() {
+fn a_python_assert_with_a_computed_message_passes_it_to_the_rust_macro() {
+    // The macro takes a format string and arguments, and evaluates them only
+    // when the check fails. Rendering the message into a comment above the
+    // check dropped it, along with any effect computing it had.
     let source = "def check(n: int) -> None:\n    assert n > 0, \"got \" + str(n)\n";
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "computed.py", source, Language::Rust);
     assert!(
-        out.contains("assert!(n > 0);"),
-        "the check still checks.\n{out}"
+        out.contains("assert!(n > 0, \"{}\", "),
+        "the message rides as an argument.\n{out}"
     );
     assert!(
-        out.contains("// the assert's message:"),
-        "a message that is not a literal cannot ride in the macro's format \
-         string, so it is said above the check.\n{out}"
+        !out.contains("// the assert's message:"),
+        "nothing is left in a comment.\n{out}"
     );
 }
 

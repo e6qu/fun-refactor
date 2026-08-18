@@ -508,3 +508,49 @@ fn apply2(plan: &extract::ExtractPlan, path: &PathBuf) -> String {
     let original = std::fs::read_to_string(path).unwrap();
     apply_to_string(&original, plan.edits.edits_for(path).unwrap()).unwrap()
 }
+
+#[test]
+fn a_selection_crossing_a_loop_body_is_refused_with_the_boundary_named() {
+    // One end inside the loop's body and the other outside it. The moved
+    // statements keep their bytes, so the extraction carried the loop's own
+    // outdent into the middle of the new function. It wrote a file that does
+    // not parse, and reported success.
+    let src = "def f(items):\n    total = 0\n    for x in items:\n        total += x\n    \
+        result = total * 10\n    return result\n";
+    let (tmp, index) = workspace(&[("loop.py", src)]);
+    let path = tmp.path().join("loop.py");
+    let err = extract::function(&index, &path, lines(src, 4, 5), "helper")
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("crosses the body of the `for`"),
+        "the refusal names the boundary: {err}"
+    );
+}
+
+#[test]
+fn the_same_guard_holds_in_typescript() {
+    let src = "export function f(items: number[]): number {\n  let total = 0;\n  \
+        for (const x of items) {\n    // Accumulate.\n    total += x;\n  }\n  \
+        const result = total * 10;\n  return result;\n}\n";
+    let (tmp, index) = workspace(&[("loop.ts", src)]);
+    let path = tmp.path().join("loop.ts");
+    let err = extract::function(&index, &path, lines(src, 5, 7), "helper")
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("crosses the body of the `for`"),
+        "the guard is shared, not per language: {err}"
+    );
+}
+
+#[test]
+fn a_selection_wholly_inside_a_loop_body_still_extracts() {
+    let src = "def f(items):\n    total = 0\n    for x in items:\n        total += x\n        \
+        total += 1\n    return total\n";
+    let (tmp, index) = workspace(&[("loop.py", src)]);
+    let path = tmp.path().join("loop.py");
+    let plan = extract::function(&index, &path, lines(src, 4, 5), "step").expect("a plan");
+    let out = apply(&plan, &path);
+    assert!(out.contains("def step("), "the extraction happened.\n{out}");
+}

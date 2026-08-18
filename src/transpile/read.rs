@@ -828,6 +828,7 @@ mod rust {
                 && !cx.text(p).trim_end().ends_with(';')
         });
         let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+        let mut variant_arms: Vec<(VariantPattern, Vec<Stmt>)> = Vec::new();
         let mut default: Vec<Stmt> = Vec::new();
         for arm in cx.children(body) {
             if arm.kind() != "match_arm" {
@@ -849,14 +850,112 @@ mod rust {
                 default = arm_body;
                 continue;
             }
-            let literals = literal_patterns(cx, pattern)?;
-            arms.push((literals, arm_body));
+            match literal_patterns(cx, pattern) {
+                Some(literals) => arms.push((literals, arm_body)),
+                None => {
+                    variant_arms.push((variant_pattern(cx, pattern)?, arm_body));
+                }
+            }
         }
-        Some(Stmt::Switch {
-            subject: expr(cx, subject),
-            arms,
-            default,
-        })
+        // Literal arms and variant arms are two different statements; a match
+        // that mixes them carries whole.
+        match (arms.is_empty(), variant_arms.is_empty()) {
+            (false, true) => Some(Stmt::Switch {
+                subject: expr(cx, subject),
+                arms,
+                default,
+            }),
+            (true, false) => {
+                let mut owners = variant_arms.iter().map(|((sum, _, _), _)| sum.clone());
+                let sum = owners.next()?;
+                if owners.any(|other| other != sum) {
+                    return None;
+                }
+                let built = variant_arms
+                    .into_iter()
+                    .map(|((_, variant, bindings), body)| VariantArm {
+                        variant,
+                        bindings,
+                        body,
+                    })
+                    .collect();
+                Some(Stmt::MatchVariants {
+                    subject: expr(cx, subject),
+                    sum,
+                    arms: built,
+                    default,
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// A variant pattern taken apart: the sum, the variant, and the payload
+    /// fields the arm binds as (field, local).
+    type VariantPattern = (String, String, Vec<(String, String)>);
+
+    /// A pattern selecting one variant: `Shape::Point`, `Shape::Circle { radius }`,
+    /// `Shape::Circle { radius: r, .. }`. A tuple pattern has no field names to
+    /// bind and stays a carry.
+    ///
+    /// The sum's name, the variant's, and the payload fields the arm binds as
+    /// (field, local).
+    fn variant_pattern(cx: &Cx, pattern: Node<'_>) -> Option<VariantPattern> {
+        let scoped = |node: Node<'_>| -> Option<(String, String)> {
+            if !matches!(node.kind(), "scoped_identifier" | "scoped_type_identifier") {
+                return None;
+            }
+            let text = cx.text(node);
+            let (head, tail) = text.rsplit_once("::")?;
+            let head = head.rsplit("::").next().unwrap_or(head);
+            Some((head.to_string(), tail.to_string()))
+        };
+        // The grammar wraps each arm's pattern in a `match_pattern` node.
+        let pattern = match pattern.kind() {
+            "match_pattern" => cx
+                .children(pattern)
+                .into_iter()
+                .find(|c| c.is_named())
+                .unwrap_or(pattern),
+            _ => pattern,
+        };
+        match pattern.kind() {
+            "scoped_identifier" => {
+                let (sum, variant) = scoped(pattern)?;
+                Some((sum, variant, Vec::new()))
+            }
+            "struct_pattern" => {
+                let ty = cx.field(pattern, "type")?;
+                let (sum, variant) = scoped(ty)?;
+                let mut bindings = Vec::new();
+                for field in cx.children(pattern) {
+                    if field.id() == ty.id() {
+                        continue;
+                    }
+                    match field.kind() {
+                        "field_pattern" => {
+                            let mut named = cx.children(field).into_iter().filter(|c| c.is_named());
+                            let name = cx.text(named.next()?);
+                            let local = named
+                                .next()
+                                .map(|n| cx.text(n))
+                                .unwrap_or_else(|| name.clone());
+                            // A nested pattern in the binding slot is more than
+                            // a rename and carries the whole match.
+                            if !local.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                                return None;
+                            }
+                            bindings.push((name, local));
+                        }
+                        "remaining_field_pattern" => {}
+                        _ if !field.is_named() => {}
+                        _ => return None,
+                    }
+                }
+                Some((sum, variant, bindings))
+            }
+            _ => None,
+        }
     }
 
     /// The literals under a match pattern: one, or several joined by `|`.
@@ -1085,6 +1184,7 @@ mod rust {
             variants.push(Variant {
                 doc,
                 name: variant_name,
+                tag: None,
                 fields,
             });
         }
@@ -1815,6 +1915,7 @@ mod python {
                     Variant {
                         doc: member.doc.clone(),
                         name: member.name.clone(),
+                        tag: None,
                         fields: member.fields.clone(),
                     }
                 })
@@ -2054,21 +2155,34 @@ mod python {
                 }
             }
         }
+        let bases: Vec<String> = cx
+            .field(node, "superclasses")
+            .map(|list| cx.children(list))
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|b| b.is_named() && b.kind() != "comment")
+            .map(|b| cx.text(b))
+            .collect();
         let mut record = Record {
             doc: docstring(cx, cx.field(node, "body")),
             name,
             fields,
-            // `class A(B):`, the bases are the class's argument list. Only a single one is
-            // carried: multiple inheritance has no counterpart in the two other languages that
-            // inherit at all. Picking one of them would be a guess.
-            extends: cx
-                .field(node, "superclasses")
-                .map(|list| cx.children(list))
-                .filter(|bases| bases.len() == 1)
-                .and_then(|bases| bases.first().map(|b| cx.text(*b))),
+            // `class A(B, C):`, the bases are the class's argument list. One
+            // base slot exists in the targets that inherit at all, and the
+            // first base is the one `super()` dispatches to, so it rides. The
+            // rest are said beside the type. Dropping every base because there
+            // were two left `super.cost()` in a class extending nothing, which
+            // is not a program in any of them.
+            extends: bases.first().cloned(),
             exported: true,
             methods,
         };
+        if bases.len() > 1 {
+            record.doc.push(format!(
+                "the source also declares `{}` as a base; one base is all that carries.",
+                bases[1..].join(", ")
+            ));
+        }
         derive_constructor_shape(&mut record);
         // The annotations `__init__` wrote on its own field assignments. The
         // derived field takes the type the source spelled out, which the value
@@ -2237,6 +2351,62 @@ mod python {
             .collect();
         if variants.is_empty() {
             return;
+        }
+        // A carried construct that binds one of these names shadows it for
+        // the whole function. A nested `def Card(...)` means `Card(number)`
+        // calls the local, whatever the module's sums say. The carried source
+        // is the nested definition's only trace, so it is the thing read.
+        let shadowed_in = |body: &[Stmt], name: &str| -> bool {
+            let mut found = false;
+            let mut probe = body.to_vec();
+            super::each_stmt_in_stmts(&mut probe, &mut |stmt| {
+                let carried = match stmt {
+                    Stmt::Unsupported(u) => Some(u),
+                    Stmt::Expr(Expr::Unsupported(u)) => Some(u),
+                    _ => None,
+                };
+                if let Some(u) = carried {
+                    let def = format!("def {name}(");
+                    let bind = format!("{name} =");
+                    if u.source.contains(&def) || u.source.starts_with(&bind) {
+                        found = true;
+                    }
+                }
+            });
+            found
+        };
+        for item in &mut module.items {
+            let Item::Function(f) = item else { continue };
+            let shadowed: Vec<String> = variants
+                .keys()
+                .filter(|name| shadowed_in(&f.body, name))
+                .cloned()
+                .collect();
+            if shadowed.is_empty() {
+                continue;
+            }
+            super::each_expr_in_stmts(&mut f.body, &mut |e| {
+                if let Expr::Call { callee, .. } = e {
+                    if matches!(callee.as_ref(), Expr::Name(n) if shadowed.contains(n)) {
+                        let Expr::Call { callee, args } = e else {
+                            unreachable!("just matched");
+                        };
+                        let source = format!(
+                            "{}({} argument(s))",
+                            match callee.as_ref() {
+                                Expr::Name(n) => n.clone(),
+                                _ => String::new(),
+                            },
+                            args.len()
+                        );
+                        *e = Expr::Unsupported(Unsupported {
+                            construct: "a call to a shadowed name".to_string(),
+                            source,
+                            line: 0,
+                        });
+                    }
+                }
+            });
         }
         super::each_expr_in_module(module, &mut |e| {
             if let Expr::Call { callee, args } = e {
@@ -3272,11 +3442,60 @@ mod go {
             {
                 continue;
             }
+            // A member named in a concrete position keeps its struct beside
+            // the variant. A function returning `Point` cannot return a
+            // variant of `Shape`. Consuming the struct outright rewrote its
+            // values while the signature kept the type, which no target
+            // accepts. The sum still forms, and a construction of a
+            // dual-named type settles by the position it stands in.
+            fn concrete(ty: &Type, out: &mut Vec<String>) {
+                match ty {
+                    Type::Named { name, args } => {
+                        out.push(name.clone());
+                        for arg in args {
+                            concrete(arg, out);
+                        }
+                    }
+                    Type::List(t) | Type::Optional(t) => concrete(t, out),
+                    Type::Map(k, v) => {
+                        concrete(k, out);
+                        concrete(v, out);
+                    }
+                    Type::Tuple(parts) => parts.iter().for_each(|t| concrete(t, out)),
+                    _ => {}
+                }
+            }
+            let concretely_used: std::collections::BTreeSet<String> = {
+                let mut named = Vec::new();
+                for item in &module.items {
+                    match item {
+                        Item::Function(f) => {
+                            for ty in f.params.iter().filter_map(|p| p.ty.as_ref()) {
+                                concrete(ty, &mut named);
+                            }
+                            if let Some(ty) = &f.returns {
+                                concrete(ty, &mut named);
+                            }
+                        }
+                        Item::Record(r) => {
+                            for ty in r.fields.iter().filter_map(|f| f.ty.as_ref()) {
+                                concrete(ty, &mut named);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                named
+                    .into_iter()
+                    .filter(|n| members.iter().any(|m| &m.name == n))
+                    .collect()
+            };
             let variants: Vec<Variant> = members
                 .iter()
                 .map(|member| Variant {
                     doc: member.doc.clone(),
                     name: member.name.clone(),
+                    tag: None,
                     fields: member.fields.clone(),
                 })
                 .collect();
@@ -3287,7 +3506,22 @@ mod go {
                 variants,
                 exported,
             });
-            consumed.extend(members.into_iter().map(|m| m.name));
+            consumed.extend(
+                members
+                    .into_iter()
+                    .map(|m| m.name)
+                    .filter(|name| !concretely_used.contains(name)),
+            );
+            // A member kept beside its variant sheds the marker method. The
+            // variant carries the membership now, and the marker written back
+            // out would come home as a function the source never had.
+            for item in &mut module.items {
+                if let Item::Record(r) = item {
+                    if concretely_used.contains(&r.name) {
+                        r.methods.retain(|m| m.name != marker);
+                    }
+                }
+            }
         }
         module
             .items
@@ -3831,6 +4065,7 @@ mod java {
         let mut module = Module::default();
         // A member a record cannot keep still has to reach the reader.
         let mut carried: Vec<Item> = Vec::new();
+        let mut interfaces: Vec<String> = Vec::new();
         for child in cx.children(root) {
             match child.kind() {
                 // The package clause names the compilation unit; it is not an import
@@ -3842,6 +4077,11 @@ mod java {
                     target: None,
                 }),
                 "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    if child.kind() == "interface_declaration" {
+                        if let Some(name) = cx.field_text(child, "name") {
+                            interfaces.push(name);
+                        }
+                    }
                     let before = carried.len();
                     let (record, constants) = type_declaration(cx, child, &mut carried);
                     module
@@ -3868,7 +4108,104 @@ mod java {
         module.items.extend(carried);
         settle_accessors(&mut module);
         settle_builtins(&mut module);
+        settle_interface_sums(&mut module, &interfaces);
+        settle_entry_arguments(&mut module);
+        settle_variants(&mut module);
+        settle_variant_narrowing(&mut module);
         module
+    }
+
+    /// `main(String[] args)` with a body that never reads `args`.
+    ///
+    /// The runtime looks for that one signature. So the parameter is how Java
+    /// spells "the entry point", not something the source chose. Read as data,
+    /// it came back out as an argument the original never had. A body that
+    /// does read it is a program taking arguments, and keeps it.
+    fn settle_entry_arguments(module: &mut Module) {
+        fn settle(f: &mut Function) {
+            if f.name != "main" || f.params.len() != 1 {
+                return;
+            }
+            let takes_strings = matches!(
+                &f.params[0].ty,
+                Some(Type::List(inner)) if **inner == Type::String
+            );
+            if !takes_strings {
+                return;
+            }
+            let name = f.params[0].name.clone();
+            let mut read = false;
+            each_expr_in_stmts(&mut f.body, &mut |e| {
+                if matches!(e, Expr::Name(n) if *n == name) {
+                    read = true;
+                }
+            });
+            if !read {
+                f.params.clear();
+            }
+        }
+        for item in &mut module.items {
+            match item {
+                Item::Function(f) => settle(f),
+                Item::Record(record) => record.methods.iter_mut().for_each(settle),
+                _ => {}
+            }
+        }
+    }
+
+    /// An empty interface with records implementing it is a closed choice.
+    ///
+    /// `sealed interface Shape permits Point, Circle` beside records that
+    /// implement it is Java's most explicit sum declaration. It crossed as an
+    /// empty struct, the returns of both variants type-wrong under a clean
+    /// header. The idiom Go spells with a marker method settles the same way:
+    /// interface consumed, records become variants. A member with methods of
+    /// its own is more than a variant and holds the whole sum back.
+    fn settle_interface_sums(module: &mut Module, interfaces: &[String]) {
+        for interface in interfaces {
+            let shell = module.items.iter().position(|item| {
+                matches!(item, Item::Record(r)
+                    if &r.name == interface && r.fields.is_empty() && r.methods.is_empty())
+            });
+            let Some(at) = shell else { continue };
+            let members: Vec<Record> = module
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    Item::Record(r) if r.extends.as_deref() == Some(interface.as_str()) => {
+                        Some(r.clone())
+                    }
+                    _ => None,
+                })
+                .collect();
+            if members.is_empty() || members.iter().any(|r| !r.methods.is_empty()) {
+                continue;
+            }
+            let exported = module
+                .items
+                .iter()
+                .any(|item| matches!(item, Item::Record(r) if &r.name == interface && r.exported));
+            let variants: Vec<Variant> = members
+                .iter()
+                .map(|member| Variant {
+                    doc: member.doc.clone(),
+                    name: member.name.clone(),
+                    tag: None,
+                    fields: member.fields.clone(),
+                })
+                .collect();
+            module.items[at] = Item::Sum(Sum {
+                doc: Vec::new(),
+                name: interface.clone(),
+                variants,
+                exported,
+            });
+            let consumed: std::collections::BTreeSet<String> =
+                members.into_iter().map(|m| m.name).collect();
+            module
+                .items
+                .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
+        }
     }
 
     /// The everyday library spellings, rewritten to the table's canonical ones.
@@ -5136,6 +5473,7 @@ mod zig {
             .map(|c| Variant {
                 doc: doc_above(cx, c, &["///", "//"]),
                 name: cx.text(c),
+                tag: None,
                 fields: Vec::new(),
             })
             .collect();
@@ -5170,6 +5508,7 @@ mod zig {
             variants.push(Variant {
                 doc,
                 name: variant_name,
+                tag: None,
                 fields: Vec::new(),
             });
         }
@@ -5220,6 +5559,7 @@ mod zig {
                     variants.push(Variant {
                         doc,
                         name: variant_name,
+                        tag: None,
                         fields,
                     });
                 }
@@ -6457,6 +6797,7 @@ mod typescript {
         settle_builtins(&mut module);
         settle_unions(&mut module, unions);
         settle_kind_literals(&mut module);
+        settle_variant_narrowing(&mut module);
         // A brand travels with a constructor function bearing its own name; this
         // tool's TypeScript writer emits one. Read back as content it duplicates
         // the newtype, and its lower-case spelling wins over the type's.
@@ -6603,6 +6944,7 @@ mod typescript {
                 Some(Variant {
                     doc: Vec::new(),
                     name: super::super::write::pascal(&tag),
+                    tag: Some(tag.clone()),
                     fields: fields
                         .iter()
                         .filter(|f| f.name != discriminator)
@@ -6674,6 +7016,22 @@ mod typescript {
                 .map(|member| Variant {
                     doc: member.doc.clone(),
                     name: member.name.clone(),
+                    // The literal the source wrote in the discriminator field:
+                    // `kind: "idle"` on an interface named `FIdle`.
+                    tag: discriminators.first().and_then(|d| {
+                        member
+                            .fields
+                            .iter()
+                            .find(|f| &f.name == d)
+                            .and_then(|f| match &f.ty {
+                                Some(Type::Named { name, .. })
+                                    if name.starts_with('"') || name.starts_with('\'') =>
+                                {
+                                    Some(name.trim_matches(['"', '\'']).to_string())
+                                }
+                                _ => None,
+                            })
+                    }),
                     fields: member
                         .fields
                         .iter()
@@ -6705,7 +7063,7 @@ mod typescript {
     /// entry names exactly one sum's variant and the other keys are that
     /// variant's declared fields. Anything looser stays the map it was.
     fn settle_kind_literals(module: &mut Module) {
-        let variants: Vec<(String, String, std::collections::BTreeSet<String>)> = module
+        let variants: Vec<(String, String, String, std::collections::BTreeSet<String>)> = module
             .items
             .iter()
             .filter_map(|item| match item {
@@ -6713,6 +7071,9 @@ mod typescript {
                     (
                         s.name.clone(),
                         v.name.clone(),
+                        v.tag
+                            .clone()
+                            .unwrap_or_else(|| crate::transpile::write::snake_always(&v.name)),
                         v.fields.iter().map(|f| f.name.clone()).collect(),
                     )
                 })),
@@ -6723,7 +7084,7 @@ mod typescript {
         if variants.is_empty() {
             return;
         }
-        super::each_expr_in_module(module, &mut |e| {
+        let settle = |e: &mut Expr, preferred: Option<&str>| {
             let Expr::MapLit(entries) = e else { return };
             let mut tag: Option<usize> = None;
             for (at, (key, value)) in entries.iter().enumerate() {
@@ -6750,13 +7111,20 @@ mod typescript {
                 })
                 .collect();
             let Some(rest) = rest else { return };
-            let answering: Vec<&(String, String, std::collections::BTreeSet<String>)> = variants
-                .iter()
-                .filter(|(_, name, fields)| {
-                    super::super::write::snake_always(name) == *tag_value && rest.is_subset(fields)
-                })
-                .collect();
-            let [(sum, name, _)] = answering.as_slice() else {
+            let mut answering: Vec<&(String, String, String, std::collections::BTreeSet<String>)> =
+                variants
+                    .iter()
+                    .filter(|(_, _, tag, fields)| tag == tag_value && rest.is_subset(fields))
+                    .collect();
+            // Two sums answering the same tag is ordinary: two state unions in
+            // one file both holding an "idle". The position's declared type,
+            // where one is written, says which was meant.
+            if answering.len() > 1 {
+                if let Some(preferred) = preferred {
+                    answering.retain(|(sum, _, _, _)| sum == preferred);
+                }
+            }
+            let [(sum, name, _, _)] = answering.as_slice() else {
                 return;
             };
             let (sum, name) = (sum.clone(), name.clone());
@@ -6770,7 +7138,41 @@ mod typescript {
                 })
                 .collect();
             *e = Expr::Variant { sum, name, fields };
-        });
+        };
+        // First the positions whose declared type names the sum: a `return`
+        // under a signature, a binding with an annotation. Then the rest.
+        let sum_of = |ty: Option<&Type>| -> Option<String> {
+            match ty {
+                Some(Type::Named { name, .. })
+                    if variants.iter().any(|(sum, _, _, _)| sum == name) =>
+                {
+                    Some(name.clone())
+                }
+                _ => None,
+            }
+        };
+        for item in &mut module.items {
+            let Item::Function(f) = item else { continue };
+            let returned = sum_of(f.returns.as_ref());
+            super::each_stmt_in_stmts(&mut f.body, &mut |stmt| match stmt {
+                Stmt::Return(Some(value)) => {
+                    if let Some(sum) = &returned {
+                        super::each_expr(value, &mut |e| settle(e, Some(sum.as_str())));
+                    }
+                }
+                Stmt::Let {
+                    ty: Some(ty),
+                    value: Some(value),
+                    ..
+                } => {
+                    if let Some(sum) = sum_of(Some(ty)) {
+                        super::each_expr(value, &mut |e| settle(e, Some(sum.as_str())));
+                    }
+                }
+                _ => {}
+            });
+        }
+        super::each_expr_in_module(module, &mut |e| settle(e, None));
     }
 
     /// A `switch` whose cases are selected by literals and leave before the
@@ -7977,6 +8379,18 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr_in_stmts(body, visit);
             }
             Stmt::Defer(body) | Stmt::ErrDefer(body) => each_expr_in_stmts(body, visit),
+            Stmt::MatchVariants {
+                subject,
+                arms,
+                default,
+                ..
+            } => {
+                each_expr(subject, visit);
+                for arm in arms.iter_mut() {
+                    each_expr_in_stmts(&mut arm.body, visit);
+                }
+                each_expr_in_stmts(default, visit);
+            }
             Stmt::Switch {
                 subject,
                 arms,
@@ -8038,6 +8452,12 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
             Stmt::Defer(body) | Stmt::ErrDefer(body) => each_stmt_in_stmts(body, visit),
+            Stmt::MatchVariants { arms, default, .. } => {
+                for arm in arms.iter_mut() {
+                    each_stmt_in_stmts(&mut arm.body, visit);
+                }
+                each_stmt_in_stmts(default, visit);
+            }
             Stmt::Switch { arms, default, .. } => {
                 for (_, body) in arms {
                     each_stmt_in_stmts(body, visit);
@@ -8071,7 +8491,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
 }
 
 /// Children first, then the node itself, so a rewrite sees settled children.
-fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
+pub(super) fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
     match e {
         Expr::Field { of, .. } => each_expr(of, visit),
         Expr::Index { of, index } => {
@@ -8218,18 +8638,24 @@ pub(crate) fn promote_constructions(
 
 fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
     for item in module.items.iter_mut() {
-        match item {
-            Item::Function(f) => each_expr_in_stmts(&mut f.body, visit),
-            Item::Record(r) => {
-                for method in r.methods.iter_mut() {
-                    each_expr_in_stmts(&mut method.body, visit);
-                }
+        each_expr_in_item(item, visit);
+    }
+}
+
+/// One item's slice of [`each_expr_in_module`], for the passes that need to
+/// know which declaration they are inside.
+fn each_expr_in_item(item: &mut Item, visit: &mut dyn FnMut(&mut Expr)) {
+    match item {
+        Item::Function(f) => each_expr_in_stmts(&mut f.body, visit),
+        Item::Record(r) => {
+            for method in r.methods.iter_mut() {
+                each_expr_in_stmts(&mut method.body, visit);
             }
-            Item::Constant(c) => each_expr(&mut c.value, visit),
-            Item::Test { body, .. } => each_expr_in_stmts(body, visit),
-            Item::Statement(stmt) => each_expr_in_stmts(std::slice::from_mut(stmt), visit),
-            Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
         }
+        Item::Constant(c) => each_expr(&mut c.value, visit),
+        Item::Test { body, .. } => each_expr_in_stmts(body, visit),
+        Item::Statement(stmt) => each_expr_in_stmts(std::slice::from_mut(stmt), visit),
+        Item::Newtype(_) | Item::Sum(_) | Item::Import { .. } | Item::Unsupported(_) => {}
     }
 }
 
@@ -8240,6 +8666,282 @@ fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
 /// the module declares stays and takes the sum's plain name. A candidate in
 /// callee position or naming anything else goes back to being carried, which
 /// every such path was before candidates existed.
+/// Branches that ask "which variant is this?" become the match they are.
+///
+/// The construction crossed a pass before the consumption did: `s.kind ==
+/// "circle"` and `s.radius` went to Rust verbatim, against an enum that
+/// declares neither. An `if`/`else if` chain or a `switch` is a variant
+/// match when its literals name exactly one module sum's variants through
+/// one subject's field. Each arm's payload reads through the
+/// subject become plain locals, so every writer can spell the narrowing its
+/// own way. A chain that mixes in any other condition stays what it was.
+fn settle_variant_narrowing(module: &mut Module) {
+    use std::collections::BTreeMap;
+    let sums: BTreeMap<String, BTreeMap<String, Vec<String>>> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some((
+                s.name.clone(),
+                s.variants
+                    .iter()
+                    .map(|v| {
+                        (
+                            v.name.clone(),
+                            v.fields.iter().map(|f| f.name.clone()).collect(),
+                        )
+                    })
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
+    if sums.is_empty() {
+        return;
+    }
+    // The variant a literal names, when exactly one sum answers for it.
+    let tags: std::collections::BTreeMap<(String, String), String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                (
+                    (s.name.clone(), v.name.clone()),
+                    v.tag
+                        .clone()
+                        .unwrap_or_else(|| crate::transpile::write::snake_always(&v.name)),
+                )
+            })),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    let variant_of = |lit: &str| -> Option<(String, String)> {
+        let mut found = None;
+        for (sum, variants) in &sums {
+            for name in variants.keys() {
+                let answers = tags
+                    .get(&(sum.clone(), name.clone()))
+                    .is_some_and(|tag| tag == lit);
+                if answers {
+                    match found {
+                        None => found = Some((sum.clone(), name.clone())),
+                        Some(_) => return None,
+                    }
+                }
+            }
+        }
+        found
+    };
+    // `cond` as "this subject's field equals this literal", either way round.
+    fn tag_test(cond: &Expr) -> Option<(&Expr, &str)> {
+        let Expr::Binary {
+            op: BinaryOp::Eq,
+            left,
+            right,
+        } = cond
+        else {
+            return None;
+        };
+        match (left.as_ref(), right.as_ref()) {
+            (Expr::Field { of, .. }, Expr::Str(lit)) => Some((of.as_ref(), lit.as_str())),
+            (Expr::Str(lit), Expr::Field { of, .. }) => Some((of.as_ref(), lit.as_str())),
+            _ => None,
+        }
+    }
+    // Replace the payload reads of `variant` through `subject` with locals and
+    // say which fields were read.
+    fn bind_payload(
+        body: &mut [Stmt],
+        subjects: &[String],
+        fields: &[String],
+    ) -> Vec<(String, String)> {
+        let mut bound: Vec<(String, String)> = Vec::new();
+        each_expr_in_stmts(body, &mut |e| {
+            // `c.radius()` is Java reading the payload through the record's
+            // accessor; the bare field read is everyone else's spelling.
+            if let Expr::Call { callee, args } = e {
+                if args.is_empty() {
+                    if let Expr::Field { of, name } = callee.as_ref() {
+                        if subjects.contains(&format!("{of:?}")) && fields.contains(name) {
+                            let name = name.clone();
+                            if !bound.iter().any(|(f, _)| f == &name) {
+                                bound.push((name.clone(), name.clone()));
+                            }
+                            *e = Expr::Name(name);
+                            return;
+                        }
+                    }
+                }
+            }
+            if let Expr::Field { of, name } = e {
+                if subjects.contains(&format!("{of:?}")) && fields.contains(name) {
+                    if !bound.iter().any(|(f, _)| f == name) {
+                        bound.push((name.clone(), name.clone()));
+                    }
+                    *e = Expr::Name(name.clone());
+                }
+            }
+        });
+        bound
+    }
+    let mut settle = |stmt: &mut Stmt| {
+        match stmt {
+            Stmt::If { condition, .. } => {
+                let test_of = |cond: &Expr| -> Option<(Expr, (String, String))> {
+                    if let Some((subject, lit)) = tag_test(cond) {
+                        return variant_of(lit).map(|found| (subject.clone(), found));
+                    }
+                    if let Expr::InstanceOf { value, ty } = cond {
+                        if let Expr::Name(n) = ty.as_ref() {
+                            let mut answering = sums
+                                .iter()
+                                .filter(|(_, variants)| variants.contains_key(n.as_str()))
+                                .map(|(sum, _)| sum.clone());
+                            if let (Some(sum), None) = (answering.next(), answering.next()) {
+                                return Some((value.as_ref().clone(), (sum, n.clone())));
+                            }
+                        }
+                    }
+                    None
+                };
+                let Some((subject, _)) = test_of(condition) else {
+                    return;
+                };
+                let key = format!("{subject:?}");
+                // Walk the chain, collecting arms while every link keeps the shape.
+                let mut arms: Vec<VariantArm> = Vec::new();
+                let mut default: Vec<Stmt> = Vec::new();
+                let mut sum_name = String::new();
+                let mut current = std::mem::replace(stmt, Stmt::Expr(Expr::Null));
+                let rest = &mut current;
+                loop {
+                    let Stmt::If {
+                        condition,
+                        then,
+                        otherwise,
+                    } = rest
+                    else {
+                        unreachable!("only an if enters the loop");
+                    };
+                    let settled = test_of(condition)
+                        .filter(|(s, _)| format!("{s:?}") == key)
+                        .map(|(_, found)| found);
+                    let Some((sum, variant)) = settled else {
+                        // A link that stopped matching: the whole remainder is
+                        // the default, and the chain closes here.
+                        break;
+                    };
+                    sum_name = sum;
+                    let fields = sums[&sum_name][&variant].clone();
+                    let mut body = std::mem::take(then);
+                    // `var c = (Circle) s;` re-names the narrowed subject.
+                    // The alias reads like the subject from here on, and the
+                    // cast itself has nothing left to say.
+                    let mut keys = vec![key.clone()];
+                    body.retain(|stmt| {
+                        if let Stmt::Let {
+                            name,
+                            value: Some(Expr::Cast { ty, value }),
+                            ..
+                        } = stmt
+                        {
+                            let casts_subject = format!("{value:?}") == key
+                                && matches!(ty.as_ref(), Expr::Name(n) if *n == variant);
+                            if casts_subject {
+                                keys.push(format!("{:?}", Expr::Name(name.clone())));
+                                return false;
+                            }
+                        }
+                        true
+                    });
+                    let bindings = bind_payload(&mut body, &keys, &fields);
+                    arms.push(VariantArm {
+                        variant,
+                        bindings,
+                        body,
+                    });
+                    match otherwise.as_mut_slice() {
+                        [Stmt::If { .. }] => {
+                            let mut chain = std::mem::take(otherwise);
+                            *rest = chain.pop().expect("just matched one");
+                            continue;
+                        }
+                        _ => {
+                            default = std::mem::take(otherwise);
+                            *rest = Stmt::Expr(Expr::Null);
+                            break;
+                        }
+                    }
+                }
+                // A remainder that broke the shape becomes the default arm.
+                if !matches!(rest, Stmt::Expr(Expr::Null)) {
+                    default = vec![std::mem::replace(rest, Stmt::Expr(Expr::Null))];
+                }
+                *stmt = Stmt::MatchVariants {
+                    subject,
+                    sum: sum_name,
+                    arms,
+                    default,
+                };
+            }
+            Stmt::Switch {
+                subject: Expr::Field { of, .. },
+                arms,
+                default,
+            } => {
+                let all: Option<Vec<(String, String)>> = arms
+                    .iter()
+                    .map(|(literals, _)| match literals.as_slice() {
+                        [Expr::Str(lit)] => variant_of(lit),
+                        _ => None,
+                    })
+                    .collect();
+                let Some(settled) = all else { return };
+                let Some(sum) = settled.first().map(|(s, _)| s.clone()) else {
+                    return;
+                };
+                if settled.iter().any(|(s, _)| *s != sum) {
+                    return;
+                }
+                let subject = of.as_ref().clone();
+                let key = format!("{subject:?}");
+                let built: Vec<VariantArm> = std::mem::take(arms)
+                    .into_iter()
+                    .zip(settled)
+                    .map(|((_, mut body), (_, variant))| {
+                        let fields = sums[&sum][&variant].clone();
+                        let bindings = bind_payload(&mut body, std::slice::from_ref(&key), &fields);
+                        VariantArm {
+                            variant,
+                            bindings,
+                            body,
+                        }
+                    })
+                    .collect();
+                *stmt = Stmt::MatchVariants {
+                    subject,
+                    sum,
+                    arms: built,
+                    default: std::mem::take(default),
+                };
+            }
+            _ => {}
+        }
+    };
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => each_stmt_in_stmts(&mut f.body, &mut settle),
+            Item::Record(r) => {
+                for m in &mut r.methods {
+                    each_stmt_in_stmts(&mut m.body, &mut settle);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 fn settle_variants(module: &mut Module) {
     use std::collections::{BTreeMap, BTreeSet};
     let records: BTreeSet<String> = module
@@ -8261,6 +8963,20 @@ fn settle_variants(module: &mut Module) {
             _ => None,
         })
         .collect();
+    let variant_fields: BTreeMap<(String, String), Vec<String>> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                (
+                    (s.name.clone(), v.name.clone()),
+                    v.fields.iter().map(|f| f.name.clone()).collect(),
+                )
+            })),
+            _ => None,
+        })
+        .flatten()
+        .collect();
     let demoted = |sum: &str, name: &str, fields: &[(String, Expr)]| {
         let source = match fields.is_empty() {
             true => format!("{sum}::{name}"),
@@ -8272,79 +8988,160 @@ fn settle_variants(module: &mut Module) {
             line: 0,
         })
     };
-    each_expr_in_module(module, &mut |e| {
-        if let Expr::Call { callee, args } = e {
-            // A path used as a callee is `Vec::new()` or a tuple-variant build;
-            // neither has a crossing. The walk settles children first, so by now
-            // the callee is either a still-valid variant (a tuple-variant build)
-            // or the carried path this pass demoted it to; either way, demoting
-            // only the callee left the marker being called, and `None()` ran in
-            // Python. The whole call carries.
-            let path_callee = match callee.as_ref() {
-                Expr::Variant { sum, name, .. } => Some(format!("{sum}::{name}")),
-                Expr::Unsupported(u) if u.construct == "a name reached through a path" => {
-                    Some(u.source.clone())
-                }
-                _ => None,
-            };
-            if let Some(path) = path_callee {
-                let source = format!("{path}({} argument(s))", args.len());
-                *e = Expr::Unsupported(Unsupported {
-                    construct: "a call through a path".to_string(),
-                    source,
-                    line: 0,
-                });
-                return;
-            }
-        }
-        if let Expr::Variant { sum, name, fields } = e {
-            // An anonymous candidate names no sum at all. It is attributed
-            // when exactly one of the module's sums answers to the variant's
-            // name, and carried when none or several do. A candidate naming
-            // one of the module's own records is that record being built.
-            if sum.is_empty() {
-                if records.contains(name.as_str()) {
-                    let args = std::mem::take(fields)
-                        .into_iter()
-                        .map(|(field, value)| Expr::Keyword {
-                            name: field,
-                            value: Box::new(value),
-                        })
-                        .collect();
-                    *e = Expr::New {
-                        callee: Box::new(Expr::Name(name.clone())),
-                        args,
-                    };
-                    return;
-                }
-                let answering: Vec<&String> = sums
-                    .iter()
-                    .filter(|(_, variants)| variants.contains(name.as_str()))
-                    .map(|(owner, _)| owner)
-                    .collect();
-                match answering.as_slice() {
-                    [only] => *sum = (*only).clone(),
-                    _ => {
-                        let source = format!(".{{ .{name} = .. }}");
-                        *e = Expr::Unsupported(Unsupported {
-                            construct: "an anonymous variant".to_string(),
-                            source,
+    let mut items = std::mem::take(&mut module.items);
+    for item in &mut items {
+        // A match read as a variant match must name one of this module's own
+        // sums. `match dir` over an imported enum has no declaration here to
+        // check against, and writing `isinstance(dir, North)` into Python
+        // invented a name. The demotion renders the arms back as Rust, so the
+        // carry keeps its body.
+        if let Item::Function(f) = item {
+            each_stmt_in_stmts(&mut f.body, &mut |stmt| {
+                if let Stmt::MatchVariants { sum, arms, .. } = stmt {
+                    let known = sums
+                        .get(sum.as_str())
+                        .is_some_and(|variants| arms.iter().all(|a| variants.contains(&a.variant)));
+                    if !known {
+                        let rendered =
+                            crate::transpile::write::render_rust_stmts(std::slice::from_ref(stmt));
+                        *stmt = Stmt::Unsupported(Unsupported {
+                            construct: "a match on a foreign choice".to_string(),
+                            source: rendered,
                             line: 0,
                         });
                     }
                 }
-                return;
-            }
-            let plain = sum.rsplit([':', '.']).next().unwrap_or(sum).to_string();
-            let answered = sums
-                .get(&plain)
-                .is_some_and(|variants| variants.contains(name.as_str()));
-            match answered {
-                true => *sum = plain,
-                false => *e = demoted(sum, name, fields),
-            }
+            });
         }
-    });
+        let returning: Option<String> = match item {
+            Item::Function(f) => match &f.returns {
+                Some(Type::Named { name, .. }) => Some(name.clone()),
+                _ => None,
+            },
+            _ => None,
+        };
+        each_expr_in_item(item, &mut |e| {
+            if let Expr::Call { callee, args } = e {
+                // A path used as a callee is `Vec::new()` or a tuple-variant build;
+                // neither has a crossing. The walk settles children first, so by now
+                // the callee is either a still-valid variant (a tuple-variant build)
+                // or the carried path this pass demoted it to; either way, demoting
+                // only the callee left the marker being called, and `None()` ran in
+                // Python. The whole call carries.
+                let path_callee = match callee.as_ref() {
+                    Expr::Variant { sum, name, .. } => Some(format!("{sum}::{name}")),
+                    Expr::Unsupported(u) if u.construct == "a name reached through a path" => {
+                        Some(u.source.clone())
+                    }
+                    _ => None,
+                };
+                if let Some(path) = path_callee {
+                    let source = format!("{path}({} argument(s))", args.len());
+                    *e = Expr::Unsupported(Unsupported {
+                        construct: "a call through a path".to_string(),
+                        source,
+                        line: 0,
+                    });
+                    return;
+                }
+            }
+            if let Expr::New { callee, args } = e {
+                // `new Point()` built a record that a sum has since consumed. The
+                // construction is the variant's, arguments matched against the
+                // declared fields in order, keywords by their names.
+                if let Expr::Name(n) = callee.as_ref() {
+                    if !records.contains(n.as_str()) {
+                        let answering: Vec<(&String, &BTreeSet<String>)> = sums
+                            .iter()
+                            .filter(|(_, variants)| variants.contains(n.as_str()))
+                            .collect();
+                        if let [(sum, _)] = answering.as_slice() {
+                            let declared = variant_fields
+                                .get(&((*sum).clone(), n.clone()))
+                                .cloned()
+                                .unwrap_or_default();
+                            let name = n.clone();
+                            let sum = (*sum).clone();
+                            let taken = std::mem::take(args);
+                            let mut fields = Vec::new();
+                            let mut position = 0usize;
+                            for arg in taken {
+                                match arg {
+                                    Expr::Keyword { name, value } => fields.push((name, *value)),
+                                    other => {
+                                        let field = declared
+                                            .get(position)
+                                            .cloned()
+                                            .unwrap_or_else(|| "value".to_string());
+                                        position += 1;
+                                        fields.push((field, other));
+                                    }
+                                }
+                            }
+                            *e = Expr::Variant { sum, name, fields };
+                            return;
+                        }
+                    }
+                }
+            }
+            if let Expr::Variant { sum, name, fields } = e {
+                // An anonymous candidate names no sum at all. It is attributed
+                // when exactly one of the module's sums answers to the variant's
+                // name, and carried when none or several do. A candidate naming
+                // one of the module's own records is that record being built. A
+                // name that is both, a struct kept beside its variant, settles by
+                // the enclosing function's return type. Returning the struct
+                // builds the struct; anything else builds the variant.
+                if sum.is_empty() {
+                    let also_variant = sums
+                        .values()
+                        .any(|variants| variants.contains(name.as_str()));
+                    let build_record = records.contains(name.as_str())
+                        && (!also_variant || returning.as_deref() == Some(name.as_str()));
+                    if build_record {
+                        let args = std::mem::take(fields)
+                            .into_iter()
+                            .map(|(field, value)| Expr::Keyword {
+                                name: field,
+                                value: Box::new(value),
+                            })
+                            .collect();
+                        *e = Expr::New {
+                            callee: Box::new(Expr::Name(name.clone())),
+                            args,
+                        };
+                        return;
+                    }
+                    let answering: Vec<&String> = sums
+                        .iter()
+                        .filter(|(_, variants)| variants.contains(name.as_str()))
+                        .map(|(owner, _)| owner)
+                        .collect();
+                    match answering.as_slice() {
+                        [only] => *sum = (*only).clone(),
+                        _ => {
+                            let source = format!(".{{ .{name} = .. }}");
+                            *e = Expr::Unsupported(Unsupported {
+                                construct: "an anonymous variant".to_string(),
+                                source,
+                                line: 0,
+                            });
+                        }
+                    }
+                    return;
+                }
+                let plain = sum.rsplit([':', '.']).next().unwrap_or(sum).to_string();
+                let answered = sums
+                    .get(&plain)
+                    .is_some_and(|variants| variants.contains(name.as_str()));
+                match answered {
+                    true => *sum = plain,
+                    false => *e = demoted(sum, name, fields),
+                }
+            }
+        });
+    }
+    module.items = items;
 }
 
 /// The pieces between top-level commas, nesting respected.

@@ -63,8 +63,10 @@ fn a_returned_object_literal_builds_the_record_the_signature_promised() {
 
 #[test]
 fn a_java_main_reaches_python_with_the_programs_arguments() {
+    // A body that reads `args` is a program that takes arguments, and the
+    // guard hands them over.
     let source = "public class App {\n    public static void main(String[] args) {\n        \
-                  System.out.println(\"run\");\n    }\n}\n";
+                  System.out.println(args.length);\n    }\n}\n";
     let tmp = tempfile::tempdir().unwrap();
     let path = tmp.path().join("App.java");
     std::fs::write(&path, source).unwrap();
@@ -81,6 +83,25 @@ fn a_java_main_reaches_python_with_the_programs_arguments() {
             plan.output
         );
     }
+}
+
+#[test]
+fn a_java_main_that_ignores_its_arguments_takes_none() {
+    // `main(String[] args)` is the one signature the runtime looks for. A body
+    // that never reads `args` says nothing about what the program takes.
+    // Carried as data, it came back out as a parameter the source never wrote.
+    let source = "public class App {\n    public static void main(String[] args) {\n        \
+                  System.out.println(\"run\");\n    }\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("App.java");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("app_out.txt");
+    let plan = transpile::plan_to(&path, Language::Python, Some(&out), false).unwrap();
+    assert!(
+        plan.output.contains("def main() -> None:") && plan.output.contains("    main()"),
+        "the guard calls what the signature declares:\n{}",
+        plan.output
+    );
 }
 
 #[test]

@@ -77,6 +77,18 @@ impl WarningKind {
     }
 }
 
+/// One place a refusal is about, carried as data beside the prose.
+///
+/// An ambiguity's rival definitions ride in the JSON error as `candidates`. The
+/// sites blocking a refusal rode only in its prose, and an agent had to parse the
+/// message back apart. This is the same fact as a field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefusalSite {
+    pub file: PathBuf,
+    pub line: usize,
+    pub col: usize,
+}
+
 /// Describes why a refactoring refused to proceed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refusal {
@@ -152,8 +164,12 @@ pub enum Refusal {
     /// The message carries the full listing, one blocking site per line. It was a plain
     /// `anyhow!` before, which exited 1 while `fr --help` promised every considered
     /// refusal exits 5. The exit code is chosen from the error's type, so the fix
-    /// belonged in the type.
-    StillUsed { detail: String },
+    /// belonged in the type. `references` is the same listing as data, for the JSON
+    /// error object.
+    StillUsed {
+        detail: String,
+        references: Vec<RefusalSite>,
+    },
     /// Something the tool cannot establish at all.
     ///
     /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and is not
@@ -221,7 +237,7 @@ impl std::fmt::Display for Refusal {
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
             // The detail is the whole message, worded at the site that knows the
             // sites, so the wording did not change when the type did.
-            Refusal::StillUsed { detail } => f.write_str(detail),
+            Refusal::StillUsed { detail, .. } => f.write_str(detail),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
             }
@@ -229,7 +245,28 @@ impl std::fmt::Display for Refusal {
     }
 }
 
+impl Refusal {
+    /// The positions this refusal is about, where it knows them exactly.
+    ///
+    /// Variants that carry a file without a position stay out: inventing a line for
+    /// them would be data that looks measured and is not.
+    pub fn references(&self) -> &[RefusalSite] {
+        match self {
+            Refusal::StillUsed { references, .. } => references,
+            _ => &[],
+        }
+    }
+}
+
 impl std::error::Error for Refusal {}
+
+/// The refusal in an error's chain, if one stopped the operation.
+///
+/// One lookup shared by the exit-code choice, the JSON error object and the
+/// recipe report. The three cannot disagree about what counts as a refusal.
+pub fn refusal_in(error: &anyhow::Error) -> Option<&Refusal> {
+    error.chain().find_map(|c| c.downcast_ref::<Refusal>())
+}
 
 /// The declared type of a reference's receiver, where the source wrote one.
 ///
@@ -240,9 +277,36 @@ pub(crate) fn receiver_declared_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
 ) -> Option<String> {
-    let receiver = reference.receiver.as_deref()?;
+    match receiver_type(index, reference) {
+        ReceiverType::Settled(ty) => Some(ty),
+        ReceiverType::Reassigned | ReceiverType::Unwritten => None,
+    }
+}
+
+/// What the source says a reference's receiver holds, `this` and `self` apart.
+///
+/// Three answers, because two of them are not the same silence. A receiver
+/// nothing describes and a receiver assigned two types are both unsafe to
+/// rewrite. A reader told the first about the second goes looking for an
+/// annotation that is already there.
+pub(crate) enum ReceiverType {
+    /// The source states the type, and every assignment in scope agrees.
+    Settled(String),
+    /// The receiver is assigned more than once in scope, to types that disagree.
+    Reassigned,
+    /// Nothing in scope says what the receiver holds.
+    Unwritten,
+}
+
+pub(crate) fn receiver_type(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+) -> ReceiverType {
+    let Some(receiver) = reference.receiver.as_deref() else {
+        return ReceiverType::Unwritten;
+    };
     if matches!(receiver, "this" | "self") {
-        return None;
+        return ReceiverType::Unwritten;
     }
     receiver_binding_type(index, reference, receiver)
 }
@@ -268,15 +332,20 @@ pub(crate) fn receiver_known_type(
             .min_by_key(|s| s.full_span.end - s.full_span.start)
             .and_then(|s| s.qualifier.clone());
     }
-    receiver_binding_type(index, reference, receiver)
+    match receiver_binding_type(index, reference, receiver) {
+        ReceiverType::Settled(ty) => Some(ty),
+        ReceiverType::Reassigned | ReceiverType::Unwritten => None,
+    }
 }
 
 fn receiver_binding_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
     receiver: &str,
-) -> Option<String> {
-    let info = index.file(&reference.file)?;
+) -> ReceiverType {
+    let Some(info) = index.file(&reference.file) else {
+        return ReceiverType::Unwritten;
+    };
     let chain = info.scope_chain(reference.scope);
     let binding = info
         .symbols
@@ -297,14 +366,21 @@ fn receiver_binding_type(
                 .iter()
                 .position(|sc| *sc == s.scope)
                 .unwrap_or(usize::MAX)
-        })?;
-    let declared = crate::analysis::types::of(index, binding.id).ok()?;
+        });
+    let Some(binding) = binding else {
+        return ReceiverType::Unwritten;
+    };
     // `var b = new B()` writes the type on the right of the `=`. The derivation
-    // is the source's own words as much as an annotation is; it is only reached
-    // where no annotation exists to disagree with it.
-    let written = declared.declared.or(declared.inferred.map(|i| i.ty))?;
+    // is the source's own words as much as an annotation is, over the one
+    // assignment it reads. A name the scope assigns again holds two things, and
+    // this site is where that stops being evidence.
+    let written = match crate::analysis::types::held_by(index, binding.id) {
+        crate::analysis::types::Held::Settled(ty) => ty,
+        crate::analysis::types::Held::Reassigned => return ReceiverType::Reassigned,
+        crate::analysis::types::Held::Unwritten => return ReceiverType::Unwritten,
+    };
     // `List<Order>` names `List`; the last plain segment is the type's own name.
     let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);
-    Some(last.to_string())
+    ReceiverType::Settled(last.to_string())
 }

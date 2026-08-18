@@ -229,6 +229,12 @@ pub struct Sum {
 pub struct Variant {
     pub doc: Vec<String>,
     pub name: String,
+    /// The discriminator literal the source wrote, where the language writes
+    /// one: `kind: "idle"` on an interface named `FIdle`. Deriving the tag
+    /// from the name spelled it `f_idle`, and every consumer comparing
+    /// against `"idle"` missed. `None` for the languages that discriminate by
+    /// type instead of by field.
+    pub tag: Option<String>,
     /// Empty for a bare tag like `None` or `Empty`.
     pub fields: Vec<Field>,
 }
@@ -260,6 +266,15 @@ pub struct ImportTarget {
 pub struct ImportedName {
     pub name: String,
     pub alias: Option<String>,
+}
+
+/// One arm of a [`Stmt::MatchVariants`]: the variant it selects, the payload
+/// fields the body reads (field name, local name), and the body itself.
+#[derive(Debug, Clone)]
+pub struct VariantArm {
+    pub variant: String,
+    pub bindings: Vec<(String, String)>,
+    pub body: Vec<Stmt>,
 }
 
 /// Something with no counterpart, carried whole so nothing is lost.
@@ -433,6 +448,23 @@ pub enum Stmt {
         /// Each arm: the literals that select it, and its body.
         arms: Vec<(Vec<Expr>, Vec<Stmt>)>,
         /// The `_` / `else` / `default` body; empty when the source had none.
+        default: Vec<Stmt>,
+    },
+    /// One sum value branched by variant, each arm's payload bound by name.
+    ///
+    /// The construction crossed a pass before the consumption did. `s.kind ==
+    /// "circle"` and `s.radius` went to Rust verbatim, against an enum that
+    /// declares neither, while the header said every signature carried. Each
+    /// language asks the question its own way. TypeScript compares the
+    /// discriminator, Python asks `isinstance`, Rust and Zig match, Go switches
+    /// on type, Java tests `instanceof`. The bindings are the payload fields
+    /// an arm reads, bound to plain locals, so every writer can spell the
+    /// narrowing without knowing the others' idioms.
+    MatchVariants {
+        subject: Expr,
+        sum: String,
+        arms: Vec<VariantArm>,
+        /// The `else` / `default` body; empty when the source had none.
         default: Vec<Stmt>,
     },
     /// `while let Some(x) = e`, `while (e) |x|`: loop while the optional holds a
@@ -775,7 +807,7 @@ pub enum UnaryOp {
 ///
 /// The point of the exercise. A translated file is a draft, and the only way to use a
 /// draft responsibly is to know where it stops being one.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, serde::Serialize)]
 pub struct Fidelity {
     pub functions: usize,
     pub records: usize,

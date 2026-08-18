@@ -81,6 +81,16 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         );
     }
 
+    // Go's doc-comment convention heads the comment above a declaration with the
+    // declared name. That one textual occurrence is unambiguous and renames with
+    // the definition. Every other comment mention still only warns.
+    for id in &group {
+        if let Some(edit) = go_doc_head_edit(index, *id, new_name) {
+            let (file, head) = edit;
+            edits.add(file, head);
+        }
+    }
+
     // A heading's references are `#anchor` links, and an anchor is a slug of the
     // heading instead of the heading itself. Writing the new name into one would
     // produce a link to nothing, `## Two Words` renamed to `Three Words` needs
@@ -632,6 +642,64 @@ fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), R
     Ok(())
 }
 
+/// The edit renaming the head word of a Go definition's doc comment, if it is due.
+///
+/// gofmt convention: the comment block directly above a declaration begins with the
+/// declared name. When the first word of that block is exactly the old name, the
+/// pairing is unambiguous and the word is edited with the definition. Left alone,
+/// the doc comment kept describing a function that no longer existed. Any other
+/// spelling, and any other language, stays a textual-occurrence warning.
+fn go_doc_head_edit(index: &Index, id: SymbolId, new_name: &str) -> Option<(PathBuf, Edit)> {
+    let symbol = index.symbol(id)?;
+    if symbol.language != Language::Go {
+        return None;
+    }
+    let source = crate::vfs::read_to_string(&symbol.file).ok()?;
+    let definition_line_start = source[..symbol.full_span.start]
+        .rfind('\n')
+        .map(|at| at + 1)
+        .unwrap_or(0);
+
+    // Climb through the contiguous `//` block that touches the definition.
+    let mut block_start = None;
+    let mut at = definition_line_start;
+    while at > 0 {
+        let previous_start = source[..at - 1].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        let line = &source[previous_start..at - 1];
+        if !line.trim_start().starts_with("//") {
+            break;
+        }
+        block_start = Some(previous_start);
+        at = previous_start;
+    }
+    let first_line_start = block_start?;
+    let line_end = source[first_line_start..]
+        .find('\n')
+        .map(|i| first_line_start + i)
+        .unwrap_or(source.len());
+    let line = &source[first_line_start..line_end];
+
+    let slashes = line.find("//")?;
+    let after = &line[slashes + 2..];
+    let word_offset = after.len() - after.trim_start().len();
+    let word = &after[word_offset..];
+    let head_len = word
+        .find(|c: char| !c.is_alphanumeric() && c != '_')
+        .unwrap_or(word.len());
+    if word[..head_len] != symbol.name {
+        return None;
+    }
+    let start = first_line_start + slashes + 2 + word_offset;
+    Some((
+        symbol.file.clone(),
+        Edit::new(
+            Span::new(start, start + head_len),
+            new_name,
+            format!("rename doc comment head of {}", symbol.name),
+        ),
+    ))
+}
+
 /// Find the old name inside string literals and comments across the workspace.
 ///
 /// These defeat both syntax analysis and language servers, so they are surfaced for
@@ -664,10 +732,20 @@ fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String
         // Saying "type not known" about a receiver whose declaration names its
         // type reads as a defect. The true reason is that the named type is not
         // the renamed symbol's.
-        if let Some(declared) = super::receiver_declared_type(index, reference) {
-            return format!(
-                "its receiver is declared `{declared}`, which is not what is being renamed"
-            );
+        match super::receiver_type(index, reference) {
+            super::ReceiverType::Settled(declared) => {
+                return format!(
+                    "its receiver is declared `{declared}`, which is not what is being renamed"
+                );
+            }
+            super::ReceiverType::Reassigned => {
+                let receiver = reference.receiver.as_deref().unwrap_or("the receiver");
+                return format!(
+                    "`{receiver}` is assigned more than once here, so what it holds at \
+                     this line is not settled"
+                );
+            }
+            super::ReceiverType::Unwritten => {}
         }
         return "it is read from a value whose type is not known here, so it may name \
                 something else of the same name"
@@ -734,6 +812,47 @@ mod tests {
         let found = index.find_symbols(name, None);
         assert_eq!(found.len(), 1, "expected one '{name}', got {found:?}");
         found[0].id
+    }
+
+    #[test]
+    fn a_go_doc_comments_head_word_renames_with_its_definition() {
+        // gofmt convention: the comment above a declaration begins with its name,
+        // so that one occurrence is unambiguous and edits instead of warning. The
+        // rest of the comment, and the body of a later line, stay untouched.
+        let (tmp, index) = workspace(&[(
+            "a.go",
+            "package p\n\n// Helper builds the Helper report.\n// Helper is safe.\n\
+             func Helper() int {\n\treturn 1\n}\n\nfunc use() int {\n\treturn Helper()\n}\n",
+        )]);
+        let plan = plan(&index, only_symbol(&index, "Helper"), "Builder").unwrap();
+        let path = tmp.path().join("a.go");
+        let source = crate::vfs::read_to_string(&path).unwrap();
+        let out = apply_to_string(&source, plan.edits.edits_for(&path).unwrap()).unwrap();
+        assert!(
+            out.contains("// Builder builds the Helper report."),
+            "the head word renames, the prose stays: {out}"
+        );
+        assert!(
+            out.contains("// Helper is safe."),
+            "later comment lines still only warn: {out}"
+        );
+        assert!(out.contains("func Builder() int"), "{out}");
+    }
+
+    #[test]
+    fn a_comment_that_does_not_head_with_the_name_still_only_warns() {
+        let (tmp, index) = workspace(&[(
+            "a.go",
+            "package p\n\n// Builds things with Helper.\nfunc Helper() int {\n\treturn 1\n}\n",
+        )]);
+        let plan = plan(&index, only_symbol(&index, "Helper"), "Builder").unwrap();
+        let path = tmp.path().join("a.go");
+        let source = crate::vfs::read_to_string(&path).unwrap();
+        let out = apply_to_string(&source, plan.edits.edits_for(&path).unwrap()).unwrap();
+        assert!(
+            out.contains("// Builds things with Helper."),
+            "a mid-sentence mention is not the doc head: {out}"
+        );
     }
 
     #[test]
