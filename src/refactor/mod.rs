@@ -285,9 +285,10 @@ pub(crate) fn receiver_declared_type(
 
 /// What the source says a reference's receiver holds, `this` and `self` apart.
 ///
-/// Three answers, because two of them are not the same silence. A receiver nothing
-/// describes and a receiver assigned two types are both unsafe to rewrite, and a
-/// reader told the first about the second goes looking for a missing annotation.
+/// Three answers, because two of them are not the same silence. A receiver
+/// nothing describes and a receiver assigned two types are both unsafe to
+/// rewrite. A reader told the first about the second goes looking for an
+/// annotation that is already there.
 pub(crate) enum ReceiverType {
     /// The source states the type, and every assignment in scope agrees.
     Settled(String),

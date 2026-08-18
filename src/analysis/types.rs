@@ -54,7 +54,7 @@ impl Basis {
             Basis::ReturnOfCall => "from the declared return type of the call",
             Basis::SameBinding => "from the binding it was assigned from",
             Basis::FieldOfRecord => "from the field's declaration",
-            Basis::ElementOfIterable => "from the element type of the sequence it walks",
+            Basis::ElementOfIterable => "from the sequence's element type",
         }
     }
 }
@@ -192,9 +192,9 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
 /// What a name holds where it is read, over every assignment to it in its scope.
 ///
 /// [`of`] answers about one declaration, which is the right answer to its own question.
-/// A use site asks a different one. `b = B()` above `b = A()` puts two types into one
-/// name, and the initializer of either states what that name holds nowhere but on its
-/// own line.
+/// A use site asks a different one. `b = B()` above `b = A()` puts two types
+/// into one name. Either initializer states what that name holds on its own
+/// line, and nowhere else.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Held {
     /// The source states this, and every assignment in scope agrees.

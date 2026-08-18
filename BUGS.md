@@ -175,6 +175,29 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B527: **`//` crossed to Rust as arithmetic that disagrees with it.**
+  `div_euclid` rounds so the remainder is never negative. Python's `//` rounds
+  toward negative infinity. They agree only when the divisor is positive, so
+  `7 // -2` was -4 in Python and -3 in the draft, running and unmarked. The
+  Rust writer emits a floor-division helper whose answers match Python for
+  every sign. Pinned in `tests/translate_floor_div.rs`.
+
+- [x] B528: **`fr extract` wrote unparseable code across a loop boundary and
+  called it success.** A selection with one end inside a loop's body and the
+  other outside it kept its bytes, so the loop's outdent landed in the middle
+  of the new function. Such a selection is refused with the boundary named, by
+  a guard shared across languages. Both this refusal and the escaping-`return`
+  one are considered refusals now, and exit 5 as the help promises. Pinned in
+  `tests/extract_function.rs`.
+
+- [x] B529: **a rename trusted an initializer the code had overwritten.** With
+  `b = B()` and then `b = A()` on a live path, `b.size(2)` renamed with `B`'s
+  method under the claim that `b` is declared `B`, and the result raised
+  AttributeError. A type derived from an initializer is evidence only where
+  nothing reassigns the binding. Otherwise the site stays for review, and the
+  reason says the binding is assigned more than once. Pinned in
+  `tests/rename_property_family.rs`.
+
 - [x] B524: **a Python class with two bases lost both of them.** `class
   Import(Taxed, Levied)` crossed as a class extending nothing. The body kept
   `super().cost()`, TypeScript answered TS2335, and the report claimed every

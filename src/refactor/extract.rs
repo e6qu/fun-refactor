@@ -672,12 +672,12 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     let parsed = Parsers::new().parse(language, &source)?;
 
     let run = statement_region(&parsed, span, &source)
-        .ok_or_else(|| anyhow::anyhow!("select one or more complete statements to extract"))?;
+        .ok_or_else(|| anyhow::anyhow!("select one or more complete statements to extract."))?;
     let region = run.span;
 
-    // The moved statements keep their original bytes. Where the two ends of the region
-    // sit in different blocks, those bytes carry a block's closing brace, or Python's
-    // outdent, into the middle of the new function.
+    // The moved statements keep their original bytes. Two ends in different
+    // blocks carry a closing brace, or Python's outdent, into the middle of
+    // the new function.
     if let Some(owner) = straddled_block(&run) {
         let lines = crate::span::LineIndex::new(&source);
         let at = lines.line_col(Span::from(owner).start, &source);
@@ -1139,8 +1139,9 @@ fn is_comment(kind: &str) -> bool {
 
 /// The ancestor of `node` that is a statement: a named direct child of a container.
 ///
-/// The `}` closing a block is a child of that block, and taking it for a statement made a
-/// selection ending on one look as though it ended inside the block it closes.
+/// The `}` closing a block is a child of that block. Taking it for a statement
+/// made a selection ending on one look as though it ended inside the block it
+/// closes.
 fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
@@ -1155,18 +1156,18 @@ fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
 /// The construct owning the block one end of `region` sits in, when its two ends sit in
 /// different blocks.
 ///
-/// [`statement_region`] widens each end to a whole statement on its own, and neither end
-/// knows where the other landed. A selection running from inside a loop to past the loop
-/// therefore produced a region spanning two blocks, which extraction copied verbatim into
-/// a new function: a stray closing brace in TypeScript, a stray outdent in Python, and a
-/// success report over code that does not parse.
+/// [`statement_region`] widens each end to a whole statement on its own, and
+/// neither end knows where the other landed. A selection running from inside a
+/// loop to past it spanned two blocks, and extraction copied that verbatim. A
+/// stray brace in TypeScript, a stray outdent in Python, and a success report
+/// over code that does not parse.
 fn straddled_block<'tree>(run: &StatementRun<'tree>) -> Option<Node<'tree>> {
     let (first_block, last_block) = (run.first.parent()?, run.last.parent()?);
 
-    // A region is extractable when it is a run of whole statements out of one block, so
-    // it has to end where one of that block's children ends. Selecting a whole loop ends
-    // on the loop's last line, which is such a child even though the last byte of it
-    // belongs to the loop's own body.
+    // A region is extractable when it runs over whole statements of one block.
+    // So it ends where one of that block's children ends. Selecting a whole
+    // loop ends on the loop's last line. That line is such a child, even
+    // though its last byte belongs to the loop's own body.
     let mut cursor = first_block.walk();
     if first_block
         .children(&mut cursor)

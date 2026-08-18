@@ -150,3 +150,29 @@ fn an_unrelated_class_with_the_same_property_name_stays_put() {
         "`c` is declared `Crate`, which is not what is being renamed.\n{out}"
     );
 }
+
+#[test]
+fn a_receiver_assigned_twice_holds_its_call_back() {
+    // `b = B()` then `b = A()` on a live path. An initializer is not a
+    // declaration when the binding is rebound. Renaming the call with `B`'s
+    // method wrote code that raises on the other path.
+    let source = "class B:\n    def size(self, n: int) -> int:\n        return n * 2\n\n\n\
+        class A:\n    def size(self, n: int) -> int:\n        return n * 3\n\n\n\
+        def run(flag: bool) -> int:\n    b = B()\n    if flag:\n        b = A()\n    \
+        return b.size(2)\n";
+    let (tmp, index) = workspace(&[("shop.py", source)]);
+    let id = symbol_at(&index, &tmp.path().join("shop.py"), source, "def size");
+    let plan = rename::plan(&index, id, "grow").unwrap();
+    let out = applied(tmp.path(), "shop.py", &plan);
+    assert!(
+        out.contains("return b.size(2)"),
+        "the call stays where the receiver is not settled.\n{out}"
+    );
+    assert!(
+        plan.warnings
+            .iter()
+            .any(|w| w.detail.contains("assigned more than once")),
+        "and the report says why: {:?}",
+        plan.warnings
+    );
+}
