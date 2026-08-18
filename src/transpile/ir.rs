@@ -408,6 +408,30 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
+    /// `for i := 0; i < n; i++`: a header that starts a counter, tests it before
+    /// each pass and steps it after one.
+    ///
+    /// Go, Java and TypeScript write the whole header. Zig says the same with
+    /// `while (c) : (step)`, whose step also runs on a `continue`. Rust and
+    /// Python have no such header. Both walk a range where the header walks
+    /// one. The rest goes longhand: the start above the loop, the step at the
+    /// foot of the body. A `continue` skips a step written that way and the
+    /// loop never ends, so a body with one carries whole instead.
+    ///
+    /// This is Go's only loop keyword. All three spellings were carried as
+    /// comments, which is the highest-frequency loss the language had.
+    CountedFor {
+        /// What runs once before the first test.
+        init: Option<Box<Stmt>>,
+        /// Tested before each pass. Absent is Go's `for { }`, a loop forever.
+        condition: Option<Expr>,
+        /// What runs after each pass, before the next test.
+        update: Option<Box<Stmt>>,
+        body: Vec<Stmt>,
+        /// The original, for a writer that cannot spell this loop.
+        source: String,
+        line: usize,
+    },
     /// `for i, x in enumerate(xs)`, `for (xs, 0..) |x, i|`: each element beside
     /// its position, counted from zero.
     ///

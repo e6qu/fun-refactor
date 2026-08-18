@@ -175,6 +175,26 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B542: **a Java entry from an unexported source would not start.** Go's
+  `main` is lower-case. So the Java draft came out `private static void
+  main`. The runtime answered "Main method not found
+  in class". Whether the source exported its entry is a fact about the source.
+  The entry is written public whatever it was. Pinned by the run in
+  `tests/translate_counted_for.rs`.
+
+- [x] B541: **Go's `for` carried in three of its four spellings.** `for { }`,
+  `for cond { }` and `for i := 0; i < n; i++ { }` all became comments, and the
+  comment took the body with it. Every name the header bound was then
+  undeclared. Java's counted `for` went the same way, and so did `i++` as a
+  statement of its own. The IR has a counted loop now. Go, Java and TypeScript
+  write the whole header. Zig writes the step as a continue expression. Rust
+  and Python walk a range where the header walks one and say the rest longhand.
+  A `continue` under the longhand would skip the step, so those loops carry
+  whole and say so. Fixed alongside: `for i, x := range xs` dropped the index
+  and left `i` undeclared. It is an indexed loop now. Pinned in
+  `tests/translate_counted_for.rs`. That gate runs the Go, the Python, the Rust
+  and the Java, and compares what they print.
+
 - [x] B540: **a field named with no receiver crossed as a free variable.** Java
   lets a body write `accounts` for a field it declares. Every writer here
   needs a receiver written. `tsc` answered "Cannot find name

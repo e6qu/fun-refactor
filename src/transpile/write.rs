@@ -134,6 +134,17 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     walk_stmts(body, add);
                 }
                 Stmt::While { body, .. } => walk_stmts(body, add),
+                // A counted `for` declares its counter in the header. Skipping
+                // the header left that name out of the spelling map, so the
+                // declaration and every use of it could take different casings.
+                Stmt::CountedFor {
+                    init, update, body, ..
+                } => {
+                    for header in [init, update].iter().copied().flatten() {
+                        walk_stmts(std::slice::from_ref(header), add);
+                    }
+                    walk_stmts(body, add);
+                }
                 _ => {}
             }
         }
@@ -1147,6 +1158,14 @@ fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
                 bound_names(otherwise, into);
             }
             Stmt::While { body, .. } => bound_names(body, into),
+            Stmt::CountedFor {
+                init, update, body, ..
+            } => {
+                for header in [init, update].iter().copied().flatten() {
+                    bound_names(std::slice::from_ref(header), into);
+                }
+                bound_names(body, into);
+            }
             Stmt::WhilePresent { binding, body, .. } => {
                 into.insert(binding.clone());
                 bound_names(body, into);
@@ -1210,6 +1229,247 @@ fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
             | Stmt::Continue
             | Stmt::Unsupported(_) => {}
         }
+    }
+}
+
+/// One statement rendered onto one line, for a loop header that holds one.
+///
+/// Every writer puts a statement on a line of its own. A `for` header wants
+/// three of them side by side, so this catches what the writer emitted and
+/// trims it. `None` when the statement needed more than a line, which no header
+/// can hold.
+fn header_line(out: &mut Out, stmt: &Stmt, write: &dyn Fn(&mut Out, &Stmt)) -> Option<String> {
+    let held = std::mem::take(&mut out.text);
+    let indent = std::mem::replace(&mut out.indent, 0);
+    write(out, stmt);
+    let rendered = std::mem::replace(&mut out.text, held);
+    out.indent = indent;
+    let trimmed = rendered.trim();
+    if trimmed.is_empty() || trimmed.contains('\n') {
+        return None;
+    }
+    Some(trimmed.trim_end_matches(';').to_string())
+}
+
+/// The three clauses of a `for` header, each on its own line, for the targets
+/// that write the whole header. `None` when one of them will not fit.
+fn counted_header(
+    out: &mut Out,
+    init: Option<&Stmt>,
+    condition: Option<&Expr>,
+    update: Option<&Stmt>,
+    write: &dyn Fn(&mut Out, &Stmt),
+    render: &dyn Fn(&mut Out, &Expr) -> String,
+) -> Option<(String, String, String)> {
+    let start = match init {
+        Some(stmt) => header_line(out, stmt, write)?,
+        None => String::new(),
+    };
+    let test = condition.map(|c| render(out, c)).unwrap_or_default();
+    let step = match update {
+        Some(stmt) => match c_style_step(out, stmt) {
+            Some(step) => step,
+            None => header_line(out, stmt, write)?,
+        },
+        None => String::new(),
+    };
+    Some((start, test, step))
+}
+
+/// `i = i + 1` written as the `i++` the C family reaches for.
+fn c_style_step(out: &Out, stmt: &Stmt) -> Option<String> {
+    let Stmt::Assign {
+        target: Expr::Name(name),
+        value,
+    } = stmt
+    else {
+        return None;
+    };
+    let Expr::Binary { op, left, right } = value else {
+        return None;
+    };
+    if !matches!(left.as_ref(), Expr::Name(n) if n == name) {
+        return None;
+    }
+    if !matches!(right.as_ref(), Expr::Int(one) if one == "1") {
+        return None;
+    }
+    let spelled = out.value_name(name);
+    match op {
+        BinaryOp::Add => Some(format!("{spelled}++")),
+        BinaryOp::Sub => Some(format!("{spelled}--")),
+        _ => None,
+    }
+}
+
+/// The inside of a C-family `for (…)`, with the empty header spelled `;;`.
+fn c_style_header(start: &str, test: &str, step: &str) -> String {
+    match (start.is_empty(), test.is_empty(), step.is_empty()) {
+        (true, true, true) => ";;".to_string(),
+        _ => format!("{start}; {test}; {step}").trim_end().to_string(),
+    }
+}
+
+/// Does a `continue` in this body belong to the loop this body is?
+///
+/// A target with no counted header says the loop longhand, with the step at the
+/// foot of the body. A `continue` jumps over that step and the loop never ends.
+/// An inner loop's `continue` is its own and does not count.
+fn continues_here(body: &[Stmt]) -> bool {
+    body.iter().any(|stmt| match stmt {
+        Stmt::Continue => true,
+        Stmt::If {
+            then, otherwise, ..
+        }
+        | Stmt::IfPresent {
+            then, otherwise, ..
+        } => continues_here(then) || continues_here(otherwise),
+        Stmt::Defer(body) | Stmt::ErrDefer(body) => continues_here(body),
+        Stmt::Switch { arms, default, .. } => {
+            arms.iter().any(|(_, body)| continues_here(body)) || continues_here(default)
+        }
+        Stmt::MatchVariants { arms, default, .. } => {
+            arms.iter().any(|arm| continues_here(&arm.body)) || continues_here(default)
+        }
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        } => {
+            continues_here(body)
+                || catches.iter().any(|c| continues_here(&c.body))
+                || continues_here(finally)
+        }
+        _ => false,
+    })
+}
+
+/// The counted loop as a range over one name, when its header is that simple.
+///
+/// `i := 0; i < n; i++` walks a range, and Python and Rust both write one. Said
+/// that way the step belongs to the loop, so a `continue` cannot skip it. The
+/// last member of the answer is the step, signed.
+fn counted_range<'s>(
+    init: Option<&'s Stmt>,
+    condition: Option<&'s Expr>,
+    update: Option<&'s Stmt>,
+    body: &[Stmt],
+) -> Option<(&'s str, &'s Expr, &'s Expr, i64)> {
+    let (name, start) = match init? {
+        Stmt::Let {
+            name,
+            value: Some(start),
+            ..
+        } => (name.as_str(), start),
+        Stmt::Assign {
+            target: Expr::Name(name),
+            value,
+        } => (name.as_str(), value),
+        _ => return None,
+    };
+    let Stmt::Assign {
+        target: Expr::Name(stepped),
+        value,
+    } = update?
+    else {
+        return None;
+    };
+    if stepped != name {
+        return None;
+    }
+    let Expr::Binary { op, left, right } = value else {
+        return None;
+    };
+    if !matches!(left.as_ref(), Expr::Name(n) if n == name) {
+        return None;
+    }
+    let Expr::Int(size) = right.as_ref() else {
+        return None;
+    };
+    let size: i64 = size.replace('_', "").parse().ok()?;
+    let step = match op {
+        BinaryOp::Add => size,
+        BinaryOp::Sub => -size,
+        _ => return None,
+    };
+    let Expr::Binary {
+        op: test,
+        left: subject,
+        right: bound,
+    } = condition?
+    else {
+        return None;
+    };
+    if !matches!(subject.as_ref(), Expr::Name(n) if n == name) {
+        return None;
+    }
+    // A body that moves the counter itself is not walking a range. Handing it
+    // one would change how many passes the loop makes.
+    if assigns_to(body, name) {
+        return None;
+    }
+    match (step > 0, test) {
+        (true, BinaryOp::Lt) | (false, BinaryOp::Gt) => Some((name, start, bound, step)),
+        _ => None,
+    }
+}
+
+/// Does anything under these statements assign to `name`?
+fn assigns_to(body: &[Stmt], name: &str) -> bool {
+    body.iter().any(|stmt| match stmt {
+        Stmt::Assign {
+            target: Expr::Name(target),
+            ..
+        } => target == name,
+        Stmt::If {
+            then, otherwise, ..
+        }
+        | Stmt::IfPresent {
+            then, otherwise, ..
+        } => assigns_to(then, name) || assigns_to(otherwise, name),
+        Stmt::While { body, .. }
+        | Stmt::WhilePresent { body, .. }
+        | Stmt::ForEach { body, .. }
+        | Stmt::ForEachIndexed { body, .. }
+        | Stmt::Defer(body)
+        | Stmt::ErrDefer(body) => assigns_to(body, name),
+        Stmt::CountedFor {
+            init, update, body, ..
+        } => {
+            [init, update]
+                .iter()
+                .copied()
+                .flatten()
+                .any(|s| assigns_to(std::slice::from_ref(s), name))
+                || assigns_to(body, name)
+        }
+        Stmt::Switch { arms, default, .. } => {
+            arms.iter().any(|(_, body)| assigns_to(body, name)) || assigns_to(default, name)
+        }
+        Stmt::MatchVariants { arms, default, .. } => {
+            arms.iter().any(|arm| assigns_to(&arm.body, name)) || assigns_to(default, name)
+        }
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        } => {
+            assigns_to(body, name)
+                || catches.iter().any(|c| assigns_to(&c.body, name))
+                || assigns_to(finally, name)
+        }
+        _ => false,
+    })
+}
+
+/// The counted loop as its own source, for a writer that cannot spell it.
+fn counted_original(source: &str, line: usize) -> Unsupported {
+    Unsupported {
+        construct: "counted for loop".to_string(),
+        source: source.to_string(),
+        line,
     }
 }
 
@@ -1927,6 +2187,60 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 rust_block(out, body, returns);
                 out.close();
                 out.line("}");
+            }
+            // Rust has no counted header, so the start goes before the loop and
+            // the step at the foot of the body. A `continue` would skip the step.
+            Stmt::CountedFor {
+                init,
+                condition,
+                update,
+                body,
+                source,
+                line,
+            } => {
+                // Rust's range counts up by one. Any other step is said with
+                // `step_by` or a reversal, and neither reads as this loop did.
+                let by_one =
+                    counted_range(init.as_deref(), condition.as_ref(), update.as_deref(), body)
+                        .filter(|(_, _, _, step)| *step == 1);
+                if let Some((name, start, bound, _)) = by_one {
+                    let (start, bound) = (rust_expr(out, start), rust_expr(out, bound));
+                    let name = out.name(name);
+                    out.line(&format!("for {name} in {start}..{bound} {{"));
+                    out.open();
+                    rust_block(out, body, returns);
+                    out.close();
+                    out.line("}");
+                } else if update.is_some() && continues_here(body) {
+                    carry(out, &counted_original(source, *line));
+                } else {
+                    let scoped = init.is_some();
+                    if scoped {
+                        out.line("{");
+                        out.open();
+                    }
+                    if let Some(init) = init {
+                        rust_block(out, std::slice::from_ref(init.as_ref()), None);
+                    }
+                    match condition {
+                        Some(c) => {
+                            let c = rust_expr(out, c);
+                            out.line(&format!("while {c} {{"));
+                        }
+                        None => out.line("loop {"),
+                    }
+                    out.open();
+                    rust_block(out, body, returns);
+                    if let Some(update) = update {
+                        rust_block(out, std::slice::from_ref(update.as_ref()), None);
+                    }
+                    out.close();
+                    out.line("}");
+                    if scoped {
+                        out.close();
+                        out.line("}");
+                    }
+                }
             }
             Stmt::ForEachIndexed {
                 index,
@@ -3055,6 +3369,51 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 out.open();
                 python_block(out, body);
                 out.close();
+            }
+            // Python has no counted header either, and says the same loop with
+            // the start above it and the step at the foot of the body.
+            Stmt::CountedFor {
+                init,
+                condition,
+                update,
+                body,
+                source,
+                line,
+            } => {
+                if let Some((name, start, bound, step)) =
+                    counted_range(init.as_deref(), condition.as_ref(), update.as_deref(), body)
+                {
+                    let (start, bound) = (python_expr(out, start), python_expr(out, bound));
+                    let stepping = match step {
+                        1 => String::new(),
+                        other => format!(", {other}"),
+                    };
+                    let name = out.name(name);
+                    python_line(
+                        out,
+                        &format!("for {name} in range({start}, {bound}{stepping}):"),
+                    );
+                    out.open();
+                    python_block(out, body);
+                    out.close();
+                } else if update.is_some() && continues_here(body) {
+                    carry(out, &counted_original(source, *line));
+                } else {
+                    if let Some(init) = init {
+                        python_block(out, std::slice::from_ref(init.as_ref()));
+                    }
+                    let c = condition
+                        .as_ref()
+                        .map(|c| python_expr(out, c))
+                        .unwrap_or_else(|| "True".to_string());
+                    python_line(out, &format!("while {c}:"));
+                    out.open();
+                    python_block(out, body);
+                    if let Some(update) = update {
+                        python_block(out, std::slice::from_ref(update.as_ref()));
+                    }
+                    out.close();
+                }
             }
             Stmt::ForEachIndexed {
                 index,
@@ -4370,6 +4729,41 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.close();
                 out.line("}");
             }
+            // `for` is Go's own word for this, in all three of its spellings.
+            Stmt::CountedFor {
+                init,
+                condition,
+                update,
+                body,
+                source,
+                line,
+            } => {
+                let parts = counted_header(
+                    out,
+                    init.as_deref(),
+                    condition.as_ref(),
+                    update.as_deref(),
+                    &|out, stmt| go_block(out, std::slice::from_ref(stmt), None),
+                    &|out, e| go_expr(out, e),
+                );
+                match parts {
+                    Some((start, test, step)) => {
+                        // Go writes the bare loop as `for {` and the one-clause
+                        // loop as `for cond {`, with no semicolons at all.
+                        let header = match (start.is_empty(), test.is_empty(), step.is_empty()) {
+                            (true, true, true) => String::new(),
+                            (true, false, true) => format!("{test} "),
+                            _ => format!("{} ", c_style_header(&start, &test, &step)),
+                        };
+                        out.line(&format!("for {header}{{"));
+                        out.open();
+                        go_block(out, body, None);
+                        out.close();
+                        out.line("}");
+                    }
+                    None => carry(out, &counted_original(source, *line)),
+                }
+            }
             Stmt::ForEachIndexed {
                 index,
                 binding,
@@ -5524,6 +5918,34 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.close();
                 out.line("}");
             }
+            Stmt::CountedFor {
+                init,
+                condition,
+                update,
+                body,
+                source,
+                line,
+            } => {
+                let parts = counted_header(
+                    out,
+                    init.as_deref(),
+                    condition.as_ref(),
+                    update.as_deref(),
+                    &|out, stmt| ts_block(out, std::slice::from_ref(stmt)),
+                    &|out, e| ts_expr(out, e),
+                );
+                match parts {
+                    Some((start, test, step)) => {
+                        let header = c_style_header(&start, &test, &step);
+                        out.line(&format!("for ({header}) {{"));
+                        out.open();
+                        ts_block(out, body);
+                        out.close();
+                        out.line("}");
+                    }
+                    None => carry(out, &counted_original(source, *line)),
+                }
+            }
             Stmt::ForEachIndexed {
                 index,
                 binding,
@@ -6219,7 +6641,16 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
         }
     };
 
-    let visibility = if f.exported { "public" } else { "private" };
+    // The runtime looks for a `public static void main(String[])` and starts
+    // nothing else. Whether the source's entry was exported is a fact about the
+    // source: Go's `main` is lower-case and Python's is a plain function. A
+    // private one here answers "Main method not found in class".
+    let entry = is_static && !f.is_constructor && f.name == "main";
+    let visibility = if f.exported || entry {
+        "public"
+    } else {
+        "private"
+    };
     // A constructor writes no return type at all. `void` would make it a method that
     // happens to have the class's name, which compiles, and is not a constructor.
     let returns = match f.is_constructor {
@@ -6231,12 +6662,10 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     } else {
         " "
     };
-    // The runtime looks for `main(String[])`, and finds nothing else. A
-    // niladic `main` runs only on the JDKs that finalised instance main
-    // methods. A draft that ran here died on the ordinary ones with "Main
-    // method not found in class". The parameter is written whether or not the
-    // source's entry took one.
-    let params = match is_static && f.name == "main" && params.is_empty() {
+    // A niladic `main` runs only on the JDKs that finalised instance main
+    // methods. A draft that ran here died on the ordinary ones. The parameter
+    // is written whether or not the source's entry took one.
+    let params = match entry && params.is_empty() {
         true => vec!["String[] args".to_string()],
         false => params,
     };
@@ -6543,6 +6972,34 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             java_block(out, body, None);
             out.close();
             out.line("}");
+        }
+        Stmt::CountedFor {
+            init,
+            condition,
+            update,
+            body,
+            source,
+            line,
+        } => {
+            let parts = counted_header(
+                out,
+                init.as_deref(),
+                condition.as_ref(),
+                update.as_deref(),
+                &java_stmt,
+                &|out, e| java_expr(out, e),
+            );
+            match parts {
+                Some((start, test, step)) => {
+                    let header = c_style_header(&start, &test, &step);
+                    out.line(&format!("for ({header}) {{"));
+                    out.open();
+                    java_block(out, body, None);
+                    out.close();
+                    out.line("}");
+                }
+                None => carry(out, &counted_original(source, *line)),
+            }
         }
         Stmt::ForEachIndexed {
             index,
@@ -7523,6 +7980,14 @@ fn zig_mutated(body: &[Stmt]) -> std::collections::BTreeSet<String> {
                     walk(otherwise, found);
                 }
                 Stmt::While { body, .. } | Stmt::ForEach { body, .. } => walk(body, found),
+                Stmt::CountedFor {
+                    init, update, body, ..
+                } => {
+                    for header in [init, update].iter().copied().flatten() {
+                        walk(std::slice::from_ref(header), found);
+                    }
+                    walk(body, found);
+                }
                 Stmt::Try {
                     body,
                     catches,
@@ -7801,6 +8266,42 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
         Stmt::While { condition, body } => {
             let c = zig_expr(out, condition);
             zig_line(out, &format!("while ({c}) {{"));
+            out.open();
+            zig_block(out, body, None, mutated);
+            out.close();
+            out.line("}");
+        }
+        // Zig writes the step as a continue expression, which also runs when the
+        // body says `continue`. So the counted loop crosses whole.
+        Stmt::CountedFor {
+            init,
+            condition,
+            update,
+            body,
+            source,
+            line,
+        } => {
+            let step = match update {
+                Some(update) => {
+                    match header_line(out, update, &|out, stmt| zig_stmt(out, stmt, mutated)) {
+                        Some(step) => Some(step),
+                        None => {
+                            carry(out, &counted_original(source, *line));
+                            return;
+                        }
+                    }
+                }
+                None => None,
+            };
+            if let Some(init) = init {
+                zig_stmt(out, init, mutated);
+            }
+            let test = condition
+                .as_ref()
+                .map(|c| zig_expr(out, c))
+                .unwrap_or_else(|| "true".to_string());
+            let stepping = step.map(|s| format!(" : ({s})")).unwrap_or_default();
+            zig_line(out, &format!("while ({test}){stepping} {{"));
             out.open();
             zig_block(out, body, None, mutated);
             out.close();

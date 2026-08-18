@@ -3873,38 +3873,105 @@ mod go {
                     otherwise,
                 }
             }
+            // `for` is Go's only loop keyword and it has four spellings. Three of
+            // them were carried as comments, which lost the loop and left every
+            // name its header bound undeclared.
             "for_statement" => {
-                // `for range` is the only Go loop the IR has; a three-clause `for` is
-                // not a for-each and is carried whole.
+                let body = cx
+                    .field(node, "body")
+                    .map(|b| block(cx, b))
+                    .unwrap_or_default();
                 if let Some(clause) = cx
                     .children(node)
                     .into_iter()
                     .find(|c| c.kind() == "range_clause")
                 {
-                    let binding = cx
+                    let bound = cx
                         .field(clause, "left")
                         .map(|l| cx.text(l))
                         .unwrap_or_default();
-                    // `for i, v := range xs` binds two; the IR binds the value.
-                    let binding = binding
-                        .split(',')
-                        .next_back()
-                        .unwrap_or(&binding)
-                        .trim()
-                        .to_string();
-                    return Stmt::ForEach {
-                        binding,
-                        iterable: cx
-                            .field(clause, "right")
-                            .map(|r| expr(cx, r))
-                            .unwrap_or(Expr::Null),
-                        body: cx
-                            .field(node, "body")
-                            .map(|b| block(cx, b))
-                            .unwrap_or_default(),
+                    let mut names = bound.split(',').map(|n| n.trim().to_string());
+                    let first = names.next().unwrap_or_default();
+                    let second = names.next();
+                    let iterable = cx
+                        .field(clause, "right")
+                        .map(|r| expr(cx, r))
+                        .unwrap_or(Expr::Null);
+                    // `for i, v := range xs` binds the position beside the value.
+                    // Dropping the first name left every use of it undeclared.
+                    // `_` there is Go's word for a name nothing wants, and the
+                    // loop is the plain one over the values.
+                    return match second {
+                        Some(binding) if first != "_" => Stmt::ForEachIndexed {
+                            index: first,
+                            binding,
+                            iterable,
+                            body,
+                        },
+                        Some(binding) => Stmt::ForEach {
+                            binding,
+                            iterable,
+                            body,
+                        },
+                        None => Stmt::ForEach {
+                            binding: first,
+                            iterable,
+                            body,
+                        },
                     };
                 }
-                Stmt::Unsupported(cx.unsupported(node))
+                let clause = cx
+                    .children(node)
+                    .into_iter()
+                    .find(|c| c.kind() == "for_clause");
+                if let Some(clause) = clause {
+                    return Stmt::CountedFor {
+                        init: cx
+                            .field(clause, "initializer")
+                            .map(|i| Box::new(stmt(cx, i))),
+                        condition: cx.field(clause, "condition").map(|c| expr(cx, c)),
+                        update: cx.field(clause, "update").map(|u| Box::new(stmt(cx, u))),
+                        body,
+                        source: cx.text(node),
+                        line: cx.line(node),
+                    };
+                }
+                // What is left is `for cond { }` or the bare `for { }`. The first
+                // is a `while` in every target; the second is a loop with no test.
+                match cx.children(node).first() {
+                    Some(condition) if condition.kind() != "block" => Stmt::While {
+                        condition: expr(cx, *condition),
+                        body,
+                    },
+                    _ => Stmt::CountedFor {
+                        init: None,
+                        condition: None,
+                        update: None,
+                        body,
+                        source: cx.text(node),
+                        line: cx.line(node),
+                    },
+                }
+            }
+            "inc_statement" | "dec_statement" => {
+                let op = match node.kind() {
+                    "inc_statement" => BinaryOp::Add,
+                    _ => BinaryOp::Sub,
+                };
+                match cx.children(node).first() {
+                    Some(target) => {
+                        let target = expr(cx, *target);
+                        Stmt::Assign {
+                            target: target.clone(),
+                            value: Expr::Binary {
+                                op,
+                                left: Box::new(target),
+                                right: Box::new(Expr::Int("1".to_string())),
+                            },
+                        }
+                    }
+                    None => Stmt::Unsupported(cx.unsupported(node)),
+                }
             }
             _ => Stmt::Unsupported(cx.unsupported(node)),
         }
@@ -4607,6 +4674,61 @@ mod java {
             .collect()
     }
 
+    /// One clause of a `for` header, which is an expression and not a statement.
+    ///
+    /// `i++` and `i = 0` stand alone there, with no semicolon and no
+    /// `expression_statement` around them. Read as plain expressions they lost
+    /// the assignment they are.
+    fn header_stmt(cx: &Cx, node: Node<'_>) -> Stmt {
+        match node.kind() {
+            "local_variable_declaration" => stmt(cx, node),
+            "assignment_expression" => {
+                let target = cx
+                    .field(node, "left")
+                    .map(|l| expr(cx, l))
+                    .unwrap_or(Expr::Null);
+                let value = cx
+                    .field(node, "right")
+                    .map(|r| expr(cx, r))
+                    .unwrap_or(Expr::Null);
+                let operator = cx.field_text(node, "operator").unwrap_or_default();
+                if operator == "=" {
+                    return Stmt::Assign { target, value };
+                }
+                match super::desugar_compound(target, &operator, value) {
+                    Some(assign) => assign,
+                    None => Stmt::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "update_expression" => match step_of(cx, node) {
+                Some(step) => step,
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            _ => Stmt::Expr(expr(cx, node)),
+        }
+    }
+
+    /// `i++` and `i--` as the assignment each one is.
+    fn step_of(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        let text = cx.text(node);
+        let op = if text.contains("++") {
+            BinaryOp::Add
+        } else if text.contains("--") {
+            BinaryOp::Sub
+        } else {
+            return None;
+        };
+        let target = expr(cx, *cx.children(node).first()?);
+        Some(Stmt::Assign {
+            target: target.clone(),
+            value: Expr::Binary {
+                op,
+                left: Box::new(target),
+                right: Box::new(Expr::Int("1".to_string())),
+            },
+        })
+    }
+
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
             "comment" | "line_comment" | "block_comment" => {
@@ -4638,29 +4760,11 @@ mod java {
                     _ => Stmt::Unsupported(cx.unsupported(node)),
                 }
             }
+            // One node covers `=` and `+=` alike, and reading them alike turned
+            // `total += item` into `total = item`. `i++` is a third spelling of
+            // the same thing, and [`header_stmt`] knows all three.
             "expression_statement" => match cx.children(node).first().copied() {
-                Some(inner) if inner.kind() == "assignment_expression" => {
-                    let target = cx
-                        .field(inner, "left")
-                        .map(|l| expr(cx, l))
-                        .unwrap_or(Expr::Null);
-                    let value = cx
-                        .field(inner, "right")
-                        .map(|r| expr(cx, r))
-                        .unwrap_or(Expr::Null);
-                    // One node covers `=` and `+=` alike, and reading them alike
-                    // turned `total += item` into `total = item`.
-                    let operator = cx.field_text(inner, "operator").unwrap_or_default();
-                    if operator == "=" {
-                        Stmt::Assign { target, value }
-                    } else {
-                        match super::desugar_compound(target, &operator, value) {
-                            Some(assign) => assign,
-                            None => Stmt::Unsupported(cx.unsupported(node)),
-                        }
-                    }
-                }
-                Some(inner) => Stmt::Expr(expr(cx, inner)),
+                Some(inner) => header_stmt(cx, inner),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
             "if_statement" => Stmt::If {
@@ -4687,6 +4791,31 @@ mod java {
                     .map(|b| branch(cx, b))
                     .unwrap_or_default(),
             },
+            // `for (int i = 0; i < n; i++)` counts, and the IR says so. Carried as
+            // a comment it took the whole body with it.
+            "for_statement" => {
+                let clauses = |name: &str| -> Vec<Node> {
+                    let mut cursor = node.walk();
+                    node.children_by_field_name(name, &mut cursor).collect()
+                };
+                let (init, update) = (clauses("init"), clauses("update"));
+                // `for (i = 0, j = n; ...)` runs two statements in one clause and
+                // the IR holds one. Carried whole, it stays readable.
+                if init.len() > 1 || update.len() > 1 {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::CountedFor {
+                    init: init.first().map(|i| Box::new(header_stmt(cx, *i))),
+                    condition: cx.field(node, "condition").map(|c| condition(cx, c)),
+                    update: update.first().map(|u| Box::new(header_stmt(cx, *u))),
+                    body: cx
+                        .field(node, "body")
+                        .map(|b| branch(cx, b))
+                        .unwrap_or_default(),
+                    source: cx.text(node),
+                    line: cx.line(node),
+                }
+            }
             // `for (X x : xs)` is the loop every language here has. A C-style `for` is
             // not, and is carried.
             "enhanced_for_statement" => Stmt::ForEach {
@@ -8370,6 +8499,24 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(condition, visit);
                 each_expr_in_stmts(body, visit);
             }
+            Stmt::CountedFor {
+                init,
+                condition,
+                update,
+                body,
+                ..
+            } => {
+                if let Some(init) = init {
+                    each_expr_in_stmts(std::slice::from_mut(init), visit);
+                }
+                if let Some(condition) = condition {
+                    each_expr(condition, visit);
+                }
+                if let Some(update) = update {
+                    each_expr_in_stmts(std::slice::from_mut(update), visit);
+                }
+                each_expr_in_stmts(body, visit);
+            }
             Stmt::WhilePresent { value, body, .. } => {
                 each_expr(value, visit);
                 each_expr_in_stmts(body, visit);
@@ -8451,6 +8598,14 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             | Stmt::WhilePresent { body, .. }
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
+            Stmt::CountedFor {
+                init, update, body, ..
+            } => {
+                for header in [init, update].into_iter().flatten() {
+                    each_stmt_in_stmts(std::slice::from_mut(header), visit);
+                }
+                each_stmt_in_stmts(body, visit);
+            }
             Stmt::Defer(body) | Stmt::ErrDefer(body) => each_stmt_in_stmts(body, visit),
             Stmt::MatchVariants { arms, default, .. } => {
                 for arm in arms.iter_mut() {
