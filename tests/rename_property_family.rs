@@ -176,3 +176,22 @@ fn a_receiver_assigned_twice_holds_its_call_back() {
         plan.warnings
     );
 }
+
+#[test]
+fn an_aliased_base_class_still_joins_the_family() {
+    // `from base import Base as Foundation` names the class the file over
+    // declares. Recorded as written, the hierarchy edge pointed at a name
+    // nothing declares, so the subclass site was left behind and applying the
+    // rename raised AttributeError.
+    let base = "class Base:\n    def __init__(self) -> None:\n        self.count = 0\n";
+    let sub = "from base import Base as Foundation\n\n\nclass Sub(Foundation):\n    \
+        def bump(self) -> None:\n        self.count += 1\n";
+    let (tmp, index) = workspace(&[("base.py", base), ("sub.py", sub)]);
+    let id = symbol_at(&index, &tmp.path().join("base.py"), base, "self.count");
+    let plan = rename::plan(&index, id, "total").unwrap();
+    let out = applied(tmp.path(), "sub.py", &plan);
+    assert!(
+        out.contains("self.total += 1"),
+        "the alias is followed to the class it names.\n{out}"
+    );
+}
