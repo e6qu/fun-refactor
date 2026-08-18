@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B540: **a field named with no receiver crossed as a free variable.** Java
+  lets a body write `accounts` for a field it declares. Every writer here
+  needs a receiver written. `tsc` answered "Cannot find name
+  'accounts'. Did you mean the instance member 'this.accounts'?" twenty-eight
+  times over one translated class. Python was worse: the field was declared
+  `balance_cents` while the body still said `balanceCents`, a disagreement the
+  translation introduced by itself. The writers now enter a method body through
+  one call. It binds the receiver and the fields the body may name bare. A bare
+  name in that set is written through the receiver in the field table's
+  spelling. A parameter or a local of the same name is the nearer declaration
+  and wins. Pinned in `tests/translate_implicit_receiver.rs`. That gate runs
+  the Java, the Python and the TypeScript, and compares what they print.
+
 - [x] B530: **a translated Java program only ran on the newest JDKs.** The
   entry came out as `public static void main()`. The runtime accepts that only
   where niladic main methods are final. Everywhere else it answered "Main

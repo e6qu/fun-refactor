@@ -777,6 +777,11 @@ struct Out {
     /// receiver and a binding is not, so they do not share a namespace in any of these
     /// languages either.
     fields: BTreeMap<String, String>,
+    /// The fields the method body being written may name without a receiver.
+    ///
+    /// Keyed by the source's spelling, valued by the target's. Empty outside a
+    /// method, and outside one no bare name is ever a field.
+    receiver_fields: BTreeMap<String, String>,
     /// The ok type of the `Result` the Go function being written returns, if it is one.
     ///
     /// Go spells that Result as its own `(T, error)` pair, and the body's `Ok`, `Err`
@@ -845,6 +850,7 @@ impl Out {
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
+            receiver_fields: BTreeMap::new(),
             go_result: None,
             go_errors: 0,
             result_returns: BTreeMap::new(),
@@ -972,6 +978,63 @@ impl Out {
         };
     }
 
+    /// Start writing a method body: bind the receiver and the fields it reaches bare.
+    ///
+    /// Java lets a method body name a field with no receiver at all, and so does
+    /// Go once the receiver is dropped. Every target here needs one written.
+    /// Without this the bodies said `accounts` where the class declared
+    /// `this.accounts`, and TypeScript reported every one of them.
+    fn enter_method(&mut self, f: &Function) -> MethodScope {
+        let bound = f.receiver_binding.clone();
+        let displaced_name = bound.as_deref().map(|b| self.bind_receiver(b));
+        let displaced_fields = std::mem::take(&mut self.receiver_fields);
+        if bound.is_some() {
+            self.receiver_fields = self.fields_reached_bare(f);
+        }
+        MethodScope {
+            bound,
+            displaced_name,
+            displaced_fields,
+        }
+    }
+
+    /// Finish a method body, putting back whatever the enclosing one had bound.
+    fn leave_method(&mut self, scope: MethodScope) {
+        if let (Some(b), Some(p)) = (scope.bound.as_deref(), scope.displaced_name) {
+            self.unbind_receiver(b, p);
+        }
+        self.receiver_fields = scope.displaced_fields;
+    }
+
+    /// The fields of this method's own record, each spelled the target's way.
+    ///
+    /// A parameter or a local of the same name is the nearer declaration here.
+    /// It wins, and the name is left as it stands.
+    fn fields_reached_bare(&self, f: &Function) -> BTreeMap<String, String> {
+        let Some(declared) = f.receiver.as_deref().and_then(|r| self.records.get(r)) else {
+            return BTreeMap::new();
+        };
+        let mut nearer: std::collections::BTreeSet<String> =
+            f.params.iter().map(|p| p.name.clone()).collect();
+        bound_names(&f.body, &mut nearer);
+        declared
+            .iter()
+            .filter(|name| !nearer.contains(*name))
+            .map(|name| (name.clone(), self.field(name)))
+            .collect()
+    }
+
+    /// This name read as a value.
+    ///
+    /// A field of the record whose method is being written goes through the
+    /// receiver. Every other name is written as itself.
+    fn value_name(&self, raw: &str) -> String {
+        match self.receiver_fields.get(raw) {
+            Some(field) => format!("{}.{field}", receiver_word(self.language)),
+            None => self.name(raw),
+        }
+    }
+
     /// One line of output, at the current indent.
     ///
     /// Text with newlines in it becomes several lines, each indented. It arrives that
@@ -1047,6 +1110,106 @@ impl Out {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+}
+
+/// What [`Out::enter_method`] displaced, so [`Out::leave_method`] can put it back.
+struct MethodScope {
+    bound: Option<String>,
+    displaced_name: Option<Option<String>>,
+    displaced_fields: BTreeMap<String, String>,
+}
+
+/// Every name this body declares, at any depth, added to `into`.
+///
+/// A local of a field's name hides that field for the whole method here.
+/// Where the declaration sits does not change the answer.
+fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
+    for stmt in body {
+        match stmt {
+            Stmt::Let { name, .. } => {
+                into.insert(name.clone());
+            }
+            Stmt::If {
+                then, otherwise, ..
+            } => {
+                bound_names(then, into);
+                bound_names(otherwise, into);
+            }
+            Stmt::IfPresent {
+                binding,
+                then,
+                otherwise,
+                ..
+            } => {
+                into.insert(binding.clone());
+                bound_names(then, into);
+                bound_names(otherwise, into);
+            }
+            Stmt::While { body, .. } => bound_names(body, into),
+            Stmt::WhilePresent { binding, body, .. } => {
+                into.insert(binding.clone());
+                bound_names(body, into);
+            }
+            Stmt::ForEach {
+                binding,
+                body,
+                iterable: _,
+            } => {
+                into.insert(binding.clone());
+                bound_names(body, into);
+            }
+            Stmt::ForEachIndexed {
+                index,
+                binding,
+                body,
+                ..
+            } => {
+                into.insert(index.clone());
+                into.insert(binding.clone());
+                bound_names(body, into);
+            }
+            Stmt::Defer(body) | Stmt::ErrDefer(body) => bound_names(body, into),
+            Stmt::Switch { arms, default, .. } => {
+                for (_, body) in arms {
+                    bound_names(body, into);
+                }
+                bound_names(default, into);
+            }
+            Stmt::MatchVariants { arms, default, .. } => {
+                for arm in arms {
+                    for (_, local) in &arm.bindings {
+                        into.insert(local.clone());
+                    }
+                    bound_names(&arm.body, into);
+                }
+                bound_names(default, into);
+            }
+            Stmt::Try {
+                body,
+                catches,
+                finally,
+                ..
+            } => {
+                bound_names(body, into);
+                for catch in catches {
+                    if let Some(binding) = &catch.binding {
+                        into.insert(binding.clone());
+                    }
+                    bound_names(&catch.body, into);
+                }
+                bound_names(finally, into);
+            }
+            Stmt::Return(_)
+            | Stmt::Assign { .. }
+            | Stmt::Expr(_)
+            | Stmt::Assert { .. }
+            | Stmt::Comment(_)
+            | Stmt::Throw(_)
+            | Stmt::Break
+            | Stmt::Continue
+            | Stmt::Unsupported(_) => {}
+        }
     }
 }
 
@@ -1403,8 +1566,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     out.binding_types = declared_bindings(f);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
-    let bound = f.receiver_binding.clone();
-    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    let scope = out.enter_method(f);
 
     for line in &f.doc {
         out.line(&format!("/// {line}"));
@@ -1461,9 +1623,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     out.close();
     out.line("}");
 
-    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
-        out.unbind_receiver(b, p);
-    }
+    out.leave_method(scope);
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -1967,7 +2127,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Bool(v) => v.to_string(),
         Expr::Str(v) => quoted(Language::Rust, v),
         Expr::Null => "None".to_string(),
-        Expr::Name(n) => out.name(n),
+        Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             // A sum's variant is reached through the type, and Rust spells that
             // reach `::`. A dot there would read as a field access on a type, and
@@ -2542,8 +2702,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     let mut deferred_defaults: Vec<(String, Expr)> = Vec::new();
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
-    let bound = f.receiver_binding.clone();
-    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
 
     let mut changed = false;
@@ -2639,9 +2798,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     python_block(out, &f.body);
     out.close();
 
-    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
-        out.unbind_receiver(b, p);
-    }
+    out.leave_method(scope);
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -3165,7 +3322,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Bool(v) => if *v { "True" } else { "False" }.to_string(),
         Expr::Str(v) => quoted(Language::Python, v),
         Expr::Null => "None".to_string(),
-        Expr::Name(n) => out.name(n),
+        Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             // A member reached through `super` is reached through the call this
             // language spells the reach with.
@@ -3661,8 +3818,7 @@ fn go_name(name: &str, exported: bool) -> String {
 fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
-    let bound = f.receiver_binding.clone();
-    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    let scope = out.enter_method(f);
 
     let name = out.function_name(f);
     for line in &f.doc {
@@ -3754,9 +3910,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     out.line("}");
     out.go_result = None;
 
-    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
-        out.unbind_receiver(b, p);
-    }
+    out.leave_method(scope);
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -4410,7 +4564,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Bool(v) => v.to_string(),
         Expr::Str(v) => quoted(Language::Go, v),
         Expr::Null => "nil".to_string(),
-        Expr::Name(n) => out.name(n),
+        Expr::Name(n) => out.value_name(n),
         // Not re-cased: `reading.get(…)` names a real method on a value whose type
         // this does not know, and `reading.Get(…)` is a different method.
         Expr::Field { of, name } => {
@@ -5032,8 +5186,7 @@ fn discriminator(s: &Sum) -> String {
 fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
-    let bound = f.receiver_binding.clone();
-    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    let scope = out.enter_method(f);
 
     for line in &f.doc {
         out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -5116,9 +5269,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     out.close();
     out.line("}");
 
-    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
-        out.unbind_receiver(b, p);
-    }
+    out.leave_method(scope);
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -5577,7 +5728,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         // name to re-case or escape. `super(m)` and `super.m()` fall out of the
         // ordinary call and field arms once the word survives.
         Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
-        Expr::Name(n) => out.name(n),
+        Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(ts_expr(out, of), of);
             // A property read stays a read here, and a property is a method:
@@ -6017,8 +6168,7 @@ fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
-    let bound = f.receiver_binding.clone();
-    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
 
     for line in &f.doc {
@@ -6100,9 +6250,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     out.close();
     out.line("}");
 
-    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
-        out.unbind_receiver(b, p);
-    }
+    out.leave_method(scope);
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -6716,7 +6864,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         // name to re-case or escape. `super(m)` and `super.m()` fall out of the
         // ordinary call and field arms once the word survives.
         Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
-        Expr::Name(n) => out.name(n),
+        Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(java_expr(out, of), of);
             // A read of a property is a call here; the idiom that hid the
@@ -7247,8 +7395,7 @@ fn uses_the_standard_library(module: &Module) -> bool {
 fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
-    let bound = f.receiver_binding.clone();
-    let previous = bound.as_ref().map(|b| out.bind_receiver(b));
+    let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
 
     for line in &f.doc {
@@ -7337,9 +7484,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     out.close();
     out.line("}");
 
-    if let (Some(b), Some(p)) = (bound.as_deref(), previous) {
-        out.unbind_receiver(b, p);
-    }
+    out.leave_method(scope);
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
@@ -7839,7 +7984,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Str(v) => quoted(Language::Zig, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
-        Expr::Name(n) => out.name(n),
+        Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(zig_expr(out, of), of);
             // A read of a property is a call here; the idiom that hid the
