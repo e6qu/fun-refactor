@@ -197,8 +197,8 @@ fn deletes_in_python_and_go_too() {
     assert_eq!(
         applied(&py_plan, &tmp.path().join("a.py")),
         "def stays():\n    pass\n",
-        "a deletion at the head of the file takes the whole gap: a file must not \
-         open with blank lines"
+        "a deletion at the head takes the whole gap. A file must not open with \
+         blank lines."
     );
 
     let go_plan = delete::plan(&index, only_symbol(&index, "goGone")).unwrap();

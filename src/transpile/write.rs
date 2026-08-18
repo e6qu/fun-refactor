@@ -7176,8 +7176,8 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             params.push(spelled);
             continue;
         }
-        // Zig writes a type on every parameter and infers none of them, so one the
-        // source never declared becomes `anytype`, and the signature is counted as
+        // Zig writes a type on every parameter and infers none. One the source
+        // never declared becomes `anytype`, and the signature counts as
         // unannotated rather than complete.
         let ty = match &p.ty {
             Some(t) => {

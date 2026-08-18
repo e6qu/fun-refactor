@@ -175,6 +175,65 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B514: **a file skipped for its size falsified every answer, silently.** A
+  workspace holding one file over the scan's limit reported clean success: the
+  rename said applied with no warnings, `usages` counted none, `unused` listed
+  the symbol, and delete removed a function the skipped file still called. Every
+  command that indexes now says what it could not read, on stderr and as
+  `skipped_files` in its JSON. One choke point answers for all of them, and
+  `--max-file-size` raises the limit. Pinned in
+  `tests/json_surface.rs`.
+
+- [x] B515: **`fr imports` stripped a Python package's public API.** A
+  `from .mod import api_func` in `__init__.py` is the package's export. The
+  tidy step deleted it as unused, and importers raised. An import binding in a
+  package `__init__.py` declares what the package offers, and stays.
+  Pinned in `tests/imports_liveness.rs`.
+
+- [x] B516: **a recipe whose expectation failed left its edits on disk.** The
+  documented promise is one transaction. The refusal path honoured it and the
+  expectation path did not. A failed expectation restores the bytes the run
+  started from, and the report says whether anything was written. Pinned in
+  `tests/json_surface.rs`.
+
+- [x] B517: **a refusal's blocking positions lived only in prose.** Ambiguity
+  had structured candidates. A refusal made an agent regex file, line and
+  column out of an English sentence. Refusals carry `references` as data now,
+  and a recipe's refusals carry the same. Pinned in `tests/json_surface.rs`.
+
+- [x] B518: **the exit-code taxonomy leaked into the generic 1.** A recipe
+  stopped by a refusal exited 1 rather than 5. A position naming a file that
+  does not exist exited 1 rather than 3. A malformed position was reinterpreted
+  as a symbol name. Each failure now exits as the help promises.
+  Pinned in `tests/cli.rs`.
+
+- [x] B519: **`fr translate` answered prose to `--json`.** Listing what a file
+  could be written as ignored the flag outright. A single-file translation
+  omitted the fidelity block its own directory sweep emits. Both speak the
+  sweep's schema now. Pinned in `tests/json_surface.rs`.
+
+- [x] B520: **`fr symbols` emitted spans no command could take back.** The
+  extract range wants 1-based line and column. Symbols offered byte offsets
+  beside them, unlabelled, so an agent converted by reading the file itself. A
+  symbol's span carries line and column now, and round-trips into `extract`.
+  Pinned in `tests/json_surface.rs`.
+
+- [x] B521: **one warning had three shapes.** A rename's warnings were
+  structured on their own and flat prose through a recipe. Location keys
+  drifted between `file` and `path`. One shape now, whichever command emits
+  it.
+  Pinned in `tests/json_surface.rs`.
+
+- [x] B522: **`recipe --explain` re-serialised its plan as surface syntax.**
+  Selectors and expectations came back as the strings a reader types. Checking
+  a plan meant re-implementing the recipe parser. They are structures now,
+  beside the text. Pinned in `tests/json_surface.rs`.
+
+- [x] B523: **deleting a definition left the blank lines that framed it.** The
+  runs above and below merged into one. A Python file kept three blank lines
+  where its style puts two. As many trailing blanks go as there were leading
+  ones. Pinned in `tests/refactor_delete.rs`.
+
 - [x] B513: **a Rust `match` on the module's own sum carried whole.** Rust's
   one spelling for sums took entire function bodies into comments. Unit and struct patterns read into the variant match, bindings
   and renames included. A match naming a foreign choice, an imported enum this

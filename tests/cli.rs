@@ -438,8 +438,8 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
         Some(5),
         "a blocked delete is a refusal."
     );
-    // A position naming a file that does not exist, or a place past the end of one
-    // that does, is a target that was not found. Both used to leak exit 1.
+    // A position naming a file that does not exist was not found. Nor was a
+    // place past the end of one that does. Both leaked exit 1.
     assert_eq!(
         code(&["def", "one/missing.go:3:6"]),
         Some(3),

@@ -345,9 +345,9 @@ fn skipping_workspace() -> tempfile::TempDir {
 
 #[test]
 fn a_file_skipped_for_size_rides_in_every_answer_it_could_falsify() {
-    // A skipped file can hold the reference that makes the answer wrong. A rename
-    // that reports clean success while the skipped file still spells the old name
-    // corrupts the workspace; the least the report can do is say what it never saw.
+    // A skipped file can hold the reference that makes the answer wrong. A
+    // rename reporting clean success while that file still spells the old name
+    // corrupts the workspace. The report has to say what it never saw.
     let tmp = skipping_workspace();
     let (printed, _, ok) = run_json(
         &tmp,
@@ -413,9 +413,9 @@ const RENDER_PY: &str = "def render():\n    return 1\n\ndef user():\n    return 
 
 #[test]
 fn a_failed_expectation_under_write_rolls_back_and_says_so() {
-    // RECIPES.md promises one transaction. The refusal path already rolled back;
-    // the expectation-failure path applied the edits and then exited 1, leaving
-    // the disk holding a run the report called failed.
+    // RECIPES.md promises one transaction. The refusal path already rolled
+    // back. The expectation-failure path applied the edits and then exited 1,
+    // leaving the disk holding a run the report called failed.
     let tmp = workspace(&[
         ("m.py", RENDER_PY),
         (
@@ -443,8 +443,9 @@ fn a_failed_expectation_under_write_rolls_back_and_says_so() {
 
 #[test]
 fn a_recipe_stopped_by_a_refusal_exits_5_with_the_blocking_positions() {
-    // The standalone command's refusal exits 5; the same refusal inside a recipe
-    // exited 1, so a script branching on the documented codes read it as a crash.
+    // The standalone command's refusal exits 5. The same refusal inside a
+    // recipe exited 1, so a script branching on the documented codes read it
+    // as a crash.
     let tmp = workspace(&[
         ("m.py", RENDER_PY),
         (
@@ -476,9 +477,9 @@ fn a_recipe_stopped_by_a_refusal_exits_5_with_the_blocking_positions() {
 
 #[test]
 fn a_recipe_warning_has_the_same_shape_as_a_standalone_one() {
-    // `fr rename --json` emits warnings as {file, line, col, kind, detail}; the
-    // recipe report flattened the same facts into prose strings, and an agent
-    // reading both surfaces had to parse one of them back apart.
+    // `fr rename --json` emits warnings as {file, line, col, kind, detail}.
+    // The recipe report flattened the same facts into prose strings, so an
+    // agent reading both surfaces parsed one of them back apart.
     let tmp = workspace(&[
         (
             "m.py",
@@ -551,8 +552,9 @@ fn the_translate_listing_obeys_json() {
 
 #[test]
 fn a_single_file_translation_reports_the_sweeps_fidelity_block() {
-    // The directory sweep said how much of the draft carried; a single file's JSON
-    // said nothing, so an agent could not tell a clean draft from a gutted one.
+    // The directory sweep said how much of the draft carried. A single file's
+    // JSON said nothing, so an agent could not tell a clean draft from a
+    // gutted one.
     let tmp = workspace(&[("m.py", RENDER_PY)]);
     let (printed, _, ok) = run_json(&tmp, &["translate", "m.py", "typescript", "--json"]);
     assert!(ok, "{printed}");
@@ -574,9 +576,9 @@ fn a_single_file_translation_reports_the_sweeps_fidelity_block() {
 
 #[test]
 fn a_symbols_span_round_trips_into_extract() {
-    // The listing mixed 0-based byte spans with 1-based line/col and emitted no
-    // end position at all, so extract's range input could not be built from fr's
-    // own output.
+    // The listing mixed 0-based byte spans with 1-based line and column, and
+    // emitted no end position. So extract's range input could not be built
+    // from fr's own output.
     let tmp = workspace(&[(
         "m.py",
         "def log_line():\n    print(\"hello\")\n\n\ndef caller():\n    log_line()\n",
