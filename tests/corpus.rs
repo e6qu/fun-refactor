@@ -257,7 +257,7 @@ fn real_error_handling_carries_across() {
     assert!(
         plan.output
             .contains("await _verify_current_user_has_access_to_post("),
-        "{}",
+        "the call agrees with the declaration.\n{}",
         plan.output
     );
 }

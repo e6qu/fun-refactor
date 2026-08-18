@@ -8493,9 +8493,9 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
 /// Children first, then the node itself, so a rewrite sees settled children.
 /// The import a carried line spells, where the language has a parser for it.
 ///
-/// A sweep needs this for imports the readers left as text: an import written
-/// inside a function body is carried whole, and the sweep is the only place
-/// that knows the file it names is a sibling being translated beside it.
+/// A sweep needs this for imports the readers left as text. An import inside
+/// a function body is carried whole. The sweep is the only place that knows
+/// the file it names is being translated beside it.
 pub(super) fn parse_import(language: Language, text: &str) -> Option<ImportTarget> {
     match language {
         Language::Python => python::import_target(text),

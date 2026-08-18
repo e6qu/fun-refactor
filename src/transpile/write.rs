@@ -61,7 +61,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                 // Python says "not for outside this module" with a leading
                 // underscore. Without it, Go's unexported `half` came back
                 // from a round trip as the exported `Half`, and a package's
-                // internals became its API. The entry point is the exception:
+                // internals became its API. The entry point is the exception.
                 // `main` is what a reader and a runner look for, and a private
                 // one reads as a helper nobody calls.
                 Language::Python => match exported || name.starts_with('_') || name == "main" {

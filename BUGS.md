@@ -175,6 +175,43 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B531: **a directory sweep wrote a package that could not build.** Two
+  Python files each declaring `Thing` became one Go package. `Thing redeclared
+  in this block` was the first anyone heard of it, and the report said both
+  files translated. Where the target keeps a directory in one namespace, the
+  file earliest by path keeps the plain name. The others take their own file's
+  name in front, and each says so in its header. Pinned in
+  `tests/translate_projects.rs`.
+
+- [x] B532: **an import inside a function stayed a comment while its code
+  crossed.** `def helper(): from a import Thing` breaks an import cycle. The
+  body's `Thing()` became live TypeScript beside a commented-out import, so
+  the file named a class nothing brought in. Every target here
+  hoists its imports, so a sibling named inside a body is lifted to the file's
+  own imports. Pinned in `tests/translate_projects.rs`.
+
+- [x] B533: **an aliased base class left the family.** `from base import Base
+  as Foundation` recorded an edge pointing at a name nothing declares.
+  So `self.count` in the subclass was left behind, and applying the rename
+  raised. Supertype names resolve through the file's imports now, at one point
+  that answers for every language. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B534: **a leading underscore inverted its own meaning.** The case
+  converter read it as a word boundary, so Python's `_helper` became Go's
+  `Helper`. The mark for "not outside this module" turned into the mark for
+  exported, and `go -> python -> go` published a package's internals.
+  Visibility travels in the IR now, Python spells it with the underscore at
+  every mention, and the round trip comes home unchanged. The entry point is
+  the exception, since `main` is what a runner looks for. Pinned in
+  `tests/translate_zig_forms.rs`.
+
+- [x] B535: **a tab reached a Zig comment.** Carried Go source brings Go's
+  indentation, and Zig's lexer refuses a tab inside a comment. The
+  file could not be read by its own compiler. The comment writer replaces
+  them.
+  Pinned in `tests/translate_zig_forms.rs`.
+
 - [x] B530: **a translated Java program only ran on the newest JDKs.** The
   entry came out as `public static void main()`. The runtime accepts that only
   where niladic main methods are final. Everywhere else it answered "Main

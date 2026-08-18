@@ -170,8 +170,8 @@ type Sweep<'a> = (&'a ir::Module, &'a BTreeMap<PathBuf, ir::Module>);
 /// Rename this file's top-level declarations that a sibling declares too.
 ///
 /// Only for targets whose namespace is the directory. The file earliest by
-/// path keeps the plain name, so every file of the sweep resolves the clash
-/// the same way and the choice does not depend on which file is written first.
+/// path keeps the plain name. So every file of the sweep resolves the clash
+/// the same way, whichever file is written first.
 fn rename_colliding_declarations(
     module: &mut ir::Module,
     path: &Path,
@@ -308,9 +308,9 @@ fn plan_impl(
         }
         // Two files of a sweep may each declare a `Thing`. Where the target
         // keeps every file of a directory in one namespace, that is one name
-        // declared twice, and the package it produced could not build while
-        // the report called every file translated. The later file's copy takes
-        // its own file's name in front, and says so.
+        // declared twice. The package could not build, while the report called
+        // every file translated. The later file's copy takes its own file's
+        // name in front, and says so.
         if to.packages_by_directory() {
             rename_colliding_declarations(&mut module, path, siblings);
         }
@@ -374,11 +374,11 @@ fn plan_impl(
 
 /// Move an import written inside a function body up to the file's own imports.
 ///
-/// `def helper(): from a import Thing` is how Python breaks an import cycle,
-/// and the readers carry it as text because a body has nowhere to put an
-/// import. The sweep then translated the body's live code while the import
-/// stayed a comment, so the output named a class nothing brought in. Every
-/// target here hoists its imports, so the file's top is where it belongs.
+/// `def helper(): from a import Thing` is how Python breaks an import cycle.
+/// The readers carry it as text, because a body has nowhere to put an import.
+/// The sweep then translated the body's live code while the import stayed a
+/// comment, so the output named a class nothing brought in. Every target here
+/// hoists its imports, so the file's top is where it belongs.
 fn lift_local_imports(module: &mut ir::Module, from: Language) {
     let mut lifted: Vec<ir::Item> = Vec::new();
     for item in &mut module.items {
