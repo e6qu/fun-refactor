@@ -175,7 +175,68 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
-<<<<<<< HEAD
+- [x] B443: **the wasm slice could not see a cli-only import.** `tools/check.sh
+  wasm` ran clippy with default features on, so an import only the CLI uses
+  looked used. The unused-import refusal surfaced in the deploy's wasm build
+  instead. The slice now also runs clippy without default features, on
+  the host target, which catches the class without needing a wasm clang.
+  Caught by CI on this very pass: `run::distance` was cli-only and ungated.
+
+- [x] B442: **a Java record crossed wrong twice.** `implements X` was dropped
+  in silence. A compact `name()` body crossed beside the `name` field, and
+  the pair collided in every flat target. A single interface rides in the
+  base slot, and more of them ride in prose. The field wins the collision,
+  and an overriding body is said beside the field. Pinned in
+  `tests/translate_java_records.rs`.
+
+- [x] B441: **a lost initializer took its binding's name with it.**
+  `var wg sync.WaitGroup` and `ch := make(chan int, 4)` carried whole. Every
+  later statement then read a name the output never declared. The
+  binding stays, the original rides in a marker, and TypeScript types it `any`
+  so strict compilation accepts the declaration. Pinned in
+  `tests/translate_carried_bindings.rs`.
+
+- [x] B440: **an annotated instance field vanished.** `self.entries: list[str]
+  = []` read as a binding whose dotted "name" was no name at all. The whole
+  assignment carried as a comment and the field was deleted. It reads as the
+  plain assignment now, and the derived field takes the annotation's type.
+  Pinned in `tests/translate_classes.rs`.
+
+- [x] B439: **`super` and the exception bases spoke the source.**
+  `super().__init__(m)` crossed as a call to `super_`, which nothing declares.
+  A class extending `Exception` extended a name TypeScript lacks. Coming home,
+  `super(m)` carried and the constructor gained a `raise NotImplementedError`.
+  The reach is canonical now and each writer spells it, the bases map both
+  ways, and `ABC` drops with a note. Pinned in `tests/translate_super.rs`.
+
+- [x] B438: **an optional parameter required its argument.** TypeScript's
+  `punct?: string` crossed to Python as an optional type with no default.
+  Every valid call site then raised TypeError. The absence carries as
+  `= None`.
+  Pinned in `tests/translate_optional_params.rs`.
+
+- [x] B437: **floor division was a runnable `null`.** Python's `cents // 100`
+  read as an unknown operator, and a formatter printed "$null.00". Every
+  writer says it with its own flooring call now, `Math.floor`, `div_euclid`,
+  `Math.floorDiv`, `math.Floor`, `@divFloor`, and Python keeps the operator.
+  Pinned in `tests/translate_floor_div.rs`.
+
+- [x] B436: **a lambda crossed as a runnable `null`.** `lambda x: e`,
+  `(x) => e`, `|x| e` and `x -> e` are one nameless function, and each carried
+  as a marker where a callback belonged. The one-expression shape crosses
+  between the four languages that have it. Go and Zig carry it visibly, since
+  neither writes a closure without types. On the way this surfaced a bracket
+  loss: `(a == b).then(x)` rendered as `a == b.then(x)` in every writer. A
+  field or index receiver now takes brackets from structure. Pinned in
+  `tests/translate_lambdas.rs`.
+
+- [x] B435: **a translated test file checked nothing and said it passed.**
+  Python's `assert c, "m"` carried as a comment. The crossing then ran,
+  checked nothing, and printed "all tests passed". Asserts are a statement of their
+  own now. Python, Rust and Zig read theirs; every target writes its own, and
+  the ones without an assert test the condition and throw or panic. Pinned in
+  `tests/translate_asserts.rs`.
+
 - [x] B430: **an inverted extract range died on the span constructor's
   assertion.** `fr extract --range file:8:20-8:5` printed byte offsets and a
   panic. It is refused where both ends are known, with both ends named.
@@ -302,62 +363,6 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   answer for. The enclosing class is the answer, and the subclass sits among
   the family's owners, so the site renames. Pinned in
   `tests/rename_property_family.rs`.
-=======
-- [x] B442: **a Java record crossed wrong twice.** `implements X` was dropped
-  in silence. A compact `name()` body crossed beside the `name` field, and
-  the pair collided in every flat target. A single interface rides in the
-  base slot, and more of them ride in prose. The field wins the collision,
-  and an overriding body is said beside the field. Pinned in
-  `tests/translate_java_records.rs`.
-
-- [x] B441: **a lost initializer took its binding's name with it.**
-  `var wg sync.WaitGroup` and `ch := make(chan int, 4)` carried whole. Every
-  later statement then read a name the output never declared. The
-  binding stays, the original rides in a marker, and TypeScript types it `any`
-  so strict compilation accepts the declaration. Pinned in
-  `tests/translate_carried_bindings.rs`.
-
-- [x] B440: **an annotated instance field vanished.** `self.entries: list[str]
-  = []` read as a binding whose dotted "name" was no name at all. The whole
-  assignment carried as a comment and the field was deleted. It reads as the
-  plain assignment now, and the derived field takes the annotation's type.
-  Pinned in `tests/translate_classes.rs`.
-
-- [x] B439: **`super` and the exception bases spoke the source.**
-  `super().__init__(m)` crossed as a call to `super_`, which nothing declares.
-  A class extending `Exception` extended a name TypeScript lacks. Coming home,
-  `super(m)` carried and the constructor gained a `raise NotImplementedError`.
-  The reach is canonical now and each writer spells it, the bases map both
-  ways, and `ABC` drops with a note. Pinned in `tests/translate_super.rs`.
-
-- [x] B438: **an optional parameter required its argument.** TypeScript's
-  `punct?: string` crossed to Python as an optional type with no default.
-  Every valid call site then raised TypeError. The absence carries as
-  `= None`.
-  Pinned in `tests/translate_optional_params.rs`.
-
-- [x] B437: **floor division was a runnable `null`.** Python's `cents // 100`
-  read as an unknown operator, and a formatter printed "$null.00". Every
-  writer says it with its own flooring call now, `Math.floor`, `div_euclid`,
-  `Math.floorDiv`, `math.Floor`, `@divFloor`, and Python keeps the operator.
-  Pinned in `tests/translate_floor_div.rs`.
-
-- [x] B436: **a lambda crossed as a runnable `null`.** `lambda x: e`,
-  `(x) => e`, `|x| e` and `x -> e` are one nameless function, and each carried
-  as a marker where a callback belonged. The one-expression shape crosses
-  between the four languages that have it. Go and Zig carry it visibly, since
-  neither writes a closure without types. On the way this surfaced a bracket
-  loss: `(a == b).then(x)` rendered as `a == b.then(x)` in every writer. A
-  field or index receiver now takes brackets from structure. Pinned in
-  `tests/translate_lambdas.rs`.
-
-- [x] B435: **a translated test file checked nothing and said it passed.**
-  Python's `assert c, "m"` carried as a comment. The crossing then ran,
-  checked nothing, and printed "all tests passed". Asserts are a statement of their
-  own now. Python, Rust and Zig read theirs; every target writes its own, and
-  the ones without an assert test the condition and throw or panic. Pinned in
-  `tests/translate_asserts.rs`.
->>>>>>> wt-constructs
 
 - [x] B412: **`fr inline --call` pasted a callee's module globals across files.**
   `clamp` read `LIMIT` from beside itself; pasted into another file the name
