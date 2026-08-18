@@ -73,8 +73,18 @@ const EXIT_CODES_HELP: &str = "Exit codes:\n  \
 )]
 struct Cli {
     /// Emit machine-readable JSON instead of human-readable text.
+    ///
+    /// Paths in JSON are absolute, under the key `file`. Reports that used to spell
+    /// the same path under `path` still carry both keys for one release; read `file`.
     #[arg(long, global = true)]
     json: bool,
+
+    /// Skip files larger than this many bytes (default 4194304, 4 MiB).
+    ///
+    /// Skipped files are invisible to every analysis, so each command warns when a
+    /// scan skipped one; raise the limit to bring the file in.
+    #[arg(long, global = true, value_name = "BYTES")]
+    max_file_size: Option<u64>,
 
     /// Workspace root to operate on. A single file is accepted too, and then only
     /// that file is scanned.
@@ -123,6 +133,10 @@ enum Command {
         clear: bool,
     },
     /// List the source files fun-refactor can act on.
+    ///
+    /// Files larger than the size limit are skipped and listed, never silently
+    /// dropped. The limit is 4 MiB unless --max-file-size says otherwise. A skipped
+    /// file is invisible to every other command, and each of them warns about it.
     Scan {
         /// Restrict to a language (repeatable), e.g. --lang rust --lang go.
         #[arg(long = "lang", alias = "language")]
@@ -896,14 +910,108 @@ fn shown_path(root: &std::path::Path, path: &std::path::Path) -> String {
     }
 }
 
+/// The files the scan never read, as data for a JSON report.
+///
+/// Every command that answers from the index carries this beside its answer. A
+/// skipped file can hold the reference that makes the answer wrong, and a clean
+/// report over a partial index reads as a clean workspace.
+fn skipped_files_json(index: &Index) -> Vec<serde_json::Value> {
+    index
+        .skipped
+        .iter()
+        .map(|(path, reason)| serde_json::json!({ "file": path, "reason": reason }))
+        .collect()
+}
+
+/// Warn, on stderr, that the scan skipped files this answer cannot see.
+///
+/// Called from [`build_index`], so every command that indexes the workspace says it
+/// once, instead of each command remembering to. The JSON twin rides in each
+/// report as `skipped_files`.
+fn warn_skipped_files(cli: &Cli, index: &Index) {
+    if cli.json || index.skipped.is_empty() {
+        return;
+    }
+    let root = workspace_root(cli);
+    eprintln!("Warning: {} file(s) were not read.", index.skipped.len());
+    eprintln!("The answer cannot see anything in them:");
+    for (path, reason) in index.skipped.iter().take(10) {
+        eprintln!("  {} ({reason})", shown_path(&root, path));
+    }
+    if index.skipped.len() > 10 {
+        eprintln!("  … and {} more", index.skipped.len() - 10);
+    }
+    eprintln!("Raise --max-file-size to include a file skipped for its size.");
+}
+
+/// Refuse a plan whose files changed after the index read them.
+///
+/// The commit path already refuses when a file changes between plan and write, and
+/// says so. A file that changes between the *index* and the plan fails differently.
+/// Its byte spans are spliced into text they were never measured on. The reparse
+/// gate then reports the resulting syntax error, which is true and hides the race.
+/// The index remembers what it read, so the race can be named here.
+fn refuse_stale_plan(index: &Index, edits: &crate::edit::EditSet) -> Result<()> {
+    for path in edits.paths() {
+        let Some(recorded) = index.content_hash(path) else {
+            // A file this plan creates was never indexed; the commit path's own
+            // re-read check still guards it.
+            continue;
+        };
+        let current = match crate::vfs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                anyhow::bail!(
+                    "{} was removed after it was indexed and changed since the plan \
+                     was made; nothing was written. Re-run the command against the \
+                     current tree.",
+                    path.display()
+                );
+            }
+            Err(e) => {
+                return Err(anyhow::Error::from(e))
+                    .with_context(|| format!("re-reading {}", path.display()))
+            }
+        };
+        if crate::index::content_hash_of(&current) != recorded {
+            anyhow::bail!(
+                "{} changed since the plan was made; nothing was written. Re-run \
+                 the command against the current text.",
+                path.display()
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Render a plan's diff, report what it did, and optionally commit it.
-fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) -> Result<()> {
+///
+/// `index` is the index the plan was made against, when there is one: it carries the
+/// files the scan skipped, which the report must repeat, and the text the spans were
+/// measured on, which lets a mid-run change be named as one.
+fn present(
+    cli: &Cli,
+    index: Option<&Index>,
+    edits: &crate::edit::EditSet,
+    summary: &str,
+    write: bool,
+) -> Result<()> {
+    if let Some(index) = index {
+        refuse_stale_plan(index, edits)?;
+    }
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
 
     if cli.json {
         let changes: Vec<_> = outcomes
             .iter()
-            .map(|o| serde_json::json!({ "path": o.path, "diff": workspace_diff(cli, o) }))
+            .map(|o| {
+                serde_json::json!({
+                    "file": o.path,
+                    // The same path under the key older scripts read. `file` is the name.
+                    "path": o.path,
+                    "diff": workspace_diff(cli, o),
+                })
+            })
             .collect();
         println!(
             "{}",
@@ -912,6 +1020,7 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
                 "files_changed": outcomes.len(),
                 "applied": write,
                 "changes": changes,
+                "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
             }))?
         );
         if write {
@@ -929,6 +1038,54 @@ fn present(cli: &Cli, edits: &crate::edit::EditSet, summary: &str, write: bool) 
         println!("Applied to {count} file(s).");
     } else {
         println!("\nNothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+/// One translated file's JSON report, with the fidelity keys the directory sweep
+/// emits. A caller parses one shape whether it translated a file or a tree.
+///
+/// The single-file report used to carry no fidelity at all. The counts were printed
+/// as prose and dropped from the JSON, so an agent could not tell a clean draft from
+/// a gutted one.
+fn present_translation(
+    cli: &Cli,
+    edits: &crate::edit::EditSet,
+    fidelity: &crate::transpile::Fidelity,
+    summary: &str,
+    write: bool,
+    decorate: impl FnOnce(&mut serde_json::Value),
+) -> Result<()> {
+    let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
+    let changes: Vec<_> = outcomes
+        .iter()
+        .map(|o| {
+            serde_json::json!({
+                "file": o.path,
+                "path": o.path,
+                "diff": workspace_diff(cli, o),
+            })
+        })
+        .collect();
+    let mut report = serde_json::json!({
+        "summary": summary,
+        "functions": fidelity.functions,
+        "records": fidelity.records,
+        "constants": fidelity.constants,
+        "newtypes": fidelity.newtypes,
+        "sums": fidelity.sums,
+        "signatures_complete": fidelity.signatures_complete,
+        "signatures_with_foreign_types": fidelity.signatures_with_foreign_types,
+        "carried_verbatim": fidelity.carried_verbatim,
+        "notes": fidelity.notes,
+        "files_changed": outcomes.len(),
+        "applied": write,
+        "changes": changes,
+    });
+    decorate(&mut report);
+    println!("{}", serde_json::to_string_pretty(&report)?);
+    if write {
+        crate::edit::commit(&outcomes)?;
     }
     Ok(())
 }
@@ -978,14 +1135,9 @@ fn cmd_extract(
     let path = workspace_path(cli, &path)?;
     let source =
         crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-    let index_of_lines = LineIndex::new(&source);
     let span = crate::span::Span::new(
-        index_of_lines
-            .offset(start, &source)
-            .ok_or_else(|| anyhow::anyhow!("{start} is outside {}", path.display()))?,
-        index_of_lines
-            .offset(end, &source)
-            .ok_or_else(|| anyhow::anyhow!("{end} is outside {}", path.display()))?,
+        offset_at(&source, start.line, start.col, &path)?,
+        offset_at(&source, end.line, end.col, &path)?,
     );
 
     let index = build_index(cli, &[])?;
@@ -1004,7 +1156,7 @@ fn cmd_extract(
                 format!(" returning {}", plan.returns.join(", "))
             }
         );
-        return present(cli, &plan.edits, &summary, write);
+        return present(cli, Some(&index), &plan.edits, &summary, write);
     }
 
     let plan = crate::refactor::extract::variable(
@@ -1020,37 +1172,32 @@ fn cmd_extract(
         plan.name,
         plan.occurrences
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 fn cmd_inline(cli: &Cli, target: &str, inline: Inline, write: bool) -> Result<()> {
     let index = build_index(cli, &[])?;
 
     if inline == Inline::Call {
-        // A call has no symbol of its own, so this form needs a position.
+        // A call has no symbol of its own, so this form needs a position. Leaving
+        // one out is a fault in the command line, and exits as one.
         let pos = parse_position(target).ok_or_else(|| {
-            anyhow::anyhow!("inlining a call needs a position: path:line:col of the call")
+            Fault::invalid_input(
+                "inlining a call needs a position: path:line:col of the call".to_string(),
+            )
         })?;
         refuse_zero_column(&pos)?;
         let path = workspace_path(cli, &pos.path)?;
         let source = crate::vfs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
-        let offset = LineIndex::new(&source)
-            .offset(
-                LineCol {
-                    line: pos.line,
-                    col: pos.col,
-                },
-                &source,
-            )
-            .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
+        let offset = offset_at(&source, pos.line, pos.col, &path)?;
 
         let plan = crate::refactor::inline::call(&index, &path, offset)?;
         let summary = format!(
             "inlined the call to {} as `{}`",
             plan.function, plan.expansion
         );
-        return present(cli, &plan.edits, &summary, write);
+        return present(cli, Some(&index), &plan.edits, &summary, write);
     }
 
     let symbol = resolve_target(cli, &index, target)?;
@@ -1059,7 +1206,7 @@ fn cmd_inline(cli: &Cli, target: &str, inline: Inline, write: bool) -> Result<()
         "inlined `{}` into {} use site(s)",
         plan.name, plan.use_sites
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Result<()> {
@@ -1068,7 +1215,7 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
     let change = crate::refactor::signature::Change::parse(change_spec)?;
     let plan = crate::refactor::signature::change(&index, symbol.id, change)?;
     let summary = crate::refactor::signature::describe(&index, &plan);
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 /// The destination file, spelled the way the index spells its paths.
@@ -1125,7 +1272,7 @@ fn cmd_move(cli: &Cli, target: &str, destination: &std::path::Path, write: bool)
         plan.to.display(),
         plan.imports_added.len()
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
@@ -1152,7 +1299,7 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
     }
 
     let summary = format!("deleted {} ({} definition site(s))", plan.name, plan.sites);
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 /// A path the caller typed, spelled the way the index spells its paths.
@@ -1169,18 +1316,32 @@ fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     } else {
         root.join(path)
     };
+    // A path that does not resolve is a target that was not found, and the exit
+    // code says so. It used to be a bare failure indistinguishable from a crash.
     joined.canonicalize().map_err(|e| {
         if path.is_absolute() || root == std::path::Path::new(".") {
-            anyhow::anyhow!("{}: {e}", path.display())
+            Fault::not_found(format!("{}: {e}", path.display()))
         } else {
-            anyhow::anyhow!(
+            Fault::not_found(format!(
                 "{} does not exist in {}. Paths are read relative to the workspace \
                  root, which -C set to that. ({e})",
                 path.display(),
                 root.display()
-            )
+            ))
         }
     })
+}
+
+/// The byte offset of a 1-based position, refused as not-found when the file ends
+/// before it.
+///
+/// A position past the end of the file names a place that does not exist. That is
+/// the failure a symbol nothing declares has, so both exit 3. It used to fall out
+/// as a bare context string and exit 1.
+fn offset_at(source: &str, line: usize, col: usize, path: &std::path::Path) -> Result<usize> {
+    LineIndex::new(source)
+        .offset(LineCol { line, col }, source)
+        .ok_or_else(|| Fault::not_found(format!("{line}:{col} is outside {}", path.display())))
 }
 
 /// Language names from the command line, refused and not ignored.
@@ -1389,6 +1550,7 @@ fn cmd_unused(
             serde_json::to_string_pretty(&serde_json::json!({
                 "unused": payload,
                 "caveat": UNUSED_CAVEAT.replace('\n', ""),
+                "skipped_files": skipped_files_json(&index),
             }))?
         );
         return Ok(());
@@ -1492,7 +1654,7 @@ fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result
         plan.removed.len(),
         plan.sorted_blocks
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 /// Every file the index holds, one pass, one atomic apply.
@@ -1547,7 +1709,7 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
         "workspace: {touched} file(s) changed, {removed} import(s) removed, \
          {reordered} block(s) reordered."
     );
-    present(cli, &edits, &summary, write)
+    present(cli, Some(index), &edits, &summary, write)
 }
 
 fn cmd_translate(
@@ -1585,6 +1747,41 @@ fn cmd_translate(
         let route = crate::transpile::nextjs::is_api_route(&path)
             .then(|| crate::transpile::nextjs::plan(&path).ok())
             .flatten();
+        if cli.json {
+            // The listing as data, with each draft's fidelity in the shape the
+            // directory sweep reports. This mode used to ignore --json and print
+            // the prose listing.
+            let mut listed: Vec<serde_json::Value> = Vec::new();
+            if let Some(plan) = &route {
+                listed.push(serde_json::json!({
+                    "target": "fastapi",
+                    "destination": plan.destination,
+                    "route": plan.route,
+                    "methods": plan.methods,
+                    "blocked": serde_json::Value::Null,
+                    "same_bytes": false,
+                    "fidelity": serde_json::Value::Null,
+                }));
+            }
+            for option in &options {
+                listed.push(serde_json::json!({
+                    "target": option.target.name(),
+                    "destination": option.destination,
+                    "blocked": option.blocked,
+                    "same_bytes": option.blocked.is_none() && option.fidelity.is_none(),
+                    "fidelity": option.fidelity,
+                }));
+            }
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "file": path,
+                    "language": from.name(),
+                    "options": listed,
+                }))?
+            );
+            return Ok(());
+        }
         if options.is_empty() && route.is_none() {
             println!(
                 "{} is {from}, and there is no language it can be rewritten as.\n\n{}",
@@ -1662,11 +1859,31 @@ fn cmd_translate(
             plan.from,
             plan.to
         );
-        return present(cli, &plan.edits, &summary, write);
+        return present(cli, None, &plan.edits, &summary, write);
     }
 
     let plan = crate::transpile::plan_to(&path, to, out, force)?;
-    if !cli.json {
+    if cli.json {
+        let summary = format!(
+            "{} translated to {} ({} -> {})",
+            plan.source.display(),
+            plan.destination.display(),
+            plan.from,
+            plan.to
+        );
+        return present_translation(
+            cli,
+            &plan.edits,
+            &plan.fidelity,
+            &summary,
+            write,
+            |report| {
+                report["target"] = serde_json::json!(plan.to.name());
+                report["translated"] = serde_json::json!([plan.source]);
+            },
+        );
+    }
+    {
         let f = &plan.fidelity;
         let distinct = match f.newtypes {
             0 => String::new(),
@@ -1717,7 +1934,7 @@ fn cmd_translate(
         plan.from,
         plan.to
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, None, &plan.edits, &summary, write)
 }
 
 /// `fr translate <route.ts> fastapi`, a Next.js API route as a FastAPI module.
@@ -1747,7 +1964,7 @@ fn cmd_translate_directory(
     let to = crate::lang::Language::from_name(language)
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
 
-    let scanned = scan(dir, &ScanOptions::default())?;
+    let scanned = scan(dir, &scan_options(cli, &[])?)?;
 
     // Read the whole sweep before writing any of it. Translation is per file,
     // but the files travel together: one declares a class another constructs,
@@ -1831,7 +2048,13 @@ fn cmd_translate_directory(
         let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
         let changes: Vec<_> = outcomes
             .iter()
-            .map(|o| serde_json::json!({ "path": o.path, "diff": workspace_diff(cli, o) }))
+            .map(|o| {
+                serde_json::json!({
+                    "file": o.path,
+                    "path": o.path,
+                    "diff": workspace_diff(cli, o),
+                })
+            })
             .collect();
         println!(
             "{}",
@@ -1851,7 +2074,7 @@ fn cmd_translate_directory(
                 "destination_exists": occupied,
                 "failed": failed
                     .iter()
-                    .map(|(p, e)| serde_json::json!({ "path": p, "error": e }))
+                    .map(|(p, e)| serde_json::json!({ "file": p, "path": p, "error": e }))
                     .collect::<Vec<_>>(),
                 "applied": write,
                 "changes": changes,
@@ -1897,7 +2120,7 @@ fn cmd_translate_directory(
         translated.len(),
         dir.display()
     );
-    present(cli, &edits, &summary, write)
+    present(cli, None, &edits, &summary, write)
 }
 
 fn cmd_translate_fastapi(
@@ -1908,7 +2131,26 @@ fn cmd_translate_fastapi(
     force: bool,
 ) -> Result<()> {
     let plan = crate::transpile::nextjs::plan_to(path, out, force)?;
-    if !cli.json {
+    if cli.json {
+        let summary = format!(
+            "{} translated to FastAPI at {}",
+            plan.source.display(),
+            plan.destination.display()
+        );
+        return present_translation(
+            cli,
+            &plan.edits,
+            &plan.fidelity,
+            &summary,
+            write,
+            |report| {
+                report["target"] = serde_json::json!("fastapi");
+                report["route"] = serde_json::json!(plan.route);
+                report["methods"] = serde_json::json!(plan.methods);
+            },
+        );
+    }
+    {
         println!(
             "{} -> {} serving {} ({})",
             plan.source.display(),
@@ -1945,13 +2187,13 @@ fn cmd_translate_fastapi(
         plan.source.display(),
         plan.destination.display()
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, None, &plan.edits, &summary, write)
 }
 
 /// `fr openapi`, the contract a Next.js tree declares, before it is rewritten.
 fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<()> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    let scanned = scan(&root, &ScanOptions::default())?;
+    let scanned = scan(&root, &scan_options(cli, &[])?)?;
     let files: Vec<PathBuf> = scanned.files.iter().map(|f| f.path.clone()).collect();
 
     let title = root
@@ -2053,7 +2295,7 @@ fn cmd_recipe(
         return explain_recipes(cli, &parsed);
     }
 
-    let scanned = scan(&root, &ScanOptions::default())?;
+    let scanned = scan(&root, &scan_options(cli, &[])?)?;
     let mut sources = std::collections::BTreeMap::new();
     for source_file in &scanned.files {
         let text = crate::vfs::read_to_string(&source_file.path)?;
@@ -2061,22 +2303,18 @@ fn cmd_recipe(
     }
 
     let mut all_ok = true;
+    let mut stopped_by_refusal = false;
     for recipe in &parsed.recipes {
         let options = crate::recipe::Options {
             root: &root,
             catalogs,
         };
-        let (report, after) = crate::recipe::run(recipe, sources.clone(), &options)?;
+        let (mut report, after) = crate::recipe::run(recipe, sources.clone(), &options)?;
         // The run planned against an in-memory copy; the diff and any write are about
         // the real workspace.
         crate::vfs::use_filesystem();
         all_ok &= report.ok;
-
-        if cli.json {
-            println!("{}", serde_json::to_string_pretty(&report)?);
-        } else {
-            print_recipe_report(&report);
-        }
+        stopped_by_refusal |= report.stopped.is_some();
 
         // The recipe is one transaction: the diff is the whole run. It is not a step.
         let mut edits = crate::edit::EditSet::new();
@@ -2093,17 +2331,56 @@ fn cmd_recipe(
                 );
             }
         }
-        if !cli.json {
-            present(cli, &edits, &format!("recipe {}", report.recipe), write)?;
-        } else if write {
-            crate::edit::commit(&crate::edit::plan(
-                &edits,
-                crate::edit::Validation::ReparseStrict,
-            )?)?;
+        // A failed expectation rolls the transaction back the same way a refusal
+        // stop does. RECIPES.md promises one transaction, and a run that fails its
+        // own `expect` has not succeeded. The report says which state the disk is
+        // in, so an agent reading a failed `--write` does not have to guess.
+        let apply_this = write && report.ok;
+        report.applied = apply_this && !edits.is_empty();
+        report.rolled_back = write && !report.ok;
+
+        if cli.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            if apply_this {
+                crate::edit::commit(&crate::edit::plan(
+                    &edits,
+                    crate::edit::Validation::ReparseStrict,
+                )?)?;
+            }
+        } else {
+            print_recipe_report(&report);
+            if report.rolled_back {
+                // The diff still prints, because it is the evidence of what failed.
+                // `present` would end it with "re-run with --write", which was the
+                // one thing the reader already did.
+                let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
+                for outcome in &outcomes {
+                    print!("{}", workspace_diff(cli, outcome));
+                }
+                println!(
+                    "\nThe run failed, so nothing was written. The diff above is what \
+                     the recipe would have done."
+                );
+            } else {
+                present(
+                    cli,
+                    None,
+                    &edits,
+                    &format!("recipe {}", report.recipe),
+                    apply_this,
+                )?;
+            }
         }
-        sources = after;
+        // The next recipe in the file starts from what this one really left behind.
+        if report.ok {
+            sources = after;
+        }
     }
 
+    // A refusal stopped the run: the same exit code a standalone refusal earns.
+    if stopped_by_refusal {
+        std::process::exit(5);
+    }
     if !all_ok {
         std::process::exit(1);
     }
@@ -2115,7 +2392,7 @@ fn cmd_recipe(
 /// The lines mirror [`print_recipe_report`], so a reader sees the same shape before
 /// a run as after one. Only the columns a run fills in are missing.
 fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
-    use crate::recipe::{Expect, OnRefusal, Requirement};
+    use crate::recipe::{Expect, OnRefusal, Predicate, Requirement};
 
     let requirement = |requirement: &Requirement| match requirement {
         Requirement::Language(name) => format!("language {name}"),
@@ -2129,6 +2406,31 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
     };
 
     if cli.json {
+        // Each selector and expectation rides both ways. One is the surface string a
+        // person recognises from the file. The other is a structured object a
+        // program reads without re-parsing that string.
+        let predicate_json = |predicate: &Predicate| match predicate {
+            Predicate::Equals { field, value } => serde_json::json!({
+                "field": field, "op": "=", "value": value,
+            }),
+            Predicate::Glob { field, pattern } => serde_json::json!({
+                "field": field, "op": "~", "value": pattern,
+            }),
+            Predicate::Flag { field, expected } => serde_json::json!({
+                "field": field, "op": "flag", "value": expected,
+            }),
+        };
+        let expect_json = |expect: &Expect| match expect {
+            Expect::NoNew(what) => serde_json::json!({
+                "predicate": "no-new", "op": "=", "value": what,
+            }),
+            Expect::Changed { how, count } => serde_json::json!({
+                "predicate": "changed", "op": how.as_str(), "value": count, "unit": "files",
+            }),
+            Expect::Refusals { how, count } => serde_json::json!({
+                "predicate": "refusals", "op": how.as_str(), "value": count,
+            }),
+        };
         let recipes: Vec<_> = parsed
             .recipes
             .iter()
@@ -2140,6 +2442,8 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                     "steps": recipe.steps.iter().map(|step| serde_json::json!({
                         "step": step.operation.describe(),
                         "selector": selector_of(step),
+                        "selector_parts": step.selector.iter().map(predicate_json)
+                            .collect::<Vec<_>>(),
                         "on_refusal": match step.on_refusal {
                             OnRefusal::Stop => "stop",
                             OnRefusal::Report => "report",
@@ -2149,6 +2453,8 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                         "allow_empty": step.allow_empty,
                     })).collect::<Vec<_>>(),
                     "expectations": recipe.expects.iter().map(expectation).collect::<Vec<_>>(),
+                    "expectations_parts": recipe.expects.iter().map(expect_json)
+                        .collect::<Vec<_>>(),
                     "ran": false,
                 })
             })
@@ -2240,7 +2546,7 @@ fn print_recipe_report(report: &crate::recipe::Report) {
             println!("       refused  {}: {}", refusal.subject, refusal.reason);
         }
         for warning in &step.warnings {
-            println!("       left     {warning}");
+            println!("       left     {}", warning.describe());
         }
     }
     if let Some(why) = &report.stopped {
@@ -2270,17 +2576,7 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
             let path = workspace_path(cli, &pos.path)?;
             let source = crate::vfs::read_to_string(&path)
                 .with_context(|| format!("reading {}", path.display()))?;
-            let offset = LineIndex::new(&source)
-                .offset(
-                    LineCol {
-                        line: pos.line,
-                        col: pos.col,
-                    },
-                    &source,
-                )
-                .with_context(|| {
-                    format!("{}:{} is outside {}", pos.line, pos.col, path.display())
-                })?;
+            let offset = offset_at(&source, pos.line, pos.col, &path)?;
             FlagTarget::At(path, offset)
         }
         None => FlagTarget::Named(flag.to_string()),
@@ -2290,8 +2586,8 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
     // code is chosen from the error's type. The same lookup it will make is asked
     // here first. The failure then carries the not-found kind, and the near misses,
     // that a bad rename target gets.
+    let index = build_index(cli, &[])?;
     if let FlagTarget::Named(name) = &target {
-        let index = build_index(cli, &[])?;
         if index.find_symbols(name, None).is_empty() {
             let near = nearest_names(&index, name);
             return Err(Fault::not_found_near(
@@ -2341,27 +2637,20 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
         plan.value,
         plan.rounds.len()
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Result<()> {
     use crate::refactor::rewrite::{self, Rewrite};
 
-    let pos = parse_position(target)
-        .ok_or_else(|| anyhow::anyhow!("a rewrite needs a position: path:line:col"))?;
+    let pos = parse_position(target).ok_or_else(|| {
+        Fault::invalid_input("a rewrite needs a position: path:line:col".to_string())
+    })?;
     refuse_zero_column(&pos)?;
     let path = workspace_path(cli, &pos.path)?;
     let source =
         crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-    let offset = LineIndex::new(&source)
-        .offset(
-            LineCol {
-                line: pos.line,
-                col: pos.col,
-            },
-            &source,
-        )
-        .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
+    let offset = offset_at(&source, pos.line, pos.col, &path)?;
 
     let index = build_index(cli, &[])?;
 
@@ -2393,7 +2682,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
 
     let plan = rewrite::apply(&index, &path, offset, rewrite)?;
     let summary = format!("{}: {}", plan.rewrite.as_str(), plan.rewrite.describe());
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 fn cmd_restructure(
@@ -2418,7 +2707,7 @@ fn cmd_restructure(
         plan.pattern,
         plan.edits.file_count()
     );
-    present(cli, &plan.edits, &summary, write)
+    present(cli, Some(&index), &plan.edits, &summary, write)
 }
 
 fn cmd_flow(
@@ -2869,6 +3158,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
     let symbol = resolve_target(cli, &index, target)?;
     let plan = crate::refactor::rename::plan(&index, symbol.id, new_name)?;
 
+    refuse_stale_plan(&index, &plan.edits)?;
     let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
 
     if cli.json {
@@ -2876,6 +3166,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
             .iter()
             .map(|o| {
                 serde_json::json!({
+                    "file": o.path,
                     "path": o.path,
                     "diff": workspace_diff(cli, o),
                 })
@@ -2895,6 +3186,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
                 "applied": write,
                 "changes": files,
                 "warnings": plan.warnings,
+                "skipped_files": skipped_files_json(&index),
             }))?
         );
         if write {
@@ -3079,6 +3371,8 @@ fn report_json_error(error: &anyhow::Error) {
                     serde_json::json!({
                         "name": c.name,
                         "kind": c.kind,
+                        "file": c.file,
+                        // The same path under the key older scripts read.
                         "path": c.file,
                         "line": c.line,
                         "col": c.col,
@@ -3088,6 +3382,14 @@ fn report_json_error(error: &anyhow::Error) {
         }
         if !fault.suggestions.is_empty() {
             object["suggestions"] = serde_json::json!(fault.suggestions);
+        }
+    }
+    // A refusal's blocking positions, as data beside the prose, the way an
+    // ambiguity's candidates already ride.
+    if let Some(refusal) = crate::refactor::refusal_in(error) {
+        let references = refusal.references();
+        if !references.is_empty() {
+            object["references"] = serde_json::json!(references);
         }
     }
     let payload = serde_json::json!({ "error": object });
@@ -3181,14 +3483,21 @@ fn position_shape_problem(cli: &Cli, target: &str) -> Option<String> {
             }
             None
         }
-        [digits, path]
-            if is_file(path)
-                && !digits.is_empty()
-                && digits.chars().all(|c| c.is_ascii_digit()) =>
-        {
-            Some(format!(
-                "'{target}' names a file and a line but no column. Positions are path:line:col."
-            ))
+        // Anything after `existing-file:` was meant as a position. `pkg/a.py:abc`
+        // used to fall through to symbol lookup and answer "no symbol named
+        // 'pkg/a.py:abc'". That sent the reader hunting for a naming problem when
+        // the fault was the position that did not parse.
+        [tail, path] if is_file(path) && !tail.is_empty() => {
+            if tail.chars().all(|c| c.is_ascii_digit()) {
+                Some(format!(
+                    "'{target}' names a file and a line but no column. Positions are \
+                     path:line:col."
+                ))
+            } else {
+                Some(format!(
+                    "'{tail}' is not a line number. Positions are path:line:col."
+                ))
+            }
         }
         _ => None,
     }
@@ -3256,15 +3565,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         let path = workspace_path(cli, &pos.path)?;
         let source = crate::vfs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?;
-        let offset = LineIndex::new(&source)
-            .offset(
-                LineCol {
-                    line: pos.line,
-                    col: pos.col,
-                },
-                &source,
-            )
-            .with_context(|| format!("{}:{} is outside {}", pos.line, pos.col, path.display()))?;
+        let offset = offset_at(&source, pos.line, pos.col, &path)?;
 
         return index.definition_at(&path, offset).ok_or_else(|| {
             Fault::not_found(format!(
@@ -3347,7 +3648,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
 fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
     use std::io::IsTerminal;
 
-    let options = scan_options(languages)?;
+    let options = scan_options(cli, languages)?;
     // Canonicalise the root so indexed paths match the ones commands resolve from
     // arguments; otherwise /var and /private/var name the same file but never match.
     let root = workspace_root(cli);
@@ -3361,7 +3662,11 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
 
     // A cold index of a large workspace is most of a minute, and the silence read as
     // a hang. When stderr is a terminal, one line counts the files up and is erased
-    // once the work is done. A pipe sees nothing, so nothing scripted changes.
+    // once the work is done. A JSON caller with stderr piped gets a machine line
+    // every second or so instead. An agent waiting on a pipe cannot see a repainting
+    // counter, and reads minutes of silence as a hang. Stdout carries nothing either
+    // way, so piped output stays byte-stable.
+    let tty = std::io::stderr().is_terminal();
     let paint = |done: usize, total: usize| {
         // Repainting on every file would spend more time on the terminal than on a
         // small file, so the counter moves in coarse steps.
@@ -3369,12 +3674,32 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
             eprint!("\rindexing {done}/{total} files…");
         }
     };
-    let progress: Option<&(dyn Fn(usize, usize) + Sync)> = match std::io::stderr().is_terminal() {
-        true => Some(&paint),
-        false => None,
+    let started = std::time::Instant::now();
+    let last_emitted = std::sync::atomic::AtomicU64::new(0);
+    let machine_paint = |done: usize, total: usize| {
+        use std::sync::atomic::Ordering;
+        // Nothing before the second boundary: a small workspace indexes in
+        // milliseconds and needs no progress at all. At most one line per second
+        // after that, whichever worker crosses the boundary first.
+        let elapsed = started.elapsed().as_secs();
+        let previous = last_emitted.load(Ordering::Relaxed);
+        if elapsed > previous
+            && last_emitted
+                .compare_exchange(previous, elapsed, Ordering::Relaxed, Ordering::Relaxed)
+                .is_ok()
+        {
+            eprintln!("{}", indexing_progress_line(done, total));
+        }
+    };
+    let progress: Option<&(dyn Fn(usize, usize) + Sync)> = if tty {
+        Some(&paint)
+    } else if cli.json {
+        Some(&machine_paint)
+    } else {
+        None
     };
     let index = Index::build_with_cache_reporting(&scanned, cache.as_ref(), progress)?;
-    if progress.is_some() {
+    if tty {
         let widest = format!("indexing {0}/{0} files…", scanned.files.len());
         eprint!("\r{:width$}\r", "", width = widest.chars().count());
     }
@@ -3384,7 +3709,13 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         let (hits, misses) = (stats.hits, stats.misses);
         tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
     }
+    warn_skipped_files(cli, &index);
     Ok(index)
+}
+
+/// One progress line for a JSON caller's stderr, while a cold index builds.
+fn indexing_progress_line(done: usize, total: usize) -> String {
+    serde_json::json!({ "indexing": { "done": done, "total": total } }).to_string()
 }
 
 fn cmd_capabilities(
@@ -3524,8 +3855,11 @@ fn cmd_symbols(
         .collect();
 
     if cli.json {
-        // The byte spans were already here; the line and column stand beside them
-        // because every position this tool accepts is spelled path:line:col.
+        // Every position this tool *accepts* is a 1-based line and column, so the
+        // report says each symbol's extent that way too. `start` and `end` cover
+        // the whole definition, and pasting them into `fr extract` round-trips.
+        // The spans are byte offsets and now say so in their names; the unlabelled
+        // spellings stay for one release.
         let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
         let payload: Vec<_> = selected
             .iter()
@@ -3533,7 +3867,14 @@ fn cmd_symbols(
                 let source = sources
                     .entry(s.file.clone())
                     .or_insert_with(|| crate::vfs::read_to_string(&s.file).unwrap_or_default());
-                let at = LineIndex::new(source).line_col(s.name_span.start, source);
+                let lines = LineIndex::new(source);
+                let at = lines.line_col(s.name_span.start, source);
+                let start = lines.line_col(s.full_span.start, source);
+                let end = lines.line_col(s.full_span.end, source);
+                let name_span =
+                    serde_json::json!({ "start": s.name_span.start, "end": s.name_span.end });
+                let full_span =
+                    serde_json::json!({ "start": s.full_span.start, "end": s.full_span.end });
                 serde_json::json!({
                     "name": s.name,
                     "qualified_name": s.qualified_name(),
@@ -3543,8 +3884,12 @@ fn cmd_symbols(
                     "col": at.col,
                     "language": s.language.name(),
                     "exported": s.exported,
-                    "name_span": { "start": s.name_span.start, "end": s.name_span.end },
-                    "full_span": { "start": s.full_span.start, "end": s.full_span.end },
+                    "start": { "line": start.line, "col": start.col },
+                    "end": { "line": end.line, "col": end.col },
+                    "name_span_bytes": name_span.clone(),
+                    "full_span_bytes": full_span.clone(),
+                    "name_span": name_span,
+                    "full_span": full_span,
                 })
             })
             .collect();
@@ -3795,6 +4140,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "definitions": definitions,
                 "usages": render(&all),
                 "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
+                "skipped_files": skipped_files_json(&index),
             }))?
         );
         return Ok(());
@@ -3920,6 +4266,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "symbol": symbol.qualified_name(),
                 "references": resolved,
                 "same_name_elsewhere": unresolved,
+                "skipped_files": skipped_files_json(&index),
             }))?
         );
         return Ok(());
@@ -3974,15 +4321,19 @@ fn resolve_languages(names: &[String]) -> Result<Vec<Language>> {
         .collect()
 }
 
-fn scan_options(names: &[String]) -> Result<ScanOptions> {
-    Ok(ScanOptions {
+fn scan_options(cli: &Cli, names: &[String]) -> Result<ScanOptions> {
+    let mut options = ScanOptions {
         languages: resolve_languages(names)?,
         ..Default::default()
-    })
+    };
+    if let Some(bytes) = cli.max_file_size {
+        options.max_file_bytes = bytes;
+    }
+    Ok(options)
 }
 
 fn cmd_scan(cli: &Cli, languages: &[String]) -> Result<()> {
-    let options = scan_options(languages)?;
+    let options = scan_options(cli, languages)?;
     let result = scan(&cli.root, &options)?;
 
     if cli.json {
@@ -4029,7 +4380,7 @@ fn cmd_scan(cli: &Cli, languages: &[String]) -> Result<()> {
 }
 
 fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
-    let options = scan_options(languages)?;
+    let options = scan_options(cli, languages)?;
     let result = scan(&cli.root, &options)?;
     let parsers = Parsers::new();
 
@@ -4089,6 +4440,7 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
                 .iter()
                 .map(|(p, at)| {
                     let mut entry = serde_json::json!({
+                        "file": p.canonicalize().unwrap_or_else(|_| p.clone()),
                         "path": p,
                         "error_nodes": at.len(),
                         "at": at
@@ -4188,5 +4540,41 @@ mod tests {
     fn cli_parses_expected_invocations() {
         use clap::CommandFactory;
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn the_machine_progress_line_is_json_with_both_counts() {
+        let line = indexing_progress_line(3, 10);
+        let parsed: serde_json::Value = serde_json::from_str(&line).expect("one JSON line");
+        assert_eq!(parsed["indexing"]["done"], 3);
+        assert_eq!(parsed["indexing"]["total"], 10);
+    }
+
+    #[test]
+    fn a_file_changed_after_indexing_is_named_as_the_race() {
+        // The reparse gate used to report the resulting syntax error, which is
+        // true and hides the race. The message now names the plan's basis instead.
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("a.py");
+        let first = "def f():\n    return 1\n";
+        crate::vfs::write(&path, first).unwrap();
+        let index =
+            Index::build_from_sources(&[(path.clone(), Language::Python, first.to_string())])
+                .unwrap();
+
+        // Nothing moved yet: the plan is fresh and passes.
+        let mut edits = crate::edit::EditSet::new();
+        edits.add(
+            &path,
+            crate::edit::Edit::new(crate::span::Span::new(4, 5), "g", "rename"),
+        );
+        refuse_stale_plan(&index, &edits).expect("a fresh plan is accepted");
+
+        crate::vfs::write(&path, "def f():\n    return 2\n").unwrap();
+        let err = refuse_stale_plan(&index, &edits).unwrap_err().to_string();
+        assert!(
+            err.contains("changed since the plan was made"),
+            "the race is named, instead of a syntax error: {err}"
+        );
     }
 }

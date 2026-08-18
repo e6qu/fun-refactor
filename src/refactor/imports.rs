@@ -59,6 +59,13 @@ pub struct ImportsPlan {
 struct InvisibleUses {
     /// Python names re-exported through `__all__`.
     reexported: HashSet<String>,
+    /// True when the file is a package's `__init__.py`.
+    ///
+    /// An import there is the package's public API. `from .mod import api_func`
+    /// publishes `pkg.api_func` whether or not `__all__` says so, and stripping it
+    /// breaks every caller of the package. Liveness cannot see those callers, so
+    /// the file's role is the fact that decides.
+    package_init: bool,
     /// TypeScript names appearing inside a `{...}` type in a JSDoc comment.
     jsdoc_types: HashSet<String>,
     /// TypeScript names given to a `@jsx` / `@jsxFrag` / `@jsxImportSource` pragma.
@@ -70,8 +77,12 @@ struct InvisibleUses {
 }
 
 impl InvisibleUses {
-    fn collect(language: Language, parsed: &Parsed, source: &str) -> Self {
-        let mut uses = InvisibleUses::default();
+    fn collect(language: Language, parsed: &Parsed, source: &str, file: &Path) -> Self {
+        let mut uses = InvisibleUses {
+            package_init: language == Language::Python
+                && file.file_name().is_some_and(|name| name == "__init__.py"),
+            ..Default::default()
+        };
         match language {
             Language::Python => for_each_node(parsed.root(), |node| {
                 if !matches!(node.kind(), "assignment" | "augmented_assignment") {
@@ -172,6 +183,18 @@ fn hold_back_reason(
                 return Some(format!(
                     "'{}' binds '{binding}', which nothing names but __all__ re-exports, \
                      so importing it is what publishes it",
+                    statement.path
+                ));
+            }
+            // In a package's `__init__.py`, an import *is* the public API. `from
+            // .mod import api_func` publishes `pkg.api_func`, and the callers who
+            // use it live outside this file, where liveness cannot see them.
+            // Removing one verifiably broke a package: `import pkg` then
+            // `pkg.api_func` raised ImportError after the strip.
+            if uses.package_init {
+                return Some(format!(
+                    "'{}' is imported in a package __init__.py, which re-exports \
+                     what it binds as package API, so it is kept",
                     statement.path
                 ));
             }
@@ -519,7 +542,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         live.insert(reference.name.as_str());
     }
 
-    let invisible = InvisibleUses::collect(info.language, &parsed, source);
+    let invisible = InvisibleUses::collect(info.language, &parsed, source, file);
 
     let mut removed = Vec::new();
     let mut drop_statement = vec![false; statements.len()];

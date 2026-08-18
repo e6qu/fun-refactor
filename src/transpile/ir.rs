@@ -801,7 +801,7 @@ pub enum UnaryOp {
 ///
 /// The point of the exercise. A translated file is a draft, and the only way to use a
 /// draft responsibly is to know where it stops being one.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, serde::Serialize)]
 pub struct Fidelity {
     pub functions: usize,
     pub records: usize,

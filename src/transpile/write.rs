@@ -1317,6 +1317,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         params.push(format!("&{}", receiver_word(out.language)));
     }
     let mut foreign = false;
+    let mut unannotated = false;
     for p in &f.params {
         let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
@@ -1333,7 +1334,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
                 rust_type(t)
             }
             None => {
-                foreign = true;
+                unannotated = true;
                 unknown(out, &p.name)
             }
         };
@@ -1373,7 +1374,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -1464,9 +1465,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     .unwrap_or_default();
                 // `return 0` under a signature that promised a float: Go and Zig
                 // coerce the untyped literal, Rust refuses it.
-                if matches!(returns, Some(Type::Float))
-                    && matches!(value, Some(Expr::Int(_)))
-                {
+                if matches!(returns, Some(Type::Float)) && matches!(value, Some(Expr::Int(_))) {
                     text.push_str(".0");
                 }
                 out.line(&format!("return {text};"));
@@ -2378,6 +2377,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
         params.push(receiver_word(out.language).to_string());
     }
     let mut foreign = false;
+    let mut unannotated = false;
     for p in &f.params {
         let annotation = match &p.ty {
             Some(t) => {
@@ -2387,7 +2387,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
                 format!(": {}", python_type(t))
             }
             None => {
-                foreign = true;
+                unannotated = true;
                 String::new()
             }
         };
@@ -2450,7 +2450,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -3473,6 +3473,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         );
     }
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let params: Vec<String> = f
         .params
@@ -3490,7 +3491,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
                     go_type(t)
                 }
                 None => {
-                    foreign = true;
+                    unannotated = true;
                     unknown(out, &p.name)
                 }
             };
@@ -3564,7 +3565,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -4820,6 +4821,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
         out.line(&format!("/** {} */", block_comment_safe(line)));
     }
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let params: Vec<String> = f
         .params
@@ -4834,7 +4836,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
                     format!(": {}", ts_type(t))
                 }
                 None => {
-                    foreign = true;
+                    unannotated = true;
                     ": unknown".to_string()
                 }
             };
@@ -4910,7 +4912,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -5810,6 +5812,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     }
 
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let params: Vec<String> = f
         .params
@@ -5827,7 +5830,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
                     java_type(t)
                 }
                 None => {
-                    foreign = true;
+                    unannotated = true;
                     unknown(out, &p.name)
                 }
             };
@@ -5876,7 +5879,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -7026,6 +7029,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
 
     let mut foreign = false;
+    let mut unannotated = false;
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     // A method takes its own type as an ordinary first parameter; there is no
@@ -7056,7 +7060,8 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             continue;
         }
         // Zig writes a type on every parameter and infers none of them, so one the
-        // source never declared becomes `anytype` and is counted.
+        // source never declared becomes `anytype`, and the signature is counted as
+        // unannotated rather than complete.
         let ty = match &p.ty {
             Some(t) => {
                 if out.is_foreign(t) {
@@ -7065,7 +7070,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
                 zig_type(t)
             }
             None => {
-                foreign = true;
+                unannotated = true;
                 unknown(out, &p.name)
             }
         };
@@ -7107,7 +7112,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
-    } else if !changed {
+    } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
 }
@@ -7318,7 +7323,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                     _ => out.line(&format!(".{tag} => |fields_of_{tag}| {{")),
                 }
                 out.open();
-                if arm.bindings.len() > 1 || matches!(arm.bindings.as_slice(), [(f, _)] if f != "value")
+                if arm.bindings.len() > 1
+                    || matches!(arm.bindings.as_slice(), [(f, _)] if f != "value")
                 {
                     for (field, local) in &arm.bindings {
                         out.line(&format!(

@@ -6754,7 +6754,8 @@ mod typescript {
             let answering: Vec<&(String, String, std::collections::BTreeSet<String>)> = variants
                 .iter()
                 .filter(|(_, name, fields)| {
-                    crate::transpile::write::snake_always(name) == *tag_value && rest.is_subset(fields)
+                    crate::transpile::write::snake_always(name) == *tag_value
+                        && rest.is_subset(fields)
                 })
                 .collect();
             let [(sum, name, _)] = answering.as_slice() else {
@@ -8325,11 +8326,7 @@ fn settle_variant_narrowing(module: &mut Module) {
     }
     // Replace the payload reads of `variant` through `subject` with locals and
     // say which fields were read.
-    fn bind_payload(
-        body: &mut Vec<Stmt>,
-        subject: &str,
-        fields: &[String],
-    ) -> Vec<(String, String)> {
+    fn bind_payload(body: &mut [Stmt], subject: &str, fields: &[String]) -> Vec<(String, String)> {
         let mut bound: Vec<(String, String)> = Vec::new();
         each_expr_in_stmts(body, &mut |e| {
             if let Expr::Field { of, name } = e {
@@ -8359,7 +8356,7 @@ fn settle_variant_narrowing(module: &mut Module) {
                 let mut default: Vec<Stmt> = Vec::new();
                 let mut sum_name = String::new();
                 let mut current = std::mem::replace(stmt, Stmt::Expr(Expr::Null));
-                let mut rest = &mut current;
+                let rest = &mut current;
                 loop {
                     let Stmt::If {
                         condition,

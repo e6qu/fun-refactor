@@ -111,14 +111,24 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
             target.name,
             blocking.len()
         );
+        let mut references = Vec::new();
         for (file, span) in &blocking {
             let at = sources.line_col(file, span.start);
             message.push_str(&format!("\n  {}:{at}", file.display()));
+            references.push(crate::refactor::RefusalSite {
+                file: file.clone(),
+                line: at.line,
+                col: at.col,
+            });
         }
         message.push_str("\nRemove or repoint these uses first; nothing was changed.");
-        // A typed refusal, so the caller's exit code can say "refused" instead of a
-        // bare failure. The wording is unchanged.
-        return Err(crate::refactor::Refusal::StillUsed { detail: message }.into());
+        // A typed refusal, so the caller's exit code can say "refused" instead of
+        // a bare failure. The blocking sites ride beside the prose as data.
+        return Err(crate::refactor::Refusal::StillUsed {
+            detail: message,
+            references,
+        }
+        .into());
     }
 
     // Nothing proven uses it, so the definitions can go. Whole lines are removed when
@@ -874,18 +884,50 @@ pub(crate) fn deletion_span(source: &str, span: Span) -> Span {
         return span;
     }
 
-    let mut end = line_end;
-    let preceded_by_gap = first.start == 0 || {
-        let previous = full_line_span(source, first.start - 1);
-        previous.text(source).trim().is_empty()
+    // The blank lines around the definition merge into one run once it is gone.
+    // So as many trailing blanks go as there were leading ones, and the site
+    // keeps the separation it had, instead of both gaps stacked. Eating only one
+    // used to leave a Python file with three blank lines where its style put two.
+    // A gap owned by the survivors, a definition with no blank line above it,
+    // stays.
+    let mut blanks_before = 0usize;
+    let mut at = first.start;
+    while at > 0 {
+        let previous = full_line_span(source, at - 1);
+        if !previous.text(source).trim().is_empty() {
+            break;
+        }
+        blanks_before += 1;
+        at = previous.start;
+    }
+    let allowance = match first.start == 0 {
+        // The file must not open blank, so a deletion at its head takes the gap too.
+        true => usize::MAX,
+        false => blanks_before,
     };
-    if preceded_by_gap && end < source.len() {
+    let mut end = line_end;
+    let mut eaten = 0usize;
+    while eaten < allowance && end < source.len() {
         let next = full_line_span(source, end);
-        if next.text(source).trim().is_empty() {
-            end = next.end;
+        if !next.text(source).trim().is_empty() {
+            break;
+        }
+        end = next.end;
+        eaten += 1;
+    }
+    // A deletion that leaves nothing after it would leave the gap above it as a
+    // blank tail; the tail goes with it.
+    let mut start = first.start;
+    if end >= source.len() {
+        while start > 0 {
+            let previous = full_line_span(source, start - 1);
+            if !previous.text(source).trim().is_empty() {
+                break;
+            }
+            start = previous.start;
         }
     }
-    Span::new(first.start, end)
+    Span::new(start, end)
 }
 
 /// Collapse overlapping or touching spans so each becomes one edit.
@@ -1073,6 +1115,29 @@ mod tests {
         // `c` once `b` is gone and must stay.
         let source = "fn a() {}\nfn b() {}\n\nfn c() {}\n";
         assert_eq!(deletion_span(source, Span::new(10, 19)), Span::new(10, 20));
+    }
+
+    #[test]
+    fn stacked_blank_lines_collapse_to_the_original_separation() {
+        // Two blank lines above and two below merge into one run once the
+        // definition is gone. The site used to keep three, its style used two.
+        let source = "fn a() {}\n\n\nfn b() {}\n\n\nfn c() {}\n";
+        let b = Span::new(12, 21);
+        let deleted = deletion_span(source, b);
+        let mut out = source.to_string();
+        out.replace_range(deleted.start..deleted.end, "");
+        assert_eq!(out, "fn a() {}\n\n\nfn c() {}\n");
+    }
+
+    #[test]
+    fn a_deletion_reaching_the_end_takes_the_gap_above_it() {
+        // Nothing follows, so the blank line above would become a blank tail.
+        let source = "fn a() {}\n\nfn b() {}\n";
+        let b = Span::new(11, 20);
+        let deleted = deletion_span(source, b);
+        let mut out = source.to_string();
+        out.replace_range(deleted.start..deleted.end, "");
+        assert_eq!(out, "fn a() {}\n");
     }
 
     #[test]

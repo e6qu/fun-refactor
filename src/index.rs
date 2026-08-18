@@ -53,6 +53,21 @@ pub struct Index {
     files: BTreeMap<PathBuf, FileInfo>,
     /// Files skipped during scanning, reported and not silently dropped.
     pub skipped: Vec<(PathBuf, String)>,
+    /// Hash of each file's text as this index read it.
+    ///
+    /// A plan's byte spans are measured against this text. A file that changes
+    /// between the index and the write has those spans spliced into strange text.
+    /// The reparse gate then reports a syntax error instead of the race. The hash
+    /// lets a caller name the race.
+    content_hashes: BTreeMap<PathBuf, u64>,
+}
+
+/// The hash [`Index::content_hash`] answers with, for callers comparing fresh text.
+pub fn content_hash_of(text: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    text.hash(&mut hasher);
+    hasher.finish()
 }
 
 /// Parse one file and extract everything the index keeps about it.
@@ -128,7 +143,8 @@ impl Index {
         // symbol ids are assigned by position and must not depend on thread timing.
         let total = scan_result.files.len();
         let done = std::sync::atomic::AtomicUsize::new(0);
-        let extracted: Vec<Result<Option<(usize, FileFacts)>>> = scan_result
+        type Extracted = (usize, FileFacts, Option<u64>);
+        let extracted: Vec<Result<Option<Extracted>>> = scan_result
             .files
             .par_iter()
             .enumerate()
@@ -141,16 +157,18 @@ impl Index {
                             return Ok(Some((
                                 position,
                                 Self::unreadable_placeholder(&file.path, e.to_string()),
+                                None,
                             )))
                         }
                     };
+                    let hash = Some(content_hash_of(&source));
 
                     // A cached entry carries its own gaps, so a hit skips parsing entirely
                     // instead of reparsing to ask.
                     if let Some(cache) = cache {
                         let key = crate::cache::Cache::key(file.language, &source);
                         if let Some(facts) = cache.get(&key, &file.path) {
-                            return Ok(Some((position, facts)));
+                            return Ok(Some((position, facts, hash)));
                         }
                     }
 
@@ -170,7 +188,7 @@ impl Index {
                         let key = crate::cache::Cache::key(file.language, &source);
                         cache.put(&key, &facts);
                     }
-                    Ok(Some((position, facts)))
+                    Ok(Some((position, facts, hash)))
                 })();
                 if let Some(report) = progress {
                     let counted = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
@@ -180,19 +198,22 @@ impl Index {
             })
             .collect();
 
-        let mut ordered: Vec<(usize, FileFacts)> = Vec::with_capacity(extracted.len());
+        let mut ordered: Vec<Extracted> = Vec::with_capacity(extracted.len());
         for outcome in extracted {
             if let Some(entry) = outcome? {
                 ordered.push(entry);
             }
         }
-        ordered.sort_by_key(|(position, _)| *position);
+        ordered.sort_by_key(|(position, _, _)| *position);
 
-        for (position, facts) in ordered {
+        for (position, facts, hash) in ordered {
             let file = &scan_result.files[position];
             if let Some(reason) = facts.unreadable.clone() {
                 index.skipped.push((file.path.clone(), reason));
                 continue;
+            }
+            if let Some(hash) = hash {
+                index.content_hashes.insert(file.path.clone(), hash);
             }
             index.add_file(facts, file.language);
         }
@@ -229,7 +250,13 @@ impl Index {
             let facts = extract_facts(&parsers, &mut extractor, path, *language, source)?;
             extracted.push((path.clone(), *language, facts));
         }
-        Ok(Self::build_from_facts(&extracted))
+        let mut index = Self::build_from_facts(&extracted);
+        for (path, _, source) in sources {
+            index
+                .content_hashes
+                .insert(path.clone(), content_hash_of(source));
+        }
+        Ok(index)
     }
 
     /// Build an index from facts that have already been extracted.
@@ -286,6 +313,11 @@ impl Index {
 
     pub fn file(&self, path: &Path) -> Option<&FileInfo> {
         self.files.get(path)
+    }
+
+    /// The hash of `path`'s text as this index read it, if this index read it.
+    pub fn content_hash(&self, path: &Path) -> Option<u64> {
+        self.content_hashes.get(path).copied()
     }
 
     pub fn files(&self) -> impl Iterator<Item = (&PathBuf, &FileInfo)> {

@@ -127,6 +127,40 @@ fn python_a_future_import_is_never_removed() {
 }
 
 #[test]
+fn python_an_import_in_a_package_init_is_the_packages_api_and_stays() {
+    // `from .mod import api_func` in `pkg/__init__.py` publishes `pkg.api_func`.
+    // Nothing in the file spells the name, and every caller lives outside it.
+    // Stripping it verifiably broke a package: `import pkg; pkg.api_func` raised
+    // ImportError after the organize pass.
+    kept_because(
+        &[
+            ("pkg/__init__.py", "from .mod import api_func\n"),
+            ("pkg/mod.py", "def api_func():\n    return 1\n"),
+        ],
+        "pkg/__init__.py",
+        ".mod",
+        "__init__.py",
+    );
+}
+
+#[test]
+fn python_the_same_import_outside_an_init_still_goes() {
+    // The other half of the guard: the file's role is what decides, so the same
+    // dead import in an ordinary module is still removed.
+    assert_eq!(
+        removed_paths(
+            &[
+                ("pkg/__init__.py", ""),
+                ("pkg/mod.py", "def api_func():\n    return 1\n"),
+                ("pkg/user.py", "from .mod import api_func\n\nprint(1)\n"),
+            ],
+            "pkg/user.py"
+        ),
+        vec![".mod".to_string()]
+    );
+}
+
+#[test]
 fn python_a_name_re_exported_through_dunder_all_is_kept() {
     // Importing it *is* the use: `__all__` republishes it as this module's surface.
     kept_because(

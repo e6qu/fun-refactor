@@ -231,9 +231,9 @@ export const CATALOG = [
     note: "`fr unused` finds it and `fr delete` removes it, and the two must agree: delete refuses anything still referenced, which is what makes the list worth acting on.",
     command: "fr delete _legacy_histogram",
     files: [
-      { path: "src/reports.py", before: "def summarise(rows):\n    return len(rows)\n\n\ndef _legacy_histogram(rows):\n    buckets = {}\n    for row in rows:\n        buckets[row.kind] = buckets.get(row.kind, 0) + 1\n    return buckets\n", after: "def summarise(rows):\n    return len(rows)\n\n\n" },
+      { path: "src/reports.py", before: "def summarise(rows):\n    return len(rows)\n\n\ndef _legacy_histogram(rows):\n    buckets = {}\n    for row in rows:\n        buckets[row.kind] = buckets.get(row.kind, 0) + 1\n    return buckets\n", after: "def summarise(rows):\n    return len(rows)\n" },
     ],
-    output: "--- a/src/reports.py\n+++ b/src/reports.py\n@@ -2,8 +2,3 @@\n     return len(rows)\n \n \n-def _legacy_histogram(rows):\n-    buckets = {}\n-    for row in rows:\n-        buckets[row.kind] = buckets.get(row.kind, 0) + 1\n-    return buckets\n\ndeleted _legacy_histogram (1 definition site(s))\n\nNothing written. Re-run with --write to apply.",
+    output: "--- a/src/reports.py\n+++ b/src/reports.py\n@@ -1,9 +1,2 @@\n def summarise(rows):\n     return len(rows)\n-\n-\n-def _legacy_histogram(rows):\n-    buckets = {}\n-    for row in rows:\n-        buckets[row.kind] = buckets.get(row.kind, 0) + 1\n-    return buckets\n\ndeleted _legacy_histogram (1 definition site(s))\n\nNothing written. Re-run with --write to apply.",
   },
   {
     id: "delete-refused",
