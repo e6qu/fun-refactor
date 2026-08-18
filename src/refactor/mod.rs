@@ -77,6 +77,18 @@ impl WarningKind {
     }
 }
 
+/// One place a refusal is about, carried as data beside the prose.
+///
+/// An ambiguity's rival definitions ride in the JSON error as `candidates`. The
+/// sites blocking a refusal rode only in its prose, and an agent had to parse the
+/// message back apart. This is the same fact as a field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefusalSite {
+    pub file: PathBuf,
+    pub line: usize,
+    pub col: usize,
+}
+
 /// Describes why a refactoring refused to proceed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refusal {
@@ -152,8 +164,12 @@ pub enum Refusal {
     /// The message carries the full listing, one blocking site per line. It was a plain
     /// `anyhow!` before, which exited 1 while `fr --help` promised every considered
     /// refusal exits 5. The exit code is chosen from the error's type, so the fix
-    /// belonged in the type.
-    StillUsed { detail: String },
+    /// belonged in the type. `references` is the same listing as data, for the JSON
+    /// error object.
+    StillUsed {
+        detail: String,
+        references: Vec<RefusalSite>,
+    },
     /// Something the tool cannot establish at all.
     ///
     /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and is not
@@ -221,7 +237,7 @@ impl std::fmt::Display for Refusal {
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
             // The detail is the whole message, worded at the site that knows the
             // sites, so the wording did not change when the type did.
-            Refusal::StillUsed { detail } => f.write_str(detail),
+            Refusal::StillUsed { detail, .. } => f.write_str(detail),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
             }
@@ -229,7 +245,28 @@ impl std::fmt::Display for Refusal {
     }
 }
 
+impl Refusal {
+    /// The positions this refusal is about, where it knows them exactly.
+    ///
+    /// Variants that carry a file without a position stay out: inventing a line for
+    /// them would be data that looks measured and is not.
+    pub fn references(&self) -> &[RefusalSite] {
+        match self {
+            Refusal::StillUsed { references, .. } => references,
+            _ => &[],
+        }
+    }
+}
+
 impl std::error::Error for Refusal {}
+
+/// The refusal in an error's chain, if one stopped the operation.
+///
+/// One lookup shared by the exit-code choice, the JSON error object and the
+/// recipe report. The three cannot disagree about what counts as a refusal.
+pub fn refusal_in(error: &anyhow::Error) -> Option<&Refusal> {
+    error.chain().find_map(|c| c.downcast_ref::<Refusal>())
+}
 
 /// The declared type of a reference's receiver, where the source wrote one.
 ///

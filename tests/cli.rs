@@ -438,6 +438,43 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
         Some(5),
         "a blocked delete is a refusal."
     );
+    // A position naming a file that does not exist, or a place past the end of one
+    // that does, is a target that was not found. Both used to leak exit 1.
+    assert_eq!(
+        code(&["def", "one/missing.go:3:6"]),
+        Some(3),
+        "a missing file in a position is not found."
+    );
+    assert_eq!(
+        code(&["def", "one/a.go:999:1"]),
+        Some(3),
+        "a position past the end of the file is not found."
+    );
+    // A required position left out, and a position that does not parse, are faults
+    // in the command line. Both used to leak exit 1, and the second was silently
+    // reinterpreted as a symbol name.
+    assert_eq!(
+        code(&["rewrite", "invert-if", "--write"]),
+        Some(2),
+        "a rewrite without a position is invalid input."
+    );
+    let output = Command::new(FR)
+        .arg("-C")
+        .arg(ws.root())
+        .args(["def", "one/a.go:abc"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "a malformed position is invalid input, never a symbol name."
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("'abc' is not a line number"),
+        "the parse failure is named: {stderr}"
+    );
     let (out, ok) = ws.run(&["--help"]);
     assert!(ok, "{out}");
     assert!(
