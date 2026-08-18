@@ -175,6 +175,29 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B524: **a Python class with two bases lost both of them.** `class
+  Import(Taxed, Levied)` crossed as a class extending nothing. The body kept
+  `super().cost()`, TypeScript answered TS2335, and the report claimed every
+  signature carried. The first base is the one `super()`
+  dispatches to, so it rides in the single slot the targets offer. The rest are
+  named beside the type. The translated class compiles under `tsc --strict`
+  and prints what Python prints. Pinned in
+  `tests/translate_inheritance.rs`.
+
+- [x] B525: **a default that read another parameter died at import.**
+  `function pad(text, width = text.length + 2)` reached Python verbatim. The
+  module raised NameError before anything ran. Python evaluates a default
+  once, at `def` time, where the parameters do not exist yet. Such a default
+  becomes the sentinel idiom, computed in the body, and the annotation widens
+  to admit it. Pinned in `tests/translate_defaults.rs`.
+
+- [x] B526: **a computed assert message was dropped into a comment.** Rust's
+  macro takes a format string and arguments, evaluated only on failure. The
+  other targets already did that. The message rode above the
+  check as prose instead, so the failure said nothing, and any effect
+  computing it had was lost. Pinned in
+  `tests/translate_asserts.rs`.
+
 - [x] B514: **a file skipped for its size falsified every answer, silently.** A
   workspace holding one file over the scan's limit reported clean success: the
   rename said applied with no warnings, `usages` counted none, `unused` listed

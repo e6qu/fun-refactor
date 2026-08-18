@@ -2152,21 +2152,34 @@ mod python {
                 }
             }
         }
+        let bases: Vec<String> = cx
+            .field(node, "superclasses")
+            .map(|list| cx.children(list))
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|b| b.is_named() && b.kind() != "comment")
+            .map(|b| cx.text(b))
+            .collect();
         let mut record = Record {
             doc: docstring(cx, cx.field(node, "body")),
             name,
             fields,
-            // `class A(B):`, the bases are the class's argument list. Only a single one is
-            // carried: multiple inheritance has no counterpart in the two other languages that
-            // inherit at all. Picking one of them would be a guess.
-            extends: cx
-                .field(node, "superclasses")
-                .map(|list| cx.children(list))
-                .filter(|bases| bases.len() == 1)
-                .and_then(|bases| bases.first().map(|b| cx.text(*b))),
+            // `class A(B, C):`, the bases are the class's argument list. One
+            // base slot exists in the targets that inherit at all, and the
+            // first base is the one `super()` dispatches to, so it rides. The
+            // rest are said beside the type. Dropping every base because there
+            // were two left `super.cost()` in a class extending nothing, which
+            // is not a program in any of them.
+            extends: bases.first().cloned(),
             exported: true,
             methods,
         };
+        if bases.len() > 1 {
+            record.doc.push(format!(
+                "the source also declares `{}` as a base; one base is all that carries.",
+                bases[1..].join(", ")
+            ));
+        }
         derive_constructor_shape(&mut record);
         // The annotations `__init__` wrote on its own field assignments. The
         // derived field takes the type the source spelled out, which the value
@@ -8436,7 +8449,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
 }
 
 /// Children first, then the node itself, so a rewrite sees settled children.
-fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
+pub(super) fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
     match e {
         Expr::Field { of, .. } => each_expr(of, visit),
         Expr::Index { of, index } => {

@@ -1070,6 +1070,18 @@ pub(super) fn render_rust_stmts(stmts: &[Stmt]) -> String {
     scratch.text
 }
 
+/// Does this expression read `name` anywhere inside it?
+fn expr_reads(e: &Expr, name: &str) -> bool {
+    let mut found = false;
+    let mut probe = e.clone();
+    crate::transpile::read::each_expr(&mut probe, &mut |inner| {
+        if matches!(inner, Expr::Name(n) if n == name) {
+            found = true;
+        }
+    });
+    found
+}
+
 /// The discriminator literal a variant answers to on the wire.
 ///
 /// The source's own spelling where it wrote one, the derived snake case where
@@ -1759,11 +1771,14 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                             .replace('}', "}}");
                         out.line(&format!("assert!({c}, {literal});"));
                     }
+                    // A message that is not a literal goes in as an argument
+                    // to the macro's own `{}`. The macro evaluates it only on
+                    // failure. The source said the same, and the other targets
+                    // already do it. Rendering it into a comment dropped the
+                    // message and any effect computing it had.
                     Some(other) => {
                         let rendered = rust_expr(out, other);
-                        let note = out.comment(&format!("the assert's message: {rendered}"));
-                        out.line(&note);
-                        out.line(&format!("assert!({c});"));
+                        out.line(&format!("assert!({c}, \"{{}}\", {rendered});"));
                     }
                     None => out.line(&format!("assert!({c});")),
                 }
@@ -2460,6 +2475,7 @@ fn python(out: &mut Out, module: &Module) {
 }
 
 fn python_function(out: &mut Out, f: &Function, method: bool) {
+    let mut deferred_defaults: Vec<(String, Expr)> = Vec::new();
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
@@ -2486,17 +2502,38 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
                 String::new()
             }
         };
-        let default = p
+        // Python evaluates a default once, at `def` time, in module scope.
+        // The languages that evaluate per call let one parameter's default
+        // read another. So `def pad(text, width = text.length + 2)` raised
+        // NameError before the module finished importing. Such a default
+        // becomes the sentinel idiom, computed in the body where the
+        // parameters exist.
+        let reads_a_parameter = p
             .default
             .as_ref()
-            .map(|d| format!(" = {}", python_expr(out, d)))
-            .unwrap_or_default();
+            .is_some_and(|d| f.params.iter().any(|other| expr_reads(d, &other.name)));
+        let default = match (&p.default, reads_a_parameter) {
+            (Some(_), true) => " = None".to_string(),
+            (Some(d), false) => format!(" = {}", python_expr(out, d)),
+            (None, _) => String::new(),
+        };
+        // The sentinel widens the type it stands in for: `width: float = None`
+        // is a lie a checker catches.
+        let annotation = match reads_a_parameter && !annotation.is_empty() {
+            true => format!("{} | None", annotation),
+            false => annotation,
+        };
         let Some(spelled) = spell_param(out, p.kind, &p.name, &mut changed) else {
             continue;
         };
         if p.kind != ParamKind::Normal {
             params.push(spelled);
             continue;
+        }
+        if reads_a_parameter {
+            if let Some(d) = &p.default {
+                deferred_defaults.push((spelled.clone(), d.clone()));
+            }
         }
         params.push(format!("{spelled}{annotation}{default}"));
     }
@@ -2527,6 +2564,13 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
             }
             out.line("\"\"\"");
         }
+    }
+    for (name, value) in &deferred_defaults {
+        out.line(&format!("if {name} is None:"));
+        out.open();
+        let rendered = python_expr(out, value);
+        out.line(&format!("{name} = {rendered}"));
+        out.close();
     }
     python_block(out, &f.body);
     out.close();
