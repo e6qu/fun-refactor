@@ -815,6 +815,12 @@ struct Out {
     /// Collected while the bodies are written, and declared once at the top so a
     /// thrown name is always a class the file declares.
     ts_exceptions: std::collections::BTreeSet<&'static str>,
+    /// Did the Rust body being written ask for floor division?
+    ///
+    /// Rust has no integer method that rounds toward negative infinity, so this
+    /// writer declares one. Set while an expression is written, read after the
+    /// items are, because a helper nothing calls is dead code.
+    needs_floor_div: bool,
 }
 
 impl Out {
@@ -845,6 +851,7 @@ impl Out {
             sums: std::collections::BTreeSet::new(),
             catch_bindings: Vec::new(),
             ts_exceptions: std::collections::BTreeSet::new(),
+            needs_floor_div: false,
         }
     }
 
@@ -1179,6 +1186,19 @@ pub(super) fn pascal(name: &str) -> String {
 
 // ------------------------------------------------------------------------- Rust
 
+/// What this module calls its floor-division helper.
+///
+/// A module of its own may already declare that name, and shadowing it would
+/// change which function every call site reaches. The suffix keeps both.
+fn floor_div_name(out: &Out) -> String {
+    let taken = out.functions.contains_key("floor_div")
+        || out.names.values().any(|spelled| spelled == "floor_div");
+    match taken {
+        true => "floor_div_helper".to_string(),
+        false => "floor_div".to_string(),
+    }
+}
+
 fn rust(out: &mut Out, module: &Module) {
     for line in &module.doc {
         out.line(&format!("//! {line}"));
@@ -1354,6 +1374,28 @@ fn rust(out: &mut Out, module: &Module) {
                 out.blank();
             }
         }
+    }
+
+    if out.needs_floor_div {
+        let name = floor_div_name(out);
+        out.blank();
+        out.line("/// Division that rounds toward negative infinity.");
+        out.line("///");
+        out.line("/// The standard library's Euclidean division keeps the remainder");
+        out.line("/// positive, which is another answer when the divisor is negative.");
+        out.line(&format!("fn {name}(dividend: i64, divisor: i64) -> i64 {{"));
+        out.open();
+        out.line("let quotient = dividend / divisor;");
+        out.line("let remainder = dividend % divisor;");
+        out.line("match remainder != 0 && (remainder < 0) != (divisor < 0) {");
+        out.open();
+        out.line("true => quotient - 1,");
+        out.line("false => quotient,");
+        out.close();
+        out.line("}");
+        out.close();
+        out.line("}");
+        out.blank();
     }
 }
 
@@ -1982,16 +2024,38 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             }
             format!("{}({})", rust_expr(out, callee), rendered.join(", "))
         }
-        // Floor division is a method here, and the receiver needs brackets
-        // whenever the method call would bind into it. `7.div_euclid(2)` reads
-        // as a float literal, and `-a.div_euclid(b)` negates the result.
+        // Floor division rounds toward negative infinity, and Rust has no
+        // integer method that does. `div_euclid` keeps the remainder positive
+        // instead, so it answers `-3` where the source's `7 // -2` says `-4`.
+        // A block spells the floor itself and names each operand once, which
+        // matters when an operand is a call.
         Expr::Binary {
             op: BinaryOp::FloorDiv,
             left,
             right,
         } => {
-            let target = receiver(rust_expr(out, left), left);
-            format!("{target}.div_euclid({})", rust_expr(out, right))
+            let dividend = rust_expr(out, left);
+            let divisor = rust_expr(out, right);
+            // A float divides without truncating, so its floor is the method.
+            if static_type(out, left) == Some(Type::Float)
+                || static_type(out, right) == Some(Type::Float)
+            {
+                let target = receiver(
+                    format!(
+                        "{} / {}",
+                        binary_operand(dividend, left, BinaryOp::Div, false),
+                        binary_operand(divisor, right, BinaryOp::Div, true)
+                    ),
+                    &Expr::Binary {
+                        op: BinaryOp::Div,
+                        left: left.clone(),
+                        right: right.clone(),
+                    },
+                );
+                return format!("{target}.floor()");
+            }
+            out.needs_floor_div = true;
+            format!("{}({dividend}, {divisor})", floor_div_name(out))
         }
         Expr::Binary { op, left, right } => {
             // `n <= 0` with `n: f64`: Go and the others coerce the untyped
