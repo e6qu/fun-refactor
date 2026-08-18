@@ -277,9 +277,35 @@ pub(crate) fn receiver_declared_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
 ) -> Option<String> {
-    let receiver = reference.receiver.as_deref()?;
+    match receiver_type(index, reference) {
+        ReceiverType::Settled(ty) => Some(ty),
+        ReceiverType::Reassigned | ReceiverType::Unwritten => None,
+    }
+}
+
+/// What the source says a reference's receiver holds, `this` and `self` apart.
+///
+/// Three answers, because two of them are not the same silence. A receiver nothing
+/// describes and a receiver assigned two types are both unsafe to rewrite, and a
+/// reader told the first about the second goes looking for a missing annotation.
+pub(crate) enum ReceiverType {
+    /// The source states the type, and every assignment in scope agrees.
+    Settled(String),
+    /// The receiver is assigned more than once in scope, to types that disagree.
+    Reassigned,
+    /// Nothing in scope says what the receiver holds.
+    Unwritten,
+}
+
+pub(crate) fn receiver_type(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+) -> ReceiverType {
+    let Some(receiver) = reference.receiver.as_deref() else {
+        return ReceiverType::Unwritten;
+    };
     if matches!(receiver, "this" | "self") {
-        return None;
+        return ReceiverType::Unwritten;
     }
     receiver_binding_type(index, reference, receiver)
 }
@@ -305,15 +331,20 @@ pub(crate) fn receiver_known_type(
             .min_by_key(|s| s.full_span.end - s.full_span.start)
             .and_then(|s| s.qualifier.clone());
     }
-    receiver_binding_type(index, reference, receiver)
+    match receiver_binding_type(index, reference, receiver) {
+        ReceiverType::Settled(ty) => Some(ty),
+        ReceiverType::Reassigned | ReceiverType::Unwritten => None,
+    }
 }
 
 fn receiver_binding_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
     receiver: &str,
-) -> Option<String> {
-    let info = index.file(&reference.file)?;
+) -> ReceiverType {
+    let Some(info) = index.file(&reference.file) else {
+        return ReceiverType::Unwritten;
+    };
     let chain = info.scope_chain(reference.scope);
     let binding = info
         .symbols
@@ -334,14 +365,21 @@ fn receiver_binding_type(
                 .iter()
                 .position(|sc| *sc == s.scope)
                 .unwrap_or(usize::MAX)
-        })?;
-    let declared = crate::analysis::types::of(index, binding.id).ok()?;
+        });
+    let Some(binding) = binding else {
+        return ReceiverType::Unwritten;
+    };
     // `var b = new B()` writes the type on the right of the `=`. The derivation
-    // is the source's own words as much as an annotation is; it is only reached
-    // where no annotation exists to disagree with it.
-    let written = declared.declared.or(declared.inferred.map(|i| i.ty))?;
+    // is the source's own words as much as an annotation is, over the one
+    // assignment it reads. A name the scope assigns again holds two things, and
+    // this site is where that stops being evidence.
+    let written = match crate::analysis::types::held_by(index, binding.id) {
+        crate::analysis::types::Held::Settled(ty) => ty,
+        crate::analysis::types::Held::Reassigned => return ReceiverType::Reassigned,
+        crate::analysis::types::Held::Unwritten => return ReceiverType::Unwritten,
+    };
     // `List<Order>` names `List`; the last plain segment is the type's own name.
     let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);
-    Some(last.to_string())
+    ReceiverType::Settled(last.to_string())
 }
