@@ -175,6 +175,24 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B536: **a shell function reached through `source` was reported dead, and
+  deleting it broke the script.** Sourcing a file is not a binding: it runs the
+  file, and every function it defines becomes callable by its bare name. The
+  call resolved to nothing. So `fr usages` said none, `fr unused` listed the
+  function, and `fr delete` removed it while `bash` still called it. A call
+  that names a top-level definition of a sourced file resolves to it. So does
+  the path, where the source line ends in a plain file name, which is what
+  `source "$(dirname "$0")/lib.sh"` does. Pinned in `tests/facts_bash.rs`.
+
+- [x] B537: **a textual match was called a comment, and the listing repeated
+  what it had counted.** The sweep that finds a name in file text matched the
+  declaration itself and every resolved use, then listed them under "mention(s)
+  in a comment or a string. No command edits these". A YAML key is neither.
+  A reader told a broken reference was a comment has been told it is safe. The
+  listing drops what the search already accounts for, and says what the rest
+  are: matched as text, with nothing linking them to the declaration. Pinned
+  by the navigate and rename suites.
+
 - [x] B531: **a directory sweep wrote a package that could not build.** Two
   Python files each declaring `Thing` became one Go package. `Thing redeclared
   in this block` was the first anyone heard of it, and the report said both
