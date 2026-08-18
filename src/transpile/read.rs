@@ -8936,7 +8936,7 @@ fn settle_variants(module: &mut Module) {
     let mut items = std::mem::take(&mut module.items);
     for item in &mut items {
         // A match read as a variant match must name one of this module's own
-        // sums; `match dir` over an imported enum has no declaration here to
+        // sums. `match dir` over an imported enum has no declaration here to
         // check against, and writing `isinstance(dir, North)` into Python
         // invented a name. The demotion renders the arms back as Rust, so the
         // carry keeps its body.
