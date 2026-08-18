@@ -68,3 +68,59 @@ fn a_class_emptied_by_the_hoisting_is_not_written() {
         "the namespace shell says less than nothing:\n{out}"
     );
 }
+
+const FEATURES_JAVA: &str = "public class Features {\n    \
+    record Person(String name, int age) implements Greeter {\n        \
+    public String name() {\n            return name;\n        }\n    }\n\n    \
+    record Tagged(String label) implements Greeter {\n        \
+    public String label() {\n            return \"tag:\" + label;\n        }\n    }\n}\n";
+
+#[test]
+fn a_records_implements_clause_carries_as_its_base() {
+    // `implements Greeter` was dropped without a word, so the record crossed as
+    // a type with no relation to the interface its callers know it by.
+    let out = to_python(FEATURES_JAVA);
+    assert!(
+        out.contains("class Person(Greeter):"),
+        "the one interface rides in the base slot.\n{out}"
+    );
+}
+
+#[test]
+fn a_spelled_out_accessor_does_not_collide_with_its_field() {
+    // `record Person(String name, ...)` with a compact `public String name()`
+    // declares the accessor twice. In targets where the field crosses as data
+    // the pair collided, `name: str` beside a method `name`, so the field wins.
+    let out = to_python(FEATURES_JAVA);
+    assert!(out.contains("name: str"), "the field is there.\n{out}");
+    assert!(
+        !out.contains("def name("),
+        "and no same-named method stands beside it.\n{out}"
+    );
+}
+
+#[test]
+fn an_overriding_accessor_body_is_said_beside_the_field_it_stood_for() {
+    let out = to_python(FEATURES_JAVA);
+    assert!(
+        out.contains("overrode the record's `label()` accessor"),
+        "a body that did more than return the field is not dropped in silence.\n{out}"
+    );
+}
+
+#[test]
+fn multiple_interfaces_are_said_in_prose_beside_the_type() {
+    let source = "public class Multi {\n    \
+        record Pair(int a) implements Comparable, Cloneable {\n    }\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("Multi.java");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("multi_out.txt");
+    let plan = transpile::plan_to(&path, Language::Python, Some(&out), false)
+        .expect("a plan")
+        .output;
+    assert!(
+        plan.contains("implements Comparable, Cloneable"),
+        "one base slot exists, and the rest is prose instead of silence.\n{plan}"
+    );
+}

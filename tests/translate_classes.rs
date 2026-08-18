@@ -168,6 +168,37 @@ fn a_local_base_lays_flat_where_nothing_inherits() {
 }
 
 #[test]
+fn an_annotated_instance_field_carries_with_its_type() {
+    // `self.entries: list[str] = []` declares the field and its type at once.
+    // Read as a binding, its dotted "name" was no name at all. The whole
+    // assignment carried as a comment, the field vanished, and every method
+    // still read `self.entries` from a field the target never had.
+    let source = "class Ledger:\n    def __init__(self) -> None:\n        \
+        self.entries: list[str] = []\n\n    def record(self, entry: str) -> None:\n        \
+        self.entries.append(entry)\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("ledger.py");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("ledger_out.txt");
+    let plan = transpile::plan_to(&path, Language::TypeScript, Some(&out), false).unwrap();
+    assert!(
+        plan.output.contains("entries: string[];"),
+        "the field exists, typed from the annotation.\n{}",
+        plan.output
+    );
+    assert!(
+        plan.output.contains("this.entries = [];"),
+        "and the constructor still assigns it.\n{}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains("not translated: expression_statement"),
+        "nothing about the declaration is a gap.\n{}",
+        plan.output
+    );
+}
+
+#[test]
 fn zig_tests_named_by_declaration_cross_too() {
     let source = "pub fn double(n: u32) u32 {\n    return n * 2;\n}\n\n\
         test double {\n    const four = double(2);\n    _ = four;\n}\n";

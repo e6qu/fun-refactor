@@ -118,11 +118,11 @@ def total(values: list[int]) -> int:
 
 #[test]
 fn what_cannot_be_translated_is_in_the_output_verbatim() {
-    // The other half of the promise. A closure and a macro have no counterpart in
+    // The other half of the promise. A block-bodied closure has no counterpart in
     // Python; the result must contain the original text, not a silent gap.
     let source = "\
 pub fn shout(names: Vec<String>) -> Vec<String> {
-    let loud: Vec<String> = names.iter().map(|n| n.to_uppercase()).collect();
+    let loud: Vec<String> = names.iter().map(|n| { n.to_uppercase() }).collect();
     return loud;
 }
 ";
@@ -133,7 +133,7 @@ pub fn shout(names: Vec<String>) -> Vec<String> {
         "carried code must be marked:\n{python}"
     );
     assert!(
-        python.contains("names.iter().map(|n| n.to_uppercase()).collect()"),
+        python.contains("names.iter().map(|n| { n.to_uppercase() }).collect()"),
         "the original must be in the file, not merely counted:\n{python}"
     );
     // And the signature still crossed, which is the point of translating at all.

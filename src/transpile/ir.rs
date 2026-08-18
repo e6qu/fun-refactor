@@ -454,6 +454,18 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     Expr(Expr),
+    /// `assert c, "m"`: check a condition and stop the program when it fails.
+    ///
+    /// Python spells it as a statement, Rust as the `assert!` family, Zig as
+    /// `std.debug.assert`. Read as an unknown construct, every check carried as
+    /// a comment. A translated test file then printed "all tests passed", the
+    /// worst kind of green. The targets without an assert say the same thing
+    /// longhand: test the condition and throw or panic.
+    Assert {
+        condition: Expr,
+        /// The words the failure prints, where the source gave any.
+        message: Option<Expr>,
+    },
     /// A comment on its own line.
     ///
     /// Every language here has one and they differ only in the marker. Treating a comment as an
@@ -639,6 +651,17 @@ pub enum Expr {
     /// Kept as parts and not text because flattening it loses the expressions,
     /// which is exactly the silent wrong answer this had before it existed.
     Template(Vec<TemplatePart>),
+    /// `lambda x: e`, `(x) => e`, `|x| e`: a nameless function of one expression.
+    ///
+    /// Only the single-expression shape crosses, because it is the shape all four
+    /// languages that have one agree on. A block body is a function that wants a
+    /// name and stays carried. Go and Zig cannot write a closure without types,
+    /// so their writers carry this too, visibly. Before this existed, every
+    /// `sorted(key=...)` callback crossed as a runnable `null`.
+    Lambda {
+        params: Vec<String>,
+        body: Box<Expr>,
+    },
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
     ///
     /// The same idea spelled two ways: Python builds it with a comprehension,
@@ -670,6 +693,13 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    /// `a // b`: division that rounds toward negative infinity.
+    ///
+    /// Only Python spells it as an operator, and reading it as an unknown one left
+    /// a runnable `null` where a number belonged. The other five say it with a
+    /// library call, `Math.floor`, `div_euclid`, `Math.floorDiv`, `math.Floor`,
+    /// `@divFloor`, and each writer reaches for its own.
+    FloorDiv,
     Rem,
     Eq,
     Ne,
@@ -689,6 +719,10 @@ impl BinaryOp {
             BinaryOp::Sub => "-",
             BinaryOp::Mul => "*",
             BinaryOp::Div => "/",
+            // No C-family language spells floor division as an operator. Every
+            // writer says it with its own library call before reaching for this
+            // table. Asking here is a bug in the writer, said out loud.
+            BinaryOp::FloorDiv => unreachable!("floor division has no shared operator spelling"),
             BinaryOp::Rem => "%",
             BinaryOp::Eq => "==",
             BinaryOp::Ne => "!=",
@@ -705,6 +739,7 @@ impl BinaryOp {
         match self {
             BinaryOp::And => "and",
             BinaryOp::Or => "or",
+            BinaryOp::FloorDiv => "//",
             other => other.c_like(),
         }
     }
@@ -720,7 +755,7 @@ impl BinaryOp {
     /// in all six languages, which is a different number.
     pub fn precedence(self) -> u8 {
         match self {
-            BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => 6,
+            BinaryOp::Mul | BinaryOp::Div | BinaryOp::FloorDiv | BinaryOp::Rem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Eq | BinaryOp::Ne => 3,

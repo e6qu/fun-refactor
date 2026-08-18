@@ -202,6 +202,7 @@ fn untranslatable(e: &Expr) -> bool {
                 || untranslatable(iterable)
                 || condition.as_deref().is_some_and(untranslatable)
         }
+        Expr::Lambda { body, .. } => untranslatable(body),
         Expr::Int(_)
         | Expr::Float(_)
         | Expr::Str(_)
