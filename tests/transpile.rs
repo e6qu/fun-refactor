@@ -742,10 +742,17 @@ fn a_conditional_expression_crosses_between_the_five_that_have_one() {
     // and turning one into an `if` statement needs somewhere to put the result, which
     // does not exist inside an argument list, so Go says so instead.
     for (name, source) in TERNARY {
+        // TypeScript's `number` is a float, and Rust refuses to compare a
+        // float against a bare integer literal, so that literal gains its
+        // point on the way through.
+        let rust_expected = match *name {
+            "t.ts" => "if a > 0.0 { 1 } else { 2 }",
+            _ => "if a > 0 { 1 } else { 2 }",
+        };
         for (target, expected) in [
             (Language::Python, "1 if a > 0 else 2"),
             (Language::TypeScript, "a > 0 ? 1 : 2"),
-            (Language::Rust, "if a > 0.0 { 1 } else { 2 }"),
+            (Language::Rust, rust_expected),
             (Language::Java, "a > 0 ? 1 : 2"),
             (Language::Zig, "if (a > 0) 1 else 2"),
         ] {
