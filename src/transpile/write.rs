@@ -1059,6 +1059,17 @@ fn carry(out: &mut Out, what: &Unsupported) {
 
 // ------------------------------------------------------------------ conventions
 
+/// These statements as Rust text, for a carry that keeps its body.
+///
+/// A settle pass that walks the IR has no source text left to carry; the
+/// statements are the only record. Rendering them back as Rust is the same
+/// no-loss carry the source text would have been.
+pub(super) fn render_rust_stmts(stmts: &[Stmt]) -> String {
+    let mut scratch = Out::new(Language::Rust);
+    rust_block(&mut scratch, stmts, None);
+    scratch.text
+}
+
 /// The discriminator literal a variant answers to on the wire.
 ///
 /// The source's own spelling where it wrote one, the derived snake case where

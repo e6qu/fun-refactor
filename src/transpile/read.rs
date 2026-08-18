@@ -828,6 +828,8 @@ mod rust {
                 && !cx.text(p).trim_end().ends_with(';')
         });
         let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+        let mut variant_arms: Vec<((String, String, Vec<(String, String)>), Vec<Stmt>)> =
+            Vec::new();
         let mut default: Vec<Stmt> = Vec::new();
         for arm in cx.children(body) {
             if arm.kind() != "match_arm" {
@@ -849,14 +851,108 @@ mod rust {
                 default = arm_body;
                 continue;
             }
-            let literals = literal_patterns(cx, pattern)?;
-            arms.push((literals, arm_body));
+            match literal_patterns(cx, pattern) {
+                Some(literals) => arms.push((literals, arm_body)),
+                None => {
+                    variant_arms.push((variant_pattern(cx, pattern)?, arm_body));
+                }
+            }
         }
-        Some(Stmt::Switch {
-            subject: expr(cx, subject),
-            arms,
-            default,
-        })
+        // Literal arms and variant arms are two different statements; a match
+        // that mixes them carries whole.
+        match (arms.is_empty(), variant_arms.is_empty()) {
+            (false, true) => Some(Stmt::Switch {
+                subject: expr(cx, subject),
+                arms,
+                default,
+            }),
+            (true, false) => {
+                let mut owners = variant_arms.iter().map(|((sum, _, _), _)| sum.clone());
+                let sum = owners.next()?;
+                if owners.any(|other| other != sum) {
+                    return None;
+                }
+                let built = variant_arms
+                    .into_iter()
+                    .map(|((_, variant, bindings), body)| VariantArm {
+                        variant,
+                        bindings,
+                        body,
+                    })
+                    .collect();
+                Some(Stmt::MatchVariants {
+                    subject: expr(cx, subject),
+                    sum,
+                    arms: built,
+                    default,
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// A pattern selecting one variant: `Shape::Point`, `Shape::Circle { radius }`,
+    /// `Shape::Circle { radius: r, .. }`. A tuple pattern has no field names to
+    /// bind and stays a carry.
+    fn variant_pattern(
+        cx: &Cx,
+        pattern: Node<'_>,
+    ) -> Option<(String, String, Vec<(String, String)>)> {
+        let scoped = |node: Node<'_>| -> Option<(String, String)> {
+            if !matches!(node.kind(), "scoped_identifier" | "scoped_type_identifier") {
+                return None;
+            }
+            let text = cx.text(node);
+            let (head, tail) = text.rsplit_once("::")?;
+            let head = head.rsplit("::").next().unwrap_or(head);
+            Some((head.to_string(), tail.to_string()))
+        };
+        // The grammar wraps each arm's pattern in a `match_pattern` node.
+        let pattern = match pattern.kind() {
+            "match_pattern" => cx
+                .children(pattern)
+                .into_iter()
+                .find(|c| c.is_named())
+                .unwrap_or(pattern),
+            _ => pattern,
+        };
+        match pattern.kind() {
+            "scoped_identifier" => {
+                let (sum, variant) = scoped(pattern)?;
+                Some((sum, variant, Vec::new()))
+            }
+            "struct_pattern" => {
+                let ty = cx.field(pattern, "type")?;
+                let (sum, variant) = scoped(ty)?;
+                let mut bindings = Vec::new();
+                for field in cx.children(pattern) {
+                    if field.id() == ty.id() {
+                        continue;
+                    }
+                    match field.kind() {
+                        "field_pattern" => {
+                            let mut named = cx.children(field).into_iter().filter(|c| c.is_named());
+                            let name = cx.text(named.next()?);
+                            let local = named
+                                .next()
+                                .map(|n| cx.text(n))
+                                .unwrap_or_else(|| name.clone());
+                            // A nested pattern in the binding slot is more than
+                            // a rename and carries the whole match.
+                            if !local.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                                return None;
+                            }
+                            bindings.push((name, local));
+                        }
+                        "remaining_field_pattern" => {}
+                        _ if !field.is_named() => {}
+                        _ => return None,
+                    }
+                }
+                Some((sum, variant, bindings))
+            }
+            _ => None,
+        }
     }
 
     /// The literals under a match pattern: one, or several joined by `|`.
@@ -8839,6 +8935,29 @@ fn settle_variants(module: &mut Module) {
     };
     let mut items = std::mem::take(&mut module.items);
     for item in &mut items {
+        // A match read as a variant match must name one of this module's own
+        // sums; `match dir` over an imported enum has no declaration here to
+        // check against, and writing `isinstance(dir, North)` into Python
+        // invented a name. The demotion renders the arms back as Rust, so the
+        // carry keeps its body.
+        if let Item::Function(f) = item {
+            each_stmt_in_stmts(&mut f.body, &mut |stmt| {
+                if let Stmt::MatchVariants { sum, arms, .. } = stmt {
+                    let known = sums
+                        .get(sum.as_str())
+                        .is_some_and(|variants| arms.iter().all(|a| variants.contains(&a.variant)));
+                    if !known {
+                        let rendered =
+                            crate::transpile::write::render_rust_stmts(std::slice::from_ref(stmt));
+                        *stmt = Stmt::Unsupported(Unsupported {
+                            construct: "a match on a foreign choice".to_string(),
+                            source: rendered,
+                            line: 0,
+                        });
+                    }
+                }
+            });
+        }
         let returning: Option<String> = match item {
             Item::Function(f) => match &f.returns {
                 Some(Type::Named { name, .. }) => Some(name.clone()),

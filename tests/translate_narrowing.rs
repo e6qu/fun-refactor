@@ -160,3 +160,22 @@ fn a_java_sealed_interface_is_a_sum_end_to_end() {
         "a float parameter's comparison literal gains its point:\n{rust}"
     );
 }
+
+#[test]
+fn a_rust_match_on_its_own_sum_crosses_and_a_foreign_one_carries() {
+    let source = "pub enum Shape {\n    Point,\n    Circle { radius: f64 },\n}\n\n\
+        pub fn area(s: Shape) -> f64 {\n    match s {\n        Shape::Point => 0.0,\n        \
+        Shape::Circle { radius } => 3.14 * radius * radius,\n    }\n}\n\n\
+        pub fn describe(dir: std::cmp::Ordering) -> i64 {\n    match dir {\n        \
+        std::cmp::Ordering::Less => -1,\n        std::cmp::Ordering::Greater => 1,\n        \
+        _ => 0,\n    }\n}\n";
+    let py = translated(source, "rmatch.rs", Language::Python);
+    assert!(
+        py.contains("if isinstance(s, Point):") && py.contains("radius = s.radius"),
+        "the module's own sum narrows.\n{py}"
+    );
+    assert!(
+        py.contains("Ordering::Less") && py.contains("not translated"),
+        "a foreign choice carries with its body.\n{py}"
+    );
+}

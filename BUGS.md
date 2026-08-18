@@ -175,6 +175,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B513: **a Rust `match` on the module's own sum carried whole.** The one
+  construct Rust spells sums with took entire function bodies into comments in
+  every target. Unit and struct patterns read into the variant match, bindings
+  and renames included. A match naming a foreign choice, an imported enum this
+  module never declares, still carries, re-rendered from the IR so the carry
+  keeps its body. Pinned in `tests/translate_narrowing.rs`.
+
 - [x] B505: **consuming a sum value never crossed.** Construction landed a pass
   ago; the question "which variant is this?" did not. `s.kind == "circle"` and
   `s.radius` went to Rust verbatim, against an enum that declares neither,

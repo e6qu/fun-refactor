@@ -1468,7 +1468,8 @@ and the reverse must do the same under python3.
 Construction crossed in pass twelve; consumption crosses now. The IR holds
 the variant match, payloads bound to plain locals. TypeScript's kind chains
 and switches read into it, Java's `instanceof` with its cast collapses into
-it, and every writer spells it natively. Rust matches, Python asks
+it, Rust's own `match` reads its unit and struct patterns in, and every
+writer spells it natively. Rust matches, Python asks
 `isinstance`, Go switches on the type, Zig on the union. Java's sealed
 interface finally forms the sum it declares, and its constructions and
 narrowings ride the same rails. Around the crossing, the edges hardened.
