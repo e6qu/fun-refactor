@@ -1281,7 +1281,7 @@ impl Index {
 
         // `source "$(dirname "$0")/lib.sh"` is how a shell script names a file
         // beside itself, and the prefix is a substitution no static read can
-        // evaluate. What follows the last `/` is a plain file name, and it
+        // evaluate. What follows the last `/` is a plain file name. It
         // resolves like any path beside the importer, when such a file is
         // really there. Without this the call into the sourced file resolved
         // to nothing, so `fr unused` called a running function dead and

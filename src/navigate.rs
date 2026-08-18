@@ -319,8 +319,8 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     //
     // A site this search already accounts for is not one of them. The sweep
     // matched the declaration itself and every resolved use, so the listing
-    // repeated what it had just counted, under a heading that called a YAML
-    // key a comment.
+    // repeated what it had counted. The heading then called a YAML key a
+    // comment.
     let name = index
         .symbol(symbol_id)
         .map(|s| s.name.clone())
