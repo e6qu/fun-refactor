@@ -732,10 +732,20 @@ fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String
         // Saying "type not known" about a receiver whose declaration names its
         // type reads as a defect. The true reason is that the named type is not
         // the renamed symbol's.
-        if let Some(declared) = super::receiver_declared_type(index, reference) {
-            return format!(
-                "its receiver is declared `{declared}`, which is not what is being renamed"
-            );
+        match super::receiver_type(index, reference) {
+            super::ReceiverType::Settled(declared) => {
+                return format!(
+                    "its receiver is declared `{declared}`, which is not what is being renamed"
+                );
+            }
+            super::ReceiverType::Reassigned => {
+                let receiver = reference.receiver.as_deref().unwrap_or("the receiver");
+                return format!(
+                    "`{receiver}` is assigned more than once here, so what it holds at \
+                     this line is not settled"
+                );
+            }
+            super::ReceiverType::Unwritten => {}
         }
         return "it is read from a value whose type is not known here, so it may name \
                 something else of the same name"
