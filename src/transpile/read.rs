@@ -828,8 +828,7 @@ mod rust {
                 && !cx.text(p).trim_end().ends_with(';')
         });
         let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
-        let mut variant_arms: Vec<((String, String, Vec<(String, String)>), Vec<Stmt>)> =
-            Vec::new();
+        let mut variant_arms: Vec<(VariantPattern, Vec<Stmt>)> = Vec::new();
         let mut default: Vec<Stmt> = Vec::new();
         for arm in cx.children(body) {
             if arm.kind() != "match_arm" {
@@ -891,13 +890,17 @@ mod rust {
         }
     }
 
+    /// A variant pattern taken apart: the sum, the variant, and the payload
+    /// fields the arm binds as (field, local).
+    type VariantPattern = (String, String, Vec<(String, String)>);
+
     /// A pattern selecting one variant: `Shape::Point`, `Shape::Circle { radius }`,
     /// `Shape::Circle { radius: r, .. }`. A tuple pattern has no field names to
     /// bind and stays a carry.
-    fn variant_pattern(
-        cx: &Cx,
-        pattern: Node<'_>,
-    ) -> Option<(String, String, Vec<(String, String)>)> {
+    ///
+    /// The sum's name, the variant's, and the payload fields the arm binds as
+    /// (field, local).
+    fn variant_pattern(cx: &Cx, pattern: Node<'_>) -> Option<VariantPattern> {
         let scoped = |node: Node<'_>| -> Option<(String, String)> {
             if !matches!(node.kind(), "scoped_identifier" | "scoped_type_identifier") {
                 return None;
@@ -8710,7 +8713,7 @@ fn settle_variant_narrowing(module: &mut Module) {
     // Replace the payload reads of `variant` through `subject` with locals and
     // say which fields were read.
     fn bind_payload(
-        body: &mut Vec<Stmt>,
+        body: &mut [Stmt],
         subjects: &[String],
         fields: &[String],
     ) -> Vec<(String, String)> {
@@ -9012,7 +9015,6 @@ fn settle_variants(module: &mut Module) {
                         let answering: Vec<(&String, &BTreeSet<String>)> = sums
                             .iter()
                             .filter(|(_, variants)| variants.contains(n.as_str()))
-                            .map(|(sum, variants)| (sum, variants))
                             .collect();
                         if let [(sum, _)] = answering.as_slice() {
                             let declared = variant_fields
