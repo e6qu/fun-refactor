@@ -175,6 +175,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B562: **a Terraform rename left the module call behind.** Renaming a
+  module's `variable "region"` rewrote the module's own `var.region` reads and
+  reported success. The caller's `module "net" { region = ... }` kept the old
+  name, and `terraform validate` then rejected the configuration. An argument
+  of a `module` block names an input variable of the called configuration. The
+  index records it as a reference to that variable now. A source outside the
+  workspace resolves to nothing, and the rename reports the argument instead of
+  rewriting it. Pinned in `tests/namespaces.rs`.
+
 - [x] B561: **a binding borrowed the enclosing function's type.** `fr type`
   read a Zig `const width = 3;` as `void`. That is the return type of the `fn`
   around it. The walk outwards from a declaration looked for a `type` field on

@@ -374,6 +374,47 @@ impl Index {
         }
     }
 
+    /// Resolve an argument of a `module` block to the input variable it names.
+    ///
+    /// The block's `source` names the configuration. Terraform's unit of scope is a
+    /// directory, so the variable is declared in the directory that source resolves to.
+    /// A source outside the workspace names a configuration nothing here can read, and
+    /// the argument stays unresolved. The rename then reports it rather than rewriting
+    /// it.
+    fn resolve_module_argument(
+        &self,
+        path: &Path,
+        info: &FileInfo,
+        label: &str,
+        candidates: &[SymbolId],
+    ) -> (Option<SymbolId>, Confidence) {
+        let source = info
+            .imports
+            .iter()
+            .find(|import| import.alias.as_deref() == Some(label))
+            .map(|import| import.path.as_str());
+        let Some(directory) = source
+            .filter(|source| source.starts_with('.'))
+            .and_then(|source| {
+                path.parent()
+                    .map(|dir| crate::vfs::normalise(dir.join(source)))
+            })
+        else {
+            return (None, Confidence::NameOnly);
+        };
+        let declared: Vec<&Symbol> = candidates
+            .iter()
+            .filter_map(|id| self.symbol(*id))
+            .filter(|s| s.kind == SymbolKind::Variable && s.language == Language::Hcl)
+            .filter(|s| s.file.parent() == Some(directory.as_path()))
+            .filter(|s| self.terraform_namespace(s) == "var")
+            .collect();
+        match declared.as_slice() {
+            [only] => (Some(only.id), Confidence::Exact),
+            _ => (None, Confidence::NameOnly),
+        }
+    }
+
     /// Resolve a reference, and cap what the answer is allowed to claim.
     ///
     /// [`Confidence::Exact`] means "safe to edit" and [`Confidence::FieldBased`] means "matched
@@ -570,6 +611,11 @@ impl Index {
         //     terraform-aws-vpc resolved to the module's `output "azs"`.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
+                // An argument of a `module` block names an input variable of the
+                // configuration `source` points at, and the label says which call it is.
+                if let Some(label) = namespace.strip_prefix("module.") {
+                    return self.resolve_module_argument(path, info, label, candidates);
+                }
                 let wanted = match namespace {
                     "var" | "local" => Some(SymbolKind::Variable),
                     "module" => Some(SymbolKind::Module),

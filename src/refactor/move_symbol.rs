@@ -826,7 +826,7 @@ fn repoint(path: &str, from: &Path, to: &Path) -> Option<String> {
         return Some(path.to_string());
     }
     let from_dir = from.parent()?;
-    let target = normalise(&from_dir.join(path.trim_start_matches("./")));
+    let target = crate::vfs::normalise(from_dir.join(path.trim_start_matches("./")));
     let stem_holder = target.clone();
     relative_module(to, &stem_holder.with_extension("ts")).or_else(|| Some(path.to_string()))
 }
@@ -2750,7 +2750,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
             if target.is_empty() || !moved_slugs.contains(anchor) {
                 continue;
             }
-            if normalise(&dir.join(target)) != normalise(&sym.file) {
+            if crate::vfs::normalise(dir.join(target)) != crate::vfs::normalise(&sym.file) {
                 continue;
             }
             let Some(new_link) = relative_link(dir, destination) else {
@@ -2859,22 +2859,6 @@ fn relative_link(from_dir: &Path, to: &Path) -> Option<String> {
             return None;
         }
     }
-}
-
-/// Resolve `.` and `..` textually, so two spellings of one path compare equal.
-fn normalise(path: &Path) -> PathBuf {
-    use std::path::Component;
-    let mut out = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                out.pop();
-            }
-            other => out.push(other.as_os_str()),
-        }
-    }
-    out
 }
 
 // ---------------------------------------------------------------------------
@@ -3166,7 +3150,7 @@ fn zig_import_file(from: &Path, path: &str) -> Option<PathBuf> {
     if !path.ends_with(".zig") {
         return None;
     }
-    Some(normalise(&from.parent()?.join(path)))
+    Some(crate::vfs::normalise(from.parent()?.join(path)))
 }
 
 /// The path `from` would have to write to `@import` `to`.
@@ -3373,7 +3357,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         sources
             .entry(file.clone())
             .or_default()
-            .push(normalise(destination));
+            .push(crate::vfs::normalise(destination));
         sourced_anywhere = true;
     }
 

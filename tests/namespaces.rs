@@ -15,7 +15,9 @@ use fun_refactor::scan::{scan, ScanOptions};
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
     let tmp = tempfile::tempdir().unwrap();
     for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
+        let path = tmp.path().join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, content).unwrap();
     }
     let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
     let index = Index::build_from_scan(&scanned).unwrap();
@@ -108,6 +110,92 @@ fn renaming_an_element_id_leaves_the_class_of_that_name_alone() {
     );
     assert!(after.contains("id=\"renamed\""), "{after}");
     assert!(after.contains("href=\"#renamed\""), "{after}");
+}
+
+const CALLER_TF: &str = "variable \"region\" {\n  type = string\n}\n\n\
+                         module \"net\" {\n  source = \"./modules/net\"\n  \
+                         region = var.region\n}\n";
+
+const CALLED_TF: &str = "variable \"region\" {\n  type = string\n}\n\n\
+                         output \"where\" {\n  value = var.region\n}\n";
+
+/// An argument of a `module` block names an input variable of the called configuration.
+/// Renaming that variable left `region = var.region` behind and reported success, and
+/// `terraform validate` then rejected the result.
+#[test]
+fn a_module_argument_renames_with_the_variable_it_names() {
+    let (tmp, index) = workspace(&[("main.tf", CALLER_TF), ("modules/net/main.tf", CALLED_TF)]);
+    let called = only_of_kind(
+        &index,
+        "region",
+        SymbolKind::Variable,
+        "modules/net/main.tf",
+    );
+    let plan = rename::plan(&index, called, "vpc_region").expect("a plan");
+
+    let caller = tmp.path().join("main.tf");
+    let after =
+        fun_refactor::edit::apply_to_string(CALLER_TF, plan.edits.edits_for(&caller).unwrap())
+            .expect("the edits apply");
+    assert!(after.contains("vpc_region = var.region"), "{after}");
+    assert!(
+        after.contains("variable \"region\""),
+        "the caller's own variable is another declaration:\n{after}"
+    );
+}
+
+/// The caller's own `variable "region"` is a different declaration, and its rename must
+/// leave the module's call surface alone.
+#[test]
+fn renaming_the_callers_variable_leaves_the_module_argument_alone() {
+    let (tmp, index) = workspace(&[("main.tf", CALLER_TF), ("modules/net/main.tf", CALLED_TF)]);
+    let caller_variable = index
+        .symbols
+        .iter()
+        .find(|s| {
+            s.name == "region"
+                && s.kind == SymbolKind::Variable
+                && s.file == tmp.path().join("main.tf")
+        })
+        .expect("the caller's own variable")
+        .id;
+    let plan = rename::plan(&index, caller_variable, "where").expect("a plan");
+
+    let caller = tmp.path().join("main.tf");
+    let after =
+        fun_refactor::edit::apply_to_string(CALLER_TF, plan.edits.edits_for(&caller).unwrap())
+            .expect("the edits apply");
+    assert!(after.contains("region = var.where"), "{after}");
+    assert!(after.contains("variable \"where\""), "{after}");
+}
+
+/// A source outside the workspace names a configuration nothing here can read, so the
+/// argument stays unresolved and is reported rather than rewritten.
+#[test]
+fn an_argument_of_a_module_from_the_registry_is_reported() {
+    let caller = "module \"net\" {\n  source = \"./modules/net\"\n  region = \"eu-west-1\"\n}\n\n\
+                  module \"vpc\" {\n  source = \"terraform-aws-modules/vpc/aws\"\n  \
+                  region = \"eu-west-1\"\n}\n";
+    let (_tmp, index) = workspace(&[
+        ("main.tf", caller),
+        (
+            "modules/net/main.tf",
+            "variable \"region\" {\n  type = string\n}\n",
+        ),
+    ]);
+    let called = only_of_kind(
+        &index,
+        "region",
+        SymbolKind::Variable,
+        "modules/net/main.tf",
+    );
+    let plan = rename::plan(&index, called, "vpc_region").expect("a plan");
+
+    let reported: Vec<&str> = plan.warnings.iter().map(|w| w.detail.as_str()).collect();
+    assert!(
+        reported.iter().any(|d| d.contains("module \"vpc\"")),
+        "the unhandled argument should be named: {reported:?}"
+    );
 }
 
 #[test]

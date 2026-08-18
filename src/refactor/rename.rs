@@ -728,6 +728,20 @@ fn textual_sweep(
 }
 
 fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String {
+    // A Terraform module argument names a variable of the configuration `source` points
+    // at. A registry address, a Git URL or an expression names a configuration outside
+    // this workspace, whose variables are unreadable from here.
+    if let Some(call) = reference
+        .receiver
+        .as_deref()
+        .filter(|_| reference.language == Language::Hcl)
+        .and_then(|receiver| receiver.strip_prefix("module."))
+    {
+        return format!(
+            "it is an argument of `module \"{call}\"`, whose source names no directory \
+             in this workspace"
+        );
+    }
     if reference.receiver.is_some() && !reference.receiver_is_path {
         // Saying "type not known" about a receiver whose declaration names its
         // type reads as a defect. The true reason is that the named type is not
