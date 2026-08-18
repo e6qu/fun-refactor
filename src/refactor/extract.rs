@@ -671,8 +671,25 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
-    let region = statement_region(&parsed, span, &source)
+    let run = statement_region(&parsed, span, &source)
         .ok_or_else(|| anyhow::anyhow!("select one or more complete statements to extract"))?;
+    let region = run.span;
+
+    // The moved statements keep their original bytes. Where the two ends of the region
+    // sit in different blocks, those bytes carry a block's closing brace, or Python's
+    // outdent, into the middle of the new function.
+    if let Some(owner) = straddled_block(&run) {
+        let lines = crate::span::LineIndex::new(&source);
+        let at = lines.line_col(Span::from(owner).start, &source);
+        anyhow::bail!(
+            "the selection crosses the body of the `{}` at {}:{}: one end is inside that \
+             body and the other is outside it, and a call cannot span that boundary, so \
+             this region cannot be extracted as-is",
+            block_keyword(owner),
+            file.display(),
+            at.line
+        );
+    }
 
     // A jump out of the region cannot be reproduced by a call, so the extraction
     // would change control flow. Refuse and not produce something that compiles
@@ -1030,7 +1047,11 @@ pub fn supports_extract_function(language: Language) -> bool {
 /// A line selection starts on the line's indentation, which belongs to no statement,
 /// so the search begins at the first real content inside the span and ends at the
 /// last.
-fn statement_region(parsed: &Parsed, span: Span, source: &str) -> Option<Span> {
+fn statement_region<'tree>(
+    parsed: &'tree Parsed,
+    span: Span,
+    source: &str,
+) -> Option<StatementRun<'tree>> {
     let text = span.text(source);
     let lead = text.len() - text.trim_start().len();
     let trail = text.len() - text.trim_end().len();
@@ -1039,30 +1060,137 @@ fn statement_region(parsed: &Parsed, span: Span, source: &str) -> Option<Span> {
         return None;
     }
 
-    let first = parsed
-        .root()
-        .descendant_for_byte_range(content.start, content.start)?;
-    let last = parsed
-        .root()
-        .descendant_for_byte_range(content.end.saturating_sub(1), content.end.saturating_sub(1))?;
-
-    let start = statement_ancestor(first)?;
-    let end = statement_ancestor(last)?;
-    Some(Span::new(
-        Span::from(start).start.min(content.start),
-        Span::from(end).end.max(content.end),
-    ))
+    let first = statement_at(parsed, content.start, content)?;
+    let last = statement_at(parsed, content.end.saturating_sub(1), content)?;
+    Some(StatementRun {
+        span: Span::new(
+            Span::from(first).start.min(content.start),
+            Span::from(last).end.max(content.end),
+        ),
+        first,
+        last,
+    })
 }
 
-/// The ancestor of `node` that is a direct child of a statement container.
+/// A selection widened to whole statements, and the statements its two ends landed on.
+struct StatementRun<'tree> {
+    span: Span,
+    /// The statement the selection starts on.
+    first: Node<'tree>,
+    /// The statement the selection ends on.
+    last: Node<'tree>,
+}
+
+/// The statement covering `offset`, or the nearest one inside `content` when the offset
+/// sits on a comment.
+///
+/// A comment between a header and its block is a sibling of the block, not a statement in
+/// it, so widening from one climbed out to the whole enclosing definition: extracting a
+/// commented line rewrote `def main():` into the new function.
+fn statement_at<'tree>(parsed: &'tree Parsed, offset: usize, content: Span) -> Option<Node<'tree>> {
+    let node = parsed.root().descendant_for_byte_range(offset, offset)?;
+    if !is_comment(node.kind()) {
+        return statement_ancestor(node);
+    }
+    let mut best: Option<Node<'tree>> = None;
+    let mut cursor = parsed.root().walk();
+    let mut stack = vec![parsed.root()];
+    while let Some(current) = stack.pop() {
+        let span = Span::from(current);
+        if !span.overlaps(content) {
+            continue;
+        }
+        if content.contains(span) && !is_comment(current.kind()) && is_statement(current) {
+            let better = match best {
+                None => true,
+                Some(other) => {
+                    let other = Span::from(other);
+                    (span.start, other.end) < (other.start, span.end)
+                }
+            };
+            if better {
+                best = Some(current);
+            }
+        }
+        stack.extend(current.children(&mut cursor));
+    }
+    best
+}
+
+/// Is this node a statement, meaning a named direct child of a statement container?
+fn is_statement(node: Node<'_>) -> bool {
+    node.is_named()
+        && node
+            .parent()
+            .is_some_and(|parent| crate::refactor::is_statement_container(parent.kind()))
+}
+
+fn is_comment(kind: &str) -> bool {
+    kind.contains("comment")
+}
+
+/// The ancestor of `node` that is a statement: a named direct child of a container.
+///
+/// The `}` closing a block is a child of that block, and taking it for a statement made a
+/// selection ending on one look as though it ended inside the block it closes.
 fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
         let parent = current.parent()?;
-        if crate::refactor::is_statement_container(parent.kind()) {
+        if current.is_named() && crate::refactor::is_statement_container(parent.kind()) {
             return Some(current);
         }
         current = parent;
+    }
+}
+
+/// The construct owning the block one end of `region` sits in, when its two ends sit in
+/// different blocks.
+///
+/// [`statement_region`] widens each end to a whole statement on its own, and neither end
+/// knows where the other landed. A selection running from inside a loop to past the loop
+/// therefore produced a region spanning two blocks, which extraction copied verbatim into
+/// a new function: a stray closing brace in TypeScript, a stray outdent in Python, and a
+/// success report over code that does not parse.
+fn straddled_block<'tree>(run: &StatementRun<'tree>) -> Option<Node<'tree>> {
+    let (first_block, last_block) = (run.first.parent()?, run.last.parent()?);
+
+    // A region is extractable when it is a run of whole statements out of one block, so
+    // it has to end where one of that block's children ends. Selecting a whole loop ends
+    // on the loop's last line, which is such a child even though the last byte of it
+    // belongs to the loop's own body.
+    let mut cursor = first_block.walk();
+    if first_block
+        .children(&mut cursor)
+        .any(|child| Span::from(child).end == run.span.end)
+    {
+        return None;
+    }
+
+    let deeper = if ancestor_count(first_block) >= ancestor_count(last_block) {
+        first_block
+    } else {
+        last_block
+    };
+    deeper.parent()
+}
+
+/// How many ancestors `node` has, so two blocks can be compared for depth.
+fn ancestor_count(node: Node<'_>) -> usize {
+    let mut count = 0;
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        count += 1;
+        current = parent;
+    }
+    count
+}
+
+/// The keyword introducing a construct, `for`, `if`, `else`, so a refusal can name it.
+fn block_keyword(node: Node<'_>) -> String {
+    match node.child(0) {
+        Some(child) if !child.is_named() => child.kind().to_string(),
+        _ => node.kind().to_string(),
     }
 }
 
