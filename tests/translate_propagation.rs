@@ -104,6 +104,9 @@ fn zig_call_arguments_survive_translation() {
                   const b = twice(y);\n    return a + b;\n}\n";
     let (_tmp, root) = workspace(&[("calls.zig", source)]);
     let plan = transpile::plan(&root.join("calls.zig"), Language::Python).expect("a draft");
-    assert!(plan.output.contains("a = twice(x)"), "{}", plan.output);
-    assert!(plan.output.contains("b = twice(y)"), "{}", plan.output);
+    // `fn twice` is not `pub`, so Python marks it module-private, at its
+    // declaration and at every call.
+    assert!(plan.output.contains("a = _twice(x)"), "{}", plan.output);
+    assert!(plan.output.contains("b = _twice(y)"), "{}", plan.output);
+    assert!(plan.output.contains("def _twice("), "{}", plan.output);
 }

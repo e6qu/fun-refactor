@@ -41,9 +41,16 @@ fn the_nested_record_is_a_dataclass_with_its_fields() {
 #[test]
 fn the_static_method_is_a_module_function_without_self() {
     let out = to_python(ORDERS_JAVA);
+    // The method is package-private, which Python spells with the leading
+    // underscore. What this pins is the parameter list: no receiver, because
+    // its callers never pass one.
     assert!(
-        out.contains("def total_paid(orders:"),
+        out.contains("_total_paid(orders:"),
         "no receiver its callers never pass:\n{out}"
+    );
+    assert!(
+        !out.contains("total_paid(self"),
+        "and no invented one:\n{out}"
     );
 }
 

@@ -57,7 +57,17 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                 _ => screaming(name),
             },
             Kind::Function => match language {
-                Language::Rust | Language::Python => snake_always(name),
+                Language::Rust => snake_always(name),
+                // Python says "not for outside this module" with a leading
+                // underscore. Without it, Go's unexported `half` came back
+                // from a round trip as the exported `Half`, and a package's
+                // internals became its API. The entry point is the exception:
+                // `main` is what a reader and a runner look for, and a private
+                // one reads as a helper nobody calls.
+                Language::Python => match exported || name.starts_with('_') || name == "main" {
+                    true => snake_always(name),
+                    false => format!("_{}", snake_always(name)),
+                },
                 Language::Go => go_name(name, exported),
                 _ => camel(name),
             },
@@ -1165,6 +1175,11 @@ fn camel(name: &str) -> String {
         name.to_string()
     };
 
+    // A leading underscore is Python's and Rust's word for "not for outside
+    // this module", not a word boundary. Read as one, `_helper` came out
+    // `Helper`, which in Go says exported: the marker inverted its own
+    // meaning. Visibility travels in the IR's `exported` flag instead.
+    let source = source.trim_start_matches('_').to_string();
     let mut out = String::with_capacity(source.len());
     let mut upper_next = false;
     for (i, c) in source.chars().enumerate() {
