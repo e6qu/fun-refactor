@@ -3627,10 +3627,26 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         Expr::Str(_) => Some(Type::String),
         Expr::Bool(_) => Some(Type::Bool),
         Expr::Name(name) => out.binding_types.get(name).cloned(),
+        // `+` with a string on either side is concatenation, and the whole of it
+        // is a string however the other side is typed. Answering "no idea" here
+        // left `"x" + 1 + 2` as `"x" + str(1) + 2`, which raises. Only the first
+        // number ever got its coercion.
+        Expr::Binary {
+            op: BinaryOp::Add,
+            left,
+            right,
+        } => {
+            let (left, right) = (static_type(out, left), static_type(out, right));
+            if left.as_ref() == Some(&Type::String) || right.as_ref() == Some(&Type::String) {
+                return Some(Type::String);
+            }
+            let left = left?;
+            (left == right?).then_some(left)
+        }
         // Arithmetic keeps the type of its operands where both agree. Division is
         // deliberately absent: in Python it is the one operation that does not.
         Expr::Binary {
-            op: BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::FloorDiv | BinaryOp::Rem,
+            op: BinaryOp::Sub | BinaryOp::Mul | BinaryOp::FloorDiv | BinaryOp::Rem,
             left,
             right,
         } => {

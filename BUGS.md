@@ -175,6 +175,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B545: **only the first number in a concatenation was coerced.**
+  Java's `"x" + 1 + 2` raised a TypeError in Python. It came out as
+  `"x" + str(1) + 2`, where the source printed `x12`. The chain is
+  left-associative, so the outer `+` holds the inner one, and the inner one had
+  no type. A `+` with a string on either side is a string, whatever the other
+  side is. The whole chain follows from that one line, associativity included.
+  Zig's own concatenation check reads the same answer. Pinned in
+  `tests/translate_concatenation.rs`, which runs the Java and the Python.
+
 - [x] B544: **a header that bound names was dropped under its branch.** Go's
   `if` may run a statement in its header. `if m, ok := tree.Min(); ok { }`
   lost the header with no marker at all. The branch then tested `ok` and
