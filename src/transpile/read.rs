@@ -4109,9 +4109,48 @@ mod java {
         settle_accessors(&mut module);
         settle_builtins(&mut module);
         settle_interface_sums(&mut module, &interfaces);
+        settle_entry_arguments(&mut module);
         settle_variants(&mut module);
         settle_variant_narrowing(&mut module);
         module
+    }
+
+    /// `main(String[] args)` with a body that never reads `args`.
+    ///
+    /// The runtime looks for that one signature. So the parameter is how Java
+    /// spells "the entry point", not something the source chose. Read as data,
+    /// it came back out as an argument the original never had. A body that
+    /// does read it is a program taking arguments, and keeps it.
+    fn settle_entry_arguments(module: &mut Module) {
+        fn settle(f: &mut Function) {
+            if f.name != "main" || f.params.len() != 1 {
+                return;
+            }
+            let takes_strings = matches!(
+                &f.params[0].ty,
+                Some(Type::List(inner)) if **inner == Type::String
+            );
+            if !takes_strings {
+                return;
+            }
+            let name = f.params[0].name.clone();
+            let mut read = false;
+            each_expr_in_stmts(&mut f.body, &mut |e| {
+                if matches!(e, Expr::Name(n) if *n == name) {
+                    read = true;
+                }
+            });
+            if !read {
+                f.params.clear();
+            }
+        }
+        for item in &mut module.items {
+            match item {
+                Item::Function(f) => settle(f),
+                Item::Record(record) => record.methods.iter_mut().for_each(settle),
+                _ => {}
+            }
+        }
     }
 
     /// An empty interface with records implementing it is a closed choice.

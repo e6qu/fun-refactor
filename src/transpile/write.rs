@@ -6081,6 +6081,15 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     } else {
         " "
     };
+    // The runtime looks for `main(String[])`, and finds nothing else. A
+    // niladic `main` runs only on the JDKs that finalised instance main
+    // methods. A draft that ran here died on the ordinary ones with "Main
+    // method not found in class". The parameter is written whether or not the
+    // source's entry took one.
+    let params = match is_static && f.name == "main" && params.is_empty() {
+        true => vec!["String[] args".to_string()],
+        false => params,
+    };
     out.line(&format!(
         "{visibility}{modifier}{returns}{}({}) {{",
         out.function_name(f),

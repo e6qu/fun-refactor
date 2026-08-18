@@ -175,6 +175,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B530: **a translated Java program only ran on the newest JDKs.** The
+  entry came out as `public static void main()`. The runtime accepts that only
+  where niladic main methods are final. Everywhere else it answered "Main
+  method not found in class", so the draft compiled and would not start. The
+  JDK on this machine allows it and CI's does not, which is where it surfaced.
+  The entry takes `String[] args` now, whatever the source's entry took.
+  Reading Java back, that parameter is convention and not data. A `main` whose
+  body never touches it comes home with no parameter, and one that reads it
+  keeps it. Pinned in `tests/translate_entrypoints.rs` and
+  the round trip.
+
 - [x] B527: **`//` crossed to Rust as arithmetic that disagrees with it.**
   `div_euclid` rounds so the remainder is never negative. Python's `//` rounds
   toward negative infinity. They agree only when the divisor is positive, so
