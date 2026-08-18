@@ -3953,6 +3953,7 @@ mod java {
         let mut module = Module::default();
         // A member a record cannot keep still has to reach the reader.
         let mut carried: Vec<Item> = Vec::new();
+        let mut interfaces: Vec<String> = Vec::new();
         for child in cx.children(root) {
             match child.kind() {
                 // The package clause names the compilation unit; it is not an import
@@ -3964,6 +3965,11 @@ mod java {
                     target: None,
                 }),
                 "class_declaration" | "interface_declaration" | "record_declaration" => {
+                    if child.kind() == "interface_declaration" {
+                        if let Some(name) = cx.field_text(child, "name") {
+                            interfaces.push(name);
+                        }
+                    }
                     let before = carried.len();
                     let (record, constants) = type_declaration(cx, child, &mut carried);
                     module
@@ -3990,7 +3996,65 @@ mod java {
         module.items.extend(carried);
         settle_accessors(&mut module);
         settle_builtins(&mut module);
+        settle_interface_sums(&mut module, &interfaces);
+        settle_variants(&mut module);
+        settle_variant_narrowing(&mut module);
         module
+    }
+
+    /// An empty interface with records implementing it is a closed choice.
+    ///
+    /// `sealed interface Shape permits Point, Circle` beside records that
+    /// implement it is Java's most explicit sum declaration, and it crossed as
+    /// an empty struct with the returns of both variants type-wrong under a
+    /// clean header. The same idiom Go spells with a marker method settles the
+    /// same way: interface consumed, records become variants. A member with
+    /// methods of its own is more than a variant and holds the whole sum back.
+    fn settle_interface_sums(module: &mut Module, interfaces: &[String]) {
+        for interface in interfaces {
+            let shell = module.items.iter().position(|item| {
+                matches!(item, Item::Record(r)
+                    if &r.name == interface && r.fields.is_empty() && r.methods.is_empty())
+            });
+            let Some(at) = shell else { continue };
+            let members: Vec<Record> = module
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    Item::Record(r) if r.extends.as_deref() == Some(interface.as_str()) => {
+                        Some(r.clone())
+                    }
+                    _ => None,
+                })
+                .collect();
+            if members.is_empty() || members.iter().any(|r| !r.methods.is_empty()) {
+                continue;
+            }
+            let exported = module
+                .items
+                .iter()
+                .any(|item| matches!(item, Item::Record(r) if &r.name == interface && r.exported));
+            let variants: Vec<Variant> = members
+                .iter()
+                .map(|member| Variant {
+                    doc: member.doc.clone(),
+                    name: member.name.clone(),
+                    tag: None,
+                    fields: member.fields.clone(),
+                })
+                .collect();
+            module.items[at] = Item::Sum(Sum {
+                doc: Vec::new(),
+                name: interface.clone(),
+                variants,
+                exported,
+            });
+            let consumed: std::collections::BTreeSet<String> =
+                members.into_iter().map(|m| m.name).collect();
+            module
+                .items
+                .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
+        }
     }
 
     /// The everyday library spellings, rewritten to the table's canonical ones.
@@ -8537,13 +8601,29 @@ fn settle_variant_narrowing(module: &mut Module) {
     // say which fields were read.
     fn bind_payload(
         body: &mut Vec<Stmt>,
-        subject: &str,
+        subjects: &[String],
         fields: &[String],
     ) -> Vec<(String, String)> {
         let mut bound: Vec<(String, String)> = Vec::new();
         each_expr_in_stmts(body, &mut |e| {
+            // `c.radius()` is Java reading the payload through the record's
+            // accessor; the bare field read is everyone else's spelling.
+            if let Expr::Call { callee, args } = e {
+                if args.is_empty() {
+                    if let Expr::Field { of, name } = callee.as_ref() {
+                        if subjects.contains(&format!("{of:?}")) && fields.contains(name) {
+                            let name = name.clone();
+                            if !bound.iter().any(|(f, _)| f == &name) {
+                                bound.push((name.clone(), name.clone()));
+                            }
+                            *e = Expr::Name(name);
+                            return;
+                        }
+                    }
+                }
+            }
             if let Expr::Field { of, name } = e {
-                if format!("{of:?}") == subject && fields.contains(name) {
+                if subjects.contains(&format!("{of:?}")) && fields.contains(name) {
                     if !bound.iter().any(|(f, _)| f == name) {
                         bound.push((name.clone(), name.clone()));
                     }
@@ -8556,13 +8636,26 @@ fn settle_variant_narrowing(module: &mut Module) {
     let mut settle = |stmt: &mut Stmt| {
         match stmt {
             Stmt::If { condition, .. } => {
-                let Some((subject, lit)) = tag_test(condition) else {
+                let test_of = |cond: &Expr| -> Option<(Expr, (String, String))> {
+                    if let Some((subject, lit)) = tag_test(cond) {
+                        return variant_of(lit).map(|found| (subject.clone(), found));
+                    }
+                    if let Expr::InstanceOf { value, ty } = cond {
+                        if let Expr::Name(n) = ty.as_ref() {
+                            let mut answering = sums
+                                .iter()
+                                .filter(|(_, variants)| variants.contains_key(n.as_str()))
+                                .map(|(sum, _)| sum.clone());
+                            if let (Some(sum), None) = (answering.next(), answering.next()) {
+                                return Some((value.as_ref().clone(), (sum, n.clone())));
+                            }
+                        }
+                    }
+                    None
+                };
+                let Some((subject, _)) = test_of(condition) else {
                     return;
                 };
-                if variant_of(lit).is_none() {
-                    return;
-                }
-                let subject = subject.clone();
                 let key = format!("{subject:?}");
                 // Walk the chain, collecting arms while every link keeps the shape.
                 let mut arms: Vec<VariantArm> = Vec::new();
@@ -8579,9 +8672,9 @@ fn settle_variant_narrowing(module: &mut Module) {
                     else {
                         unreachable!("only an if enters the loop");
                     };
-                    let settled = tag_test(condition)
+                    let settled = test_of(condition)
                         .filter(|(s, _)| format!("{s:?}") == key)
-                        .and_then(|(_, lit)| variant_of(lit));
+                        .map(|(_, found)| found);
                     let Some((sum, variant)) = settled else {
                         // A link that stopped matching: the whole remainder is
                         // the default, and the chain closes here.
@@ -8590,7 +8683,27 @@ fn settle_variant_narrowing(module: &mut Module) {
                     sum_name = sum;
                     let fields = sums[&sum_name][&variant].clone();
                     let mut body = std::mem::take(then);
-                    let bindings = bind_payload(&mut body, &key, &fields);
+                    // `var c = (Circle) s;` re-names the narrowed subject; the
+                    // alias reads like the subject from here on and the cast
+                    // itself has nothing left to say.
+                    let mut keys = vec![key.clone()];
+                    body.retain(|stmt| {
+                        if let Stmt::Let {
+                            name,
+                            value: Some(Expr::Cast { ty, value }),
+                            ..
+                        } = stmt
+                        {
+                            let casts_subject = format!("{value:?}") == key
+                                && matches!(ty.as_ref(), Expr::Name(n) if *n == variant);
+                            if casts_subject {
+                                keys.push(format!("{:?}", Expr::Name(name.clone())));
+                                return false;
+                            }
+                        }
+                        true
+                    });
+                    let bindings = bind_payload(&mut body, &keys, &fields);
                     arms.push(VariantArm {
                         variant,
                         bindings,
@@ -8646,7 +8759,8 @@ fn settle_variant_narrowing(module: &mut Module) {
                     .zip(settled)
                     .map(|((_, mut body), (_, variant))| {
                         let fields = sums[&sum][&variant].clone();
-                        let bindings = bind_payload(&mut body, &key, &fields);
+                        let bindings =
+                            bind_payload(&mut body, std::slice::from_ref(&key), &fields);
                         VariantArm {
                             variant,
                             bindings,
@@ -8698,6 +8812,20 @@ fn settle_variants(module: &mut Module) {
             _ => None,
         })
         .collect();
+    let variant_fields: BTreeMap<(String, String), Vec<String>> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                (
+                    (s.name.clone(), v.name.clone()),
+                    v.fields.iter().map(|f| f.name.clone()).collect(),
+                )
+            })),
+            _ => None,
+        })
+        .flatten()
+        .collect();
     let demoted = |sum: &str, name: &str, fields: &[(String, Expr)]| {
         let source = match fields.is_empty() {
             true => format!("{sum}::{name}"),
@@ -8741,6 +8869,46 @@ fn settle_variants(module: &mut Module) {
                     line: 0,
                 });
                 return;
+            }
+        }
+        if let Expr::New { callee, args } = e {
+            // `new Point()` built a record that a sum has since consumed. The
+            // construction is the variant's, arguments matched against the
+            // declared fields in order, keywords by their names.
+            if let Expr::Name(n) = callee.as_ref() {
+                if !records.contains(n.as_str()) {
+                    let answering: Vec<(&String, &BTreeSet<String>)> = sums
+                        .iter()
+                        .filter(|(_, variants)| variants.contains(n.as_str()))
+                        .map(|(sum, variants)| (sum, variants))
+                        .collect();
+                    if let [(sum, _)] = answering.as_slice() {
+                        let declared = variant_fields
+                            .get(&((*sum).clone(), n.clone()))
+                            .cloned()
+                            .unwrap_or_default();
+                        let name = n.clone();
+                        let sum = (*sum).clone();
+                        let taken = std::mem::take(args);
+                        let mut fields = Vec::new();
+                        let mut position = 0usize;
+                        for arg in taken {
+                            match arg {
+                                Expr::Keyword { name, value } => fields.push((name, *value)),
+                                other => {
+                                    let field = declared
+                                        .get(position)
+                                        .cloned()
+                                        .unwrap_or_else(|| "value".to_string());
+                                    position += 1;
+                                    fields.push((field, other));
+                                }
+                            }
+                        }
+                        *e = Expr::Variant { sum, name, fields };
+                        return;
+                    }
+                }
             }
         }
         if let Expr::Variant { sum, name, fields } = e {

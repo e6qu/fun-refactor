@@ -1335,6 +1335,7 @@ fn rust(out: &mut Out, module: &Module) {
 }
 
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
+    out.binding_types = declared_bindings(f);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let bound = f.receiver_binding.clone();
@@ -1967,12 +1968,31 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let target = receiver(rust_expr(out, left), left);
             format!("{target}.div_euclid({})", rust_expr(out, right))
         }
-        Expr::Binary { op, left, right } => format!(
-            "{} {} {}",
-            binary_operand(rust_expr(out, left), left, *op, false),
-            op.c_like(),
-            binary_operand(rust_expr(out, right), right, *op, true)
-        ),
+        Expr::Binary { op, left, right } => {
+            // `n <= 0` with `n: f64`: Go and the others coerce the untyped
+            // literal, Rust refuses the comparison. The binding's declared
+            // type is on record, so the literal takes the spelling it needs.
+            fn float_side(out: &Out, e: &Expr) -> bool {
+                matches!(e, Expr::Name(n)
+                    if matches!(out.binding_types.get(n.as_str()), Some(Type::Float)))
+            }
+            fn rendered(out: &mut Out, e: &Expr, other: &Expr) -> String {
+                let floats = matches!(e, Expr::Int(_)) && float_side(out, other);
+                let text = rust_expr(out, e);
+                match floats {
+                    true => format!("{text}.0"),
+                    false => text,
+                }
+            }
+            let left_text = rendered(out, left, right);
+            let right_text = rendered(out, right, left);
+            format!(
+                "{} {} {}",
+                binary_operand(left_text, left, *op, false),
+                op.c_like(),
+                binary_operand(right_text, right, *op, true)
+            )
+        }
         // Rust puts it after; the other two put it in front.
         Expr::Await(inner) => format!("{}.await", rust_expr(out, inner)),
         Expr::Propagate(inner) => format!("{}?", rust_expr(out, inner)),
