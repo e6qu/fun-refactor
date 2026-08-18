@@ -175,6 +175,79 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B546: **a field's starting value was dropped in both directions.**
+  Python's `retries: int = 3` became `retries: number;`. That is undefined at
+  run time, and Java's `= new ArrayList<>()` went the same way. Neither took the
+  value, so no writer had one to write. Python, TypeScript, Java and Zig each
+  declare it in the field now. TypeScript writes a class where a field starts
+  somewhere, because an interface holds no initializer. Rust and Go declare no
+  value in a field at all, and say so beside it rather than let it go quietly.
+  `field(default_factory=list)` reads as the `[]` it means; pydantic's
+  `Field(min_length=8)` states a constraint and gives no value, so that field
+  starts at nothing. Pinned in `tests/translate_field_defaults.rs`, which runs
+  the Java and the Python.
+
+- [x] B545: **only the first number in a concatenation was coerced.**
+  Java's `"x" + 1 + 2` raised a TypeError in Python. It came out as
+  `"x" + str(1) + 2`, where the source printed `x12`. The chain is
+  left-associative, so the outer `+` holds the inner one, and the inner one had
+  no type. A `+` with a string on either side is a string, whatever the other
+  side is. The whole chain follows from that one line, associativity included.
+  Zig's own concatenation check reads the same answer. Pinned in
+  `tests/translate_concatenation.rs`, which runs the Java and the Python.
+
+- [x] B544: **a header that bound names was dropped under its branch.** Go's
+  `if` may run a statement in its header. `if m, ok := tree.Min(); ok { }`
+  lost the header with no marker at all. The branch then tested `ok` and
+  printed `m` while the output bound neither. The header is written before
+  the branch now. That widens the scope of what it binds, and every target
+  here already scopes it that way. Two sibling branches that bind the same
+  names shared one scope after the move, so the second settles them again
+  instead of declaring them twice. Pinned in
+  `tests/translate_orphaned_bindings.rs`, which runs both.
+
+- [x] B543: **`a, b = b, a` and `x, err := f()` carried, even into Python.**
+  Python has that syntax to the character. Go returns the pairs the first
+  line takes apart. Both were unknown constructs, so the swap never
+  happened and the pair left both its names undeclared. The IR settles several
+  names at once now. Python, Go, Rust and TypeScript each write their own
+  form. Java and Zig have no tuple, and carry the line whole rather than drop
+  the names. Pinned in `tests/translate_multiple_assignment.rs`. That gate
+  runs the Go, the Python and the Rust, and compares what they print.
+
+- [x] B542: **a Java entry from an unexported source would not start.** Go's
+  `main` is lower-case. So the Java draft came out `private static void
+  main`. The runtime answered "Main method not found
+  in class". Whether the source exported its entry is a fact about the source.
+  The entry is written public whatever it was. Pinned by the run in
+  `tests/translate_counted_for.rs`.
+
+- [x] B541: **Go's `for` carried in three of its four spellings.** `for { }`,
+  `for cond { }` and `for i := 0; i < n; i++ { }` all became comments, and the
+  comment took the body with it. Every name the header bound was then
+  undeclared. Java's counted `for` went the same way, and so did `i++` as a
+  statement of its own. The IR has a counted loop now. Go, Java and TypeScript
+  write the whole header. Zig writes the step as a continue expression. Rust
+  and Python walk a range where the header walks one and say the rest longhand.
+  A `continue` under the longhand would skip the step, so those loops carry
+  whole and say so. Fixed alongside: `for i, x := range xs` dropped the index
+  and left `i` undeclared. It is an indexed loop now. Pinned in
+  `tests/translate_counted_for.rs`. That gate runs the Go, the Python, the Rust
+  and the Java, and compares what they print.
+
+- [x] B540: **a field named with no receiver crossed as a free variable.** Java
+  lets a body write `accounts` for a field it declares. Every writer here
+  needs a receiver written. `tsc` answered "Cannot find name
+  'accounts'. Did you mean the instance member 'this.accounts'?" twenty-eight
+  times over one translated class. Python was worse: the field was declared
+  `balance_cents` while the body still said `balanceCents`, a disagreement the
+  translation introduced by itself. The writers now enter a method body through
+  one call. It binds the receiver and the fields the body may name bare. A bare
+  name in that set is written through the receiver in the field table's
+  spelling. A parameter or a local of the same name is the nearer declaration
+  and wins. Pinned in `tests/translate_implicit_receiver.rs`. That gate runs
+  the Java, the Python and the TypeScript, and compares what they print.
+
 - [x] B536: **a shell function reached through `source` was reported dead, and
   deleting it broke the script.** Sourcing a file is not a binding. It runs
   the file, and every function it defines becomes callable by its bare name.
