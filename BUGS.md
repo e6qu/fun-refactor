@@ -175,6 +175,16 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B564: **`fr restructure` skipped a commented occurrence in silence.** A
+  comment is an extra. It sits between two children of the node it interrupts.
+  `foo(1, /* why */ 2)` was a three-argument call to the matcher,
+  and `foo($A, $B)` passed over it while the run reported itself complete.
+  Comments are out of the shape now, so the pattern matches across them. A
+  comment inside what a metavariable binds travels with that binding. One
+  between the pattern's own tokens has nowhere to go. That occurrence is left
+  alone and reported by file and line. Pinned in
+  `tests/restructure_languages.rs`.
+
 - [x] B563: **`fr signature` was blind to a macro-hidden method call.**
   `println!("{}", s.draw(4))` gives the grammar tokens and not a call. The
   dispatch pass passed over it without a word. The trait and the impl both grew
