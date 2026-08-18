@@ -1029,7 +1029,9 @@ impl Ctx<'_> {
                     let path = path.clone();
                     let dir = dir.clone();
                     move |import| {
-                        let resolved = path.parent().map(|d| normalise(&d.join(&import.path)))?;
+                        let resolved = path
+                            .parent()
+                            .map(|d| crate::vfs::normalise(d.join(&import.path)))?;
                         let alias = import.alias.clone()?;
                         (resolved == dir).then(|| (path.clone(), alias))
                     }
@@ -1353,7 +1355,7 @@ impl Ctx<'_> {
 
         let Some(dir) = file
             .parent()
-            .map(|d| normalise(&d.join(&import.path)))
+            .map(|d| crate::vfs::normalise(d.join(&import.path)))
             .filter(|d| {
                 self.index
                     .files()
@@ -1514,7 +1516,9 @@ impl Ctx<'_> {
                     let path = path.clone();
                     let dir = dir.clone();
                     move |import| {
-                        let resolved = path.parent().map(|d| normalise(&d.join(&import.path)))?;
+                        let resolved = path
+                            .parent()
+                            .map(|d| crate::vfs::normalise(d.join(&import.path)))?;
                         (resolved == dir)
                             .then(|| (path.clone(), import.alias.clone().unwrap_or_default()))
                     }
@@ -3465,22 +3469,6 @@ fn short(path: &Path) -> String {
         .collect();
     parts.reverse();
     parts.join("/")
-}
-
-/// Resolve `.` and `..` without touching the filesystem, so module sources like
-/// `./modules/network` compare equal to the directory the index holds.
-fn normalise(path: &Path) -> PathBuf {
-    let mut out = PathBuf::new();
-    for component in path.components() {
-        match component {
-            std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
-                out.pop();
-            }
-            other => out.push(other.as_os_str()),
-        }
-    }
-    out
 }
 
 #[cfg(test)]

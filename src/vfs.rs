@@ -280,3 +280,24 @@ pub fn describe_dir(path: impl AsRef<Path>) -> String {
         path.display().to_string()
     }
 }
+
+/// Resolve `.` and `..` without touching the filesystem, so two spellings of one path
+/// compare equal.
+///
+/// A Terraform `source = "./modules/net"` joined onto its caller's directory has to compare
+/// equal to the directory the index holds. Four copies of this walk had grown, one per
+/// caller, and a workspace in memory has no filesystem to canonicalise against anyway.
+pub fn normalise(path: impl AsRef<Path>) -> std::path::PathBuf {
+    use std::path::Component;
+    let mut out = std::path::PathBuf::new();
+    for component in path.as_ref().components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}

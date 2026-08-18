@@ -2696,11 +2696,23 @@ fn cmd_restructure(
     let index = build_index(cli, &[])?;
     let plan = crate::refactor::restructure::apply(&index, lang, pattern, template)?;
 
+    // A site the template cannot be written over is still a match, so it is reported
+    // before anything else. Saying nothing about it, or saying nothing matched, is how
+    // a run that left three call sites alone called itself complete.
+    let root = workspace_root(cli);
+    let skipped = describe_skipped_occurrences(&root, &plan.skipped_with_comments);
+
     if plan.matches.is_empty() {
-        println!("No {lang} code matches `{pattern}`.");
+        match skipped.is_empty() {
+            true => println!("No {lang} code matches `{pattern}`."),
+            false => print!("{skipped}"),
+        }
         return Ok(());
     }
 
+    if !skipped.is_empty() {
+        print!("{skipped}");
+    }
     let summary = format!(
         "rewrote {} occurrence(s) of `{}` in {} file(s)",
         plan.matches.len(),
@@ -2708,6 +2720,33 @@ fn cmd_restructure(
         plan.edits.file_count()
     );
     present(cli, Some(&index), &plan.edits, &summary, write)
+}
+
+/// The report for matches the rewrite could not be written over.
+fn describe_skipped_occurrences(
+    root: &std::path::Path,
+    skipped: &[(std::path::PathBuf, usize)],
+) -> String {
+    if skipped.is_empty() {
+        return String::new();
+    }
+    let mut out = format!(
+        "skipped {} occurrence(s) containing comments, which a template has nowhere to \
+         put and a rewrite would delete",
+        skipped.len()
+    );
+    out.push('\n');
+    for (path, offset) in skipped {
+        let shown = shown_path(root, path);
+        match crate::vfs::read_to_string(path) {
+            Ok(source) => {
+                let at = LineIndex::new(&source).line_col(*offset, &source);
+                out.push_str(&format!("  {shown}:{}:{}\n", at.line, at.col));
+            }
+            Err(_) => out.push_str(&format!("  {shown}\n")),
+        }
+    }
+    out
 }
 
 fn cmd_flow(

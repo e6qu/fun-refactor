@@ -1132,3 +1132,66 @@ fn an_expression_pattern_still_matches_only_the_expression() {
     assert_eq!(n, 1);
     assert!(out.contains("a = h()"), "got:\n{out}");
 }
+
+// -------------------------------------------------------------------- comments
+
+/// A comment is an extra, so it sits between two children of the node it interrupts.
+/// Counting it as one of them made `foo(1, /* why */ 2)` a three-argument call. The
+/// occurrence was passed over while the run reported itself complete.
+#[test]
+fn a_comment_between_the_pattern_tokens_is_reported_and_left_alone() {
+    let src = "function foo(a: number, b: number): number { return a + b; }\n\n\
+               function bar(b: number, a: number): number { return a + b; }\n\n\
+               const r = foo(1, /* important */ 2);\n\
+               const p = foo(5, 6);\n";
+    let ws = workspace(&[("c.ts", src)]);
+    let result = restructure::apply(
+        &ws.index,
+        Language::TypeScript,
+        "foo($A, $B)",
+        "bar($B, $A)",
+    )
+    .unwrap();
+
+    assert_eq!(result.matches.len(), 1, "the one without a comment");
+    assert_eq!(
+        result.skipped_with_comments.len(),
+        1,
+        "the one with a comment is reported: {:?}",
+        result.skipped_with_comments
+    );
+    let (path, offset) = &result.skipped_with_comments[0];
+    assert_eq!(path, &ws.root.join("c.ts"));
+    assert_eq!(&src[*offset..*offset + 15], "/* important */");
+}
+
+/// A comment inside what a metavariable binds travels with that binding, so the
+/// occurrence rewrites and the comment survives where the author put it.
+#[test]
+fn a_comment_inside_a_binding_travels_with_it() {
+    let src = "function foo(a: number, b: number): number { return a + b; }\n\n\
+               function bar(b: number, a: number): number { return a + b; }\n\n\
+               function compute(n: number): number { return n; }\n\n\
+               const r = foo(compute(/* why */ 1), 2);\n";
+    let (n, out) = one(
+        Language::TypeScript,
+        "c.ts",
+        src,
+        "foo($A, $B)",
+        "bar($B, $A)",
+    );
+    assert_eq!(n, 1);
+    assert!(out.contains("bar(2, compute(/* why */ 1))"), "got:\n{out}");
+}
+
+/// Python spells the same shape with `#`, and the rule is the language's own.
+#[test]
+fn python_reports_the_same_skip() {
+    let src =
+        "def add(a, b):\n    return a + b\n\nr = add(1,  # first\n        2)\ns = add(3, 4)\n";
+    let ws = workspace(&[("c.py", src)]);
+    let result =
+        restructure::apply(&ws.index, Language::Python, "add($A, $B)", "add($B, $A)").unwrap();
+    assert_eq!(result.matches.len(), 1);
+    assert_eq!(result.skipped_with_comments.len(), 1);
+}

@@ -339,3 +339,50 @@ fn the_json_names_what_it_points_at() {
         );
     }
 }
+
+/// Go and Java fix a binding's type at the declaration, so a literal there settles it for
+/// the whole scope. Rust and Zig are absent. `let x = 0;` takes its type from a later use,
+/// and Zig's `0` is a `comptime_int` no parameter can be written with.
+#[test]
+fn a_go_or_java_literal_settles_what_the_binding_holds() {
+    let go = "package main\n\nfunc run() {\n\ttotal := 0\n\tlabel := \"a\"\n\n\t\
+              _ = total\n\t_ = label\n}\n";
+    for (name, expected) in [("total", "int"), ("label", "string")] {
+        let found = describe(&[("a.go", go)], name);
+        let inferred = found.inferred.as_ref().expect("nothing inferred");
+        assert_eq!(&inferred.ty, expected, "{name}");
+    }
+
+    let java = "public final class Calc {\n    static void run() {\n        var n = 2;\n\n        \
+                var s = \"a\";\n    }\n}\n";
+    for (name, expected) in [("n", "int"), ("s", "String")] {
+        let found = describe(&[("Calc.java", java)], name);
+        let inferred = found.inferred.as_ref().expect("nothing inferred");
+        assert_eq!(&inferred.ty, expected, "{name}");
+    }
+}
+
+/// Arithmetic over two operands of one type yields that type. A comparison yields a
+/// boolean, so `a < b` derives nothing here.
+#[test]
+fn arithmetic_over_one_type_yields_that_type() {
+    let go = "package main\n\nfunc run() {\n\ta := 6\n\tb := 3\n\n\tratio := a / b\n\t\
+              smaller := a < b\n\n\t_ = ratio\n\t_ = smaller\n}\n";
+    let ratio = describe(&[("a.go", go)], "ratio");
+    let inferred = ratio.inferred.as_ref().expect("nothing inferred");
+    assert_eq!(inferred.ty, "int");
+    assert_eq!(inferred.basis, types::Basis::BothOperands);
+
+    let smaller = describe(&[("a.go", go)], "smaller");
+    assert_eq!(smaller.inferred, None, "a comparison is not its operands");
+}
+
+/// The walk out of a declaration looking for a written type stops at the block. A Zig
+/// `const width = 3;` inside `fn run() void` reported `void`, the function's return type.
+#[test]
+fn a_binding_does_not_borrow_the_enclosing_function_type() {
+    let zig = "fn run() void {\n    const width = 3;\n}\n";
+    let found = describe(&[("a.zig", zig)], "width");
+    assert_eq!(found.declared, None, "the source wrote no type for `width`");
+    assert_eq!(found.inferred, None, "and nothing derives one");
+}

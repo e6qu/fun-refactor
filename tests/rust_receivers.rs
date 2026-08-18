@@ -10,7 +10,7 @@
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{Confidence, SymbolKind};
-use fun_refactor::refactor::rename;
+use fun_refactor::refactor::{rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
 
 fn indexed(source: &str) -> (tempfile::TempDir, Index) {
@@ -121,6 +121,68 @@ fn a_plain_call_in_a_macro_is_still_rewritable() {
         .expect("the call inside the macro is a reference");
     assert_eq!(reference.confidence, Confidence::Exact);
     assert!(reference.confidence.is_safe_to_rewrite());
+}
+
+const DISPATCHED: &str = "trait Renderer {\n    fn draw(&self, width: u32) -> u32;\n}\n\n\
+                          struct Svg;\nimpl Renderer for Svg {\n    \
+                          fn draw(&self, width: u32) -> u32 {\n        width * 2\n    }\n}\n";
+
+/// A macro body is tokens, so `println!(\"{}\", s.draw(4))` offers the grammar no call and
+/// no receiver. The signature change reported zero call sites and left the call behind,
+/// and the crate stopped compiling. It refuses now, naming the site.
+#[test]
+fn a_method_call_hidden_in_a_macro_blocks_a_signature_change() {
+    let source = format!(
+        "{DISPATCHED}\nfn main() {{\n    let s = Svg;\n    println!(\"{{}}\", s.draw(4));\n}}\n"
+    );
+    let (_tmp, index) = indexed(&source);
+    let declared = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "draw" && s.qualifier.as_deref() == Some("Renderer"))
+        .expect("the trait method");
+    let error = signature::change(
+        &index,
+        declared.id,
+        signature::Change::Add {
+            at: 1,
+            declaration: "height: u32".to_string(),
+            argument: "8".to_string(),
+        },
+    )
+    .expect_err("a refusal")
+    .to_string();
+    assert!(error.contains("inside a macro"), "got: {error}");
+    assert!(
+        error.contains("src/lib.rs:14"),
+        "the site is named: {error}"
+    );
+}
+
+/// The same call written outside a macro is a call the grammar exposes, and it changes
+/// with the family.
+#[test]
+fn a_method_call_outside_a_macro_changes_with_the_family() {
+    let source = format!(
+        "{DISPATCHED}\nfn main() {{\n    let s = Svg;\n    let n = s.draw(4);\n    let _ = n;\n}}\n"
+    );
+    let (_tmp, index) = indexed(&source);
+    let declared = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "draw" && s.qualifier.as_deref() == Some("Renderer"))
+        .expect("the trait method");
+    let plan = signature::change(
+        &index,
+        declared.id,
+        signature::Change::Add {
+            at: 1,
+            declaration: "height: u32".to_string(),
+            argument: "8".to_string(),
+        },
+    )
+    .expect("a plan");
+    assert_eq!(plan.call_sites, 1, "{:?}", plan.notes);
 }
 
 #[test]

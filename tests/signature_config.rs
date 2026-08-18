@@ -146,12 +146,24 @@ fn the_module_call_surface_is_indexed_as_expected() {
     assert_eq!(imports[0].path, "./modules/thing");
     assert_eq!(imports[0].alias.as_deref(), Some("thing"));
 
-    // The module's own `var.region` read resolves back to the declaration.
-    assert_eq!(ws.index.references_to(region).len(), 1);
-    assert!(ws
+    // The module's own `var.region` read resolves back to the declaration, and so does
+    // the `region` argument the caller passes. An argument names the variable it sets.
+    let reads: Vec<_> = ws
         .index
-        .references_to(ws.symbol("size", SymbolKind::Variable))
-        .is_empty());
+        .references_to(region)
+        .iter()
+        .map(|r| r.file.clone())
+        .collect();
+    assert_eq!(
+        reads,
+        vec![ws.path("main.tf"), ws.path("modules/thing/main.tf")],
+        "the call argument and the module's own read"
+    );
+    let size = ws
+        .index
+        .references_to(ws.symbol("size", SymbolKind::Variable));
+    assert_eq!(size.len(), 1, "the call argument alone: {size:?}");
+    assert_eq!(size[0].file, ws.path("main.tf"));
 }
 
 // --------------------------------------------------------------- removing

@@ -64,6 +64,13 @@ pub struct RestructurePlan {
     pub edits: EditSet,
     /// One entry per rewritten site: file and the text that matched.
     pub matches: Vec<(PathBuf, String)>,
+    /// Sites the pattern matched and the rewrite left alone: file and byte offset.
+    ///
+    /// A comment between the pattern's own tokens has no place in the template, so the
+    /// rewrite would delete it. Those sites are skipped and reported. Reporting them is
+    /// the whole point: skipping in silence is what made `foo(1, /* why */ 2)` disappear
+    /// from a run that called itself complete.
+    pub skipped_with_comments: Vec<(PathBuf, usize)>,
 }
 
 /// Where does this pattern match, without rewriting anything?
@@ -101,8 +108,8 @@ pub fn locate(index: &Index, language: Language, pattern: &str) -> Result<Vec<(P
             continue;
         };
         let parsed = parsers.parse(language, &source)?;
-        for (span, _) in find_matches(&parsed, &source, &compiled) {
-            found.push((path.clone(), span));
+        for found_here in find_matches(&parsed, &source, &compiled) {
+            found.push((path.clone(), found_here.span));
         }
     }
     Ok(found)
@@ -213,6 +220,7 @@ pub fn apply(
 
     let mut edits = EditSet::new();
     let mut matches = Vec::new();
+    let mut skipped_with_comments = Vec::new();
 
     for (path, info) in index.files() {
         if info.language != language {
@@ -223,8 +231,16 @@ pub fn apply(
         };
         let parsed = parsers.parse(language, &source)?;
 
-        for (span, bindings) in find_matches(&parsed, &source, &compiled) {
-            let mut replacement = substitute(template, &bindings, &tight);
+        for found in find_matches(&parsed, &source, &compiled) {
+            let span = found.span;
+            // The template says where every bound piece goes and says nothing about a
+            // comment written between the pattern's own tokens. Writing over it would
+            // delete it, so the site is left alone and reported.
+            if let Some(first) = found.stranded_comments.first() {
+                skipped_with_comments.push((path.clone(), first.start));
+                continue;
+            }
+            let mut replacement = substitute(template, &found.bindings, &tight);
             // The match sat where a call sat, and the replacement is an operator expression.
             // Whatever the call was an operand of will now bind into it.
             if template_binds && matched_in_a_tight_place(&parsed, span) {
@@ -253,6 +269,7 @@ pub fn apply(
         template: template.to_string(),
         edits,
         matches,
+        skipped_with_comments,
     })
 }
 
@@ -482,12 +499,19 @@ fn binding_text(node: Node<'_>, source: &str, quoted: bool) -> String {
     }
 }
 
+/// One place the pattern matched.
+struct Match {
+    span: Span,
+    bindings: HashMap<String, String>,
+    /// Comments inside the match that no metavariable binding carries over.
+    ///
+    /// A comment between the pattern's own tokens has nowhere to go in the template, so
+    /// the rewrite would drop it. One inside a bound span travels with that binding.
+    stranded_comments: Vec<Span>,
+}
+
 /// Every match of the pattern in the file, with its metavariable bindings.
-fn find_matches(
-    parsed: &Parsed,
-    source: &str,
-    pattern: &Pattern<'_>,
-) -> Vec<(Span, HashMap<String, String>)> {
+fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Match> {
     let mut results = Vec::new();
     // Markdown's inline content is a sub-tree of its own. That is where its links and emphasis
     // are; a pattern over them matches nothing in the block tree.
@@ -496,10 +520,22 @@ fn find_matches(
 
     while let Some(node) = stack.pop() {
         let mut bindings = HashMap::new();
-        if matches_node(node, source, pattern.root, pattern.source, &mut bindings) {
+        let mut bound = Vec::new();
+        if matches_node(
+            node,
+            source,
+            pattern.root,
+            pattern.source,
+            &mut bindings,
+            &mut bound,
+        ) {
             let span = match_span(node, pattern.trim_trailing);
             if !touches_template_action(&parsed.masked_spans, span) {
-                results.push((span, bindings));
+                results.push(Match {
+                    span,
+                    bindings,
+                    stranded_comments: stranded_comments(node, span, &bound),
+                });
                 // Do not rewrite inside something already being rewritten: nested
                 // edits would overlap and be rejected.
                 continue;
@@ -508,12 +544,41 @@ fn find_matches(
         stack.extend(node.named_children(&mut cursor));
     }
 
-    results.sort_by_key(|(span, _)| *span);
+    results.sort_by_key(|found| found.span);
     // A node can appear in two trees at once. Markdown's `inline` is the block
     // grammar's opaque leaf and the inline grammar's root, and one match rewritten
     // twice is an overlapping edit the engine rejects.
-    results.dedup_by_key(|(span, _)| *span);
+    results.dedup_by_key(|found| found.span);
     results
+}
+
+/// Comments inside a match that no metavariable binding would carry over.
+///
+/// A comment inside a bound span travels into the template with that binding's text. One
+/// between the pattern's own tokens has no place in the template, and rewriting over it
+/// would delete what somebody wrote.
+fn stranded_comments(node: Node<'_>, span: Span, bound: &[Span]) -> Vec<Span> {
+    let mut stranded = Vec::new();
+    let mut stack = vec![node];
+    let mut cursor = node.walk();
+    while let Some(current) = stack.pop() {
+        let here = Span::from(current);
+        if here.start >= span.end || here.end <= span.start {
+            continue;
+        }
+        if is_a_comment(current) {
+            if !bound
+                .iter()
+                .any(|b| b.start <= here.start && here.end <= b.end)
+            {
+                stranded.push(here);
+            }
+            continue;
+        }
+        stack.extend(current.children(&mut cursor));
+    }
+    stranded.sort_by_key(|comment| comment.start);
+    stranded
 }
 
 /// Does a match run into a Helm `{{ ... }}` action?
@@ -547,45 +612,65 @@ fn match_span(node: Node<'_>, trim_trailing: bool) -> Span {
     }
 }
 
+/// Is this node a comment?
+///
+/// Every grammar here spells it with the word in the kind: `comment`, `line_comment`,
+/// `block_comment`, `Comment`. A comment is an extra, so it can sit between any two
+/// children of any node. Counting it as one of them made `foo(1, /* why */ 2)` a
+/// three-argument call that `foo($A, $B)` could not match.
+fn is_a_comment(node: Node<'_>) -> bool {
+    node.kind().to_ascii_lowercase().contains("comment")
+}
+
+/// The named children of a node, without the comments interleaved among them.
+fn shape_children<'a>(node: Node<'a>) -> Vec<Node<'a>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| !is_a_comment(*child))
+        .collect()
+}
+
 /// Structural match of one node against one pattern node.
+///
+/// `bound` collects the span each metavariable matched. A caller can then ask which bytes
+/// of the match the template carries over.
 fn matches_node(
     node: Node<'_>,
     source: &str,
     pattern: Node<'_>,
     pattern_source: &str,
     bindings: &mut HashMap<String, String>,
+    bound: &mut Vec<Span>,
 ) -> bool {
     // A metavariable matches any node, but must bind consistently: `$A + $A`
     // requires both sides to be the same text.
     if let Some(meta) = metavariable(pattern, pattern_source) {
         let text = binding_text(node, source, meta.quoted);
-        return match bindings.get(&meta.name) {
+        let same = match bindings.get(&meta.name) {
             Some(existing) => *existing == text,
             None => {
                 bindings.insert(meta.name, text);
                 true
             }
         };
+        if same {
+            bound.push(Span::from(node));
+        }
+        return same;
     }
 
     if node.kind() != pattern.kind() {
         return false;
     }
 
-    let pattern_children: Vec<Node> = {
-        let mut cursor = pattern.walk();
-        pattern.named_children(&mut cursor).collect()
-    };
+    let pattern_children = shape_children(pattern);
 
     // A leaf in the pattern must match the target's text exactly.
     if pattern_children.is_empty() {
         return Span::from(node).text(source) == Span::from(pattern).text(pattern_source);
     }
 
-    let node_children: Vec<Node> = {
-        let mut cursor = node.walk();
-        node.named_children(&mut cursor).collect()
-    };
+    let node_children = shape_children(node);
     if node_children.len() != pattern_children.len() {
         return false;
     }
@@ -593,7 +678,7 @@ fn matches_node(
     node_children
         .iter()
         .zip(pattern_children.iter())
-        .all(|(n, p)| matches_node(*n, source, *p, pattern_source, bindings))
+        .all(|(n, p)| matches_node(*n, source, *p, pattern_source, bindings, bound))
 }
 
 /// Turn encoded metavariables back into `$NAME` for display.

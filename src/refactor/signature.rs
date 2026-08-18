@@ -28,7 +28,7 @@ use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 /// What to do to a parameter list.
@@ -391,14 +391,38 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             }
             let call_source = crate::vfs::read_to_string(&reference.file)?;
             let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
+            // A dispatch site this cannot rewrite is a call left with the old argument
+            // shape, and every member of the family has already changed. Passing over it
+            // is the partial update this refactoring exists to avoid. So each of the
+            // three ways of failing to reach the arguments refuses, and names the site.
+            let where_ = location(&reference.file, reference.span.start);
+            let out_of_reach = |why: &str| -> anyhow::Error {
+                Refusal::Unknowable {
+                    detail: format!(
+                        "`{}` is called at {where_}, where dispatch can reach the \
+                         declaration being changed, and {why}",
+                        sym.name
+                    ),
+                }
+                .into()
+            };
             let Some(call) = call_expression(&call_parsed, reference.span) else {
-                continue;
+                // A macro body is tokens and not syntax, so the grammar offers no call
+                // and no receiver. `println!("{}", s.draw(4))` was passed over in
+                // silence, and the report counted zero call sites.
+                return Err(out_of_reach(match reference.member_in_macro {
+                    true => {
+                        "it is written inside a macro, where the grammar records \
+                             tokens and not a call"
+                    }
+                    false => "the grammar exposes no call expression there",
+                }));
             };
             if call.has_error() {
-                continue;
+                return Err(out_of_reach("that call does not parse cleanly"));
             }
             let Some((opens_at, arg_spans)) = call_arguments(call) else {
-                continue;
+                return Err(out_of_reach("that call has no argument list to rewrite"));
             };
             apply_change(
                 &mut edits,
@@ -1275,7 +1299,7 @@ pub(super) fn shell_source_graph(
             sources
                 .entry(path.clone())
                 .or_default()
-                .push(normalize(&dir.join(&import.path)));
+                .push(crate::vfs::normalise(dir.join(&import.path)));
         }
     }
     (sources, opaque)
@@ -1696,8 +1720,13 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             };
 
             // A variable the module's own configuration still reads cannot be
-            // removed: the `var.x` uses would dangle.
-            let uses = index.references_to(target.id);
+            // removed: the `var.x` uses would dangle. A caller's argument is not one
+            // of those. It is the call surface, and the loop below deletes it.
+            let uses: Vec<&crate::model::Reference> = index
+                .references_to(target.id)
+                .into_iter()
+                .filter(|r| r.file.parent() == Some(dir.as_path()))
+                .collect();
             if !uses.is_empty() {
                 let where_ = uses
                     .iter()
@@ -1856,7 +1885,7 @@ fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
             let dir = sym.file.parent().ok_or_else(|| {
                 anyhow::anyhow!("{} is not inside a directory", sym.file.display())
             })?;
-            Ok(normalize(dir))
+            Ok(crate::vfs::normalise(dir))
         }
         (SymbolKind::Module, Some(block)) if block_keyword(block, &source) == Some("module") => {
             let dir = sym.file.parent().ok_or_else(|| {
@@ -1913,7 +1942,7 @@ fn module_variables(index: &Index, dir: &Path) -> Result<Vec<ModuleVariable>> {
         if info.language != Language::Hcl || !is_terraform_config(path) {
             continue;
         }
-        if path.parent().map(normalize).as_deref() != Some(dir) {
+        if path.parent().map(crate::vfs::normalise).as_deref() != Some(dir) {
             continue;
         }
         let source = crate::vfs::read_to_string(path)?;
@@ -2067,7 +2096,7 @@ fn tfvars_assignments(index: &Index, dir: &Path, name: &str) -> Result<Vec<(Path
         if info.language != Language::Hcl || is_terraform_config(path) {
             continue;
         }
-        if path.parent().map(normalize).as_deref() != Some(dir) {
+        if path.parent().map(crate::vfs::normalise).as_deref() != Some(dir) {
             continue;
         }
         for symbol in info.symbols.iter().filter_map(|id| index.symbol(*id)) {
@@ -2228,24 +2257,7 @@ fn local_module_dir(from: &Path, source: &str) -> Option<PathBuf> {
     if !(source.starts_with("./") || source.starts_with("../") || source.starts_with('/')) {
         return None;
     }
-    Some(normalize(&from.join(source)))
-}
-
-/// Resolve `.` and `..` lexically. Not `canonicalize`: the comparison is between
-/// paths the scan produced, and following symlinks would make two spellings of the
-/// same directory compare unequal.
-fn normalize(path: &Path) -> PathBuf {
-    let mut out = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                out.pop();
-            }
-            other => out.push(other.as_os_str()),
-        }
-    }
-    out
+    Some(crate::vfs::normalise(from.join(source)))
 }
 
 /// Does the workspace hold any `.tf` file in this directory?
@@ -2253,7 +2265,7 @@ fn directory_has_hcl(index: &Index, dir: &Path) -> bool {
     index.files().any(|(path, info)| {
         info.language == Language::Hcl
             && is_terraform_config(path)
-            && path.parent().map(normalize).as_deref() == Some(dir)
+            && path.parent().map(crate::vfs::normalise).as_deref() == Some(dir)
     })
 }
 

@@ -175,6 +175,58 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B565: **`fr move` refused a class that names itself.** The cycle it
+  named does not exist. `Counter.STEP` written in `Counter`'s own method
+  counted as a use left behind in the source file. So the source was given an import of a
+  name it no longer mentions. Where the moved code also needed something the
+  source keeps, the two phantom imports read as a cycle and the move was
+  refused. A reference inside the moved span travels with it and is no longer
+  counted. Pinned in `tests/move_dependencies.rs`.
+
+- [x] B564: **`fr restructure` skipped a commented occurrence in silence.** A
+  comment is an extra. It sits between two children of the node it interrupts.
+  `foo(1, /* why */ 2)` was a three-argument call to the matcher,
+  and `foo($A, $B)` passed over it while the run reported itself complete.
+  Comments are out of the shape now, so the pattern matches across them. A
+  comment inside what a metavariable binds travels with that binding. One
+  between the pattern's own tokens has nowhere to go. That occurrence is left
+  alone and reported by file and line. Pinned in
+  `tests/restructure_languages.rs`.
+
+- [x] B563: **`fr signature` was blind to a macro-hidden method call.**
+  `println!("{}", s.draw(4))` gives the grammar tokens and not a call. The
+  dispatch pass passed over it without a word. The trait and the impl both grew
+  a parameter, the report said "0 call sites", and the crate stopped compiling.
+  A dispatch site the pass cannot reach now refuses and names the site. Out of
+  reach means a macro body, a call the grammar hides, an unparseable call, or a
+  call with no argument list. Rename was checked for the same hole and has
+  none. It rewrites the name where it stands and reports the site as a dispatch
+  candidate. Pinned in `tests/rust_receivers.rs`.
+
+- [x] B562: **a Terraform rename left the module call behind.** Renaming a
+  module's `variable "region"` rewrote the module's own `var.region` reads and
+  reported success. The caller's `module "net" { region = ... }` kept the old
+  name, and `terraform validate` then rejected the configuration. An argument
+  of a `module` block names an input variable of the called configuration. The
+  index records it as a reference to that variable now. A source outside the
+  workspace resolves to nothing, and the rename reports the argument instead of
+  rewriting it. Pinned in `tests/namespaces.rs`.
+
+- [x] B561: **a binding borrowed the enclosing function's type.** `fr type`
+  read a Zig `const width = 3;` as `void`. That is the return type of the `fn`
+  around it. The walk outwards from a declaration looked for a `type` field on
+  four ancestors and never stopped at the block. It stops at the construct that
+  holds statements now. Pinned in `tests/types.rs`.
+
+- [x] B560: **`fr extract` wrote uncompilable Go.** Two live-out values came
+  back as `return a, b` from a function declared `int`. The report said
+  success. Go spells several results as a parenthesised list, and the signature
+  says `(int, int)` now. The same selection written idiomatically, with
+  `total := 0`, was refused for a type "never written down". Go and Java both
+  fix a binding's type at its declaration, so inference supplies it. Only a
+  type neither written nor derivable is refused. Pinned in
+  `tests/extract_function.rs`.
+
 - [x] B546: **a field's starting value was dropped in both directions.**
   Python's `retries: int = 3` became `retries: number;`. That is undefined at
   run time, and Java's `= new ArrayList<>()` went the same way. Neither took the
