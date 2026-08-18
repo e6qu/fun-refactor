@@ -397,3 +397,42 @@ fn the_rich_sample_yields_the_expected_facts() {
     assert!(calls.contains(&"main"), "got {calls:?}");
     assert!(calls.contains(&"printf"), "got {calls:?}");
 }
+
+/// A function reached through `source` is used, and deleting it breaks the run.
+///
+/// Sourcing a script is not a binding: it runs the file, and every function it
+/// defines becomes callable here by its bare name. Resolved as nothing, the
+/// call left `fr usages` reporting none and `fr unused` offering a running
+/// function for deletion.
+#[test]
+fn a_function_reached_through_source_resolves() {
+    use fun_refactor::index::Index;
+    use fun_refactor::scan::{scan, ScanOptions};
+
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(tmp.path().join("u.sh"), "greet() {\n  echo \"$1\"\n}\n").unwrap();
+    std::fs::write(
+        tmp.path().join("m.sh"),
+        "#!/usr/bin/env bash\nsource \"$(dirname \"$0\")/u.sh\"\ngreet \"hi\"\n",
+    )
+    .unwrap();
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    let index = Index::build_from_scan(&scanned).unwrap();
+
+    let greet = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "greet" && s.kind == SymbolKind::Function)
+        .expect("the definition");
+    let uses = index.references_to(greet.id);
+    assert_eq!(
+        uses.len(),
+        1,
+        "the call in the sourcing script is a use: {uses:?}"
+    );
+    assert!(
+        uses[0].confidence.is_safe_to_rewrite(),
+        "and it is strong enough to act on: {:?}",
+        uses[0].confidence
+    );
+}

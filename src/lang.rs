@@ -187,6 +187,17 @@ impl Language {
         matches!(self, Language::Go)
     }
 
+    /// Does an import run the other file's definitions here, under their own
+    /// names?
+    ///
+    /// Bash's `source lib.sh` is not a binding: it executes the file, and
+    /// every function it defines becomes callable from this one by its bare
+    /// name. No other language here works that way, and the ones that bind a
+    /// name are served by the import rules instead.
+    pub fn splices_sourced_files(&self) -> bool {
+        matches!(self, Language::Bash)
+    }
+
     pub fn from_name(name: &str) -> Option<Language> {
         Language::ALL
             .iter()
