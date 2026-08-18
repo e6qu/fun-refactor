@@ -73,6 +73,45 @@ fn zig_anonymous_variants_settle_against_the_modules_own_unions() {
 }
 
 #[test]
+fn go_composite_literals_settle_as_variants_or_records() {
+    let source = "package shape\n\ntype Shape interface{ isShape() }\n\n\
+        type Point struct{}\n\nfunc (Point) isShape() {}\n\n\
+        type Circle struct {\n\tRadius float64\n}\n\nfunc (Circle) isShape() {}\n\n\
+        func Pick(n float64) Shape {\n\tif n <= 0 {\n\t\treturn Point{}\n\t}\n\t\
+        return Circle{Radius: n}\n}\n";
+    let rust = translated(source, "shape.go", Language::Rust);
+    assert!(
+        rust.contains("return Shape::Point;")
+            && rust.contains("return Shape::Circle { radius: n };"),
+        "a composite literal of a consumed struct is that variant:\n{rust}"
+    );
+}
+
+#[test]
+fn typescript_kind_literals_settle_as_variants() {
+    // The named-interface form and the inline form spell one idiom; both cross.
+    let named = "interface Point {\n  kind: \"point\";\n}\n\n\
+        interface Circle {\n  kind: \"circle\";\n  radius: number;\n}\n\n\
+        export type Shape = Point | Circle;\n\n\
+        export function pick(n: number): Shape {\n  if (n <= 0) {\n    \
+        return { kind: \"point\" };\n  }\n  return { kind: \"circle\", radius: n };\n}\n";
+    let rust = translated(named, "shape.ts", Language::Rust);
+    assert!(
+        rust.contains("return Shape::Point;")
+            && rust.contains("return Shape::Circle { radius: n };"),
+        "an object literal naming a variant is that variant:\n{rust}"
+    );
+    let inline = "type Shape = { kind: \"point\" } | { kind: \"circle\"; radius: number };\n\n\
+        export function pick(n: number): Shape {\n  if (n <= 0) {\n    \
+        return { kind: \"point\" };\n  }\n  return { kind: \"circle\", radius: n };\n}\n";
+    let rust = translated(inline, "shape.ts", Language::Rust);
+    assert!(
+        rust.contains("enum Shape") && rust.contains("return Shape::Point;"),
+        "the inline union is the same sum, variants named by their literals:\n{rust}"
+    );
+}
+
+#[test]
 fn python_union_members_construct_as_variants() {
     let source = "from dataclasses import dataclass\n\n\n@dataclass\nclass Card:\n    \
         number: str\n\n\n@dataclass\nclass Cash:\n    pass\n\n\nPayment = Card | Cash\n\n\n\

@@ -2891,6 +2891,7 @@ mod go {
         }
         settle_sums(&mut module);
         settle_builtins(&mut module);
+        settle_variants(&mut module);
         module
     }
 
@@ -3419,6 +3420,58 @@ mod go {
                 .first()
                 .map(|n| expr(cx, *n))
                 .unwrap_or(Expr::Null),
+            // `Point{}` and `Circle{Radius: n}` build a value of a named type.
+            // It reads as a variant candidate; the settle pass attributes it to
+            // the sum that answers the name, turns it into a record
+            // construction where a record answers instead, and carries it
+            // where nothing does. A slice or map literal names no bare type
+            // and stays carried.
+            "composite_literal" => {
+                let named = cx
+                    .field(node, "type")
+                    .filter(|t| t.kind() == "type_identifier");
+                let Some(ty) = named else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                let mut fields = Vec::new();
+                if let Some(body) = cx.field(node, "body") {
+                    for element in cx.children(body) {
+                        if !element.is_named() || element.kind() == "comment" {
+                            continue;
+                        }
+                        if element.kind() != "keyed_element" {
+                            return Expr::Unsupported(cx.unsupported(node));
+                        }
+                        let mut parts = cx.children(element).into_iter().filter(|c| c.is_named());
+                        let (Some(key), Some(value)) = (parts.next(), parts.next()) else {
+                            return Expr::Unsupported(cx.unsupported(node));
+                        };
+                        // The grammar wraps both sides in `literal_element`.
+                        let key = match key.kind() {
+                            "literal_element" => cx
+                                .children(key)
+                                .into_iter()
+                                .find(|c| c.is_named())
+                                .unwrap_or(key),
+                            _ => key,
+                        };
+                        let value = match value.kind() {
+                            "literal_element" => cx
+                                .children(value)
+                                .into_iter()
+                                .find(|c| c.is_named())
+                                .unwrap_or(value),
+                            _ => value,
+                        };
+                        fields.push((cx.text(key), expr(cx, value)));
+                    }
+                }
+                Expr::Variant {
+                    sum: String::new(),
+                    name: cx.text(ty),
+                    fields,
+                }
+            }
             _ => Expr::Unsupported(cx.unsupported(node)),
         }
     }
@@ -5888,8 +5941,14 @@ mod typescript {
                                 exported,
                                 members,
                             });
+                            module.items.push(Item::Unsupported(cx.unsupported(child)));
+                        } else if let Some(mut sum) = inline_union(cx, node) {
+                            sum.doc = doc_above(cx, child, &["///", "//", "/**", "*/", "*"]);
+                            sum.exported = exported;
+                            module.items.push(Item::Sum(sum));
+                        } else {
+                            module.items.push(Item::Unsupported(cx.unsupported(child)));
                         }
-                        module.items.push(Item::Unsupported(cx.unsupported(child)));
                     }
                 },
                 "import_statement" => {
@@ -5940,6 +5999,7 @@ mod typescript {
         settle_record_returns(&mut module);
         settle_builtins(&mut module);
         settle_unions(&mut module, unions);
+        settle_kind_literals(&mut module);
         // A brand travels with a constructor function bearing its own name; this
         // tool's TypeScript writer emits one. Read back as content it duplicates
         // the newtype, and its lower-case spelling wins over the type's.
@@ -6008,6 +6068,98 @@ mod typescript {
         }
         let mut members = Vec::new();
         flatten(cx, value, &mut members).then_some(members)
+    }
+
+    /// `type X = { kind: "a" } | { kind: "b"; n: number }` written inline.
+    ///
+    /// The same discriminated union as the named form, with the members spelled
+    /// in place. Each member must be an object of plain fields sharing a
+    /// literal-typed one; the literal names the variant, pascal-cased, the way
+    /// the writers spell it back. Anything looser, a method, a member with no
+    /// literal, a non-object member, stays carried.
+    fn inline_union(cx: &Cx, node: Node<'_>) -> Option<Sum> {
+        let value = cx.field(node, "value")?;
+        if value.kind() != "union_type" {
+            return None;
+        }
+        fn flatten<'t>(cx: &Cx, node: Node<'t>, into: &mut Vec<Node<'t>>) -> bool {
+            match node.kind() {
+                "union_type" => cx
+                    .children(node)
+                    .into_iter()
+                    .all(|part| flatten(cx, part, into)),
+                "object_type" => {
+                    into.push(node);
+                    true
+                }
+                _ => false,
+            }
+        }
+        let mut members = Vec::new();
+        if !flatten(cx, value, &mut members) || members.is_empty() {
+            return None;
+        }
+        let fields_of = |object: Node<'_>| -> Option<Vec<Field>> {
+            let mut fields = Vec::new();
+            for member in cx.children(object) {
+                match member.kind() {
+                    "comment" => {}
+                    "property_signature" => fields.push(Field {
+                        doc: Vec::new(),
+                        name: cx.field_text(member, "name")?,
+                        ty: cx.field(member, "type").map(|t| ty(cx, t)),
+                        default: None,
+                        exported: true,
+                    }),
+                    _ => return None,
+                }
+            }
+            Some(fields)
+        };
+        let members: Option<Vec<Vec<Field>>> = members.into_iter().map(fields_of).collect();
+        let members = members?;
+        let literal = |field: &Field| {
+            matches!(&field.ty, Some(Type::Named { name, .. })
+                if name.starts_with('"') || name.starts_with('\''))
+        };
+        // The field every member declares with a literal type tells them apart.
+        let discriminator = members.first()?.iter().find(|f| {
+            literal(f)
+                && members
+                    .iter()
+                    .all(|m| m.iter().any(|o| o.name == f.name && literal(o)))
+        })?;
+        let discriminator = discriminator.name.clone();
+        let variants: Option<Vec<Variant>> = members
+            .iter()
+            .map(|fields| {
+                let tag =
+                    fields
+                        .iter()
+                        .find(|f| f.name == discriminator)
+                        .and_then(|f| match &f.ty {
+                            Some(Type::Named { name, .. }) => {
+                                Some(name.trim_matches(['"', '\'']).to_string())
+                            }
+                            _ => None,
+                        })?;
+                Some(Variant {
+                    doc: Vec::new(),
+                    name: super::super::write::pascal(&tag),
+                    fields: fields
+                        .iter()
+                        .filter(|f| f.name != discriminator)
+                        .cloned()
+                        .collect(),
+                })
+            })
+            .collect();
+        Some(Sum {
+            doc: Vec::new(),
+            name: cx.field_text(node, "name").unwrap_or_default(),
+            variants: variants?,
+            exported: false,
+        })
     }
 
     /// Turn `type X = A | B` into a sum when A and B are this file's own records.
@@ -6085,6 +6237,83 @@ mod typescript {
         module
             .items
             .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
+    }
+
+    /// An object literal that spells a variant of one of the module's sums.
+    ///
+    /// `{ kind: "circle", radius: n }` is how TypeScript builds a value of a
+    /// discriminated union, and it crossed as a map: `HashMap::from([("kind",
+    /// "circle")])` in a position that wants `Shape`, wrong-typed instead of
+    /// carried. An object with one literal-string entry naming a variant of
+    /// exactly one module sum, whose other keys are all that variant's declared
+    /// fields, is that variant. Anything looser stays the map it was.
+    fn settle_kind_literals(module: &mut Module) {
+        let variants: Vec<(String, String, std::collections::BTreeSet<String>)> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                    (
+                        s.name.clone(),
+                        v.name.clone(),
+                        v.fields.iter().map(|f| f.name.clone()).collect(),
+                    )
+                })),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        if variants.is_empty() {
+            return;
+        }
+        super::each_expr_in_module(module, &mut |e| {
+            let Expr::MapLit(entries) = e else { return };
+            let mut tag: Option<usize> = None;
+            for (at, (key, value)) in entries.iter().enumerate() {
+                if matches!(key, Expr::Str(_)) && matches!(value, Expr::Str(_)) {
+                    tag = match tag {
+                        None => Some(at),
+                        // Two literal-string entries cannot both be the
+                        // discriminator; leave the map alone.
+                        Some(_) => return,
+                    };
+                }
+            }
+            let Some(at) = tag else { return };
+            let Expr::Str(tag_value) = &entries[at].1 else {
+                return;
+            };
+            let rest: Option<std::collections::BTreeSet<String>> = entries
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| *i != at)
+                .map(|(_, (key, _))| match key {
+                    Expr::Str(name) => Some(name.clone()),
+                    _ => None,
+                })
+                .collect();
+            let Some(rest) = rest else { return };
+            let answering: Vec<&(String, String, std::collections::BTreeSet<String>)> = variants
+                .iter()
+                .filter(|(_, name, fields)| {
+                    super::super::write::snake_always(name) == *tag_value && rest.is_subset(fields)
+                })
+                .collect();
+            let [(sum, name, _)] = answering.as_slice() else {
+                return;
+            };
+            let (sum, name) = (sum.clone(), name.clone());
+            let fields = std::mem::take(entries)
+                .into_iter()
+                .enumerate()
+                .filter(|(i, _)| *i != at)
+                .map(|(_, (key, value))| match key {
+                    Expr::Str(field) => (field, value),
+                    _ => unreachable!("checked above"),
+                })
+                .collect();
+            *e = Expr::Variant { sum, name, fields };
+        });
     }
 
     /// A `switch` whose cases are selected by literals and leave before the
@@ -7499,6 +7728,14 @@ fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
 /// every such path was before candidates existed.
 fn settle_variants(module: &mut Module) {
     use std::collections::{BTreeMap, BTreeSet};
+    let records: BTreeSet<String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(r.name.clone()),
+            _ => None,
+        })
+        .collect();
     let sums: BTreeMap<String, BTreeSet<String>> = module
         .items
         .iter()
@@ -7549,8 +7786,23 @@ fn settle_variants(module: &mut Module) {
         if let Expr::Variant { sum, name, fields } = e {
             // An anonymous candidate names no sum at all. It is attributed
             // when exactly one of the module's sums answers to the variant's
-            // name, and carried when none or several do.
+            // name, and carried when none or several do. A candidate naming
+            // one of the module's own records is that record being built.
             if sum.is_empty() {
+                if records.contains(name.as_str()) {
+                    let args = std::mem::take(fields)
+                        .into_iter()
+                        .map(|(field, value)| Expr::Keyword {
+                            name: field,
+                            value: Box::new(value),
+                        })
+                        .collect();
+                    *e = Expr::New {
+                        callee: Box::new(Expr::Name(name.clone())),
+                        args,
+                    };
+                    return;
+                }
                 let answering: Vec<&String> = sums
                     .iter()
                     .filter(|(_, variants)| variants.contains(name.as_str()))

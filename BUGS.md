@@ -254,9 +254,12 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   own sums, and each writer builds it the way its language does: Python calls
   the constructor, TypeScript writes the declared discriminator, Go
   parenthesises the composite literal out of the `if x == Go{}` trap, Java
-  orders the record's fields, Zig infers the union from the position. A path
-  naming anything else, `Vec::new`, an enum from another crate, goes back to
-  being carried whole. Pinned in `tests/translate_variants.rs`.
+  orders the record's fields, Zig infers the union from the position. Every
+  reader produces it too. Go composite literals settle as variants or record
+  constructions, TypeScript kind-literal objects settle against the module's
+  sums, and the inline union form becomes the same sum as the named one. A
+  path naming anything else, `Vec::new`, an enum from another crate, goes back
+  to being carried whole. Pinned in `tests/translate_variants.rs`.
 
 - [x] B419: **`fr inline --call` pasted a callee that read its own file's
   imports.** B412 held module globals back and stopped there. `os.environ`

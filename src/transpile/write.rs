@@ -1110,7 +1110,7 @@ fn camel(name: &str) -> String {
 }
 
 /// `PascalCase`, for type names everywhere and exported Go.
-fn pascal(name: &str) -> String {
+pub(super) fn pascal(name: &str) -> String {
     let camel = camel(name);
     let mut chars = camel.chars();
     match chars.next() {
