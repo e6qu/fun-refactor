@@ -466,6 +466,20 @@ fn receiver_word(language: Language) -> &'static str {
 /// The marker every carried-over fragment is written under.
 pub const MARKER: &str = "fun-refactor: not translated";
 
+/// The sibling this import line resolved to inside a directory sweep, if any.
+///
+/// The sweep resolves and the writer only spells. A resolved import with no
+/// named bindings still stays a comment: a namespace or side-effect import
+/// binds nothing a sibling's translation declares.
+fn sibling_import(target: &Option<ImportTarget>) -> Option<(&str, &[ImportedName])> {
+    let target = target.as_ref()?;
+    let stem = target.resolved.as_deref()?;
+    if target.names.is_empty() {
+        return None;
+    }
+    Some((stem, &target.names))
+}
+
 pub fn write(language: Language, module: &Module) -> Result<(String, Fidelity)> {
     write_in_context(language, module, module)
 }
@@ -541,6 +555,20 @@ pub fn write_in_context(
         }
     }
     out.properties = properties;
+    out.methods = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(
+                r.methods
+                    .iter()
+                    .filter(|m| !m.is_constructor)
+                    .map(|m| m.name.clone()),
+            ),
+            _ => None,
+        })
+        .flatten()
+        .collect();
     out.functions = context
         .items
         .iter()
@@ -696,6 +724,13 @@ struct Out {
     /// In a target without the idiom the method is ordinary and its accessors
     /// become calls, and this set is how the field-access writer knows which.
     properties: std::collections::BTreeSet<String>,
+    /// The names of the methods the module's records declare.
+    ///
+    /// A method is declared under the function convention and reached like a
+    /// field, `store.total_value_cents()`. The use site spelled the name
+    /// through the field table, which holds no methods. A two-word method was
+    /// therefore declared in one casing and called in another.
+    methods: std::collections::BTreeSet<String>,
     /// Each declared function's parameters, in order, with their defaults.
     ///
     /// A keyword argument names its parameter, and five of these languages
@@ -785,6 +820,7 @@ impl Out {
             records: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
             sum_items: std::collections::BTreeMap::new(),
+            methods: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
@@ -883,11 +919,18 @@ impl Out {
     }
 
     fn field(&self, raw: &str) -> String {
-        let spelled = self
-            .fields
-            .get(raw)
-            .cloned()
-            .unwrap_or_else(|| raw.to_string());
+        let spelled = match self.fields.get(raw) {
+            Some(spelled) => spelled.clone(),
+            // A method is reached like a field and spelled like a function. A
+            // name that is a method and never a field takes the name table's
+            // spelling. A name that is a field somewhere keeps the field one.
+            None if self.methods.contains(raw) => self
+                .names
+                .get(raw)
+                .cloned()
+                .unwrap_or_else(|| raw.to_string()),
+            None => raw.to_string(),
+        };
         self.legal(spelled)
     }
 
@@ -1170,7 +1213,7 @@ fn rust(out: &mut Out, module: &Module) {
                 rust_function(out, f, false);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, .. } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -1734,9 +1777,11 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             }
             let object = rust_expr(out, of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
@@ -2084,7 +2129,23 @@ fn python(out: &mut Out, module: &Module) {
                 python_function(out, f, false);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, target } => {
+                // An import a sweep resolved names a sibling translated beside
+                // this file, so it crosses as a real import. The names take
+                // this writer's spelling from the same table the declarations
+                // use, and the module path becomes a relative one.
+                if let Some((stem, names)) = sibling_import(target) {
+                    let list: Vec<String> = names
+                        .iter()
+                        .map(|n| match &n.alias {
+                            Some(alias) => format!("{} as {alias}", out.name(&n.name)),
+                            None => out.name(&n.name),
+                        })
+                        .collect();
+                    out.line(&format!("from .{stem} import {}", list.join(", ")));
+                    out.blank();
+                    continue;
+                }
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -2731,6 +2792,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = python_expr(out, of);
+            // A property stays a property here, and it is a method, so its
+            // spelling comes from the name table and not the field one.
+            if out.properties.contains(name) {
+                return format!("{object}.{}", out.name(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
@@ -3004,7 +3070,7 @@ fn go(out: &mut Out, module: &Module) {
                 go_function(out, f, None);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, .. } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -3907,9 +3973,11 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Field { of, name } => {
             let object = go_expr(out, of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
@@ -4187,7 +4255,26 @@ fn typescript(out: &mut Out, module: &Module) {
                 ts_function(out, f, false);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, target } => {
+                // An import a sweep resolved names a sibling translated beside
+                // this file, so it crosses as a real import. The names take
+                // this writer's spelling from the same table the declarations
+                // use, and the module path points at the sibling's stem.
+                if let Some((stem, names)) = sibling_import(target) {
+                    let list: Vec<String> = names
+                        .iter()
+                        .map(|n| match &n.alias {
+                            Some(alias) => format!("{} as {alias}", out.name(&n.name)),
+                            None => out.name(&n.name),
+                        })
+                        .collect();
+                    out.line(&format!(
+                        "import {{ {} }} from \"./{stem}\";",
+                        list.join(", ")
+                    ));
+                    out.blank();
+                    continue;
+                }
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -4901,6 +4988,11 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
             let object = ts_expr(out, of);
+            // A property stays a property here, and it is a method, so its
+            // spelling comes from the name table and not the field one.
+            if out.properties.contains(name) {
+                return format!("{object}.{}", out.name(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => format!("{}[{}]", ts_expr(out, of), ts_expr(out, index)),
@@ -5085,7 +5177,7 @@ fn java(out: &mut Out, module: &Module) {
     }
 
     for item in &module.items {
-        if let Item::Import { text, line } = item {
+        if let Item::Import { text, line, .. } = item {
             out.fidelity.imports_listed += 1;
             let header = out.comment(&format!(
                 "the source imported this at line {line}; the equivalent here is yours to add."
@@ -5946,9 +6038,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Field { of, name } => {
             let object = java_expr(out, of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
@@ -6165,7 +6259,7 @@ fn zig(out: &mut Out, module: &Module) {
                 out.note_once(ENTRY_DROPPED);
             }
             Item::Statement(stmt) => carried_statement(out, stmt, zig_expr),
-            Item::Import { text, line } => {
+            Item::Import { text, line, .. } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -6926,9 +7020,11 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Field { of, name } => {
             let object = zig_expr(out, of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }

@@ -52,6 +52,12 @@ pub enum Item {
     Import {
         text: String,
         line: usize,
+        /// What the line says, taken apart, when the reader could take it apart.
+        ///
+        /// `None` for the forms nothing rewrites: a namespace import, a default
+        /// import, a Rust `use`. Those carry as text alone, and the writers keep
+        /// them as comments.
+        target: Option<ImportTarget>,
     },
     /// A named test, declared in the source file beside the code it checks.
     ///
@@ -225,6 +231,35 @@ pub struct Variant {
     pub name: String,
     /// Empty for a bare tag like `None` or `Empty`.
     pub fields: Vec<Field>,
+}
+
+/// An import taken apart: where it points and which names it binds.
+///
+/// Only Python and TypeScript fill this in, and only for the named form. That
+/// form is `from m import a, b as c` or `import { a, b as c } from "./m"`. A
+/// directory sweep uses it to turn an import of a sibling file into a real
+/// import of the sibling's translation. Everything else keeps the text.
+#[derive(Debug, Clone)]
+pub struct ImportTarget {
+    /// The module path as the source wrote it: `helpers`, `.models`, `./m`.
+    pub module: String,
+    /// Whether the path is relative, a leading dot in Python or `./` here.
+    pub relative: bool,
+    /// The named bindings, each with the alias the body uses, where one is given.
+    pub names: Vec<ImportedName>,
+    /// The sibling file stem this import points at, when it points inside a sweep.
+    ///
+    /// Filled by the directory sweep and by nothing else. A reader cannot know
+    /// which files travel together; only the sweep holds the whole set. The
+    /// writers emit a real import when this is set and a comment when it is not.
+    pub resolved: Option<String>,
+}
+
+/// One name an import binds, with its alias where the source gave one.
+#[derive(Debug, Clone)]
+pub struct ImportedName {
+    pub name: String,
+    pub alias: Option<String>,
 }
 
 /// Something with no counterpart, carried whole so nothing is lost.

@@ -1748,6 +1748,27 @@ fn cmd_translate_directory(
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
 
     let scanned = scan(dir, &ScanOptions::default())?;
+
+    // Read the whole sweep before writing any of it. Translation is per file,
+    // but the files travel together: one declares a class another constructs,
+    // and an import points at a sibling translated too. The merged context
+    // gives every file's writer the whole set of declarations.
+    let mut modules: BTreeMap<PathBuf, crate::transpile::Module> = BTreeMap::new();
+    for file in &scanned.files {
+        if file.language == to || !crate::transpile::can_be_read(file.language) {
+            continue;
+        }
+        // A file that does not read is not lost here. The translation pass
+        // below reads it again and names the error beside its path.
+        if let Ok(module) = crate::transpile::read_file(&file.path) {
+            modules.insert(file.path.clone(), module);
+        }
+    }
+    let mut context = crate::transpile::Module::default();
+    for module in modules.values() {
+        context.items.extend(module.items.iter().cloned());
+    }
+
     let mut edits = crate::edit::EditSet::new();
     let mut fidelity = crate::transpile::Fidelity::default();
     let mut translated: Vec<PathBuf> = Vec::new();
@@ -1781,7 +1802,14 @@ fn cmd_translate_directory(
             occupied.push(destination);
             continue;
         }
-        match crate::transpile::plan_to(&file.path, to, Some(&destination), force) {
+        match crate::transpile::plan_to_in_context(
+            &file.path,
+            to,
+            Some(&destination),
+            force,
+            &context,
+            &modules,
+        ) {
             Ok(plan) => {
                 translated.push(file.path.clone());
                 fidelity.functions += plan.fidelity.functions;
