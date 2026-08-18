@@ -175,6 +175,21 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B561: **a binding borrowed the enclosing function's type.** `fr type`
+  read a Zig `const width = 3;` as `void`. That is the return type of the `fn`
+  around it. The walk outwards from a declaration looked for a `type` field on
+  four ancestors and never stopped at the block. It stops at the construct that
+  holds statements now. Pinned in `tests/types.rs`.
+
+- [x] B560: **`fr extract` wrote uncompilable Go.** Two live-out values came
+  back as `return a, b` from a function declared `int`. The report said
+  success. Go spells several results as a parenthesised list, and the signature
+  says `(int, int)` now. The same selection written idiomatically, with
+  `total := 0`, was refused for a type "never written down". Go and Java both
+  fix a binding's type at its declaration, so inference supplies it. Only a
+  type neither written nor derivable is refused. Pinned in
+  `tests/extract_function.rs`.
+
 - [x] B530: **a translated Java program only ran on the newest JDKs.** The
   entry came out as `public static void main()`. The runtime accepts that only
   where niladic main methods are final. Everywhere else it answered "Main
