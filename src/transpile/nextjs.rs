@@ -726,6 +726,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         doc: module.doc.clone(),
         name: module.name.clone(),
         items: Vec::new(),
+        sweep_notes: Vec::new(),
     };
     for item in &module.items {
         match item {
@@ -918,6 +919,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         let one = Module {
             doc: Vec::new(),
             name: None,
+            sweep_notes: Vec::new(),
             items: vec![Item::Function(Function {
                 doc: handler.doc.clone(),
                 name: "body".into(),

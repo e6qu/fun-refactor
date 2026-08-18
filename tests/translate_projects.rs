@@ -502,3 +502,67 @@ fn the_python_a_sweep_writes_runs_like_its_typescript_source() {
         "the translated entrypoint prints something else than its source."
     );
 }
+
+#[test]
+fn a_name_two_files_declare_is_renamed_where_the_directory_is_one_namespace() {
+    // Two Python modules may each declare a `Thing`. Go puts every file of a
+    // directory in one package, so the sweep produced `Thing redeclared in
+    // this block` and reported both files translated.
+    let files = &[
+        (
+            "a.py",
+            "class Thing:\n    def label(self) -> str:\n        return \"a-thing\"\n",
+        ),
+        (
+            "c.py",
+            "class Thing:\n    def label(self) -> str:\n        return \"c-thing\"\n",
+        ),
+    ];
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().join("pkg");
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, source) in files {
+        std::fs::write(dir.join(name), source).unwrap();
+    }
+    let mut modules: BTreeMap<PathBuf, transpile::Module> = BTreeMap::new();
+    for (name, _) in files {
+        let path = dir.join(name);
+        modules.insert(path.clone(), transpile::read_file(&path).expect("a module"));
+    }
+    let mut context = transpile::Module::default();
+    for module in modules.values() {
+        context.items.extend(module.items.iter().cloned());
+    }
+    let out_dir = tmp.path().join("out");
+    std::fs::create_dir_all(&out_dir).unwrap();
+    let mut written = BTreeMap::new();
+    for (name, _) in files {
+        let path = dir.join(name);
+        let stem = path.file_stem().unwrap().to_string_lossy().into_owned();
+        let destination = out_dir.join(format!("{stem}.go"));
+        let plan = transpile::plan_to_in_context(
+            &path,
+            Language::Go,
+            Some(&destination),
+            false,
+            &context,
+            &modules,
+        )
+        .expect("a translation");
+        written.insert(stem, plan.output);
+    }
+    let first = &written["a"];
+    let second = &written["c"];
+    assert!(
+        first.contains("type Thing struct"),
+        "the file earliest by path keeps the plain name.\n{first}"
+    );
+    assert!(
+        second.contains("type CThing struct") && !second.contains("type Thing struct"),
+        "the other takes its own file's name in front.\n{second}"
+    );
+    assert!(
+        second.contains("is declared by another file of this sweep"),
+        "and the header says so.\n{second}"
+    );
+}

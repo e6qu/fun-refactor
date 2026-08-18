@@ -167,6 +167,67 @@ pub fn plan_to_in_context(
 
 type Sweep<'a> = (&'a ir::Module, &'a BTreeMap<PathBuf, ir::Module>);
 
+/// Rename this file's top-level declarations that a sibling declares too.
+///
+/// Only for targets whose namespace is the directory. The file earliest by
+/// path keeps the plain name, so every file of the sweep resolves the clash
+/// the same way and the choice does not depend on which file is written first.
+fn rename_colliding_declarations(
+    module: &mut ir::Module,
+    path: &Path,
+    siblings: &BTreeMap<PathBuf, ir::Module>,
+) {
+    let declared = |m: &ir::Module| -> BTreeMap<String, ()> {
+        m.items
+            .iter()
+            .filter_map(|item| match item {
+                ir::Item::Record(r) => Some((r.name.clone(), ())),
+                ir::Item::Sum(s) => Some((s.name.clone(), ())),
+                ir::Item::Newtype(n) => Some((n.name.clone(), ())),
+                _ => None,
+            })
+            .collect()
+    };
+    let mine = declared(module);
+    let mut taken: Vec<String> = Vec::new();
+    for (other_path, other) in siblings {
+        if other_path == path || other_path.as_path() >= path {
+            continue;
+        }
+        for name in declared(other).keys() {
+            if mine.contains_key(name) {
+                taken.push(name.clone());
+            }
+        }
+    }
+    if taken.is_empty() {
+        return;
+    }
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let prefix = crate::transpile::write::pascal(&stem);
+    let mut notes = Vec::new();
+    for item in &mut module.items {
+        let name = match item {
+            ir::Item::Record(r) => &mut r.name,
+            ir::Item::Sum(s) => &mut s.name,
+            ir::Item::Newtype(n) => &mut n.name,
+            _ => continue,
+        };
+        if taken.contains(name) {
+            let renamed = format!("{prefix}{name}");
+            notes.push(format!(
+                "`{name}` is declared by another file of this sweep, and every file \
+                 shares one namespace here, so this one is written as `{renamed}`."
+            ));
+            *name = renamed;
+        }
+    }
+    module.sweep_notes.extend(notes);
+}
+
 fn plan_impl(
     path: &Path,
     to: Language,
@@ -244,6 +305,14 @@ fn plan_impl(
                 .collect();
             read::promote_constructions(&mut module, &types);
         }
+        // Two files of a sweep may each declare a `Thing`. Where the target
+        // keeps every file of a directory in one namespace, that is one name
+        // declared twice, and the package it produced could not build while
+        // the report called every file translated. The later file's copy takes
+        // its own file's name in front, and says so.
+        if to.packages_by_directory() {
+            rename_colliding_declarations(&mut module, path, siblings);
+        }
     }
     // Java has no top level below the type. So its writer needs a class to put the module in,
     // and a public class must be named after its file.
@@ -257,7 +326,7 @@ fn plan_impl(
 
     // A header, because a translated file that does not announce itself will be read
     // as though a person wrote it.
-    let header = banner(to, &from.to_string(), path, &fidelity);
+    let header = banner(to, &from.to_string(), path, &fidelity, &module.sweep_notes);
     output.insert_str(0, &header);
 
     // The output must be a file the target's own grammar accepts. The edit engine
@@ -451,7 +520,13 @@ fn numbered(source: &str, around: Option<usize>) -> String {
 }
 
 /// The note at the top of a translated file.
-fn banner(to: Language, from: &str, source: &Path, fidelity: &Fidelity) -> String {
+fn banner(
+    to: Language,
+    from: &str,
+    source: &Path,
+    fidelity: &Fidelity,
+    sweep_notes: &[String],
+) -> String {
     let comment = |line: &str| match to {
         Language::Python => format!("# {line}\n"),
         _ => format!("// {line}\n"),
@@ -508,6 +583,12 @@ fn banner(to: Language, from: &str, source: &Path, fidelity: &Fidelity) -> Strin
                 fidelity.carried_verbatim
             )));
         }
+    }
+    // A sweep can rename a declaration this file owns, which the file itself
+    // has no way to know. Nobody reading it should have to find out by
+    // grepping for a name that is no longer there.
+    for note in sweep_notes {
+        out.push_str(&comment(note));
     }
     out.push('\n');
     out

@@ -33,6 +33,11 @@ pub struct Module {
     /// ignore this.
     pub name: Option<String>,
     pub items: Vec<Item>,
+    /// What a directory sweep had to change about this file, for its header.
+    ///
+    /// A sweep sees what one file cannot: that a sibling declares the same
+    /// name, in a target where the whole directory shares one namespace.
+    pub sweep_notes: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
