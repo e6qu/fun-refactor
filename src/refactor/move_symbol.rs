@@ -480,6 +480,14 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
         {
             continue;
         }
+        // A reference inside the moved span travels with it. `Counter.STEP` written in
+        // `Counter`'s own method is no use left behind. Counting it as one had the
+        // source importing a name it no longer mentions.
+        // Where the moved code also needs something the source keeps, the two phantom
+        // imports read as a cycle and the move was refused for it.
+        if reference.file == sym.file && removal.contains(reference.span) {
+            continue;
+        }
         needs_import.insert(reference.file.clone());
     }
 

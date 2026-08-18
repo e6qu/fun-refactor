@@ -175,6 +175,14 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B565: **`fr move` refused a class that names itself.** The cycle it
+  named does not exist. `Counter.STEP` written in `Counter`'s own method
+  counted as a use left behind in the source file. So the source was given an import of a
+  name it no longer mentions. Where the moved code also needed something the
+  source keeps, the two phantom imports read as a cycle and the move was
+  refused. A reference inside the moved span travels with it and is no longer
+  counted. Pinned in `tests/move_dependencies.rs`.
+
 - [x] B564: **`fr restructure` skipped a commented occurrence in silence.** A
   comment is an extra. It sits between two children of the node it interrupts.
   `foo(1, /* why */ 2)` was a three-argument call to the matcher,
