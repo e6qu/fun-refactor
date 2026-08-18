@@ -2240,10 +2240,10 @@ mod python {
         if variants.is_empty() {
             return;
         }
-        // A carried construct that binds one of these names shadows it for the
-        // whole function: a nested `def Card(...)` means `Card(number)` calls
-        // the local, whatever the module's sums say. The carried source is the
-        // only trace the nested definition leaves, so it is what gets read.
+        // A carried construct that binds one of these names shadows it for
+        // the whole function. A nested `def Card(...)` means `Card(number)`
+        // calls the local, whatever the module's sums say. The carried source
+        // is the nested definition's only trace, so it is the thing read.
         let shadowed_in = |body: &[Stmt], name: &str| -> bool {
             let mut found = false;
             let mut probe = body.to_vec();
@@ -3332,7 +3332,7 @@ mod go {
             }
             // A member named in a concrete position keeps its struct beside
             // the variant. A function returning `Point` cannot return a
-            // variant of `Shape`; consuming the struct outright rewrote its
+            // variant of `Shape`. Consuming the struct outright rewrote its
             // values while the signature kept the type, which no target
             // accepts. The sum still forms, and a construction of a
             // dual-named type settles by the position it stands in.
@@ -3400,8 +3400,8 @@ mod go {
                     .map(|m| m.name)
                     .filter(|name| !concretely_used.contains(name)),
             );
-            // A member kept beside its variant sheds the marker method: the
-            // variant now carries the membership, and the marker written back
+            // A member kept beside its variant sheds the marker method. The
+            // variant carries the membership now, and the marker written back
             // out would come home as a function the source never had.
             for item in &mut module.items {
                 if let Item::Record(r) = item {
@@ -4005,11 +4005,11 @@ mod java {
     /// An empty interface with records implementing it is a closed choice.
     ///
     /// `sealed interface Shape permits Point, Circle` beside records that
-    /// implement it is Java's most explicit sum declaration, and it crossed as
-    /// an empty struct with the returns of both variants type-wrong under a
-    /// clean header. The same idiom Go spells with a marker method settles the
-    /// same way: interface consumed, records become variants. A member with
-    /// methods of its own is more than a variant and holds the whole sum back.
+    /// implement it is Java's most explicit sum declaration. It crossed as an
+    /// empty struct, the returns of both variants type-wrong under a clean
+    /// header. The idiom Go spells with a marker method settles the same way:
+    /// interface consumed, records become variants. A member with methods of
+    /// its own is more than a variant and holds the whole sum back.
     fn settle_interface_sums(module: &mut Module, interfaces: &[String]) {
         for interface in interfaces {
             let shell = module.items.iter().position(|item| {
@@ -6868,16 +6868,18 @@ mod typescript {
                     // The literal the source wrote in the discriminator field:
                     // `kind: "idle"` on an interface named `FIdle`.
                     tag: discriminators.first().and_then(|d| {
-                        member.fields.iter().find(|f| &f.name == d).and_then(|f| {
-                            match &f.ty {
+                        member
+                            .fields
+                            .iter()
+                            .find(|f| &f.name == d)
+                            .and_then(|f| match &f.ty {
                                 Some(Type::Named { name, .. })
                                     if name.starts_with('"') || name.starts_with('\'') =>
                                 {
                                     Some(name.trim_matches(['"', '\'']).to_string())
                                 }
                                 _ => None,
-                            }
-                        })
+                            })
                     }),
                     fields: member
                         .fields
@@ -6910,25 +6912,24 @@ mod typescript {
     /// entry names exactly one sum's variant and the other keys are that
     /// variant's declared fields. Anything looser stays the map it was.
     fn settle_kind_literals(module: &mut Module) {
-        let variants: Vec<(String, String, String, std::collections::BTreeSet<String>)> =
-            module
-                .items
-                .iter()
-                .filter_map(|item| match item {
-                    Item::Sum(s) => Some(s.variants.iter().map(|v| {
-                        (
-                            s.name.clone(),
-                            v.name.clone(),
-                            v.tag
-                                .clone()
-                                .unwrap_or_else(|| crate::transpile::write::snake_always(&v.name)),
-                            v.fields.iter().map(|f| f.name.clone()).collect(),
-                        )
-                    })),
-                    _ => None,
-                })
-                .flatten()
-                .collect();
+        let variants: Vec<(String, String, String, std::collections::BTreeSet<String>)> = module
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                    (
+                        s.name.clone(),
+                        v.name.clone(),
+                        v.tag
+                            .clone()
+                            .unwrap_or_else(|| crate::transpile::write::snake_always(&v.name)),
+                        v.fields.iter().map(|f| f.name.clone()).collect(),
+                    )
+                })),
+                _ => None,
+            })
+            .flatten()
+            .collect();
         if variants.is_empty() {
             return;
         }
@@ -8518,9 +8519,9 @@ fn each_expr_in_item(item: &mut Item, visit: &mut dyn FnMut(&mut Expr)) {
 ///
 /// The construction crossed a pass before the consumption did: `s.kind ==
 /// "circle"` and `s.radius` went to Rust verbatim, against an enum that
-/// declares neither. An `if`/`else if` chain or a `switch` comparing one
-/// subject's field against literals that name the variants of exactly one
-/// module sum is a variant match. Each arm's payload reads through the
+/// declares neither. An `if`/`else if` chain or a `switch` is a variant
+/// match when its literals name exactly one module sum's variants through
+/// one subject's field. Each arm's payload reads through the
 /// subject become plain locals, so every writer can spell the narrowing its
 /// own way. A chain that mixes in any other condition stays what it was.
 fn settle_variant_narrowing(module: &mut Module) {
@@ -8683,9 +8684,9 @@ fn settle_variant_narrowing(module: &mut Module) {
                     sum_name = sum;
                     let fields = sums[&sum_name][&variant].clone();
                     let mut body = std::mem::take(then);
-                    // `var c = (Circle) s;` re-names the narrowed subject; the
-                    // alias reads like the subject from here on and the cast
-                    // itself has nothing left to say.
+                    // `var c = (Circle) s;` re-names the narrowed subject.
+                    // The alias reads like the subject from here on, and the
+                    // cast itself has nothing left to say.
                     let mut keys = vec![key.clone()];
                     body.retain(|stmt| {
                         if let Stmt::Let {
@@ -8759,8 +8760,7 @@ fn settle_variant_narrowing(module: &mut Module) {
                     .zip(settled)
                     .map(|((_, mut body), (_, variant))| {
                         let fields = sums[&sum][&variant].clone();
-                        let bindings =
-                            bind_payload(&mut body, std::slice::from_ref(&key), &fields);
+                        let bindings = bind_payload(&mut body, std::slice::from_ref(&key), &fields);
                         VariantArm {
                             variant,
                             bindings,
@@ -8847,123 +8847,125 @@ fn settle_variants(module: &mut Module) {
             _ => None,
         };
         each_expr_in_item(item, &mut |e| {
-        if let Expr::Call { callee, args } = e {
-            // A path used as a callee is `Vec::new()` or a tuple-variant build;
-            // neither has a crossing. The walk settles children first, so by now
-            // the callee is either a still-valid variant (a tuple-variant build)
-            // or the carried path this pass demoted it to; either way, demoting
-            // only the callee left the marker being called, and `None()` ran in
-            // Python. The whole call carries.
-            let path_callee = match callee.as_ref() {
-                Expr::Variant { sum, name, .. } => Some(format!("{sum}::{name}")),
-                Expr::Unsupported(u) if u.construct == "a name reached through a path" => {
-                    Some(u.source.clone())
-                }
-                _ => None,
-            };
-            if let Some(path) = path_callee {
-                let source = format!("{path}({} argument(s))", args.len());
-                *e = Expr::Unsupported(Unsupported {
-                    construct: "a call through a path".to_string(),
-                    source,
-                    line: 0,
-                });
-                return;
-            }
-        }
-        if let Expr::New { callee, args } = e {
-            // `new Point()` built a record that a sum has since consumed. The
-            // construction is the variant's, arguments matched against the
-            // declared fields in order, keywords by their names.
-            if let Expr::Name(n) = callee.as_ref() {
-                if !records.contains(n.as_str()) {
-                    let answering: Vec<(&String, &BTreeSet<String>)> = sums
-                        .iter()
-                        .filter(|(_, variants)| variants.contains(n.as_str()))
-                        .map(|(sum, variants)| (sum, variants))
-                        .collect();
-                    if let [(sum, _)] = answering.as_slice() {
-                        let declared = variant_fields
-                            .get(&((*sum).clone(), n.clone()))
-                            .cloned()
-                            .unwrap_or_default();
-                        let name = n.clone();
-                        let sum = (*sum).clone();
-                        let taken = std::mem::take(args);
-                        let mut fields = Vec::new();
-                        let mut position = 0usize;
-                        for arg in taken {
-                            match arg {
-                                Expr::Keyword { name, value } => fields.push((name, *value)),
-                                other => {
-                                    let field = declared
-                                        .get(position)
-                                        .cloned()
-                                        .unwrap_or_else(|| "value".to_string());
-                                    position += 1;
-                                    fields.push((field, other));
-                                }
-                            }
-                        }
-                        *e = Expr::Variant { sum, name, fields };
-                        return;
+            if let Expr::Call { callee, args } = e {
+                // A path used as a callee is `Vec::new()` or a tuple-variant build;
+                // neither has a crossing. The walk settles children first, so by now
+                // the callee is either a still-valid variant (a tuple-variant build)
+                // or the carried path this pass demoted it to; either way, demoting
+                // only the callee left the marker being called, and `None()` ran in
+                // Python. The whole call carries.
+                let path_callee = match callee.as_ref() {
+                    Expr::Variant { sum, name, .. } => Some(format!("{sum}::{name}")),
+                    Expr::Unsupported(u) if u.construct == "a name reached through a path" => {
+                        Some(u.source.clone())
                     }
-                }
-            }
-        }
-        if let Expr::Variant { sum, name, fields } = e {
-            // An anonymous candidate names no sum at all. It is attributed
-            // when exactly one of the module's sums answers to the variant's
-            // name, and carried when none or several do. A candidate naming
-            // one of the module's own records is that record being built. A
-            // name that is both, a struct kept beside its variant, settles by
-            // the enclosing function's return type: returning the struct
-            // builds the struct, anything else builds the variant.
-            if sum.is_empty() {
-                let also_variant = sums.values().any(|variants| variants.contains(name.as_str()));
-                let build_record = records.contains(name.as_str())
-                    && (!also_variant || returning.as_deref() == Some(name.as_str()));
-                if build_record {
-                    let args = std::mem::take(fields)
-                        .into_iter()
-                        .map(|(field, value)| Expr::Keyword {
-                            name: field,
-                            value: Box::new(value),
-                        })
-                        .collect();
-                    *e = Expr::New {
-                        callee: Box::new(Expr::Name(name.clone())),
-                        args,
-                    };
+                    _ => None,
+                };
+                if let Some(path) = path_callee {
+                    let source = format!("{path}({} argument(s))", args.len());
+                    *e = Expr::Unsupported(Unsupported {
+                        construct: "a call through a path".to_string(),
+                        source,
+                        line: 0,
+                    });
                     return;
                 }
-                let answering: Vec<&String> = sums
-                    .iter()
-                    .filter(|(_, variants)| variants.contains(name.as_str()))
-                    .map(|(owner, _)| owner)
-                    .collect();
-                match answering.as_slice() {
-                    [only] => *sum = (*only).clone(),
-                    _ => {
-                        let source = format!(".{{ .{name} = .. }}");
-                        *e = Expr::Unsupported(Unsupported {
-                            construct: "an anonymous variant".to_string(),
-                            source,
-                            line: 0,
-                        });
+            }
+            if let Expr::New { callee, args } = e {
+                // `new Point()` built a record that a sum has since consumed. The
+                // construction is the variant's, arguments matched against the
+                // declared fields in order, keywords by their names.
+                if let Expr::Name(n) = callee.as_ref() {
+                    if !records.contains(n.as_str()) {
+                        let answering: Vec<(&String, &BTreeSet<String>)> = sums
+                            .iter()
+                            .filter(|(_, variants)| variants.contains(n.as_str()))
+                            .map(|(sum, variants)| (sum, variants))
+                            .collect();
+                        if let [(sum, _)] = answering.as_slice() {
+                            let declared = variant_fields
+                                .get(&((*sum).clone(), n.clone()))
+                                .cloned()
+                                .unwrap_or_default();
+                            let name = n.clone();
+                            let sum = (*sum).clone();
+                            let taken = std::mem::take(args);
+                            let mut fields = Vec::new();
+                            let mut position = 0usize;
+                            for arg in taken {
+                                match arg {
+                                    Expr::Keyword { name, value } => fields.push((name, *value)),
+                                    other => {
+                                        let field = declared
+                                            .get(position)
+                                            .cloned()
+                                            .unwrap_or_else(|| "value".to_string());
+                                        position += 1;
+                                        fields.push((field, other));
+                                    }
+                                }
+                            }
+                            *e = Expr::Variant { sum, name, fields };
+                            return;
+                        }
                     }
                 }
-                return;
             }
-            let plain = sum.rsplit([':', '.']).next().unwrap_or(sum).to_string();
-            let answered = sums
-                .get(&plain)
-                .is_some_and(|variants| variants.contains(name.as_str()));
-            match answered {
-                true => *sum = plain,
-                false => *e = demoted(sum, name, fields),
+            if let Expr::Variant { sum, name, fields } = e {
+                // An anonymous candidate names no sum at all. It is attributed
+                // when exactly one of the module's sums answers to the variant's
+                // name, and carried when none or several do. A candidate naming
+                // one of the module's own records is that record being built. A
+                // name that is both, a struct kept beside its variant, settles by
+                // the enclosing function's return type. Returning the struct
+                // builds the struct; anything else builds the variant.
+                if sum.is_empty() {
+                    let also_variant = sums
+                        .values()
+                        .any(|variants| variants.contains(name.as_str()));
+                    let build_record = records.contains(name.as_str())
+                        && (!also_variant || returning.as_deref() == Some(name.as_str()));
+                    if build_record {
+                        let args = std::mem::take(fields)
+                            .into_iter()
+                            .map(|(field, value)| Expr::Keyword {
+                                name: field,
+                                value: Box::new(value),
+                            })
+                            .collect();
+                        *e = Expr::New {
+                            callee: Box::new(Expr::Name(name.clone())),
+                            args,
+                        };
+                        return;
+                    }
+                    let answering: Vec<&String> = sums
+                        .iter()
+                        .filter(|(_, variants)| variants.contains(name.as_str()))
+                        .map(|(owner, _)| owner)
+                        .collect();
+                    match answering.as_slice() {
+                        [only] => *sum = (*only).clone(),
+                        _ => {
+                            let source = format!(".{{ .{name} = .. }}");
+                            *e = Expr::Unsupported(Unsupported {
+                                construct: "an anonymous variant".to_string(),
+                                source,
+                                line: 0,
+                            });
+                        }
+                    }
+                    return;
+                }
+                let plain = sum.rsplit([':', '.']).next().unwrap_or(sum).to_string();
+                let answered = sums
+                    .get(&plain)
+                    .is_some_and(|variants| variants.contains(name.as_str()));
+                match answered {
+                    true => *sum = plain,
+                    false => *e = demoted(sum, name, fields),
+                }
             }
-        }
         });
     }
     module.items = items;

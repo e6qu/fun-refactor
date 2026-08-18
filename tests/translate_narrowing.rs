@@ -3,7 +3,7 @@
 //! The construction crossed a pass before the consumption did. `s.kind ==
 //! "circle"` and `s.radius` went to Rust verbatim, against an enum that
 //! declares neither, while the header said every signature carried. Each
-//! language now asks its own way: TypeScript compares the discriminator,
+//! language now asks its own way. TypeScript compares the discriminator,
 //! Python asks `isinstance`, Rust matches, Go switches on type, Java tests
 //! `instanceof` and sheds the cast.
 
@@ -72,11 +72,11 @@ fn two_sums_sharing_a_tag_settle_by_the_declared_type() {
     let rust = translated(source, "twosums.ts", Language::Rust);
     assert!(
         rust.contains("return Fetch::FIdle;") && rust.contains("return Save::SIdle;"),
-        "the position's declared type says which sum was meant:\n{rust}"
+        "the position's declared type says which sum was meant.\n{rust}"
     );
     assert!(
         !rust.contains("HashMap"),
-        "no wrong-typed map stands in for a sum value:\n{rust}"
+        "no wrong-typed map stands in for a sum value.\n{rust}"
     );
 }
 
@@ -136,22 +136,24 @@ fn a_java_sealed_interface_is_a_sum_end_to_end() {
         public final class Geo {\n    public static Shape pick(double n) {\n        \
         if (n <= 0) {\n            return new Point();\n        }\n        \
         return new Circle(n);\n    }\n\n    \
-        public static double area(Shape s) {\n        if (s instanceof Circle) {\n            \
+        public static double area(Shape s) {\n        // Narrowing under test.\n        \
+        if (s instanceof Circle) {\n            \
         var c = (Circle) s;\n            return 3.14 * c.radius() * c.radius();\n        }\n        \
         return 0;\n    }\n}\n";
     let rust = translated(source, "Geo.java", Language::Rust);
     assert!(
         rust.contains("enum Shape") && rust.contains("Circle { radius: f64 }"),
-        "the sealed interface is the sum it declares:\n{rust}"
+        "the sealed interface is the sum it declares.\n{rust}"
     );
     assert!(
-        rust.contains("return Shape::Point;") && rust.contains("return Shape::Circle { radius: n };"),
+        rust.contains("return Shape::Point;")
+            && rust.contains("return Shape::Circle { radius: n };"),
         "constructions cross as variants:\n{rust}"
     );
     assert!(
         rust.contains("Shape::Circle { radius, .. } => {")
             && rust.contains("return 3.14 * radius * radius;"),
-        "instanceof and the cast collapse into the match:\n{rust}"
+        "instanceof and the cast collapse into the match.\n{rust}"
     );
     assert!(
         rust.contains("if n <= 0.0 {"),

@@ -1463,6 +1463,22 @@ imports of their translations. The seam gate holds it. Python to TypeScript
 must pass `tsc --strict` and print byte-for-byte what the source printed,
 and the reverse must do the same under python3.
 
+### The pass where the sums closed the loop
+
+Construction crossed in pass twelve; consumption crosses now. The IR holds
+the variant match, payloads bound to plain locals. TypeScript's kind chains
+and switches read into it, Java's `instanceof` with its cast collapses into
+it, and every writer spells it natively. Rust matches, Python asks
+`isinstance`, Go switches on the type, Zig on the union. Java's sealed
+interface finally forms the sum it declares, and its constructions and
+narrowings ride the same rails. Around the crossing, the edges hardened.
+Two sums sharing a tag settle by the position's declared type, and the
+discriminator literal is read instead of derived. A collision dodge is
+spelled once and consulted everywhere. A concretely-used struct keeps its
+identity beside its variant, and a shadowed member holds its calls back.
+Integer literals gain their point where a float signature needs one. (B505
+through B512.)
+
 ### The pass where the constructs crossed
 
 A third compiler-backed probe found eight gaps, B435 through B442. Asserts

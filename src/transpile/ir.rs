@@ -452,13 +452,13 @@ pub enum Stmt {
     },
     /// One sum value branched by variant, each arm's payload bound by name.
     ///
-    /// The construction crossed a pass before the consumption did: `s.kind ==
+    /// The construction crossed a pass before the consumption did. `s.kind ==
     /// "circle"` and `s.radius` went to Rust verbatim, against an enum that
     /// declares neither, while the header said every signature carried. Each
     /// language asks the question its own way. TypeScript compares the
     /// discriminator, Python asks `isinstance`, Rust and Zig match, Go switches
-    /// on type, Java tests `instanceof`. The bindings are the payload fields an
-    /// arm actually reads, bound to plain locals so every writer can spell the
+    /// on type, Java tests `instanceof`. The bindings are the payload fields
+    /// an arm reads, bound to plain locals, so every writer can spell the
     /// narrowing without knowing the others' idioms.
     MatchVariants {
         subject: Expr,

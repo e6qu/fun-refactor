@@ -175,6 +175,63 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B505: **consuming a sum value never crossed.** Construction landed a pass
+  ago; the question "which variant is this?" did not. `s.kind == "circle"` and
+  `s.radius` went to Rust verbatim, against an enum that declares neither,
+  under a header claiming every signature carried. The IR holds the match now,
+  payload fields bound to plain locals. TypeScript's kind chains and switches
+  read into it, and each writer spells it natively. Rust matches, Python asks
+  `isinstance`, Go switches on type, TypeScript switches on the discriminator,
+  Java tests `instanceof`, Zig switches on the union. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B506: **two sums sharing a tag degraded to a map with a clean header.**
+  Two state unions holding an `"idle"` is ordinary TypeScript. The value
+  became `HashMap::from([("kind", "idle")])` in a position that wants `Fetch`.
+  A return under a declared signature and a binding under an annotation now
+  settle against the type the position names. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B507: **the discriminator literal was derived, not read.** An interface
+  named `FIdle` writing `kind: "idle"` got the derived tag `f_idle`. No
+  consumer matched, and the writers respelled the wire format.
+  A variant carries the literal its source declared, and every reader and
+  writer prefers it. Pinned through `tests/translate_narrowing.rs`.
+
+- [x] B508: **a variant dodging a name collision was built under the name it
+  dodged.** The declaration renamer wrote `class StatusOk`. The construction
+  site wrote `Ok()`, the very record the dodge avoided, and running it
+  raised. The spellings live in one table now, computed before anything is
+  written, and both sides consult it. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B509: **a struct used concretely was consumed into its sum anyway.** Go's
+  `func Standalone() Point` kept the type. Inside it, `Point{}` became
+  `Shape::Point`, and rustc refused both lines. A member named in a concrete
+  position keeps its struct beside the variant and sheds the marker method.
+  A construction settles by the position it stands in. Pinned in
+  `tests/translate_narrowing.rs`.
+
+- [x] B510: **a shadowed union member still settled as the variant.** A nested
+  `def Card(...)` means `Card(number)` calls the local. The call became `Payment::Card` and changed the value's type. A
+  name bound by a carried construct in the same function holds its calls back,
+  and they carry visibly. Pinned in `tests/translate_narrowing.rs`.
+
+- [x] B511: **Java's sealed interface never formed a sum.** The most explicit
+  closed-choice declaration of the five crossed as an empty struct. The
+  returns came out wrong-typed under a clean header, while Go's marker idiom
+  had settled for a pass already. An empty interface with method-less implementing
+  records is the sum it declares. `new Point()` builds the variant,
+  `instanceof` plus the cast collapse into the match, and the accessor reads
+  become payload bindings. Pinned in `tests/translate_narrowing.rs`.
+
+- [x] B512: **an integer literal under a float signature stopped Rust.**
+  `return 0` where `f64` was promised, and `n <= 0` against a float parameter:
+  Go and Zig coerce the untyped literal, Rust refuses it, and the draft died
+  in rustc. Returns take the declared type and comparisons take the binding's,
+  so the literal gains its point where the target needs one. Pinned in
+  `tests/translate_narrowing.rs` and `tests/transpile.rs`.
+
 - [x] B443: **the wasm slice could not see a cli-only import.** With default
   features on, an import only the CLI uses looked used. The unused-import refusal surfaced in the deploy's wasm build
   instead. The slice now also runs clippy without default features, on

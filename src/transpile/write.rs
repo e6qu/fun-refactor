@@ -727,10 +727,10 @@ struct Out {
     /// one needs the declaration itself, for the discriminator TypeScript
     /// writes and the field order Java's record constructor takes.
     sum_items: std::collections::BTreeMap<String, Sum>,
-    /// What each hoisted variant is actually called in the output, keyed by
-    /// (sum, variant). The declaration renamer dodges a same-named type by
-    /// prefixing the sum's name; a construction site consulting the plain name
-    /// then called the type the variant dodged.
+    /// Each hoisted variant's name in the output, keyed by (sum, variant).
+    /// The declaration renamer dodges a same-named type by prefixing the
+    /// sum's name. A construction site consulting the plain name then called
+    /// the type the variant dodged.
     variant_spellings: std::collections::BTreeMap<(String, String), String>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
     ///
@@ -1059,10 +1059,6 @@ fn carry(out: &mut Out, what: &Unsupported) {
 
 // ------------------------------------------------------------------ conventions
 
-/// `snake_case`, for Rust and Python.
-///
-/// A name that already starts with a capital is a type, a class or an imported
-/// binding in every one of these languages, and is left alone: `NextResponse.json(x)`
 /// The discriminator literal a variant answers to on the wire.
 ///
 /// The source's own spelling where it wrote one, the derived snake case where
@@ -1084,6 +1080,10 @@ fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
         .unwrap_or_else(|| out.name(variant))
 }
 
+/// `snake_case`, for Rust and Python.
+///
+/// A name that already starts with a capital is a type, a class or an imported
+/// binding in every one of these languages, and is left alone: `NextResponse.json(x)`
 pub(super) fn snake_always(name: &str) -> String {
     // A separator goes before an uppercase letter only where a word starts:
     // after a lowercase or a digit, or at the end of a run of capitals that is
@@ -1500,9 +1500,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     .unwrap_or_default();
                 // `return 0` under a signature that promised a float: Go and Zig
                 // coerce the untyped literal, Rust refuses it.
-                if matches!(returns, Some(Type::Float))
-                    && matches!(value, Some(Expr::Int(_)))
-                {
+                if matches!(returns, Some(Type::Float)) && matches!(value, Some(Expr::Int(_))) {
                     text.push_str(".0");
                 }
                 out.line(&format!("return {text};"));
@@ -6704,7 +6702,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                     ordered.push(java_expr(out, value));
                 }
             }
-            format!("new {}({})", variant_spelling(out, sum, name), ordered.join(", "))
+            format!(
+                "new {}({})",
+                variant_spelling(out, sum, name),
+                ordered.join(", ")
+            )
         }
         // Java has no tuple value. `List.of` would erase the types and claim a
         // collection the source never had, so the tuple is carried, visibly.
@@ -7420,7 +7422,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                     _ => out.line(&format!(".{tag} => |fields_of_{tag}| {{")),
                 }
                 out.open();
-                if arm.bindings.len() > 1 || matches!(arm.bindings.as_slice(), [(f, _)] if f != "value")
+                if arm.bindings.len() > 1
+                    || matches!(arm.bindings.as_slice(), [(f, _)] if f != "value")
                 {
                     for (field, local) in &arm.bindings {
                         out.line(&format!(
