@@ -1430,3 +1430,35 @@ import alias reaches the call graph, and an aliased re-export chain resolves
 to its declaration. `fr impact` carries a route's weakest confidence, so a
 caller past a dispatch edge lands under needs-review. And `fr flow back`
 stopped claiming a `-f` that nobody passed. (B424 through B429.)
+
+### The pass where the values crossed
+
+Twelve passes in, the types of a closed choice crossed in every direction
+while every value of one carried. Now the IR holds the variant. Rust paths
+and struct expressions, Zig's anonymous `.{ .one = n }`, Python calls of a
+consumed class, Go composite literals and TypeScript kind-literal objects
+all settle against the module's own sums, and each writer builds the value
+the way its language does. The inline TypeScript union became the same sum
+as the named form. A path naming anything else, `Vec::new`, an enum from
+another crate, goes back to being carried whole. A demoted callee takes its
+whole call with it, so no marker ever runs. (B418.)
+
+The receivers learned to carry their evidence. A Python property's getter,
+setter, decorator and use sites rename as one attribute. Ambiguity is
+counted in entities, so the two doors stopped blocking their own class. A
+declared receiver reaches its family through every declared subtype. `var b
+= new B()` takes its type from the construction, and `self.count` follows
+the class chain across an import. `fr inline --call` refuses a callee that
+reads its own file's imports where the destination lacks them, and inlines
+when both sides import alike. (B419 through B423.) The UX probe's fifteen
+findings landed too. Refusals exit as promised, listings print
+workspace-relative paths, and an inverted range is refused with both ends
+named. Indexing shows progress on a terminal, and the docs stopped
+promising commands that did not exist. (B430 through B434.)
+
+A directory sweep now translates a package instead of a pile of files. Each
+file crosses against the merged context of the whole set. One naming table
+spells every declaration and use, and imports of siblings become real
+imports of their translations. The seam gate holds it. Python to TypeScript
+must pass `tsc --strict` and print byte-for-byte what the source printed,
+and the reverse must do the same under python3.
