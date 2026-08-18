@@ -461,6 +461,7 @@ mod rust {
                 "use_declaration" => module.items.push(Item::Import {
                     text: cx.text(child),
                     line: cx.line(child),
+                    target: None,
                 }),
                 // `#[test]` marks the next function as a test; the attribute is
                 // that mark and not a construct of its own.
@@ -1525,9 +1526,12 @@ mod python {
             match child.kind() {
                 "comment" => {}
                 "import_statement" | "import_from_statement" | "future_import_statement" => {
+                    let text = cx.text(child);
+                    let target = import_target(&text);
                     module.items.push(Item::Import {
-                        text: cx.text(child),
+                        text,
                         line: cx.line(child),
+                        target,
                     })
                 }
                 "function_definition" => {
@@ -1987,18 +1991,42 @@ mod python {
                 _ => None,
             })
             .collect();
-        if types.is_empty() {
-            return;
-        }
-        super::each_expr_in_module(module, &mut |e| {
-            if let Expr::Call { callee, args } = e {
-                if matches!(callee.as_ref(), Expr::Name(n) if types.contains(n)) {
-                    let callee = callee.clone();
-                    let args = std::mem::take(args);
-                    *e = Expr::New { callee, args };
-                }
+        super::promote_constructions(module, &types);
+    }
+
+    /// The pieces of an import line, where the line has the named form.
+    ///
+    /// `from m import a, b as c` yields the module and the names, and a plain
+    /// `import m` yields the module alone. Forms a sweep cannot rewrite,
+    /// `import a, b`, `import m as n` and `from m import *`, yield `None` and
+    /// travel as text.
+    fn import_target(text: &str) -> Option<ImportTarget> {
+        let text = text.trim();
+        if let Some(rest) = text.strip_prefix("from ") {
+            let (module, names) = rest.split_once(" import ")?;
+            let module = module.trim().to_string();
+            let list = names.trim().trim_start_matches('(').trim_end_matches(')');
+            if list.contains('*') {
+                return None;
             }
-        });
+            let relative = module.starts_with('.');
+            return Some(ImportTarget {
+                module,
+                relative,
+                names: super::import_names(list, " as ")?,
+                resolved: None,
+            });
+        }
+        let module = text.strip_prefix("import ")?.trim();
+        if module.contains(',') || module.contains(char::is_whitespace) {
+            return None;
+        }
+        Some(ImportTarget {
+            module: module.to_string(),
+            relative: module.starts_with('.'),
+            names: Vec::new(),
+            resolved: None,
+        })
     }
 
     /// Is this `if __name__ == "__main__":`, either quoting?
@@ -2677,6 +2705,7 @@ mod go {
                 "import_declaration" => module.items.push(Item::Import {
                     text: cx.text(child),
                     line: cx.line(child),
+                    target: None,
                 }),
                 "function_declaration" => {
                     let mut f = function(cx, child, None, None);
@@ -3331,6 +3360,7 @@ mod java {
                 "import_declaration" => module.items.push(Item::Import {
                     text: cx.text(child),
                     line: cx.line(child),
+                    target: None,
                 }),
                 "class_declaration" | "interface_declaration" | "record_declaration" => {
                     let before = carried.len();
@@ -4487,6 +4517,7 @@ mod zig {
             return Some(Item::Import {
                 text: cx.text(node),
                 line: cx.line(node),
+                target: None,
             });
         }
 
@@ -5705,10 +5736,15 @@ mod typescript {
                         module.items.push(Item::Unsupported(cx.unsupported(child)));
                     }
                 },
-                "import_statement" => module.items.push(Item::Import {
-                    text: cx.text(child),
-                    line: cx.line(child),
-                }),
+                "import_statement" => {
+                    let text = cx.text(child);
+                    let target = import_target(&text);
+                    module.items.push(Item::Import {
+                        text,
+                        line: cx.line(child),
+                        target,
+                    })
+                }
                 "function_declaration" => {
                     let mut f = function(cx, node, None);
                     f.exported = exported;
@@ -5764,6 +5800,35 @@ mod typescript {
             .retain(|item| !matches!(item, Item::Function(f) if newtype_names.contains(&f.name)));
         module.items.extend(carried);
         module
+    }
+
+    /// The pieces of an import line, where the clause is named bindings alone.
+    ///
+    /// `import { a, b as c } from "./m"` yields the module and the names. A
+    /// default or namespace clause binds the whole module under one name, which
+    /// no sibling translation declares, so those yield `None` and travel as text.
+    fn import_target(text: &str) -> Option<ImportTarget> {
+        let text = text.trim().trim_end_matches(';').trim();
+        let rest = text.strip_prefix("import")?.trim();
+        let rest = rest.strip_prefix("type ").unwrap_or(rest).trim();
+        let inside = rest.strip_prefix('{')?;
+        let (list, tail) = inside.split_once('}')?;
+        let module = unquote(tail.trim().strip_prefix("from")?.trim());
+        // `import type { A }` and `import { type A }` name one binding; the
+        // keyword tells the checker how to treat it.
+        let entries: Vec<String> = list
+            .split(',')
+            .map(|entry| {
+                let entry = entry.trim();
+                entry.strip_prefix("type ").unwrap_or(entry).to_string()
+            })
+            .collect();
+        Some(ImportTarget {
+            relative: module.starts_with('.'),
+            module,
+            names: super::import_names(&entries.join(","), " as ")?,
+            resolved: None,
+        })
     }
 
     /// The member names of `type X = A | B | C`, when every member is a bare name.
@@ -7196,6 +7261,57 @@ fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
 }
 
 /// The same walk over everything a module holds.
+/// A comma-separated import list, each entry a name or `name <separator> alias`.
+///
+/// `None` when any entry is not a plain identifier. An entry this cannot read
+/// is an import the sweep must not rewrite, so the whole line stays text.
+fn import_names(list: &str, separator: &str) -> Option<Vec<ImportedName>> {
+    let identifier =
+        |name: &str| !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+    let mut names = Vec::new();
+    for entry in list.split(',') {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        let (name, alias) = match entry.split_once(separator) {
+            Some((name, alias)) => (name.trim(), Some(alias.trim().to_string())),
+            None => (entry, None),
+        };
+        if !identifier(name) || !alias.as_deref().map(identifier).unwrap_or(true) {
+            return None;
+        }
+        names.push(ImportedName {
+            name: name.to_string(),
+            alias,
+        });
+    }
+    Some(names)
+}
+
+/// Calls that build a known record are constructions.
+///
+/// Python spells construction as a call. Its reader promotes calls to the
+/// file's own types. A directory sweep calls this again with every record the
+/// sweep declares, so a sibling's class is constructed and not called.
+pub(crate) fn promote_constructions(
+    module: &mut Module,
+    types: &std::collections::BTreeSet<String>,
+) {
+    if types.is_empty() {
+        return;
+    }
+    each_expr_in_module(module, &mut |e| {
+        if let Expr::Call { callee, args } = e {
+            if matches!(callee.as_ref(), Expr::Name(n) if types.contains(n)) {
+                let callee = callee.clone();
+                let args = std::mem::take(args);
+                *e = Expr::New { callee, args };
+            }
+        }
+    });
+}
+
 fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
     for item in module.items.iter_mut() {
         match item {
