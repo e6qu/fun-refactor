@@ -2446,7 +2446,7 @@ mod python {
     /// `import m` yields the module alone. Forms a sweep cannot rewrite,
     /// `import a, b`, `import m as n` and `from m import *`, yield `None` and
     /// travel as text.
-    fn import_target(text: &str) -> Option<ImportTarget> {
+    pub(super) fn import_target(text: &str) -> Option<ImportTarget> {
         let text = text.trim();
         if let Some(rest) = text.strip_prefix("from ") {
             let (module, names) = rest.split_once(" import ")?;
@@ -6821,7 +6821,7 @@ mod typescript {
     /// `import { a, b as c } from "./m"` yields the module and the names. A
     /// default or namespace clause binds the whole module under one name, which
     /// no sibling translation declares, so those yield `None` and travel as text.
-    fn import_target(text: &str) -> Option<ImportTarget> {
+    pub(super) fn import_target(text: &str) -> Option<ImportTarget> {
         let text = text.trim().trim_end_matches(';').trim();
         let rest = text.strip_prefix("import")?.trim();
         let rest = rest.strip_prefix("type ").unwrap_or(rest).trim();
@@ -8491,6 +8491,19 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
 }
 
 /// Children first, then the node itself, so a rewrite sees settled children.
+/// The import a carried line spells, where the language has a parser for it.
+///
+/// A sweep needs this for imports the readers left as text: an import written
+/// inside a function body is carried whole, and the sweep is the only place
+/// that knows the file it names is a sibling being translated beside it.
+pub(super) fn parse_import(language: Language, text: &str) -> Option<ImportTarget> {
+    match language {
+        Language::Python => python::import_target(text),
+        Language::TypeScript | Language::Tsx => typescript::import_target(text),
+        _ => None,
+    }
+}
+
 pub(super) fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
     match e {
         Expr::Field { of, .. } => each_expr(of, visit),

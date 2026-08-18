@@ -1354,11 +1354,7 @@ impl Hierarchy {
         // names the same class the file over declares. Recorded as written,
         // the edge pointed at a name nothing declares, so the family stopped
         // at the file boundary and a rename left the subclass behind.
-        let supertype = self
-            .aliases
-            .get(&supertype)
-            .cloned()
-            .unwrap_or(supertype);
+        let supertype = self.aliases.get(&supertype).cloned().unwrap_or(supertype);
         self.direct_subtypes
             .entry((key.0, supertype))
             .or_default()

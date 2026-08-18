@@ -566,3 +566,42 @@ fn a_name_two_files_declare_is_renamed_where_the_directory_is_one_namespace() {
         "and the header says so.\n{second}"
     );
 }
+
+#[test]
+fn an_import_inside_a_function_becomes_a_real_import_of_its_sibling() {
+    // `def helper(): from a import Thing` is how Python breaks an import
+    // cycle. The body's code crossed as live TypeScript while the import
+    // stayed a comment, so the file named a class nothing brought in.
+    let files = &[
+        (
+            "a.py",
+            "class Thing:\n    def label(self) -> str:\n        return \"a-thing\"\n",
+        ),
+        (
+            "b.py",
+            "def helper() -> str:\n    from a import Thing\n\n    \
+             return Thing().label() + \"!\"\n",
+        ),
+    ];
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().join("pkg");
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, source) in files {
+        std::fs::write(dir.join(name), source).unwrap();
+    }
+    let out_dir = tmp.path().join("out");
+    let written = sweep(&dir, files, Language::TypeScript, &out_dir);
+    let b = &written["b"];
+    assert!(
+        b.contains("import { Thing } from \"./a\";"),
+        "the import is real, and at the top where the language hoists it.\n{b}"
+    );
+    assert!(
+        b.contains("new Thing()"),
+        "and the body still builds what it named.\n{b}"
+    );
+    assert!(
+        !b.contains("not translated: import"),
+        "nothing is left as a comment.\n{b}"
+    );
+}

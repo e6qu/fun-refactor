@@ -510,7 +510,9 @@ pub fn write_in_context(
     let mut out = Out::new(language);
     // What the sweep had to change about this file travels with it, so the
     // header says it rather than the reader discovering a renamed type.
-    out.fidelity.notes.extend(module.sweep_notes.iter().cloned());
+    out.fidelity
+        .notes
+        .extend(module.sweep_notes.iter().cloned());
     let (names, fields) = spellings(language, context);
     out.names = names;
     out.fields = fields;

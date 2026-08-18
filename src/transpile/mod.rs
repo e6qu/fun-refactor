@@ -293,6 +293,7 @@ fn plan_impl(
         // The sweep travels as one unit, so a sibling's declarations are as
         // good as this file's own. An import of a sibling becomes a real
         // import, and a call that builds a sibling's class a construction.
+        lift_local_imports(&mut module, from);
         resolve_sibling_imports(&mut module, path, from, siblings);
         if from == Language::Python {
             let types = context
@@ -369,6 +370,52 @@ fn plan_impl(
         fidelity,
         output,
     })
+}
+
+/// Move an import written inside a function body up to the file's own imports.
+///
+/// `def helper(): from a import Thing` is how Python breaks an import cycle,
+/// and the readers carry it as text because a body has nowhere to put an
+/// import. The sweep then translated the body's live code while the import
+/// stayed a comment, so the output named a class nothing brought in. Every
+/// target here hoists its imports, so the file's top is where it belongs.
+fn lift_local_imports(module: &mut ir::Module, from: Language) {
+    let mut lifted: Vec<ir::Item> = Vec::new();
+    for item in &mut module.items {
+        let bodies: Vec<&mut Vec<ir::Stmt>> = match item {
+            ir::Item::Function(f) => vec![&mut f.body],
+            ir::Item::Record(r) => r.methods.iter_mut().map(|m| &mut m.body).collect(),
+            _ => continue,
+        };
+        for body in bodies {
+            body.retain(|stmt| {
+                let ir::Stmt::Unsupported(carried) = stmt else {
+                    return true;
+                };
+                let Some(target) = read::parse_import(from, &carried.source) else {
+                    return true;
+                };
+                lifted.push(ir::Item::Import {
+                    text: carried.source.clone(),
+                    line: carried.line,
+                    target: Some(target),
+                });
+                false
+            });
+        }
+    }
+    if lifted.is_empty() {
+        return;
+    }
+    // Ahead of the declarations, where a reader looks for what a file brings in.
+    let at = module
+        .items
+        .iter()
+        .position(|item| !matches!(item, ir::Item::Import { .. }))
+        .unwrap_or(module.items.len());
+    for (offset, item) in lifted.into_iter().enumerate() {
+        module.items.insert(at + offset, item);
+    }
 }
 
 /// Point each parsed import at the sweep sibling it names, where it names one.
