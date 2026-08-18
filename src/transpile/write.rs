@@ -1043,6 +1043,13 @@ impl Out {
             Language::Python => "#",
             _ => "//",
         };
+        // Zig rejects a tab inside a comment, and carried source brings the
+        // indentation the other language wrote. A Go file's tabs made a Zig
+        // file its own compiler would not lex.
+        let text = match self.language {
+            Language::Zig => text.replace('\t', "    "),
+            _ => text.to_string(),
+        };
         text.split('\n')
             .map(|line| match line.is_empty() {
                 true => marker.to_string(),

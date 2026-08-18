@@ -56,3 +56,24 @@ fn a_failed_initializer_keeps_its_binding() {
         "the name stays declared as `any`, so strict TypeScript accepts it.\n{out}"
     );
 }
+
+#[test]
+fn a_carried_comment_never_holds_a_tab_zig_refuses() {
+    // Zig rejects a tab inside a comment, and carried source brings the
+    // indentation the other language wrote. A Go file's tabs produced a Zig
+    // file its own compiler would not lex.
+    let source = "package tabs\n\nimport (\n\t\"fmt\"\n\t\"strings\"\n)\n\n\
+        func Shout(name string) string {\n\t\
+        return strings.ToUpper(fmt.Sprintf(\"%v!\", name))\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("tabs.go");
+    std::fs::write(&path, source).unwrap();
+    let out = tmp.path().join("tabs_out.txt");
+    let written = transpile::plan_to(&path, Language::Zig, Some(&out), false)
+        .expect("a plan")
+        .output;
+    assert!(
+        !written.contains('\t'),
+        "no tab reaches a Zig comment.\n{written}"
+    );
+}
