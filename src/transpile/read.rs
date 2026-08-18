@@ -3420,12 +3420,11 @@ mod go {
                 .first()
                 .map(|n| expr(cx, *n))
                 .unwrap_or(Expr::Null),
-            // `Point{}` and `Circle{Radius: n}` build a value of a named type.
-            // It reads as a variant candidate; the settle pass attributes it to
-            // the sum that answers the name, turns it into a record
-            // construction where a record answers instead, and carries it
-            // where nothing does. A slice or map literal names no bare type
-            // and stays carried.
+            // `Point{}` and `Circle{Radius: n}` build a value of a named
+            // type, and read as variant candidates. The settle pass attributes
+            // each to the sum that answers the name. A record answering
+            // instead makes it a construction; nothing answering carries it. A
+            // slice or map literal names no bare type and stays carried.
             "composite_literal" => {
                 let named = cx
                     .field(node, "type")
@@ -6074,7 +6073,7 @@ mod typescript {
     ///
     /// The same discriminated union as the named form, with the members spelled
     /// in place. Each member must be an object of plain fields sharing a
-    /// literal-typed one; the literal names the variant, pascal-cased, the way
+    /// literal-typed one. The literal names the variant, pascal-cased, the way
     /// the writers spell it back. Anything looser, a method, a member with no
     /// literal, a non-object member, stays carried.
     fn inline_union(cx: &Cx, node: Node<'_>) -> Option<Sum> {
@@ -6242,11 +6241,11 @@ mod typescript {
     /// An object literal that spells a variant of one of the module's sums.
     ///
     /// `{ kind: "circle", radius: n }` is how TypeScript builds a value of a
-    /// discriminated union, and it crossed as a map: `HashMap::from([("kind",
-    /// "circle")])` in a position that wants `Shape`, wrong-typed instead of
-    /// carried. An object with one literal-string entry naming a variant of
-    /// exactly one module sum, whose other keys are all that variant's declared
-    /// fields, is that variant. Anything looser stays the map it was.
+    /// discriminated union, and it crossed as a map. `HashMap::from([("kind",
+    /// "circle")])` landed in a position that wants `Shape`, wrong-typed
+    /// instead of carried. An object is its variant when one literal-string
+    /// entry names exactly one sum's variant and the other keys are that
+    /// variant's declared fields. Anything looser stays the map it was.
     fn settle_kind_literals(module: &mut Module) {
         let variants: Vec<(String, String, std::collections::BTreeSet<String>)> = module
             .items
