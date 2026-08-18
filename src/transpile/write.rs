@@ -610,6 +610,14 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    for item in &context.items {
+        let Item::Sum(sum) = item else { continue };
+        let spellings = hoisted_variant_names(&mut out, context, sum);
+        for (variant, spelled) in sum.variants.iter().zip(spellings) {
+            out.variant_spellings
+                .insert((sum.name.clone(), variant.name.clone()), spelled);
+        }
+    }
     // A target without inheritance can still hold what a base in the same module
     // contributed. The base's own fields and methods lay flat into the extending
     // record. The supertype marker then only stands where the base is truly out
@@ -719,6 +727,11 @@ struct Out {
     /// one needs the declaration itself, for the discriminator TypeScript
     /// writes and the field order Java's record constructor takes.
     sum_items: std::collections::BTreeMap<String, Sum>,
+    /// What each hoisted variant is actually called in the output, keyed by
+    /// (sum, variant). The declaration renamer dodges a same-named type by
+    /// prefixing the sum's name; a construction site consulting the plain name
+    /// then called the type the variant dodged.
+    variant_spellings: std::collections::BTreeMap<(String, String), String>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
     ///
     /// In a target without the idiom the method is ordinary and its accessors
@@ -820,6 +833,7 @@ impl Out {
             records: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
             sum_items: std::collections::BTreeMap::new(),
+            variant_spellings: std::collections::BTreeMap::new(),
             methods: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
@@ -1049,6 +1063,27 @@ fn carry(out: &mut Out, what: &Unsupported) {
 ///
 /// A name that already starts with a capital is a type, a class or an imported
 /// binding in every one of these languages, and is left alone: `NextResponse.json(x)`
+/// The discriminator literal a variant answers to on the wire.
+///
+/// The source's own spelling where it wrote one, the derived snake case where
+/// it did not. Deriving unconditionally spelled `FIdle`'s tag `f_idle` while
+/// the source and every consumer said `"idle"`.
+fn wire_tag(out: &Out, sum: &str, variant: &str) -> String {
+    out.sum_items
+        .get(sum)
+        .and_then(|s| s.variants.iter().find(|v| v.name == variant))
+        .and_then(|v| v.tag.clone())
+        .unwrap_or_else(|| snake_always(variant))
+}
+
+/// A hoisted variant's class name in the output, collision dodge included.
+fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
+    out.variant_spellings
+        .get(&(sum.to_string(), variant.to_string()))
+        .cloned()
+        .unwrap_or_else(|| out.name(variant))
+}
+
 pub(super) fn snake_always(name: &str) -> String {
     // A separator goes before an uppercase letter only where a word starts:
     // after a lowercase or a digit, or at the end of a run of capitals that is
@@ -3099,11 +3134,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         }
         // A variant is its own dataclass here, and the sum only an alias over
         // them, so the variant's constructor is the whole spelling.
-        Expr::Variant { name, fields, .. } => {
+        Expr::Variant { sum, name, fields } => {
             let rendered = joined(fields, |(f, v)| {
                 format!("{}={}", out.field(f), python_expr(out, v))
             });
-            format!("{}({rendered})", out.name(name))
+            format!("{}({rendered})", variant_spelling(out, sum, name))
         }
         // `(a,)` and not `(a)`: without the comma the parentheses are grouping.
         Expr::Tuple(items) => match items.as_slice() {
@@ -4356,13 +4391,13 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         }
         // The variant is a struct of Go's marker-interface convention, so
         // building one is building that struct.
-        Expr::Variant { name, fields, .. } => {
+        Expr::Variant { sum, name, fields } => {
             let rendered = joined(fields, |(f, v)| {
                 format!("{}: {}", out.field(f), go_expr(out, v))
             });
             // Parenthesised because Go refuses a bare composite literal where a
             // block could follow: `if x == Go{}` reads the brace as the body.
-            format!("({}{{{rendered}}})", out.name(name))
+            format!("({}{{{rendered}}})", variant_spelling(out, sum, name))
         }
         // Outside a return Go has no way to say several-values-as-one, and the return
         // is handled where returns are written. What lands here is carried, visibly.
@@ -4622,7 +4657,10 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.open();
                     out.line(&format!(
                         "readonly {tag}: \"{}\";",
-                        snake_always(&variant.name)
+                        variant
+                            .tag
+                            .clone()
+                            .unwrap_or_else(|| snake_always(&variant.name))
                     ));
                     for f in &variant.fields {
                         for line in &f.doc {
@@ -4746,6 +4784,18 @@ fn ts_thrown(out: &mut Out, value: &Expr) -> Option<String> {
 /// `Hierarchy` variant, and hoisting both would emit two types with one name. The
 /// variant steps aside, prefixed with its sum's name, and the rename is in the notes.
 fn hoisted_variant_names(out: &mut Out, module: &Module, s: &Sum) -> Vec<String> {
+    let cached: Vec<String> = s
+        .variants
+        .iter()
+        .filter_map(|v| {
+            out.variant_spellings
+                .get(&(s.name.clone(), v.name.clone()))
+                .cloned()
+        })
+        .collect();
+    if cached.len() == s.variants.len() {
+        return cached;
+    }
     let mut taken: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for item in &module.items {
         match item {
@@ -5038,7 +5088,10 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.line(&format!("switch ({s}.{tag}) {{"));
                 out.open();
                 for arm in arms {
-                    out.line(&format!("case \"{}\": {{", snake_always(&arm.variant)));
+                    out.line(&format!(
+                        "case \"{}\": {{",
+                        wire_tag(out, sum, &arm.variant)
+                    ));
                     out.open();
                     for (field, local) in &arm.bindings {
                         out.line(&format!(
@@ -5452,7 +5505,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 .get(sum)
                 .map(discriminator)
                 .unwrap_or_else(|| "kind".to_string());
-            let mut parts = vec![format!("{tag}: \"{}\"", snake_always(name))];
+            let mut parts = vec![format!("{tag}: \"{}\"", wire_tag(out, sum, name))];
             for (f, v) in fields {
                 parts.push(format!("{}: {}", out.field(f), ts_expr(out, v)));
             }
@@ -6602,7 +6655,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                     ordered.push(java_expr(out, value));
                 }
             }
-            format!("new {}({})", out.name(name), ordered.join(", "))
+            format!("new {}({})", variant_spelling(out, sum, name), ordered.join(", "))
         }
         // Java has no tuple value. `List.of` would erase the types and claim a
         // collection the source never had, so the tuple is carried, visibly.

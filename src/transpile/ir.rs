@@ -229,6 +229,12 @@ pub struct Sum {
 pub struct Variant {
     pub doc: Vec<String>,
     pub name: String,
+    /// The discriminator literal the source wrote, where the language writes
+    /// one: `kind: "idle"` on an interface named `FIdle`. Deriving the tag
+    /// from the name spelled it `f_idle`, and every consumer comparing
+    /// against `"idle"` missed. `None` for the languages that discriminate by
+    /// type instead of by field.
+    pub tag: Option<String>,
     /// Empty for a bare tag like `None` or `Empty`.
     pub fields: Vec<Field>,
 }

@@ -1085,6 +1085,7 @@ mod rust {
             variants.push(Variant {
                 doc,
                 name: variant_name,
+                tag: None,
                 fields,
             });
         }
@@ -1815,6 +1816,7 @@ mod python {
                     Variant {
                         doc: member.doc.clone(),
                         name: member.name.clone(),
+                        tag: None,
                         fields: member.fields.clone(),
                     }
                 })
@@ -3277,6 +3279,7 @@ mod go {
                 .map(|member| Variant {
                     doc: member.doc.clone(),
                     name: member.name.clone(),
+                    tag: None,
                     fields: member.fields.clone(),
                 })
                 .collect();
@@ -5136,6 +5139,7 @@ mod zig {
             .map(|c| Variant {
                 doc: doc_above(cx, c, &["///", "//"]),
                 name: cx.text(c),
+                tag: None,
                 fields: Vec::new(),
             })
             .collect();
@@ -5170,6 +5174,7 @@ mod zig {
             variants.push(Variant {
                 doc,
                 name: variant_name,
+                tag: None,
                 fields: Vec::new(),
             });
         }
@@ -5220,6 +5225,7 @@ mod zig {
                     variants.push(Variant {
                         doc,
                         name: variant_name,
+                        tag: None,
                         fields,
                     });
                 }
@@ -6604,6 +6610,7 @@ mod typescript {
                 Some(Variant {
                     doc: Vec::new(),
                     name: super::super::write::pascal(&tag),
+                    tag: Some(tag.clone()),
                     fields: fields
                         .iter()
                         .filter(|f| f.name != discriminator)
@@ -6675,6 +6682,20 @@ mod typescript {
                 .map(|member| Variant {
                     doc: member.doc.clone(),
                     name: member.name.clone(),
+                    // The literal the source wrote in the discriminator field:
+                    // `kind: "idle"` on an interface named `FIdle`.
+                    tag: discriminators.first().and_then(|d| {
+                        member.fields.iter().find(|f| &f.name == d).and_then(|f| {
+                            match &f.ty {
+                                Some(Type::Named { name, .. })
+                                    if name.starts_with('"') || name.starts_with('\'') =>
+                                {
+                                    Some(name.trim_matches(['"', '\'']).to_string())
+                                }
+                                _ => None,
+                            }
+                        })
+                    }),
                     fields: member
                         .fields
                         .iter()
@@ -6706,25 +6727,29 @@ mod typescript {
     /// entry names exactly one sum's variant and the other keys are that
     /// variant's declared fields. Anything looser stays the map it was.
     fn settle_kind_literals(module: &mut Module) {
-        let variants: Vec<(String, String, std::collections::BTreeSet<String>)> = module
-            .items
-            .iter()
-            .filter_map(|item| match item {
-                Item::Sum(s) => Some(s.variants.iter().map(|v| {
-                    (
-                        s.name.clone(),
-                        v.name.clone(),
-                        v.fields.iter().map(|f| f.name.clone()).collect(),
-                    )
-                })),
-                _ => None,
-            })
-            .flatten()
-            .collect();
+        let variants: Vec<(String, String, String, std::collections::BTreeSet<String>)> =
+            module
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                        (
+                            s.name.clone(),
+                            v.name.clone(),
+                            v.tag
+                                .clone()
+                                .unwrap_or_else(|| crate::transpile::write::snake_always(&v.name)),
+                            v.fields.iter().map(|f| f.name.clone()).collect(),
+                        )
+                    })),
+                    _ => None,
+                })
+                .flatten()
+                .collect();
         if variants.is_empty() {
             return;
         }
-        super::each_expr_in_module(module, &mut |e| {
+        let settle = |e: &mut Expr, preferred: Option<&str>| {
             let Expr::MapLit(entries) = e else { return };
             let mut tag: Option<usize> = None;
             for (at, (key, value)) in entries.iter().enumerate() {
@@ -6751,13 +6776,20 @@ mod typescript {
                 })
                 .collect();
             let Some(rest) = rest else { return };
-            let answering: Vec<&(String, String, std::collections::BTreeSet<String>)> = variants
-                .iter()
-                .filter(|(_, name, fields)| {
-                    crate::transpile::write::snake_always(name) == *tag_value && rest.is_subset(fields)
-                })
-                .collect();
-            let [(sum, name, _)] = answering.as_slice() else {
+            let mut answering: Vec<&(String, String, String, std::collections::BTreeSet<String>)> =
+                variants
+                    .iter()
+                    .filter(|(_, _, tag, fields)| tag == tag_value && rest.is_subset(fields))
+                    .collect();
+            // Two sums answering the same tag is ordinary: two state unions in
+            // one file both holding an "idle". The position's declared type,
+            // where one is written, says which was meant.
+            if answering.len() > 1 {
+                if let Some(preferred) = preferred {
+                    answering.retain(|(sum, _, _, _)| sum == preferred);
+                }
+            }
+            let [(sum, name, _, _)] = answering.as_slice() else {
                 return;
             };
             let (sum, name) = (sum.clone(), name.clone());
@@ -6771,7 +6803,41 @@ mod typescript {
                 })
                 .collect();
             *e = Expr::Variant { sum, name, fields };
-        });
+        };
+        // First the positions whose declared type names the sum: a `return`
+        // under a signature, a binding with an annotation. Then the rest.
+        let sum_of = |ty: Option<&Type>| -> Option<String> {
+            match ty {
+                Some(Type::Named { name, .. })
+                    if variants.iter().any(|(sum, _, _, _)| sum == name) =>
+                {
+                    Some(name.clone())
+                }
+                _ => None,
+            }
+        };
+        for item in &mut module.items {
+            let Item::Function(f) = item else { continue };
+            let returned = sum_of(f.returns.as_ref());
+            super::each_stmt_in_stmts(&mut f.body, &mut |stmt| match stmt {
+                Stmt::Return(Some(value)) => {
+                    if let Some(sum) = &returned {
+                        super::each_expr(value, &mut |e| settle(e, Some(sum.as_str())));
+                    }
+                }
+                Stmt::Let {
+                    ty: Some(ty),
+                    value: Some(value),
+                    ..
+                } => {
+                    if let Some(sum) = sum_of(Some(ty)) {
+                        super::each_expr(value, &mut |e| settle(e, Some(sum.as_str())));
+                    }
+                }
+                _ => {}
+            });
+        }
+        super::each_expr_in_module(module, &mut |e| settle(e, None));
     }
 
     /// A `switch` whose cases are selected by literals and leave before the
@@ -8293,11 +8359,30 @@ fn settle_variant_narrowing(module: &mut Module) {
         return;
     }
     // The variant a literal names, when exactly one sum answers for it.
+    let tags: std::collections::BTreeMap<(String, String), String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some(s.variants.iter().map(|v| {
+                (
+                    (s.name.clone(), v.name.clone()),
+                    v.tag
+                        .clone()
+                        .unwrap_or_else(|| crate::transpile::write::snake_always(&v.name)),
+                )
+            })),
+            _ => None,
+        })
+        .flatten()
+        .collect();
     let variant_of = |lit: &str| -> Option<(String, String)> {
         let mut found = None;
         for (sum, variants) in &sums {
             for name in variants.keys() {
-                if crate::transpile::write::snake_always(name) == lit {
+                let answers = tags
+                    .get(&(sum.clone(), name.clone()))
+                    .is_some_and(|tag| tag == lit);
+                if answers {
                     match found {
                         None => found = Some((sum.clone(), name.clone())),
                         Some(_) => return None,
@@ -8359,7 +8444,7 @@ fn settle_variant_narrowing(module: &mut Module) {
                 let mut default: Vec<Stmt> = Vec::new();
                 let mut sum_name = String::new();
                 let mut current = std::mem::replace(stmt, Stmt::Expr(Expr::Null));
-                let mut rest = &mut current;
+                let rest = &mut current;
                 loop {
                     let Stmt::If {
                         condition,
