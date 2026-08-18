@@ -2554,9 +2554,58 @@ mod python {
             doc: Vec::new(),
             name: name.clone(),
             ty: cx.field(node, "type").map(|t| ty(cx, t)),
-            default: None,
+            // `retries: int = 3` starts the field at 3. Dropped, the field was
+            // undefined at run time in every target that has the syntax.
+            default: cx.field(node, "right").and_then(|v| field_default(cx, v)),
             exported: !name.starts_with('_'),
         })
+    }
+
+    /// The value a field starts at, with any declaration wrapper taken off.
+    ///
+    /// `field(default_factory=list)` is how a dataclass says "a new empty list
+    /// per instance", which is a plain `[]` everywhere else. Read literally,
+    /// `field` crossed as a call to a function no target declares.
+    ///
+    /// `Field(min_length=8)` and `Relationship(...)` declare the field rather
+    /// than start it. Only their `default` and `default_factory` are values.
+    fn field_default(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        /// The helpers that declare a field instead of giving it a value:
+        /// `dataclasses.field`, and pydantic's and SQLModel's own two.
+        const DECLARING: &[&str] = &["field", "Field", "Relationship"];
+
+        let read = expr(cx, node);
+        let Expr::Call { callee, args } = &read else {
+            return Some(read);
+        };
+        if !matches!(callee.as_ref(), Expr::Name(n) if DECLARING.contains(&n.as_str())) {
+            return Some(read);
+        }
+        let mut default = None;
+        for arg in args {
+            let Expr::Keyword { name, value } = arg else {
+                continue;
+            };
+            match name.as_str() {
+                "default" => default = Some((**value).clone()),
+                "default_factory" => {
+                    default = Some(match value.as_ref() {
+                        Expr::Name(factory) if factory == "list" => Expr::ListLit(Vec::new()),
+                        Expr::Name(factory) if factory == "dict" => Expr::MapLit(Vec::new()),
+                        // `default_factory=lambda: [1, 2]` builds that value.
+                        Expr::Lambda { params, body } if params.is_empty() => (**body).clone(),
+                        // Any other factory is called once per instance, and
+                        // the other languages write a call in that slot too.
+                        other => Expr::Call {
+                            callee: Box::new(other.clone()),
+                            args: Vec::new(),
+                        },
+                    })
+                }
+                _ => {}
+            }
+        }
+        default
     }
 
     /// `Pence = NewType("Pence", int)`, read as the distinct type it declares.
@@ -4625,7 +4674,10 @@ mod java {
                             doc: doc_above(cx, member, &["///", "//", "/**", "*"]),
                             name,
                             ty,
-                            default: None,
+                            // `final List<String> history = new ArrayList<>()`
+                            // starts the field with a list. Dropped, every
+                            // method that appended to it hit a null.
+                            default: cx.field(declarator, "value").map(|v| expr(cx, v)),
                             exported: public,
                         });
                     }

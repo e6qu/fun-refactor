@@ -1470,6 +1470,22 @@ fn assigns_to(body: &[Stmt], name: &str) -> bool {
     })
 }
 
+/// A field's starting value, where the target declares no such thing.
+///
+/// Rust and Go write fields without initializers. The value goes beside the
+/// field as a comment, and is counted. A field that quietly lost its starting
+/// value is a record every caller has to construct differently.
+fn carried_default(out: &mut Out, field: &str, rendered: &str) {
+    out.fidelity.carried_verbatim += 1;
+    out.fidelity.notes.push(format!(
+        "`{field}` started at `{rendered}`, and {} declares no value in a field; \
+         every construction of the record has to set it",
+        out.language
+    ));
+    let note = out.comment(&format!("{MARKER}: `{field}` started at `{rendered}`"));
+    out.line(&note);
+}
+
 /// The counted loop as its own source, for a writer that cannot spell it.
 fn counted_original(source: &str, line: usize) -> Unsupported {
     Unsupported {
@@ -1695,6 +1711,10 @@ fn rust(out: &mut Out, module: &Module) {
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_visibility = if f.exported { "pub " } else { "" };
                     let field_name = out.field(&f.name);
+                    if let Some(value) = &f.default {
+                        let rendered = rust_expr(out, value);
+                        carried_default(out, &field_name, &rendered);
+                    }
                     out.line(&format!("{field_visibility}{field_name}: {ty},"));
                 }
                 out.close();
@@ -4010,6 +4030,10 @@ fn go(out: &mut Out, module: &Module) {
                             .map(go_type)
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
+                    if let Some(value) = &f.default {
+                        let rendered = go_expr(out, value);
+                        carried_default(out, &field_name, &rendered);
+                    }
                     out.line(&format!("{field_name} {ty}"));
                 }
                 out.close();
@@ -5288,8 +5312,10 @@ fn typescript(out: &mut Out, module: &Module) {
                 }
                 let export = if r.exported { "export " } else { "" };
                 // A record with no methods is an interface: it is data, and an
-                // interface is what TypeScript calls that.
-                if r.methods.is_empty() {
+                // interface is what TypeScript calls that. A field that starts
+                // at a value needs a class, because an interface declares types
+                // and holds no initializer to declare it in.
+                if r.methods.is_empty() && r.fields.iter().all(|f| f.default.is_none()) {
                     let type_name = out.name(&r.name);
                     let base = ts_base(out, r)
                         .map(|base| format!(" extends {base}"))
@@ -6596,7 +6622,14 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
             .unwrap_or_else(|| unknown(out, &field.name));
         let field_visibility = if field.exported { "public" } else { "private" };
         let field_name = out.field(&field.name);
-        out.line(&format!("{field_visibility} {ty} {field_name};"));
+        // Java starts a field where the declaration says. Dropping the value
+        // left the field null, and the first method to reach it threw.
+        let default = field
+            .default
+            .as_ref()
+            .map(|d| format!(" = {}", java_expr(out, d)))
+            .unwrap_or_default();
+        out.line(&format!("{field_visibility} {ty} {field_name}{default};"));
     }
     if !record.fields.is_empty() && !record.methods.is_empty() {
         out.blank();
@@ -7718,7 +7751,13 @@ fn zig(out: &mut Out, module: &Module) {
                             .map(zig_type)
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
-                    out.line(&format!("{field_name}: {ty},"));
+                    // Zig has the syntax: `count: usize = 0,`.
+                    let default = f
+                        .default
+                        .as_ref()
+                        .map(|d| format!(" = {}", zig_expr(out, d)))
+                        .unwrap_or_default();
+                    out.line(&format!("{field_name}: {ty}{default},"));
                 }
                 for m in &methods_of(out, r, false) {
                     out.blank();

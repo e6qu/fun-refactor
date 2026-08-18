@@ -148,9 +148,17 @@ fn a_local_base_lays_flat_where_nothing_inherits() {
     std::fs::write(&path, source).unwrap();
     let out = tmp.path().join("repo_out.txt");
     let plan = transpile::plan_to(&path, Language::Rust, Some(&out), false).unwrap();
+    // The marker between the two lines is the base field's starting value,
+    // which Rust declares nowhere in a struct and says so beside the field.
+    let declared = plan
+        .output
+        .split("pub struct TaskRepo {")
+        .nth(1)
+        .and_then(|rest| rest.split_once('}'))
+        .map(|(body, _)| body.to_string())
+        .unwrap_or_default();
     assert!(
-        plan.output
-            .contains("pub struct TaskRepo {\n    pub rows: Vec<f64>,\n}"),
+        declared.contains("pub rows: Vec<f64>,"),
         "the base's field belongs to the extender.\n{}",
         plan.output
     );

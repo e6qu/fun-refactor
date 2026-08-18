@@ -175,6 +175,18 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B546: **a field's starting value was dropped in both directions.**
+  Python's `retries: int = 3` became `retries: number;`. That is undefined at
+  run time, and Java's `= new ArrayList<>()` went the same way. Neither took the
+  value, so no writer had one to write. Python, TypeScript, Java and Zig each
+  declare it in the field now. TypeScript writes a class where a field starts
+  somewhere, because an interface holds no initializer. Rust and Go declare no
+  value in a field at all, and say so beside it rather than let it go quietly.
+  `field(default_factory=list)` reads as the `[]` it means; pydantic's
+  `Field(min_length=8)` states a constraint and gives no value, so that field
+  starts at nothing. Pinned in `tests/translate_field_defaults.rs`, which runs
+  the Java and the Python.
+
 - [x] B545: **only the first number in a concatenation was coerced.**
   Java's `"x" + 1 + 2` raised a TypeError in Python. It came out as
   `"x" + str(1) + 2`, where the source printed `x12`. The chain is
