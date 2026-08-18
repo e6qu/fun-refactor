@@ -335,6 +335,14 @@ impl Provenance {
     }
 
     pub fn format_tree(&self) -> String {
+        self.format_tree_under(Path::new(""))
+    }
+
+    /// [`Self::format_tree`], with each path under `root` spelled relative to it.
+    ///
+    /// The CLI passes its workspace root so the listing matches the paths a reader
+    /// types back in. A file outside the root keeps its absolute spelling.
+    pub fn format_tree_under(&self, root: &Path) -> String {
         let mut out = String::new();
         for hop in &self.hops {
             let confidence = if hop.confidence.is_safe_to_rewrite() {
@@ -347,7 +355,7 @@ impl Provenance {
                 "  ".repeat(hop.depth),
                 hop.kind.as_str(),
                 hop.text,
-                hop.file.display(),
+                hop.file.strip_prefix(root).unwrap_or(&hop.file).display(),
                 hop.line,
                 confidence
             ));
@@ -369,7 +377,12 @@ impl Provenance {
                     if source.wins { "WINS " } else { "loses" },
                     source.hop.text,
                     source.precedence.label,
-                    source.hop.file.display(),
+                    source
+                        .hop
+                        .file
+                        .strip_prefix(root)
+                        .unwrap_or(&source.hop.file)
+                        .display(),
                     source.hop.line,
                     source.reason
                 ));
@@ -2125,10 +2138,13 @@ impl Ctx<'_> {
                 }
                 out.push(ValuesSource {
                     rank: USER_SUPPLIED,
+                    // With no inputs described, nobody supplied this file. It sits
+                    // at the rank a `-f` would give it. The label keeps the win
+                    // conditional instead of claiming a flag that was never passed.
                     label: if supplied {
                         format!("-f {} (not passed)", file_name(&file))
                     } else {
-                        format!("user-supplied -f {}", file_name(&file))
+                        format!("would win under -f {}", file_name(&file))
                     },
                     origin: ValuesOrigin::Key { file, symbol },
                     participates: !supplied,
@@ -2392,7 +2408,12 @@ impl Ctx<'_> {
             };
         }
         match winning_label {
-            Some(label) => format!("overridden by {label}"),
+            // The conditional label does not name a source, so "overridden by" would
+            // read as a sentence about a sentence. Spell the condition out instead.
+            Some(label) => match label.strip_prefix("would win under ") {
+                Some(flag) => format!("overridden when the command line passes {flag}"),
+                None => format!("overridden by {label}"),
+            },
             None => "no source here supplies the value".to_string(),
         }
     }

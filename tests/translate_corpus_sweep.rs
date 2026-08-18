@@ -29,7 +29,8 @@ use std::path::PathBuf;
 /// `while_statement` line.
 const CARRIED: &[(&str, usize)] = &[
     ("await", 26),
-    ("anonymous_struct_initializer", 55),
+    ("an anonymous variant", 25),
+    ("anonymous_struct_initializer", 45),
     ("binary_expression", 5),
     ("boolean", 10),
     ("call_expression", 15),
@@ -44,10 +45,10 @@ const CARRIED: &[(&str, usize)] = &[
     ("defer", 60),
     ("errdefer", 22),
     ("comptime_expression", 6),
-    ("error propagation", 20),
+    ("error propagation", 21),
     ("error_set_declaration", 10),
     ("enum_declaration", 5),
-    ("expression_statement", 620),
+    ("expression_statement", 605),
     ("field_expression", 5),
     ("for_statement", 15),
     ("function_declaration", 5),
@@ -68,7 +69,7 @@ const CARRIED: &[(&str, usize)] = &[
     ("try", 10),
     ("try/catch", 5),
     ("tuple", 2),
-    ("variable_declaration", 420),
+    ("variable_declaration", 415),
     ("while_statement", 5),
 ];
 

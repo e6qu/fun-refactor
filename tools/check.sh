@@ -59,6 +59,10 @@ fi
 if [ "$slice" != default ]; then
     run cargo clippy --all-targets --features wasm -- -D warnings
     run cargo test --all-targets --features wasm
+    # The browser build compiles without the cli feature. With defaults on, an
+    # import only the CLI uses looks used, and the deploy is where the unused
+    # warning finally fails. Same host target, so no wasm clang is needed.
+    run cargo clippy --lib --no-default-features --features wasm,lang-all -- -D warnings
 fi
 
 printf '\n\033[1mAll checks passed.\033[0m\n'

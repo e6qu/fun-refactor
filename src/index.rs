@@ -99,6 +99,21 @@ impl Index {
         scan_result: &ScanResult,
         cache: Option<&crate::cache::Cache>,
     ) -> Result<Self> {
+        Self::build_with_cache_reporting(scan_result, cache, None)
+    }
+
+    /// [`Self::build_with_cache`], telling `progress` how far extraction has come.
+    ///
+    /// The callback receives `(files done, files total)` and runs on worker threads.
+    /// It exists because a cold index of a large workspace is most of a minute of
+    /// silence. Only the terminal-facing caller can decide whether a progress line
+    /// belongs on stderr.
+    #[cfg(feature = "cli")]
+    pub fn build_with_cache_reporting(
+        scan_result: &ScanResult,
+        cache: Option<&crate::cache::Cache>,
+        progress: Option<&(dyn Fn(usize, usize) + Sync)>,
+    ) -> Result<Self> {
         use rayon::prelude::*;
 
         let mut index = Index::default();
@@ -111,46 +126,57 @@ impl Index {
         // Extraction is per-file and shares nothing, so it parallelises cleanly. The
         // results are collected in scan order and merged serially afterwards, because
         // symbol ids are assigned by position and must not depend on thread timing.
+        let total = scan_result.files.len();
+        let done = std::sync::atomic::AtomicUsize::new(0);
         let extracted: Vec<Result<Option<(usize, FileFacts)>>> = scan_result
             .files
             .par_iter()
             .enumerate()
             .map(|(position, file)| {
-                let source = match crate::vfs::read_to_string(&file.path) {
-                    Ok(s) => s,
-                    // Reported by the caller once results are merged.
-                    Err(e) => {
-                        return Ok(Some((
-                            position,
-                            Self::unreadable_placeholder(&file.path, e.to_string()),
-                        )))
+                let outcome = (|| {
+                    let source = match crate::vfs::read_to_string(&file.path) {
+                        Ok(s) => s,
+                        // Reported by the caller once results are merged.
+                        Err(e) => {
+                            return Ok(Some((
+                                position,
+                                Self::unreadable_placeholder(&file.path, e.to_string()),
+                            )))
+                        }
+                    };
+
+                    // A cached entry carries its own gaps, so a hit skips parsing entirely
+                    // instead of reparsing to ask.
+                    if let Some(cache) = cache {
+                        let key = crate::cache::Cache::key(file.language, &source);
+                        if let Some(facts) = cache.get(&key, &file.path) {
+                            return Ok(Some((position, facts)));
+                        }
                     }
-                };
 
-                // A cached entry carries its own gaps, so a hit skips parsing entirely
-                // instead of reparsing to ask.
-                if let Some(cache) = cache {
-                    let key = crate::cache::Cache::key(file.language, &source);
-                    if let Some(facts) = cache.get(&key, &file.path) {
-                        return Ok(Some((position, facts)));
+                    // Parsers and compiled queries are not shareable across threads, so
+                    // each worker builds its own. Query compilation is the cost here and
+                    // it is paid once per thread. It is not once per file.
+                    let parsers = Parsers::new();
+                    let mut extractor = Extractor::new();
+                    let parsed = parsers.parse(file.language, &source)?;
+                    let facts = extractor
+                        .extract(&parsed, &file.path, &source)
+                        .with_context(|| {
+                            format!("extracting facts from {}", file.path.display())
+                        })?;
+
+                    if let Some(cache) = cache {
+                        let key = crate::cache::Cache::key(file.language, &source);
+                        cache.put(&key, &facts);
                     }
+                    Ok(Some((position, facts)))
+                })();
+                if let Some(report) = progress {
+                    let counted = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    report(counted, total);
                 }
-
-                // Parsers and compiled queries are not shareable across threads, so
-                // each worker builds its own. Query compilation is the cost here and
-                // it is paid once per thread. It is not once per file.
-                let parsers = Parsers::new();
-                let mut extractor = Extractor::new();
-                let parsed = parsers.parse(file.language, &source)?;
-                let facts = extractor
-                    .extract(&parsed, &file.path, &source)
-                    .with_context(|| format!("extracting facts from {}", file.path.display()))?;
-
-                if let Some(cache) = cache {
-                    let key = crate::cache::Cache::key(file.language, &source);
-                    cache.put(&key, &facts);
-                }
-                Ok(Some((position, facts)))
+                outcome
             })
             .collect();
 
@@ -401,6 +427,11 @@ impl Index {
             // is the anchor of a heading written `Two Words`. Step 4 does that
             // matching, so a miss here is not the end of the search.
             None if reference.kind == ReferenceKind::StringRef => &[],
+            // Nothing declares the name, and an import may still bind it. `from lib
+            // import helper as h2` declares no `h2` anywhere, so a bare `h2()` died
+            // here and `helper` showed no callers. Step 3 resolves through the
+            // import, looking candidates up under the imported original.
+            None if self.import_binding(info, reference.name.as_str()).is_some() => &[],
             None => return (None, Confidence::NameOnly),
         };
 
@@ -487,7 +518,14 @@ impl Index {
                 // definitions living in method scopes, the nearest-definition rule
                 // handed a local's own uses to the attribute. Renaming the
                 // local left the rest behind, compiling into UnboundLocalError.
-                !is_member
+                //
+                // One bare name does reach a method: `@size.setter` reads the
+                // `size` the previous `def` bound in the class namespace, from
+                // that same namespace. A method declared in the reference's own
+                // scope is a lexical binding, not a member reached through a
+                // receiver. Attributes stay out: `self.count = 0` binds no name
+                // in the scope it sits in.
+                !is_member || (s.kind == SymbolKind::Method && s.scope == reference.scope)
             } else {
                 true
             }
@@ -711,11 +749,20 @@ impl Index {
             .receiver
             .as_deref()
             .is_some_and(|r| matches!(r, "this" | "self"));
-        let member_candidates = candidates
-            .iter()
-            .filter_map(|id| self.symbol(*id))
-            .filter(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
-            .count();
+        // Two members that are one definition group are one candidate: a
+        // property's getter and setter, an overload set. Counting them as two
+        // called `b.size` ambiguous inside the very class that declares it.
+        let member_candidates = {
+            let members: Vec<SymbolId> = candidates
+                .iter()
+                .copied()
+                .filter(|id| {
+                    self.symbol(*id)
+                        .is_some_and(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
+                })
+                .collect();
+            self.count_entities(&members)
+        };
         let scope_can_settle_it = !member_access || receiver_is_self || member_candidates <= 1;
         let scoped = in_file
             .iter()
@@ -777,6 +824,12 @@ impl Index {
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
+        if in_file.len() > 1 {
+            let ids: Vec<SymbolId> = in_file.iter().map(|s| s.id).collect();
+            if self.count_entities(&ids) == 1 {
+                return (Some(ids[0]), Confidence::Exact);
+            }
+        }
         if in_file.len() > 1 && !member_access {
             // Ambiguous within the file: report the nearest but do not claim certainty.
             let nearest = in_file
@@ -793,20 +846,29 @@ impl Index {
         // 3. Bound by an import in this file: resolve into the imported file when the
         //    import path identifies one, else accept the unique exported match.
         if let Some(import) = self.import_binding(info, &reference.name) {
-            let imported_file = self.resolve_import_path(path, &import.path);
-            let original = import
+            let mut imported_file = self.resolve_import_path(path, &import.path);
+            let mut original = import
                 .names
                 .iter()
                 .find(|n| n.local == reference.name)
                 .map(|n| n.original.clone())
                 .unwrap_or_else(|| reference.name.clone());
 
-            let mut matches: Vec<&Symbol> = candidates
-                .iter()
-                .filter_map(|id| self.symbol(*id))
-                .filter(|s| s.name == original)
-                .collect();
-            let mut imported_file = imported_file;
+            // Candidates are looked up under the name each hop imports, and that name
+            // may differ from the one at the use site: `from lib import helper as h2`
+            // declares no `h2`, so the definitions to weigh are the ones called
+            // `helper`.
+            let named = |name: &str| -> Vec<&Symbol> {
+                by_name
+                    .get(name)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|id| self.symbol(*id))
+                    .filter(|s| plausible(s))
+                    .collect()
+            };
+
+            let mut matches: Vec<&Symbol> = named(&original);
             if let Some(target_file) = &imported_file {
                 matches.retain(|s| &s.file == target_file);
             }
@@ -815,40 +877,53 @@ impl Index {
             // A barrel declares nothing: `export { width } from "./holder"` exports a name it
             // does not define. So the file the import names holds no match and the declaration
             // is one hop further on. Follow the chain, with a limit because a pair of files can
-            // re-export from each other.
+            // re-export from each other. An aliased hop renames the thing it hands on, so the
+            // search continues under the hop's own original name. A Python module hands on
+            // every top-level import, which makes a package `__init__.py` a barrel without any
+            // `export` keyword.
             let mut hops = 0;
             while matches.is_empty() && hops < 8 {
                 let Some(current) = imported_file.clone() else {
                     break;
                 };
-                let Some(onward) = self.file(&current).and_then(|current_info| {
-                    current_info
-                        .imports
-                        .iter()
-                        .find(|i| i.re_export && i.names.iter().any(|n| n.local == original))
-                        // `export * from "./holder"` names nothing and hands on everything, so
-                        // it is the onward hop for any name the file does not export itself. A
-                        // star that binds an alias is not: readers of `export * as ns` write
-                        // `ns.width`. That is a member access, and not this name.
-                        .or_else(|| {
-                            current_info
-                                .imports
-                                .iter()
-                                .find(|i| i.re_export && i.names.is_empty() && i.alias.is_none())
-                        })
-                }) else {
+                let Some((onward_path, next_original)) =
+                    self.file(&current).and_then(|current_info| {
+                        current_info
+                            .imports
+                            .iter()
+                            .filter(|i| i.re_export || current_info.language == Language::Python)
+                            .find_map(|i| {
+                                i.names
+                                    .iter()
+                                    .find(|n| n.local == original)
+                                    .map(|n| (i.path.clone(), n.original.clone()))
+                            })
+                            // `export * from "./holder"` names nothing and hands on everything,
+                            // so it is the onward hop for any name the file does not export
+                            // itself. A star that binds an alias is not: readers of `export *
+                            // as ns` write `ns.width`. That is a member access, and not this
+                            // name.
+                            .or_else(|| {
+                                current_info
+                                    .imports
+                                    .iter()
+                                    .find(|i| {
+                                        i.re_export && i.names.is_empty() && i.alias.is_none()
+                                    })
+                                    .map(|i| (i.path.clone(), original.clone()))
+                            })
+                    })
+                else {
                     break;
                 };
-                imported_file = self.resolve_import_path(&current, &onward.path);
+                imported_file = self.resolve_import_path(&current, &onward_path);
+                original = next_original;
                 hops += 1;
                 let Some(next_file) = &imported_file else {
                     break;
                 };
-                matches = candidates
-                    .iter()
-                    .filter_map(|id| self.symbol(*id))
-                    .filter(|s| s.name == original && &s.file == next_file)
-                    .collect();
+                matches = named(&original);
+                matches.retain(|s| &s.file == next_file);
             }
 
             if matches.len() == 1 {
@@ -881,9 +956,11 @@ impl Index {
                     1 => return (Some(in_chart[0].id), Confidence::Exact),
                     0 => {}
                     // A chart declaring one key twice, in values.yaml and a values-prod.yaml
-                    // beside it, is normal. Which one wins is the question `fr flow back`
-                    // answers with the invocation.
-                    _ => return (Some(in_chart[0].id), Confidence::FieldBased),
+                    // beside it, is normal. The sites are override layers of one value, and
+                    // `definition_group` holds them together like a CSS class declared by two
+                    // rules. Which layer wins is the question `fr flow back` answers with the
+                    // invocation. The reference itself is certain.
+                    _ => return (Some(in_chart[0].id), Confidence::Exact),
                 }
             }
         }
@@ -1160,6 +1237,16 @@ impl Index {
         if matches.len() == 1 {
             return Some(matches[0].clone());
         }
+        // A Python package is a directory, so `pkg` names `pkg/__init__.py`. The stem
+        // rule above cannot see that: the file's stem is `__init__`.
+        let inits: Vec<&PathBuf> = self
+            .files
+            .keys()
+            .filter(|p| p.ends_with(Path::new(last).join("__init__.py")))
+            .collect();
+        if inits.len() == 1 {
+            return Some(inits[0].clone());
+        }
         None
     }
 
@@ -1212,8 +1299,12 @@ impl Index {
             // TS2389: Function implementation name must be 'pick'`. The grammar allows the
             // repetition only for overloads, so same name, same file, same
             // container is the entity.
-            if matches!(sym.language, Language::TypeScript | Language::Tsx)
-                && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method)
+            // Python allows the repetition for a property family: `@property def
+            // size` and `@size.setter def size` are one attribute with two doors.
+            // Renaming the getter alone left the setter answering the old name.
+            if (matches!(sym.language, Language::TypeScript | Language::Tsx)
+                && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method))
+                || (sym.language == Language::Python && sym.kind == SymbolKind::Method)
             {
                 let peers: Vec<SymbolId> = self
                     .symbols
@@ -1228,6 +1319,35 @@ impl Index {
                     .collect();
                 if peers.len() > 1 {
                     return peers;
+                }
+            }
+            // A chart value declared in values.yaml and again in values-prod.yaml is one
+            // value with two override layers. Treating each site as its own symbol made
+            // every answer wrong at once. Usages on one site found nothing. A rename
+            // moved one file. A delete removed a value the templates still read.
+            // The identity is the key path within one chart, so the group is every
+            // same-name, same-qualifier key across that chart's values files. Never
+            // across charts: a neighbouring chart's `replicaCount` is a different value.
+            if sym.kind == SymbolKind::Key
+                && matches!(sym.language, Language::Helm | Language::Yaml)
+                && is_values_file(&sym.file)
+            {
+                if let Some(chart) = crate::lang::chart_root(&sym.file) {
+                    let layers: Vec<SymbolId> = self
+                        .symbols
+                        .iter()
+                        .filter(|s| {
+                            s.name == sym.name
+                                && s.kind == SymbolKind::Key
+                                && s.qualifier == sym.qualifier
+                                && is_values_file(&s.file)
+                                && crate::lang::chart_root(&s.file) == Some(chart)
+                        })
+                        .map(|s| s.id)
+                        .collect();
+                    if layers.len() > 1 {
+                        return layers;
+                    }
                 }
             }
             if sym.kind == SymbolKind::Field && sym.qualifier.is_some() {
@@ -1252,15 +1372,35 @@ impl Index {
             .collect()
     }
 
+    /// How many distinct entities these symbols denote, with each
+    /// definition group counted once.
+    pub fn count_entities(&self, ids: &[SymbolId]) -> usize {
+        let mut remaining: Vec<SymbolId> = ids.to_vec();
+        let mut count = 0usize;
+        while let Some(first) = remaining.first().copied() {
+            let group = self.definition_group(first);
+            remaining.retain(|id| !group.contains(id) && *id != first);
+            count += 1;
+        }
+        count
+    }
+
     /// Do these symbols all denote the same entity?
+    ///
+    /// `definition_group` is the identity, so every kind it groups answers here the
+    /// same way. That covers CSS classes across stylesheets and chart values across
+    /// a chart's values files. Testing the kind's own flag instead left the chart
+    /// value out, and `fr usages replicaCount` refused as ambiguous what rename
+    /// treats as one thing.
     pub fn is_one_entity(&self, symbols: &[&Symbol]) -> bool {
         let Some(first) = symbols.first() else {
             return false;
         };
-        first.kind.allows_multiple_definitions()
-            && symbols
-                .iter()
-                .all(|s| s.name == first.name && s.kind == first.kind)
+        if symbols.len() < 2 {
+            return false;
+        }
+        let group = self.definition_group(first.id);
+        symbols.iter().all(|s| group.contains(&s.id))
     }
 
     /// Find a symbol by name, optionally narrowed to a file.
@@ -1555,6 +1695,123 @@ mod tests {
         assert!(
             index.references_to(region[0].id).is_empty(),
             "a different directory is a different module"
+        );
+    }
+
+    #[test]
+    fn a_call_through_an_import_alias_resolves_to_the_original() {
+        // `from lib import helper as h2` declares nothing called `h2`, so the call
+        // used to die at the name lookup and `helper` showed no callers.
+        let (_tmp, index) = index_of(&[
+            ("lib.py", "def helper():\n    return 2\n"),
+            (
+                "app.py",
+                "from lib import helper as h2\n\ndef run():\n    return h2()\n",
+            ),
+        ]);
+        let helper = index.find_symbols("helper", None);
+        assert_eq!(helper.len(), 1, "got {helper:?}");
+        let refs = index.references_to(helper[0].id);
+        let call = refs
+            .iter()
+            .find(|r| r.file.ends_with("app.py") && r.kind == ReferenceKind::Call)
+            .unwrap_or_else(|| panic!("the aliased call is a reference: {refs:?}"));
+        assert_eq!(call.confidence, Confidence::ImportQualified);
+    }
+
+    #[test]
+    fn an_aliased_python_reexport_chain_resolves_to_the_declaration() {
+        // pkg/__init__.py imports `helper` under a new name and app.py imports that
+        // name from the package. Each hop renames the thing it hands on, so the
+        // search has to carry the hop's own original name.
+        let (_tmp, index) = index_of(&[
+            ("lib.py", "def helper():\n    return 2\n"),
+            ("pkg/__init__.py", "from lib import helper as help_alias\n"),
+            (
+                "app.py",
+                "from pkg import help_alias\n\ndef run():\n    return help_alias()\n",
+            ),
+        ]);
+        let helper = index.find_symbols("helper", None);
+        assert_eq!(helper.len(), 1);
+        let refs = index.references_to(helper[0].id);
+        assert!(
+            refs.iter()
+                .any(|r| r.file.ends_with("app.py") && r.kind == ReferenceKind::Call),
+            "the call through the re-export chain resolves: {refs:?}"
+        );
+    }
+
+    #[test]
+    fn a_chart_value_declared_in_two_values_files_is_one_entity() {
+        let (_tmp, index) = index_of(&[
+            ("c/Chart.yaml", "apiVersion: v2\nname: c\nversion: 0.1.0\n"),
+            ("c/values.yaml", "replicaCount: 1\n"),
+            ("c/values-prod.yaml", "replicaCount: 5\n"),
+            (
+                "c/templates/deploy.yaml",
+                "spec:\n  replicas: {{ .Values.replicaCount }}\n",
+            ),
+        ]);
+        let sites = index.find_symbols("replicaCount", None);
+        assert_eq!(sites.len(), 2, "both values files declare it: {sites:?}");
+        for site in &sites {
+            let group = index.definition_group(site.id);
+            assert_eq!(group.len(), 2, "the group holds both sites: {group:?}");
+            let refs = index.references_to(site.id);
+            assert_eq!(refs.len(), 1, "the template read counts from either site");
+            assert_eq!(refs[0].confidence, Confidence::Exact);
+        }
+        assert!(
+            index.is_one_entity(&sites),
+            "one value, two override layers"
+        );
+    }
+
+    #[test]
+    fn a_chart_value_never_groups_with_a_neighbouring_chart() {
+        let (_tmp, index) = index_of(&[
+            ("a/Chart.yaml", "apiVersion: v2\nname: a\nversion: 0.1.0\n"),
+            ("a/values.yaml", "replicaCount: 1\n"),
+            ("b/Chart.yaml", "apiVersion: v2\nname: b\nversion: 0.1.0\n"),
+            ("b/values.yaml", "replicaCount: 9\n"),
+        ]);
+        let sites = index.find_symbols("replicaCount", None);
+        assert_eq!(sites.len(), 2);
+        for site in &sites {
+            assert_eq!(
+                index.definition_group(site.id),
+                vec![site.id],
+                "chart boundaries hold"
+            );
+        }
+    }
+
+    #[test]
+    fn a_nested_chart_value_groups_only_with_the_same_path() {
+        // `image.tag` in both values files is one entity; the unrelated top-level
+        // `tag` is not part of it.
+        let (_tmp, index) = index_of(&[
+            ("c/Chart.yaml", "apiVersion: v2\nname: c\nversion: 0.1.0\n"),
+            ("c/values.yaml", "tag: loose\nimage:\n  tag: v1\n"),
+            ("c/values-prod.yaml", "image:\n  tag: v2\n"),
+        ]);
+        let nested: Vec<_> = index
+            .symbols
+            .iter()
+            .filter(|s| s.name == "tag" && s.qualifier.as_deref() == Some("image"))
+            .collect();
+        assert_eq!(nested.len(), 2);
+        let group = index.definition_group(nested[0].id);
+        assert_eq!(group.len(), 2, "got {group:?}");
+        let loose = index
+            .symbols
+            .iter()
+            .find(|s| s.name == "tag" && s.qualifier.is_none())
+            .unwrap();
+        assert!(
+            !group.contains(&loose.id),
+            "the loose key is another entity"
         );
     }
 

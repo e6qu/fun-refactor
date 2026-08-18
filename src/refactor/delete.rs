@@ -116,7 +116,9 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
             message.push_str(&format!("\n  {}:{at}", file.display()));
         }
         message.push_str("\nRemove or repoint these uses first; nothing was changed.");
-        anyhow::bail!("{message}");
+        // A typed refusal, so the caller's exit code can say "refused" instead of a
+        // bare failure. The wording is unchanged.
+        return Err(crate::refactor::Refusal::StillUsed { detail: message }.into());
     }
 
     // Nothing proven uses it, so the definitions can go. Whole lines are removed when

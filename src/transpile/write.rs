@@ -466,6 +466,20 @@ fn receiver_word(language: Language) -> &'static str {
 /// The marker every carried-over fragment is written under.
 pub const MARKER: &str = "fun-refactor: not translated";
 
+/// The sibling this import line resolved to inside a directory sweep, if any.
+///
+/// The sweep resolves and the writer only spells. A resolved import with no
+/// named bindings still stays a comment: a namespace or side-effect import
+/// binds nothing a sibling's translation declares.
+fn sibling_import(target: &Option<ImportTarget>) -> Option<(&str, &[ImportedName])> {
+    let target = target.as_ref()?;
+    let stem = target.resolved.as_deref()?;
+    if target.names.is_empty() {
+        return None;
+    }
+    Some((stem, &target.names))
+}
+
 pub fn write(language: Language, module: &Module) -> Result<(String, Fidelity)> {
     write_in_context(language, module, module)
 }
@@ -541,6 +555,20 @@ pub fn write_in_context(
         }
     }
     out.properties = properties;
+    out.methods = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(
+                r.methods
+                    .iter()
+                    .filter(|m| !m.is_constructor)
+                    .map(|m| m.name.clone()),
+            ),
+            _ => None,
+        })
+        .flatten()
+        .collect();
     out.functions = context
         .items
         .iter()
@@ -571,6 +599,14 @@ pub fn write_in_context(
         .iter()
         .filter_map(|item| match item {
             Item::Sum(s) => Some(s.name.clone()),
+            _ => None,
+        })
+        .collect();
+    out.sum_items = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some((s.name.clone(), s.clone())),
             _ => None,
         })
         .collect();
@@ -677,11 +713,24 @@ struct Out {
     /// matches, the positions map onto these; otherwise the construction
     /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
+    /// The module's own choices, whole, for building a variant of one.
+    ///
+    /// The name set in `sums` answers "is this a choice". Making a value of
+    /// one needs the declaration itself, for the discriminator TypeScript
+    /// writes and the field order Java's record constructor takes.
+    sum_items: std::collections::BTreeMap<String, Sum>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
     ///
     /// In a target without the idiom the method is ordinary and its accessors
     /// become calls, and this set is how the field-access writer knows which.
     properties: std::collections::BTreeSet<String>,
+    /// The names of the methods the module's records declare.
+    ///
+    /// A method is declared under the function convention and reached like a
+    /// field, `store.total_value_cents()`. The use site spelled the name
+    /// through the field table, which holds no methods. A two-word method was
+    /// therefore declared in one casing and called in another.
+    methods: std::collections::BTreeSet<String>,
     /// Each declared function's parameters, in order, with their defaults.
     ///
     /// A keyword argument names its parameter, and five of these languages
@@ -770,6 +819,8 @@ impl Out {
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
+            sum_items: std::collections::BTreeMap::new(),
+            methods: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
@@ -868,11 +919,18 @@ impl Out {
     }
 
     fn field(&self, raw: &str) -> String {
-        let spelled = self
-            .fields
-            .get(raw)
-            .cloned()
-            .unwrap_or_else(|| raw.to_string());
+        let spelled = match self.fields.get(raw) {
+            Some(spelled) => spelled.clone(),
+            // A method is reached like a field and spelled like a function. A
+            // name that is a method and never a field takes the name table's
+            // spelling. A name that is a field somewhere keeps the field one.
+            None if self.methods.contains(raw) => self
+                .names
+                .get(raw)
+                .cloned()
+                .unwrap_or_else(|| raw.to_string()),
+            None => raw.to_string(),
+        };
         self.legal(spelled)
     }
 
@@ -1052,7 +1110,7 @@ fn camel(name: &str) -> String {
 }
 
 /// `PascalCase`, for type names everywhere and exported Go.
-fn pascal(name: &str) -> String {
+pub(super) fn pascal(name: &str) -> String {
     let camel = camel(name);
     let mut chars = camel.chars();
     match chars.next() {
@@ -1155,7 +1213,7 @@ fn rust(out: &mut Out, module: &Module) {
                 rust_function(out, f, false);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, .. } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -1587,6 +1645,27 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let text = rust_expr(out, e);
                 out.line(&format!("{text};"));
             }
+            Stmt::Assert { condition, message } => {
+                let c = rust_expr(out, condition);
+                match message {
+                    // The message is the macro's own format string, so a literal
+                    // rides along with its braces doubled. Anything else has no
+                    // slot there and is said above the check instead.
+                    Some(Expr::Str(text)) => {
+                        let literal = quoted(Language::Rust, text)
+                            .replace('{', "{{")
+                            .replace('}', "}}");
+                        out.line(&format!("assert!({c}, {literal});"));
+                    }
+                    Some(other) => {
+                        let rendered = rust_expr(out, other);
+                        let note = out.comment(&format!("the assert's message: {rendered}"));
+                        out.line(&note);
+                        out.line(&format!("assert!({c});"));
+                    }
+                    None => out.line(&format!("assert!({c});")),
+                }
+            }
             Stmt::Break => out.line("break;"),
             Stmt::Continue => out.line("continue;"),
             // Rust models failure in the return type; there is no catch block to
@@ -1676,6 +1755,27 @@ fn unary_operand(text: String, operand: &Expr) -> String {
     }
 }
 
+/// The receiver of a `.field` or a `[index]`, bracketed when the reach would
+/// bind into it.
+///
+/// The readers drop the source's brackets and the writers restore them from
+/// structure. `(a == b).then(x)` written as `a == b.then(x)` is a different
+/// expression in every language here. A literal receiver has its own trap:
+/// Go and Rust read `2.then` as a float with a name stuck to it.
+fn receiver(text: String, of: &Expr) -> String {
+    match of {
+        Expr::Binary { .. }
+        | Expr::Ternary { .. }
+        | Expr::Coalesce { .. }
+        | Expr::Unary { .. }
+        | Expr::Await(_)
+        | Expr::Lambda { .. }
+        | Expr::Int(_)
+        | Expr::Float(_) => format!("({text})"),
+        _ => text,
+    }
+}
+
 fn rust_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         Expr::RecordLit { ty, fields } => {
@@ -1717,18 +1817,34 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 let owner = rust_expr(out, of);
                 return format!("{owner}::{}", out.name(name));
             }
-            let object = rust_expr(out, of);
+            let object = receiver(rust_expr(out, of), of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
-            format!("{}[{}]", rust_expr(out, of), rust_expr(out, index))
+            format!(
+                "{}[{}]",
+                receiver(rust_expr(out, of), of),
+                rust_expr(out, index)
+            )
         }
         Expr::Call { callee, args } => {
+            if reaches_super(callee) && !shadows_builtin(out, "super") {
+                let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
+                let source = super_source(callee, &rendered);
+                out.carried(&Unsupported {
+                    construct: "super".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                return format!("todo!(/* {MARKER}: {} */)", source.replace("*/", "* /"));
+            }
             if let Some(mapped) = rust_builtin(out, callee, args) {
                 return mapped;
             }
@@ -1748,6 +1864,17 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 return format!("{target} {{ {} }}", pairs.join(", "));
             }
             format!("{}({})", rust_expr(out, callee), rendered.join(", "))
+        }
+        // Floor division is a method here, and the receiver needs brackets
+        // whenever the method call would bind into it. `7.div_euclid(2)` reads
+        // as a float literal, and `-a.div_euclid(b)` negates the result.
+        Expr::Binary {
+            op: BinaryOp::FloorDiv,
+            left,
+            right,
+        } => {
+            let target = receiver(rust_expr(out, left), left);
+            format!("{target}.div_euclid({})", rust_expr(out, right))
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
@@ -1813,6 +1940,19 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(rust_expr(out, operand), operand))
         }
+        Expr::Variant { sum, name, fields } => {
+            let owner = out.name(sum);
+            let variant = out.name(name);
+            match fields.is_empty() {
+                true => format!("{owner}::{variant}"),
+                false => {
+                    let rendered = joined(fields, |(f, v)| {
+                        format!("{}: {}", out.field(f), rust_expr(out, v))
+                    });
+                    format!("{owner}::{variant} {{ {rendered} }}")
+                }
+            }
+        }
         Expr::Tuple(items) => match items.as_slice() {
             [one] => format!("({},)", rust_expr(out, one)),
             _ => format!("({})", joined(items, |i| rust_expr(out, i))),
@@ -1852,6 +1992,10 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     args.join(", ")
                 )
             }
+        }
+        Expr::Lambda { params, body } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            format!("|{}| {}", rendered.join(", "), rust_expr(out, body))
         }
         Expr::Comprehension {
             element,
@@ -1989,8 +2133,14 @@ fn python(out: &mut Out, module: &Module) {
                     out.line("@dataclass");
                 }
                 let type_name = out.name(&r.name);
-                // Python spells the base in parentheses after the name.
+                // Python spells the base in parentheses after the name. TypeScript's
+                // `extends Error` is this language's `Exception`: written through, the
+                // class extended a name no Python file declares.
                 let base = inherited_base(out, r, true)
+                    .map(|base| match base.as_str() {
+                        "Error" if !out.declared_types.contains("Error") => "Exception".to_string(),
+                        _ => base,
+                    })
                     .map(|base| format!("({base})"))
                     .unwrap_or_default();
                 out.line(&format!("class {type_name}{base}:"));
@@ -2056,7 +2206,23 @@ fn python(out: &mut Out, module: &Module) {
                 python_function(out, f, false);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, target } => {
+                // An import a sweep resolved names a sibling translated beside
+                // this file, so it crosses as a real import. The names take
+                // this writer's spelling from the same table the declarations
+                // use, and the module path becomes a relative one.
+                if let Some((stem, names)) = sibling_import(target) {
+                    let list: Vec<String> = names
+                        .iter()
+                        .map(|n| match &n.alias {
+                            Some(alias) => format!("{} as {alias}", out.name(&n.name)),
+                            None => out.name(&n.name),
+                        })
+                        .collect();
+                    out.line(&format!("from .{stem} import {}", list.join(", ")));
+                    out.blank();
+                    continue;
+                }
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -2475,6 +2641,16 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 let text = python_expr(out, e);
                 python_line(out, &text);
             }
+            Stmt::Assert { condition, message } => {
+                let c = python_expr(out, condition);
+                match message {
+                    Some(m) => {
+                        let rendered = python_expr(out, m);
+                        python_line(out, &format!("assert {c}, {rendered}"));
+                    }
+                    None => python_line(out, &format!("assert {c}")),
+                }
+            }
             Stmt::Break => {
                 python_line(out, "break");
             }
@@ -2623,7 +2799,7 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         // Arithmetic keeps the type of its operands where both agree. Division is
         // deliberately absent: in Python it is the one operation that does not.
         Expr::Binary {
-            op: BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Rem,
+            op: BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::FloorDiv | BinaryOp::Rem,
             left,
             right,
         } => {
@@ -2702,14 +2878,37 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
-            let object = python_expr(out, of);
+            // A member reached through `super` is reached through the call this
+            // language spells the reach with.
+            if matches!(of.as_ref(), Expr::Name(n) if n == "super")
+                && !shadows_builtin(out, "super")
+            {
+                return format!("super().{}", out.field(name));
+            }
+            let object = receiver(python_expr(out, of), of);
+            // A property read stays a read here, and a property is a method:
+            // its spelling lives in the method namespace, not the field one.
+            if out.properties.contains(name) {
+                return format!("{object}.{}", out.name(name));
+            }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
-            format!("{}[{}]", python_expr(out, of), python_expr(out, index))
+            format!(
+                "{}[{}]",
+                receiver(python_expr(out, of), of),
+                python_expr(out, index)
+            )
         }
         Expr::Call { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| python_expr(out, a)).collect();
+            // The canonical call to `super` is the base constructor, which this
+            // language spells `super().__init__`.
+            if matches!(callee.as_ref(), Expr::Name(n) if n == "super")
+                && !shadows_builtin(out, "super")
+            {
+                return format!("super().__init__({})", rendered.join(", "));
+            }
             format!("{}({})", python_expr(out, callee), rendered.join(", "))
         }
         Expr::Binary { op, left, right } => {
@@ -2812,6 +3011,14 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => format!("-{rendered}"),
             }
         }
+        // A variant is its own dataclass here, and the sum only an alias over
+        // them, so the variant's constructor is the whole spelling.
+        Expr::Variant { name, fields, .. } => {
+            let rendered = joined(fields, |(f, v)| {
+                format!("{}={}", out.field(f), python_expr(out, v))
+            });
+            format!("{}({rendered})", out.name(name))
+        }
         // `(a,)` and not `(a)`: without the comma the parentheses are grouping.
         Expr::Tuple(items) => match items.as_slice() {
             [one] => format!("({},)", python_expr(out, one)),
@@ -2874,6 +3081,13 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 })
                 .collect::<Vec<_>>()
                 .join(" + ")
+        }
+        Expr::Lambda { params, body } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            match rendered.is_empty() {
+                true => format!("lambda: {}", python_expr(out, body)),
+                false => format!("lambda {}: {}", rendered.join(", "), python_expr(out, body)),
+            }
         }
         Expr::Comprehension {
             element,
@@ -2968,7 +3182,7 @@ fn go(out: &mut Out, module: &Module) {
                 go_function(out, f, None);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, .. } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -3734,6 +3948,18 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     _ => out.line(&format!("_ = {text}")),
                 }
             }
+            Stmt::Assert { condition, message } => {
+                let c = go_expr(out, condition);
+                let rendered = match message {
+                    Some(m) => go_expr(out, m),
+                    None => quoted(Language::Go, "assertion failed"),
+                };
+                out.line(&format!("if !({c}) {{"));
+                out.open();
+                out.line(&format!("panic({rendered})"));
+                out.close();
+                out.line("}");
+            }
             Stmt::Break => out.line("break"),
             Stmt::Continue => out.line("continue"),
             // Go returns an error value. A catch block has no counterpart and
@@ -3869,16 +4095,32 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         // Not re-cased: `reading.get(…)` names a real method on a value whose type
         // this does not know, and `reading.Get(…)` is a different method.
         Expr::Field { of, name } => {
-            let object = go_expr(out, of);
+            let object = receiver(go_expr(out, of), of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
-        Expr::Index { of, index } => format!("{}[{}]", go_expr(out, of), go_expr(out, index)),
+        Expr::Index { of, index } => format!(
+            "{}[{}]",
+            receiver(go_expr(out, of), of),
+            go_expr(out, index)
+        ),
         Expr::Call { callee, args } => {
+            if reaches_super(callee) && !shadows_builtin(out, "super") {
+                let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
+                let source = super_source(callee, &rendered);
+                out.carried(&Unsupported {
+                    construct: "super".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                return format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"));
+            }
             if let Some(mapped) = go_builtin(out, callee, args) {
                 return mapped;
             }
@@ -3897,6 +4139,20 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 return format!("{target}{{{}}}", pairs.join(", "));
             }
             format!("{}({})", go_expr(out, callee), rendered.join(", "))
+        }
+        // Floor division rounds toward negative infinity and Go's `/` truncates,
+        // so the exact spelling goes through the one floor the library has.
+        Expr::Binary {
+            op: BinaryOp::FloorDiv,
+            left,
+            right,
+        } => {
+            out.go_imports.insert("math");
+            format!(
+                "int(math.Floor(float64({}) / float64({})))",
+                go_expr(out, left),
+                go_expr(out, right)
+            )
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
@@ -3983,6 +4239,16 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(go_expr(out, operand), operand))
         }
+        // The variant is a struct of Go's marker-interface convention, so
+        // building one is building that struct.
+        Expr::Variant { name, fields, .. } => {
+            let rendered = joined(fields, |(f, v)| {
+                format!("{}: {}", out.field(f), go_expr(out, v))
+            });
+            // Parenthesised because Go refuses a bare composite literal where a
+            // block could follow: `if x == Go{}` reads the brace as the body.
+            format!("({}{{{rendered}}})", out.name(name))
+        }
         // Outside a return Go has no way to say several-values-as-one, and the return
         // is handled where returns are written. What lands here is carried, visibly.
         // An element may carry a marker of its own, and comments do not nest.
@@ -4027,6 +4293,18 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                     args.join(", ")
                 )
             }
+        }
+        // Go writes no closure without every type spelled, and the source
+        // spelled none; inventing them would be a guess about the call sites.
+        Expr::Lambda { params, body } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            let source = format!("({}) => {}", rendered.join(", "), go_expr(out, body));
+            out.carried(&Unsupported {
+                construct: "closure".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
         // Go has no comprehension and no map/filter on slices; writing a loop here
         // would be inventing statements from an expression.
@@ -4089,7 +4367,7 @@ fn typescript(out: &mut Out, module: &Module) {
                 // interface is what TypeScript calls that.
                 if r.methods.is_empty() {
                     let type_name = out.name(&r.name);
-                    let base = inherited_base(out, r, true)
+                    let base = ts_base(out, r)
                         .map(|base| format!(" extends {base}"))
                         .unwrap_or_default();
                     out.line(&format!("{export}interface {type_name}{base} {{"));
@@ -4109,7 +4387,7 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.line("}");
                 } else {
                     let type_name = out.name(&r.name);
-                    let base = inherited_base(out, r, true)
+                    let base = ts_base(out, r)
                         .map(|base| format!(" extends {base}"))
                         .unwrap_or_default();
                     out.line(&format!("{export}class {type_name}{base} {{"));
@@ -4141,7 +4419,26 @@ fn typescript(out: &mut Out, module: &Module) {
                 ts_function(out, f, false);
                 out.blank();
             }
-            Item::Import { text, line } => {
+            Item::Import { text, line, target } => {
+                // An import a sweep resolved names a sibling translated beside
+                // this file, so it crosses as a real import. The names take
+                // this writer's spelling from the same table the declarations
+                // use, and the module path points at the sibling's stem.
+                if let Some((stem, names)) = sibling_import(target) {
+                    let list: Vec<String> = names
+                        .iter()
+                        .map(|n| match &n.alias {
+                            Some(alias) => format!("{} as {alias}", out.name(&n.name)),
+                            None => out.name(&n.name),
+                        })
+                        .collect();
+                    out.line(&format!(
+                        "import {{ {} }} from \"./{stem}\";",
+                        list.join(", ")
+                    ));
+                    out.blank();
+                    continue;
+                }
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -4256,6 +4553,33 @@ fn typescript(out: &mut Out, module: &Module) {
             .chain(std::iter::once("\n".to_string()))
             .collect();
         out.text.insert_str(0, &block);
+    }
+}
+
+/// The base a TypeScript record extends, spelled as this language's own.
+///
+/// Python's exception bases name classes TypeScript does not have. A class
+/// extending `Exception` or one of its everyday complaints is extending
+/// `Error` here. Written through, the base named a class no TypeScript file
+/// declares. `ABC` names no base: it is Python's word for "abstract".
+/// TypeScript has no counterpart, so that base is dropped and said, and the
+/// methods stay.
+fn ts_base(out: &mut Out, record: &Record) -> Option<String> {
+    let base = inherited_base(out, record, true)?;
+    if out.declared_types.contains(&base) {
+        return Some(base);
+    }
+    match base.as_str() {
+        "Exception" | "ValueError" | "RuntimeError" => Some("Error".to_string()),
+        "ABC" | "abc.ABC" => {
+            out.fidelity.notes.push(format!(
+                "`{}` extends `{base}` in the source; TypeScript has no abstract \
+                 base classes, so the base is dropped and the methods stay.",
+                record.name
+            ));
+            None
+        }
+        _ => Some(base),
     }
 }
 
@@ -4519,10 +4843,15 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 value,
                 mutable,
             } => {
-                let annotation = ty
-                    .as_ref()
-                    .map(|t| format!(": {}", ts_type(t)))
-                    .unwrap_or_default();
+                // A binding whose initializer carried whole keeps its name, so
+                // the statements after it still parse. `any` keeps the
+                // declaration compiling under strict when no type survived to
+                // say more.
+                let annotation = match (ty, value) {
+                    (Some(t), _) => format!(": {}", ts_type(t)),
+                    (None, Some(Expr::Unsupported(_))) => ": any".to_string(),
+                    (None, _) => String::new(),
+                };
                 let keyword = if *mutable { "let" } else { "const" };
                 let v = value
                     .as_ref()
@@ -4704,6 +5033,21 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 let text = ts_expr(out, e);
                 out.line(&format!("{text};"));
             }
+            Stmt::Assert { condition, message } => {
+                let c = ts_expr(out, condition);
+                // The thrown message has to be text; a message that is anything
+                // else is said through `String`, which is the same words.
+                let rendered = match message {
+                    Some(m @ (Expr::Str(_) | Expr::Template(_))) => ts_expr(out, m),
+                    Some(m) => format!("String({})", ts_expr(out, m)),
+                    None => quoted(out.language, "assertion failed"),
+                };
+                out.line(&format!("if (!({c})) {{"));
+                out.open();
+                out.line(&format!("throw new Error({rendered});"));
+                out.close();
+                out.line("}");
+            }
             Stmt::Break => out.line("break;"),
             Stmt::Continue => out.line("continue;"),
             Stmt::Try {
@@ -4852,12 +5196,25 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Bool(v) => v.to_string(),
         Expr::Str(v) => quoted(out.language, v),
         Expr::Null => "null".to_string(),
+        // `super` is the base reached, this language's own keyword, and not a
+        // name to re-case or escape. `super(m)` and `super.m()` fall out of the
+        // ordinary call and field arms once the word survives.
+        Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
-            let object = ts_expr(out, of);
+            let object = receiver(ts_expr(out, of), of);
+            // A property read stays a read here, and a property is a method:
+            // its spelling lives in the method namespace, not the field one.
+            if out.properties.contains(name) {
+                return format!("{object}.{}", out.name(name));
+            }
             format!("{object}.{}", out.field(name))
         }
-        Expr::Index { of, index } => format!("{}[{}]", ts_expr(out, of), ts_expr(out, index)),
+        Expr::Index { of, index } => format!(
+            "{}[{}]",
+            receiver(ts_expr(out, of), of),
+            ts_expr(out, index)
+        ),
         Expr::Call { callee, args } => {
             if let Some(mapped) = ts_builtin(out, callee, args) {
                 return mapped;
@@ -4867,6 +5224,17 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
             format!("{}({})", ts_expr(out, callee), rendered.join(", "))
         }
+        // Floor division has no operator here; `Math.floor` over the plain
+        // division says the same number.
+        Expr::Binary {
+            op: BinaryOp::FloorDiv,
+            left,
+            right,
+        } => format!(
+            "Math.floor({} / {})",
+            binary_operand(ts_expr(out, left), left, BinaryOp::Div, false),
+            binary_operand(ts_expr(out, right), right, BinaryOp::Div, true)
+        ),
         Expr::Binary { op, left, right } => {
             let spelling = match op {
                 BinaryOp::Eq => "===",
@@ -4922,6 +5290,20 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
         }
+        // The checker narrows on the discriminator field, so the literal
+        // must be the one the type declared.
+        Expr::Variant { sum, name, fields } => {
+            let tag = out
+                .sum_items
+                .get(sum)
+                .map(discriminator)
+                .unwrap_or_else(|| "kind".to_string());
+            let mut parts = vec![format!("{tag}: \"{}\"", snake_always(name))];
+            for (f, v) in fields {
+                parts.push(format!("{}: {}", out.field(f), ts_expr(out, v)));
+            }
+            format!("{{ {} }}", parts.join(", "))
+        }
         // A tuple's value in TypeScript is an array; only its type is written apart.
         Expr::Tuple(items) => format!("[{}]", joined(items, |i| ts_expr(out, i))),
         Expr::ListLit(items) => {
@@ -4963,6 +5345,17 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 }
             }
             format!("`{body}`")
+        }
+        Expr::Lambda { params, body } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            let value = ts_expr(out, body);
+            // An object literal standing bare after `=>` reads as a block, so it
+            // takes the brackets that keep it a value.
+            let value = match body.as_ref() {
+                Expr::MapLit(_) => format!("({value})"),
+                _ => value,
+            };
+            format!("({}) => {value}", rendered.join(", "))
         }
         Expr::Comprehension {
             element,
@@ -5025,7 +5418,7 @@ fn java(out: &mut Out, module: &Module) {
     }
 
     for item in &module.items {
-        if let Item::Import { text, line } = item {
+        if let Item::Import { text, line, .. } = item {
             out.fidelity.imports_listed += 1;
             let header = out.comment(&format!(
                 "the source imported this at line {line}; the equivalent here is yours to add."
@@ -5430,11 +5823,13 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 .map(|v| java_expr(out, v))
                 .unwrap_or_else(|| "null".to_string());
             // `var` is Java 10 and inference is the compiler's job, not this tool's:
-            // writing a type it has not got would be a guess.
-            let declared = ty
-                .as_ref()
-                .map(java_type)
-                .unwrap_or_else(|| "var".to_string());
+            // writing a type it has not got would be a guess. A binding whose
+            // initializer is `null`, because it carried whole or was never there,
+            // gives `var` nothing to infer, so it is declared `Object`.
+            let declared = ty.as_ref().map(java_type).unwrap_or_else(|| match value {
+                Some(Expr::Unsupported(_)) | None => "Object".to_string(),
+                _ => "var".to_string(),
+            });
             let bound = out.name(name);
             out.line(&format!("{declared} {bound} = {rendered};"));
         }
@@ -5664,6 +6059,21 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             let text = java_expr(out, e);
             out.line(&format!("{text};"));
         }
+        Stmt::Assert { condition, message } => {
+            // Java's own `assert` is off unless the JVM is asked; the longhand
+            // check runs everywhere, as the source's check did.
+            let c = java_expr(out, condition);
+            let rendered = match message {
+                Some(m @ (Expr::Str(_) | Expr::Template(_))) => java_expr(out, m),
+                Some(m) => format!("String.valueOf({})", java_expr(out, m)),
+                None => quoted(Language::Java, "assertion failed"),
+            };
+            out.line(&format!("if (!({c})) {{"));
+            out.open();
+            out.line(&format!("throw new Error({rendered});"));
+            out.close();
+            out.line("}");
+        }
         Stmt::Break => out.line("break;"),
         Stmt::Continue => out.line("continue;"),
         Stmt::Unsupported(u) => carry(out, u),
@@ -5718,6 +6128,7 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
             Expr::Call { args, .. } | Expr::New { args, .. } => {
                 args.iter().for_each(|a| in_expr(a, needed))
             }
+            Expr::Lambda { body, .. } => in_expr(body, needed),
             _ => {}
         }
     }
@@ -5882,18 +6293,24 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Str(v) => quoted(Language::Java, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
+        // `super` is the base reached, this language's own keyword, and not a
+        // name to re-case or escape. `super(m)` and `super.m()` fall out of the
+        // ordinary call and field arms once the word survives.
+        Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
-            let object = java_expr(out, of);
+            let object = receiver(java_expr(out, of), of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
         Expr::Index { of, index } => {
-            let object = java_expr(out, of);
+            let object = receiver(java_expr(out, of), of);
             let at = java_expr(out, index);
             // A subscript is `get` on a collection and `[…]` on an array, and which
             // this is depends on a type nothing here tracks.
@@ -5911,6 +6328,21 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                     return format!("new {}({})", out.name(name), rendered.join(", "));
                 }
             }
+            // Java has no callable values: `f()()` and a called lambda are not in
+            // the grammar, however the value arrived. Such a call carries whole.
+            if matches!(
+                callee.as_ref(),
+                Expr::Call { .. } | Expr::New { .. } | Expr::Lambda { .. }
+            ) {
+                let target = java_expr(out, callee);
+                let source = format!("{target}({})", rendered.join(", "));
+                out.carried(&Unsupported {
+                    construct: "a call to a value".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                return format!("null /* {MARKER}: {} */", source.replace("*/", "* /"));
+            }
             format!("{}({})", java_expr(out, callee), rendered.join(", "))
         }
         Expr::New { callee, args } => {
@@ -5924,6 +6356,17 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             let rendered = java_expr(out, value);
             format!("{rendered} instanceof {}", java_expr(out, ty))
         }
+        // Floor division is a library call here, and `Math.floorDiv` is the one
+        // that rounds the way the source's operator did.
+        Expr::Binary {
+            op: BinaryOp::FloorDiv,
+            left,
+            right,
+        } => format!(
+            "Math.floorDiv({}, {})",
+            java_expr(out, left),
+            java_expr(out, right)
+        ),
         Expr::Binary { op, left, right } => {
             // `==` on a Java String compares references. Every other language here compares
             // contents, and so did the source. So the translation of `a == b` was a different
@@ -5957,6 +6400,23 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 UnaryOp::Neg => "-",
             };
             format!("{sign}{}", unary_operand(java_expr(out, operand), operand))
+        }
+        // A variant is a record of the sealed interface, and a record takes
+        // its components positionally, in declared order.
+        Expr::Variant { sum, name, fields } => {
+            let declared: Vec<String> = out
+                .sum_items
+                .get(sum)
+                .and_then(|s| s.variants.iter().find(|v| &v.name == name))
+                .map(|v| v.fields.iter().map(|f| f.name.clone()).collect())
+                .unwrap_or_else(|| fields.iter().map(|(f, _)| f.clone()).collect());
+            let mut ordered: Vec<String> = Vec::new();
+            for field in &declared {
+                if let Some((_, value)) = fields.iter().find(|(f, _)| f == field) {
+                    ordered.push(java_expr(out, value));
+                }
+            }
+            format!("new {}({})", out.name(name), ordered.join(", "))
         }
         // Java has no tuple value. `List.of` would erase the types and claim a
         // collection the source never had, so the tuple is carried, visibly.
@@ -5994,6 +6454,10 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 true => "\"\"".to_string(),
                 false => rendered.join(" + "),
             }
+        }
+        Expr::Lambda { params, body } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            format!("({}) -> {}", rendered.join(", "), java_expr(out, body))
         }
         Expr::Comprehension {
             element,
@@ -6088,7 +6552,7 @@ fn zig(out: &mut Out, module: &Module) {
                 out.note_once(ENTRY_DROPPED);
             }
             Item::Statement(stmt) => carried_statement(out, stmt, zig_expr),
-            Item::Import { text, line } => {
+            Item::Import { text, line, .. } => {
                 out.fidelity.imports_listed += 1;
                 let header = out.comment(&format!(
                     "the source imported this at line {line}; the equivalent here is \
@@ -6283,6 +6747,9 @@ fn uses_the_standard_library(module: &Module) -> bool {
     }
     fn in_stmt(types: &std::collections::BTreeMap<String, Type>, s: &Stmt) -> bool {
         match s {
+            // The library check itself: `std.debug.assert` is a reason the
+            // binding exists at all.
+            Stmt::Assert { .. } => true,
             Stmt::Expr(e) | Stmt::Return(Some(e)) => in_expr(types, e),
             Stmt::Let { value: Some(e), .. } => in_expr(types, e),
             Stmt::Assign { value, .. } => in_expr(types, value),
@@ -6290,10 +6757,55 @@ fn uses_the_standard_library(module: &Module) -> bool {
                 condition,
                 then,
                 otherwise,
+            }
+            | Stmt::IfPresent {
+                value: condition,
+                then,
+                otherwise,
+                ..
             } => {
                 in_expr(types, condition)
                     || then.iter().any(|s| in_stmt(types, s))
                     || otherwise.iter().any(|s| in_stmt(types, s))
+            }
+            Stmt::While {
+                condition: value,
+                body,
+            }
+            | Stmt::WhilePresent { value, body, .. }
+            | Stmt::ForEach {
+                iterable: value,
+                body,
+                ..
+            }
+            | Stmt::ForEachIndexed {
+                iterable: value,
+                body,
+                ..
+            } => in_expr(types, value) || body.iter().any(|s| in_stmt(types, s)),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) => body.iter().any(|s| in_stmt(types, s)),
+            Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } => {
+                in_expr(types, subject)
+                    || arms
+                        .iter()
+                        .any(|(_, body)| body.iter().any(|s| in_stmt(types, s)))
+                    || default.iter().any(|s| in_stmt(types, s))
+            }
+            Stmt::Try {
+                body,
+                catches,
+                finally,
+                ..
+            } => {
+                body.iter().any(|s| in_stmt(types, s))
+                    || catches
+                        .iter()
+                        .any(|c| c.body.iter().any(|s| in_stmt(types, s)))
+                    || finally.iter().any(|s| in_stmt(types, s))
             }
             _ => false,
         }
@@ -6727,6 +7239,17 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 _ => zig_line(out, &format!("_ = {text};")),
             }
         }
+        Stmt::Assert { condition, message } => {
+            let c = zig_expr(out, condition);
+            // The library check takes no message, so the words the source gave
+            // ride above the statement, where a Zig comment can go.
+            if let Some(m) = message {
+                let rendered = zig_expr(out, m);
+                out.pending
+                    .push(format!("the assert's message: {rendered}"));
+            }
+            zig_line(out, &format!("std.debug.assert({c});"));
+        }
         Stmt::Break => out.line("break;"),
         Stmt::Continue => out.line("continue;"),
         Stmt::Unsupported(u) => carry(out, u),
@@ -6847,22 +7370,29 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Null => "null".to_string(),
         Expr::Name(n) => out.name(n),
         Expr::Field { of, name } => {
-            let object = zig_expr(out, of);
+            let object = receiver(zig_expr(out, of), of);
             // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language.
+            // parentheses does not exist in this language. A property is a
+            // method, so its spelling comes from the name table and not the
+            // field one.
             if out.properties.contains(name) {
-                return format!("{object}.{}()", out.field(name));
+                return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
         // `[…]` on a slice or an array and `.get(…)` on a map, and which this is
         // depends on a type nothing here tracks. Zig's indexable is the slice.
         Expr::Index { of, index } => {
-            let object = zig_expr(out, of);
+            let object = receiver(zig_expr(out, of), of);
             let at = zig_expr(out, index);
             format!("{object}[{at}]")
         }
         Expr::Call { callee, args } => {
+            if reaches_super(callee) && !shadows_builtin(out, "super") {
+                let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
+                let source = super_source(callee, &rendered);
+                return zig_carry(out, "super", source);
+            }
             if let Some(mapped) = zig_builtin(out, callee, args) {
                 return mapped;
             }
@@ -6909,6 +7439,17 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let target = zig_expr(out, callee);
             zig_carry(out, "new", format!("new {target}({})", rendered.join(", ")))
         }
+        // Floor division is a builtin here, and the builtin rounds the way the
+        // source's operator did.
+        Expr::Binary {
+            op: BinaryOp::FloorDiv,
+            left,
+            right,
+        } => format!(
+            "@divFloor({}, {})",
+            zig_expr(out, left),
+            zig_expr(out, right)
+        ),
         Expr::Binary { op, left, right } => {
             // A Zig string is a `[]const u8`, and `==` on a slice is not a comparison
             // the compiler will accept at all. The output looked like the other five
@@ -6959,6 +7500,20 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{sign}{}", unary_operand(zig_expr(out, operand), operand))
         }
+        // The union's own spelling: a dot-literal for a bare tag, the
+        // one-field initializer for a payload.
+        Expr::Variant { name, fields, .. } => match fields.as_slice() {
+            [] => format!(".{}", snake_always(name)),
+            [(single, value)] if single == "value" => {
+                format!(".{{ .{} = {} }}", snake_always(name), zig_expr(out, value))
+            }
+            _ => {
+                let rendered = joined(fields, |(f, v)| {
+                    format!(".{} = {}", out.field(f), zig_expr(out, v))
+                });
+                format!(".{{ .{} = .{{ {rendered} }} }}", snake_always(name))
+            }
+        },
         // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
         Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
         // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
@@ -6991,6 +7546,17 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             // Zig formats at run time, into a writer or an allocator, and choosing one
             // is a decision about the program.
             zig_carry(out, "interpolated string", rendered.join(" ++ "))
+        }
+        // Zig writes no closure without every type spelled, and the source
+        // spelled none; inventing them would be a guess about the call sites.
+        Expr::Lambda { params, body } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            let value = zig_expr(out, body);
+            zig_carry(
+                out,
+                "closure",
+                format!("({}) => {value}", rendered.join(", ")),
+            )
         }
         Expr::Comprehension {
             element,
@@ -7175,6 +7741,7 @@ fn result_ok(declared: &std::collections::BTreeSet<String>, ty: Option<&Type>) -
 fn contains_unsupported(e: &Expr) -> bool {
     match e {
         Expr::Unsupported(_) => true,
+        Expr::Variant { fields, .. } => fields.iter().any(|(_, v)| contains_unsupported(v)),
         Expr::Field { of, .. } => contains_unsupported(of),
         Expr::Index { of, index } => contains_unsupported(of) || contains_unsupported(index),
         Expr::Call { callee, args } | Expr::New { callee, args } => {
@@ -7221,6 +7788,7 @@ fn contains_unsupported(e: &Expr) -> bool {
                 || contains_unsupported(iterable)
                 || condition.as_deref().is_some_and(contains_unsupported)
         }
+        Expr::Lambda { body, .. } => contains_unsupported(body),
         Expr::Int(_)
         | Expr::Float(_)
         | Expr::Str(_)
@@ -7434,6 +8002,30 @@ fn flatten_local_bases(module: &Module) -> (Module, Vec<String>) {
         }
     }
     (flattened, notes)
+}
+
+/// Does this callee reach through `super`, into the base the source called?
+///
+/// The canonical shapes are a call to `super` for the base constructor and a
+/// call through a `super` field for a base method. Rust, Go and Zig have no
+/// inheritance and flattened any same-module base already, so what reaches
+/// them calls into a base out of reach. Writing the word through named
+/// nothing in any of the three.
+fn reaches_super(callee: &Expr) -> bool {
+    match callee {
+        Expr::Name(n) => n == "super",
+        Expr::Field { of, .. } => matches!(of.as_ref(), Expr::Name(n) if n == "super"),
+        _ => false,
+    }
+}
+
+/// The carried spelling of a call through `super`, for the writers without one.
+fn super_source(callee: &Expr, rendered: &[String]) -> String {
+    let through = match callee {
+        Expr::Field { name, .. } => format!("super.{name}"),
+        _ => "super".to_string(),
+    };
+    format!("{through}({})", rendered.join(", "))
 }
 
 /// The receiver and name a call's callee spells, where it spells one.

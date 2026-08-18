@@ -147,6 +147,13 @@ pub enum Refusal {
     /// definitions were there before. Bash resolves this at run time by whichever
     /// definition ran last, which no static reading can predict.
     AmbiguousDefinition { name: String, file: PathBuf },
+    /// The symbol still has references that resolve to it, so deleting it would break them.
+    ///
+    /// The message carries the full listing, one blocking site per line. It was a plain
+    /// `anyhow!` before, which exited 1 while `fr --help` promised every considered
+    /// refusal exits 5. The exit code is chosen from the error's type, so the fix
+    /// belonged in the type.
+    StillUsed { detail: String },
     /// Something the tool cannot establish at all.
     ///
     /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and is not
@@ -212,6 +219,9 @@ impl std::fmt::Display for Refusal {
                 confidence.get().as_str()
             ),
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
+            // The detail is the whole message, worded at the site that knows the
+            // sites, so the wording did not change when the type did.
+            Refusal::StillUsed { detail } => f.write_str(detail),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
             }
@@ -234,6 +244,38 @@ pub(crate) fn receiver_declared_type(
     if matches!(receiver, "this" | "self") {
         return None;
     }
+    receiver_binding_type(index, reference, receiver)
+}
+
+/// The type a reference's receiver is known to be, `this`/`self` included.
+///
+/// The enclosing instance is the one receiver whose type is never a guess: it
+/// is the class this code is written in. Separate from
+/// [`receiver_declared_type`] because the warnings built on that one say
+/// "declared", which is not how `self` gets its type.
+pub(crate) fn receiver_known_type(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+) -> Option<String> {
+    let receiver = reference.receiver.as_deref()?;
+    if matches!(receiver, "this" | "self") {
+        let info = index.file(&reference.file)?;
+        return info
+            .symbols
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter(|s| s.full_span.contains(reference.span) && s.qualifier.is_some())
+            .min_by_key(|s| s.full_span.end - s.full_span.start)
+            .and_then(|s| s.qualifier.clone());
+    }
+    receiver_binding_type(index, reference, receiver)
+}
+
+fn receiver_binding_type(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+    receiver: &str,
+) -> Option<String> {
     let info = index.file(&reference.file)?;
     let chain = info.scope_chain(reference.scope);
     let binding = info
@@ -257,7 +299,10 @@ pub(crate) fn receiver_declared_type(
                 .unwrap_or(usize::MAX)
         })?;
     let declared = crate::analysis::types::of(index, binding.id).ok()?;
-    let written = declared.declared?;
+    // `var b = new B()` writes the type on the right of the `=`. The derivation
+    // is the source's own words as much as an annotation is; it is only reached
+    // where no annotation exists to disagree with it.
+    let written = declared.declared.or(declared.inferred.map(|i| i.ty))?;
     // `List<Order>` names `List`; the last plain segment is the type's own name.
     let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);

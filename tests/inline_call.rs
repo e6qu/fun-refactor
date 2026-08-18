@@ -226,3 +226,47 @@ fn a_callee_reading_its_own_modules_global_refuses_to_cross_files() {
         "the refusal names the carried global: {err}"
     );
 }
+
+#[test]
+fn a_callee_reading_its_own_modules_import_refuses_to_cross_files() {
+    // `home_dir` reads `os` from its own file's imports. The paste ran and
+    // raised NameError exactly the way the module global did.
+    let (tmp, index) = workspace(&[
+        (
+            "helpers.py",
+            "import os\n\n\ndef home_dir() -> str:\n    return os.environ[\"HOME\"]\n",
+        ),
+        (
+            "app.py",
+            "from helpers import home_dir\n\n\ndef whereami() -> str:\n    return home_dir()\n",
+        ),
+    ]);
+    let source = std::fs::read_to_string(tmp.path().join("app.py")).unwrap();
+    let offset = source.find("home_dir()").unwrap();
+    let err = inline::call(&index, &tmp.path().join("app.py"), offset).unwrap_err();
+    assert!(
+        err.to_string().contains("`os`"),
+        "the refusal names the carried import: {err}"
+    );
+}
+
+#[test]
+fn a_callee_import_also_present_at_the_call_site_inlines() {
+    // Both files import `os`, so the pasted body reads the same module either
+    // way and the inline goes through.
+    let (tmp, index) = workspace(&[
+        (
+            "helpers.py",
+            "import os\n\n\ndef home_dir() -> str:\n    return os.environ[\"HOME\"]\n",
+        ),
+        (
+            "app.py",
+            "import os\n\nfrom helpers import home_dir\n\n\ndef whereami() -> str:\n    return home_dir()\n",
+        ),
+    ]);
+    let source = std::fs::read_to_string(tmp.path().join("app.py")).unwrap();
+    let offset = source.find("home_dir()").unwrap();
+    let path = tmp.path().join("app.py");
+    let out = apply(&inline::call(&index, &path, offset).unwrap(), &path);
+    assert!(out.contains("return os.environ[\"HOME\"]"), "got:\n{out}");
+}

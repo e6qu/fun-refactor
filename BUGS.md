@@ -175,6 +175,194 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B443: **the wasm slice could not see a cli-only import.** With default
+  features on, an import only the CLI uses looked used. The unused-import refusal surfaced in the deploy's wasm build
+  instead. The slice now also runs clippy without default features, on
+  the host target, which catches the class without needing a wasm clang.
+  Caught by CI on this very pass: `run::distance` was cli-only and ungated.
+
+- [x] B442: **a Java record crossed wrong twice.** `implements X` was dropped
+  in silence. A compact `name()` body crossed beside the `name` field, and
+  the pair collided in every flat target. A single interface rides in the
+  base slot, and more of them ride in prose. The field wins the collision,
+  and an overriding body is said beside the field. Pinned in
+  `tests/translate_java_records.rs`.
+
+- [x] B441: **a lost initializer took its binding's name with it.**
+  `var wg sync.WaitGroup` and `ch := make(chan int, 4)` carried whole. Every
+  later statement then read a name the output never declared. The
+  binding stays, the original rides in a marker, and TypeScript types it `any`
+  so strict compilation accepts the declaration. Pinned in
+  `tests/translate_carried_bindings.rs`.
+
+- [x] B440: **an annotated instance field vanished.** `self.entries: list[str]
+  = []` read as a binding whose dotted "name" was no name at all. The whole
+  assignment carried as a comment and the field was deleted. It reads as the
+  plain assignment now, and the derived field takes the annotation's type.
+  Pinned in `tests/translate_classes.rs`.
+
+- [x] B439: **`super` and the exception bases spoke the source.**
+  `super().__init__(m)` crossed as a call to `super_`, which nothing declares.
+  A class extending `Exception` extended a name TypeScript lacks. Coming home,
+  `super(m)` carried and the constructor gained a `raise NotImplementedError`.
+  The reach is canonical now and each writer spells it, the bases map both
+  ways, and `ABC` drops with a note. Pinned in `tests/translate_super.rs`.
+
+- [x] B438: **an optional parameter required its argument.** TypeScript's
+  `punct?: string` crossed to Python as an optional type with no default.
+  Every valid call site then raised TypeError. The absence carries as
+  `= None`.
+  Pinned in `tests/translate_optional_params.rs`.
+
+- [x] B437: **floor division was a runnable `null`.** Python's `cents // 100`
+  read as an unknown operator, and a formatter printed "$null.00". Every
+  writer says it with its own flooring call now, `Math.floor`, `div_euclid`,
+  `Math.floorDiv`, `math.Floor`, `@divFloor`, and Python keeps the operator.
+  Pinned in `tests/translate_floor_div.rs`.
+
+- [x] B436: **a lambda crossed as a runnable `null`.** `lambda x: e`,
+  `(x) => e`, `|x| e` and `x -> e` are one nameless function, and each carried
+  as a marker where a callback belonged. The one-expression shape crosses
+  between the four languages that have it. Go and Zig carry it visibly, since
+  neither writes a closure without types. On the way this surfaced a bracket
+  loss: `(a == b).then(x)` rendered as `a == b.then(x)` in every writer. A
+  field or index receiver now takes brackets from structure. Pinned in
+  `tests/translate_lambdas.rs`.
+
+- [x] B435: **a translated test file checked nothing and said it passed.**
+  Python's `assert c, "m"` carried as a comment. The crossing then ran,
+  checked nothing, and printed "all tests passed". Asserts are a statement of their
+  own now. Python, Rust and Zig read theirs; every target writes its own, and
+  the ones without an assert test the condition and throw or panic. Pinned in
+  `tests/translate_asserts.rs`.
+
+- [x] B430: **an inverted extract range died on the span constructor's
+  assertion.** `fr extract --range file:8:20-8:5` printed byte offsets and a
+  panic. It is refused where both ends are known, with both ends named.
+  Invalid input exits 2, the code clap uses for a command line that does not
+  parse. A column of 0 is refused with "columns start at 1." instead of
+  quietly reading as column 1. Pinned in `src/span.rs` tests and
+  `tests/cli.rs`.
+
+- [x] B431: **two refusals broke the exit-code promise.** Delete's "refusing
+  to delete" exited 1 while the help promised 5. It is a typed refusal now.
+  `fr remove-flag` on a name nothing declares also exited 1. It goes through
+  the not-found path rename uses, exits 3, and suggests the nearest declared
+  names. Pinned in `tests/cli.rs`.
+
+- [x] B432: **human listings printed absolute paths.** Every site in a rename
+  report carried the workspace prefix, noise a reader skips over. Human
+  output is workspace-relative through one
+  helper, error prose is relativised at one choke point, and JSON keeps
+  absolute paths. Pinned in `tests/cli.rs`.
+
+- [x] B433: **RECIPES.md promised `fr recipe --explain` and `fr recipe fmt`,
+  and neither existed.** `--explain` exists now. It prints each step's
+  selector and expectation without running it. `fmt` stayed unbuilt, and the
+  document says so and why. The `.fr` example extension became `.recipe`, the
+  one the tool reads. Pinned in `tests/cli.rs`.
+
+- [x] B434: **`fr` sat silent while indexing a large workspace.** A first run
+  over a big repository gave no sign anything was happening. Indexing paints
+  progress on stderr when stderr is a terminal, in coarse steps, erased on
+  completion; piped output stays byte-identical. Pinned by the cli suite's
+  piped-output assertions.
+
+- [x] B429: **`fr flow back` claimed a `-f` nobody passed.** Without inputs the
+  strongest source printed as `user-supplied -f values-prod.yaml`. The label now
+  reads `would win under -f values-prod.yaml`, and a loser says when the
+  override would apply. The hedging around the undecided answer stays. Pinned
+  in `tests/helm_inputs.rs`.
+
+- [x] B428: **`fr impact` promoted callers past an unproven edge to certain.**
+  Each caller carried only its last hop's confidence. So everything above a
+  field-based dispatch edge read as "would definitely change". A route is now as
+  trustworthy as its weakest edge, and a node keeps the best route's confidence.
+  Pinned in `src/analysis/impact.rs` tests.
+
+- [x] B427: **a call through an import alias resolved to nothing.** `from lib
+  import helper as h2` then `h2()` left `helper` with no callers. A bare name an
+  import binds resolves through the import under the imported original, at
+  import-qualified confidence. An aliased re-export chain carries each hop's own
+  original name. Pinned in `src/index.rs` tests.
+
+- [x] B426: **declared Python console scripts read as dead code.** `fr
+  entrypoints --unreachable` flagged a function that `[project.scripts]`
+  installs as a command. setup.py `console_scripts`, pyproject
+  `[project.scripts]` and a package's `__main__.py` are entry points now. The
+  packaging files are read line by line, and each detection's rule says so.
+  Pinned in `src/analysis/entrypoints.rs` tests.
+
+- [x] B425: **docker-compose `environment` entries were invisible to `fr
+  stitch`.** Both spellings count now, `APP_MODE: x` and `- APP_MODE=x`.
+  Compose files are recognised by shape, a
+  top-level `services:` mapping with an `environment` key under it. Their
+  variables join chains and orphan detection beside the Kubernetes `env:`
+  shapes. Pinned in `src/analysis/stitch.rs` tests.
+
+- [x] B424: **a chart value declared in two values files was two symbols.**
+  Usages found nothing. A rename moved one file, and delete removed a value
+  the template still read. A Helm values key now groups
+  with its same-path keys across one chart's `values*.yaml` files, the way CSS
+  classes group. Usages, rename and delete act on the whole entity, and the
+  template read blocks delete. Pinned in `tests/helm_values_refs.rs` and
+  `src/index.rs` tests.
+- [x] B418: **a value of a sum type never crossed.** The types crossed for
+  eleven passes while every value of one carried: Rust's `Shape::Point` reached
+  Python as a comment, Zig's `.{ .one = n }` took its whole `if` with it, and
+  a Python class consumed into a union kept constructing as a class the target
+  never declared. The IR holds the variant now, validated against the module's
+  own sums, and each writer builds it the way its language does: Python calls
+  the constructor, TypeScript writes the declared discriminator, Go
+  parenthesises the composite literal out of the `if x == Go{}` trap, Java
+  orders the record's fields, Zig infers the union from the position. Every
+  reader produces it too. Go composite literals settle as variants or record
+  constructions. TypeScript kind-literal objects settle against the module's
+  sums, and the inline union form becomes the named one's sum. A
+  path naming anything else, `Vec::new`, an enum from another crate, goes back
+  to being carried whole. Pinned in `tests/translate_variants.rs`.
+
+- [x] B419: **`fr inline --call` pasted a callee that read its own file's
+  imports.** B412 held module globals back and stopped there. `os.environ`
+  crossed into a file that never imports `os` and raised NameError the same
+  way. A name bound by the callee file's imports counts as carried now, both
+  ways. Visible at the call site, through any import form, the inline goes
+  through. Pinned in `tests/inline_call.rs`.
+
+- [x] B420: **a Python property renamed one door of two.** `@property def size`
+  and `@size.setter def size` are one attribute; renaming the getter left the
+  setter answering the old name and left `@size.setter` reading a binding the
+  class no longer had. Both defs are one definition group now. The
+  decorator's bare `size` resolves lexically, since a `def` in a class body
+  binds the name in the namespace the decorator reads. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B421: **a use site inside the owner counted the property's two doors as
+  two candidates.** `b: Box` made `b.size` ambiguous. The very class that
+  declares the property could not reach it, because ambiguity was counted in
+  symbols. It is counted in entities now: candidates that form one definition
+  group are one answer wherever the count decides. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B422: **a receiver the source typed did not carry its member sites.**
+  Three forms of the same silence: `b.size` with `b: Box` stayed behind at
+  field-based confidence though `Box` declares the property; `s.area()` with
+  `s: Sub2` stayed though `Sub2` extends the owner; and `var b = new B()`
+  claimed the type unknown though the construction writes it on the right of
+  the `=`. The family's owners now include every declared subtype, and the
+  derivation feeds the receiver's type where no annotation exists. A weak
+  member site renames when its receiver's known type owns the renamed entity
+  and nothing else answers that name on that type. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B423: **`self.count` in a subclass one import away stayed behind.** B407
+  crossed the class chain inside a file; an attribute family whose base class
+  lives in another module still skipped the subclass sites, because the
+  enclosing instance is the one receiver `receiver_declared_type` refused to
+  answer for. The enclosing class is the answer, and the subclass sits among
+  the family's owners, so the site renames. Pinned in
+  `tests/rename_property_family.rs`.
+
 - [x] B412: **`fr inline --call` pasted a callee's module globals across files.**
   `clamp` read `LIMIT` from beside itself; pasted into another file the name
   meant nothing there, and the paste compiled, ran, and raised NameError with

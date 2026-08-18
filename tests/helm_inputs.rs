@@ -163,8 +163,8 @@ fn with_no_inputs_the_command_line_still_decides_nothing() {
         vec![
             // Same rank, so the display order is the file name reversed: neither
             // outranks the other, which leaves this undecided.
-            "user-supplied -f values-stage.yaml".to_string(),
-            "user-supplied -f values-prod.yaml".to_string(),
+            "would win under -f values-stage.yaml".to_string(),
+            "would win under -f values-prod.yaml".to_string(),
             "parent chart values (app)".to_string(),
             "chart defaults (mysql)".to_string(),
         ]
@@ -778,5 +778,38 @@ fn a_hyphenated_key_reached_by_index_takes_the_supplied_inputs_too() {
     assert_eq!(
         competition.winner().unwrap().hop.text,
         "--set extra-args=--verbose"
+    );
+}
+
+#[test]
+fn a_file_nobody_passed_is_never_labelled_user_supplied() {
+    // With no `-f` on the command line the strongest visible source may still be a
+    // values-prod.yaml beside the chart. The label says its win is conditional
+    // instead of claiming a flag that was never passed.
+    let (_tmp, index) = workspace(&[
+        ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
+        ("app/values.yaml", "image:\n  tag: \"1.0\"\n"),
+        ("app/values-prod.yaml", "image:\n  tag: \"2.0\"\n"),
+    ]);
+    let tag = key_with_path(&index, "app/values.yaml", "image.tag");
+    let result = provenance(&index, tag, 5).unwrap();
+
+    let competition = tag_competition(&result);
+    let labels: Vec<&str> = competition
+        .sources
+        .iter()
+        .map(|s| s.precedence.label.as_str())
+        .collect();
+    assert!(
+        labels.contains(&"would win under -f values-prod.yaml"),
+        "got {labels:?}"
+    );
+    assert!(
+        !labels.iter().any(|l| l.starts_with("user-supplied")),
+        "nothing was supplied: {labels:?}"
+    );
+    assert!(
+        !competition.decided,
+        "the command line can still change the answer"
     );
 }

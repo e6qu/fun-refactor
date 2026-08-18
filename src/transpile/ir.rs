@@ -52,6 +52,12 @@ pub enum Item {
     Import {
         text: String,
         line: usize,
+        /// What the line says, taken apart, when the reader could take it apart.
+        ///
+        /// `None` for the forms nothing rewrites: a namespace import, a default
+        /// import, a Rust `use`. Those carry as text alone, and the writers keep
+        /// them as comments.
+        target: Option<ImportTarget>,
     },
     /// A named test, declared in the source file beside the code it checks.
     ///
@@ -225,6 +231,35 @@ pub struct Variant {
     pub name: String,
     /// Empty for a bare tag like `None` or `Empty`.
     pub fields: Vec<Field>,
+}
+
+/// An import taken apart: where it points and which names it binds.
+///
+/// Only Python and TypeScript fill this in, and only for the named form. That
+/// form is `from m import a, b as c` or `import { a, b as c } from "./m"`. A
+/// directory sweep uses it to turn an import of a sibling file into a real
+/// import of the sibling's translation. Everything else keeps the text.
+#[derive(Debug, Clone)]
+pub struct ImportTarget {
+    /// The module path as the source wrote it: `helpers`, `.models`, `./m`.
+    pub module: String,
+    /// Whether the path is relative, a leading dot in Python or `./` here.
+    pub relative: bool,
+    /// The named bindings, each with the alias the body uses, where one is given.
+    pub names: Vec<ImportedName>,
+    /// The sibling file stem this import points at, when it points inside a sweep.
+    ///
+    /// Filled by the directory sweep and by nothing else. A reader cannot know
+    /// which files travel together; only the sweep holds the whole set. The
+    /// writers emit a real import when this is set and a comment when it is not.
+    pub resolved: Option<String>,
+}
+
+/// One name an import binds, with its alias where the source gave one.
+#[derive(Debug, Clone)]
+pub struct ImportedName {
+    pub name: String,
+    pub alias: Option<String>,
 }
 
 /// Something with no counterpart, carried whole so nothing is lost.
@@ -419,6 +454,18 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     Expr(Expr),
+    /// `assert c, "m"`: check a condition and stop the program when it fails.
+    ///
+    /// Python spells it as a statement, Rust as the `assert!` family, Zig as
+    /// `std.debug.assert`. Read as an unknown construct, every check carried as
+    /// a comment. A translated test file then printed "all tests passed", the
+    /// worst kind of green. The targets without an assert say the same thing
+    /// longhand: test the condition and throw or panic.
+    Assert {
+        condition: Expr,
+        /// The words the failure prints, where the source gave any.
+        message: Option<Expr>,
+    },
     /// A comment on its own line.
     ///
     /// Every language here has one and they differ only in the marker. Treating a comment as an
@@ -575,6 +622,19 @@ pub enum Expr {
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
+    /// One variant of a closed choice, made: `Shape::Circle { radius }`,
+    /// `.{ .one = n }`, `{ kind: "circle", radius }`.
+    ///
+    /// The types crossed for eleven passes while every value of one carried, in
+    /// every direction at once. Each language builds the same thing its own way.
+    /// Rust names the path, Zig the dot-literal, TypeScript writes the
+    /// discriminator field, Python and Java call the variant's own constructor,
+    /// Go builds the variant struct. Fields are empty for a bare tag.
+    Variant {
+        sum: String,
+        name: String,
+        fields: Vec<(String, Expr)>,
+    },
     /// `(a, b)`: several values travelling as one, without a name for the whole.
     ///
     /// Go returns them, and dropping the payload of `return a, b` turned a two-value
@@ -591,6 +651,17 @@ pub enum Expr {
     /// Kept as parts and not text because flattening it loses the expressions,
     /// which is exactly the silent wrong answer this had before it existed.
     Template(Vec<TemplatePart>),
+    /// `lambda x: e`, `(x) => e`, `|x| e`: a nameless function of one expression.
+    ///
+    /// Only the single-expression shape crosses, because it is the shape all four
+    /// languages that have one agree on. A block body is a function that wants a
+    /// name and stays carried. Go and Zig cannot write a closure without types,
+    /// so their writers carry this too, visibly. Before this existed, every
+    /// `sorted(key=...)` callback crossed as a runnable `null`.
+    Lambda {
+        params: Vec<String>,
+        body: Box<Expr>,
+    },
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
     ///
     /// The same idea spelled two ways: Python builds it with a comprehension,
@@ -622,6 +693,13 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    /// `a // b`: division that rounds toward negative infinity.
+    ///
+    /// Only Python spells it as an operator, and reading it as an unknown one left
+    /// a runnable `null` where a number belonged. The other five say it with a
+    /// library call, `Math.floor`, `div_euclid`, `Math.floorDiv`, `math.Floor`,
+    /// `@divFloor`, and each writer reaches for its own.
+    FloorDiv,
     Rem,
     Eq,
     Ne,
@@ -641,6 +719,10 @@ impl BinaryOp {
             BinaryOp::Sub => "-",
             BinaryOp::Mul => "*",
             BinaryOp::Div => "/",
+            // No C-family language spells floor division as an operator. Every
+            // writer says it with its own library call before reaching for this
+            // table. Asking here is a bug in the writer, said out loud.
+            BinaryOp::FloorDiv => unreachable!("floor division has no shared operator spelling"),
             BinaryOp::Rem => "%",
             BinaryOp::Eq => "==",
             BinaryOp::Ne => "!=",
@@ -657,6 +739,7 @@ impl BinaryOp {
         match self {
             BinaryOp::And => "and",
             BinaryOp::Or => "or",
+            BinaryOp::FloorDiv => "//",
             other => other.c_like(),
         }
     }
@@ -672,7 +755,7 @@ impl BinaryOp {
     /// in all six languages, which is a different number.
     pub fn precedence(self) -> u8 {
         match self {
-            BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => 6,
+            BinaryOp::Mul | BinaryOp::Div | BinaryOp::FloorDiv | BinaryOp::Rem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Eq | BinaryOp::Ne => 3,

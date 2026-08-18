@@ -99,9 +99,10 @@ fn a_constructor_becomes_field_assignments_where_one_takes_a_receiver() {
 
 #[test]
 fn an_enum_variant_is_not_a_record() {
-    // `StopReason::Conditional { … }` builds a tagged union, which no target here has.
-    // Writing the path through produced Go that says `StopReason::Conditional{…}`,
-    // which Go does not parse, the round-trip sweep caught it.
+    // `Stop::Conditional { … }` builds a tagged union. Writing the path through
+    // produced Go that says `Stop::Conditional{…}`, which Go does not parse;
+    // then it carried for eleven passes. Now the value crosses as the variant's
+    // own struct, and the path spelling never reaches the output.
     let source = "\
 pub enum Stop {
     Conditional { what: String },
@@ -113,5 +114,6 @@ pub fn make(what: String) -> Stop {
 ";
     let out = translated("a.rs", source, Language::Go);
     assert!(!out.contains("Stop::Conditional{"), "{out}");
-    assert!(out.contains("not translated"), "{out}");
+    assert!(out.contains("return (Conditional{What: what})"), "{out}");
+    assert!(!out.contains("not translated"), "{out}");
 }

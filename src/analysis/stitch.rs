@@ -77,7 +77,8 @@ pub struct EnvRead {
 /// Find every configuration-to-code chain in the workspace.
 pub fn chains(index: &Index) -> Result<Vec<Chain>> {
     crate::capabilities::record_workspace(crate::capabilities::Capability::Stitch, index);
-    let declarations = env_declarations(index)?;
+    let mut declarations = env_declarations(index)?;
+    declarations.extend(compose_declarations(index)?);
     let reads = env_reads(index)?;
 
     let mut chains: Vec<Chain> = Vec::new();
@@ -194,6 +195,97 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
         }
     }
     Ok(found)
+}
+
+/// Environment variables set by a docker-compose file.
+///
+/// Compose is recognised by shape and never by file name. The shape is a YAML
+/// document whose top level has a `services:` mapping with an `environment` key
+/// nested somewhere under it. Both spellings count as set-sources, the map form
+/// `APP_MODE: x` and the list form `- APP_MODE=x`. The map form's variables are
+/// keys the index already extracted. The list form's entries are plain scalars
+/// with no symbol, so they are read from the block's own lines.
+fn compose_declarations(index: &Index) -> Result<Vec<Declaration>> {
+    let mut found = Vec::new();
+
+    for (path, info) in index.files() {
+        if !matches!(info.language, Language::Helm | Language::Yaml) {
+            continue;
+        }
+        let keys: Vec<&Symbol> = info
+            .symbols
+            .iter()
+            .filter_map(|id| index.symbol(*id))
+            .filter(|s| s.kind == SymbolKind::Key)
+            .collect();
+        let has_top_level_services = keys
+            .iter()
+            .any(|s| s.name == "services" && s.qualifier.is_none());
+        if !has_top_level_services {
+            continue;
+        }
+        let environments: Vec<&&Symbol> = keys.iter().filter(|s| s.name == "environment").collect();
+        if environments.is_empty() {
+            continue;
+        }
+        let Ok(source) = crate::vfs::read_to_string(path) else {
+            continue;
+        };
+        let line_index = LineIndex::new(&source);
+
+        // The map form: `environment:` holding `APP_MODE: x` gives the variable a key
+        // of its own, qualified by the block it sits in.
+        for key in keys
+            .iter()
+            .filter(|s| s.qualifier.as_deref() == Some("environment"))
+        {
+            found.push(Declaration {
+                name: key.name.clone(),
+                file: path.clone(),
+                line: line_index.line_col(key.name_span.start, &source).line,
+                values_path: None,
+                conditional_on: None,
+            });
+        }
+
+        // The list form: `- APP_MODE=x`, and the bare passthrough `- APP_MODE`.
+        for environment in &environments {
+            let block = environment.full_span.text(&source);
+            for (offset, name) in list_environment_entries(block) {
+                let at = environment.full_span.start + offset;
+                found.push(Declaration {
+                    name,
+                    file: path.clone(),
+                    line: line_index.line_col(at, &source).line,
+                    values_path: None,
+                    conditional_on: None,
+                });
+            }
+        }
+    }
+    Ok(found)
+}
+
+/// The `(offset, name)` of each `- NAME=value` or bare `- NAME` entry in an
+/// `environment:` block's text.
+fn list_environment_entries(block: &str) -> Vec<(usize, String)> {
+    let mut out = Vec::new();
+    let mut offset = 0;
+    for line in block.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        if let Some(entry) = trimmed.strip_prefix("- ") {
+            let entry = entry.trim().trim_matches(['"', '\'']);
+            let name = entry.split('=').next().unwrap_or_default().trim();
+            let named_like_a_variable = !name.is_empty()
+                && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                && !name.starts_with(|c: char| c.is_ascii_digit());
+            if named_like_a_variable {
+                out.push((offset + (line.len() - trimmed.len()), name.to_string()));
+            }
+        }
+        offset += line.len();
+    }
+    out
 }
 
 /// The `value:` keys belonging to one `name:` entry of an `env:` list.
@@ -692,6 +784,108 @@ mod tests {
         // No template action, so no .Values path, but the chain into code holds.
         assert!(chain.values_path.is_none());
         assert_eq!(chain.reads.len(), 1);
+    }
+
+    const COMPOSE: &str = "services:\n  app:\n    image: probe/app\n    environment:\n      - APP_MODE=compose\n      - DB_URL=postgres://compose-db/app\n      - ORPHAN_VAR=nobody-reads-me\n";
+    const K8S: &str = "apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n      containers:\n        - name: app\n          env:\n            - name: APP_MODE\n              value: k8s\n            - name: K8S_ONLY_ORPHAN\n              value: also-unread\n";
+    const SETTINGS: &str =
+        "import os\n\nAPP_MODE = os.environ[\"APP_MODE\"]\nDB_URL = os.getenv(\"DB_URL\", \"sqlite:///dev.db\")\n";
+
+    #[test]
+    fn a_compose_environment_list_entry_is_a_set_source() {
+        let (_tmp, index) = workspace(&[
+            ("deploy/docker-compose.yml", COMPOSE),
+            ("app/settings.py", SETTINGS),
+        ]);
+        let chains = chains(&index).unwrap();
+        let db = chains
+            .iter()
+            .find(|c| c.env_var == "DB_URL")
+            .unwrap_or_else(|| {
+                panic!(
+                    "no DB_URL chain: {:?}",
+                    chains.iter().map(|c| &c.env_var).collect::<Vec<_>>()
+                )
+            });
+        assert!(db.declared_in.ends_with("docker-compose.yml"));
+        assert_eq!(db.reads.len(), 1, "got {:?}", db.reads);
+        assert_eq!(db.reads[0].language, Language::Python);
+    }
+
+    #[test]
+    fn a_compose_environment_map_entry_is_a_set_source() {
+        let (_tmp, index) = workspace(&[
+            (
+                "deploy/docker-compose.yml",
+                "services:\n  app:\n    environment:\n      APP_MODE: from-map\n",
+            ),
+            ("app/settings.py", SETTINGS),
+        ]);
+        let chains = chains(&index).unwrap();
+        let chain = chains.iter().find(|c| c.env_var == "APP_MODE").unwrap();
+        assert!(chain.declared_in.ends_with("docker-compose.yml"));
+        assert_eq!(chain.reads.len(), 1);
+    }
+
+    #[test]
+    fn a_variable_set_by_compose_and_kubernetes_lists_both_sources() {
+        let (_tmp, index) = workspace(&[
+            ("deploy/docker-compose.yml", COMPOSE),
+            ("k8s/deploy.yaml", K8S),
+            ("app/settings.py", SETTINGS),
+        ]);
+        let chains = chains(&index).unwrap();
+        let app_mode: Vec<_> = chains.iter().filter(|c| c.env_var == "APP_MODE").collect();
+        assert_eq!(app_mode.len(), 2, "got {app_mode:?}");
+        assert!(app_mode
+            .iter()
+            .any(|c| c.declared_in.ends_with("docker-compose.yml")));
+        assert!(app_mode
+            .iter()
+            .any(|c| c.declared_in.ends_with("deploy.yaml")));
+        for chain in &app_mode {
+            assert_eq!(chain.reads.len(), 1, "each source joins the read");
+        }
+    }
+
+    #[test]
+    fn compose_variables_nothing_reads_join_orphan_detection() {
+        let (_tmp, index) = workspace(&[
+            ("deploy/docker-compose.yml", COMPOSE),
+            ("k8s/deploy.yaml", K8S),
+            ("app/settings.py", SETTINGS),
+        ]);
+        let orphans: Vec<String> = chains(&index)
+            .unwrap()
+            .into_iter()
+            .filter(Chain::is_orphaned)
+            .map(|c| c.env_var)
+            .collect();
+        assert!(orphans.contains(&"ORPHAN_VAR".to_string()), "{orphans:?}");
+        assert!(
+            orphans.contains(&"K8S_ONLY_ORPHAN".to_string()),
+            "{orphans:?}"
+        );
+        assert!(!orphans.contains(&"APP_MODE".to_string()), "{orphans:?}");
+    }
+
+    #[test]
+    fn an_environment_key_outside_a_services_file_sets_nothing() {
+        // The compose shape is `services:` at the top level. A stray `environment`
+        // under another root is some other document.
+        let (_tmp, index) = workspace(&[
+            (
+                "conf/settings.yaml",
+                "config:\n  environment:\n    - APP_MODE=x\n",
+            ),
+            ("app/settings.py", SETTINGS),
+        ]);
+        let chains = chains(&index).unwrap();
+        assert!(
+            !chains.iter().any(|c| c.env_var == "APP_MODE"),
+            "got {:?}",
+            chains.iter().map(|c| &c.env_var).collect::<Vec<_>>()
+        );
     }
 
     #[test]

@@ -777,11 +777,24 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
                 if parameters.iter().any(|p| p == word) {
                     continue;
                 }
+                // A name the callee's own file imported travels the same way
+                // a module global does. `os.environ` pasted where nothing
+                // imports `os` raised NameError just as `LIMIT` did.
                 let defined_beside_callee = callee_info
                     .symbols
                     .iter()
                     .filter_map(|id| index.symbol(*id))
-                    .any(|s| s.name == word && s.is_top_level() && s.id != callee.id);
+                    .any(|s| s.name == word && s.is_top_level() && s.id != callee.id)
+                    || callee_info.imports.iter().any(|import| {
+                        import.alias.as_deref() == Some(word)
+                            || import.names.iter().any(|n| n.local == word)
+                            || crate::refactor::imports::implicit_binding(
+                                &import.path,
+                                callee.language,
+                            )
+                            .as_deref()
+                                == Some(word)
+                    });
                 if !defined_beside_callee {
                     continue;
                 }
@@ -793,6 +806,12 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
                     || caller_info.imports.iter().any(|import| {
                         import.alias.as_deref() == Some(word)
                             || import.names.iter().any(|n| n.local == word)
+                            || crate::refactor::imports::implicit_binding(
+                                &import.path,
+                                reference.language,
+                            )
+                            .as_deref()
+                                == Some(word)
                     });
                 if !visible_here {
                     return Err(Refusal::NameCaptured {

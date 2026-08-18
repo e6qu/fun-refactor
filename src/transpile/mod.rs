@@ -87,6 +87,7 @@ use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
 use crate::parse::Parsers;
 use anyhow::{bail, Result};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// The languages a file can be translated into.
@@ -143,6 +144,36 @@ pub fn plan_to(
     out: Option<&Path>,
     force: bool,
 ) -> Result<TranslationPlan> {
+    plan_impl(path, to, out, force, None)
+}
+
+/// [`plan_to`], with the rest of a directory sweep in hand.
+///
+/// `context` is every module in the sweep merged into one. A name declared
+/// anywhere in the sweep is spelled the way its own translation spells it. A
+/// call that builds a sibling's class is a construction. `siblings` maps each
+/// source path in the sweep to what it read as. An import of one then becomes
+/// a real import of its translation instead of a comment.
+pub fn plan_to_in_context(
+    path: &Path,
+    to: Language,
+    out: Option<&Path>,
+    force: bool,
+    context: &ir::Module,
+    siblings: &BTreeMap<PathBuf, ir::Module>,
+) -> Result<TranslationPlan> {
+    plan_impl(path, to, out, force, Some((context, siblings)))
+}
+
+type Sweep<'a> = (&'a ir::Module, &'a BTreeMap<PathBuf, ir::Module>);
+
+fn plan_impl(
+    path: &Path,
+    to: Language,
+    out: Option<&Path>,
+    force: bool,
+    sweep: Option<Sweep<'_>>,
+) -> Result<TranslationPlan> {
     crate::capabilities::record(crate::capabilities::Capability::Translate, to);
     let Some(from) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
@@ -197,12 +228,32 @@ pub fn plan_to(
 
     let stem = path.file_stem().map(|s| s.to_string_lossy().to_string());
     let mut module = read::read(from, &source, parsed.root(), stem.as_deref())?;
+    if let Some((context, siblings)) = sweep {
+        // The sweep travels as one unit, so a sibling's declarations are as
+        // good as this file's own. An import of a sibling becomes a real
+        // import, and a call that builds a sibling's class a construction.
+        resolve_sibling_imports(&mut module, path, from, siblings);
+        if from == Language::Python {
+            let types = context
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    ir::Item::Record(r) => Some(r.name.clone()),
+                    _ => None,
+                })
+                .collect();
+            read::promote_constructions(&mut module, &types);
+        }
+    }
     // Java has no top level below the type. So its writer needs a class to put the module in,
     // and a public class must be named after its file.
     module.name = destination
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string());
-    let (mut output, fidelity) = write::write(to, &module)?;
+    let (mut output, fidelity) = match sweep {
+        Some((context, _)) => write::write_in_context(to, &module, context)?,
+        None => write::write(to, &module)?,
+    };
 
     // A header, because a translated file that does not announce itself will be read
     // as though a person wrote it.
@@ -248,6 +299,95 @@ pub fn plan_to(
         edits,
         fidelity,
         output,
+    })
+}
+
+/// Point each parsed import at the sweep sibling it names, where it names one.
+///
+/// A sibling is a file in the importing file's own directory whose stem the
+/// import path reaches: `helpers` or `.helpers` from Python, `./helpers` from
+/// TypeScript. The import resolves only when the sibling declares every name
+/// it binds. Anything else keeps its path outside the sweep, so the writers
+/// keep it as a comment.
+fn resolve_sibling_imports(
+    module: &mut ir::Module,
+    path: &Path,
+    from: Language,
+    siblings: &BTreeMap<PathBuf, ir::Module>,
+) {
+    let Some(dir) = path.parent() else {
+        return;
+    };
+    for item in &mut module.items {
+        let ir::Item::Import {
+            target: Some(target),
+            ..
+        } = item
+        else {
+            continue;
+        };
+        if target.names.is_empty() {
+            continue;
+        }
+        let Some(stem) = sibling_stem(from, &target.module) else {
+            continue;
+        };
+        let sibling = siblings.iter().find(|(candidate, _)| {
+            candidate.as_path() != path
+                && candidate.parent() == Some(dir)
+                && candidate
+                    .file_stem()
+                    .is_some_and(|s| s.to_string_lossy() == stem.as_str())
+        });
+        let Some((_, declared)) = sibling else {
+            continue;
+        };
+        if target.names.iter().all(|n| declares(declared, &n.name)) {
+            target.resolved = Some(stem);
+        }
+    }
+}
+
+/// The sibling file stem an import path names, where it can name one.
+///
+/// Python reaches a sibling as `m` or `.m`, TypeScript as `./m`, with or
+/// without an extension. A dotted or nested path names a package beyond the
+/// directory, and a parent path leaves it, so neither is a sibling.
+fn sibling_stem(from: Language, module: &str) -> Option<String> {
+    match from {
+        Language::Python => {
+            let rest = module.strip_prefix('.').unwrap_or(module);
+            if rest.is_empty() || rest.contains('.') {
+                return None;
+            }
+            Some(rest.to_string())
+        }
+        Language::TypeScript | Language::Tsx => {
+            let rest = module.strip_prefix("./")?;
+            let rest = rest
+                .strip_suffix(".ts")
+                .or_else(|| rest.strip_suffix(".tsx"))
+                .unwrap_or(rest);
+            if rest.is_empty() || rest.contains('/') || rest.contains('.') {
+                return None;
+            }
+            Some(rest.to_string())
+        }
+        _ => None,
+    }
+}
+
+/// Does this module declare `name` where an import from a sibling can see it?
+fn declares(module: &ir::Module, name: &str) -> bool {
+    module.items.iter().any(|item| match item {
+        ir::Item::Function(f) => f.exported && f.name == name,
+        ir::Item::Record(r) => r.exported && r.name == name,
+        ir::Item::Constant(c) => c.exported && c.name == name,
+        ir::Item::Newtype(n) => n.exported && n.name == name,
+        ir::Item::Sum(s) => {
+            s.exported && (s.name == name || s.variants.iter().any(|v| v.name == name))
+        }
+        _ => false,
     })
 }
 

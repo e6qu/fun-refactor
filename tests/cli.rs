@@ -398,7 +398,7 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
     let ws = Workspace::new(&[
         (
             "one/a.go",
-            "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc Other() int {\n\treturn 2\n}\n",
+            "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc Other() int {\n\treturn Handle()\n}\n",
         ),
         ("two/b.go", "package two\n\nfunc Handle() int {\n\treturn 2\n}\n"),
     ]);
@@ -413,7 +413,17 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
             .status
             .code()
     };
+    assert_eq!(
+        code(&["extract", "one/a.go:4:9-4:2", "x"]),
+        Some(2),
+        "invalid input is 2, clap's own code."
+    );
     assert_eq!(code(&["def", "nosuch"]), Some(3), "not found is 3");
+    assert_eq!(
+        code(&["remove-flag", "NOT_A_FLAG"]),
+        Some(3),
+        "a flag nothing declares is not found."
+    );
     assert_eq!(code(&["def", "Handle"]), Some(4), "ambiguous is 4");
     // Renaming onto a name the same package already declares is a refusal.
     assert_eq!(
@@ -421,11 +431,130 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
         Some(5),
         "a refusal is 5"
     );
+    // Deleting a symbol something still calls is a refusal too. It used to exit 1
+    // because the message was raised as a plain error instead of a Refusal.
+    assert_eq!(
+        code(&["delete", "one/a.go:3:6"]),
+        Some(5),
+        "a blocked delete is a refusal."
+    );
     let (out, ok) = ws.run(&["--help"]);
     assert!(ok, "{out}");
     assert!(
         out.contains("Exit codes:"),
         "the long help documents the codes:\n{out}"
+    );
+}
+
+#[test]
+fn an_inverted_range_is_refused_with_both_ends_named() {
+    // `fr extract "a.go:8:20-8:5"` used to panic in the span constructor, which
+    // reported byte offsets instead of the typo.
+    let ws = workspace();
+    let output = Command::new(FR)
+        .arg("-C")
+        .arg(ws.root())
+        .args(["extract", "keep/a.go:8:20-8:5", "x"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert_eq!(output.status.code(), Some(2), "invalid input exits 2");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("the range's end (8:5) comes before its start (8:20)"),
+        "both ends are named:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("path:start_line:start_col-end_line:end_col"),
+        "the right shape is spelled out:\n{stderr}"
+    );
+}
+
+#[test]
+fn a_zero_column_is_told_that_columns_start_at_one() {
+    // Column 0 used to be read quietly as column 1, which shifts every answer by
+    // one for a caller counting from 0.
+    let ws = workspace();
+    let output = Command::new(FR)
+        .arg("-C")
+        .arg(ws.root())
+        .args(["def", "keep/a.go:3:0"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert_eq!(output.status.code(), Some(2), "invalid input exits 2");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("columns start at 1."), "got:\n{stderr}");
+}
+
+#[test]
+fn human_listings_print_workspace_relative_paths() {
+    // The docs quote relative paths and the diff headers already print them; the
+    // listings printed absolute ones. JSON keeps the absolute spelling.
+    let ws = Workspace::new(&[(
+        "one/a.go",
+        "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc use() int {\n\treturn Handle()\n}\n",
+    )]);
+    let canonical = ws.root().canonicalize().expect("the root resolves");
+    let absolute = canonical.display().to_string();
+
+    for args in [
+        vec!["refs", "Handle"],
+        vec!["usages", "Handle"],
+        vec!["def", "Handle"],
+        vec!["symbols"],
+        vec!["unused"],
+    ] {
+        let (out, ok) = ws.run(&args);
+        assert!(ok, "{args:?}:\n{out}");
+        assert!(out.contains("one/a.go"), "{args:?} names the file:\n{out}");
+        assert!(
+            !out.contains(&absolute),
+            "{args:?} spells it relative to the root:\n{out}"
+        );
+    }
+
+    // The JSON stays absolute, so a program joining outputs does no path arithmetic.
+    let (json, ok) = ws.run(&["refs", "Handle", "--json"]);
+    assert!(ok, "{json}");
+    assert!(
+        json.contains(&absolute),
+        "JSON keeps absolute paths:\n{json}"
+    );
+}
+
+#[test]
+fn a_misspelled_symbol_name_gets_a_nearest_name_suggestion() {
+    let ws = Workspace::new(&[(
+        "a.go",
+        "package p\n\nfunc greet() int {\n\treturn 1\n}\n\nfunc use() int {\n\treturn greet()\n}\n",
+    )]);
+    let (out, ok) = ws.run(&["refs", "gret"]);
+    assert!(!ok, "{out}");
+    assert!(out.contains("no symbol named 'gret'"), "got:\n{out}");
+    assert!(out.contains("Did you mean 'greet'?"), "got:\n{out}");
+
+    // The same names ride in the JSON error as data.
+    let (json, _) = ws.run(&["refs", "gret", "--json"]);
+    let parsed: serde_json::Value = serde_json::from_str(
+        json.lines()
+            .take_while(|l| !l.starts_with("Error:"))
+            .collect::<Vec<_>>()
+            .join("\n")
+            .as_str(),
+    )
+    .expect("valid JSON");
+    assert_eq!(parsed["error"]["suggestions"][0], "greet", "{parsed}");
+}
+
+#[test]
+fn translating_a_file_into_its_own_language_points_at_the_listing() {
+    let ws = Workspace::new(&[("x.py", "def f():\n    return 1\n")]);
+    let (out, ok) = ws.run(&["translate", "x.py", "python"]);
+    assert!(!ok, "{out}");
+    assert!(
+        out.contains("Run 'fr translate x.py' to list the languages it can be written as."),
+        "got:\n{out}"
     );
 }
 
