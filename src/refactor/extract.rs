@@ -681,24 +681,32 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     if let Some(owner) = straddled_block(&run) {
         let lines = crate::span::LineIndex::new(&source);
         let at = lines.line_col(Span::from(owner).start, &source);
-        anyhow::bail!(
-            "the selection crosses the body of the `{}` at {}:{}: one end is inside that \
-             body and the other is outside it, and a call cannot span that boundary, so \
-             this region cannot be extracted as-is",
-            block_keyword(owner),
-            file.display(),
-            at.line
-        );
+        return Err(Refusal::NotHere {
+            operation: "extracting a function".into(),
+            detail: format!(
+                "the selection crosses the body of the `{}` at {}:{}. One end is inside \
+                 that body and the other is outside it, and a call cannot span that \
+                 boundary.",
+                block_keyword(owner),
+                file.display(),
+                at.line
+            ),
+        }
+        .into());
     }
 
     // A jump out of the region cannot be reproduced by a call, so the extraction
     // would change control flow. Refuse and not produce something that compiles
     // but behaves differently.
     if let Some(kind) = escaping_control_flow(&parsed, region) {
-        anyhow::bail!(
-            "the selected code contains a `{kind}` that leaves the enclosing function; \
-             a call cannot reproduce that, so this region cannot be extracted as-is"
-        );
+        return Err(Refusal::NotHere {
+            operation: "extracting a function".into(),
+            detail: format!(
+                "the selected code contains a `{kind}` that leaves the enclosing \
+                 function. A call cannot reproduce that."
+            ),
+        }
+        .into());
     }
 
     if yields_to_caller(&parsed, region) {
