@@ -92,6 +92,11 @@ fn spellings(language: Language, module: &Module) -> Spellings {
         for stmt in stmts {
             match stmt {
                 Stmt::Let { name, .. } => add(name, Kind::Value, false),
+                Stmt::TupleAssign { names, .. } => {
+                    for name in names {
+                        add(name, Kind::Value, false);
+                    }
+                }
                 Stmt::ForEach { binding, body, .. } => {
                     add(binding, Kind::Value, false);
                     walk_stmts(body, add);
@@ -1141,6 +1146,7 @@ fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
             Stmt::Let { name, .. } => {
                 into.insert(name.clone());
             }
+            Stmt::TupleAssign { names, .. } => into.extend(names.iter().cloned()),
             Stmt::If {
                 then, otherwise, ..
             } => {
@@ -2013,6 +2019,20 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 let t = rust_expr(out, target);
                 let v = rust_expr(out, value);
                 out.line(&format!("{t} = {v};"));
+            }
+            Stmt::TupleAssign {
+                names,
+                value,
+                declares,
+                ..
+            } => {
+                let v = rust_expr(out, value);
+                let bound = joined(names, |n| match declares {
+                    true => format!("mut {}", out.name(n)),
+                    false => out.name(n),
+                });
+                let keyword = if *declares { "let " } else { "" };
+                out.line(&format!("{keyword}({bound}) = {v};"));
             }
             Stmt::If {
                 condition,
@@ -3209,6 +3229,12 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 let t = python_expr(out, target);
                 let v = python_expr(out, value);
                 python_line(out, &format!("{t} = {v}"));
+            }
+            // Python declares nothing, so both forms are the one line.
+            Stmt::TupleAssign { names, value, .. } => {
+                let v = python_expr(out, value);
+                let bound = joined(names, |n| out.name(n));
+                python_line(out, &format!("{bound} = {v}"));
             }
             Stmt::If {
                 condition,
@@ -4578,6 +4604,21 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 let v = go_expr(out, value);
                 out.line(&format!("{t} = {v}"));
             }
+            Stmt::TupleAssign {
+                names,
+                value,
+                declares,
+                ..
+            } => {
+                // A tuple on the right is Go's own comma list, and not a value.
+                let v = match value {
+                    Expr::Tuple(items) => joined(items, |i| go_expr(out, i)),
+                    other => go_expr(out, other),
+                };
+                let bound = joined(names, |n| out.name(n));
+                let operator = if *declares { ":=" } else { "=" };
+                out.line(&format!("{bound} {operator} {v}"));
+            }
             Stmt::If {
                 condition,
                 then,
@@ -5745,6 +5786,17 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 let v = ts_expr(out, value);
                 out.line(&format!("{t} = {v};"));
             }
+            Stmt::TupleAssign {
+                names,
+                value,
+                declares,
+                ..
+            } => {
+                let v = ts_expr(out, value);
+                let bound = joined(names, |n| out.name(n));
+                let keyword = if *declares { "let " } else { "" };
+                out.line(&format!("{keyword}[{bound}] = {v};"));
+            }
             Stmt::If {
                 condition,
                 then,
@@ -6812,6 +6864,16 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             let right = java_expr(out, value);
             out.line(&format!("{left} = {right};"));
         }
+        // Java has no tuple and no multiple return, so there is no line to
+        // write. Carried whole, the names it binds are at least in the file.
+        Stmt::TupleAssign { source, line, .. } => carry(
+            out,
+            &Unsupported {
+                construct: "multiple assignment".to_string(),
+                source: source.clone(),
+                line: *line,
+            },
+        ),
         Stmt::If {
             condition,
             then,
@@ -8106,6 +8168,15 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             let right = zig_expr(out, value);
             zig_line(out, &format!("{left} = {right};"));
         }
+        // Zig returns one value, so a pair has nothing to come from here.
+        Stmt::TupleAssign { source, line, .. } => carry(
+            out,
+            &Unsupported {
+                construct: "multiple assignment".to_string(),
+                source: source.clone(),
+                line: *line,
+            },
+        ),
         Stmt::If {
             condition,
             then,

@@ -374,7 +374,9 @@ fn binds_a_pattern(stmt: &Stmt) -> bool {
     };
     match stmt {
         Stmt::ForEach { binding, .. } => !plain(binding),
+        Stmt::ForEachIndexed { index, binding, .. } => !plain(index) || !plain(binding),
         Stmt::Let { name, .. } => !plain(name),
+        Stmt::TupleAssign { names, .. } => !names.iter().all(|n| plain(n)),
         _ => false,
     }
 }
@@ -2062,6 +2064,15 @@ mod python {
                 Stmt::Let { name, .. } => {
                     bound.insert(name.clone());
                 }
+                // A name already bound makes the whole statement an assignment.
+                // The targets that need the distinction cannot declare some of
+                // the names and assign the rest in one line either.
+                Stmt::TupleAssign {
+                    names, declares, ..
+                } => {
+                    *declares = names.iter().all(|n| !bound.contains(n));
+                    bound.extend(names.iter().cloned());
+                }
                 Stmt::If {
                     then, otherwise, ..
                 } => {
@@ -2069,7 +2080,25 @@ mod python {
                     rebindings(otherwise, bound);
                 }
                 Stmt::While { body, .. } => rebindings(body, bound),
+                Stmt::CountedFor {
+                    init, update, body, ..
+                } => {
+                    for header in [init, update].iter_mut().flat_map(|h| h.as_deref_mut()) {
+                        rebindings(std::slice::from_mut(header), bound);
+                    }
+                    rebindings(body, bound);
+                }
                 Stmt::ForEach { binding, body, .. } => {
+                    bound.insert(binding.clone());
+                    rebindings(body, bound);
+                }
+                Stmt::ForEachIndexed {
+                    index,
+                    binding,
+                    body,
+                    ..
+                } => {
+                    bound.insert(index.clone());
                     bound.insert(binding.clone());
                     rebindings(body, bound);
                 }
@@ -2803,6 +2832,13 @@ mod python {
                     }
                 }
                 Some(inner) if inner.kind() == "assignment" => {
+                    // `a, b = b, a` settles two names at once, and read as one
+                    // target it carried whole: the swap never happened.
+                    if let Some(left) = cx.field(*inner, "left") {
+                        if matches!(left.kind(), "pattern_list" | "tuple_pattern") {
+                            return tuple_assign(cx, node, *inner, left);
+                        }
+                    }
                     let target = cx.field(*inner, "left");
                     let value = cx.field(*inner, "right").map(|v| expr(cx, v));
                     // An annotated assignment to a bare name is a binding with a type.
@@ -2936,6 +2972,34 @@ mod python {
 
     /// Python does not distinguish declaration from assignment. Treated as a binding
     /// when it is a bare name, which a writer needs to emit `let`.
+    /// `a, b = b, a`: several names settled at once, when all of them are plain.
+    ///
+    /// Whether these names are new is settled afterwards by [`rebindings`],
+    /// which is where Python's one rule about that already lives.
+    fn tuple_assign(cx: &Cx, statement: Node<'_>, assignment: Node<'_>, left: Node<'_>) -> Stmt {
+        let names = cx.children(left);
+        if names.is_empty() || !names.iter().all(|n| n.kind() == "identifier") {
+            return Stmt::Unsupported(cx.unsupported(statement));
+        }
+        let value = match cx.field(assignment, "right") {
+            Some(right) if matches!(right.kind(), "expression_list") => {
+                Expr::Tuple(cx.children(right).iter().map(|n| expr(cx, *n)).collect())
+            }
+            Some(right) => expr(cx, right),
+            None => Expr::Null,
+        };
+        if has_unsupported_expr(&Stmt::Expr(value.clone())) {
+            return Stmt::Unsupported(cx.unsupported(statement));
+        }
+        Stmt::TupleAssign {
+            names: names.iter().map(|n| cx.text(*n)).collect(),
+            value,
+            declares: true,
+            source: cx.text(statement),
+            line: cx.line(statement),
+        }
+    }
+
     fn is_new_name(cx: &Cx, assignment: Node<'_>) -> bool {
         cx.field(assignment, "left")
             .map(|l| l.kind() == "identifier")
@@ -3707,10 +3771,64 @@ mod go {
             [only] if only.kind() == "statement_list" => cx.children_with_comments(*only),
             _ => children,
         };
-        statements
-            .iter()
-            .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
-            .collect()
+        let mut out: Vec<Stmt> = Vec::new();
+        let mut hoisted: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for node in statements {
+            let mut produced = stmts(cx, node);
+            // A hoisted header stands where the branch stood, and two sibling
+            // branches may bind the same names. Each was its own scope in Go;
+            // here they share one, so the second settles the names again.
+            if produced.len() > 1 {
+                if let Some(header) = produced.first_mut() {
+                    settle_again(header, &mut hoisted);
+                }
+            }
+            out.append(&mut produced);
+        }
+        out
+    }
+
+    /// Turn a hoisted header that re-binds names already hoisted into a plain
+    /// assignment, and remember the names either way.
+    fn settle_again(stmt: &mut Stmt, seen: &mut std::collections::BTreeSet<String>) {
+        match stmt {
+            Stmt::TupleAssign {
+                names, declares, ..
+            } => {
+                if !names.is_empty() && names.iter().all(|n| seen.contains(n)) {
+                    *declares = false;
+                }
+                seen.extend(names.iter().cloned());
+            }
+            Stmt::Let { name, value, .. } if seen.contains(name) => {
+                let target = Expr::Name(name.clone());
+                let value = value.take().unwrap_or(Expr::Null);
+                *stmt = Stmt::Assign { target, value };
+            }
+            Stmt::Let { name, .. } => {
+                seen.insert(name.clone());
+            }
+            _ => {}
+        }
+    }
+
+    /// One source statement as the statements it becomes.
+    ///
+    /// Go's `if` may run a statement in its header, and the IR's branch has no
+    /// room for one. `if m, ok := t.Min(); ok { }` dropped the whole header
+    /// with nothing said, so the branch tested a name the output never bound.
+    /// The header goes on the line before instead. That widens the scope of
+    /// what it binds, and every target here already scopes it that way.
+    fn stmts(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        let header = match node.kind() {
+            "if_statement" => cx.field(node, "initializer"),
+            _ => None,
+        };
+        let branch = keep_whole(cx, node, stmt(cx, node));
+        match header {
+            Some(init) => vec![keep_whole(cx, init, stmt(cx, init)), branch],
+            None => vec![branch],
+        }
     }
 
     /// An initializer with a failure anywhere inside it, carried as one whole.
@@ -3724,6 +3842,33 @@ mod go {
         match has_unsupported_expr(&Stmt::Expr(read.clone())) {
             true => Expr::Unsupported(cx.unsupported(node)),
             false => read,
+        }
+    }
+
+    /// `a, b := f()` and `a, b = b, a`: several names settled at once.
+    ///
+    /// Only plain names on the left. A target with an index or a field in it is
+    /// a shape the IR does not hold, and it carries whole.
+    fn tuple_assign(cx: &Cx, node: Node<'_>, names: &[Node<'_>], declares: bool) -> Stmt {
+        if !names.iter().all(|n| n.kind() == "identifier") {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        let value = match cx.field(node, "right") {
+            Some(right) => match cx.children(right).as_slice() {
+                [only] => expr(cx, *only),
+                several => Expr::Tuple(several.iter().map(|n| expr(cx, *n)).collect()),
+            },
+            None => Expr::Null,
+        };
+        if has_unsupported_expr(&Stmt::Expr(value.clone())) {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        Stmt::TupleAssign {
+            names: names.iter().map(|n| cx.text(*n)).collect(),
+            value,
+            declares,
+            source: cx.text(node),
+            line: cx.line(node),
         }
     }
 
@@ -3767,14 +3912,24 @@ mod go {
             // Both sides of `:=` and `=` arrive wrapped in an `expression_list`,
             // even when they hold one expression. Passing the wrapper to `expr`
             // carried every such statement whole.
-            "short_var_declaration" => Stmt::Let {
-                name: cx.field_text(node, "left").unwrap_or_default(),
-                ty: None,
-                value: cx
-                    .field(node, "right")
-                    .map(|v| whole_or_read(cx, v, unlisted(cx, v))),
-                mutable: true,
-            },
+            "short_var_declaration" => {
+                let left = cx.field(node, "left");
+                let names: Vec<Node> = left.map(|l| cx.children(l)).unwrap_or_default();
+                // `x, err := f()` binds a pair, which is what Go's second return
+                // value is for. Read as one name it became a binding called
+                // `x, err`, and every later use of either was undeclared.
+                if names.len() > 1 {
+                    return tuple_assign(cx, node, &names, true);
+                }
+                Stmt::Let {
+                    name: cx.field_text(node, "left").unwrap_or_default(),
+                    ty: None,
+                    value: cx
+                        .field(node, "right")
+                        .map(|v| whole_or_read(cx, v, unlisted(cx, v))),
+                    mutable: true,
+                }
+            }
             // `var wg sync.WaitGroup` declares a name whose type usually cannot
             // cross. The binding still has to exist: dropped whole, every later
             // statement read a name the output never declared. A value-less
@@ -3817,6 +3972,13 @@ mod go {
                 }
             }
             "assignment_statement" => {
+                let names: Vec<Node> = cx
+                    .field(node, "left")
+                    .map(|l| cx.children(l))
+                    .unwrap_or_default();
+                if names.len() > 1 {
+                    return tuple_assign(cx, node, &names, false);
+                }
                 let target = cx
                     .field(node, "left")
                     .map(|l| unlisted(cx, l))
@@ -3857,7 +4019,7 @@ mod go {
                 let otherwise = cx
                     .field(node, "alternative")
                     .map(|alt| match alt.kind() {
-                        "if_statement" => vec![stmt(cx, alt)],
+                        "if_statement" => stmts(cx, alt),
                         _ => block(cx, alt),
                     })
                     .unwrap_or_default();
@@ -8476,6 +8638,7 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(target, visit);
                 each_expr(value, visit);
             }
+            Stmt::TupleAssign { value, .. } => each_expr(value, visit),
             Stmt::If {
                 condition,
                 then,
@@ -8633,6 +8796,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             }
             Stmt::Return(_)
             | Stmt::Let { .. }
+            | Stmt::TupleAssign { .. }
             | Stmt::Assign { .. }
             | Stmt::Expr(_)
             | Stmt::Assert { .. }

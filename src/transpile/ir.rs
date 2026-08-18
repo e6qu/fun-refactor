@@ -385,6 +385,23 @@ pub enum Stmt {
         target: Expr,
         value: Expr,
     },
+    /// `a, b = b, a`, `x, err := f()`: several names settled at once.
+    ///
+    /// Four of these languages write it and two do not. Go returns pairs and
+    /// binds them this way, and Python has the same syntax to the character.
+    /// Carried as an unknown construct, the swap left `a` and `b` untouched and
+    /// the pair left `x` and `err` undeclared, both without a word said.
+    /// `declares` is Go's `:=` and Python's first binding of the names.
+    TupleAssign {
+        /// The names on the left, in order. Only plain names reach here; a
+        /// target with an index or a field in it carries instead.
+        names: Vec<String>,
+        value: Expr,
+        declares: bool,
+        /// The original, for the two writers with no form for this.
+        source: String,
+        line: usize,
+    },
     If {
         condition: Expr,
         then: Vec<Stmt>,

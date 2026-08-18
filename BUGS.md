@@ -175,6 +175,25 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B544: **a header that bound names was dropped under its branch.** Go's
+  `if` may run a statement in its header. `if m, ok := tree.Min(); ok { }`
+  lost the header with no marker at all. The branch then tested `ok` and
+  printed `m` while the output bound neither. The header is written before
+  the branch now. That widens the scope of what it binds, and every target
+  here already scopes it that way. Two sibling branches that bind the same
+  names shared one scope after the move, so the second settles them again
+  instead of declaring them twice. Pinned in
+  `tests/translate_orphaned_bindings.rs`, which runs both.
+
+- [x] B543: **`a, b = b, a` and `x, err := f()` carried, even into Python.**
+  Python has that syntax to the character. Go returns the pairs the first
+  line takes apart. Both were unknown constructs, so the swap never
+  happened and the pair left both its names undeclared. The IR settles several
+  names at once now. Python, Go, Rust and TypeScript each write their own
+  form. Java and Zig have no tuple, and carry the line whole rather than drop
+  the names. Pinned in `tests/translate_multiple_assignment.rs`. That gate
+  runs the Go, the Python and the Rust, and compares what they print.
+
 - [x] B542: **a Java entry from an unexported source would not start.** Go's
   `main` is lower-case. So the Java draft came out `private static void
   main`. The runtime answered "Main method not found
