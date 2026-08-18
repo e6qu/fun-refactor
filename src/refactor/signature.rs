@@ -391,14 +391,38 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             }
             let call_source = crate::vfs::read_to_string(&reference.file)?;
             let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
+            // A dispatch site this cannot rewrite is a call left with the old argument
+            // shape, and every member of the family has already changed. Passing over it
+            // is the partial update this refactoring exists to avoid. So each of the
+            // three ways of failing to reach the arguments refuses, and names the site.
+            let where_ = location(&reference.file, reference.span.start);
+            let out_of_reach = |why: &str| -> anyhow::Error {
+                Refusal::Unknowable {
+                    detail: format!(
+                        "`{}` is called at {where_}, where dispatch can reach the \
+                         declaration being changed, and {why}",
+                        sym.name
+                    ),
+                }
+                .into()
+            };
             let Some(call) = call_expression(&call_parsed, reference.span) else {
-                continue;
+                // A macro body is tokens and not syntax, so the grammar offers no call
+                // and no receiver. `println!("{}", s.draw(4))` was passed over in
+                // silence, and the report counted zero call sites.
+                return Err(out_of_reach(match reference.member_in_macro {
+                    true => {
+                        "it is written inside a macro, where the grammar records \
+                             tokens and not a call"
+                    }
+                    false => "the grammar exposes no call expression there",
+                }));
             };
             if call.has_error() {
-                continue;
+                return Err(out_of_reach("that call does not parse cleanly"));
             }
             let Some((opens_at, arg_spans)) = call_arguments(call) else {
-                continue;
+                return Err(out_of_reach("that call has no argument list to rewrite"));
             };
             apply_change(
                 &mut edits,

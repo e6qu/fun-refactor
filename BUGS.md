@@ -175,6 +175,16 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B563: **`fr signature` was blind to a macro-hidden method call.**
+  `println!("{}", s.draw(4))` gives the grammar tokens and not a call. The
+  dispatch pass passed over it without a word. The trait and the impl both grew
+  a parameter, the report said "0 call sites", and the crate stopped compiling.
+  A dispatch site the pass cannot reach now refuses and names the site. Out of
+  reach means a macro body, a call the grammar hides, an unparseable call, or a
+  call with no argument list. Rename was checked for the same hole and has
+  none. It rewrites the name where it stands and reports the site as a dispatch
+  candidate. Pinned in `tests/rust_receivers.rs`.
+
 - [x] B562: **a Terraform rename left the module call behind.** Renaming a
   module's `variable "region"` rewrote the module's own `var.region` reads and
   reported success. The caller's `module "net" { region = ... }` kept the old
