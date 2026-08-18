@@ -262,6 +262,15 @@ pub struct ImportedName {
     pub alias: Option<String>,
 }
 
+/// One arm of a [`Stmt::MatchVariants`]: the variant it selects, the payload
+/// fields the body reads (field name, local name), and the body itself.
+#[derive(Debug, Clone)]
+pub struct VariantArm {
+    pub variant: String,
+    pub bindings: Vec<(String, String)>,
+    pub body: Vec<Stmt>,
+}
+
 /// Something with no counterpart, carried whole so nothing is lost.
 #[derive(Debug, Clone)]
 pub struct Unsupported {
@@ -433,6 +442,23 @@ pub enum Stmt {
         /// Each arm: the literals that select it, and its body.
         arms: Vec<(Vec<Expr>, Vec<Stmt>)>,
         /// The `_` / `else` / `default` body; empty when the source had none.
+        default: Vec<Stmt>,
+    },
+    /// One sum value branched by variant, each arm's payload bound by name.
+    ///
+    /// The construction crossed a pass before the consumption did: `s.kind ==
+    /// "circle"` and `s.radius` went to Rust verbatim, against an enum that
+    /// declares neither, while the header said every signature carried. Each
+    /// language asks the question its own way. TypeScript compares the
+    /// discriminator, Python asks `isinstance`, Rust and Zig match, Go switches
+    /// on type, Java tests `instanceof`. The bindings are the payload fields an
+    /// arm actually reads, bound to plain locals so every writer can spell the
+    /// narrowing without knowing the others' idioms.
+    MatchVariants {
+        subject: Expr,
+        sum: String,
+        arms: Vec<VariantArm>,
+        /// The `else` / `default` body; empty when the source had none.
         default: Vec<Stmt>,
     },
     /// `while let Some(x) = e`, `while (e) |x|`: loop while the optional holds a

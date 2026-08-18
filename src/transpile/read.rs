@@ -6457,6 +6457,7 @@ mod typescript {
         settle_builtins(&mut module);
         settle_unions(&mut module, unions);
         settle_kind_literals(&mut module);
+        settle_variant_narrowing(&mut module);
         // A brand travels with a constructor function bearing its own name; this
         // tool's TypeScript writer emits one. Read back as content it duplicates
         // the newtype, and its lower-case spelling wins over the type's.
@@ -6753,7 +6754,7 @@ mod typescript {
             let answering: Vec<&(String, String, std::collections::BTreeSet<String>)> = variants
                 .iter()
                 .filter(|(_, name, fields)| {
-                    super::super::write::snake_always(name) == *tag_value && rest.is_subset(fields)
+                    crate::transpile::write::snake_always(name) == *tag_value && rest.is_subset(fields)
                 })
                 .collect();
             let [(sum, name, _)] = answering.as_slice() else {
@@ -7977,6 +7978,18 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr_in_stmts(body, visit);
             }
             Stmt::Defer(body) | Stmt::ErrDefer(body) => each_expr_in_stmts(body, visit),
+            Stmt::MatchVariants {
+                subject,
+                arms,
+                default,
+                ..
+            } => {
+                each_expr(subject, visit);
+                for arm in arms.iter_mut() {
+                    each_expr_in_stmts(&mut arm.body, visit);
+                }
+                each_expr_in_stmts(default, visit);
+            }
             Stmt::Switch {
                 subject,
                 arms,
@@ -8038,6 +8051,12 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
             Stmt::Defer(body) | Stmt::ErrDefer(body) => each_stmt_in_stmts(body, visit),
+            Stmt::MatchVariants { arms, default, .. } => {
+                for arm in arms.iter_mut() {
+                    each_stmt_in_stmts(&mut arm.body, visit);
+                }
+                each_stmt_in_stmts(default, visit);
+            }
             Stmt::Switch { arms, default, .. } => {
                 for (_, body) in arms {
                     each_stmt_in_stmts(body, visit);
@@ -8240,6 +8259,214 @@ fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
 /// the module declares stays and takes the sum's plain name. A candidate in
 /// callee position or naming anything else goes back to being carried, which
 /// every such path was before candidates existed.
+/// Branches that ask "which variant is this?" become the match they are.
+///
+/// The construction crossed a pass before the consumption did: `s.kind ==
+/// "circle"` and `s.radius` went to Rust verbatim, against an enum that
+/// declares neither. An `if`/`else if` chain or a `switch` comparing one
+/// subject's field against literals that name the variants of exactly one
+/// module sum is a variant match. Each arm's payload reads through the
+/// subject become plain locals, so every writer can spell the narrowing its
+/// own way. A chain that mixes in any other condition stays what it was.
+fn settle_variant_narrowing(module: &mut Module) {
+    use std::collections::BTreeMap;
+    let sums: BTreeMap<String, BTreeMap<String, Vec<String>>> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some((
+                s.name.clone(),
+                s.variants
+                    .iter()
+                    .map(|v| {
+                        (
+                            v.name.clone(),
+                            v.fields.iter().map(|f| f.name.clone()).collect(),
+                        )
+                    })
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
+    if sums.is_empty() {
+        return;
+    }
+    // The variant a literal names, when exactly one sum answers for it.
+    let variant_of = |lit: &str| -> Option<(String, String)> {
+        let mut found = None;
+        for (sum, variants) in &sums {
+            for name in variants.keys() {
+                if crate::transpile::write::snake_always(name) == lit {
+                    match found {
+                        None => found = Some((sum.clone(), name.clone())),
+                        Some(_) => return None,
+                    }
+                }
+            }
+        }
+        found
+    };
+    // `cond` as "this subject's field equals this literal", either way round.
+    fn tag_test(cond: &Expr) -> Option<(&Expr, &str)> {
+        let Expr::Binary {
+            op: BinaryOp::Eq,
+            left,
+            right,
+        } = cond
+        else {
+            return None;
+        };
+        match (left.as_ref(), right.as_ref()) {
+            (Expr::Field { of, .. }, Expr::Str(lit)) => Some((of.as_ref(), lit.as_str())),
+            (Expr::Str(lit), Expr::Field { of, .. }) => Some((of.as_ref(), lit.as_str())),
+            _ => None,
+        }
+    }
+    // Replace the payload reads of `variant` through `subject` with locals and
+    // say which fields were read.
+    fn bind_payload(
+        body: &mut Vec<Stmt>,
+        subject: &str,
+        fields: &[String],
+    ) -> Vec<(String, String)> {
+        let mut bound: Vec<(String, String)> = Vec::new();
+        each_expr_in_stmts(body, &mut |e| {
+            if let Expr::Field { of, name } = e {
+                if format!("{of:?}") == subject && fields.contains(name) {
+                    if !bound.iter().any(|(f, _)| f == name) {
+                        bound.push((name.clone(), name.clone()));
+                    }
+                    *e = Expr::Name(name.clone());
+                }
+            }
+        });
+        bound
+    }
+    let mut settle = |stmt: &mut Stmt| {
+        match stmt {
+            Stmt::If { condition, .. } => {
+                let Some((subject, lit)) = tag_test(condition) else {
+                    return;
+                };
+                if variant_of(lit).is_none() {
+                    return;
+                }
+                let subject = subject.clone();
+                let key = format!("{subject:?}");
+                // Walk the chain, collecting arms while every link keeps the shape.
+                let mut arms: Vec<VariantArm> = Vec::new();
+                let mut default: Vec<Stmt> = Vec::new();
+                let mut sum_name = String::new();
+                let mut current = std::mem::replace(stmt, Stmt::Expr(Expr::Null));
+                let mut rest = &mut current;
+                loop {
+                    let Stmt::If {
+                        condition,
+                        then,
+                        otherwise,
+                    } = rest
+                    else {
+                        unreachable!("only an if enters the loop");
+                    };
+                    let settled = tag_test(condition)
+                        .filter(|(s, _)| format!("{s:?}") == key)
+                        .and_then(|(_, lit)| variant_of(lit));
+                    let Some((sum, variant)) = settled else {
+                        // A link that stopped matching: the whole remainder is
+                        // the default, and the chain closes here.
+                        break;
+                    };
+                    sum_name = sum;
+                    let fields = sums[&sum_name][&variant].clone();
+                    let mut body = std::mem::take(then);
+                    let bindings = bind_payload(&mut body, &key, &fields);
+                    arms.push(VariantArm {
+                        variant,
+                        bindings,
+                        body,
+                    });
+                    match otherwise.as_mut_slice() {
+                        [Stmt::If { .. }] => {
+                            let mut chain = std::mem::take(otherwise);
+                            *rest = chain.pop().expect("just matched one");
+                            continue;
+                        }
+                        _ => {
+                            default = std::mem::take(otherwise);
+                            *rest = Stmt::Expr(Expr::Null);
+                            break;
+                        }
+                    }
+                }
+                // A remainder that broke the shape becomes the default arm.
+                if !matches!(rest, Stmt::Expr(Expr::Null)) {
+                    default = vec![std::mem::replace(rest, Stmt::Expr(Expr::Null))];
+                }
+                *stmt = Stmt::MatchVariants {
+                    subject,
+                    sum: sum_name,
+                    arms,
+                    default,
+                };
+            }
+            Stmt::Switch {
+                subject: Expr::Field { of, .. },
+                arms,
+                default,
+            } => {
+                let all: Option<Vec<(String, String)>> = arms
+                    .iter()
+                    .map(|(literals, _)| match literals.as_slice() {
+                        [Expr::Str(lit)] => variant_of(lit),
+                        _ => None,
+                    })
+                    .collect();
+                let Some(settled) = all else { return };
+                let Some(sum) = settled.first().map(|(s, _)| s.clone()) else {
+                    return;
+                };
+                if settled.iter().any(|(s, _)| *s != sum) {
+                    return;
+                }
+                let subject = of.as_ref().clone();
+                let key = format!("{subject:?}");
+                let built: Vec<VariantArm> = std::mem::take(arms)
+                    .into_iter()
+                    .zip(settled)
+                    .map(|((_, mut body), (_, variant))| {
+                        let fields = sums[&sum][&variant].clone();
+                        let bindings = bind_payload(&mut body, &key, &fields);
+                        VariantArm {
+                            variant,
+                            bindings,
+                            body,
+                        }
+                    })
+                    .collect();
+                *stmt = Stmt::MatchVariants {
+                    subject,
+                    sum,
+                    arms: built,
+                    default: std::mem::take(default),
+                };
+            }
+            _ => {}
+        }
+    };
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => each_stmt_in_stmts(&mut f.body, &mut settle),
+            Item::Record(r) => {
+                for m in &mut r.methods {
+                    each_stmt_in_stmts(&mut m.body, &mut settle);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 fn settle_variants(module: &mut Module) {
     use std::collections::{BTreeMap, BTreeSet};
     let records: BTreeSet<String> = module

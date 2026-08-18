@@ -1253,7 +1253,7 @@ fn rust(out: &mut Out, module: &Module) {
                 out.line("#[test]");
                 out.line(&format!("fn {slug}() {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, None);
                 out.close();
                 out.line("}");
                 out.fidelity.functions += 1;
@@ -1355,7 +1355,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         params.join(", ")
     ));
     out.open();
-    rust_block(out, &f.body);
+    rust_block(out, &f.body, f.returns.as_ref());
     out.close();
     out.line("}");
 
@@ -1442,7 +1442,7 @@ fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<
     ))
 }
 
-fn rust_block(out: &mut Out, body: &[Stmt]) {
+fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     if body.is_empty() {
         out.line("todo!()");
         return;
@@ -1458,10 +1458,17 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
         at += 1;
         match stmt {
             Stmt::Return(value) => {
-                let text = value
+                let mut text = value
                     .as_ref()
                     .map(|v| rust_expr(out, v))
                     .unwrap_or_default();
+                // `return 0` under a signature that promised a float: Go and Zig
+                // coerce the untyped literal, Rust refuses it.
+                if matches!(returns, Some(Type::Float))
+                    && matches!(value, Some(Expr::Int(_)))
+                {
+                    text.push_str(".0");
+                }
                 out.line(&format!("return {text};"));
             }
             Stmt::Let {
@@ -1495,14 +1502,14 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let c = rust_expr(out, condition);
                 out.line(&format!("if {c} {{"));
                 out.open();
-                rust_block(out, then);
+                rust_block(out, then, returns);
                 out.close();
                 if otherwise.is_empty() {
                     out.line("}");
                 } else {
                     out.line("} else {");
                     out.open();
-                    rust_block(out, otherwise);
+                    rust_block(out, otherwise, returns);
                     out.close();
                     out.line("}");
                 }
@@ -1517,17 +1524,66 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("if let Some({bound}) = {v} {{"));
                 out.open();
-                rust_block(out, then);
+                rust_block(out, then, returns);
                 out.close();
                 if otherwise.is_empty() {
                     out.line("}");
                 } else {
                     out.line("} else {");
                     out.open();
-                    rust_block(out, otherwise);
+                    rust_block(out, otherwise, returns);
                     out.close();
                     out.line("}");
                 }
+            }
+            Stmt::MatchVariants {
+                subject,
+                sum,
+                arms,
+                default,
+            } => {
+                let s = rust_expr(out, subject);
+                let owner = out.name(sum);
+                out.line(&format!("match {s} {{"));
+                out.open();
+                for arm in arms {
+                    let variant = out.name(&arm.variant);
+                    let pattern = match arm.bindings.is_empty() {
+                        true => format!("{owner}::{variant}"),
+                        false => {
+                            let bound = arm
+                                .bindings
+                                .iter()
+                                .map(|(field, local)| {
+                                    let field = out.field(field);
+                                    let local = out.name(local);
+                                    match field == local {
+                                        true => field,
+                                        false => format!("{field}: {local}"),
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            format!("{owner}::{variant} {{ {bound}, .. }}")
+                        }
+                    };
+                    out.line(&format!("{pattern} => {{"));
+                    out.open();
+                    rust_block(out, &arm.body, returns);
+                    out.close();
+                    out.line("}");
+                }
+                if default.is_empty() {
+                    out.line("_ => {}");
+                } else {
+                    out.line("_ => {");
+                    out.open();
+                    rust_block(out, default, returns);
+                    out.close();
+                    out.line("}");
+                }
+                out.close();
+                out.line("}");
             }
             Stmt::Switch {
                 subject,
@@ -1541,7 +1597,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                     let pattern: Vec<String> = literals.iter().map(|l| rust_expr(out, l)).collect();
                     out.line(&format!("{} => {{", pattern.join(" | ")));
                     out.open();
-                    rust_block(out, body);
+                    rust_block(out, body, returns);
                     out.close();
                     out.line("}");
                 }
@@ -1552,7 +1608,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 } else {
                     out.line("_ => {");
                     out.open();
-                    rust_block(out, default);
+                    rust_block(out, default, returns);
                     out.close();
                     out.line("}");
                 }
@@ -1569,7 +1625,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 scratch.names = out.names.clone();
                 scratch.fields = out.fields.clone();
                 scratch.declared_types = out.declared_types.clone();
-                rust_block(&mut scratch, cleanup);
+                rust_block(&mut scratch, cleanup, None);
                 let rendered = scratch.finish();
                 out.carried(&Unsupported {
                     construct: match failure_only {
@@ -1600,7 +1656,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("while let Some({bound}) = {v} {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1608,7 +1664,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let c = rust_expr(out, condition);
                 out.line(&format!("while {c} {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1623,7 +1679,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("for ({i}, {bound}) in {it}.iter().enumerate() {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -1636,7 +1692,7 @@ fn rust_block(out: &mut Out, body: &[Stmt]) {
                 let bound = out.name(binding);
                 out.line(&format!("for {bound} in {it} {{"));
                 out.open();
-                rust_block(out, body);
+                rust_block(out, body, returns);
                 out.close();
                 out.line("}");
             }
@@ -2524,6 +2580,36 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     python_line(out, "else:");
                     out.open();
                     python_block(out, otherwise);
+                    out.close();
+                }
+            }
+            Stmt::MatchVariants {
+                subject,
+                arms,
+                default,
+                ..
+            } => {
+                let s = python_expr(out, subject);
+                for (at, arm) in arms.iter().enumerate() {
+                    let head = if at == 0 { "if" } else { "elif" };
+                    out.line(&format!(
+                        "{head} isinstance({s}, {}):",
+                        out.name(&arm.variant)
+                    ));
+                    out.open();
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!("{} = {s}.{}", out.name(local), out.field(field)));
+                    }
+                    if arm.bindings.is_empty() && arm.body.is_empty() {
+                        out.line("pass");
+                    }
+                    python_block(out, &arm.body);
+                    out.close();
+                }
+                if !default.is_empty() {
+                    out.line("else:");
+                    out.open();
+                    python_block(out, default);
                     out.close();
                 }
             }
@@ -3821,6 +3907,35 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.line("}");
                 }
             }
+            Stmt::MatchVariants {
+                subject,
+                arms,
+                default,
+                ..
+            } => {
+                let s = go_expr(out, subject);
+                let bound = arms.iter().any(|arm| !arm.bindings.is_empty());
+                match bound {
+                    true => out.line(&format!("switch v := {s}.(type) {{")),
+                    false => out.line(&format!("switch {s}.(type) {{")),
+                }
+                for arm in arms {
+                    out.line(&format!("case {}:", out.name(&arm.variant)));
+                    out.open();
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!("{} := v.{}", out.name(local), out.field(field)));
+                    }
+                    go_block(out, &arm.body, returns);
+                    out.close();
+                }
+                if !default.is_empty() {
+                    out.line("default:");
+                    out.open();
+                    go_block(out, default, returns);
+                    out.close();
+                }
+                out.line("}");
+            }
             Stmt::Switch {
                 subject,
                 arms,
@@ -4908,6 +5023,45 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                     out.line("}");
                 }
             }
+            Stmt::MatchVariants {
+                subject,
+                sum,
+                arms,
+                default,
+            } => {
+                let s = ts_expr(out, subject);
+                let tag = out
+                    .sum_items
+                    .get(sum)
+                    .map(discriminator)
+                    .unwrap_or_else(|| "kind".to_string());
+                out.line(&format!("switch ({s}.{tag}) {{"));
+                out.open();
+                for arm in arms {
+                    out.line(&format!("case \"{}\": {{", snake_always(&arm.variant)));
+                    out.open();
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!(
+                            "const {} = {s}.{};",
+                            out.name(local),
+                            out.field(field)
+                        ));
+                    }
+                    ts_block(out, &arm.body);
+                    out.line("break;");
+                    out.close();
+                    out.line("}");
+                }
+                if !default.is_empty() {
+                    out.line("default: {");
+                    out.open();
+                    ts_block(out, default);
+                    out.close();
+                    out.line("}");
+                }
+                out.close();
+                out.line("}");
+            }
             Stmt::Switch {
                 subject,
                 arms,
@@ -5891,6 +6045,38 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 out.line("} else {");
                 out.open();
                 java_block(out, otherwise, None);
+                out.close();
+                out.line("}");
+            }
+        }
+        Stmt::MatchVariants {
+            subject,
+            arms,
+            default,
+            ..
+        } => {
+            let s = java_expr(out, subject);
+            for (at, arm) in arms.iter().enumerate() {
+                let variant = out.name(&arm.variant);
+                let head = if at == 0 { "if" } else { "} else if" };
+                out.line(&format!("{head} ({s} instanceof {variant}) {{"));
+                out.open();
+                for (field, local) in &arm.bindings {
+                    out.line(&format!(
+                        "var {} = (({variant}) {s}).{}();",
+                        out.name(local),
+                        out.field(field)
+                    ));
+                }
+                java_block(out, &arm.body, None);
+                out.close();
+            }
+            if default.is_empty() {
+                out.line("}");
+            } else {
+                out.line("} else {");
+                out.open();
+                java_block(out, default, None);
                 out.close();
                 out.line("}");
             }
@@ -7112,6 +7298,51 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.close();
                 out.line("}");
             }
+        }
+        Stmt::MatchVariants {
+            subject,
+            arms,
+            default,
+            ..
+        } => {
+            let s = zig_expr(out, subject);
+            out.line(&format!("switch ({s}) {{"));
+            out.open();
+            for arm in arms {
+                let tag = snake_always(&arm.variant);
+                match arm.bindings.as_slice() {
+                    [] => out.line(&format!(".{tag} => {{")),
+                    [(field, local)] if field == "value" => {
+                        out.line(&format!(".{tag} => |{}| {{", out.name(local)));
+                    }
+                    _ => out.line(&format!(".{tag} => |fields_of_{tag}| {{")),
+                }
+                out.open();
+                if arm.bindings.len() > 1 || matches!(arm.bindings.as_slice(), [(f, _)] if f != "value")
+                {
+                    for (field, local) in &arm.bindings {
+                        out.line(&format!(
+                            "const {} = fields_of_{tag}.{};",
+                            out.name(local),
+                            out.field(field)
+                        ));
+                    }
+                }
+                zig_block(out, &arm.body, None, mutated);
+                out.close();
+                out.line("},");
+            }
+            if default.is_empty() {
+                out.line("else => {},");
+            } else {
+                out.line("else => {");
+                out.open();
+                zig_block(out, default, None, mutated);
+                out.close();
+                out.line("},");
+            }
+            out.close();
+            out.line("}");
         }
         Stmt::Switch {
             subject,
