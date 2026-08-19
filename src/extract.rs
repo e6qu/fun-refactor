@@ -99,6 +99,7 @@ fn symbol_kind(name: &str) -> Option<SymbolKind> {
         "heading" => SymbolKind::Heading,
         "link-def" => SymbolKind::LinkDef,
         "element-id" => SymbolKind::ElementId,
+        "data-attribute" => SymbolKind::DataAttribute,
         _ => return None,
     })
 }
@@ -123,6 +124,7 @@ fn reference_expects(name: &str) -> Option<SymbolKind> {
     Some(match name {
         "selector" => SymbolKind::Selector,
         "element-id" => SymbolKind::ElementId,
+        "data-attribute" => SymbolKind::DataAttribute,
         _ => return None,
     })
 }
@@ -919,7 +921,10 @@ fn kind_specificity(kind: SymbolKind) -> u8 {
         SymbolKind::Field => 2,
         SymbolKind::Constant => 3,
         SymbolKind::Anchor | SymbolKind::Heading | SymbolKind::LinkDef => 4,
-        SymbolKind::Selector | SymbolKind::Property | SymbolKind::ElementId => 5,
+        SymbolKind::Selector
+        | SymbolKind::Property
+        | SymbolKind::ElementId
+        | SymbolKind::DataAttribute => 5,
         SymbolKind::Function
         | SymbolKind::Class
         | SymbolKind::Struct

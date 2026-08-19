@@ -71,7 +71,19 @@ pub fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
         let kind = node.kind();
         // Grammars name these differently: string_literal, raw_string_literal,
         // interpreted_string_literal, line_comment, block_comment, comment.
-        if kind.contains("string") || kind.contains("comment") || kind.contains("char_literal") {
+        //
+        // Markdown has neither a string nor a comment: the whole document is prose.
+        // Its paragraph text is one `inline` node and its fenced code is
+        // `code_fence_content`. Without those two, a style guide writing
+        // `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html fence,
+        // was walked past twice. A cross-language rename said nothing about either.
+        let prose = parsed.language == crate::lang::Language::Markdown
+            && matches!(kind, "inline" | "code_fence_content");
+        if prose
+            || kind.contains("string")
+            || kind.contains("comment")
+            || kind.contains("char_literal")
+        {
             spans.push(Span::from(node));
             recurse = false;
         }

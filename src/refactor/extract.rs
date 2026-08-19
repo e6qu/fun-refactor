@@ -1885,21 +1885,39 @@ fn yaml_anchor(
     let selected_span = Span::from(selected);
     let value_text = selected_span.text(&source).to_string();
 
-    let occurrences: Vec<Span> = if all_occurrences {
-        collect_nodes(parsed.root(), |n| {
-            yaml_is_anchorable(n, &source) && Span::from(n).text(&source) == value_text
-        })
-        .into_iter()
-        .map(Span::from)
-        .collect()
-    } else {
-        vec![selected_span]
-    };
-    let occurrences = if occurrences.is_empty() {
-        vec![selected_span]
-    } else {
-        occurrences
-    };
+    let mut occurrences: Vec<Span> = collect_nodes(parsed.root(), |n| {
+        yaml_is_anchorable(n, &source) && Span::from(n).text(&source) == value_text
+    })
+    .into_iter()
+    .map(Span::from)
+    .collect();
+    if occurrences.is_empty() {
+        occurrences = vec![selected_span];
+    }
+
+    // An anchor binds a name to a value and an alias spends it. Writing the anchor
+    // alone leaves every occurrence spelled out, so the file says what it said before.
+    // A YAML extraction is the pair or it is nothing.
+    if !all_occurrences {
+        let others = occurrences.len().saturating_sub(1);
+        let detail = match others {
+            0 => format!(
+                "`{value_text}` is written once in {}, so an anchor would bind a name \
+                 that nothing spends",
+                file.display()
+            ),
+            _ => format!(
+                "an anchor alone changes nothing; pass --all to alias the {others} other \
+                 occurrence(s) of `{value_text}` in {}",
+                file.display()
+            ),
+        };
+        return Err(Refusal::NotHere {
+            operation: "extract a YAML anchor".into(),
+            detail,
+        }
+        .into());
+    }
 
     if let Some(clash) = occurrences
         .iter()

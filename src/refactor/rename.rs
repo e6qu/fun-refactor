@@ -367,16 +367,21 @@ fn validate_name(name: &str, language: Language, kind: SymbolKind) -> Result<(),
     // Config and markup languages allow far more in a name (CSS classes may contain
     // dashes, YAML keys may contain almost anything), so only the imperative
     // languages get identifier rules.
-    let strict = matches!(
-        language,
-        Language::Rust
-            | Language::Go
-            | Language::Zig
-            | Language::TypeScript
-            | Language::Tsx
-            | Language::Python
-            | Language::Bash
-    );
+    // A `data-*` hook is a string the markup and the component agree on, so it takes
+    // a dash wherever it is written. Its language is whichever file the index found
+    // it in first, and the TSX spelling of `data-testid="submit-btn"` is the same
+    // string as the HTML one.
+    let strict = kind != SymbolKind::DataAttribute
+        && matches!(
+            language,
+            Language::Rust
+                | Language::Go
+                | Language::Zig
+                | Language::TypeScript
+                | Language::Tsx
+                | Language::Python
+                | Language::Bash
+        );
 
     if strict {
         let mut chars = name.chars();

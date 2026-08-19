@@ -1572,3 +1572,26 @@ expression. A property read spells its name from the method namespace, so a
 two-word property survives the crossing. The measure: the inventory fixture
 crosses to TypeScript, compiles under `tsc --strict`, runs under node, and a
 violated assert stops it with a nonzero exit.
+
+### The pass where the seams stopped swallowing things
+
+A probe over the joints between languages found eleven, B600 through B610.
+The theme is a seam: a place where one model hands to another and something
+fell in the gap without a word.
+
+A Markdown section carried the document's link definitions off with it, so
+the links left behind resolved to nothing. A YAML anchor was written with no
+alias to spend it, and counted as a replacement. `fr remove-flag` refused the
+qualified name `fr symbols` prints, and, once it took it, wrote `Flags.true`
+over a use read through its owner. Three `fr signature` refusals printed
+under exit 1, the code for a crash.
+
+The rest are answers that read as facts and were not. `fr callers` on SCSS
+printed the name and exited 0, which a reader takes for "nothing calls this".
+A resolved call at file scope counted among the unresolved. A `data-*` hook
+shared by markup and its component was no symbol at all. A link into an id
+nothing declares had no report anywhere. Markdown was invisible to the
+mention sweep, having neither a string node nor a comment node. So a style
+guide naming a CSS class went unlisted through a rename. A chart with no
+`Chart.yaml` was read as plain YAML, and `fr stitch` began its chain one hop
+in.

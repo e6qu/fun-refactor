@@ -391,6 +391,60 @@ fn a_closed_stdout_ends_the_run_quietly_instead_of_panicking() {
 }
 
 #[test]
+fn a_name_nothing_declares_lists_the_sites_that_write_it() {
+    // `<a href="#section-two">` with no element carrying that id had no report
+    // anywhere. "no symbol named" reads as a typo in the question, so the sites
+    // that write the name ride with it.
+    let ws = Workspace::new(&[(
+        "index.html",
+        "<html><body>\n<a href=\"#section-two\">Jump</a>\n</body></html>\n",
+    )]);
+
+    let (said, ok) = ws.run(&["usages", "section-two"]);
+    assert!(!ok, "{said}");
+    assert!(said.contains("reach no definition"), "got:\n{said}");
+    assert!(said.contains("index.html:2:11"), "got:\n{said}");
+}
+
+#[test]
+fn a_signature_change_that_would_strand_a_read_is_a_refusal() {
+    // These printed a considered refusal under exit 1, the code for a crash, while
+    // `fr --help` promised 5 for one. Both languages route through the same type now.
+    let ws = Workspace::new(&[
+        (
+            "m.scss",
+            "@mixin box($pad, $col) {\n  padding: $pad;\n  color: $col;\n}\n\
+             .a { @include box(4px, red); }\n",
+        ),
+        (
+            "main.tf",
+            "module \"net\" {\n  source = \"./modules/net\"\n  cidr = \"10.0.0.0/16\"\n}\n",
+        ),
+        (
+            "modules/net/main.tf",
+            "variable \"cidr\" {\n  type = string\n}\n\noutput \"o\" {\n  value = var.cidr\n}\n",
+        ),
+    ]);
+    let code = |args: &[&str]| {
+        Command::new(FR)
+            .arg("-C")
+            .arg(ws.root())
+            .args(args)
+            .env("FUN_REFACTOR_CACHE", ws.cache.path())
+            .output()
+            .expect("fr should run")
+            .status
+            .code()
+    };
+    assert_eq!(code(&["signature", "box", "remove:0"]), Some(5));
+    assert_eq!(code(&["signature", "net", "remove:0"]), Some(5));
+
+    let (said, ok) = ws.run(&["signature", "box", "remove:0"]);
+    assert!(!ok, "{said}");
+    assert!(said.contains("still reads `$pad`"), "got:\n{said}");
+}
+
+#[test]
 fn each_kind_of_domain_failure_has_its_own_exit_code() {
     // Every domain failure used to exit 1. A script had to parse prose to tell
     // "no such symbol" from "two symbols answer to that name". The codes are in

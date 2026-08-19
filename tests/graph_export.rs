@@ -112,6 +112,40 @@ fn dot_labels_carry_the_file_under_the_name() {
 }
 
 #[test]
+fn a_call_at_file_scope_is_counted_apart_from_an_unresolved_one() {
+    // A shell script calls its own function at the top level. The callee resolves,
+    // and the caller is no function, so the graph has no node to hang it off.
+    // Counting it as unresolved said the call could not be resolved, while
+    // `fr usages` resolved it in the same workspace.
+    let tmp = workspace(&[(
+        "lib.sh",
+        "#!/usr/bin/env bash\ndeploy() {\n  target=prod\n}\n\ndeploy\n",
+    )]);
+    let printed = graph_json(&tmp);
+
+    assert_eq!(printed["file_scope_calls"], 1, "got:\n{printed}");
+    assert_eq!(printed["unresolved_calls"], 0, "got:\n{printed}");
+}
+
+#[test]
+fn a_language_with_no_call_graph_refuses_instead_of_answering_nothing() {
+    // The matrix says `n/a` for SCSS, and the caller pointed at one symbol. The
+    // command printed the name and exited 0, which reads as "nothing calls this"
+    // while `fr usages` lists two `@include` sites.
+    let tmp = workspace(&[(
+        "m.scss",
+        "@mixin flex { display: flex; }\n.a { @include flex; }\n.b { @include flex; }\n",
+    )]);
+    Command::cargo_bin("fr")
+        .expect("the binary")
+        .args(["callers", "flex", "-C"])
+        .arg(tmp.path())
+        .assert()
+        .code(5)
+        .stderr(contains("`fr usages` lists every `@include`"));
+}
+
+#[test]
 fn asking_for_dot_and_json_together_is_refused() {
     let tmp = workspace(&[("a.rs", CALLS_RS)]);
     Command::cargo_bin("fr")

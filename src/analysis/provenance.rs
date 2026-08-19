@@ -2627,16 +2627,13 @@ fn has_chart_yaml(dir: &Path) -> bool {
     crate::vfs::exists(dir.join("Chart.yaml")) || crate::vfs::exists(dir.join("chart.yaml"))
 }
 
-/// The nearest ancestor directory holding a `Chart.yaml`.
+/// The chart directory this file belongs to.
+///
+/// One authority, [`crate::lang::chart_root`], which also answers for a chart with no
+/// `Chart.yaml` in it. The copy here found no boundary for one, so a template's
+/// values file was invisible while the language layer had already called it Helm.
 fn chart_root(file: &Path) -> Option<PathBuf> {
-    let mut dir = file.parent();
-    while let Some(current) = dir {
-        if has_chart_yaml(current) {
-            return Some(current.to_path_buf());
-        }
-        dir = current.parent();
-    }
-    None
+    crate::lang::chart_root(file).map(Path::to_path_buf)
 }
 
 /// A chart and each chart that encloses it, with the key path as addressed at that

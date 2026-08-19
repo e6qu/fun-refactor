@@ -263,6 +263,14 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         C::Restructure => Support::Yes,
 
+        // SCSS gets its own reason. `fr symbols` prints a mixin as a function, and
+        // `fr usages` lists every `@include` of it. So "this language has no
+        // functions" is untrue of what the tool has just described.
+        C::CallGraph if language == Language::Scss => Support::NotApplicable {
+            because: "a mixin is expanded where it is written, so a stylesheet holds no \
+                      call for a graph to walk; `fr usages` lists every `@include`",
+        },
+
         C::CallGraph => {
             if imperative {
                 Support::Yes

@@ -175,6 +175,85 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B610: **`fr stitch` truncated a chain silently.** A chart with no
+  `Chart.yaml` had its `templates/deployment.yaml` read as plain YAML. So the
+  chain began at the manifest and looked whole. The values file feeding it went
+  missing and unmentioned. A `templates/` file writing
+  template actions is a chart template now, and the directory holding
+  `templates/` is the chart boundary. Pinned in `tests/stitch_languages.rs`.
+
+- [x] B609: **Markdown was invisible to the mention sweep.** The sweep looks for
+  a string node or a comment node, and Markdown has neither. So a style guide
+  writing `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html
+  fence, was walked past twice. `fr rename` rewrote the CSS, the HTML and the
+  TSX, and listed neither Markdown site. A paragraph and a fence body count as
+  text now. So `fr rename`, `fr delete`, `fr usages` and the flag cascade all
+  report them. Pinned in `tests/cross_language.rs`.
+
+- [x] B608: **a name nothing declares was reported as a typo.** `<a
+  href="#section-two">` with no element carrying that id got "no symbol named
+  'section-two'". The sites that write the name now ride with the message, so a
+  link into nothing is visible from any command that takes a name.
+
+- [x] B607: **HTML modelling stopped at element ids.** A hook like
+  `data-testid="submit-btn"` is written twice. Once in the markup, once in the
+  TSX that renders the same element. `fr usages submit-btn` answered "no symbol
+  named" to it. A `data-*` value is a
+  symbol now, of its own kind, with every site equal, as a CSS class is. So a
+  rename of a test hook rewrites both files. Pinned in `tests/facts_html.rs`
+  and `tests/cross_language.rs`.
+
+- [x] B606: **a resolved call at file scope counted as unresolved.** A shell
+  script's `deploy_app "prod"` sits outside any function. So the graph has no
+  node for the caller. The callee resolved all the same. `fr graph`
+  counted it under "unresolved calls", which said the tool could not resolve
+  what `fr usages` resolved. These have their own count now, `file-scope
+  calls`, in the summary and in the JSON. Pinned in `tests/graph_export.rs`.
+
+- [x] B605: **`fr callers` answered nothing where it knows nothing.** SCSS has
+  no call graph in the matrix. The command printed the name and exited
+  0. A reader takes that for "nothing calls this" while `fr usages` lists two
+  `@include` sites. It refuses now, with a reason that fits SCSS: the old one
+  said the language has no functions, and `fr symbols` prints one. `fr graph`
+  keeps its filter behaviour, since a whole-workspace answer covers many
+  languages. Pinned in `tests/graph_export.rs`.
+
+- [x] B604: **`fr signature` refusals exited 1.** `fr --help` promises 5 for a
+  refactoring that refused to proceed. Three sites raised a considered refusal
+  as a plain error. An HCL variable the module still reads, an SCSS mixin
+  parameter its body still reads, and a shell positional. The exit code is
+  chosen from the error's type, so each now raises the `Refusal::StillUsed`
+  that `fr delete` raises. Pinned in `tests/cli.rs`.
+
+- [x] B603: **`fr remove-flag` wrote `Flags.true`.** A use written as a member,
+  `Flags.SHINY`, had its name replaced and its qualifier left standing. Java,
+  Go, Python and TypeScript all read a constant that way. The reparse gate let
+  it through, and `--write` put it on disk. The literal now stands for the
+  whole qualified name. An import is left alone, since a later round drops it.
+  Pinned in `tests/remove_flag_sweep.rs`.
+
+- [x] B602: **`fr remove-flag` refused the name `fr symbols` prints.**
+  `featureFlags::newCheckout` got "no symbol named" and exit 3. The bare leaf
+  reached the right refusal and exit 5. `fr usages` and `fr delete` took the
+  qualified spelling all along. One lookup, `Index::symbols_written`, now
+  serves every command that takes a name. Pinned in
+  `tests/remove_flag_sweep.rs`.
+
+- [x] B601: **`fr extract` on YAML reported a replacement it never made.**
+  Without `--all` it wrote the anchor `&g` and counted one replacement. Every
+  occurrence stayed spelled out and nothing named the anchor. An anchor binds a
+  name and an alias spends it, so the pair is the whole edit. A single-site
+  extraction now refuses, and says how many other occurrences `--all` would
+  alias. Pinned in `tests/config_extract_inline.rs`.
+
+- [x] B600: **`fr move` took link definitions away.** They serve a whole
+  Markdown document. A definition like `[api]: ./a.md` sits at the end of a
+  file, under the last section. Moving that section carried the definition off,
+  so reference links left behind resolved to nothing. The report said nothing
+  about it. A definition now stays where it is, and the section is taken around
+  it. Where the moved text uses one, a copy goes with it and a warning names
+  the copy. Pinned in `tests/move_languages.rs`.
+
 - [x] B576: **the same `signature add:` run twice named one thing twice.** The
   grammar parses `def scale(v, factor, factor)`, so the syntax gate passed it.
   Python refused the file at import. Go answered `rate redeclared in

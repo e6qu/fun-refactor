@@ -101,9 +101,25 @@ pub struct CallGraph {
     /// Call sites whose callee could not be resolved, kept so they can be reported
     /// and not silently dropped.
     pub unresolved: Vec<UnresolvedCall>,
+    /// Resolved calls written outside any function, so no node can hold the caller.
+    pub file_scope: Vec<FileScopeCall>,
     /// Files whose hierarchy could not be read or parsed. So the caller can see that the
     /// dispatch layer is incomplete for them and not assume it is empty.
     pub hierarchy_gaps: Vec<(PathBuf, String)>,
+}
+
+/// A call written at file scope, whose callee the index did resolve.
+///
+/// A script's top level is no function, so the graph has no node to hang the caller
+/// off. Counting these as unresolved said a shell script's `deploy_app "prod"` could
+/// not be resolved, while `fr usages` resolved it in the same workspace.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileScopeCall {
+    pub callee: SymbolId,
+    pub callee_name: String,
+    pub file: PathBuf,
+    pub offset: usize,
+    pub confidence: Confidence,
 }
 
 /// A call site we could see but not resolve to a definition.
@@ -180,9 +196,9 @@ impl CallGraph {
                 Some(callee) if callee.kind.is_callable() => {
                     let Some(caller_id) = caller else {
                         // A call outside any function (module top level, a static
-                        // initialiser). Recorded as unresolved on the caller side.
-                        cg.unresolved.push(UnresolvedCall {
-                            caller: None,
+                        // initialiser). The callee is known; the caller has no node.
+                        cg.file_scope.push(FileScopeCall {
+                            callee: callee.id,
                             callee_name: reference.name.clone(),
                             file: reference.file.clone(),
                             offset: reference.span.start,

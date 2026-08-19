@@ -798,6 +798,22 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
             symbol.kind.with_article()
         );
     }
+    // The matrix says `n/a` for this language's call graph, and the caller pointed at
+    // one symbol, so they are owed an answer about it. SCSS printed the name and
+    // exited 0, which reads as "nothing calls this" while two `@include` sites do.
+    if let crate::capabilities::Support::NotApplicable { because } =
+        crate::capabilities::support(crate::capabilities::Capability::CallGraph, symbol.language)
+    {
+        return Err(crate::refactor::Refusal::Unsupported {
+            operation: match direction {
+                Direction2::Callers => "showing what calls a function".into(),
+                Direction2::Callees => "showing what a function calls".into(),
+            },
+            language: symbol.language,
+            because,
+        }
+        .into());
+    }
 
     let graph = CallGraph::build(&index);
     let trace = graph.trace(symbol.id, direction, depth);
@@ -1564,7 +1580,7 @@ fn cmd_unused(
         }
         let at = locate(symbol);
         println!(
-            "{:<12} {:<34} {:<9} {}:{at}",
+            "{:<14} {:<34} {:<9} {}:{at}",
             symbol.kind.as_str(),
             symbol.qualified_name(),
             if symbol.exported { "exported" } else { "" },
@@ -2588,7 +2604,7 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
     // that a bad rename target gets.
     let index = build_index(cli, &[])?;
     if let FlagTarget::Named(name) = &target {
-        if index.find_symbols(name, None).is_empty() {
+        if index.symbols_written(name, None).is_empty() {
             let near = nearest_names(&index, name);
             return Err(Fault::not_found_near(
                 format!(
@@ -3050,6 +3066,7 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
                 "calls": graph.edge_count(),
                 "hierarchy_edges": graph.hierarchy_edge_count(),
                 "unresolved_calls": graph.unresolved.len(),
+                "file_scope_calls": graph.file_scope.len(),
                 "by_confidence": breakdown,
                 "by_origin": by_origin,
                 "nodes": nodes,
@@ -3069,6 +3086,9 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
         println!("  {confidence:<16} {count}");
     }
     println!("unresolved calls  {}", graph.unresolved.len());
+    // A call written at file scope resolved to a definition and has no node to hang
+    // off. A different fact from "the callee is unknown".
+    println!("file-scope calls  {}", graph.file_scope.len());
 
     // A call site the dispatch scan and the index disagree about is reported. An
     // edge on the wrong offset misreports; a missing one does not.
@@ -3577,6 +3597,37 @@ fn did_you_mean(suggestions: &[String]) -> String {
     }
 }
 
+/// The sites that write this name and reach no definition.
+///
+/// Nothing declares the name, and something in the workspace names it anyway.
+/// `<a href="#section-two">` with no element carrying that id was invisible: the
+/// answer was "no symbol named", which reads as a typo in the question. The sites
+/// are the answer.
+fn naming_nothing(cli: &Cli, index: &Index, target: &str) -> String {
+    let root = workspace_root(cli);
+    let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+    let sites: Vec<String> = index
+        .references
+        .iter()
+        .filter(|r| r.name == target && r.target.is_none())
+        .map(|r| {
+            let source = sources
+                .entry(r.file.clone())
+                .or_insert_with(|| crate::vfs::read_to_string(&r.file).unwrap_or_default());
+            let at = LineIndex::new(source).line_col(r.span.start, source);
+            format!("\n  {}:{at}", shown_path(&root, &r.file))
+        })
+        .collect();
+    if sites.is_empty() {
+        return String::new();
+    }
+    format!(
+        "\n{} site(s) name it and reach no definition:{}",
+        sites.len(),
+        sites.join("")
+    )
+}
+
 /// Where each rival definition sits, as data for the JSON error object.
 fn candidates_of(symbols: &[&Symbol]) -> Vec<Candidate> {
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
@@ -3620,38 +3671,16 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
     // tool printed these everywhere and then refused them as input. So the obvious way to name
     // one of twenty `String` methods was the one way that did not work. The only alternative
     // offered was a line and column somebody had to go and look up.
-    let matches = match target.contains("::") {
-        true => index
-            .symbols
-            .iter()
-            .filter(|s| s.qualified_name() == target)
-            .collect::<Vec<_>>(),
-        false => Vec::new(),
-    };
-    if matches.len() == 1 {
-        return Ok(matches[0]);
-    }
-    if matches.len() > 1 {
-        let mut listing = String::new();
-        for symbol in &matches {
-            listing.push_str(&format!("\n  {} in {}", target, symbol.file.display()));
-        }
-        return Err(Fault::ambiguous(
-            format!(
-                "'{target}' is declared in {} files; specify a position as \
-                 path:line:col{listing}",
-                matches.len()
-            ),
-            candidates_of(&matches),
-        ));
-    }
-
-    let matches = index.find_symbols(target, None);
+    let matches = index.symbols_written(target, None);
     match matches.len() {
         0 => {
             let near = nearest_names(index, target);
             Err(Fault::not_found_near(
-                format!("no symbol named '{target}'.{}", did_you_mean(&near)),
+                format!(
+                    "no symbol named '{target}'.{}{}",
+                    did_you_mean(&near),
+                    naming_nothing(cli, index, target)
+                ),
                 near,
             ))
         }
@@ -3659,6 +3688,22 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         // Several sites can declare one entity, a CSS class has no canonical
         // definition, and that is not an ambiguous choice between rivals.
         _ if index.is_one_entity(&matches) => Ok(matches[0]),
+        // Every candidate answers to the name as written, so listing that name again
+        // helps nobody. A position is the only thing left that tells them apart.
+        _ if target.contains("::") && matches.iter().all(|s| s.qualified_name() == target) => {
+            let mut listing = String::new();
+            for symbol in &matches {
+                listing.push_str(&format!("\n  {} in {}", target, symbol.file.display()));
+            }
+            Err(Fault::ambiguous(
+                format!(
+                    "'{target}' is declared in {} files; specify a position as \
+                     path:line:col{listing}",
+                    matches.len()
+                ),
+                candidates_of(&matches),
+            ))
+        }
         _ => {
             // Ambiguity is reported, never resolved by guessing.
             let mut listing = String::new();
