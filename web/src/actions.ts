@@ -107,6 +107,14 @@ export const ACTIONS: Action[] = [
     run: (w, c) => w.usages(c.path, c.line, c.col),
   },
   {
+    id: "declared_type",
+    label: "What type is this?",
+    group: "Navigate",
+    needs: "position",
+    describes: "The type the source declared, or what follows from what it did",
+    run: (w, c) => w.declared_type(c.path, c.line, c.col),
+  },
+  {
     id: "implementations",
     label: "Implementations",
     group: "Navigate",

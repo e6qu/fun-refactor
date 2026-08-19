@@ -609,6 +609,20 @@ impl Index {
             {
                 return false;
             }
+            // A local is not usable outside its own scope, in any language here.
+            // Left in the candidate set, a sibling function's `stmt` parameter
+            // answered a call to `fn stmt`, and a `let spellings` two functions
+            // down answered a call to `fn spellings`, whenever the binding sat
+            // nearer than the function it shadowed nothing of. A file-scoped
+            // variable stays a candidate: other files import those.
+            if matches!(
+                s.kind,
+                SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
+            ) && s.scope != crate::model::ScopeId(0)
+                && (s.file != path || !info.scope_chain(reference.scope).contains(&s.scope))
+            {
+                return false;
+            }
             // Markup writes the namespace down: `class="x"` names a class and
             // `href="#x"` names an element id. A declaration of the other kind is not a
             // candidate, however near it is.

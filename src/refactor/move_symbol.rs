@@ -75,9 +75,6 @@ impl MovePlan {
 /// Updating the references is the refactoring, so a language qualifies only when that
 /// is expressible: an import statement derivable from two paths, or a scope where a
 /// move changes no name at all.
-pub fn supports_move(language: Language) -> bool {
-    why_not_move(language).is_none()
-}
 
 /// Why a move is not a thing in this language, if it is not.
 ///

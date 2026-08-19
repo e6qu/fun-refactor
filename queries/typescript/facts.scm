@@ -16,6 +16,11 @@
 ; has no statement block to stand in for one.
 (program) @scope
 (statement_block) @scope
+; Parameters live outside the statement block; without these, they spilled into
+; the enclosing scope and calls resolved to them by proximity.
+(function_declaration) @scope
+(function_expression) @scope
+(method_definition) @scope
 (class_body) @scope
 (arrow_function) @scope
 (for_statement) @scope

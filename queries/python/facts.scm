@@ -24,6 +24,9 @@
 ; captured. A class body is a scope of its own that nested functions do not see
 ; through, which is exactly the containment relation @scope encodes.
 (module) @scope
+; The whole definition as well as its body: parameters sit between the two, and
+; scoping only the body spilled them into the module.
+(function_definition) @scope
 (function_definition body: (block) @scope)
 (class_definition body: (block) @scope)
 (lambda) @scope

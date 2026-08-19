@@ -290,6 +290,11 @@ pub struct Reference {
     pub target: Option<SymbolId>,
     pub confidence: Confidence,
     pub kind: ReferenceKind,
+    /// A second meaning sharing another reference's span: a shorthand
+    /// initializer's identifier reads a local and writes a field, and this is
+    /// the field half. Kept apart so neither symbol reads as dead.
+    #[serde(default)]
+    pub twin: bool,
     /// What this reference was written against, when it was written as a member of
     /// something: the `w` in `w.contextWithTimeout(…)`, the `time` in `time.Now()`.
     ///

@@ -222,11 +222,13 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
 
     // An import the deleted code was the only user of is part of what goes. Leaving it
     // gave `"strings" imported and not used`, which Go rejects outright.
-    for (file, orphaned) in crate::refactor::imports::orphaned_by(index, &edits)?.iter() {
+    let (orphaned_imports, kept_imports) = crate::refactor::imports::orphaned_by(index, &edits)?;
+    for (file, orphaned) in orphaned_imports.iter() {
         for edit in orphaned {
             edits.add(file.clone(), edit.clone());
         }
     }
+    warnings.extend(kept_imports);
 
     Ok(DeletePlan {
         symbol,
@@ -273,6 +275,17 @@ pub enum SparedReason {
     /// The language gives it no address: an HCL block with no labels, such as
     /// `terraform {}` or `lifecycle {}`.
     NoAddressToReferenceIt,
+    /// It implements a trait this workspace does not declare, so the caller
+    /// is the machinery behind that trait. serde constructs values through
+    /// `Deserialize::deserialize`, and `Display::fmt` answers every `format!`.
+    /// Nothing here can see those calls, and "unused" would offer a running
+    /// method for deletion.
+    ImplementsForeignTrait,
+    /// It structures a document instead of naming code: a Markdown heading. Most
+    /// headings are never linked to, so "nothing links here" is true of nearly
+    /// all of them and says nothing. On this repository they were 202 of the 445
+    /// lines of the report, in front of the dead code a reader came for.
+    StructuresProse,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -309,6 +322,16 @@ impl UnusedReport {
             }
             SparedReason::NoAddressToReferenceIt => {
                 "the language gives this block no address, so nothing can reference it".to_string()
+            }
+            SparedReason::ImplementsForeignTrait => {
+                "it implements a trait declared outside this workspace, whose machinery \
+                 is the caller"
+                    .to_string()
+            }
+            SparedReason::StructuresProse => {
+                "it structures a document; a heading without a link into it is normal, \
+                 not dead"
+                    .to_string()
             }
             SparedReason::HoldsAnEntryPoint => {
                 "something inside it is an entry point, so whatever calls that reaches \
@@ -494,6 +517,18 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         }
     }
 
+    // Two fields of one name on two variants, read by destructuring: the
+    // resolver picks the nearer twin at field-based confidence, which is a
+    // guess. The guess must not make the other twin dead, so weak evidence
+    // covers every candidate of that name and kind.
+    let mut namesakes: HashMap<(&str, SymbolKind), Vec<SymbolId>> = HashMap::new();
+    for symbol in &index.symbols {
+        namesakes
+            .entry((symbol.name.as_str(), symbol.kind))
+            .or_default()
+            .push(symbol.id);
+    }
+
     // A reference from inside the symbol's own definition is not an outside use.
     let mut referenced: HashSet<SymbolId> = HashSet::new();
     for reference in &index.references {
@@ -506,6 +541,17 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         if symbol.file == reference.file && symbol.full_span.contains(reference.span) {
             continue;
         }
+        if reference.confidence >= Confidence::FieldBased {
+            if let Some(group) = namesakes.get(&(symbol.name.as_str(), symbol.kind)) {
+                referenced.extend(group.iter().copied());
+                continue;
+            }
+        }
+        // The index already knows which definition sites are one entity: two clap
+        // variants declaring `include_unresolved`, a Python attribute assigned in
+        // two methods. A use of the entity is a use of every site, or the sites
+        // the resolver did not pick read as dead.
+        referenced.extend(index.definition_group(id));
         match siblings.get(&(symbol.name.as_str(), symbol.kind)) {
             Some(group) => referenced.extend(group.iter().copied()),
             None => {
@@ -576,6 +622,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
                     .push((symbol.id, SparedReason::NoAddressToReferenceIt));
                 continue;
             }
+            if symbol.kind == SymbolKind::Heading {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::StructuresProse));
+                continue;
+            }
             if names_where_the_file_lives(symbol) {
                 report
                     .spared
@@ -600,15 +652,21 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
                     .push((symbol.id, SparedReason::HoldsAnEntryPoint));
                 continue;
             }
+            if implements_foreign_trait(index, symbol) {
+                report
+                    .spared
+                    .push((symbol.id, SparedReason::ImplementsForeignTrait));
+                continue;
+            }
             if let Some(property) = bean_property(symbol) {
-                if named_in_a_string.contains(&property) {
+                if named_in_a_string.contains(&spelled_loosely(&property)) {
                     report
                         .spared
                         .push((symbol.id, SparedReason::ReachedByItsProperty));
                     continue;
                 }
             }
-            if !named_in_a_string.contains(&symbol.name) {
+            if !named_in_a_string.contains(&spelled_loosely(&symbol.name)) {
                 report.unused.push(symbol.id);
                 continue;
             }
@@ -632,7 +690,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
                 continue;
             }
         }
-        if named_in_a_string.contains(&symbol.name) {
+        if named_in_a_string.contains(&spelled_loosely(&symbol.name)) {
             report
                 .spared
                 .push((symbol.id, SparedReason::NamedInAString));
@@ -666,6 +724,67 @@ fn ambiguously_used_names(index: &Index) -> HashSet<String> {
         .collect()
 }
 
+/// One spelling for a name however a wire format writes it.
+///
+/// serde renames `ThreatModel::Remote` to `remote` or `remote-first`, and the
+/// string a catalog writes is the renamed one. Comparing the spellings verbatim
+/// called every data-constructed variant dead. Case and the two separator
+/// characters are what the rename conventions change, so both sides drop them.
+fn spelled_loosely(name: &str) -> String {
+    name.chars()
+        .filter(|c| *c != '-' && *c != '_')
+        .flat_map(|c| c.to_lowercase())
+        .collect()
+}
+
+/// Whether this method's `impl` block names a trait the workspace does not declare.
+///
+/// `impl<'de> Deserialize<'de> for AppliesTo` is called by serde, `impl Display`
+/// by every `format!`. The callers live in another crate, so reachability here
+/// can never see them. Rust only: the other languages' `implements` edges are
+/// already hierarchy facts.
+fn implements_foreign_trait(index: &Index, symbol: &crate::model::Symbol) -> bool {
+    if symbol.language != crate::lang::Language::Rust || symbol.kind != SymbolKind::Method {
+        return false;
+    }
+    let Ok(source) = crate::vfs::read_to_string(&symbol.file) else {
+        return false;
+    };
+    let Ok(parsed) = Parsers::new().parse(symbol.language, &source) else {
+        return false;
+    };
+    let Some(node) = parsed
+        .root()
+        .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end)
+    else {
+        return false;
+    };
+    let mut at = node;
+    while let Some(parent) = at.parent() {
+        if parent.kind() == "impl_item" {
+            let Some(named) = parent.child_by_field_name("trait") else {
+                return false;
+            };
+            // `impl fmt::Display for X`: the trait's own name is the last segment.
+            let written = Span::from(named).text(&source);
+            let name = written
+                .rsplit("::")
+                .next()
+                .unwrap_or(written)
+                .split('<')
+                .next()
+                .unwrap_or(written)
+                .trim();
+            return !index
+                .find_symbols(name, None)
+                .iter()
+                .any(|s| s.kind == SymbolKind::Trait);
+        }
+        at = parent;
+    }
+    false
+}
+
 fn names_in_string_literals(index: &Index) -> HashSet<String> {
     let parsers = Parsers::new();
     let mut names = HashSet::new();
@@ -685,9 +804,9 @@ fn names_in_string_literals(index: &Index) -> HashSet<String> {
                 if word.is_empty() {
                     continue;
                 }
-                names.insert(word.to_string());
+                names.insert(spelled_loosely(word));
                 for part in word.split('-').filter(|p| !p.is_empty()) {
-                    names.insert(part.to_string());
+                    names.insert(spelled_loosely(part));
                 }
             }
         }
@@ -985,7 +1104,13 @@ fn is_string_kind(kind: &str) -> bool {
     // reaches `Owner::getAddress`, `v-on:click="submit"` reaches `submit`. Reading only
     // nodes with "string" in their name meant the whole Thymeleaf, Vue and Angular way of
     // referring to code was invisible to the one rule meant to catch that.
-    kind.contains("string") || kind.contains("char_literal") || kind.contains("attribute_value")
+    // YAML spells its scalars apart: a bare `remote` is a `string_scalar` and a
+    // quoted `"remote"` is a `double_quote_scalar`. Only the first matched, so
+    // quoting a value hid it from the one rule meant to see data-borne names.
+    kind.contains("string")
+        || kind.contains("quote_scalar")
+        || kind.contains("char_literal")
+        || kind.contains("attribute_value")
 }
 
 /// Spans of string literals, comments and Helm template actions.

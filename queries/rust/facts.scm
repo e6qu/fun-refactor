@@ -3,6 +3,11 @@
 
 ; ---------------------------------------------------------------- scopes
 (block) @scope
+; The whole item, not only its body: a parameter is declared before the block
+; opens, so scoping only the block spilled every parameter into the enclosing
+; module. A call to `stmt(...)` then resolved to a sibling function's `stmt`
+; parameter whenever that parameter sat nearer than the function it meant.
+(function_item) @scope
 (function_item body: (block) @scope)
 (closure_expression) @scope
 (impl_item) @scope
@@ -14,6 +19,17 @@
 ; An `impl` block qualifies the functions inside it as methods of the type, but
 ; the type name it mentions is a *reference* to the struct, not a definition of
 ; it — so this is a container, not a symbol.
+; The enum itself qualifies its variants, exactly as Java's `enum_declaration`
+; does its constants.
+(enum_item
+  name: (type_identifier) @container.name) @container
+
+; A struct qualifies its fields the way Java's class does. Without this a field
+; had no owner, so `f.count` on a receiver declared `&Facts` was refused as
+; weakly resolved, with a reason naming the very type being renamed.
+(struct_item
+  name: (type_identifier) @container.name) @container
+
 (impl_item
   type: (type_identifier) @container.name) @container
 
@@ -110,8 +126,13 @@
   (visibility_modifier)? @export
   name: (field_identifier) @name) @definition.field
 
+; A variant is reached through its enum, `Shape::Square`, the way Java reaches
+; `Suit.HEARTS`. Captured as a field it had no qualifier, so a cross-file
+; `Shape::Square(side)` resolved to nothing: every variant of every enum used
+; only from other files read as dead code, and this repository's own `Stmt::Let`,
+; matched seventeen times in one writer, was listed for deletion.
 (enum_variant
-  name: (identifier) @name) @definition.field
+  name: (identifier) @name) @definition.constant
 
 (parameter
   pattern: (identifier) @name) @definition.parameter
@@ -141,6 +162,29 @@
 
 (field_expression
   field: (field_identifier) @reference.field)
+
+; A destructuring pattern reads the fields it names. `Stmt::ForEach { iterable, .. }`
+; is how a writer consumes that field, and it was no reference at all, so every
+; field read only by destructuring counted as dead.
+(field_pattern
+  name: (field_identifier) @reference.field)
+
+(shorthand_field_identifier) @reference.field
+
+; Constructing a value writes its fields: `Facts { kubernetes_objects, .. }` and
+; `Stats { imperative_files: n }` are the only places some fields are ever
+; written, and neither counted, so a field consumed through serialisation read
+; as dead.
+(field_initializer
+  field: (field_identifier) @reference.field)
+
+; `Facts { kubernetes_objects }`: one identifier, two reads. It reads the local
+; and it writes the field, and both must survive or one of the two symbols
+; reads as dead. The `.twin` marks the second meaning, so the dedup keeps the
+; pair apart without doubling any ordinary span.
+(shorthand_field_initializer
+  (identifier) @reference.field.twin)
+
 
 (identifier) @reference.identifier
 

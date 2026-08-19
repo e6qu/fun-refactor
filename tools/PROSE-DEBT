@@ -12,6 +12,10 @@
 # Measured against the same rules before any of this work: em-dash 2050,
 # false-comparison 240, filler 350, self-reference 222, long-sentence 2339.
 #
+# The meter's fourth fix widened what counts as code: a string literal holding
+# `=>` or `fn ` is a fixture some test feeds a parser, not a sentence. Fifty of
+# the long "sentences" were Rust and Go programs inside test strings.
+#
 # The meter's third fix: a string holding a shell expansion is a program this
 # tool writes, not a sentence anybody reads. `fr completions` emits its script
 # one line at a time, and those lines glued together counted as prose.
@@ -21,8 +25,8 @@
 # parity and counted spans of plain code as prose. 160 of the long "sentences"
 # were code. The counts below are the honest ones under the fixed lexer.
 #
-em-dash 53
+em-dash 52
 false-comparison 19
 filler 10
 self-reference 50
-long-sentence 998
+long-sentence 948

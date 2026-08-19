@@ -868,8 +868,9 @@ fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
 /// Asked by applying the edits to a copy and re-reading, because the question is about the file
 /// as it will be and not as it is. Only imports that were live before are touched, one that was
 /// already dead is `fr imports`. It is not this.
-pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
+pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warning>)> {
     let mut out = EditSet::new();
+    let mut kept = Vec::new();
     for (file, file_edits) in edits.iter() {
         let Some(info) = index.file(file) else {
             continue;
@@ -884,12 +885,15 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
             continue;
         };
 
-        let was_dead: Vec<Span> = plan_in(index, file, &before)
+        let (was_dead, warned_before): (Vec<Span>, Vec<String>) = plan_in(index, file, &before)
             .map(|plan| {
-                plan.replacements
-                    .into_iter()
-                    .map(|(span, _)| span)
-                    .collect()
+                (
+                    plan.replacements
+                        .into_iter()
+                        .map(|(span, _)| span)
+                        .collect(),
+                    plan.warnings.iter().map(|w| w.detail.clone()).collect(),
+                )
             })
             .unwrap_or_default();
 
@@ -902,6 +906,18 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
         let Ok(plan) = plan_in(&reindexed, file, &after) else {
             continue;
         };
+        // An import the deletion orphaned that caution keeps anyway. `use
+        // std::collections::BTreeMap` may name a trait used through its
+        // methods, so it stays. The reader deleting under `-D warnings` hears
+        // that from this command, not from the compiler.
+        for warning in plan.warnings {
+            if !warned_before.contains(&warning.detail) {
+                kept.push(Warning {
+                    file: file.clone(),
+                    ..warning
+                });
+            }
+        }
         for (span, replacement) in plan.replacements {
             if was_dead.contains(&span) {
                 continue;
@@ -922,7 +938,7 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<EditSet> {
             );
         }
     }
-    Ok(out)
+    Ok((out, kept))
 }
 
 /// One name inside a statement that spells its names out.

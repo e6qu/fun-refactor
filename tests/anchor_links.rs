@@ -135,18 +135,33 @@ fn a_heading_may_be_renamed_to_something_with_spaces_in_it() {
 }
 
 #[test]
-fn a_linked_heading_is_not_reported_unused() {
+fn headings_are_prose_and_never_dead_code() {
+    // Most headings are never linked to, so "nothing links here" is true of
+    // nearly all of them and says nothing. On this repository they were 202 of
+    // the 445 lines of the report, in front of the dead code a reader came for.
     let (_tmp, index) = workspace(&[
         ("a.md", "# Linked\n\n# Orphan\n"),
         ("b.md", "[go](a.md#linked)\n"),
     ]);
     let entrypoints = fun_refactor::analysis::entrypoints::Entrypoints::default();
-    let unused = fun_refactor::refactor::delete::find_unused(&index, &entrypoints);
-    let names: Vec<&str> = unused
+    let report = fun_refactor::refactor::delete::find_unused_report(&index, &entrypoints);
+    let names: Vec<&str> = report
+        .unused
         .iter()
         .filter_map(|id| index.symbol(*id))
         .map(|s| s.name.as_str())
         .collect();
     assert!(!names.contains(&"Linked"), "{names:?}");
-    assert!(names.contains(&"Orphan"), "{names:?}");
+    assert!(!names.contains(&"Orphan"), "{names:?}");
+    let spared_prose = report.spared.iter().any(|(id, reason)| {
+        index.symbol(*id).is_some_and(|s| s.name == "Orphan")
+            && matches!(
+                reason,
+                fun_refactor::refactor::delete::SparedReason::StructuresProse
+            )
+    });
+    assert!(
+        spared_prose,
+        "the orphan is spared, with the reason written down"
+    );
 }

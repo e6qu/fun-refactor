@@ -175,6 +175,78 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B690: **`fr unused` buried the dead code under Markdown headings.** On
+  this repository, 202 of the report's 445 lines were headings. Most headings
+  are never linked to, so "nothing links here" is true of nearly all of them
+  and says nothing. A heading is spared as prose structure, with the reason
+  written down.
+
+- [x] B691: **a comma-separated `data-*` value was one symbol.** `data-quiz=
+  "a,b,c"` names three hooks a script reads one at a time, and it was indexed
+  as one name containing commas, so no part of it could ever match a use and
+  all three read as dead. Values fan out on commas as on spaces, in
+  definitions as in references.
+
+- [x] B692: **an enum variant used from another file read as dead.** Rust
+  variants were captured as unqualified fields, so a cross-file
+  `Shape::Square(side)` resolved to nothing: this repository's own `Stmt::Let`,
+  matched seventeen times in one writer, was listed for deletion. A variant is
+  a constant qualified by its enum now, the way Java's constants already were,
+  and a variant rename reaches every match arm.
+
+- [x] B693: **`fr symbols <file>` was a usage error.** Every sibling listing
+  command takes positional paths. The one that answers "what is in this file"
+  did not. It does now, and the whole workspace is still indexed, keeping the
+  cross-file answers right.
+
+- [x] B694: **a destructuring pattern read no fields.** `Stmt::ForEach {
+  iterable, .. }` is how a writer consumes that field, and it was no reference
+  at all. Struct-literal writes were missing too: `Facts { named: 1, shorthand
+  }` kept neither field alive. Both are references now, and weak evidence
+  spreads across same-named twins and definition groups so the resolver's
+  guess cannot make the unchosen twin dead.
+
+- [x] B695: **a serde-renamed variant read as dead.** `ThreatModel::Remote` is
+  constructed from a catalog writing `remote`. The string-literal spare
+  compared spellings verbatim, so every data-constructed variant was offered
+  for deletion. Case and separators drop on both sides now. YAML's quoted
+  scalars joined the comparison: `"remote"` is a `double_quote_scalar`, which
+  the string gate did not recognise, so quoting a value hid it.
+
+- [x] B696: **renaming through a shorthand corrupted the file.** Renaming the
+  `count` local of `Facts { count }` produced `Facts { total }`. That
+  initialises a field the struct does not have. The shorthand expands instead,
+  in the direction the reference's kind dictates: renaming the local writes
+  `count: total`, renaming the field writes `size: count`. TypeScript's
+  `{ count }` had the same defect and takes the same fix.
+
+- [x] B697: **a field rename left `f.count` behind, blaming its own type.**
+  A struct was no container, so its fields had no owner, and the
+  declared-receiver rule refused `f.count` on an `&Facts` receiver with a
+  reason naming the very type being renamed. Structs qualify their fields now,
+  and a declared type sheds its sigils: `&Facts`, `*Buffer` and `?Handle`
+  reach what the bare names do.
+
+- [x] B698: **a local answered calls outside its scope.** Scopes were the
+  function's *body*, so parameters, declared before the block opens, spilled
+  into the enclosing module: a call to `fn stmt` resolved to a sibling
+  function's `stmt` parameter whenever the parameter sat nearer, and `fr
+  delete` offered the live function for deletion. Rust, Python, TypeScript
+  and Java all scoped only the body. All four scope the whole definition now,
+  and a local below file scope is no candidate outside its own chain.
+
+- [x] B699: **`fr delete` kept an orphaned import in silence.** Deleting the
+  only user of a `use` leaves an import that caution about traits rightly
+  keeps. The command said nothing, so the surprise arrived from
+  `-D warnings`. The kept import is named up front, with the
+  reason.
+
+- [x] B700: **a foreign trait's impl read as dead.** `impl Deserialize for
+  AppliesTo` is called by serde, `impl Display` by every `format!`. The
+  callers live in another crate, so reachability can never see them. A method
+  implementing a trait this workspace does not declare is spared, with the
+  reason written down.
+
 - [x] B666: **a hoisted Python definition landed with a method's spacing.**
   Fixing B660 moved an extracted definition out of the class it was written
   in, to module scope, where `black` wants two blank lines in front of it and

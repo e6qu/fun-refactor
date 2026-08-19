@@ -127,18 +127,20 @@ fn a_path_filter_that_matches_nothing_says_so_instead_of_reporting_nothing() {
 fn a_language_filter_narrows_the_unused_report() {
     let ws = workspace();
 
+    // Both Go functions land in the unfiltered report; the language filter
+    // keeps one directory's language and drops the other symbol kinds with it.
     let (everything, ok) = ws.run(&["unused"]);
     assert!(ok, "{everything}");
     assert!(
-        everything.contains("heading"),
-        "a Markdown heading nothing links to is a finding:\n{everything}"
+        everything.contains("beta") && everything.contains("alpha"),
+        "both Go functions are findings.\n{everything}"
     );
 
     let (go_only, ok) = ws.run(&["unused", "--language", "go"]);
     assert!(ok, "{go_only}");
     assert!(
-        !go_only.contains("heading"),
-        "--language go excludes it:\n{go_only}"
+        go_only.contains("beta"),
+        "--language go keeps the Go findings.\n{go_only}"
     );
 }
 
@@ -987,4 +989,44 @@ mod ignored_files {
         assert!(ok, "--no-ignore is a real flag.\n{out}");
         assert!(out.contains("build/g.py"), "and it reads the file.\n{out}");
     }
+}
+
+/// `fr symbols <file>` was a usage error; every sibling listing takes paths.
+#[test]
+fn symbols_narrows_to_the_paths_it_is_given() {
+    let ws = workspace();
+    let (all, ok) = ws.run(&["symbols"]);
+    assert!(ok, "{all}");
+    let (narrowed, ok) = ws.run(&["symbols", "keep"]);
+    assert!(ok, "{narrowed}");
+    assert!(
+        narrowed.contains("alpha"),
+        "the kept directory's symbol is listed:\n{narrowed}"
+    );
+    assert!(
+        !narrowed.contains("beta"),
+        "the other directory's symbol is not:\n{narrowed}"
+    );
+    assert!(
+        all.lines().count() > narrowed.lines().count(),
+        "the paths narrow the listing"
+    );
+}
+
+/// Deleting the only user of an import leaves the import, when caution about
+/// traits keeps it. The reader deleting under `-D warnings` hears it from the
+/// command instead of the compiler.
+#[test]
+fn delete_names_the_import_it_kept() {
+    let ws = Workspace::new(&[(
+        "lib.rs",
+        "use std::collections::BTreeMap;\n\npub fn dead() -> BTreeMap<String, i64> {\n    \
+         BTreeMap::new()\n}\n\npub fn live() -> i64 {\n    7\n}\n",
+    )]);
+    let (out, ok) = ws.run(&["delete", "lib.rs:3:8"]);
+    assert!(ok, "{out}");
+    assert!(
+        out.contains("BTreeMap") && out.contains("kept"),
+        "the kept import is named up front:\n{out}"
+    );
 }

@@ -149,11 +149,24 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                 continue;
             }
             if reference.confidence.is_safe_to_rewrite() || declared_receiver_reaches(reference) {
+                // `Facts { count }` reads the local and writes the field in one
+                // identifier. Renaming either rewrote that identifier, which
+                // renamed both: the file initialised a field the struct does not
+                // have. The shorthand expands instead, in the direction the
+                // reference's kind dictates. The field keeps its half when the
+                // local goes; the local keeps its half when the field goes.
+                let written = match shorthand_field(&reference.file, reference.span, &symbol.name) {
+                    Some(old) if reference.kind == ReferenceKind::Field => {
+                        format!("{reference_text}: {old}")
+                    }
+                    Some(old) => format!("{old}: {reference_text}"),
+                    None => reference_text.clone(),
+                };
                 edits.add(
                     reference.file.clone(),
                     Edit::new(
                         reference.span,
-                        reference_text.as_str(),
+                        written,
                         format!("rename reference to {}", symbol.name),
                     ),
                 );
@@ -552,6 +565,30 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
 /// of its uses, wins that use after the rename, and the file still compiles. Both directions
 /// are real. The renamed use can fall to an inner declaration, and a use of an
 /// existing outer binding can fall to the renamed one.
+/// The field a shorthand at this span writes, when the span sits in one.
+///
+/// `Facts { count }` in Rust and `{ count }` in TypeScript bind a field of
+/// the enclosing literal to a local of one name. The field's name is the
+/// text at the span itself, which is about to be rewritten, so it is read here
+/// first.
+fn shorthand_field(file: &std::path::Path, span: crate::span::Span, name: &str) -> Option<String> {
+    const SHORTHANDS: &[&str] = &[
+        "shorthand_field_initializer",   // Rust
+        "shorthand_property_identifier", // TypeScript, JavaScript
+    ];
+    let source = crate::vfs::read_to_string(file).ok()?;
+    let language = crate::lang::detect(file)?;
+    let parsed = crate::parse::Parsers::new().parse(language, &source).ok()?;
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)?;
+    let hit = SHORTHANDS.contains(&node.kind())
+        || node
+            .parent()
+            .is_some_and(|p| SHORTHANDS.contains(&p.kind()));
+    hit.then(|| name.to_string())
+}
+
 fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), Refusal> {
     let Some(info) = index.file(&symbol.file) else {
         return Ok(());
