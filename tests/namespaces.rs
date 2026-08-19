@@ -198,6 +198,108 @@ fn an_argument_of_a_module_from_the_registry_is_reported() {
     );
 }
 
+const CALLER_READING_AN_OUTPUT: &str = "module \"net\" {\n  source = \"./modules/net\"\n}\n\n\
+                                        output \"id\" {\n  value = module.net.subnet_id\n}\n";
+
+const MODULE_WITH_AN_OUTPUT: &str = "output \"subnet_id\" {\n  value = \"s-1\"\n}\n\n\
+                                     provider \"subnet_id\" {\n  region = \"eu-west-1\"\n}\n";
+
+/// `module.net.subnet_id` is a reference to the module's `output "subnet_id"`.
+///
+/// `fr flow` and `fr signature` followed this edge from their own code. The index held
+/// nothing, so `fr usages`, `fr refs` and `fr impact` answered zero for a name the
+/// workspace reads. Every command reads the index, so the edge belongs there.
+#[test]
+fn a_module_output_read_from_outside_is_a_reference_in_the_index() {
+    let (tmp, index) = workspace(&[
+        ("main.tf", CALLER_READING_AN_OUTPUT),
+        ("modules/net/main.tf", MODULE_WITH_AN_OUTPUT),
+    ]);
+    let output = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "subnet_id" && s.qualifier.as_deref() == Some("output"))
+        .expect("the module's output")
+        .id;
+
+    let uses = index.references_to(output);
+    assert_eq!(uses.len(), 1, "one read of the output: {uses:?}");
+    assert_eq!(uses[0].file, tmp.path().join("main.tf"));
+    assert_eq!(
+        uses[0].confidence,
+        fun_refactor::model::Confidence::Exact,
+        "the module's source names the directory, so nothing is inferred"
+    );
+}
+
+/// A `provider "subnet_id"` in the same directory is a different declaration, and the
+/// block-type keyword written in front of each is what says so.
+#[test]
+fn a_module_output_is_told_from_a_block_of_another_type_with_the_same_name() {
+    let (_tmp, index) = workspace(&[
+        ("main.tf", CALLER_READING_AN_OUTPUT),
+        ("modules/net/main.tf", MODULE_WITH_AN_OUTPUT),
+    ]);
+    let provider = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "subnet_id" && s.qualifier.as_deref() == Some("provider"))
+        .expect("the provider block")
+        .id;
+    assert!(
+        index.references_to(provider).is_empty(),
+        "no traversal reaches a provider block"
+    );
+}
+
+/// Deleting an output something still reads leaves `terraform validate` failing. The
+/// refusal already existed for Helm values and CSS classes; it now covers this too,
+/// because it reads the same reference edge.
+#[test]
+fn deleting_a_module_output_that_is_still_read_is_refused() {
+    let (_tmp, index) = workspace(&[
+        ("main.tf", CALLER_READING_AN_OUTPUT),
+        ("modules/net/main.tf", MODULE_WITH_AN_OUTPUT),
+    ]);
+    let output = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "subnet_id" && s.qualifier.as_deref() == Some("output"))
+        .expect("the module's output")
+        .id;
+    let refusal = fun_refactor::refactor::delete::plan(&index, output)
+        .expect_err("a read output cannot be deleted");
+    let said = refusal.to_string();
+    assert!(
+        said.contains("still resolve to it"),
+        "the refusal names the uses: {said}"
+    );
+}
+
+/// Renaming the output rewrites the read in the calling module.
+#[test]
+fn renaming_a_module_output_rewrites_the_caller() {
+    let (tmp, index) = workspace(&[
+        ("main.tf", CALLER_READING_AN_OUTPUT),
+        ("modules/net/main.tf", MODULE_WITH_AN_OUTPUT),
+    ]);
+    let output = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "subnet_id" && s.qualifier.as_deref() == Some("output"))
+        .expect("the module's output")
+        .id;
+    let plan = rename::plan(&index, output, "net_id").expect("a plan");
+
+    let caller = tmp.path().join("main.tf");
+    let after = fun_refactor::edit::apply_to_string(
+        CALLER_READING_AN_OUTPUT,
+        plan.edits.edits_for(&caller).unwrap(),
+    )
+    .expect("the edits apply");
+    assert!(after.contains("module.net.net_id"), "{after}");
+}
+
 #[test]
 fn renaming_a_css_class_leaves_the_id_of_that_name_alone() {
     let (tmp, index) = workspace(&[("s.css", CSS), ("p.html", HTML)]);

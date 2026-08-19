@@ -29,6 +29,8 @@ pub struct FileInfo {
     /// Why this file's facts are incomplete, empty when they are not. Resolutions from
     /// a file with any gap are suspect.
     pub gaps: Vec<FactGap>,
+    /// The Kubernetes objects this file declares, which another file addresses by name.
+    pub kubernetes_objects: Vec<KubernetesObject>,
 }
 
 impl FileInfo {
@@ -41,6 +43,15 @@ impl FileInfo {
     pub fn scope_chain(&self, scope: crate::model::ScopeId) -> Vec<crate::model::ScopeId> {
         crate::model::scope_chain(&self.scopes, scope)
     }
+}
+
+/// Which half of a Terraform module's call surface a reference addresses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModuleSurface {
+    /// An argument inside the `module` block, naming an input variable.
+    Input,
+    /// The last segment of `module.<label>.<name>`, naming an output.
+    Output,
 }
 
 /// A resolved workspace.
@@ -307,6 +318,7 @@ impl Index {
                 symbols: symbol_ids,
                 references: reference_ids,
                 gaps: facts.gaps,
+                kubernetes_objects: facts.kubernetes_objects,
             },
         );
     }
@@ -374,18 +386,27 @@ impl Index {
         }
     }
 
-    /// Resolve an argument of a `module` block to the input variable it names.
+    /// Resolve a name reached through a `module` block to the declaration it names.
     ///
     /// The block's `source` names the configuration. Terraform's unit of scope is a
-    /// directory, so the variable is declared in the directory that source resolves to.
+    /// directory, so the declaration is in the directory that source resolves to.
     /// A source outside the workspace names a configuration nothing here can read, and
-    /// the argument stays unresolved. The rename then reports it rather than rewriting
+    /// the reference stays unresolved. The rename then reports it rather than rewriting
     /// it.
-    fn resolve_module_argument(
+    ///
+    /// Both directions of a module's call surface arrive here. An argument written
+    /// inside the block names an input variable. `module.<label>.<name>` written
+    /// outside it names an output. They differ in one thing, the declaration each
+    /// addresses, so they are one function. Only the first half used to exist.
+    /// `fr flow` and `fr signature` followed the second from their own code.
+    /// `fr usages`, `fr refs`, `fr impact` and `fr delete` read the index, and saw
+    /// nothing there.
+    fn resolve_module_surface(
         &self,
         path: &Path,
         info: &FileInfo,
         label: &str,
+        surface: ModuleSurface,
         candidates: &[SymbolId],
     ) -> (Option<SymbolId>, Confidence) {
         let source = info
@@ -405,9 +426,17 @@ impl Index {
         let declared: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
-            .filter(|s| s.kind == SymbolKind::Variable && s.language == Language::Hcl)
+            .filter(|s| s.language == Language::Hcl)
             .filter(|s| s.file.parent() == Some(directory.as_path()))
-            .filter(|s| self.terraform_namespace(s) == "var")
+            .filter(|s| match surface {
+                ModuleSurface::Input => {
+                    s.kind == SymbolKind::Variable && self.terraform_namespace(s) == "var"
+                }
+                // The block-type keyword is the symbol's qualifier, recorded when the
+                // facts were extracted. So an `output "x"` is told from a `provider "x"`
+                // without re-reading the file.
+                ModuleSurface::Output => s.qualifier.as_deref() == Some("output"),
+            })
             .collect();
         match declared.as_slice() {
             [only] => (Some(only.id), Confidence::Exact),
@@ -458,7 +487,15 @@ impl Index {
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
             || self.import_binding(info, receiver).is_some()
-            || self.names_a_type(receiver, reference.language);
+            || self.names_a_type(receiver, reference.language)
+            // `module.<label>` is a module path in the sense above: the label is bound
+            // by that block's `source`, which names a directory. Nothing is inferred,
+            // so the read of its output is as certain as an import-qualified call.
+            || (reference.language == Language::Hcl
+                && receiver.starts_with("module.")
+                && self
+                    .import_binding(info, receiver.trim_start_matches("module."))
+                    .is_some());
 
         // Weaker of the two: the tiers are ordered strongest first.
         match known {
@@ -611,10 +648,17 @@ impl Index {
         //     terraform-aws-vpc resolved to the module's `output "azs"`.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
-                // An argument of a `module` block names an input variable of the
-                // configuration `source` points at, and the label says which call it is.
+                // A name reached through one `module` block. An argument written
+                // inside it names an input variable of the configuration `source`
+                // points at. `module.<label>.<name>` written outside it names an
+                // output of that configuration. The label says which call, and the
+                // syntax says which half of the surface.
                 if let Some(label) = namespace.strip_prefix("module.") {
-                    return self.resolve_module_argument(path, info, label, candidates);
+                    let surface = match reference.kind {
+                        ReferenceKind::Field => ModuleSurface::Output,
+                        _ => ModuleSurface::Input,
+                    };
+                    return self.resolve_module_surface(path, info, label, surface, candidates);
                 }
                 let wanted = match namespace {
                     "var" | "local" => Some(SymbolKind::Variable),
@@ -1034,6 +1078,46 @@ impl Index {
                 // A glob import or an ambiguous path: plausible but unproven.
                 return (Some(matches[0].id), Confidence::FieldBased);
             }
+        }
+
+        // 4z. A Kubernetes `configMapKeyRef` or `secretKeyRef` names one key of one
+        //     object, and the manifest writes down which object. The receiver carries
+        //     that address, so the search is over the files declaring it and not over
+        //     the workspace. Without this the read was a textual mention: renaming the
+        //     key left the container asking for an entry the ConfigMap no longer has,
+        //     and the pod failed to start.
+        if let Some((kind, object)) = reference
+            .receiver
+            .as_deref()
+            .filter(|_| matches!(reference.language, Language::Yaml | Language::Helm))
+            .and_then(|receiver| receiver.split_once('/'))
+        {
+            let declaring: Vec<&Path> = self
+                .files
+                .iter()
+                .filter(|(_, info)| {
+                    info.kubernetes_objects
+                        .iter()
+                        .any(|o| o.kind == kind && o.name == object)
+                })
+                .map(|(path, _)| path.as_path())
+                .collect();
+            let entries: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| s.kind == SymbolKind::Key)
+                .filter(|s| matches!(s.qualifier.as_deref(), Some("data") | Some("stringData")))
+                .filter(|s| declaring.contains(&s.file.as_path()))
+                .collect();
+            return match entries.as_slice() {
+                [only] => (Some(only.id), Confidence::Exact),
+                // One name declared twice under one object name. The manifests
+                // disagree, so picking one is a guess and the report says so.
+                [first, ..] => (Some(first.id), Confidence::FieldBased),
+                // The object is outside the workspace, or declares no such key.
+                // Nothing here is provable, and no weaker rule may guess instead.
+                [] => (None, Confidence::NameOnly),
+            };
         }
 
         // 4a. A Helm `.Values` path names a key in *this chart's* values file. Two

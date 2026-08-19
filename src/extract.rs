@@ -278,11 +278,23 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     if parent.kind() == "get_attr" {
         let expression = parent.parent()?;
         let mut cursor = expression.walk();
-        let first = expression.named_children(&mut cursor).next()?;
-        if first.kind() == "variable_expr" {
-            return Some(Span::from(first).text(source).to_string());
+        let segments: Vec<Node> = expression.named_children(&mut cursor).collect();
+        let first = segments.first()?;
+        if first.kind() != "variable_expr" {
+            return None;
         }
-        return None;
+        let namespace = Span::from(*first).text(source);
+        // `module.net.subnet_id` reaches a declaration in another directory, and the
+        // second segment is the module call that says which. Recording the namespace
+        // alone left the third segment looking like a field read on an untyped value.
+        // The output it names then resolved to nothing, and a delete of that output
+        // was allowed. The address is written down; this carries all of it.
+        let position = segments.iter().position(|s| s.id() == parent.id())?;
+        if namespace == "module" && position == 2 {
+            let label = Span::from(segments[1]).text(source).trim_start_matches('.');
+            return Some(format!("module.{label}"));
+        }
+        return Some(namespace.to_string());
     }
 
     // An argument of a Terraform `module` block names an input variable of the
@@ -476,6 +488,189 @@ fn values_references(
                 member_in_macro: false,
             });
         }
+    }
+    out
+}
+
+/// The Kubernetes kinds whose `data` mapping other manifests read a key of.
+///
+/// A `Secret` writes its entries under `data` or `stringData`; a `ConfigMap` under
+/// `data` alone. Both are addressed the same way, so both are here.
+const KUBERNETES_KEYED_KINDS: &[&str] = &["ConfigMap", "Secret"];
+
+/// The mapping keys whose values hold a `ConfigMap` or `Secret` entry name.
+const KUBERNETES_KEY_SELECTORS: &[(&str, &str)] =
+    &[("configMapKeyRef", "ConfigMap"), ("secretKeyRef", "Secret")];
+
+/// The mapping under a YAML value node, block or flow.
+fn yaml_mapping<'a>(value: Node<'a>) -> Option<Node<'a>> {
+    let mut cursor = value.walk();
+    let found = value
+        .named_children(&mut cursor)
+        .find(|child| matches!(child.kind(), "block_mapping" | "flow_mapping"));
+    found
+}
+
+/// The pairs of a mapping node.
+fn yaml_pairs<'a>(mapping: Node<'a>) -> Vec<Node<'a>> {
+    let mut cursor = mapping.walk();
+    mapping
+        .named_children(&mut cursor)
+        .filter(|child| matches!(child.kind(), "block_mapping_pair" | "flow_pair"))
+        .collect()
+}
+
+/// A scalar's text and the bytes a rename would rewrite, with any quotes dropped.
+fn yaml_scalar(node: Node<'_>, source: &str) -> Option<(String, Span)> {
+    let mut span = Span::from(node);
+    let mut text = span.text(source);
+    // A quoted scalar has no inner-content node in this grammar, so the quotes are
+    // stripped here. Leaving them in would make a rename rewrite them too.
+    for quote in ['"', '\''] {
+        if text.len() >= 2 && text.starts_with(quote) && text.ends_with(quote) {
+            span = Span::new(span.start + 1, span.end - 1);
+            text = span.text(source);
+        }
+    }
+    match text.is_empty() {
+        true => None,
+        false => Some((text.to_string(), span)),
+    }
+}
+
+/// The scalar value of the pair named `key` in `mapping`.
+fn yaml_entry(mapping: Node<'_>, key: &str, source: &str) -> Option<(String, Span)> {
+    for pair in yaml_pairs(mapping) {
+        let (name, _) = pair.child_by_field_name("key").and_then(|k| {
+            let mut cursor = k.walk();
+            let scalar = k.named_children(&mut cursor).next()?;
+            yaml_scalar(scalar, source)
+        })?;
+        if name != key {
+            continue;
+        }
+        let value = pair.child_by_field_name("value")?;
+        let mut cursor = value.walk();
+        let scalar = value.named_children(&mut cursor).next()?;
+        return yaml_scalar(scalar, source);
+    }
+    None
+}
+
+/// The mapping value of the pair named `key` in `mapping`.
+fn yaml_entry_mapping<'a>(mapping: Node<'a>, key: &str, source: &str) -> Option<Node<'a>> {
+    for pair in yaml_pairs(mapping) {
+        let named = pair.child_by_field_name("key").and_then(|k| {
+            let mut cursor = k.walk();
+            let scalar = k.named_children(&mut cursor).next()?;
+            yaml_scalar(scalar, source).map(|(text, _)| text)
+        });
+        if named.as_deref() != Some(key) {
+            continue;
+        }
+        return pair.child_by_field_name("value").and_then(yaml_mapping);
+    }
+    None
+}
+
+/// The Kubernetes objects a manifest declares, one per document.
+///
+/// Only the kinds another manifest reads a key of. A Deployment is addressed too, by a
+/// Service's selector, and that edge is a label match rather than a name, so it is not
+/// this one.
+fn kubernetes_declarations(root: Node<'_>, source: &str) -> Vec<crate::model::KubernetesObject> {
+    let mut out = Vec::new();
+    let mut cursor = root.walk();
+    for document in root.named_children(&mut cursor) {
+        if document.kind() != "document" {
+            continue;
+        }
+        let Some(mapping) = document
+            .named_children(&mut document.walk())
+            .find_map(yaml_mapping)
+        else {
+            continue;
+        };
+        let Some((kind, _)) = yaml_entry(mapping, "kind", source) else {
+            continue;
+        };
+        if !KUBERNETES_KEYED_KINDS.contains(&kind.as_str()) {
+            continue;
+        }
+        let Some(metadata) = yaml_entry_mapping(mapping, "metadata", source) else {
+            continue;
+        };
+        let Some((name, name_span)) = yaml_entry(metadata, "name", source) else {
+            continue;
+        };
+        out.push(crate::model::KubernetesObject {
+            kind,
+            name,
+            name_span,
+        });
+    }
+    out
+}
+
+/// The `configMapKeyRef` and `secretKeyRef` reads a manifest performs.
+///
+/// Each names an object and one key of it. Renaming that key without rewriting this
+/// leaves the container asking for an entry the ConfigMap no longer has, and the pod
+/// fails to start. The reference spans the key name alone; the object it belongs to is
+/// recorded as the receiver, so resolution can tell four workspace `LOG_LEVEL` keys
+/// apart.
+fn kubernetes_key_references(
+    root: Node<'_>,
+    source: &str,
+    path: &Path,
+    lang: Language,
+    scope_at: &impl Fn(usize) -> crate::model::ScopeId,
+) -> Vec<Reference> {
+    let mut out = Vec::new();
+    let mut cursor = root.walk();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        for child in node.named_children(&mut cursor) {
+            stack.push(child);
+        }
+        if node.kind() != "block_mapping_pair" && node.kind() != "flow_pair" {
+            continue;
+        }
+        let selector = node.child_by_field_name("key").and_then(|k| {
+            let mut inner = k.walk();
+            let scalar = k.named_children(&mut inner).next()?;
+            yaml_scalar(scalar, source).map(|(text, _)| text)
+        });
+        let Some(selector) = selector else { continue };
+        let Some((_, object_kind)) = KUBERNETES_KEY_SELECTORS
+            .iter()
+            .find(|(written, _)| *written == selector)
+        else {
+            continue;
+        };
+        let Some(mapping) = node.child_by_field_name("value").and_then(yaml_mapping) else {
+            continue;
+        };
+        let (Some((object, _)), Some((key, span))) = (
+            yaml_entry(mapping, "name", source),
+            yaml_entry(mapping, "key", source),
+        ) else {
+            continue;
+        };
+        out.push(Reference {
+            name: key,
+            span,
+            file: path.to_path_buf(),
+            language: lang,
+            scope: scope_at(span.start),
+            target: None,
+            confidence: Confidence::NameOnly,
+            kind: ReferenceKind::StringRef,
+            expects: Some(SymbolKind::Key),
+            receiver: Some(format!("{object_kind}/{object}")),
+            receiver_is_path: true,
+            member_in_macro: false,
+        });
     }
     out
 }
@@ -800,6 +995,17 @@ impl Extractor {
             references.extend(interpolation_references(source, parsed, path, &scope_at));
         }
 
+        // A Kubernetes manifest addresses another one by a name written as a value,
+        // which no mapping-key query captures. Both ends of the edge are read here:
+        // what this file declares, and which key of which object it reads.
+        let mut kubernetes_objects = Vec::new();
+        if matches!(lang, Language::Yaml | Language::Helm) {
+            kubernetes_objects = kubernetes_declarations(root, source);
+            references.extend(kubernetes_key_references(
+                root, source, path, lang, &scope_at,
+            ));
+        }
+
         // One identifier can match several patterns (a call is also an identifier).
         // Keep the most specific kind per span so each use site appears exactly once.
         references.sort_by_key(|r| (r.span, reference_specificity(r.kind)));
@@ -807,6 +1013,7 @@ impl Extractor {
 
         Ok(FileFacts {
             path: path.to_path_buf(),
+            kubernetes_objects,
             gaps: parsed.gaps.clone(),
             unreadable: None,
             symbols,

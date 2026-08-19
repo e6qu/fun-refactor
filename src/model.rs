@@ -466,10 +466,30 @@ impl FactGap {
     }
 }
 
+/// A Kubernetes object a file declares, addressed by name from another file.
+///
+/// A manifest's `metadata.name` is written as a value and not as a key, so no symbol
+/// carries it. Another manifest reaches this object by that name. A
+/// `configMapKeyRef` names the ConfigMap it reads a key from. With the declaration
+/// recorded per file, resolution can pick between four workspace `LOG_LEVEL` keys
+/// instead of guessing.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KubernetesObject {
+    /// The `kind` field as written: `ConfigMap`, `Secret`.
+    pub kind: String,
+    /// The `metadata.name` field as written.
+    pub name: String,
+    /// The name value's own bytes, which a rename of the object would rewrite.
+    pub name_span: Span,
+}
+
 /// Everything extracted from one file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FileFacts {
     pub path: PathBuf,
+    /// The Kubernetes objects this file declares, in document order.
+    #[serde(default)]
+    pub kubernetes_objects: Vec<KubernetesObject>,
     /// Why the file's facts are incomplete, empty when they are not. Carried with the
     /// facts so a cached entry answers the question without reparsing.
     #[serde(default)]

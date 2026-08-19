@@ -175,6 +175,26 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B581: **`fr delete` removed a Terraform module output that a caller still
+  read.** `terraform validate` failed on the result. The refusal was already there
+  for Helm values and CSS classes, and it reads the index. Nothing in the index
+  said `module.net.subnet_id` reached that output, so there was nothing to refuse
+  over. B580 put the edge in, and this refusal came with it. Pinned in
+  `tests/namespaces.rs`.
+
+- [x] B580: **`fr usages`, `fr refs` and `fr impact` omitted an edge `fr flow`
+  reported.** A caller reads `module.net.subnet_id`. That counted as zero uses of
+  the module's `output "subnet_id"`. `fr flow back` named the same read, from its
+  own traversal code. Two things were missing from the facts. The
+  third segment of the traversal recorded `module` as its receiver, which lost
+  the module call the second segment names. And no symbol said which block-type
+  keyword declared it, so an `output "x"` and a `provider "x"` beside it were the
+  same thing to resolution. The keyword is now the symbol's qualifier, written
+  once at extraction, and `Index::resolve_module_surface` resolves both halves of
+  a module's call surface. `fr rename` rewrites the caller, and `hcl_role` reads
+  the recorded keyword instead of re-reading the file. Pinned in
+  `tests/namespaces.rs`.
+
 - [x] B610: **`fr stitch` truncated a chain silently.** A chart with no
   `Chart.yaml` had its `templates/deployment.yaml` read as plain YAML. So the
   chain began at the manifest and looked whole. The values file feeding it went
