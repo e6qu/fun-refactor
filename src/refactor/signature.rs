@@ -118,6 +118,66 @@ pub struct SignaturePlan {
 /// body still reads $2, the parameter being removed". It was never true of anything else, which
 /// is the shape most of the defects in this tool have had. A rule that holds for the language
 /// it was written against.
+/// Refuse to add a parameter the declaration already has.
+///
+/// Running the same `add:` twice wrote `def scale(v, factor, factor)`, which
+/// the grammar parses and Python refuses at import. Every other operation here
+/// declines a repeat: a rename to an existing name, a delete of what is gone.
+/// This one applied it again, so a retried command or a re-run recipe broke
+/// the file it had just changed.
+fn already_declared(
+    source: &str,
+    items: &[Span],
+    change: &Change,
+    language: Language,
+) -> Result<()> {
+    let Change::Add { declaration, .. } = change else {
+        return Ok(());
+    };
+    let Some(name) = parameter_name(declaration, language) else {
+        return Ok(());
+    };
+    let taken = items
+        .iter()
+        .filter_map(|span| source.get(span.start..span.end))
+        .filter_map(|text| parameter_name(text, language))
+        .any(|existing| existing == name);
+    if taken {
+        anyhow::bail!(
+            "this declaration already has a parameter called `{name}`; adding it \
+             again would name one thing twice"
+        );
+    }
+    Ok(())
+}
+
+/// The name a parameter's text declares, whatever else it carries.
+///
+/// Which word is the name depends on the language, and reading the wrong one
+/// answered `float64` when asked what Go's `price float64` is called.
+fn parameter_name(text: &str, language: Language) -> Option<String> {
+    let head = text.split('=').next()?.trim();
+    if head.is_empty() {
+        return None;
+    }
+    let name = match language {
+        // `name: type`, and the type may itself contain spaces.
+        Language::Python
+        | Language::TypeScript
+        | Language::Tsx
+        | Language::Rust
+        | Language::Zig
+        | Language::Scss => head.split(':').next()?.trim(),
+        // `name type`.
+        Language::Go => head.split_whitespace().next()?,
+        // `type name`, modifiers and annotations ahead of both.
+        Language::Java => head.split_whitespace().last()?,
+        _ => head,
+    };
+    let name = name.trim_start_matches(['*', '&', '$']).trim();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
 fn still_read(
     index: &Index,
     sym: &crate::model::Symbol,
@@ -235,6 +295,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             Some(params) => {
                 let param_spans = without_receiver(m.language, m.kind, &source, list_items(params));
                 still_read(index, m, &param_spans, &change)?;
+                already_declared(&source, &param_spans, &change, m.language)?;
                 apply_change(
                     &mut edits,
                     &Site {
@@ -248,7 +309,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     true,
                     None,
                 )?;
-                removing = removed_parameter_name(&source, &param_spans, &change);
+                removing = removed_parameter_name(&source, &param_spans, &change, m.language);
             }
             // A declaration can legitimately have no parameter list to change: SCSS
             // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
@@ -524,14 +585,17 @@ struct Site<'a> {
 ///
 /// A call site passing arguments by name needs it: position tells it nothing
 /// about which argument is going.
-fn removed_parameter_name(source: &str, items: &[Span], change: &Change) -> Option<String> {
+fn removed_parameter_name(
+    source: &str,
+    items: &[Span],
+    change: &Change,
+    language: Language,
+) -> Option<String> {
     let Change::Remove(at) = change else {
         return None;
     };
     let text = source.get(items.get(*at)?.start..items.get(*at)?.end)?;
-    let head = text.split(['=', ':']).next()?.trim();
-    let name = head.rsplit([' ', '*', '&']).next()?.trim();
-    (!name.is_empty()).then(|| name.to_string())
+    parameter_name(text, language)
 }
 
 fn apply_change(

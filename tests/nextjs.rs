@@ -508,6 +508,10 @@ fn a_fastapi_path_parameter_takes_the_type_the_source_declared() {
             .map(|p| p["schema"]["type"].as_str().unwrap_or("").to_string())
             .unwrap_or_default()
     };
-    assert_eq!(typed("i"), "integer", "an int path parameter. {parameters:?}");
+    assert_eq!(
+        typed("i"),
+        "integer",
+        "an int path parameter. {parameters:?}"
+    );
     assert_eq!(typed("name"), "string", "a str one. {parameters:?}");
 }
