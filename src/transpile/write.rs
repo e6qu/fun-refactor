@@ -563,6 +563,20 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.record_field_types = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some((
+                r.name.clone(),
+                r.fields
+                    .iter()
+                    .filter_map(|f| f.ty.clone().map(|ty| (f.name.clone(), ty)))
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
     // A name that is a property somewhere and never a field is safe to rewrite.
     // Every read of it becomes the call it is in a target without properties. A name
     // that is both stays a read, and the property side keeps the mismatch visible.
@@ -800,6 +814,12 @@ struct Out {
     /// Nothing is inferred. A name whose type the source never wrote down is not in here, and
     /// the operator is written as it was.
     binding_types: std::collections::BTreeMap<String, Type>,
+    /// What the record now being written declares its fields to be, so a body
+    /// reading one through the receiver knows as much as it knows about a local.
+    field_types: std::collections::BTreeMap<String, Type>,
+    /// The same, for every record in view, keyed by the record's name.
+    record_field_types:
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, Type>>,
     /// The same, for record fields, which are a separate namespace.
     ///
     /// Not folded into `names`: a Rust `Reading { sensor }` with an exported field becomes Go's
@@ -880,6 +900,8 @@ impl Out {
             functions: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
+            field_types: std::collections::BTreeMap::new(),
+            record_field_types: std::collections::BTreeMap::new(),
             fields: BTreeMap::new(),
             receiver_fields: BTreeMap::new(),
             go_result: None,
@@ -1019,13 +1041,24 @@ impl Out {
         let bound = f.receiver_binding.clone();
         let displaced_name = bound.as_deref().map(|b| self.bind_receiver(b));
         let displaced_fields = std::mem::take(&mut self.receiver_fields);
+        let displaced_types = std::mem::take(&mut self.field_types);
         if bound.is_some() {
             self.receiver_fields = self.fields_reached_bare(f);
+            // `this.total / 2` asks what `total` is, and the record the method
+            // belongs to says so. Without this the answer stopped at the class
+            // boundary: a local divided as an integer and a field did not.
+            self.field_types = f
+                .receiver
+                .as_deref()
+                .and_then(|r| self.record_field_types.get(r))
+                .cloned()
+                .unwrap_or_default();
         }
         MethodScope {
             bound,
             displaced_name,
             displaced_fields,
+            displaced_types,
         }
     }
 
@@ -1035,6 +1068,7 @@ impl Out {
             self.unbind_receiver(b, p);
         }
         self.receiver_fields = scope.displaced_fields;
+        self.field_types = scope.displaced_types;
     }
 
     /// The fields of this method's own record, each spelled the target's way.
@@ -1156,6 +1190,7 @@ struct MethodScope {
     bound: Option<String>,
     displaced_name: Option<Option<String>>,
     displaced_fields: BTreeMap<String, String>,
+    displaced_types: BTreeMap<String, Type>,
 }
 
 /// Every name this body declares, at any depth, added to `into`.
@@ -3681,7 +3716,16 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         Expr::Float(_) => Some(Type::Float),
         Expr::Str(_) => Some(Type::String),
         Expr::Bool(_) => Some(Type::Bool),
-        Expr::Name(name) => out.binding_types.get(name).cloned(),
+        // A bare name in a method body is a local, a parameter, or a field of
+        // the record the method belongs to. The writer decides which when it
+        // spells it; the type question has the same three places to look, and
+        // stopping at the first two left `this.total / 2` untruncated while
+        // the same division over a local was right.
+        Expr::Name(name) => out
+            .binding_types
+            .get(name)
+            .or_else(|| out.field_types.get(name))
+            .cloned(),
         // `+` with a string on either side is concatenation, and the whole of it
         // is a string however the other side is typed. Answering "no idea" here
         // left `"x" + 1 + 2` as `"x" + str(1) + 2`, which raises. Only the first
