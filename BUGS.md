@@ -176,8 +176,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 ## Fixed
 
 - [x] B578: **a stalled download hung the gate in silence.** The step that
-  installs Zig, Terraform and Helm fetches each from a host this repository
-  does not control. It set no deadline and no retry. One slow host left both
+  installs Zig, Terraform and Helm fetches each from a host nobody here
+  controls. It set no deadline and no retry. One slow host left both
   check jobs in that step for forty-five minutes, runners idle and the log
   silent. Every fetch has a connect timeout, a deadline and three retries now.
   One that cannot finish says which host it waited for.
