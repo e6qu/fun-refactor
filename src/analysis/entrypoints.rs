@@ -1122,7 +1122,7 @@ mod tests {
         );
         assert!(
             kinds_for(&index, "prefix").is_empty(),
-            "a local is the module's own working store"
+            "a local is the module's own working store."
         );
         assert!(
             kinds_for(&index, "web_ids").contains(&EntryKind::ExportedApi),

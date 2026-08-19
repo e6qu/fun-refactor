@@ -183,8 +183,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   Pinned in `tests/remove_flag_sweep.rs`.
 
 - [x] B623: **`fr entrypoints` called a module's workings its inputs.** A
-  `locals` block was reported as `infra-input` beside a real `variable`, and
-  `output "web_ids"` was not an entry point at all. Since
+  `locals` block was reported as `infra-input` beside a real `variable`. An
+  `output` was not an entry point at all. Since
   `fr unused` treats an entry point as reached, nothing in HCL or Helm was ever
   unreferenced, however plainly `fr usages` said otherwise. A variable is an
   input, an output is the surface, and a local is neither. Pinned in
