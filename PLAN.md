@@ -1658,3 +1658,9 @@ and exited 0, while `fr rename` exits 3 for a target it cannot find. A caller lo
 over rewrites read a typo as "nothing left to do". The command reports not-found now,
 in the exit code and in the `--json` error. Its skipped matches were prose on stdout
 under `--json` too, in front of the report, so the output was not JSON.
+
+`fr impact` is the reconnaissance this tool suggests before a change, and it left
+out what the change itself reports. The name written as text resolves nowhere: an
+`__all__` entry, a line of documentation. `fr rename` sweeps for those and lists
+them. `fr impact` ran no sweep, so it answered one site where the rename showed
+three. It asks `crate::mentions` now, the same sweep the other commands ask.

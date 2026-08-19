@@ -175,6 +175,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B683: **`fr impact` left out what `fr rename` reports.** The name written as
+  text is invisible to every resolver: an `__all__` entry, a line of
+  documentation, a CI script. `fr rename` sweeps for those and lists each one.
+  The tool suggests `fr impact` before that rename, and it ran no such
+  sweep. So it answered one site where the rename showed three. A reader met
+  the rest after committing to the change. It runs the same sweep now, from
+  `crate::mentions`, which is where `fr usages` and `fr delete` already ask.
+  `tests/impact_completeness.rs` compares the two commands site by site.
+
 - [x] B682: **`fr restructure` reported no matches as success.** `fr rename` exits 3
   for a target it cannot find. Restructure printed one line and exited 0.
   It is the operation where a typo is likeliest and least visible. A caller
