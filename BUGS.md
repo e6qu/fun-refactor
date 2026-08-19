@@ -176,7 +176,7 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 ## Fixed
 
 - [x] B578: **a stalled install hung the gate.** The step installing Zig,
-  Terraform and Helm reaches hosts nobody here controls, and `apt` reaches a
+  Terraform and Helm reaches hosts nobody here controls. `apt` reaches a
   mirror. None of it set a deadline, so both check jobs sat in that step for
   an hour, runners idle and the log silent. Each fetch has a deadline and
   three retries now, and so does `apt`. The step and the jobs are bounded.
