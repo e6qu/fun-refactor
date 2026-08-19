@@ -1112,13 +1112,13 @@ mod tests {
 
     #[test]
     fn a_terraform_local_is_not_an_input_and_an_output_is_the_surface() {
-        // Both halves reach the index as a symbol of kind `variable`, so a rule
+        // Both halves reach the index as a symbol of kind `variable`. A rule
         // asking only for the kind called `locals { prefix = … }` externally
-        // settable. Nothing outside the module can name a local.
+        // settable, and nothing outside the module can name a local.
         let (_tmp, index) = workspace(&[("main.tf", MODULE_TF)]);
         assert!(
             kinds_for(&index, "region").contains(&EntryKind::InfraInput),
-            "a root-module variable is settable from outside"
+            "a root-module variable is settable from outside."
         );
         assert!(
             kinds_for(&index, "prefix").is_empty(),
@@ -1143,7 +1143,10 @@ mod tests {
             .map(|s| s.name.as_str())
             .collect();
         assert!(dead.contains(&"spare"), "a local nobody reads: {dead:?}");
-        assert!(!dead.contains(&"prefix"), "`local.prefix` is read: {dead:?}");
+        assert!(
+            !dead.contains(&"prefix"),
+            "`local.prefix` is read: {dead:?}"
+        );
         assert!(!dead.contains(&"region"), "an input is a start: {dead:?}");
     }
 

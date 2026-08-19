@@ -1259,9 +1259,72 @@ fn generic_conditionals(parsed: &Parsed, source: &str) -> Collapse {
             // A false `if` with no else leaves nothing behind.
             None => String::new(),
         };
+        // A branch that always leaves takes the rest of its block with it.
+        // `if FLAG { return a } return b` folded to `return a; return b`. It
+        // compiles and answers the same, and `go vet` reports unreachable code
+        // against the user.
+        let span = match kept.filter(|branch| always_leaves(*branch)) {
+            Some(_) => Span::new(span.start, trailing_end(node)),
+            None => span,
+        };
         out.changes.push((span, replacement));
     }
     out
+}
+
+/// Does this block always leave, so nothing after it can run?
+///
+/// Only the statements every language here spells the same way. A `panic` or a
+/// process exit is a call. Telling one from an ordinary call is a question
+/// about the callee that this pass cannot answer.
+fn always_leaves(block: Node<'_>) -> bool {
+    // Go puts a `statement_list` between a block and its statements, so the
+    // block's own last child is that wrapper and never the `return` inside it.
+    let mut block = block;
+    loop {
+        let mut cursor = block.walk();
+        let Some(last) = block.named_children(&mut cursor).last() else {
+            return false;
+        };
+        if crate::refactor::is_statement_container(last.kind()) {
+            block = last;
+            continue;
+        }
+        // Rust spells a return as an expression, wrapped in a statement.
+        // Matching statement kinds alone left Rust keeping the dead tail while
+        // Go dropped it.
+        let last = match last.kind() {
+            "expression_statement" => last.named_child(0).unwrap_or(last),
+            _ => last,
+        };
+        let kind = last.kind();
+        return kind.starts_with("return")
+            || kind.starts_with("break")
+            || kind.starts_with("continue")
+            || kind.starts_with("throw");
+    }
+}
+
+/// Where this node's block ends, counting every sibling after it.
+///
+/// The node's own end when nothing follows, so a caller can take it either way.
+fn trailing_end(node: Node<'_>) -> usize {
+    // Rust's `if` is an expression, wrapped in a statement. So the `if` node
+    // has no siblings, and what follows it hangs off its parent.
+    let mut node = node;
+    while node
+        .parent()
+        .is_some_and(|p| p.kind() == "expression_statement")
+    {
+        node = node.parent().expect("just checked");
+    }
+    let mut end = node.end_byte();
+    let mut next = node.next_named_sibling();
+    while let Some(sibling) = next {
+        end = sibling.end_byte();
+        next = sibling.next_named_sibling();
+    }
+    end
 }
 
 /// The block an else clause wraps.
@@ -1330,6 +1393,13 @@ fn zig_conditionals(parsed: &Parsed, source: &str) -> Collapse {
         let replacement = match kept {
             None => String::new(),
             Some(branch) => zig_branch_text(branch, source, &indent, terminated),
+        };
+        // A branch that always leaves takes the rest of its block with it.
+        // Zig refuses unreachable code outright, so the fold produced a file
+        // its own compiler would not read.
+        let span = match kept.filter(|branch| always_leaves(*branch)) {
+            Some(_) => Span::new(span.start, trailing_end(node)),
+            None => span,
         };
         out.changes.push((span, replacement));
     }

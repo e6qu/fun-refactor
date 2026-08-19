@@ -614,3 +614,32 @@ fn a_mount_point_is_still_the_surface_it_is() {
         "an app's mount point is the surface the outside reaches: {found:?}"
     );
 }
+
+#[test]
+fn a_terraform_module_names_its_surface_and_not_its_workings() {
+    // A `locals` block is by definition not an input, and an `output` is what
+    // the module offers. Calling every binding an input made `fr unused`
+    // structurally dead for HCL: nothing was ever unreferenced, however clearly
+    // `fr usages` said so.
+    let found = entry_kinds(&[(
+        "main.tf",
+        "variable \"environment\" {\n  type = string\n}\n\n\
+         locals {\n  dead_local = \"never referenced\"\n  \
+         name_prefix = \"app-${var.environment}\"\n}\n\n\
+         output \"web_ids\" {\n  value = local.name_prefix\n}\n",
+    )]);
+    assert!(
+        found.contains(&("environment".to_string(), EntryKind::InfraInput)),
+        "a variable is what a caller supplies. {found:?}"
+    );
+    assert!(
+        found
+            .iter()
+            .any(|(name, kind)| name.contains("web_ids") && *kind == EntryKind::ExportedApi),
+        "an output is the module's surface: {found:?}"
+    );
+    assert!(
+        !found.iter().any(|(name, _)| name == "dead_local"),
+        "a local is neither: {found:?}"
+    );
+}

@@ -1,9 +1,14 @@
 //! `fr remove-flag`, driven in every language that claims it.
 //!
 //! The one writing command the sweeps never reached, because this repository has no
-//! boolean flag to point it at. These fixtures are that corpus: one flag, one guarded
-//! branch and one live statement per language. The tool's own reparse gate checks the
-//! result parses; the assertions here check the cascade itself.
+//! boolean flag to point it at. These fixtures are that corpus: one flag and one
+//! guarded branch per language. The tool's own reparse gate checks the result
+//! parses; the assertions here check the cascade itself.
+//!
+//! The statement after a branch that returns cannot run once the flag is true, and
+//! `go vet` and `rustc` both say so about the result. These fixtures used to assert
+//! it survived. What a live statement looks like is
+//! [`a_statement_the_fold_can_still_reach_survives`], below.
 
 use std::path::Path;
 use std::process::Command;
@@ -50,8 +55,8 @@ fn rust_removes_the_flag_and_keeps_the_live_branch() {
         "a.rs",
         "pub const SHINY: bool = true;\n\n\
          pub fn greet() -> i64 {\n    if SHINY {\n        return 2;\n    }\n    return 1;\n}\n",
-        &["SHINY"],
-        &["return 2", "return 1"],
+        &["SHINY", "return 1"],
+        &["return 2"],
     );
 }
 
@@ -61,8 +66,8 @@ fn go_removes_the_flag_and_keeps_the_live_branch() {
         "a.go",
         "package p\n\nconst SHINY = true\n\n\
          func Greet() int {\n\tif SHINY {\n\t\treturn 2\n\t}\n\treturn 1\n}\n",
-        &["SHINY"],
-        &["return 2", "return 1"],
+        &["SHINY", "return 1"],
+        &["return 2"],
     );
 }
 
@@ -82,8 +87,8 @@ fn typescript_removes_the_flag_and_keeps_the_live_branch() {
         "a.ts",
         "export const SHINY = true;\n\n\
          export function greet(): number {\n    if (SHINY) {\n        return 2;\n    }\n    return 1;\n}\n",
-        &["SHINY"],
-        &["return 2", "return 1"],
+        &["SHINY", "return 1"],
+        &["return 2"],
     );
 }
 
@@ -93,8 +98,8 @@ fn zig_removes_the_flag_and_keeps_the_live_branch() {
         "a.zig",
         "pub const SHINY = true;\n\n\
          pub fn greet() i64 {\n    if (SHINY) {\n        return 2;\n    }\n    return 1;\n}\n",
-        &["SHINY"],
-        &["return 2", "return 1"],
+        &["SHINY", "return 1"],
+        &["return 2"],
     );
 }
 
@@ -104,8 +109,8 @@ fn java_removes_the_flag_and_keeps_the_live_branch() {
         "A.java",
         "public final class A {\n  static final boolean SHINY = true;\n\n  \
          static int greet() {\n    if (SHINY) {\n      return 2;\n    }\n    return 1;\n  }\n}\n",
-        &["SHINY"],
-        &["return 2", "return 1"],
+        &["SHINY", "return 1"],
+        &["return 2"],
     );
 }
 
@@ -179,4 +184,25 @@ fn mentions_left_in_config_and_scripts_are_reported_after_the_removal() {
     // The code itself is clean; only the prose mentions remain.
     let code = std::fs::read_to_string(tmp.path().join("a.go")).unwrap();
     assert!(!code.contains("SHINY"), "{code}");
+}
+
+#[test]
+fn a_statement_the_fold_can_still_reach_survives() {
+    // The guarded branch assigns rather than returning, so what follows it runs
+    // whichever way the flag went. Only what cannot run goes.
+    swept(
+        "b.py",
+        "SHINY = True\n\n\ndef greet() -> int:\n    total = 1\n    if SHINY:\n        \
+         total = 2\n    return total\n",
+        &["SHINY"],
+        &["total = 2", "return total"],
+    );
+    swept(
+        "b.go",
+        "package p\n\nconst SHINY = true\n\n\
+         func Greet() int {\n\ttotal := 1\n\tif SHINY {\n\t\ttotal = 2\n\t}\n\t\
+         return total\n}\n",
+        &["SHINY"],
+        &["total = 2", "return total"],
+    );
 }

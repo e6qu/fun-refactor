@@ -175,6 +175,21 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B622: **a folded flag left code that cannot run.** `if FLAG { return a }
+  return b` became `return a; return b`. It answers the same, and every
+  compiler says so: `go vet` reports unreachable code, `rustc` warns, and Zig
+  refuses the file outright. A branch that always leaves now takes the rest of
+  its block with it, and a branch that falls through keeps what follows.
+  Pinned in `tests/remove_flag_sweep.rs`.
+
+- [x] B623: **`fr entrypoints` called a module's workings its inputs.** A
+  `locals` block was reported as `infra-input` beside a real `variable`, and
+  `output "web_ids"` was not an entry point at all. Since
+  `fr unused` treats an entry point as reached, nothing in HCL or Helm was ever
+  unreferenced, however plainly `fr usages` said otherwise. A variable is an
+  input, an output is the surface, and a local is neither. Pinned in
+  `tests/entrypoints_conventions.rs`.
+
 - [x] B640: **a file that did not parse was invisible where it mattered.**
   `fr parse` and `fr duplicates` named it. So did `fr rename` and `fr extract`.
   `fr symbols`, `fr usages`, `fr unused` and `fr graph` said nothing. `fr unused`
