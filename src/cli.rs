@@ -1708,13 +1708,43 @@ fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result
         );
     }
 
+    // Every import nothing names and the planner kept anyway, with the reason it worked
+    // out. The reasons were computed and then dropped. So "removed 0 import(s)" was the
+    // whole answer, and a reader could not learn which import was held, or why.
+    if !cli.json && !plan.warnings.is_empty() {
+        println!("Kept {} import(s) nothing names:", plan.warnings.len());
+        for warning in &plan.warnings {
+            println!("  line {}: {}", warning.line, warning.detail);
+        }
+        println!();
+    }
+
     let summary = format!(
         "{}: removed {} import(s), reordered {} block(s)",
         plan.file.display(),
         plan.removed.len(),
         plan.sorted_blocks
     );
-    present(cli, Some(&index), &plan.edits, &summary, write)
+    let kept = kept_imports_json(&plan.warnings);
+    present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
+        report["kept_imports"] = kept;
+    })
+}
+
+/// The imports the planner held back, as data, each with the reason it printed.
+fn kept_imports_json(warnings: &[crate::refactor::Warning]) -> serde_json::Value {
+    let rows: Vec<serde_json::Value> = warnings
+        .iter()
+        .map(|warning| {
+            serde_json::json!({
+                "file": warning.file,
+                "line": warning.line,
+                "col": warning.col,
+                "reason": warning.detail,
+            })
+        })
+        .collect();
+    serde_json::Value::Array(rows)
 }
 
 /// Every file the index holds, one pass, one atomic apply.
@@ -1727,11 +1757,15 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
     let mut removed = 0usize;
     let mut reordered = 0usize;
     let mut skipped: std::collections::BTreeMap<String, usize> = Default::default();
+    let mut kept: Vec<crate::refactor::Warning> = Vec::new();
 
     let files: Vec<std::path::PathBuf> = index.files().map(|(path, _)| path.clone()).collect();
     for path in files {
         match crate::refactor::imports::plan(index, &path) {
             Ok(plan) => {
+                // Counted before the files with nothing to do are dropped: an import held
+                // back is the reason a file has nothing to do.
+                kept.extend(plan.warnings.iter().cloned());
                 if plan.edits.is_empty() {
                     continue;
                 }
@@ -1761,6 +1795,14 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
             println!("  {count} file(s): {first}");
         }
     }
+    // A sweep of a workspace would drown in one line per held import. The count is the
+    // report here, and the reason is one command away.
+    if !cli.json && !kept.is_empty() {
+        println!(
+            "\n{} import(s) nothing names were kept. `fr imports <file>` says why.",
+            kept.len()
+        );
+    }
     if !cli.json {
         println!();
     }
@@ -1769,7 +1811,10 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
         "workspace: {touched} file(s) changed, {removed} import(s) removed, \
          {reordered} block(s) reordered."
     );
-    present(cli, Some(index), &edits, &summary, write)
+    let kept = kept_imports_json(&kept);
+    present_with(cli, Some(index), &edits, &summary, write, |report| {
+        report["kept_imports"] = kept;
+    })
 }
 
 fn cmd_translate(
@@ -2783,8 +2828,7 @@ fn cmd_restructure(
         plan.edits.file_count()
     );
     present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
-        report["skipped_occurrences"] =
-            skipped_occurrences_json(&root, &plan.skipped_with_comments);
+        report["skipped_occurrences"] = skipped_occurrences_json(&plan.skipped_with_comments);
     })
 }
 
@@ -2792,10 +2836,7 @@ fn cmd_restructure(
 ///
 /// The same occurrences the text report lists, for a caller that reads JSON. It had
 /// neither: the prose went to stdout in front of the report and broke it.
-fn skipped_occurrences_json(
-    root: &std::path::Path,
-    skipped: &[(std::path::PathBuf, usize)],
-) -> serde_json::Value {
+fn skipped_occurrences_json(skipped: &[(std::path::PathBuf, usize)]) -> serde_json::Value {
     let rows: Vec<serde_json::Value> = skipped
         .iter()
         .map(|(path, offset)| {
@@ -2803,7 +2844,7 @@ fn skipped_occurrences_json(
                 .ok()
                 .map(|source| LineIndex::new(&source).line_col(*offset, &source));
             serde_json::json!({
-                "file": shown_path(root, path),
+                "file": path,
                 "line": at.as_ref().map(|a| a.line),
                 "col": at.as_ref().map(|a| a.col),
                 "reason": "the match holds a comment, which the template has nowhere to put",

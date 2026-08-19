@@ -175,6 +175,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B684: **`fr imports` kept an import and never said why.** The planner works out a
+  reason for each one it holds back: a package `__init__.py` re-export, a `__future__`
+  import, a submodule imported for its registration side effects, a Rust trait used
+  through its methods. Each reason was built as a warning and then thrown away by the
+  command, in text and in `--json` alike. So the user read "removed 0 import(s)" and
+  had nowhere to go. The single-file report lists them now, and carries them as
+  `kept_imports`. The workspace sweep prints the count and names the command that
+  gives the reason. Pinned in `tests/cli.rs`.
+
 - [x] B683: **`fr impact` left out what `fr rename` reports.** The name written as
   text is invisible to every resolver: an `__all__` entry, a line of
   documentation, a CI script. `fr rename` sweeps for those and lists each one.

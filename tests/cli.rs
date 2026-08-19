@@ -610,6 +610,44 @@ fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
 }
 
 #[test]
+fn an_import_kept_for_a_reason_says_what_the_reason_was() {
+    // The planner works the reason out for every import it holds back, and the command
+    // threw all of them away. "removed 0 import(s)" was the whole answer.
+    let ws = Workspace::new(&[(
+        "pk/__init__.py",
+        "import json\n\n\ndef f():\n    return 1\n",
+    )]);
+    let (said, ok) = ws.run(&["imports", "pk/__init__.py"]);
+    assert!(ok, "{said}");
+    assert!(
+        said.contains("package __init__.py"),
+        "the reason is missing:\n{said}."
+    );
+
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["imports", "pk/__init__.py"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("--json emits one JSON object");
+    let kept = report["kept_imports"]
+        .as_array()
+        .expect("the kept imports are data");
+    assert_eq!(kept.len(), 1, "got: {report}.");
+    assert_eq!(kept[0]["line"], 1);
+    assert!(
+        kept[0]["reason"]
+            .as_str()
+            .is_some_and(|reason| reason.contains("package __init__.py")),
+        "the reason travels into the JSON: {report}."
+    );
+}
+
+#[test]
 fn an_inverted_range_is_refused_with_both_ends_named() {
     // `fr extract "a.go:8:20-8:5"` used to panic in the span constructor, which
     // reported byte offsets instead of the typo.

@@ -1664,3 +1664,9 @@ out what the change itself reports. The name written as text resolves nowhere: a
 `__all__` entry, a line of documentation. `fr rename` sweeps for those and lists
 them. `fr impact` ran no sweep, so it answered one site where the rename showed
 three. It asks `crate::mentions` now, the same sweep the other commands ask.
+
+`fr imports` worked out why it kept each import and printed none of the reasons. A
+package `__init__.py` re-export, a `__future__` import, a submodule imported for its
+side effects: each one was built as a warning and dropped. The user read "removed 0
+import(s)" and had nowhere to go. The single-file report lists them, and `--json`
+carries them as `kept_imports`. The workspace sweep prints the count.
