@@ -175,6 +175,34 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B636: **nothing completed anything.** Thirty-three subcommands and six
+  global flags, and no shell knew any of it. `fr completions bash|zsh|fish`
+  writes a script from the command tree itself. It offers what this binary has,
+  and nothing else. A command added tomorrow
+  is completed tomorrow.
+
+- [x] B635: **a translated class could not be constructed.** `__init__` is
+  how Python spells a public constructor. Its underscores were read as Python's
+  mark for "internal", so Java produced a `private Account(...)` on a public
+  class, and Rust a private `fn new`. Neither type could be built from
+  outside the file that declared it, and nothing said so. A name wrapped in two
+  underscores on each side is a protocol method the language itself calls. It
+  is part of the surface. One leading underscore still means keep out.
+
+- [x] B633: **Python's `/` crossed as C's `/`.** They are two operations
+  sharing a spelling. Python's yields a float whatever it divides, and C's
+  truncates two integers. Read as one, `self.cents / 100` became an
+  integer division everywhere. Rust and Go refused the file. Java took it and
+  answered 5 where the source answered 5.34, which is the worse of the two.
+  True division is its own operator in the IR now. The targets whose `/` is
+  C's coerce an operand before the operator sees it. The two whose `/` already
+  divides in floats are left alone.
+
+- [x] B634: **a translated method that wrote a field would not compile.** Rust
+  took `&self` for every method. A body assigning to `self.cents` was refused
+  with E0594: cannot assign behind a `&` reference. A body that writes a field
+  takes `&mut self`. A body that only reads keeps the shared borrow.
+
 - [x] B630: **an empty list crossed as `[]any` under a signature promising
   something else.** `out = []` says nothing about its elements. Go therefore
   wrote `out := []any{}` inside a function returning `[]Point`, and the compiler

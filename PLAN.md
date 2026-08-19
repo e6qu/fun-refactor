@@ -1331,7 +1331,7 @@ Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
 `imports`, `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`, `callers`,
 `callees`, `graph`, `flow`, `impact`, `stitch`, `entrypoints`, `capabilities`, `cache`,
-`openapi`, `type`.
+`openapi`, `type`, `completions`.
 
 ### The JSON surface an agent scripts against
 
@@ -1632,3 +1632,34 @@ mention sweep, having neither a string node nor a comment node. So a style
 guide naming a CSS class went unlisted through a rename. A chart with no
 `Chart.yaml` was read as plain YAML, and `fr stitch` began its chain one hop
 in.
+
+### The pass where the tool answered about the project
+
+A shell stands in a subdirectory far more often than at a repository root, and
+an agent's shell almost always does. The root defaulted to `.`, so every
+command asked from `pkg/deep` answered about `pkg/deep`. `fr usages` reported
+no uses of a function `main.py` calls. `fr delete` offered to remove it.
+`fr rename` renamed the definition and left the caller reading a name nothing
+declares. All three exited zero and reported success, which is the shape of
+wrong answer this project exists to remove. The root is now the nearest
+enclosing project, and a path typed from where you stand is read from there.
+
+The rest of the pass is the same question asked of the other surfaces. What
+did the scan pass over, and did it say so. Which floor is a stylesheet judged
+against, when eleven copied declarations come to fewer tokens than one copied
+function. And where does a reader go when `.gitignore` excludes the file they
+want to work on. Nowhere: no flag reached an ignored file at all.
+
+Translation was checked by compiling what it produced, not by reading it. Go
+refused every translated library, because a file with no `func main` is a
+program with no entry point. Rust refused every method that wrote a field,
+because `&self` cannot be assigned through. Both refused an empty list that
+came out `[]any` under a signature promising something else. Java took its
+file and answered 5 where the source answered 5.34. Python's `/` and C's `/`
+are two operations that share a spelling. Reading both as one made every true
+division a truncating one. Java's silence was the worst of the three.
+
+Two things a person needs that were not there. `__init__` is how Python spells
+a public constructor. Its underscores were read as the mark for internal, so
+no translated class could be built from outside its own file. And nothing
+completed anything: thirty-three subcommands, and no shell knew one of them.

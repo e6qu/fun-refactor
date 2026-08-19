@@ -1926,7 +1926,14 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     if method {
-        params.push(format!("&{}", receiver_word(out.language)));
+        // A body that writes to a field needs the receiver to be writable, and
+        // `&self` is not. Rust refused every translated setter with E0594.
+        let word = receiver_word(out.language);
+        let mutation = match assigns_to_receiver(f, word) {
+            true => "mut ",
+            false => "",
+        };
+        params.push(format!("&{mutation}{word}"));
     }
     let mut foreign = false;
     let mut unannotated = false;
@@ -2617,6 +2624,29 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         // instead, so it answers `-3` where the source's `7 // -2` says `-4`.
         // A block spells the floor itself and names each operand once, which
         // matters when an operand is a call.
+        // Python's `/` is a float division. Rust's is the operands' own, so an
+        // integer side is coerced before the operator sees it.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                // A written number takes the float spelling. `100 as f64`
+                // compiles and reads as a repair rather than as arithmetic.
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(rust_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("{text} as f64"),
+                }
+            };
+            let dividend = side(out, left);
+            let divisor = side(out, right);
+            format!("{dividend} / {divisor}")
+        }
         Expr::Binary {
             op: BinaryOp::FloorDiv,
             left,
@@ -3722,6 +3752,24 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
     types
 }
 
+/// Whether this method's body assigns to a field of its receiver.
+fn assigns_to_receiver(f: &Function, word: &str) -> bool {
+    fn is_receiver_field(target: &Expr, word: &str) -> bool {
+        match target {
+            Expr::Field { of, .. } => matches!(of.as_ref(), Expr::Name(n) if n == word),
+            Expr::Index { of, .. } => is_receiver_field(of, word),
+            _ => false,
+        }
+    }
+    let mut found = false;
+    each_stmt(&f.body, &mut |stmt| match stmt {
+        Stmt::Assign { target, .. } => found |= is_receiver_field(target, word),
+        Stmt::TupleAssign { .. } => {}
+        _ => {}
+    });
+    found
+}
+
 /// Visit every statement in a body, nested blocks included.
 fn each_stmt(stmts: &[Stmt], visit: &mut dyn FnMut(&Stmt)) {
     for stmt in stmts {
@@ -4624,6 +4672,16 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     ));
     out.open();
     go_block(out, &f.body, f.returns.as_ref());
+    // Go refuses a function that promises a value and has no path returning one.
+    // A body whose statements did not translate reaches here, and the file that
+    // carried them as comments would not build. Panicking says the draft is not
+    // finished where a zero value would have said it was.
+    if !returns.is_empty() && !f.body.is_empty() && !body_leaves(&f.body) {
+        out.line(&format!(
+            "panic({})",
+            quoted(Language::Go, &format!("{MARKER}: this body has no return"))
+        ));
+    }
     out.close();
     out.line("}");
     out.go_result = None;
@@ -4815,14 +4873,34 @@ fn go_result_stmt(out: &mut Out, stmt: &Stmt) -> bool {
 }
 
 /// Whether this body's last statement leaves the function on every path.
+///
+/// Go's own rule for a terminating statement, in the shapes the IR has. Judging
+/// only a trailing `return` put a `panic` after a switch whose every arm
+/// returned, which is unreachable code and a defect of its own.
 fn body_leaves(body: &[Stmt]) -> bool {
     match body.last() {
         Some(Stmt::Return(_)) | Some(Stmt::Throw(_)) => true,
         Some(Stmt::If {
             then, otherwise, ..
         }) => !otherwise.is_empty() && body_leaves(then) && body_leaves(otherwise),
+        Some(Stmt::Switch { arms, default, .. }) => {
+            !default.is_empty()
+                && body_leaves(default)
+                && arms.iter().all(|(_, body)| body_leaves(body))
+        }
+        // `for {}` with nothing to break out of never falls through.
+        Some(Stmt::While { condition, body, .. }) => {
+            matches!(condition, Expr::Bool(true)) && !has_break(body)
+        }
         _ => false,
     }
+}
+
+/// Whether a loop body can break out of the loop it belongs to.
+fn has_break(body: &[Stmt]) -> bool {
+    let mut found = false;
+    each_stmt(body, &mut |stmt| found |= matches!(stmt, Stmt::Break));
+    found
 }
 
 fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
@@ -5242,16 +5320,6 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             Stmt::Unsupported(u) => carry(out, u),
         }
     }
-    // Go refuses a function that promises a value and has no path returning one.
-    // A body whose statements did not translate reaches here, and the file that
-    // carried them as comments would not build. Panicking says the draft is not
-    // finished where a zero value would say it was.
-    if returns.is_some() && !body_leaves(body) {
-        out.line(&format!(
-            "panic({})",
-            quoted(Language::Go, &format!("{MARKER}: this body has no return"))
-        ));
-    }
 }
 
 fn go_type(ty: &Type) -> String {
@@ -5422,6 +5490,24 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 go_expr(out, left),
                 go_expr(out, right)
             )
+        }
+        // Go's `/` truncates two integers, and the source's did not.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(go_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("float64({text})"),
+                }
+            };
+            format!("{} / {}", side(out, left), side(out, right))
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
@@ -7832,6 +7918,24 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("(({}) {})", java_expr(out, ty), java_expr(out, value))
         }
+        // Java's `/` truncates two integers, silently and with the wrong answer.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(java_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("(double) {text}"),
+                }
+            };
+            format!("{} / {}", side(out, left), side(out, right))
+        }
         Expr::InstanceOf { value, ty } => {
             let rendered = java_expr(out, value);
             format!("{rendered} instanceof {}", java_expr(out, ty))
@@ -9048,6 +9152,25 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
+        // Zig refuses `/` on signed integers outright, and the source divided
+        // as floats anyway.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(zig_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("@as(f64, @floatFromInt({text}))"),
+                }
+            };
+            format!("{} / {}", side(out, left), side(out, right))
+        }
         Expr::Binary { op, left, right } => {
             // A Zig string is a `[]const u8`, and `==` on a slice is not a comparison
             // the compiler will accept at all. The output looked like the other five

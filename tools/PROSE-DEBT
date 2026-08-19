@@ -12,6 +12,10 @@
 # Measured against the same rules before any of this work: em-dash 2050,
 # false-comparison 240, filler 350, self-reference 222, long-sentence 2339.
 #
+# The meter's third fix: a string holding a shell expansion is a program this
+# tool writes, not a sentence anybody reads. `fr completions` emits its script
+# one line at a time, and those lines glued together counted as prose.
+#
 # The meter's second fix moved the numbers again, downward: its string extractor
 # read a char literal like `'"'` as a string delimiter, which flipped its lexing
 # parity and counted spans of plain code as prose. 160 of the long "sentences"
@@ -20,5 +24,5 @@
 em-dash 53
 false-comparison 19
 filler 10
-self-reference 52
+self-reference 50
 long-sentence 998

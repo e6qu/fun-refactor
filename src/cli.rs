@@ -139,6 +139,16 @@ enum Command {
         #[arg(long)]
         markdown: bool,
     },
+    /// Print a shell completion script for this tool.
+    ///
+    /// Written from the command tree itself, so it cannot describe a command
+    /// this binary does not have. Send it where your shell reads completions:
+    /// `fr completions bash > /usr/local/etc/bash_completion.d/fr`.
+    Completions {
+        /// The shell to write for.
+        #[arg(value_enum)]
+        shell: CompletionShell,
+    },
     /// Inspect or clear the fact cache.
     Cache {
         /// Delete every cached entry for the current query set.
@@ -589,6 +599,124 @@ enum Command {
     },
 }
 
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum CompletionShell {
+    Bash,
+    Zsh,
+    Fish,
+}
+
+/// A completion script, written from the command tree this binary really has.
+///
+/// Thirty-three subcommands are a lot to type from memory, and nothing
+/// completed any of it. Generated rather than kept by hand, so a command added
+/// tomorrow is completed tomorrow.
+fn completion_script(shell: CompletionShell) -> String {
+    use clap::CommandFactory;
+    let command = Cli::command();
+    let globals: Vec<String> = command
+        .get_arguments()
+        .filter_map(|a| a.get_long().map(|l| format!("--{l}")))
+        .collect();
+    let globals = globals.join(" ");
+    let subcommands: Vec<(String, String, String)> = command
+        .get_subcommands()
+        .map(|sub| {
+            let flags: Vec<String> = sub
+                .get_arguments()
+                .filter_map(|a| a.get_long().map(|l| format!("--{l}")))
+                .collect();
+            // A description goes inside quotes in two of the three shells, and
+            // one line is all any of them shows.
+            let about = sub
+                .get_about()
+                .map(|a| a.to_string())
+                .unwrap_or_default()
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .replace(['\'', '"', '`', '$'], "");
+            (sub.get_name().to_string(), about, flags.join(" "))
+        })
+        .collect();
+    let names: Vec<&str> = subcommands.iter().map(|(n, _, _)| n.as_str()).collect();
+    let names = names.join(" ");
+
+    let mut lines: Vec<String> = Vec::new();
+    match shell {
+        CompletionShell::Bash => {
+            lines.push("_fr() {".into());
+            lines.push("    local cur command i".into());
+            lines.push("    cur=\"${COMP_WORDS[COMP_CWORD]}\"".into());
+            lines.push("    command=\"\"".into());
+            lines.push("    for ((i = 1; i < COMP_CWORD; i++)); do".into());
+            lines.push("        case \"${COMP_WORDS[i]}\" in".into());
+            lines.push("            -*) ;;".into());
+            lines.push("            *) command=\"${COMP_WORDS[i]}\"; break ;;".into());
+            lines.push("        esac".into());
+            lines.push("    done".into());
+            lines.push("    if [ -z \"$command\" ]; then".into());
+            lines.push(format!(
+                "        COMPREPLY=($(compgen -W \"{names} {globals}\" -- \"$cur\"))"
+            ));
+            lines.push("        return 0".into());
+            lines.push("    fi".into());
+            lines.push("    local options=\"\"".into());
+            lines.push("    case \"$command\" in".into());
+            for (name, _, flags) in &subcommands {
+                lines.push(format!("        {name})"));
+                lines.push(format!("            options=\"{flags}\""));
+                lines.push("            ;;".into());
+            }
+            lines.push("    esac".into());
+            lines.push("    if [[ \"$cur\" == -* ]]; then".into());
+            lines.push(format!(
+                "        COMPREPLY=($(compgen -W \"$options {globals}\" -- \"$cur\"))"
+            ));
+            lines.push("    else".into());
+            lines.push("        COMPREPLY=($(compgen -f -- \"$cur\"))".into());
+            lines.push("    fi".into());
+            lines.push("}".into());
+            lines.push("complete -F _fr fr".into());
+        }
+        CompletionShell::Zsh => {
+            lines.push("#compdef fr".into());
+            lines.push("_fr() {".into());
+            lines.push("    local -a commands".into());
+            lines.push("    commands=(".into());
+            for (name, about, _) in &subcommands {
+                lines.push(format!("        '{name}:{about}'"));
+            }
+            lines.push("    )".into());
+            lines.push("    if (( CURRENT == 2 )); then".into());
+            lines.push("        _describe -t commands 'fr command' commands".into());
+            lines.push("    else".into());
+            lines.push("        _files".into());
+            lines.push("    fi".into());
+            lines.push("}".into());
+            lines.push("compdef _fr fr".into());
+        }
+        CompletionShell::Fish => {
+            for flag in globals.split_whitespace() {
+                lines.push(format!("complete -c fr -l {}", flag.trim_start_matches('-')));
+            }
+            for (name, about, flags) in &subcommands {
+                lines.push(format!(
+                    "complete -c fr -n __fish_use_subcommand -a {name} -d '{about}'"
+                ));
+                for flag in flags.split_whitespace() {
+                    lines.push(format!(
+                        "complete -c fr -n \"__fish_seen_subcommand_from {name}\" -l {}",
+                        flag.trim_start_matches('-')
+                    ));
+                }
+            }
+        }
+    }
+    lines.push(String::new());
+    lines.join("\n")
+}
+
 pub fn run() -> Result<()> {
     let matches = <Cli as clap::CommandFactory>::command().get_matches();
     let mut cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
@@ -674,6 +802,10 @@ fn dispatch(cli: &Cli) -> Result<()> {
             language,
             markdown,
         } => cmd_capabilities(cli, capability.as_deref(), language.as_deref(), *markdown),
+        Command::Completions { shell } => {
+            print!("{}", completion_script(*shell));
+            Ok(())
+        }
         Command::Cache { clear } => cmd_cache(cli, *clear),
         Command::Scan { languages } => cmd_scan(cli, languages),
         Command::Parse { languages, stats } => cmd_parse(cli, languages, *stats),
