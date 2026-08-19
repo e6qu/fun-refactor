@@ -1104,14 +1104,66 @@ mod tests {
         assert!(kinds_for(&index, "test_it").contains(&EntryKind::Test));
     }
 
+    const MODULE_TF: &str = "variable \"region\" {\n  type = string\n}\n\n\
+                             locals {\n  prefix = \"web\"\n  spare = \"nobody\"\n}\n\n\
+                             resource \"aws_instance\" \"web\" {\n  \
+                             tags = { Name = local.prefix }\n}\n\n\
+                             output \"web_ids\" {\n  value = aws_instance.web[*].id\n}\n";
+
     #[test]
-    fn terraform_variables_are_infra_inputs() {
-        let (_tmp, index) =
-            workspace(&[("main.tf", "variable \"region\" {\n  type = string\n}\n")]);
-        let kinds = kinds_for(&index, "region");
+    fn a_terraform_local_is_not_an_input_and_an_output_is_the_surface() {
+        // Both halves reach the index as a symbol of kind `variable`, so a rule
+        // asking only for the kind called `locals { prefix = … }` externally
+        // settable. Nothing outside the module can name a local.
+        let (_tmp, index) = workspace(&[("main.tf", MODULE_TF)]);
         assert!(
-            kinds.contains(&EntryKind::InfraInput),
-            "a root-module variable is externally settable: {kinds:?}"
+            kinds_for(&index, "region").contains(&EntryKind::InfraInput),
+            "a root-module variable is settable from outside"
+        );
+        assert!(
+            kinds_for(&index, "prefix").is_empty(),
+            "a local is the module's own working store"
+        );
+        assert!(
+            kinds_for(&index, "web_ids").contains(&EntryKind::ExportedApi),
+            "an output is what a caller reads, wherever it is written"
+        );
+    }
+
+    #[test]
+    fn a_local_nothing_reads_reaches_the_unused_report() {
+        // Every HCL symbol counted as an entry point, so reachability started
+        // everywhere and `fr unused` was structurally empty for Terraform.
+        let (_tmp, index) = workspace(&[("main.tf", MODULE_TF)]);
+        let catalog = Catalog::builtin().unwrap();
+        let entrypoints = Entrypoints::from_catalog(&catalog, &index);
+        let dead: Vec<&str> = crate::refactor::delete::find_unused(&index, &entrypoints)
+            .into_iter()
+            .filter_map(|id| index.symbol(id))
+            .map(|s| s.name.as_str())
+            .collect();
+        assert!(dead.contains(&"spare"), "a local nobody reads: {dead:?}");
+        assert!(!dead.contains(&"prefix"), "`local.prefix` is read: {dead:?}");
+        assert!(!dead.contains(&"region"), "an input is a start: {dead:?}");
+    }
+
+    #[test]
+    fn a_charts_metadata_is_not_something_an_install_can_set() {
+        let (_tmp, index) = workspace(&[
+            ("Chart.yaml", "apiVersion: v2\nname: app\nversion: 0.1.0\n"),
+            ("values.yaml", "replicaCount: 1\n"),
+            (
+                "templates/deployment.yaml",
+                "kind: Deployment\nspec:\n  replicas: {{ .Values.replicaCount }}\n",
+            ),
+        ]);
+        assert!(
+            kinds_for(&index, "apiVersion").contains(&EntryKind::ExportedApi),
+            "`--set apiVersion=v2` sets a value no template reads"
+        );
+        assert!(
+            kinds_for(&index, "replicaCount").contains(&EntryKind::InfraInput),
+            "a values key is what an install overrides"
         );
     }
 
