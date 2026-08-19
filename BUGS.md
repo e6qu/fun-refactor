@@ -175,6 +175,14 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B685: **a recipe run and its `--explain` disagreed on the recipe's length.**
+  `--explain` read the file and said "3 step(s)". The run of the same file said
+  "2 step(s)", because a refusal stopped it at the second and the header counted the
+  steps reached. A recipe is a reviewable artifact, so its length is a fact about the
+  file. The header reports that now, from `steps_in_recipe`, and how far the run got
+  is its own line and its own JSON field. Pinned in `tests/recipe.rs` and
+  `tests/cli.rs`, which compares the two commands.
+
 - [x] B684: **`fr imports` kept an import and never said why.** The planner works out a
   reason for each one it holds back: a package `__init__.py` re-export, a `__future__`
   import, a submodule imported for its registration side effects, a Rust trait used

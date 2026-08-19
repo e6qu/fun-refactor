@@ -2627,9 +2627,18 @@ fn selector_of(step: &crate::recipe::Step) -> String {
 }
 
 fn print_recipe_report(report: &crate::recipe::Report) {
-    println!("recipe {}: {} step(s)", report.recipe, report.steps.len());
+    // The header describes the file, so it counts the steps the recipe holds. Counting
+    // the ones the run reached made a stopped three-step recipe call itself a two-step
+    // recipe, against the `--explain` of the same file. The traversal is its own line.
+    println!(
+        "recipe {}: {} step(s)",
+        report.recipe, report.steps_in_recipe
+    );
     if let Some(description) = &report.description {
         println!("  {description}");
+    }
+    if report.steps.len() < report.steps_in_recipe {
+        println!("  the run reached {} of them", report.steps.len());
     }
     println!();
     for (i, step) in report.steps.iter().enumerate() {

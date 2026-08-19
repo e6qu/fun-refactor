@@ -1670,3 +1670,8 @@ package `__init__.py` re-export, a `__future__` import, a submodule imported for
 side effects: each one was built as a warning and dropped. The user read "removed 0
 import(s)" and had nowhere to go. The single-file report lists them, and `--json`
 carries them as `kept_imports`. The workspace sweep prints the count.
+
+A recipe run and its `--explain` gave the same file two lengths. `--explain` counted
+the steps in the recipe and the run counted the steps it reached. A run stopped at
+the second of three called itself a two-step recipe. The header describes the file
+now. How far the run got is a line of its own, and `steps_in_recipe` in the JSON.

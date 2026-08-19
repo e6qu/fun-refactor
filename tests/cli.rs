@@ -610,6 +610,37 @@ fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
 }
 
 #[test]
+fn a_run_and_an_explain_agree_on_how_long_the_recipe_is() {
+    // The run headed itself with the steps it reached. So a recipe stopped at its second
+    // step said "2 step(s)" where `--explain` of the same file said three.
+    let ws = Workspace::new(&[
+        ("m.py", "def a(x):\n    return x\n\n\ndef b(x):\n    return a(x)\n"),
+        (
+            "r.recipe",
+            "schema 1\n\nrecipe two {\n  rename to \"a2\" where name=\"a\" kind=function\n  signature \"remove:0\" where name=\"b\" kind=function\n  rename to \"b2\" where name=\"b\" kind=function\n}\n",
+        ),
+    ]);
+    let count = |text: &str| -> String {
+        text.lines()
+            .find(|line| line.contains("step(s)"))
+            .unwrap_or_default()
+            .to_string()
+    };
+    let (explained, ok) = ws.run(&["recipe", "r.recipe", "--explain"]);
+    assert!(ok, "{explained}");
+    let (ran, _) = ws.run(&["recipe", "r.recipe"]);
+    assert_eq!(
+        count(&explained),
+        count(&ran),
+        "explain:\n{explained}\nrun:\n{ran}"
+    );
+    assert!(
+        ran.contains("the run reached 2 of them"),
+        "how far the run got is its own line:\n{ran}"
+    );
+}
+
+#[test]
 fn an_import_kept_for_a_reason_says_what_the_reason_was() {
     // The planner works the reason out for every import it holds back, and the command
     // threw all of them away. "removed 0 import(s)" was the whole answer.
