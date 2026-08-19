@@ -186,8 +186,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 - [x] B548: **a field divided as a float where a local divided as an
   integer.** `this.total / 2` in TypeScript kept its remainder. The same
   division over a local truncated. A bare name in a method body is a local, a
-  parameter, or a field of its record, and the type question looks in all
-  three places now.
+  parameter, or a field of its record. The type question looks in all three
+  places now.
 
 - [x] B565: **`fr move` refused a class that names itself.** The cycle it
   named does not exist. `Counter.STEP` written in `Counter`'s own method
