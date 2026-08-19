@@ -187,6 +187,48 @@ fn works_for_python_with_python_spelling() {
 }
 
 #[test]
+fn a_python_flag_read_through_an_import_is_removed_whole() {
+    // The commonest Python layout: the flag in its own module, imported by name where it
+    // is read. The substitution used to put the literal into the import statement. The
+    // file then said `from app.flags import True`, and the parse gate threw it away.
+    let tmp = workspace(&[
+        ("app/__init__.py", ""),
+        ("app/flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "app/tax.py",
+            "from app.flags import USE_NEW_TAX\n\n\ndef tax(amount):\n    if USE_NEW_TAX:\n        return amount * 1.2\n    return amount * 1.15\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true).unwrap();
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .expect("a cascade must leave every file parsing");
+
+    let out = result_for(tmp.path(), "app/tax.py", &plan);
+    assert!(!out.contains("import"), "the import should go:\n{out}");
+    assert!(out.contains("return amount * 1.2"), "got:\n{out}");
+    assert!(!out.contains("1.15"), "the dead branch should go:\n{out}");
+}
+
+#[test]
+fn a_typescript_flag_read_through_an_import_is_removed_whole() {
+    let tmp = workspace(&[
+        ("flags.ts", "export const USE_NEW: boolean = true;\n"),
+        (
+            "tax.ts",
+            "import { USE_NEW } from \"./flags\";\n\nexport function tax(a: number): number {\n  if (USE_NEW) {\n    return a * 1.2;\n  }\n  return a * 1.15;\n}\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
+    let out = result_for(tmp.path(), "tax.ts", &plan);
+    assert!(!out.contains("import"), "the import should go:\n{out}");
+    // The import statement never held the literal on the way, either.
+    assert!(!out.contains("true"), "got:\n{out}");
+    assert!(out.contains("return a * 1.2;"), "got:\n{out}");
+}
+
+#[test]
 fn an_unknown_flag_is_an_error_rather_than_a_silent_no_op() {
     let tmp = workspace(&[("a.rs", "fn run() {}\n")]);
     let err = cascade::remove_flag(tmp.path(), "NOT_THERE", true)

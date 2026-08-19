@@ -1632,3 +1632,16 @@ mention sweep, having neither a string node nor a comment node. So a style
 guide naming a CSS class went unlisted through a rename. A chart with no
 `Chart.yaml` was read as plain YAML, and `fr stitch` began its chain one hop
 in.
+
+
+### The pass where the commands were held to what they promise
+
+A probe drove the CLI the way an agent would and reported what it saw. The
+theme is a promise the tool makes and then keeps only in part.
+
+`fr remove-flag` could not run on the commonest Python layout, a flag in its
+own module and an import where it is read. The literal went into the import
+statement, and the parse gate threw the cascade away. TypeScript wrote the
+same nonsense there and survived by accident, because a later round deleted
+the statement. An import binds a name and reads nothing, so the choke point
+that decides where a literal can stand now says so for every language.

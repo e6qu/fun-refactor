@@ -476,6 +476,10 @@ fn substitute_flag(
             UseSite::Replace(span) => {
                 changes.push((reference.file.clone(), span, literal.to_string()))
             }
+            // The statement stays for now and the dead-import round removes it, once the
+            // uses under it are gone. It reads nothing, so the declaration is still free
+            // to go with the rest.
+            UseSite::Binds(_) => {}
             UseSite::Refuse(_) => every_use_was_rewritten = false,
         }
     }
@@ -739,7 +743,7 @@ fn remaining_uses(
                 continue;
             }
             let reason = match use_site(*language, kind, &parsed, source, span) {
-                UseSite::Refuse(reason) => reason,
+                UseSite::Refuse(reason) | UseSite::Binds(reason) => reason,
                 UseSite::Replace(_) => {
                     "this use of the flag did not resolve to it firmly enough to rewrite".into()
                 }
@@ -810,6 +814,12 @@ fn literal_for(language: Language, value: bool) -> &'static str {
 /// The bytes a use site's literal must replace.
 enum UseSite {
     Replace(Span),
+    /// The occurrence binds the name and never reads it, so no literal stands here.
+    ///
+    /// An import is the whole of this case. A refusal would be too strong: binding a name
+    /// is not reading it, so the declaration can still go. The round that drops imports
+    /// nothing uses any more takes the statement away afterwards.
+    Binds(String),
     /// The use cannot be rewritten without changing what the code means.
     Refuse(String),
 }
@@ -845,6 +855,7 @@ fn use_site(
 ///   and not the callee. Replacing the callee gave `if true()`, which then never
 ///   collapsed, because `true()` is not a boolean literal.
 /// * Reading a field of the flag reads into its value, and a boolean has no field.
+/// * An import binds the name for the file and reads nothing, so no literal stands there.
 fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span: Span) -> UseSite {
     let Some(node) = parsed
         .root()
@@ -852,6 +863,17 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
     else {
         return UseSite::Replace(span);
     };
+
+    // Before anything about the value, because an import states nothing about one. Python
+    // writes the bound name bare. So `from app.flags import USE_NEW_TAX` became `from
+    // app.flags import True`, and the final parse gate threw the cascade away.
+    if names_an_import(node) {
+        return UseSite::Binds(format!(
+            "`{}` is bound by an import here, which names the flag and does not read it",
+            span.text(source)
+        ));
+    }
+
     let Some(parent) = node.parent() else {
         return UseSite::Replace(span);
     };
@@ -913,7 +935,7 @@ fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
         "scoped_identifier" => parent.child_by_field_name("name"),
         _ => return None,
     };
-    if member != Some(node) || names_an_import(parent) {
+    if member != Some(node) {
         return None;
     }
     Some(Span::from(parent))
@@ -922,7 +944,8 @@ fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
 /// Is this node part of an import statement?
 ///
 /// An import names the flag without reading it, so a boolean cannot stand there.
-/// `use crate::flags::SHINY;` rewritten whole reads `use true;`. The cascade already
+/// `use crate::flags::SHINY;` rewritten whole reads `use true;`, and Python's `from
+/// app.flags import USE_NEW_TAX` reads `from app.flags import True`. The cascade
 /// drops an import its own edits orphaned, in a later round.
 fn names_an_import(node: Node<'_>) -> bool {
     let mut current = Some(node);

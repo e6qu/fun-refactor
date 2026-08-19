@@ -175,6 +175,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B680: **`fr remove-flag` rewrote an import statement.** Python puts a flag in
+  its own module and imports it where it is read.
+  `from app.flags import USE_NEW_TAX` became `from app.flags import True`, and
+  the final parse gate threw the whole cascade away. So the command was unusable on
+  that shape. TypeScript wrote `import { true }` in the same place and only survived
+  because a later round deleted the mangled statement. An import binds a name and
+  reads nothing, so no literal stands there. `use_site` now answers `Binds` for an
+  occurrence under an import, in every language. The declaration still goes, because
+  binding a name is not reading it, and the round that drops unused imports takes the
+  statement away. Pinned in `tests/cascade.rs`.
+
 - [x] B622: **a folded flag left code that cannot run.** `if FLAG { return a }
   return b` became `return a; return b`. It answers the same, and every
   compiler says so: `go vet` reports unreachable code, `rustc` warns, and Zig
