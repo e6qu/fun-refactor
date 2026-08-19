@@ -175,6 +175,14 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B600: **`fr move` took link definitions away.** They serve a whole
+  Markdown document. A definition like `[api]: ./a.md` sits at the end of a
+  file, under the last section. Moving that section carried the definition off,
+  so reference links left behind resolved to nothing. The report said nothing
+  about it. A definition now stays where it is, and the section is taken around
+  it. Where the moved text uses one, a copy goes with it and a warning names
+  the copy. Pinned in `tests/move_languages.rs`.
+
 - [x] B549: **removing a parameter took the wrong argument.** A call passing
   arguments by name resolves them to the parameter. So a keyword three files
   away was reported as "the body of `greet` still reads `punct`", with the

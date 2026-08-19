@@ -1005,6 +1005,54 @@ fn markdown_warns_when_the_moved_section_links_back_at_what_stayed() {
 }
 
 #[test]
+fn markdown_leaves_a_link_definition_the_moved_section_does_not_use() {
+    let ws = Workspace::new(&[
+        (
+            "a.md",
+            "# A\n\nSee [x][api].\n\n## S\n\ntext\n\n[api]: ./ref.md\n",
+        ),
+        ("g.md", "# G\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "S", None);
+
+    let plan = move_symbol::to_file(&index, id, &ws.path("g.md")).unwrap();
+    assert_eq!(plan.warnings.len(), 1, "got {:?}", plan.warnings);
+    assert!(plan.warnings[0].contains("api"), "got {:?}", plan.warnings);
+    commit(&plan);
+
+    assert_eq!(ws.read("a.md"), "# A\n\nSee [x][api].\n\n[api]: ./ref.md\n");
+    assert_eq!(ws.read("g.md"), "# G\n\n## S\n\ntext\n\n");
+}
+
+#[test]
+fn markdown_copies_a_link_definition_the_moved_section_uses() {
+    let ws = Workspace::new(&[
+        (
+            "a.md",
+            "# A\n\nIntro.\n\n## S\n\nSee [x][api].\n\n[api]: ./ref.md\n",
+        ),
+        ("g.md", "# G\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "S", None);
+
+    let plan = move_symbol::to_file(&index, id, &ws.path("g.md")).unwrap();
+    assert!(
+        plan.warnings.iter().any(|w| w.contains("copied")),
+        "got {:?}",
+        plan.warnings
+    );
+    commit(&plan);
+
+    assert_eq!(ws.read("a.md"), "# A\n\nIntro.\n\n[api]: ./ref.md\n");
+    assert_eq!(
+        ws.read("g.md"),
+        "# G\n\n## S\n\nSee [x][api].\n\n[api]: ./ref.md\n"
+    );
+}
+
+#[test]
 fn markdown_leaves_unrelated_anchors_alone() {
     let ws = Workspace::new(&[("guide.md", GUIDE), ("install.md", "# Install\n")]);
     let index = ws.index();
