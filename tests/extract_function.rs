@@ -697,7 +697,7 @@ fn extracting_from_a_nested_function_stays_inside_the_outer_one() {
 #[test]
 fn a_typescript_method_carries_its_receiver_as_a_parameter() {
     // `this` is named nowhere in a TypeScript signature, so the data-flow analysis
-    // could not see it: the body still said `this.values` while the parameter list
+    // could not see it. The body still said `this.values` while the parameter list
     // was empty. Go reaches the same shape by ordinary means, its receiver being a
     // named parameter, and this follows it.
     let src = "export class Box {\n  values: number[] = [];\n\n  sum(): number {\n    \

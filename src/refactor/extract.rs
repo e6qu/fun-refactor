@@ -979,8 +979,8 @@ struct Placement {
 /// Where the new definition goes.
 ///
 /// It used to go straight after the function it came from, at column zero. Inside a class
-/// that put a `def` in the middle of the class body, which Python parses, because a `def`
-/// nests anywhere: every method below it became a closure of the new function and the
+/// that put a `def` in the middle of the class body. Python parses that, because a `def`
+/// nests anywhere. Every method below it became a closure of the new function, and the
 /// class lost them. Inside a nested function it did the same to the outer body. So the
 /// definition is hoisted out of every class it sits in and written at the indentation of
 /// whatever it ends up beside. Hoisting stops at the first enclosing function, because a
@@ -1010,7 +1010,7 @@ fn definition_placement(
         current = parent;
     }
 
-    // Java is the one language here whose extracted definition stays a member: it is
+    // Java is the one language here whose extracted definition stays a member. It is
     // written `static`, beside the method it came from, so it does not move out.
     let node = match language {
         Language::Java => function,
@@ -1088,11 +1088,10 @@ fn receiver_uses(parsed: &Parsed, source: &str, region: Span, keyword: &str) -> 
 
 /// The parameter that carries a method's receiver into the extracted function.
 ///
-/// Go reaches this by ordinary means: its receiver is a named parameter, so extracting
-/// from `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)` with no special case.
-/// TypeScript names its receiver nowhere, so the parameter is invented here and the call
-/// passes `this`. Where the receiver cannot be handed over as a value the extraction is
-/// refused instead.
+/// Go reaches this by ordinary means. Its receiver is a named parameter, so extracting
+/// from `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)`. TypeScript names its
+/// receiver nowhere, so the parameter is invented here and the call passes `this`. Where
+/// the receiver cannot be handed over as a value the extraction is refused instead.
 fn carried_receiver(
     parsed: &Parsed,
     source: &str,
@@ -1129,16 +1128,16 @@ fn carried_receiver(
         .map(|n| Span::from(n).text(source).to_string())
     else {
         return Err(refuse(
-            "the selected code reads `this` inside a class expression with no name, so \
-             there is no type to write on the parameter that would carry it."
+            "the selected code reads `this` inside a class expression with no name. The \
+             parameter that would carry it has no type to be given."
                 .into(),
         ));
     };
     if class.child_by_field_name("type_parameters").is_some() {
         return Err(refuse(format!(
-            "the selected code reads `this` inside the generic class `{class_name}`, and \
-             the type arguments its receiver was created with are not written down here, \
-             so the parameter that would carry it cannot be typed."
+            "the selected code reads `this` inside the generic class `{class_name}`. \
+             Nothing here says which type arguments its receiver has. So the parameter \
+             that would carry it cannot be typed."
         )));
     }
     if let Some(member) = unreachable_member(parsed, source, region, class) {
@@ -1193,9 +1192,8 @@ fn enclosing_class_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Node<'a>
 
 /// A member the region reads that nothing outside the class may read.
 ///
-/// `private` and `protected` are checked by the compiler and not by the runtime, so an
-/// extraction that ignores them writes code that runs and does not build. `#name` is
-/// checked by both.
+/// `private` and `protected` are compiler rules, and not runtime ones. An extraction that
+/// ignores them writes code that runs and does not build. `#name` is checked by both.
 fn unreachable_member(
     parsed: &Parsed,
     source: &str,
@@ -1754,8 +1752,8 @@ fn render_call(
 /// `outer` is what the extracted region already carries. `unit` is one level as this file
 /// writes it, which is read from the source and not assumed so a two-space or tab-indented file
 /// does not come back with four spaces.
-/// `lead` is what the definition itself carries, the indentation of whatever it is
-/// written beside. It is empty for a definition that lands at the top of the file.
+/// `lead` is the definition's own indentation, taken from whatever it is written beside.
+/// It is empty for a definition that lands at the top of the file.
 #[derive(Clone, Copy)]
 struct Indentation<'a> {
     outer: &'a str,

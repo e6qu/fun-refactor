@@ -401,7 +401,7 @@ fn zig_carries_its_doc_comment() {
     let plan =
         move_symbol::to_file(&index, symbol_id(&index, "thing", None), &ws.path("b.zig")).unwrap();
     commit(&plan);
-    assert_eq!(ws.read("a.zig"), "//! Module docs.\n\n");
+    assert_eq!(ws.read("a.zig"), "//! Module docs.\n");
     assert_eq!(
         ws.read("b.zig"),
         "pub const K: i32 = 1;\n\n/// What it does.\npub fn thing() void {}\n"
@@ -447,7 +447,7 @@ fn bash_sources_the_new_home_from_the_script_that_still_calls_it() {
 
     assert_eq!(
         ws.read("app.sh"),
-        "#!/usr/bin/env bash\nset -euo pipefail\nsource \"./lib.sh\"\n\n\ngreet world\n"
+        "#!/usr/bin/env bash\nset -euo pipefail\nsource \"./lib.sh\"\n\ngreet world\n"
     );
     assert_eq!(
         ws.read("lib.sh"),
@@ -501,7 +501,7 @@ fn bash_adds_nothing_where_the_destination_is_already_sourced() {
     let plan =
         move_symbol::to_file(&index, symbol_id(&index, "greet", None), &ws.path("lib.sh")).unwrap();
     commit(&plan);
-    assert_eq!(ws.read("app.sh"), "source ./lib.sh\n\n\ngreet\n");
+    assert_eq!(ws.read("app.sh"), "source ./lib.sh\n\ngreet\n");
     assert!(
         plan.imports_added.is_empty(),
         "nothing to add: {:?}",
@@ -788,7 +788,7 @@ fn yaml_carries_a_comment_on_the_key_but_leaves_the_file_header() {
     );
     assert_eq!(
         applied(&plan, &ws.path("conf/base.yaml")),
-        "# What this file is.\nalpha: 1\n\n"
+        "# What this file is.\nalpha: 1\n"
     );
 
     // The header comment opens the file, so it describes the file instead of the

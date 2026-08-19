@@ -461,7 +461,11 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move {} out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move {} out", sym.name),
+        ),
     );
 
     for barrel in &barrels {
@@ -1490,7 +1494,11 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move {} out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move {} out", sym.name),
+        ),
     );
     append_to_destination(
         &mut plan.edits,
@@ -2025,10 +2033,16 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     let moved_text = removal.text(&source).to_string();
 
     let mut plan = MovePlan::new(sym, destination);
-    plan.edits.add(
-        sym.file.clone(),
-        Edit::new(removal, "", format!("move {} out", sym.name)),
-    );
+    // The declaration and the imports that leave with it are one hole in the source
+    // file. The edit erasing it is added once both are known.
+    let erase = |plan: &mut MovePlan, pruned: Vec<Span>| {
+        for span in erase_spans(&source, &[vec![removal], pruned].concat()) {
+            plan.edits.add(
+                sym.file.clone(),
+                Edit::new(span, "", format!("move {} out", sym.name)),
+            );
+        }
+    };
 
     if source_dir == dest_dir {
         // Same directory means same package: every reference already resolves, and
@@ -2051,7 +2065,9 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
                 );
             }
         }
-        let carried = go_carry_imports(index, sym, destination, removal, &source, &mut plan);
+        let (carried, pruned) =
+            go_carry_imports(index, sym, destination, removal, &source, &mut plan);
+        erase(&mut plan, pruned);
         let header = if go_package(index, destination).is_none() {
             format!("package {package}\n\n{}", go_header_imports(&carried))
         } else {
@@ -2177,7 +2193,8 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         false => None,
     };
 
-    let carried = go_carry_imports(index, sym, destination, removal, &source, &mut plan);
+    let (carried, pruned) = go_carry_imports(index, sym, destination, removal, &source, &mut plan);
+    erase(&mut plan, pruned);
     let destination_exists = go_package(index, destination).is_some();
     let header = match (destination_exists, &source_import) {
         (false, Some(path)) => format!(
@@ -2426,18 +2443,18 @@ fn go_import_insertion_point(index: &Index, file: &Path) -> Option<usize> {
 
 /// Carry the imports the moved Go code needs, and drop the ones that left with it.
 ///
-/// A Go import path is absolute: the same statement reads the same in every file of the
-/// module, so it travels verbatim and nothing has to be re-derived. Which import a name
-/// came from is not a guess either. A qualified use is a reference the index recorded
-/// under the package binding, so the references inside the moved span decide what goes and
-/// the ones outside it decide what stays.
+/// A Go import path is absolute. The same statement reads the same in every file of the
+/// module, so it travels verbatim. Which import a name came from is not a guess either. A
+/// qualified use is a reference the index recorded under the package binding. References
+/// inside the moved span decide what goes. The ones outside it decide what stays.
 ///
 /// Both halves matter, and neither was done. Go rejects a file that names an undefined
 /// qualifier and a file that imports a package it does not use, so one move of one
 /// function produced `undefined: math` in the destination and `"math" imported and not
 /// used` in the source. The report said `0 file(s) gained an import` and meant it.
-/// Returns the statements for a destination that has no package clause yet: that file is
-/// written whole by the caller, and an edit cannot be placed in a file that does not exist.
+/// Answers with two things. The statements for a destination that has no package clause
+/// yet, which the caller writes whole. And the lines the source file loses. The caller
+/// erases those with the declaration, so the two holes are worked out as one.
 #[must_use]
 fn go_carry_imports(
     index: &Index,
@@ -2446,12 +2463,13 @@ fn go_carry_imports(
     removal: Span,
     source: &str,
     plan: &mut MovePlan,
-) -> String {
+) -> (String, Vec<Span>) {
     let Some(info) = index.file(&sym.file) else {
-        return String::new();
+        return (String::new(), Vec::new());
     };
     let existing = crate::vfs::read_to_string(destination).unwrap_or_default();
     let mut for_the_header = String::new();
+    let mut pruned: Vec<Span> = Vec::new();
 
     for import in &info.imports {
         let Some(binding) = go_import_binding(import) else {
@@ -2508,17 +2526,10 @@ fn go_carry_imports(
         }
 
         if !stayed {
-            plan.edits.add(
-                sym.file.clone(),
-                Edit::new(
-                    full_line_span(source, import.span.start),
-                    "",
-                    format!("drop the import that left with {}", sym.name),
-                ),
-            );
+            pruned.push(full_line_span(source, import.span.start));
         }
     }
-    for_the_header
+    (for_the_header, pruned)
 }
 
 /// The carried imports as they go into a header, with the blank line that follows them.
@@ -2616,7 +2627,11 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move {} out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move {} out", sym.name),
+        ),
     );
 
     match enclosing_locals {
@@ -2696,7 +2711,11 @@ fn move_css(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move the {} rule out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move the {} rule out", sym.name),
+        ),
     );
     append_to_destination(
         &mut plan.edits,
@@ -3202,7 +3221,11 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move {} out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move {} out", sym.name),
+        ),
     );
     append_to_destination(
         &mut plan.edits,
@@ -3578,7 +3601,11 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move {} out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move {} out", sym.name),
+        ),
     );
     append_to_destination(
         &mut plan.edits,
@@ -3806,7 +3833,11 @@ fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<Mo
     let mut plan = MovePlan::new(sym, destination);
     plan.edits.add(
         sym.file.clone(),
-        Edit::new(removal, "", format!("move `{}` out", sym.name)),
+        Edit::new(
+            removal_with_separator(&source, removal),
+            "",
+            format!("move `{}` out", sym.name),
+        ),
     );
     append_to_destination(
         &mut plan.edits,
@@ -3883,6 +3914,85 @@ fn whole_lines(source: &str, span: Span) -> Span {
     let start_line = full_line_span(source, span.start);
     let end_line = full_line_span(source, span.end.saturating_sub(1));
     Span::new(start_line.start, end_line.end.max(span.end))
+}
+
+/// What to erase when a declaration leaves a file: its own lines, and the blank ones that
+/// separated it from its neighbour.
+///
+/// Two declarations have a blank line on each side of the one between them. Erase the
+/// middle one's lines alone and both separators stay, so the file keeps a two-line gap
+/// where a one-line gap belongs. `gofmt` rewrites it. Moving a symbol out and back left a
+/// file differing from the original by nothing but that scar.
+///
+/// The blank run after goes, and only where there is one before it as well. A declaration
+/// with nothing blank above it was attached to what precedes it. The run below is then
+/// the only separator left between them. So it stays. A YAML file header that lost it
+/// became the comment on the next key.
+///
+/// A declaration at the end of the file has nothing after it to separate from. So the run
+/// before goes, and the file does not end on blank lines.
+fn removal_with_separator(source: &str, removal: Span) -> Span {
+    let before = blank_run(source, removal.start, Direction::Back);
+    let after = blank_run(source, removal.end, Direction::Forward);
+    if after == source.len() {
+        return Span::new(before, after);
+    }
+    match before < removal.start && after > removal.end {
+        true => Span::new(removal.start, after),
+        false => removal,
+    }
+}
+
+/// The erase spans for several declarations leaving one file, with the separators worked
+/// out once between them.
+///
+/// Two holes whose blank runs meet are one hole. Claiming the run for each separately
+/// made two edits fight over one blank line. The applier is right to refuse that. So a Go
+/// move that took a function and its only import applied nothing at all.
+fn erase_spans(source: &str, spans: &[Span]) -> Vec<Span> {
+    let mut out: Vec<Span> = spans.to_vec();
+    out.sort_by_key(|span| (span.start, span.end));
+    loop {
+        let widened: Vec<Span> = out
+            .iter()
+            .map(|span| removal_with_separator(source, *span))
+            .collect();
+        let mut merged: Vec<Span> = Vec::new();
+        for span in widened {
+            match merged.last_mut() {
+                Some(last) if span.start <= last.end => last.end = last.end.max(span.end),
+                _ => merged.push(span),
+            }
+        }
+        if merged == out {
+            return merged;
+        }
+        out = merged;
+    }
+}
+
+enum Direction {
+    Forward,
+    Back,
+}
+
+/// How far the run of blank lines starting at `offset` reaches, in the direction given.
+fn blank_run(source: &str, offset: usize, direction: Direction) -> usize {
+    let mut at = offset;
+    loop {
+        let line = match direction {
+            Direction::Forward if at < source.len() => full_line_span(source, at),
+            Direction::Back if at > 0 => full_line_span(source, at - 1),
+            _ => return at,
+        };
+        if !line.text(source).trim().is_empty() {
+            return at;
+        }
+        at = match direction {
+            Direction::Forward => line.end,
+            Direction::Back => line.start,
+        };
+    }
 }
 
 /// Append `text` to a file that may not exist yet.
@@ -4362,6 +4472,53 @@ mod tests {
     #[test]
     fn a_file_with_no_imports_gets_one_at_the_top() {
         assert_eq!(import_insertion_point("const x = 1;\n"), 0);
+    }
+
+    #[test]
+    fn a_hole_between_two_declarations_keeps_one_separator() {
+        let source = "package p\n\nfunc a() {}\n\nfunc b() {}\n";
+        let removed = erase_spans(source, &[Span::new(11, 23)]);
+        assert_eq!(removed, vec![Span::new(11, 24)]);
+        assert_eq!(cut(source, &removed), "package p\n\nfunc b() {}\n");
+    }
+
+    #[test]
+    fn a_hole_at_the_end_of_the_file_takes_the_blank_line_above_it() {
+        let source = "package p\n\nfunc a() {}\n\nfunc b() {}\n";
+        let removed = erase_spans(source, &[Span::new(24, 36)]);
+        assert_eq!(cut(source, &removed), "package p\n\nfunc a() {}\n");
+    }
+
+    #[test]
+    fn a_declaration_with_nothing_blank_above_it_keeps_the_line_below() {
+        // The blank line is the only separator between what precedes and what follows,
+        // so it is not a leftover. A YAML file header that lost it became the comment
+        // on the next key.
+        let source = "# What this file is.\nalpha: 1\n\n# Why beta exists.\nbeta: 2\n";
+        let removed = erase_spans(source, &[Span::new(21, 30)]);
+        assert_eq!(
+            cut(source, &removed),
+            "# What this file is.\n\n# Why beta exists.\nbeta: 2\n"
+        );
+    }
+
+    #[test]
+    fn two_holes_whose_separators_meet_are_one_hole() {
+        // Claiming the blank run for each separately had two edits fighting over
+        // one line, which the applier refuses. The whole move then applied nothing.
+        let source = "package p\n\nimport \"math\"\n\nfunc a() {}\n";
+        let removed = erase_spans(source, &[Span::new(11, 25), Span::new(26, 38)]);
+        assert_eq!(removed.len(), 1, "one hole: {removed:?}");
+        assert_eq!(cut(source, &removed), "package p\n");
+    }
+
+    /// `source` with every span removed, for reading an assertion at a glance.
+    fn cut(source: &str, spans: &[Span]) -> String {
+        let mut out = source.to_string();
+        for span in spans.iter().rev() {
+            out.replace_range(span.start..span.end, "");
+        }
+        out
     }
 
     #[test]

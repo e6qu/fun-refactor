@@ -1401,11 +1401,11 @@ impl Index {
         // dotted module name. The extension was read as the last segment of a dotted path, so
         // `holder.zig` was looked up as a file called `zig`.
         // Normalised, because the index is keyed by paths with no `.` or `..` left in
-        // them. `../src/pricing` joined onto `test/` kept the `..` as a component and
-        // compared unequal to the very file it names, so an import that crossed a
-        // directory resolved to nothing. `fr move` then added its new import beside the
-        // old one it had failed to recognise, which TypeScript calls a duplicate
-        // identifier, and duplicate imports parse, so no guard caught it.
+        // them. `../src/pricing` joined onto `test/` kept the `..` as a component. It
+        // compared unequal to the file it names, so a specifier that crossed a
+        // directory resolved to nothing. `fr move` then wrote its new import beside the
+        // old one it had failed to recognise. TypeScript calls that a duplicate
+        // identifier. Duplicate imports parse, so no guard caught it.
         let beside = crate::vfs::normalise(dir.join(import_path));
         if self.files.contains_key(&beside) {
             return Some(beside);

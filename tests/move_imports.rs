@@ -254,15 +254,15 @@ fn an_importer_a_directory_away_has_its_import_narrowed() {
     assert!(
         !importer.contains("roundCents } from '../src/pricing'")
             && !importer.contains("roundCents } from \"../src/pricing\""),
-        "the old import no longer binds the moved name:\n{importer}"
+        "the old import no longer binds the moved name.\n{importer}"
     );
     assert!(
         importer.contains("withTax") && importer.contains("../src/pricing"),
-        "what stayed behind is still imported from there:\n{importer}"
+        "what stayed behind is still imported from there.\n{importer}"
     );
     assert!(
         importer.contains("roundCents") && importer.contains("../src/money"),
-        "and the moved name arrives from its new home:\n{importer}"
+        "and the moved name arrives from its new home.\n{importer}"
     );
 }
 
