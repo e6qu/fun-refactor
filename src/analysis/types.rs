@@ -41,6 +41,8 @@ pub enum Basis {
     FieldOfRecord,
     /// The binding is a loop variable, and the sequence it walks names what it holds.
     ElementOfIterable,
+    /// The value is an arithmetic expression, and both its operands have the same type.
+    BothOperands,
 }
 
 impl Basis {
@@ -55,6 +57,7 @@ impl Basis {
             Basis::SameBinding => "from the binding it was assigned from",
             Basis::FieldOfRecord => "from the field's declaration",
             Basis::ElementOfIterable => "from the sequence's element type",
+            Basis::BothOperands => "from the operands, which share a type",
         }
     }
 }
@@ -509,6 +512,26 @@ fn infer_expression(
     }
 
     match kind {
+        // `avg * 2`, where both sides are the same type. Arithmetic in every language here
+        // preserves that type, so the result is it. Where the two sides disagree, or either
+        // is unknown, nothing follows and nothing is claimed.
+        "binary_expression" | "binary_operator" => {
+            let operator = node.child_by_field_name("operator")?;
+            if !arithmetic_operator(Span::from(operator).text(source).trim()) {
+                return None;
+            }
+            let left = node.child_by_field_name("left")?;
+            let right = node.child_by_field_name("right")?;
+            // The depth counts hops from binding to binding. Both operands belong to
+            // this one expression, so the count does not grow here.
+            let left = infer_expression(index, from, source, left, depth)?;
+            let right = infer_expression(index, from, source, right, depth)?;
+            (left.ty == right.ty).then_some(Inferred {
+                ty: left.ty,
+                basis: Basis::BothOperands,
+                from: None,
+            })
+        }
         // `Money(0, USD)` in Python, `new Money(...)` in TypeScript. The callee decides
         // which of the two this is: a class is constructed, a function is called.
         // Java spells a call `method_invocation` and a construction
@@ -611,9 +634,18 @@ impl Declared {
 /// true and useless, the whole subject of this is that a dictionary is where a type should have
 /// been. A tool that answers `dict` has agreed with the code and not described it. A list
 /// literal is the same shape of non-answer.
+///
+/// Go and Java are here because each fixes the type at the declaration. `total := 0` is an
+/// `int` and `var s = "a"` is a `String`, whatever the code does later. Rust is absent for the
+/// opposite reason. There `let x = 0;` takes its type from a later use, so `i32` would be a
+/// guess dressed as an answer. Zig's `0` is a `comptime_int`. No parameter can be written
+/// with that.
 fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
     let python = matches!(language, Language::Python);
     let ts = matches!(language, Language::TypeScript | Language::Tsx);
+    if let Some(fixed) = fixed_literal_type(language, kind) {
+        return Some(fixed.to_string());
+    }
     if !python && !ts {
         return None;
     }
@@ -645,6 +677,42 @@ fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
         _ => return None,
     };
     Some(answer.to_string())
+}
+
+/// The type a Go or Java literal has by the language's own default rule.
+fn fixed_literal_type(language: Language, kind: &str) -> Option<&'static str> {
+    match language {
+        Language::Go => match kind {
+            "int_literal" => Some("int"),
+            "float_literal" => Some("float64"),
+            "interpreted_string_literal" | "raw_string_literal" => Some("string"),
+            "rune_literal" => Some("rune"),
+            "true" | "false" => Some("bool"),
+            _ => None,
+        },
+        Language::Java => match kind {
+            "decimal_integer_literal" | "hex_integer_literal" | "octal_integer_literal" => {
+                Some("int")
+            }
+            "decimal_floating_point_literal" => Some("double"),
+            "string_literal" => Some("String"),
+            "character_literal" => Some("char"),
+            "true" | "false" => Some("boolean"),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// The operators whose result has the type its two operands share.
+///
+/// Comparison and logical operators are absent: their result is a boolean and says nothing
+/// about the operands. Reading `a < b` as an `int` is how an inference stops being one.
+fn arithmetic_operator(operator: &str) -> bool {
+    matches!(
+        operator,
+        "+" | "-" | "*" | "/" | "%" | "&" | "|" | "^" | "<<" | ">>" | "&^"
+    )
 }
 
 /// The last segment of a dotted or qualified name.
@@ -736,9 +804,34 @@ fn binding_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Stri
                 return Some(text);
             }
         }
-        current = here.parent();
+        let parent = here.parent()?;
+        // The walk stops at the construct that holds statements. A Zig `const width = 3;`
+        // states no type. Climbing out of its block reached `fn run() void` and read
+        // the function's return type as the binding's.
+        if holds_statements(parent) {
+            return None;
+        }
+        current = Some(parent);
     }
     None
+}
+
+/// Does this node hold statements, rather than being part of one declaration?
+fn holds_statements(node: Node<'_>) -> bool {
+    let kind = node.kind();
+    [
+        "block",
+        "body",
+        "function",
+        "method",
+        "class",
+        "module",
+        "source_file",
+        "statement_list",
+        "declaration_list",
+    ]
+    .iter()
+    .any(|shape| kind.contains(shape))
 }
 
 /// A type node's text, with the punctuation that introduces it taken off.

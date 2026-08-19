@@ -175,6 +175,210 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B549: **removing a parameter took the wrong argument.** A call passing
+  arguments by name resolves them to the parameter. So a keyword three files
+  away was reported as "the body of `greet` still reads `punct`", with the
+  call site's line. The check looks
+  inside the declaration now, which is the only place a removal cannot repair.
+  At a call site the name decides which argument goes, so `greet("b",
+  loud=True)` keeps what it passed. A call that names arguments and not the
+  one going relied on the default, and is left alone. Pinned in
+  `tests/signature_hierarchy.rs`.
+
+- [x] B547: **a body that returns a value got no return type.** A Python
+  function annotates nothing and still hands something back. Rust, Go, Java
+  and Zig must name what, and named nothing, so the draft did not compile.
+  Each now names the type the returns agree on. Where they do not agree, the
+  target's word for an unknown type carries a note. The canonical builtins
+  carry their own types, so `return len(items)` is an integer rather than a
+  shrug.
+
+- [x] B548: **a field divided as a float where a local divided as an
+  integer.** `this.total / 2` in TypeScript kept its remainder. The same
+  division over a local truncated. A bare name in a method body is a local, a
+  parameter, or a field of its record. The type question looks in all three
+  places now.
+
+- [x] B565: **`fr move` refused a class that names itself.** The cycle it
+  named does not exist. `Counter.STEP` written in `Counter`'s own method
+  counted as a use left behind in the source file. So the source was given an import of a
+  name it no longer mentions. Where the moved code also needed something the
+  source keeps, the two phantom imports read as a cycle and the move was
+  refused. A reference inside the moved span travels with it and is no longer
+  counted. Pinned in `tests/move_dependencies.rs`.
+
+- [x] B564: **`fr restructure` skipped a commented occurrence in silence.** A
+  comment is an extra. It sits between two children of the node it interrupts.
+  `foo(1, /* why */ 2)` was a three-argument call to the matcher,
+  and `foo($A, $B)` passed over it while the run reported itself complete.
+  Comments are out of the shape now, so the pattern matches across them. A
+  comment inside what a metavariable binds travels with that binding. One
+  between the pattern's own tokens has nowhere to go. That occurrence is left
+  alone and reported by file and line. Pinned in
+  `tests/restructure_languages.rs`.
+
+- [x] B563: **`fr signature` was blind to a macro-hidden method call.**
+  `println!("{}", s.draw(4))` gives the grammar tokens and not a call. The
+  dispatch pass passed over it without a word. The trait and the impl both grew
+  a parameter, the report said "0 call sites", and the crate stopped compiling.
+  A dispatch site the pass cannot reach now refuses and names the site. Out of
+  reach means a macro body, a call the grammar hides, an unparseable call, or a
+  call with no argument list. Rename was checked for the same hole and has
+  none. It rewrites the name where it stands and reports the site as a dispatch
+  candidate. Pinned in `tests/rust_receivers.rs`.
+
+- [x] B562: **a Terraform rename left the module call behind.** Renaming a
+  module's `variable "region"` rewrote the module's own `var.region` reads and
+  reported success. The caller's `module "net" { region = ... }` kept the old
+  name, and `terraform validate` then rejected the configuration. An argument
+  of a `module` block names an input variable of the called configuration. The
+  index records it as a reference to that variable now. A source outside the
+  workspace resolves to nothing, and the rename reports the argument instead of
+  rewriting it. Pinned in `tests/namespaces.rs`.
+
+- [x] B561: **a binding borrowed the enclosing function's type.** `fr type`
+  read a Zig `const width = 3;` as `void`. That is the return type of the `fn`
+  around it. The walk outwards from a declaration looked for a `type` field on
+  four ancestors and never stopped at the block. It stops at the construct that
+  holds statements now. Pinned in `tests/types.rs`.
+
+- [x] B560: **`fr extract` wrote uncompilable Go.** Two live-out values came
+  back as `return a, b` from a function declared `int`. The report said
+  success. Go spells several results as a parenthesised list, and the signature
+  says `(int, int)` now. The same selection written idiomatically, with
+  `total := 0`, was refused for a type "never written down". Go and Java both
+  fix a binding's type at its declaration, so inference supplies it. Only a
+  type neither written nor derivable is refused. Pinned in
+  `tests/extract_function.rs`.
+
+- [x] B546: **a field's starting value was dropped in both directions.**
+  Python's `retries: int = 3` became `retries: number;`. That is undefined at
+  run time, and Java's `= new ArrayList<>()` went the same way. Neither took the
+  value, so no writer had one to write. Python, TypeScript, Java and Zig each
+  declare it in the field now. TypeScript writes a class where a field starts
+  somewhere, because an interface holds no initializer. Rust and Go declare no
+  value in a field at all, and say so beside it rather than let it go quietly.
+  `field(default_factory=list)` reads as the `[]` it means; pydantic's
+  `Field(min_length=8)` states a constraint and gives no value, so that field
+  starts at nothing. Pinned in `tests/translate_field_defaults.rs`, which runs
+  the Java and the Python.
+
+- [x] B545: **only the first number in a concatenation was coerced.**
+  Java's `"x" + 1 + 2` raised a TypeError in Python. It came out as
+  `"x" + str(1) + 2`, where the source printed `x12`. The chain is
+  left-associative, so the outer `+` holds the inner one, and the inner one had
+  no type. A `+` with a string on either side is a string, whatever the other
+  side is. The whole chain follows from that one line, associativity included.
+  Zig's own concatenation check reads the same answer. Pinned in
+  `tests/translate_concatenation.rs`, which runs the Java and the Python.
+
+- [x] B544: **a header that bound names was dropped under its branch.** Go's
+  `if` may run a statement in its header. `if m, ok := tree.Min(); ok { }`
+  lost the header with no marker at all. The branch then tested `ok` and
+  printed `m` while the output bound neither. The header is written before
+  the branch now. That widens the scope of what it binds, and every target
+  here already scopes it that way. Two sibling branches that bind the same
+  names shared one scope after the move, so the second settles them again
+  instead of declaring them twice. Pinned in
+  `tests/translate_orphaned_bindings.rs`, which runs both.
+
+- [x] B543: **`a, b = b, a` and `x, err := f()` carried, even into Python.**
+  Python has that syntax to the character. Go returns the pairs the first
+  line takes apart. Both were unknown constructs, so the swap never
+  happened and the pair left both its names undeclared. The IR settles several
+  names at once now. Python, Go, Rust and TypeScript each write their own
+  form. Java and Zig have no tuple, and carry the line whole rather than drop
+  the names. Pinned in `tests/translate_multiple_assignment.rs`. That gate
+  runs the Go, the Python and the Rust, and compares what they print.
+
+- [x] B542: **a Java entry from an unexported source would not start.** Go's
+  `main` is lower-case. So the Java draft came out `private static void
+  main`. The runtime answered "Main method not found
+  in class". Whether the source exported its entry is a fact about the source.
+  The entry is written public whatever it was. Pinned by the run in
+  `tests/translate_counted_for.rs`.
+
+- [x] B541: **Go's `for` carried in three of its four spellings.** `for { }`,
+  `for cond { }` and `for i := 0; i < n; i++ { }` all became comments, and the
+  comment took the body with it. Every name the header bound was then
+  undeclared. Java's counted `for` went the same way, and so did `i++` as a
+  statement of its own. The IR has a counted loop now. Go, Java and TypeScript
+  write the whole header. Zig writes the step as a continue expression. Rust
+  and Python walk a range where the header walks one and say the rest longhand.
+  A `continue` under the longhand would skip the step, so those loops carry
+  whole and say so. Fixed alongside: `for i, x := range xs` dropped the index
+  and left `i` undeclared. It is an indexed loop now. Pinned in
+  `tests/translate_counted_for.rs`. That gate runs the Go, the Python, the Rust
+  and the Java, and compares what they print.
+
+- [x] B540: **a field named with no receiver crossed as a free variable.** Java
+  lets a body write `accounts` for a field it declares. Every writer here
+  needs a receiver written. `tsc` answered "Cannot find name
+  'accounts'. Did you mean the instance member 'this.accounts'?" twenty-eight
+  times over one translated class. Python was worse: the field was declared
+  `balance_cents` while the body still said `balanceCents`, a disagreement the
+  translation introduced by itself. The writers now enter a method body through
+  one call. It binds the receiver and the fields the body may name bare. A bare
+  name in that set is written through the receiver in the field table's
+  spelling. A parameter or a local of the same name is the nearer declaration
+  and wins. Pinned in `tests/translate_implicit_receiver.rs`. That gate runs
+  the Java, the Python and the TypeScript, and compares what they print.
+
+- [x] B536: **a shell function reached through `source` was reported dead, and
+  deleting it broke the script.** Sourcing a file is not a binding. It runs
+  the file, and every function it defines becomes callable by its bare name.
+  The
+  call resolved to nothing. So `fr usages` said none, `fr unused` listed the
+  function, and `fr delete` removed it while `bash` still called it. A call
+  that names a top-level definition of a sourced file resolves to it. So does
+  the path, where the source line ends in a plain file name, which is what
+  `source "$(dirname "$0")/lib.sh"` does. Pinned in `tests/facts_bash.rs`.
+
+- [x] B537: **a textual match was called a comment.** The sweep matched the
+  declaration and every resolved use, then listed them again. The heading read "mention(s) in a comment or a string.
+  No command edits these". A YAML key is neither.
+  A reader told a broken reference was a comment has been told it is safe. The
+  listing drops what the search already accounts for, and says what the rest
+  are: matched as text, with nothing linking them to the declaration. Pinned
+  by the navigate and rename suites.
+
+- [x] B531: **a directory sweep wrote a package that could not build.** Two
+  Python files each declaring `Thing` became one Go package. `Thing redeclared
+  in this block` was the first anyone heard of it, and the report said both
+  files translated. Where the target keeps a directory in one namespace, the
+  file earliest by path keeps the plain name. The others take their own file's
+  name in front, and each says so in its header. Pinned in
+  `tests/translate_projects.rs`.
+
+- [x] B532: **an import inside a function stayed a comment while its code
+  crossed.** `def helper(): from a import Thing` breaks an import cycle. The
+  body's `Thing()` became live TypeScript beside a commented-out import, so
+  the file named a class nothing brought in. Every target here
+  hoists its imports, so a sibling named inside a body is lifted to the file's
+  own imports. Pinned in `tests/translate_projects.rs`.
+
+- [x] B533: **an aliased base class left the family.** `from base import Base
+  as Foundation` recorded an edge pointing at a name nothing declares.
+  So `self.count` in the subclass was left behind, and applying the rename
+  raised. Supertype names resolve through the file's imports now, at one point
+  that answers for every language. Pinned in
+  `tests/rename_property_family.rs`.
+
+- [x] B534: **a leading underscore inverted its own meaning.** The case
+  converter read it as a word boundary, so Python's `_helper` became Go's
+  `Helper`. The mark for "not outside this module" turned into the mark for
+  exported, and `go -> python -> go` published a package's internals.
+  Visibility travels in the IR now, Python spells it with the underscore at
+  every mention, and the round trip comes home unchanged. The entry point is
+  the exception, since `main` is what a runner looks for. Pinned in
+  `tests/translate_zig_forms.rs`.
+
+- [x] B535: **a tab reached a Zig comment.** Carried Go source brings Go's
+  indentation, and Zig's lexer refuses a tab inside a comment. The
+  file could not be read by its own compiler. The comment writer replaces
+  them.
+  Pinned in `tests/translate_zig_forms.rs`.
+
 - [x] B530: **a translated Java program only ran on the newest JDKs.** The
   entry came out as `public static void main()`. The runtime accepts that only
   where niladic main methods are final. Everywhere else it answered "Main

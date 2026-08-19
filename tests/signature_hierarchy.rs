@@ -147,3 +147,47 @@ fn a_function_held_as_a_value_refuses_the_change() {
         "the refusal names the binding: {err}"
     );
 }
+
+#[test]
+fn a_call_naming_its_arguments_loses_only_the_one_being_removed() {
+    // Position says nothing about which argument is which once a call names
+    // them. Removing parameter 1 took `loud=True` out of `greet("b",
+    // loud=True)`. The refusal for the same shape blamed "the body of
+    // `greet`" while pointing at a call site.
+    let source = "def greet(name: str, punct: str = \"!\", loud: bool = False) -> str:\n    \
+        text = name\n    return text.upper() if loud else text\n\n\n\
+        print(greet(\"a\"))\nprint(greet(\"b\", loud=True))\n\
+        print(greet(\"c\", punct=\"-\", loud=True))\n";
+    let (tmp, index) = workspace(&[("defs.py", source)]);
+    let id = method_at(&index, source, "def greet");
+    let plan = signature::change(&index, id, signature::Change::Remove(1)).expect("a plan");
+    let out = applied(tmp.path(), "defs.py", &plan.edits);
+    assert!(
+        out.contains("def greet(name: str, loud: bool = False)"),
+        "the declaration loses the parameter.\n{out}"
+    );
+    assert!(
+        out.contains("print(greet(\"b\", loud=True))"),
+        "a call that never passed it keeps what it did pass.\n{out}"
+    );
+    assert!(
+        out.contains("print(greet(\"c\", loud=True))"),
+        "a call that named it loses that argument alone.\n{out}"
+    );
+}
+
+#[test]
+fn a_body_that_reads_the_parameter_still_refuses() {
+    let source = "def greet(name: str, punct: str = \"!\") -> str:\n    \
+        return name + punct\n\n\nprint(greet(\"a\"))\n";
+    let (tmp, index) = workspace(&[("defs.py", source)]);
+    let _ = &tmp;
+    let id = method_at(&index, source, "def greet");
+    let err = signature::change(&index, id, signature::Change::Remove(1))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("still reads `punct`"),
+        "the body is the one place a removal cannot repair: {err}"
+    );
+}

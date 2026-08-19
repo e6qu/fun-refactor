@@ -374,6 +374,47 @@ impl Index {
         }
     }
 
+    /// Resolve an argument of a `module` block to the input variable it names.
+    ///
+    /// The block's `source` names the configuration. Terraform's unit of scope is a
+    /// directory, so the variable is declared in the directory that source resolves to.
+    /// A source outside the workspace names a configuration nothing here can read, and
+    /// the argument stays unresolved. The rename then reports it rather than rewriting
+    /// it.
+    fn resolve_module_argument(
+        &self,
+        path: &Path,
+        info: &FileInfo,
+        label: &str,
+        candidates: &[SymbolId],
+    ) -> (Option<SymbolId>, Confidence) {
+        let source = info
+            .imports
+            .iter()
+            .find(|import| import.alias.as_deref() == Some(label))
+            .map(|import| import.path.as_str());
+        let Some(directory) = source
+            .filter(|source| source.starts_with('.'))
+            .and_then(|source| {
+                path.parent()
+                    .map(|dir| crate::vfs::normalise(dir.join(source)))
+            })
+        else {
+            return (None, Confidence::NameOnly);
+        };
+        let declared: Vec<&Symbol> = candidates
+            .iter()
+            .filter_map(|id| self.symbol(*id))
+            .filter(|s| s.kind == SymbolKind::Variable && s.language == Language::Hcl)
+            .filter(|s| s.file.parent() == Some(directory.as_path()))
+            .filter(|s| self.terraform_namespace(s) == "var")
+            .collect();
+        match declared.as_slice() {
+            [only] => (Some(only.id), Confidence::Exact),
+            _ => (None, Confidence::NameOnly),
+        }
+    }
+
     /// Resolve a reference, and cap what the answer is allowed to claim.
     ///
     /// [`Confidence::Exact`] means "safe to edit" and [`Confidence::FieldBased`] means "matched
@@ -570,6 +611,11 @@ impl Index {
         //     terraform-aws-vpc resolved to the module's `output "azs"`.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
+                // An argument of a `module` block names an input variable of the
+                // configuration `source` points at, and the label says which call it is.
+                if let Some(label) = namespace.strip_prefix("module.") {
+                    return self.resolve_module_argument(path, info, label, candidates);
+                }
                 let wanted = match namespace {
                     "var" | "local" => Some(SymbolKind::Variable),
                     "module" => Some(SymbolKind::Module),
@@ -874,6 +920,29 @@ impl Index {
         // in one file are equally plausible targets. Picking the one written nearer the call is
         // a coin flip that reads as an answer. It made the other method look dead. Step 5 says
         // "either" instead.
+
+        // 2b. Spliced in by `source`. Bash has no namespace: sourcing a script
+        //     runs its definitions here, so every function it defines is
+        //     callable from this file by its bare name. Without this the call
+        //     resolved to nothing, `fr usages` reported none, and `fr unused`
+        //     offered a running function for deletion.
+        if reference.language.splices_sourced_files() {
+            let sourced: Vec<PathBuf> = info
+                .imports
+                .iter()
+                .filter_map(|import| self.resolve_import_path(path, &import.path))
+                .collect();
+            let over_there: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| sourced.contains(&s.file) && s.is_top_level())
+                .collect();
+            match over_there.len() {
+                1 => return (Some(over_there[0].id), Confidence::ImportQualified),
+                0 => {}
+                _ => return (None, Confidence::FieldBased),
+            }
+        }
 
         // 3. Bound by an import in this file: resolve into the imported file when the
         //    import path identifies one, else accept the unique exported match.
@@ -1254,6 +1323,20 @@ impl Index {
                 base.join("__init__.py"),
             ];
             return candidates.into_iter().find(|c| self.files.contains_key(c));
+        }
+
+        // `source "$(dirname "$0")/lib.sh"` is how a shell script names a file
+        // beside itself, and the prefix is a substitution no static read can
+        // evaluate. What follows the last `/` is a plain file name. It
+        // resolves like any path beside the importer, when such a file is
+        // really there. Without this the call into the sourced file resolved
+        // to nothing, so `fr unused` called a running function dead and
+        // `fr delete` took it away.
+        if let Some((_, tail)) = import_path.rsplit_once('/') {
+            let beside = dir.join(tail);
+            if !tail.is_empty() && self.files.contains_key(&beside) {
+                return Some(beside);
+            }
         }
 
         // Dotted module paths (Python `pkg.mod`, Rust `crate::mod`) map to a file

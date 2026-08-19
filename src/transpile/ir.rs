@@ -33,6 +33,11 @@ pub struct Module {
     /// ignore this.
     pub name: Option<String>,
     pub items: Vec<Item>,
+    /// What a directory sweep had to change about this file, for its header.
+    ///
+    /// A sweep sees what one file cannot: that a sibling declares the same
+    /// name, in a target where the whole directory shares one namespace.
+    pub sweep_notes: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -385,6 +390,23 @@ pub enum Stmt {
         target: Expr,
         value: Expr,
     },
+    /// `a, b = b, a`, `x, err := f()`: several names settled at once.
+    ///
+    /// Four of these languages write it and two do not. Go returns pairs and
+    /// binds them this way, and Python has the same syntax to the character.
+    /// Carried as an unknown construct, the swap left `a` and `b` untouched and
+    /// the pair left `x` and `err` undeclared, both without a word said.
+    /// `declares` is Go's `:=` and Python's first binding of the names.
+    TupleAssign {
+        /// The names on the left, in order. Only plain names reach here; a
+        /// target with an index or a field in it carries instead.
+        names: Vec<String>,
+        value: Expr,
+        declares: bool,
+        /// The original, for the two writers with no form for this.
+        source: String,
+        line: usize,
+    },
     If {
         condition: Expr,
         then: Vec<Stmt>,
@@ -407,6 +429,30 @@ pub enum Stmt {
     While {
         condition: Expr,
         body: Vec<Stmt>,
+    },
+    /// `for i := 0; i < n; i++`: a header that starts a counter, tests it before
+    /// each pass and steps it after one.
+    ///
+    /// Go, Java and TypeScript write the whole header. Zig says the same with
+    /// `while (c) : (step)`, whose step also runs on a `continue`. Rust and
+    /// Python have no such header. Both walk a range where the header walks
+    /// one. The rest goes longhand: the start above the loop, the step at the
+    /// foot of the body. A `continue` skips a step written that way and the
+    /// loop never ends, so a body with one carries whole instead.
+    ///
+    /// This is Go's only loop keyword. All three spellings were carried as
+    /// comments, which is the highest-frequency loss the language had.
+    CountedFor {
+        /// What runs once before the first test.
+        init: Option<Box<Stmt>>,
+        /// Tested before each pass. Absent is Go's `for { }`, a loop forever.
+        condition: Option<Expr>,
+        /// What runs after each pass, before the next test.
+        update: Option<Box<Stmt>>,
+        body: Vec<Stmt>,
+        /// The original, for a writer that cannot spell this loop.
+        source: String,
+        line: usize,
     },
     /// `for i, x in enumerate(xs)`, `for (xs, 0..) |x, i|`: each element beside
     /// its position, counted from zero.

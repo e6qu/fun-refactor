@@ -28,7 +28,7 @@ use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 /// What to do to a parameter list.
@@ -136,7 +136,15 @@ fn still_read(
     }) else {
         return Ok(());
     };
-    let uses = index.references_to(parameter.id);
+    // Inside the declaration, and nowhere else. A call passing the parameter
+    // by name resolves to it too. A keyword argument three files away was
+    // reported as "the body of `greet` still reads `punct`", with the call
+    // site's line. The body is the only place a removal cannot repair.
+    let uses: Vec<_> = index
+        .references_to(parameter.id)
+        .into_iter()
+        .filter(|r| r.file == sym.file && sym.full_span.contains(r.span))
+        .collect();
     if let Some(first) = uses.first() {
         anyhow::bail!(
             "the body of `{}` still reads `{}` at {}; removing the parameter would leave \
@@ -209,6 +217,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
     let mut edits = EditSet::new();
     let mut notes = Vec::new();
+    // The name of the parameter a removal takes away, read off the declaration
+    // and used at every call site that names its arguments.
+    let mut removing: Option<String> = None;
     for member in &members {
         let Some(m) = index.symbol(*member) else {
             continue;
@@ -235,7 +246,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     &param_spans,
                     &change,
                     true,
+                    None,
                 )?;
+                removing = removed_parameter_name(&source, &param_spans, &change);
             }
             // A declaration can legitimately have no parameter list to change: SCSS
             // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
@@ -333,6 +346,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     &arg_spans,
                     &change,
                     false,
+                    removing.as_deref(),
                 )?;
             }
             // `@include reset;` passes nothing and needs no parentheses. Removing or
@@ -391,14 +405,38 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             }
             let call_source = crate::vfs::read_to_string(&reference.file)?;
             let call_parsed = Parsers::new().parse(reference.language, &call_source)?;
+            // A dispatch site this cannot rewrite is a call left with the old argument
+            // shape, and every member of the family has already changed. Passing over it
+            // is the partial update this refactoring exists to avoid. So each of the
+            // three ways of failing to reach the arguments refuses, and names the site.
+            let where_ = location(&reference.file, reference.span.start);
+            let out_of_reach = |why: &str| -> anyhow::Error {
+                Refusal::Unknowable {
+                    detail: format!(
+                        "`{}` is called at {where_}, where dispatch can reach the \
+                         declaration being changed, and {why}",
+                        sym.name
+                    ),
+                }
+                .into()
+            };
             let Some(call) = call_expression(&call_parsed, reference.span) else {
-                continue;
+                // A macro body is tokens and not syntax, so the grammar offers no call
+                // and no receiver. `println!("{}", s.draw(4))` was passed over in
+                // silence, and the report counted zero call sites.
+                return Err(out_of_reach(match reference.member_in_macro {
+                    true => {
+                        "it is written inside a macro, where the grammar records \
+                             tokens and not a call"
+                    }
+                    false => "the grammar exposes no call expression there",
+                }));
             };
             if call.has_error() {
-                continue;
+                return Err(out_of_reach("that call does not parse cleanly"));
             }
             let Some((opens_at, arg_spans)) = call_arguments(call) else {
-                continue;
+                return Err(out_of_reach("that call has no argument list to rewrite"));
             };
             apply_change(
                 &mut edits,
@@ -411,6 +449,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 &arg_spans,
                 &change,
                 false,
+                removing.as_deref(),
             )?;
             call_sites += 1;
             notes.push(format!(
@@ -481,6 +520,20 @@ struct Site<'a> {
     language: Language,
 }
 
+/// The name of the parameter a removal targets, read from the declaration.
+///
+/// A call site passing arguments by name needs it: position tells it nothing
+/// about which argument is going.
+fn removed_parameter_name(source: &str, items: &[Span], change: &Change) -> Option<String> {
+    let Change::Remove(at) = change else {
+        return None;
+    };
+    let text = source.get(items.get(*at)?.start..items.get(*at)?.end)?;
+    let head = text.split(['=', ':']).next()?.trim();
+    let name = head.rsplit([' ', '*', '&']).next()?.trim();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
 fn apply_change(
     edits: &mut EditSet,
     site: &Site<'_>,
@@ -488,6 +541,7 @@ fn apply_change(
     items: &[Span],
     change: &Change,
     is_declaration: bool,
+    removed_name: Option<&str>,
 ) -> Result<()> {
     let Site {
         file,
@@ -508,8 +562,28 @@ fn apply_change(
                 }
                 return Ok(());
             };
+            // A call may pass its arguments by name, and then position says
+            // nothing about which one this is. `greet("b", loud=True)` lost
+            // its `loud=True` to a removal of parameter 1. The name decides at
+            // a call site. Where a call names arguments and none is the one
+            // going, it relied on the default and needs no edit.
+            let (index, target) = match (is_declaration, removed_name) {
+                (false, Some(name)) => {
+                    let named = |span: &Span| -> Option<String> {
+                        let text = source.get(span.start..span.end)?.trim();
+                        let (head, _) = text.split_once('=')?;
+                        Some(head.trim().to_string())
+                    };
+                    match items.iter().position(|s| named(s).as_deref() == Some(name)) {
+                        Some(at) => (at, items[at]),
+                        None if items.iter().any(|s| named(s).is_some()) => return Ok(()),
+                        None => (*index, *target),
+                    }
+                }
+                _ => (*index, *target),
+            };
             // Take the separating comma with it, or the list ends up malformed.
-            let span = with_separator(source, items, *index, *target);
+            let span = with_separator(source, items, index, target);
             edits.add(
                 file.to_path_buf(),
                 Edit::new(span, "", format!("remove parameter {index}")),
@@ -1275,7 +1349,7 @@ pub(super) fn shell_source_graph(
             sources
                 .entry(path.clone())
                 .or_default()
-                .push(normalize(&dir.join(&import.path)));
+                .push(crate::vfs::normalise(dir.join(&import.path)));
         }
     }
     (sources, opaque)
@@ -1696,8 +1770,13 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             };
 
             // A variable the module's own configuration still reads cannot be
-            // removed: the `var.x` uses would dangle.
-            let uses = index.references_to(target.id);
+            // removed: the `var.x` uses would dangle. A caller's argument is not one
+            // of those. It is the call surface, and the loop below deletes it.
+            let uses: Vec<&crate::model::Reference> = index
+                .references_to(target.id)
+                .into_iter()
+                .filter(|r| r.file.parent() == Some(dir.as_path()))
+                .collect();
             if !uses.is_empty() {
                 let where_ = uses
                     .iter()
@@ -1856,7 +1935,7 @@ fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
             let dir = sym.file.parent().ok_or_else(|| {
                 anyhow::anyhow!("{} is not inside a directory", sym.file.display())
             })?;
-            Ok(normalize(dir))
+            Ok(crate::vfs::normalise(dir))
         }
         (SymbolKind::Module, Some(block)) if block_keyword(block, &source) == Some("module") => {
             let dir = sym.file.parent().ok_or_else(|| {
@@ -1913,7 +1992,7 @@ fn module_variables(index: &Index, dir: &Path) -> Result<Vec<ModuleVariable>> {
         if info.language != Language::Hcl || !is_terraform_config(path) {
             continue;
         }
-        if path.parent().map(normalize).as_deref() != Some(dir) {
+        if path.parent().map(crate::vfs::normalise).as_deref() != Some(dir) {
             continue;
         }
         let source = crate::vfs::read_to_string(path)?;
@@ -2067,7 +2146,7 @@ fn tfvars_assignments(index: &Index, dir: &Path, name: &str) -> Result<Vec<(Path
         if info.language != Language::Hcl || is_terraform_config(path) {
             continue;
         }
-        if path.parent().map(normalize).as_deref() != Some(dir) {
+        if path.parent().map(crate::vfs::normalise).as_deref() != Some(dir) {
             continue;
         }
         for symbol in info.symbols.iter().filter_map(|id| index.symbol(*id)) {
@@ -2228,24 +2307,7 @@ fn local_module_dir(from: &Path, source: &str) -> Option<PathBuf> {
     if !(source.starts_with("./") || source.starts_with("../") || source.starts_with('/')) {
         return None;
     }
-    Some(normalize(&from.join(source)))
-}
-
-/// Resolve `.` and `..` lexically. Not `canonicalize`: the comparison is between
-/// paths the scan produced, and following symlinks would make two spellings of the
-/// same directory compare unequal.
-fn normalize(path: &Path) -> PathBuf {
-    let mut out = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                out.pop();
-            }
-            other => out.push(other.as_os_str()),
-        }
-    }
-    out
+    Some(crate::vfs::normalise(from.join(source)))
 }
 
 /// Does the workspace hold any `.tf` file in this directory?
@@ -2253,7 +2315,7 @@ fn directory_has_hcl(index: &Index, dir: &Path) -> bool {
     index.files().any(|(path, info)| {
         info.language == Language::Hcl
             && is_terraform_config(path)
-            && path.parent().map(normalize).as_deref() == Some(dir)
+            && path.parent().map(crate::vfs::normalise).as_deref() == Some(dir)
     })
 }
 

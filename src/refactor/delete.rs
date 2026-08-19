@@ -970,7 +970,8 @@ fn textual_occurrences(
             line: m.line,
             col: m.col,
             detail: format!(
-                "'{name}' appears in a string or comment; it is not deleted and may \
+                "'{name}' is written here as text, with nothing linking it to the \
+                 declaration; it is not deleted and may \
                  be a use nothing can resolve"
             ),
         })

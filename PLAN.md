@@ -1463,6 +1463,46 @@ imports of their translations. The seam gate holds it. Python to TypeScript
 must pass `tsc --strict` and print byte-for-byte what the source printed,
 and the reverse must do the same under python3.
 
+### The pass where a name meant the same thing everywhere
+
+A fourth probe drove the ground the others had left. The markup and config
+languages as refactoring targets, the capability matrix against the binary,
+and the analysis commands as one story. Its finding was a pattern, not a
+list. Edges the fact base already holds were not reaching the commands that
+act, and the reports described the gaps in words that read as completeness.
+
+A shell function reached through `source` was the sharpest case. Sourcing a
+file runs it, so its functions are callable by their bare names, and nothing
+modelled that. `fr usages` said none, `fr unused` listed the function, and
+`fr delete` removed it while `bash` still called it. The same honesty went
+into the listing that had called a broken Kubernetes reference "a mention in
+a comment or a string". It drops what the search already counted, and says
+what the rest are.
+
+Names now mean the same thing at both ends of a translation. A sweep renames
+what two files both declare, where the target keeps a directory in one
+namespace, and says so in the header. An import written inside a function is
+lifted to the file's own imports, since every target here hoists them. An
+aliased base class joins its family. A leading underscore stopped inverting
+its own meaning. The case converter read Python's mark for "not outside this
+module" as a word break, and handed Go its mark for exported. A round trip
+published a package's internals.
+
+The bodies grew the things a body needs. A field read bare goes through the
+receiver, so a translated class compiles. Go's `for` crosses in all three of
+its spellings. A field keeps the value it starts at, and a concatenation chain knows it is
+a string. A function that returns something names what, even where the source
+annotated nothing. Integer division truncates for a field
+as it already did for a local.
+
+The refactorings stopped answering with the wrong thing. A Go extract
+compiles, with the several values Go returns. A Terraform rename reaches the
+module call that names the variable. A signature change refuses where a macro
+hides a dispatch site. A restructure matches across comments and reports what
+it will not rewrite. A move handles a class that names itself. And removing a
+parameter takes the argument that names it, instead of whatever sat in that
+position. (B531 through B565.)
+
 ### The pass where the answers stopped lying
 
 Four probes drove the tool as a stranger would. One went adversarial against

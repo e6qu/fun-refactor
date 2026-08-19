@@ -246,11 +246,18 @@ fn real_error_handling_carries_across() {
     );
     // A helper declared in the same file is renamed at its uses, not only where it is
     // declared, the handler bodies are written as their own modules and used to be
-    // spelled without the rest of the file in view.
+    // spelled without the rest of the file in view. The route exports neither the
+    // helper nor its name, so Python marks it module-private, at both ends.
     assert!(
         plan.output
-            .contains("await verify_current_user_has_access_to_post("),
+            .contains("async def _verify_current_user_has_access_to_post("),
         "{}",
+        plan.output
+    );
+    assert!(
+        plan.output
+            .contains("await _verify_current_user_has_access_to_post("),
+        "the call agrees with the declaration.\n{}",
         plan.output
     );
 }

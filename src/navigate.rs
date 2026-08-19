@@ -312,13 +312,30 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     });
     usages.dedup_by(|a, b| a.location == b.location);
 
-    // The name written in a comment or a string. No grammar links these to the
-    // declaration, so no resolver finds them, and a reader asking "where does this
-    // name appear" still wants them. Reported apart, and never counted as a use.
+    // The name found by reading the files as text. No grammar links these to
+    // the declaration, so no resolver finds them, and a reader asking "where
+    // does this name appear" still wants them. Reported apart, and never
+    // counted as a use.
+    //
+    // A site this search already accounts for is not one of them. The sweep
+    // matched the declaration itself and every resolved use, so the listing
+    // repeated what it had counted. The heading then called a YAML key a
+    // comment.
     let name = index
         .symbol(symbol_id)
         .map(|s| s.name.clone())
         .unwrap_or_default();
+    let accounted: std::collections::HashSet<(PathBuf, usize, usize)> = usages
+        .iter()
+        .chain(same_name_elsewhere.iter())
+        .map(|u| (u.location.file.clone(), u.location.line, u.location.col))
+        .chain(
+            definitions_of(index, symbol_id)
+                .definitions
+                .iter()
+                .map(|d| (d.location.file.clone(), d.location.line, d.location.col)),
+        )
+        .collect();
     let in_text = match name.is_empty() {
         true => Vec::new(),
         false => crate::mentions::of(index, &name)
@@ -329,6 +346,9 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
                 kind: crate::model::ReferenceKind::Textual,
                 confidence: Confidence::NameOnly,
                 within: enclosing_name(index, &m.file, m.span.start),
+            })
+            .filter(|u| {
+                !accounted.contains(&(u.location.file.clone(), u.location.line, u.location.col))
             })
             .collect(),
     };

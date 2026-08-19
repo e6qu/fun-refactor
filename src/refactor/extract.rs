@@ -760,7 +760,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             parameter_ids.push((target.name.clone(), target.id));
             parameters.push(Parameter {
                 name: target.name.clone(),
-                type_annotation: declared_type(&parsed, &source, target.full_span),
+                type_annotation: known_type(index, &parsed, &source, target, language),
                 mutated: false,
             });
         }
@@ -818,22 +818,24 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     returns.dedup();
     let carried: std::collections::BTreeSet<String> = carried.into_iter().collect();
 
-    // The declared type of the single returned binding, where the source states
-    // one. It sits at the declaration inside the region, or on the parameter
-    // that carried it in from outside.
-    let return_type = returns.first().and_then(|name| {
-        info.symbols
-            .iter()
-            .filter_map(|id| index.symbol(*id))
-            .find(|s| &s.name == name && region.contains(s.name_span))
-            .and_then(|s| declared_type(&parsed, &source, s.full_span))
-            .or_else(|| {
-                parameters
-                    .iter()
-                    .find(|p| p.name == *name)
-                    .and_then(|p| p.type_annotation.clone())
-            })
-    });
+    // The type of every returned binding. It sits at the declaration inside the
+    // region, or on the parameter that carried it in from outside.
+    let return_types: Vec<Option<String>> = returns
+        .iter()
+        .map(|name| {
+            info.symbols
+                .iter()
+                .filter_map(|id| index.symbol(*id))
+                .find(|s| &s.name == name && region.contains(s.name_span))
+                .and_then(|s| known_type(index, &parsed, &source, s, language))
+                .or_else(|| {
+                    parameters
+                        .iter()
+                        .find(|p| p.name == *name)
+                        .and_then(|p| p.type_annotation.clone())
+                })
+        })
+        .collect();
 
     // Languages that require types on parameters cannot have them invented. Where a binding's
     // type was never written down there is nothing to recover. So the extraction is refused
@@ -852,14 +854,18 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
                 untyped.join(", ")
             );
         }
-        if let Some(returned) = returns.first() {
-            if return_type.is_none() {
-                anyhow::bail!(
-                    "cannot extract: {language} requires a return type, and the type of \
-                     '{returned}' was never written down. Annotate its declaration and \
-                     try again"
-                );
-            }
+        let unknown: Vec<&str> = returns
+            .iter()
+            .zip(&return_types)
+            .filter(|(_, ty)| ty.is_none())
+            .map(|(name, _)| name.as_str())
+            .collect();
+        if !unknown.is_empty() {
+            anyhow::bail!(
+                "cannot extract: {language} requires a return type, and nothing states \
+                 or derives the type of {}. Annotate the declaration(s) and try again",
+                unknown.join(", ")
+            );
         }
     }
 
@@ -873,6 +879,19 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             returns.join(", ")
         );
     }
+
+    // Go spells several results as a parenthesised list of types. The signature says
+    // one when the region hands back more than one value. A single value keeps the
+    // bare type it was declared with.
+    let return_type: Option<String> = match return_types.as_slice() {
+        [] => None,
+        [only] => only.clone(),
+        many => many
+            .iter()
+            .cloned()
+            .collect::<Option<Vec<String>>>()
+            .map(|types| format!("({})", types.join(", "))),
+    };
 
     let body = region.text(&source).to_string();
     let indent = line_indent(&source, region.start);
@@ -1351,6 +1370,30 @@ fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Str
     // `var` is the word for "the compiler worked it out", which is exactly the
     // type this has no way to recover.
     (!bare.is_empty() && bare != "var").then(|| bare.to_string())
+}
+
+/// The type of a binding: what the source wrote, or what follows from what it wrote.
+///
+/// Inference is consulted only for the languages that demand a written type. Those refuse
+/// the extraction outright when nothing is known. Where a language lets a type stay
+/// unwritten, writing an inferred one into the new signature would state more than the
+/// source ever did.
+fn known_type(
+    index: &Index,
+    parsed: &Parsed,
+    source: &str,
+    symbol: &crate::model::Symbol,
+    language: Language,
+) -> Option<String> {
+    if let Some(written) = declared_type(parsed, source, symbol.full_span) {
+        return Some(written);
+    }
+    if !requires_explicit_types(language) {
+        return None;
+    }
+    crate::analysis::types::of(index, symbol.id)
+        .ok()
+        .and_then(|known| known.ty().map(str::to_string))
 }
 
 /// The call that replaces the extracted region.

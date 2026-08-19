@@ -200,6 +200,21 @@
   . (get_attr (identifier) @reference.field))
 
 
+; An argument of a `module` block names an input variable of the configuration that
+; block's `source` points at. Renaming that variable has to rewrite the argument, or
+; the call passes a name the module no longer declares. The meta-arguments below are
+; Terraform's own and declare nothing.
+(block
+  . (identifier) @_kw
+  . (string_lit (template_literal))
+  . (block_start)
+  (body
+    (attribute
+      . (identifier) @reference.identifier))
+  (#eq? @_kw "module")
+  (#not-any-of? @reference.identifier
+    "source" "version" "providers" "count" "for_each" "depends_on"))
+
 (function_call
   . (identifier) @reference.call)
 

@@ -283,6 +283,16 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
         return None;
     }
 
+    // An argument of a Terraform `module` block names an input variable of the
+    // configuration that block's `source` points at. The module's address is recorded
+    // as the receiver, so resolution can tell it from a variable of the same name in
+    // the calling directory.
+    if parent.kind() == "attribute" {
+        if let Some(label) = module_block_label(parent, span, source) {
+            return Some(format!("module.{label}"));
+        }
+    }
+
     if !MEMBER_SHAPES.contains(&parent.kind()) {
         return None;
     }
@@ -306,6 +316,35 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
         return None;
     }
     Some(Span::from(children[0]).text(source).to_string())
+}
+
+/// The label of the Terraform `module` block whose body holds this attribute.
+///
+/// `span` is the attribute's own name. An attribute nested deeper, inside an object
+/// value or a nested block, is not an argument of the call and gets no label.
+fn module_block_label(attribute: Node<'_>, span: Span, source: &str) -> Option<String> {
+    if Span::from(attribute.named_child(0)?) != span {
+        return None;
+    }
+    let block = attribute
+        .parent()
+        .filter(|b| b.kind() == "body")?
+        .parent()?;
+    if block.kind() != "block" {
+        return None;
+    }
+    let mut cursor = block.walk();
+    let children: Vec<Node<'_>> = block.named_children(&mut cursor).collect();
+    let keyword = children.first()?;
+    if keyword.kind() != "identifier" || Span::from(*keyword).text(source) != "module" {
+        return None;
+    }
+    let label = children.iter().find(|n| n.kind() == "string_lit")?;
+    let mut cursor = label.walk();
+    let text = label
+        .named_children(&mut cursor)
+        .find(|n| n.kind() == "template_literal")?;
+    Some(Span::from(text).text(source).to_string())
 }
 
 /// What a string reference names: its fragment, itself, or nothing.

@@ -58,6 +58,41 @@ fn moved(files: &[(&str, &str)], symbol: &str, destination: &str) -> Moved {
     }
 }
 
+const SELF_REFERRING: &[(&str, &str)] = &[
+    (
+        "counters.py",
+        "LIMIT = 100\n\n\nclass Counter:\n    STEP = 5\n\n    def bump(self, n):\n        \
+         return min(n + Counter.STEP, LIMIT)\n",
+    ),
+    ("models.py", "NAME = \"models\"\n"),
+    (
+        "use.py",
+        "from counters import Counter\n\nprint(Counter().bump(1))\n",
+    ),
+];
+
+/// `Counter.STEP` inside `Counter`'s own method travels with the class. Counting it as a
+/// use left behind had the source importing a name it no longer mentions. The moved code
+/// also needs `LIMIT`, which the source keeps. The two phantom imports then read as a
+/// cycle, and the move was refused for one that does not exist.
+#[test]
+fn a_class_that_names_itself_leaves_no_use_behind() {
+    let result = moved(SELF_REFERRING, "Counter", "models.py");
+    let counters = result.file("counters.py");
+    assert!(
+        !counters.contains("Counter"),
+        "the source keeps no use of the moved class:\n{counters}"
+    );
+    let models = result.file("models.py");
+    assert!(models.contains("from counters import LIMIT"), "{models}");
+    assert!(models.contains("class Counter:"), "{models}");
+    assert!(
+        result.file("use.py").contains("from models import Counter"),
+        "{}",
+        result.file("use.py")
+    );
+}
+
 #[test]
 fn a_rust_move_carries_what_the_source_file_defined() {
     // `cargo check` on the old output: `cannot find value PI in this scope`, with rustc

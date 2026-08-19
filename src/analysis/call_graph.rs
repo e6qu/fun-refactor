@@ -907,6 +907,9 @@ pub struct Hierarchy {
     /// Files that could not be read or parsed. A gap costs edges, never invents
     /// them, but it is reported and not passed off as an empty hierarchy.
     pub gaps: Vec<(PathBuf, String)>,
+    /// What the file being scanned calls names it imported under another
+    /// spelling, local name to original. Reset for each file.
+    aliases: BTreeMap<String, String>,
 }
 
 /// What licenses a hierarchy edge in this language.
@@ -1143,6 +1146,13 @@ impl Hierarchy {
                 }
             };
 
+            hierarchy.aliases = info
+                .imports
+                .iter()
+                .flat_map(|import| import.names.iter())
+                .filter(|name| name.local != name.original)
+                .map(|name| (name.local.clone(), name.original.clone()))
+                .collect();
             let mut sites: Vec<CallSite> = Vec::new();
             let mut visit = |node: Node| match family {
                 Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
@@ -1340,6 +1350,11 @@ impl Hierarchy {
     }
 
     fn add_supertype(&mut self, key: TypeKey, supertype: String) {
+        // `from base import Base as Foundation` then `class Sub(Foundation)`
+        // names the same class the file over declares. Recorded as written,
+        // the edge pointed at a name nothing declares. The family stopped at
+        // the file boundary, and a rename left the subclass behind.
+        let supertype = self.aliases.get(&supertype).cloned().unwrap_or(supertype);
         self.direct_subtypes
             .entry((key.0, supertype))
             .or_default()

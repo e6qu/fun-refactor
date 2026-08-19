@@ -471,19 +471,92 @@ fn java_extracts_with_types_copied_and_the_mutation_carried_back() {
 }
 
 #[test]
-fn java_refuses_when_a_local_is_declared_with_var() {
-    // `var` is the word for "the compiler worked it out", which is the type this
-    // has no way to recover.
+fn java_recovers_the_type_a_var_local_was_given() {
+    // `var` is the word for "the compiler worked it out", and in Java it works it out
+    // from the initializer alone. So `var n = 2` is an `int` and the parameter says so.
     let src = "public final class Calc {\n    static int twice() { // Doubles.\n        \
                var n = 2;\n        int m = n * 2;\n        return m; // Done.\n    }\n}\n";
     let (tmp, index) = workspace(&[("Calc.java", src)]);
     let path = tmp.path().join("Calc.java");
 
-    let err = extract::function(&index, &path, lines(src, 4, 4), "double")
+    let plan = extract::function(&index, &path, lines(src, 4, 4), "doubled").unwrap();
+    let out = apply(&plan, &path);
+    assert!(out.contains("static int doubled(int n)"), "got:\n{out}");
+}
+
+#[test]
+fn java_refuses_when_a_local_type_is_beyond_reach() {
+    // Nothing states what `n` holds and nothing derives it, so there is no type to copy.
+    let src =
+        "public final class Calc {\n    static int twice(java.util.List<Integer> xs) {\n        \
+               var n = xs.get(0);\n        int m = n * 2;\n        return m;\n    }\n}\n";
+    let (tmp, index) = workspace(&[("Calc.java", src)]);
+    let path = tmp.path().join("Calc.java");
+
+    let err = extract::function(&index, &path, lines(src, 4, 4), "doubled")
         .unwrap_err()
         .to_string();
     assert!(err.contains("never written down"), "got: {err}");
     assert!(err.contains("n"), "the blocking name is named: {err}");
+}
+
+#[test]
+fn go_returns_two_values_as_a_go_result_list() {
+    // Two live-out values are Go's own multi-value return, and the signature has to
+    // spell them as a parenthesised list or the file does not compile.
+    let src = "package main\n\nfunc process() int {\n\tvar total int = 6\n\t\
+               var count int = 3\n\n\tvar avg int = total / count\n\tvar scaled int = avg * 2\n\n\t\
+               return avg + scaled + count\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let plan = extract::function(&index, &path, lines(src, 7, 8), "computeStats").unwrap();
+    assert_eq!(
+        plan.returns,
+        vec!["avg", "scaled"],
+        "got {:?}",
+        plan.returns
+    );
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("func computeStats(count int, total int) (int, int)"),
+        "got:\n{out}"
+    );
+    assert!(out.contains("return avg, scaled"), "got:\n{out}");
+}
+
+#[test]
+fn go_derives_the_type_a_short_declaration_gave() {
+    // `total := 0` is an `int` by Go's own rule, so an idiomatic file extracts without
+    // being annotated first.
+    let src = "package main\n\nfunc process() int {\n\ttotal := 6\n\t\
+               count := 3\n\n\tavg := total / count\n\tscaled := avg * 2\n\n\t\
+               return avg + scaled + count\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let plan = extract::function(&index, &path, lines(src, 7, 8), "computeStats").unwrap();
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("func computeStats(count int, total int) (int, int)"),
+        "got:\n{out}"
+    );
+}
+
+#[test]
+fn go_refuses_a_return_whose_type_is_beyond_reach() {
+    // An untyped value from outside the workspace derives nothing, and a Go signature
+    // cannot be written without one.
+    let src = "package main\n\nimport \"os\"\n\nfunc process() string {\n\t\
+               host := os.Getenv(\"HOST\")\n\tport := os.Getenv(\"PORT\")\n\t\
+               return host + port\n}\n";
+    let (tmp, index) = workspace(&[("a.go", src)]);
+    let path = tmp.path().join("a.go");
+
+    let err = extract::function(&index, &path, lines(src, 6, 7), "readEnv")
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("host"), "the blocking name is named: {err}");
 }
 
 #[test]

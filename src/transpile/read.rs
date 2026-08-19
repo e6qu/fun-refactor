@@ -374,7 +374,9 @@ fn binds_a_pattern(stmt: &Stmt) -> bool {
     };
     match stmt {
         Stmt::ForEach { binding, .. } => !plain(binding),
+        Stmt::ForEachIndexed { index, binding, .. } => !plain(index) || !plain(binding),
         Stmt::Let { name, .. } => !plain(name),
+        Stmt::TupleAssign { names, .. } => !names.iter().all(|n| plain(n)),
         _ => false,
     }
 }
@@ -2062,6 +2064,15 @@ mod python {
                 Stmt::Let { name, .. } => {
                     bound.insert(name.clone());
                 }
+                // A name already bound makes the whole statement an assignment.
+                // The targets that need the distinction cannot declare some of
+                // the names and assign the rest in one line either.
+                Stmt::TupleAssign {
+                    names, declares, ..
+                } => {
+                    *declares = names.iter().all(|n| !bound.contains(n));
+                    bound.extend(names.iter().cloned());
+                }
                 Stmt::If {
                     then, otherwise, ..
                 } => {
@@ -2069,7 +2080,25 @@ mod python {
                     rebindings(otherwise, bound);
                 }
                 Stmt::While { body, .. } => rebindings(body, bound),
+                Stmt::CountedFor {
+                    init, update, body, ..
+                } => {
+                    for header in [init, update].iter_mut().flat_map(|h| h.as_deref_mut()) {
+                        rebindings(std::slice::from_mut(header), bound);
+                    }
+                    rebindings(body, bound);
+                }
                 Stmt::ForEach { binding, body, .. } => {
+                    bound.insert(binding.clone());
+                    rebindings(body, bound);
+                }
+                Stmt::ForEachIndexed {
+                    index,
+                    binding,
+                    body,
+                    ..
+                } => {
+                    bound.insert(index.clone());
                     bound.insert(binding.clone());
                     rebindings(body, bound);
                 }
@@ -2446,7 +2475,7 @@ mod python {
     /// `import m` yields the module alone. Forms a sweep cannot rewrite,
     /// `import a, b`, `import m as n` and `from m import *`, yield `None` and
     /// travel as text.
-    fn import_target(text: &str) -> Option<ImportTarget> {
+    pub(super) fn import_target(text: &str) -> Option<ImportTarget> {
         let text = text.trim();
         if let Some(rest) = text.strip_prefix("from ") {
             let (module, names) = rest.split_once(" import ")?;
@@ -2525,9 +2554,58 @@ mod python {
             doc: Vec::new(),
             name: name.clone(),
             ty: cx.field(node, "type").map(|t| ty(cx, t)),
-            default: None,
+            // `retries: int = 3` starts the field at 3. Dropped, the field was
+            // undefined at run time in every target that has the syntax.
+            default: cx.field(node, "right").and_then(|v| field_default(cx, v)),
             exported: !name.starts_with('_'),
         })
+    }
+
+    /// The value a field starts at, with any declaration wrapper taken off.
+    ///
+    /// `field(default_factory=list)` is how a dataclass says "a new empty list
+    /// per instance", which is a plain `[]` everywhere else. Read literally,
+    /// `field` crossed as a call to a function no target declares.
+    ///
+    /// `Field(min_length=8)` and `Relationship(...)` declare the field rather
+    /// than start it. Only their `default` and `default_factory` are values.
+    fn field_default(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        /// The helpers that declare a field instead of giving it a value:
+        /// `dataclasses.field`, and pydantic's and SQLModel's own two.
+        const DECLARING: &[&str] = &["field", "Field", "Relationship"];
+
+        let read = expr(cx, node);
+        let Expr::Call { callee, args } = &read else {
+            return Some(read);
+        };
+        if !matches!(callee.as_ref(), Expr::Name(n) if DECLARING.contains(&n.as_str())) {
+            return Some(read);
+        }
+        let mut default = None;
+        for arg in args {
+            let Expr::Keyword { name, value } = arg else {
+                continue;
+            };
+            match name.as_str() {
+                "default" => default = Some((**value).clone()),
+                "default_factory" => {
+                    default = Some(match value.as_ref() {
+                        Expr::Name(factory) if factory == "list" => Expr::ListLit(Vec::new()),
+                        Expr::Name(factory) if factory == "dict" => Expr::MapLit(Vec::new()),
+                        // `default_factory=lambda: [1, 2]` builds that value.
+                        Expr::Lambda { params, body } if params.is_empty() => (**body).clone(),
+                        // Any other factory is called once per instance, and
+                        // the other languages write a call in that slot too.
+                        other => Expr::Call {
+                            callee: Box::new(other.clone()),
+                            args: Vec::new(),
+                        },
+                    })
+                }
+                _ => {}
+            }
+        }
+        default
     }
 
     /// `Pence = NewType("Pence", int)`, read as the distinct type it declares.
@@ -2803,6 +2881,13 @@ mod python {
                     }
                 }
                 Some(inner) if inner.kind() == "assignment" => {
+                    // `a, b = b, a` settles two names at once, and read as one
+                    // target it carried whole: the swap never happened.
+                    if let Some(left) = cx.field(*inner, "left") {
+                        if matches!(left.kind(), "pattern_list" | "tuple_pattern") {
+                            return tuple_assign(cx, node, *inner, left);
+                        }
+                    }
                     let target = cx.field(*inner, "left");
                     let value = cx.field(*inner, "right").map(|v| expr(cx, v));
                     // An annotated assignment to a bare name is a binding with a type.
@@ -2936,6 +3021,34 @@ mod python {
 
     /// Python does not distinguish declaration from assignment. Treated as a binding
     /// when it is a bare name, which a writer needs to emit `let`.
+    /// `a, b = b, a`: several names settled at once, when all of them are plain.
+    ///
+    /// Whether these names are new is settled afterwards by [`rebindings`],
+    /// which is where Python's one rule about that already lives.
+    fn tuple_assign(cx: &Cx, statement: Node<'_>, assignment: Node<'_>, left: Node<'_>) -> Stmt {
+        let names = cx.children(left);
+        if names.is_empty() || !names.iter().all(|n| n.kind() == "identifier") {
+            return Stmt::Unsupported(cx.unsupported(statement));
+        }
+        let value = match cx.field(assignment, "right") {
+            Some(right) if matches!(right.kind(), "expression_list") => {
+                Expr::Tuple(cx.children(right).iter().map(|n| expr(cx, *n)).collect())
+            }
+            Some(right) => expr(cx, right),
+            None => Expr::Null,
+        };
+        if has_unsupported_expr(&Stmt::Expr(value.clone())) {
+            return Stmt::Unsupported(cx.unsupported(statement));
+        }
+        Stmt::TupleAssign {
+            names: names.iter().map(|n| cx.text(*n)).collect(),
+            value,
+            declares: true,
+            source: cx.text(statement),
+            line: cx.line(statement),
+        }
+    }
+
     fn is_new_name(cx: &Cx, assignment: Node<'_>) -> bool {
         cx.field(assignment, "left")
             .map(|l| l.kind() == "identifier")
@@ -3707,10 +3820,64 @@ mod go {
             [only] if only.kind() == "statement_list" => cx.children_with_comments(*only),
             _ => children,
         };
-        statements
-            .iter()
-            .map(|n| keep_whole(cx, *n, stmt(cx, *n)))
-            .collect()
+        let mut out: Vec<Stmt> = Vec::new();
+        let mut hoisted: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for node in statements {
+            let mut produced = stmts(cx, node);
+            // A hoisted header stands where the branch stood, and two sibling
+            // branches may bind the same names. Each was its own scope in Go;
+            // here they share one, so the second settles the names again.
+            if produced.len() > 1 {
+                if let Some(header) = produced.first_mut() {
+                    settle_again(header, &mut hoisted);
+                }
+            }
+            out.append(&mut produced);
+        }
+        out
+    }
+
+    /// Turn a hoisted header that re-binds names already hoisted into a plain
+    /// assignment, and remember the names either way.
+    fn settle_again(stmt: &mut Stmt, seen: &mut std::collections::BTreeSet<String>) {
+        match stmt {
+            Stmt::TupleAssign {
+                names, declares, ..
+            } => {
+                if !names.is_empty() && names.iter().all(|n| seen.contains(n)) {
+                    *declares = false;
+                }
+                seen.extend(names.iter().cloned());
+            }
+            Stmt::Let { name, value, .. } if seen.contains(name) => {
+                let target = Expr::Name(name.clone());
+                let value = value.take().unwrap_or(Expr::Null);
+                *stmt = Stmt::Assign { target, value };
+            }
+            Stmt::Let { name, .. } => {
+                seen.insert(name.clone());
+            }
+            _ => {}
+        }
+    }
+
+    /// One source statement as the statements it becomes.
+    ///
+    /// Go's `if` may run a statement in its header, and the IR's branch has no
+    /// room for one. `if m, ok := t.Min(); ok { }` dropped the whole header
+    /// with nothing said, so the branch tested a name the output never bound.
+    /// The header goes on the line before instead. That widens the scope of
+    /// what it binds, and every target here already scopes it that way.
+    fn stmts(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
+        let header = match node.kind() {
+            "if_statement" => cx.field(node, "initializer"),
+            _ => None,
+        };
+        let branch = keep_whole(cx, node, stmt(cx, node));
+        match header {
+            Some(init) => vec![keep_whole(cx, init, stmt(cx, init)), branch],
+            None => vec![branch],
+        }
     }
 
     /// An initializer with a failure anywhere inside it, carried as one whole.
@@ -3724,6 +3891,33 @@ mod go {
         match has_unsupported_expr(&Stmt::Expr(read.clone())) {
             true => Expr::Unsupported(cx.unsupported(node)),
             false => read,
+        }
+    }
+
+    /// `a, b := f()` and `a, b = b, a`: several names settled at once.
+    ///
+    /// Only plain names on the left. A target with an index or a field in it is
+    /// a shape the IR does not hold, and it carries whole.
+    fn tuple_assign(cx: &Cx, node: Node<'_>, names: &[Node<'_>], declares: bool) -> Stmt {
+        if !names.iter().all(|n| n.kind() == "identifier") {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        let value = match cx.field(node, "right") {
+            Some(right) => match cx.children(right).as_slice() {
+                [only] => expr(cx, *only),
+                several => Expr::Tuple(several.iter().map(|n| expr(cx, *n)).collect()),
+            },
+            None => Expr::Null,
+        };
+        if has_unsupported_expr(&Stmt::Expr(value.clone())) {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        Stmt::TupleAssign {
+            names: names.iter().map(|n| cx.text(*n)).collect(),
+            value,
+            declares,
+            source: cx.text(node),
+            line: cx.line(node),
         }
     }
 
@@ -3767,14 +3961,24 @@ mod go {
             // Both sides of `:=` and `=` arrive wrapped in an `expression_list`,
             // even when they hold one expression. Passing the wrapper to `expr`
             // carried every such statement whole.
-            "short_var_declaration" => Stmt::Let {
-                name: cx.field_text(node, "left").unwrap_or_default(),
-                ty: None,
-                value: cx
-                    .field(node, "right")
-                    .map(|v| whole_or_read(cx, v, unlisted(cx, v))),
-                mutable: true,
-            },
+            "short_var_declaration" => {
+                let left = cx.field(node, "left");
+                let names: Vec<Node> = left.map(|l| cx.children(l)).unwrap_or_default();
+                // `x, err := f()` binds a pair, which is what Go's second return
+                // value is for. Read as one name it became a binding called
+                // `x, err`, and every later use of either was undeclared.
+                if names.len() > 1 {
+                    return tuple_assign(cx, node, &names, true);
+                }
+                Stmt::Let {
+                    name: cx.field_text(node, "left").unwrap_or_default(),
+                    ty: None,
+                    value: cx
+                        .field(node, "right")
+                        .map(|v| whole_or_read(cx, v, unlisted(cx, v))),
+                    mutable: true,
+                }
+            }
             // `var wg sync.WaitGroup` declares a name whose type usually cannot
             // cross. The binding still has to exist: dropped whole, every later
             // statement read a name the output never declared. A value-less
@@ -3817,6 +4021,13 @@ mod go {
                 }
             }
             "assignment_statement" => {
+                let names: Vec<Node> = cx
+                    .field(node, "left")
+                    .map(|l| cx.children(l))
+                    .unwrap_or_default();
+                if names.len() > 1 {
+                    return tuple_assign(cx, node, &names, false);
+                }
                 let target = cx
                     .field(node, "left")
                     .map(|l| unlisted(cx, l))
@@ -3857,7 +4068,7 @@ mod go {
                 let otherwise = cx
                     .field(node, "alternative")
                     .map(|alt| match alt.kind() {
-                        "if_statement" => vec![stmt(cx, alt)],
+                        "if_statement" => stmts(cx, alt),
                         _ => block(cx, alt),
                     })
                     .unwrap_or_default();
@@ -3873,38 +4084,105 @@ mod go {
                     otherwise,
                 }
             }
+            // `for` is Go's only loop keyword and it has four spellings. Three of
+            // them were carried as comments, which lost the loop and left every
+            // name its header bound undeclared.
             "for_statement" => {
-                // `for range` is the only Go loop the IR has; a three-clause `for` is
-                // not a for-each and is carried whole.
+                let body = cx
+                    .field(node, "body")
+                    .map(|b| block(cx, b))
+                    .unwrap_or_default();
                 if let Some(clause) = cx
                     .children(node)
                     .into_iter()
                     .find(|c| c.kind() == "range_clause")
                 {
-                    let binding = cx
+                    let bound = cx
                         .field(clause, "left")
                         .map(|l| cx.text(l))
                         .unwrap_or_default();
-                    // `for i, v := range xs` binds two; the IR binds the value.
-                    let binding = binding
-                        .split(',')
-                        .next_back()
-                        .unwrap_or(&binding)
-                        .trim()
-                        .to_string();
-                    return Stmt::ForEach {
-                        binding,
-                        iterable: cx
-                            .field(clause, "right")
-                            .map(|r| expr(cx, r))
-                            .unwrap_or(Expr::Null),
-                        body: cx
-                            .field(node, "body")
-                            .map(|b| block(cx, b))
-                            .unwrap_or_default(),
+                    let mut names = bound.split(',').map(|n| n.trim().to_string());
+                    let first = names.next().unwrap_or_default();
+                    let second = names.next();
+                    let iterable = cx
+                        .field(clause, "right")
+                        .map(|r| expr(cx, r))
+                        .unwrap_or(Expr::Null);
+                    // `for i, v := range xs` binds the position beside the value.
+                    // Dropping the first name left every use of it undeclared.
+                    // `_` there is Go's word for a name nothing wants, and the
+                    // loop is the plain one over the values.
+                    return match second {
+                        Some(binding) if first != "_" => Stmt::ForEachIndexed {
+                            index: first,
+                            binding,
+                            iterable,
+                            body,
+                        },
+                        Some(binding) => Stmt::ForEach {
+                            binding,
+                            iterable,
+                            body,
+                        },
+                        None => Stmt::ForEach {
+                            binding: first,
+                            iterable,
+                            body,
+                        },
                     };
                 }
-                Stmt::Unsupported(cx.unsupported(node))
+                let clause = cx
+                    .children(node)
+                    .into_iter()
+                    .find(|c| c.kind() == "for_clause");
+                if let Some(clause) = clause {
+                    return Stmt::CountedFor {
+                        init: cx
+                            .field(clause, "initializer")
+                            .map(|i| Box::new(stmt(cx, i))),
+                        condition: cx.field(clause, "condition").map(|c| expr(cx, c)),
+                        update: cx.field(clause, "update").map(|u| Box::new(stmt(cx, u))),
+                        body,
+                        source: cx.text(node),
+                        line: cx.line(node),
+                    };
+                }
+                // What is left is `for cond { }` or the bare `for { }`. The first
+                // is a `while` in every target; the second is a loop with no test.
+                match cx.children(node).first() {
+                    Some(condition) if condition.kind() != "block" => Stmt::While {
+                        condition: expr(cx, *condition),
+                        body,
+                    },
+                    _ => Stmt::CountedFor {
+                        init: None,
+                        condition: None,
+                        update: None,
+                        body,
+                        source: cx.text(node),
+                        line: cx.line(node),
+                    },
+                }
+            }
+            "inc_statement" | "dec_statement" => {
+                let op = match node.kind() {
+                    "inc_statement" => BinaryOp::Add,
+                    _ => BinaryOp::Sub,
+                };
+                match cx.children(node).first() {
+                    Some(target) => {
+                        let target = expr(cx, *target);
+                        Stmt::Assign {
+                            target: target.clone(),
+                            value: Expr::Binary {
+                                op,
+                                left: Box::new(target),
+                                right: Box::new(Expr::Int("1".to_string())),
+                            },
+                        }
+                    }
+                    None => Stmt::Unsupported(cx.unsupported(node)),
+                }
             }
             _ => Stmt::Unsupported(cx.unsupported(node)),
         }
@@ -4396,7 +4674,10 @@ mod java {
                             doc: doc_above(cx, member, &["///", "//", "/**", "*"]),
                             name,
                             ty,
-                            default: None,
+                            // `final List<String> history = new ArrayList<>()`
+                            // starts the field with a list. Dropped, every
+                            // method that appended to it hit a null.
+                            default: cx.field(declarator, "value").map(|v| expr(cx, v)),
                             exported: public,
                         });
                     }
@@ -4607,6 +4888,61 @@ mod java {
             .collect()
     }
 
+    /// One clause of a `for` header, which is an expression and not a statement.
+    ///
+    /// `i++` and `i = 0` stand alone there, with no semicolon and no
+    /// `expression_statement` around them. Read as plain expressions they lost
+    /// the assignment they are.
+    fn header_stmt(cx: &Cx, node: Node<'_>) -> Stmt {
+        match node.kind() {
+            "local_variable_declaration" => stmt(cx, node),
+            "assignment_expression" => {
+                let target = cx
+                    .field(node, "left")
+                    .map(|l| expr(cx, l))
+                    .unwrap_or(Expr::Null);
+                let value = cx
+                    .field(node, "right")
+                    .map(|r| expr(cx, r))
+                    .unwrap_or(Expr::Null);
+                let operator = cx.field_text(node, "operator").unwrap_or_default();
+                if operator == "=" {
+                    return Stmt::Assign { target, value };
+                }
+                match super::desugar_compound(target, &operator, value) {
+                    Some(assign) => assign,
+                    None => Stmt::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "update_expression" => match step_of(cx, node) {
+                Some(step) => step,
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            _ => Stmt::Expr(expr(cx, node)),
+        }
+    }
+
+    /// `i++` and `i--` as the assignment each one is.
+    fn step_of(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        let text = cx.text(node);
+        let op = if text.contains("++") {
+            BinaryOp::Add
+        } else if text.contains("--") {
+            BinaryOp::Sub
+        } else {
+            return None;
+        };
+        let target = expr(cx, *cx.children(node).first()?);
+        Some(Stmt::Assign {
+            target: target.clone(),
+            value: Expr::Binary {
+                op,
+                left: Box::new(target),
+                right: Box::new(Expr::Int("1".to_string())),
+            },
+        })
+    }
+
     fn stmt(cx: &Cx, node: Node<'_>) -> Stmt {
         match node.kind() {
             "comment" | "line_comment" | "block_comment" => {
@@ -4638,29 +4974,11 @@ mod java {
                     _ => Stmt::Unsupported(cx.unsupported(node)),
                 }
             }
+            // One node covers `=` and `+=` alike, and reading them alike turned
+            // `total += item` into `total = item`. `i++` is a third spelling of
+            // the same thing, and [`header_stmt`] knows all three.
             "expression_statement" => match cx.children(node).first().copied() {
-                Some(inner) if inner.kind() == "assignment_expression" => {
-                    let target = cx
-                        .field(inner, "left")
-                        .map(|l| expr(cx, l))
-                        .unwrap_or(Expr::Null);
-                    let value = cx
-                        .field(inner, "right")
-                        .map(|r| expr(cx, r))
-                        .unwrap_or(Expr::Null);
-                    // One node covers `=` and `+=` alike, and reading them alike
-                    // turned `total += item` into `total = item`.
-                    let operator = cx.field_text(inner, "operator").unwrap_or_default();
-                    if operator == "=" {
-                        Stmt::Assign { target, value }
-                    } else {
-                        match super::desugar_compound(target, &operator, value) {
-                            Some(assign) => assign,
-                            None => Stmt::Unsupported(cx.unsupported(node)),
-                        }
-                    }
-                }
-                Some(inner) => Stmt::Expr(expr(cx, inner)),
+                Some(inner) => header_stmt(cx, inner),
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
             "if_statement" => Stmt::If {
@@ -4687,6 +5005,31 @@ mod java {
                     .map(|b| branch(cx, b))
                     .unwrap_or_default(),
             },
+            // `for (int i = 0; i < n; i++)` counts, and the IR says so. Carried as
+            // a comment it took the whole body with it.
+            "for_statement" => {
+                let clauses = |name: &str| -> Vec<Node> {
+                    let mut cursor = node.walk();
+                    node.children_by_field_name(name, &mut cursor).collect()
+                };
+                let (init, update) = (clauses("init"), clauses("update"));
+                // `for (i = 0, j = n; ...)` runs two statements in one clause and
+                // the IR holds one. Carried whole, it stays readable.
+                if init.len() > 1 || update.len() > 1 {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::CountedFor {
+                    init: init.first().map(|i| Box::new(header_stmt(cx, *i))),
+                    condition: cx.field(node, "condition").map(|c| condition(cx, c)),
+                    update: update.first().map(|u| Box::new(header_stmt(cx, *u))),
+                    body: cx
+                        .field(node, "body")
+                        .map(|b| branch(cx, b))
+                        .unwrap_or_default(),
+                    source: cx.text(node),
+                    line: cx.line(node),
+                }
+            }
             // `for (X x : xs)` is the loop every language here has. A C-style `for` is
             // not, and is carried.
             "enhanced_for_statement" => Stmt::ForEach {
@@ -6821,7 +7164,7 @@ mod typescript {
     /// `import { a, b as c } from "./m"` yields the module and the names. A
     /// default or namespace clause binds the whole module under one name, which
     /// no sibling translation declares, so those yield `None` and travel as text.
-    fn import_target(text: &str) -> Option<ImportTarget> {
+    pub(super) fn import_target(text: &str) -> Option<ImportTarget> {
         let text = text.trim().trim_end_matches(';').trim();
         let rest = text.strip_prefix("import")?.trim();
         let rest = rest.strip_prefix("type ").unwrap_or(rest).trim();
@@ -8347,6 +8690,7 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                 each_expr(target, visit);
                 each_expr(value, visit);
             }
+            Stmt::TupleAssign { value, .. } => each_expr(value, visit),
             Stmt::If {
                 condition,
                 then,
@@ -8368,6 +8712,24 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
             }
             Stmt::While { condition, body } => {
                 each_expr(condition, visit);
+                each_expr_in_stmts(body, visit);
+            }
+            Stmt::CountedFor {
+                init,
+                condition,
+                update,
+                body,
+                ..
+            } => {
+                if let Some(init) = init {
+                    each_expr_in_stmts(std::slice::from_mut(init), visit);
+                }
+                if let Some(condition) = condition {
+                    each_expr(condition, visit);
+                }
+                if let Some(update) = update {
+                    each_expr_in_stmts(std::slice::from_mut(update), visit);
+                }
                 each_expr_in_stmts(body, visit);
             }
             Stmt::WhilePresent { value, body, .. } => {
@@ -8451,6 +8813,14 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             | Stmt::WhilePresent { body, .. }
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. } => each_stmt_in_stmts(body, visit),
+            Stmt::CountedFor {
+                init, update, body, ..
+            } => {
+                for header in [init, update].into_iter().flatten() {
+                    each_stmt_in_stmts(std::slice::from_mut(header), visit);
+                }
+                each_stmt_in_stmts(body, visit);
+            }
             Stmt::Defer(body) | Stmt::ErrDefer(body) => each_stmt_in_stmts(body, visit),
             Stmt::MatchVariants { arms, default, .. } => {
                 for arm in arms.iter_mut() {
@@ -8478,6 +8848,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
             }
             Stmt::Return(_)
             | Stmt::Let { .. }
+            | Stmt::TupleAssign { .. }
             | Stmt::Assign { .. }
             | Stmt::Expr(_)
             | Stmt::Assert { .. }
@@ -8491,6 +8862,19 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
 }
 
 /// Children first, then the node itself, so a rewrite sees settled children.
+/// The import a carried line spells, where the language has a parser for it.
+///
+/// A sweep needs this for imports the readers left as text. An import inside
+/// a function body is carried whole. The sweep is the only place that knows
+/// the file it names is being translated beside it.
+pub(super) fn parse_import(language: Language, text: &str) -> Option<ImportTarget> {
+    match language {
+        Language::Python => python::import_target(text),
+        Language::TypeScript | Language::Tsx => typescript::import_target(text),
+        _ => None,
+    }
+}
+
 pub(super) fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
     match e {
         Expr::Field { of, .. } => each_expr(of, visit),
