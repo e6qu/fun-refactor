@@ -1083,9 +1083,9 @@ impl Index {
         // 4z. A Kubernetes `configMapKeyRef` or `secretKeyRef` names one key of one
         //     object, and the manifest writes down which object. The receiver carries
         //     that address, so the search is over the files declaring it and not over
-        //     the workspace. Without this the read was a textual mention: renaming the
-        //     key left the container asking for an entry the ConfigMap no longer has,
-        //     and the pod failed to start.
+        //     the workspace. Without this the read was a textual mention. Renaming
+        //     the key left the container asking for an entry the ConfigMap no
+        //     longer has, and the pod failed to start.
         if let Some((kind, object)) = reference
             .receiver
             .as_deref()

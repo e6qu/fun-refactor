@@ -2511,9 +2511,9 @@ impl Ctx<'_> {
 
         self.helm_values_competition(sym, depth)?;
 
-        // A key another manifest reads by name has resolved references, and the index
-        // holds them. `configMapKeyRef` is the case that brought this here: the answer
-        // used to declare that nothing consumed the key while `fr usages` listed the
+        // A key another manifest reads by name has resolved references, and the
+        // index holds them. `configMapKeyRef` brought this here. The answer used
+        // to declare that nothing consumed the key, while `fr usages` listed the
         // container reading it.
         let named_readers: Vec<(PathBuf, Span)> = self
             .index

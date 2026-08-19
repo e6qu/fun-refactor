@@ -575,9 +575,9 @@ fn yaml_entry_mapping<'a>(mapping: Node<'a>, key: &str, source: &str) -> Option<
 
 /// The Kubernetes objects a manifest declares, one per document.
 ///
-/// Only the kinds another manifest reads a key of. A Deployment is addressed too, by a
-/// Service's selector, and that edge is a label match rather than a name, so it is not
-/// this one.
+/// Only the kinds another manifest reads a key of. A Deployment is addressed
+/// too, by a Service's selector. That edge is a label match rather than a
+/// name, so it is not this one.
 fn kubernetes_declarations(root: Node<'_>, source: &str) -> Vec<crate::model::KubernetesObject> {
     let mut out = Vec::new();
     let mut cursor = root.walk();
@@ -616,9 +616,9 @@ fn kubernetes_declarations(root: Node<'_>, source: &str) -> Vec<crate::model::Ku
 ///
 /// Each names an object and one key of it. Renaming that key without rewriting this
 /// leaves the container asking for an entry the ConfigMap no longer has, and the pod
-/// fails to start. The reference spans the key name alone; the object it belongs to is
-/// recorded as the receiver, so resolution can tell four workspace `LOG_LEVEL` keys
-/// apart.
+/// fails to start. The reference spans the key name alone. The object it belongs
+/// to is recorded as the receiver, so resolution can tell four workspace
+/// `LOG_LEVEL` keys apart.
 fn kubernetes_key_references(
     root: Node<'_>,
     source: &str,

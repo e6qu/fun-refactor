@@ -274,16 +274,16 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   it. Where the moved text uses one, a copy goes with it and a warning names
   the copy. Pinned in `tests/move_languages.rs`.
 
-- [x] B576: **the same `signature add:` run twice named one thing twice.** The
-  grammar parses `def scale(v, factor, factor)`, so the syntax gate passed it.
-  Python refused the file at import. Go answered `rate redeclared in
+- [x] B576: **a repeated `signature add:` named one thing twice.** The grammar
+  parses `def scale(v, factor, factor)`, so the syntax gate passed it. Python
+  refused the file. Go answered `rate redeclared in
   this block`. Every other operation declines a repeat, so a retried command or
   a re-run recipe broke what it had just changed. A declaration that already
   has the name refuses. Pinned in `tests/signature_hierarchy.rs`.
 
 - [x] B577: **a parameter's name was read from the wrong end.** Go writes
-  `name type` and Java writes `type name`, and one rule read both. So Go's
-  `price float64` was reported as a parameter called `float64`. Each
+  `name type` and Java writes `type name`. One rule read both, so Go's `price
+  float64` came back as a parameter called `float64`. Each
   language is read the way it writes. Pinned in
   `tests/signature_hierarchy.rs`.
 
