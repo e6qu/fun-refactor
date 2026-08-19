@@ -112,3 +112,40 @@ fn a_language_that_cannot_read_the_environment_is_not_claimed_to() {
         );
     }
 }
+
+#[test]
+fn a_chart_with_no_metadata_still_starts_its_chain_at_the_values_file() {
+    // `svc/chart/templates/d.yaml` full of `{{ .Values.* }}` was read as plain YAML
+    // for want of a `Chart.yaml`. So the chain began at the manifest and looked
+    // whole, and the values file feeding it went unmentioned.
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let chart = tmp.path().join("svc/chart/templates");
+    std::fs::create_dir_all(&chart).expect("the chart directory");
+    std::fs::write(tmp.path().join("svc/chart/values.yaml"), VALUES).expect("the values");
+    std::fs::write(chart.join("d.yaml"), TEMPLATE).expect("the template");
+    std::fs::create_dir_all(tmp.path().join("app")).expect("the app directory");
+    std::fs::write(
+        tmp.path().join("app/main.py"),
+        "import os\n\nURL = os.environ[\"DATABASE_URL\"]\n",
+    )
+    .expect("the program");
+
+    let index = Index::build(tmp.path(), &ScanOptions::default()).expect("an index");
+    let chains = stitch::chains(&index).expect("chains");
+    let chain = chains
+        .iter()
+        .find(|c| c.env_var == "DATABASE_URL")
+        .expect("the variable is declared");
+
+    assert_eq!(
+        chain.values_path.as_deref(),
+        Some(["db", "url"].map(String::from).as_slice()),
+        "the chain names the key it comes from"
+    );
+    assert_eq!(
+        chain.values_file,
+        Some(tmp.path().join("svc/chart/values.yaml")),
+        "and the file that holds it"
+    );
+    assert_eq!(chain.reads.len(), 1, "got {:?}", chain.reads);
+}

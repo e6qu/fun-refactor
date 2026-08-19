@@ -175,6 +175,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B610: **`fr stitch` truncated a chain silently.** A chart with no
+  `Chart.yaml` had its `templates/deployment.yaml` read as plain YAML. So the
+  chain began at the manifest and looked whole. The values file feeding it went
+  missing and unmentioned. A `templates/` file writing
+  template actions is a chart template now, and the directory holding
+  `templates/` is the chart boundary. Pinned in `tests/stitch_languages.rs`.
+
 - [x] B609: **Markdown was invisible to the mention sweep.** The sweep looks for
   a string node or a comment node, and Markdown has neither. So a style guide
   writing `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html
