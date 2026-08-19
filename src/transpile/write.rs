@@ -1952,7 +1952,18 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         params.push(format!("{spelled}: {ty}"));
     }
     let returns = match &f.returns {
-        Some(Type::Unit) | None => String::new(),
+        Some(Type::Unit) => String::new(),
+        // A source that annotated nothing still hands a value back, and this
+        // target has to name its type. Without one the body did not compile.
+        None if returns_a_value(f) => {
+            unannotated = true;
+            let ty = match inferred_return(out, f) {
+                Some(ty) => rust_type(&ty),
+                None => unknown(out, &f.name),
+            };
+            format!(" -> {ty}")
+        }
+        None => String::new(),
         Some(t) => {
             if out.is_foreign(t) {
                 foreign = true;
@@ -3730,6 +3741,19 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         // is a string however the other side is typed. Answering "no idea" here
         // left `"x" + 1 + 2` as `"x" + str(1) + 2`, which raises. Only the first
         // number ever got its coercion.
+        // The canonical builtins the readers settle on: their answers have
+        // one type each, whichever language wrote the call. Without this a
+        // function whose whole body is `return len(items)` had no type to
+        // name, and the targets that must name one wrote their word for
+        // "no idea" over a number.
+        Expr::Call { callee, args } => match (callee.as_ref(), args.len()) {
+            (Expr::Name(name), 1) if name == "len" => Some(Type::Int),
+            (Expr::Name(name), 1) if name == "str" => Some(Type::String),
+            (Expr::Name(name), 1) if name == "int" => Some(Type::Int),
+            (Expr::Name(name), 1) if name == "float" => Some(Type::Float),
+            (Expr::Name(name), 1) if name == "bool" => Some(Type::Bool),
+            _ => None,
+        },
         Expr::Binary {
             op: BinaryOp::Add,
             left,
@@ -4323,6 +4347,8 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
+    // What the body declared, for the return type a Python source never wrote.
+    out.binding_types = declared_bindings(f);
 
     let name = out.function_name(f);
     for line in &f.doc {
@@ -4380,7 +4406,18 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         }
     } else {
         match &f.returns {
-            Some(Type::Unit) | None => String::new(),
+            Some(Type::Unit) => String::new(),
+            // A source that annotated nothing still hands a value back, and Go
+            // has to name its type. Without one the body did not compile.
+            None if returns_a_value(f) => {
+                unannotated = true;
+                let ty = match inferred_return(out, f) {
+                    Some(ty) => go_type(&ty),
+                    None => unknown(out, &f.name),
+                };
+                format!(" {ty}")
+            }
+            None => String::new(),
             // `(int, error)`: the one position Go writes several types at once.
             Some(Type::Tuple(parts)) => {
                 if parts.iter().any(|p| out.is_foreign(p)) {
@@ -6826,7 +6863,17 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
         .collect();
 
     let returns = match &f.returns {
-        Some(Type::Unit) | None => "void".to_string(),
+        Some(Type::Unit) => "void".to_string(),
+        // `void` over a body that returns a value does not compile, and a
+        // source that annotates nothing still returns one.
+        None if returns_a_value(f) => {
+            unannotated = true;
+            match inferred_return(out, f) {
+                Some(ty) => java_type(&ty),
+                None => unknown(out, &f.name),
+            }
+        }
+        None => "void".to_string(),
         Some(t) => {
             if out.is_foreign(t) {
                 foreign = true;
@@ -8126,7 +8173,17 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     }
 
     let returns = match &f.returns {
-        Some(Type::Unit) | None => "void".to_string(),
+        Some(Type::Unit) => "void".to_string(),
+        // `void` over a body that returns a value does not compile, and a
+        // source that annotates nothing still returns one.
+        None if returns_a_value(f) => {
+            unannotated = true;
+            match inferred_return(out, f) {
+                Some(ty) => zig_type(&ty),
+                None => unknown(out, &f.name),
+            }
+        }
+        None => "void".to_string(),
         Some(t) => {
             if out.is_foreign(t) {
                 foreign = true;
@@ -9763,6 +9820,83 @@ fn is_identifier(text: &str) -> bool {
 ///
 /// A signature containing one is carried across but is not a *complete* translation,
 /// A type the source never wrote down. Named and not guessed.
+/// Every value this body hands back, `return` and tail alike.
+fn returned_values(f: &Function) -> Vec<&Expr> {
+    fn walk<'a>(stmts: &'a [Stmt], into: &mut Vec<&'a Expr>) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Return(Some(value)) => into.push(value),
+                Stmt::If {
+                    then, otherwise, ..
+                }
+                | Stmt::IfPresent {
+                    then, otherwise, ..
+                } => {
+                    walk(then, into);
+                    walk(otherwise, into);
+                }
+                Stmt::While { body, .. }
+                | Stmt::WhilePresent { body, .. }
+                | Stmt::ForEach { body, .. }
+                | Stmt::ForEachIndexed { body, .. }
+                | Stmt::Defer(body)
+                | Stmt::ErrDefer(body) => walk(body, into),
+                Stmt::CountedFor { body, .. } => walk(body, into),
+                Stmt::Switch { arms, default, .. } => {
+                    for (_, body) in arms {
+                        walk(body, into);
+                    }
+                    walk(default, into);
+                }
+                Stmt::MatchVariants { arms, default, .. } => {
+                    for arm in arms {
+                        walk(&arm.body, into);
+                    }
+                    walk(default, into);
+                }
+                Stmt::Try {
+                    body,
+                    catches,
+                    finally,
+                    ..
+                } => {
+                    walk(body, into);
+                    for catch in catches {
+                        walk(&catch.body, into);
+                    }
+                    walk(finally, into);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut found = Vec::new();
+    walk(&f.body, &mut found);
+    found
+}
+
+/// Does this function hand a value back, whatever the source said about it?
+///
+/// A source that annotates nothing still returns things, and the targets that
+/// name every return type wrote none. The body is the only evidence there is.
+fn returns_a_value(f: &Function) -> bool {
+    !returned_values(f).is_empty()
+}
+
+/// The type every return of this body agrees on, where they agree.
+fn inferred_return(out: &Out, f: &Function) -> Option<Type> {
+    let mut found: Option<Type> = None;
+    for value in returned_values(f) {
+        let ty = static_type(out, value)?;
+        match &found {
+            None => found = Some(ty),
+            Some(first) if *first == ty => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
 fn unknown(out: &mut Out, of: &str) -> String {
     out.fidelity
         .notes
