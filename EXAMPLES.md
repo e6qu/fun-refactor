@@ -340,7 +340,10 @@ Remove or repoint these uses first; nothing was changed.
 `fr imports <file>` drops unused imports and sorts the rest, holding back the ones a
 language brings into scope invisibly. Python `__future__` imports and dotted
 registration imports, TypeScript type-only imports and JSX pragmas, Go blank imports.
-`fr inline` is the reverse of `fr extract`, for a binding or a call. `fr remove-flag`
+`fr inline` reverses `fr extract --variable`, and `--call` reverses it where the binding
+became a one-expression function. It refuses a callee of several statements, whose
+evaluation order and shadowing it cannot preserve. So `fr extract --function`, which
+writes several statements by construction, has no inverse here. `fr remove-flag`
 retires a feature flag and the branch that only served it. `fr stitch` links a
 configuration key to the code that reads it, an environment variable declared in a
 chart and read by a Go program.

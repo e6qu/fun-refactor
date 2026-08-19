@@ -175,6 +175,256 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B666: **a hoisted Python definition landed with a method's spacing.**
+  Fixing B660 moved an extracted definition out of the class it was written
+  in, to module scope, where `black` wants two blank lines in front of it and
+  got one. Verified against `black --check`, which now leaves the output
+  unchanged. A definition that stays a class member still takes one.
+
+- [x] B636: **nothing completed anything.** Thirty-three subcommands and six
+  global flags, and no shell knew any of it. `fr completions bash|zsh|fish`
+  writes a script from the command tree itself. It offers what this binary has,
+  and nothing else. A command added tomorrow
+  is completed tomorrow.
+
+- [x] B635: **a translated class could not be constructed.** `__init__` is
+  how Python spells a public constructor. Its underscores were read as Python's
+  mark for "internal", so Java produced a `private Account(...)` on a public
+  class, and Rust a private `fn new`. Neither type could be built from
+  outside the file that declared it, and nothing said so. A name wrapped in two
+  underscores on each side is a protocol method the language itself calls. It
+  is part of the surface. One leading underscore still means keep out.
+
+- [x] B633: **Python's `/` crossed as C's `/`.** They are two operations
+  sharing a spelling. Python's yields a float whatever it divides, and C's
+  truncates two integers. Read as one, `self.cents / 100` became an
+  integer division everywhere. Rust and Go refused the file. Java took it and
+  answered 5 where the source answered 5.34, which is the worse of the two.
+  True division is its own operator in the IR now. The targets whose `/` is
+  C's coerce an operand before the operator sees it. The two whose `/` already
+  divides in floats are left alone.
+
+- [x] B634: **a translated method that wrote a field would not compile.** Rust
+  took `&self` for every method. A body assigning to `self.cents` was refused
+  with E0594: cannot assign behind a `&` reference. A body that writes a field
+  takes `&mut self`. A body that only reads keeps the shared borrow.
+
+- [x] B630: **an empty list crossed as `[]any` under a signature promising
+  something else.** `out = []` says nothing about its elements. Go therefore
+  wrote `out := []any{}` inside a function returning `[]Point`, and the compiler
+  refused the return. What the body appends says what the list holds, and a
+  declared return type says it where nothing is appended. The element type
+  settles in the shared binding table, so every target that must name one
+  benefits.
+
+- [x] B631: **a function whose body did not translate would not compile.** The
+  untranslated statements were carried as comments. That left a Go function
+  promising a value and returning nothing: `missing return`. It now panics with
+  the marker, so a draft says it is unfinished where a zero value would have
+  said it was done.
+
+- [x] B632: **every translated Go file was `package main`.** A file with no
+  `func main` is a program with no entry point. `go build` refuses it, so every
+  translated library was unbuildable. A module carrying an entry point is
+  still `main`. Everything else takes its package name from the file.
+
+- [x] B628: **an unindexed file was refused as if the cursor were wrong.**
+  A `def` sat plainly on the line named. The answer was "no symbol or resolved
+  reference". The file was excluded by .gitignore and never
+  indexed, so nothing in it resolves at any position. The refusal now names the
+  file as the reason. It also offers the likeliest cause it can check: a
+  language this does not read, a size over the limit, or an ignore rule.
+
+- [x] B629: **ignored files could not be reached at all.** The scan honoured
+  .gitignore unconditionally and no flag turned that off. A generated tree, a
+  vendored copy or build output was therefore outside every command, and B628's
+  advice had no flag to name. `--no-ignore` reads ignored and hidden files.
+  Every command takes it, because every command scans.
+
+- [x] B626: **asked from a subdirectory, every command answered about that
+  subdirectory.** The root defaulted to `.`, so `fr usages` run in `pkg/deep`
+  reported "0 use(s)" of a function `main.py` calls, `fr delete` offered to
+  remove it, and `fr rename` renamed the definition and left the caller reading
+  a name nothing declares. All three exited zero and reported success. That is
+  the worst shape a wrong answer takes. A shell sits in a subdirectory far more
+  often than at a repository root, and an agent's shell almost always does.
+  Where `-C` is not stated, the root is now the nearest enclosing project. It is
+  found by `.git`, `Cargo.toml`, `go.mod`, `package.json`, `pyproject.toml`,
+  `setup.py`, `build.zig`, `pom.xml` or a Gradle build. Widening it is said out
+  loud, and `-C .` still means this directory alone.
+
+- [x] B627: **a path typed from a subdirectory was read against the root.**
+  Fixing B626 exposed the other half: `-C` states which workspace to operate
+  on, so relative paths resolved against it, and a caller standing in
+  `pkg/deep` typing `h.py` was answered "does not exist". Where the root was
+  found rather than stated, a typed path is now read from where the caller
+  stands first, and against the root second. A stated `-C` keeps its meaning.
+
+- [x] B625: **`fr scan` passed over files without saying so.** A directory of
+  `.sql`, `.json` and a `Makefile` beside one Python file answered "1 file(s)"
+  and nothing else, so a reader could not tell an unsupported tree from an
+  empty one, and neither could an agent deciding whether `fr` was the right
+  tool. Both the listing and the JSON now account for every file skipped for
+  want of a language. Each is counted by extension, so a lock file does not bury
+  the report. A `--languages` filter is not a gap in support, and is not
+  counted.
+
+- [x] B624: **`fr duplicates` measured a stylesheet against a function's
+  floor.** One threshold of 60 tokens covered all sixteen languages. A
+  stylesheet rule written twice comes to 47, so the command answered "no
+  duplication" over eleven copied declarations. Where nothing is stated, the
+  floor is the one each language class earns. Code gets 60; markup and
+  configuration get 30, their lines being far fewer tokens each. `--min-tokens`
+  still wins where it is given, and the report names the floor it used.
+- [x] B660: **`fr extract --function` spliced a class in half.** The new definition
+  went straight after the function it came from, at column zero. Extracting from a
+  Python method that was not the last one put a `def` in the middle of the class
+  body. Python parses that, because a `def` nests anywhere, so the reparse guard
+  passed. Every method below became a closure of the new function, and the class
+  lost them. The file still imported, and the tests that called those methods
+  failed with `AttributeError`. A nested function got the same treatment, at the
+  outer body's expense. Placement is one choke point now. The definition is hoisted
+  out of every class it sits in, and stops at the first enclosing function. It takes
+  the indentation of whatever it lands beside. Pinned in
+  `tests/extract_function.rs`.
+
+- [x] B661: **`fr extract --function` lost a method's receiver.** TypeScript reached
+  it first. `this` is named nowhere in a signature, so the data-flow analysis could
+  not see it. The body still read `this.values` while the parameter list was empty,
+  and the definition landed inside the class body. The syntax guard caught the
+  second half, so nothing was written, and the capability matrix went on claiming
+  extract-function for typescript and tsx. Go had it right all along: its receiver
+  is a named parameter, so `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)`
+  by ordinary means. TypeScript now carries the receiver the same way, as a
+  parameter typed with the class it came out of, with the call passing `this`. A
+  private or protected member, a generic class, an anonymous one and `super` are
+  each refused by name. Rust and Java say the receiver cannot be handed over.
+  Pinned in `tests/extract_function.rs`.
+
+- [x] B662: **`fr move` did not carry a Go symbol's imports.** Moving a function
+  that used `math` broke both files. The destination said `undefined: math`. The
+  source said `"math" imported and not used`. Two compile errors from one move, in
+  the commonest Go refactoring there is, and the report said `0 file(s) gained an
+  import`. Both directions had been reported and neither done. A Go import path is
+  absolute, so the statement travels verbatim. A qualified use is a reference under
+  the package binding, so which import fed which name is a fact. References inside
+  the moved span decide what goes and the ones outside decide what stays. Pinned in
+  `tests/move_languages.rs`.
+
+- [x] B663: **a relative import that crossed a directory resolved to nothing.** One
+  path join short of normalised. `Index::resolve_import_path` joined the specifier
+  onto the importer's directory and looked the result up as written.
+  `"../src/pricing"` from `test/run.ts` became `test/../src/pricing`. That compared
+  unequal to the file it names, because the index is keyed by paths with no `..` in
+  them. Every caller asking which file an import points at got `None`. `fr move`
+  then wrote its new import beside the old one it had failed to recognise: `TS2300:
+  Duplicate identifier` and `TS2459`. Duplicate imports parse, so no guard caught
+  it. The join is normalised at that one point. Pinned in `tests/move_imports.rs`.
+
+- [x] B664: **a move left a blank-line scar.** Two declarations have a blank line on
+  each side of the one between them. Erasing that one's lines alone left both, so
+  the file kept a two-line gap where a one-line gap belongs. `gofmt` rewrites it. A
+  symbol moved out and back came home to that scar. What "back" means is decided and
+  pinned now. A move appends to the file it lands in and leaves no trace in the one
+  it left. So out and back returns the package to the declarations it started with,
+  in a different order. The emptied file returns to what it held. Holes whose blank
+  runs meet are worked out as one, because two edits claiming the same blank line is
+  a conflict the applier refuses. A declaration with nothing blank above it keeps
+  the run below, which is the only separator left. Pinned in
+  `tests/move_languages.rs` and the unit tests beside `erase_spans`.
+
+- [x] B665: **half of a documented pairing was empty.** `fr inline` was called the
+  reverse of `fr extract`. `extract --function` writes a body of several statements
+  by construction. `inline --call` refuses a body of several statements by
+  construction. So no output of the first is an input to the second, and nothing
+  said so. Teaching `--call` the multi-statement case is a different piece of work
+  to the one that would make the sentence true today. So the limit is stated
+  instead, in EXAMPLES.md, TUTORIAL.md, the README synopsis and `fr inline --help`.
+  The refusal states it too, and names the command whose output cannot come back.
+  Pinned in `tests/inline_call.rs`.
+- [x] B685: **a recipe run and its `--explain` disagreed on the recipe's length.**
+  `--explain` read the file and said "3 step(s)". The run of the same file said
+  "2 step(s)", because a refusal stopped it at the second and the header counted the
+  steps reached. A recipe is a reviewable artifact, so its length is a fact about the
+  file. The header reports that now, from `steps_in_recipe`, and how far the run got
+  is its own line and its own JSON field. Pinned in `tests/recipe.rs` and
+  `tests/cli.rs`, which compares the two commands.
+
+- [x] B684: **`fr imports` kept an import and never said why.** The planner works out a
+  reason for each one it holds back: a package `__init__.py` re-export, a `__future__`
+  import, a submodule imported for its registration side effects, a Rust trait used
+  through its methods. Each reason was built as a warning and then thrown away by the
+  command, in text and in `--json` alike. So the user read "removed 0 import(s)" and
+  had nowhere to go. The single-file report lists them now, and carries them as
+  `kept_imports`. The workspace sweep prints the count and names the command that
+  gives the reason. Pinned in `tests/cli.rs`.
+
+- [x] B683: **`fr impact` left out what `fr rename` reports.** The name written as
+  text is invisible to every resolver: an `__all__` entry, a line of
+  documentation, a CI script. `fr rename` sweeps for those and lists each one.
+  The tool suggests `fr impact` before that rename, and it ran no such
+  sweep. So it answered one site where the rename showed three. A reader met
+  the rest after committing to the change. It runs the same sweep now, from
+  `crate::mentions`, which is where `fr usages` and `fr delete` already ask.
+  `tests/impact_completeness.rs` compares the two commands site by site.
+
+- [x] B682: **`fr restructure` reported no matches as success.** `fr rename` exits 3
+  for a target it cannot find. Restructure printed one line and exited 0.
+  It is the operation where a typo is likeliest and least visible. A caller
+  looping over rewrites read "your pattern was wrong" as "there is nothing left to
+  do". It is a not-found now, in the exit code and in the `--json` error object. The
+  matches a template could not be written over were prose on stdout in `--json` mode
+  as well. They arrived in front of the report, so the output was not JSON, and they
+  are `skipped_occurrences` in it now. Pinned in `tests/cli.rs`.
+
+- [x] B681: **a read through a Python module object resolved to nothing.** `from app
+  import flags` binds the submodule `app/flags.py`, and `flags.USE_NEW_TAX` reads it.
+  The index took the import path for the whole answer, so the receiver named
+  `app/__init__.py`, which declares nothing. `fr remove-flag` then refused with
+  "nothing reads it" and sent the reader to `fr delete`, over a live declaration
+  and a line the tool prints. `import app.flags` and `from . import flags` failed the
+  same way. A receiver bound by an import can name the submodule as well as the
+  package now, and relative module paths resolve. A refusal that finds no firm use
+  lists the occurrences `fr rename` would show, instead of claiming there are none.
+  Pinned in `tests/cascade.rs` and `tests/python_modules.rs`.
+
+- [x] B680: **`fr remove-flag` rewrote an import statement.** Python puts a flag in
+  its own module and imports it where it is read.
+  `from app.flags import USE_NEW_TAX` became `from app.flags import True`, and
+  the final parse gate threw the whole cascade away. So the command was unusable on
+  that shape. TypeScript wrote `import { true }` in the same place and only survived
+  because a later round deleted the mangled statement. An import binds a name and
+  reads nothing, so no literal stands there. `use_site` now answers `Binds` for an
+  occurrence under an import, in every language. The declaration still goes, because
+  binding a name is not reading it, and the round that drops unused imports takes the
+  statement away. Pinned in `tests/cascade.rs`.
+
+- [x] B622: **a folded flag left code that cannot run.** `if FLAG { return a }
+  return b` became `return a; return b`. It answers the same, and every
+  compiler says so: `go vet` reports unreachable code, `rustc` warns, and Zig
+  refuses the file outright. A branch that always leaves now takes the rest of
+  its block with it, and a branch that falls through keeps what follows.
+  Pinned in `tests/remove_flag_sweep.rs`.
+
+- [x] B623: **`fr entrypoints` called a module's workings its inputs.** A
+  `locals` block was reported as `infra-input` beside a real `variable`. An
+  `output` was not an entry point at all. Since
+  `fr unused` treats an entry point as reached, nothing in HCL or Helm was ever
+  unreferenced, however plainly `fr usages` said otherwise. A variable is an
+  input, an output is the surface, and a local is neither. Pinned in
+  `tests/entrypoints_conventions.rs`.
+
+- [x] B640: **a file that did not parse was invisible where it mattered.**
+  `fr parse` and `fr duplicates` named it. So did `fr rename` and `fr extract`.
+  `fr symbols`, `fr usages`, `fr unused` and `fr graph` said nothing. `fr unused`
+  was the dangerous one. It listed deletion candidates read out of a file the
+  grammar only half understood. A user acting on that deletes live code. The
+  index already knew which files carried `FactGap::SyntaxErrors`.
+  `Index::unparsed` hands them to the choke point that warns about a file skipped
+  for its size. So every command that indexes says what it could not read. It
+  says it on stderr, and as `unparsed_files` in its JSON. Pinned in
+  `tests/json_surface.rs`.
+
 - [x] B578: **a stalled install hung the gate.** The step installing Zig,
   Terraform and Helm reaches hosts nobody here controls. `apt` reaches a
   mirror. None of it set a deadline, so both check jobs sat in that step for

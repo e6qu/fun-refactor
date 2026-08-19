@@ -84,7 +84,7 @@ fn refuses_a_multi_statement_body() {
 
     let at = src.rfind("work").unwrap() + 1;
     let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("single-expression"), "got: {err}");
+    assert!(err.contains("several statements"), "got: {err}");
 }
 
 #[test]
@@ -269,4 +269,41 @@ fn a_callee_import_also_present_at_the_call_site_inlines() {
     let path = tmp.path().join("app.py");
     let out = apply(&inline::call(&index, &path, offset).unwrap(), &path);
     assert!(out.contains("return os.environ[\"HOME\"]"), "got:\n{out}");
+}
+
+#[test]
+fn what_extract_function_writes_is_refused_and_the_refusal_says_so() {
+    // The two were documented as a pair whose intersection is empty. `--call` takes
+    // only a one-expression callee, and `extract --function` writes several statements
+    // by construction, so nothing it produces can come back this way. The docs now say
+    // it, and so does the refusal, which is where a reader who tried it is standing.
+    let src = "def total(items):\n    running = accumulate(items)\n    return running\n\n\
+        def accumulate(items):\n    running = 0\n    for i in items:\n        \
+        running = running + i\n    return running\n";
+    let (tmp, index) = workspace(&[("m.py", src)]);
+    let path = tmp.path().join("m.py");
+
+    let offset = src.find("accumulate(items)").unwrap();
+    let err = inline::call(&index, &path, offset).unwrap_err().to_string();
+    assert!(
+        err.contains("several statements") && err.contains("one expression"),
+        "the refusal names the limit: {err}"
+    );
+    assert!(
+        err.contains("fr extract --function"),
+        "and names the command whose output cannot come back: {err}"
+    );
+}
+
+#[test]
+fn the_documented_pairing_is_the_one_that_holds() {
+    // `fr extract --variable` writes a binding of one expression, and inlining that
+    // binding's function form is the round trip the docs promise.
+    let src = "def price():\n    return base() * 2\n\n\ndef base():\n    return 5\n";
+    let (tmp, index) = workspace(&[("m.py", src)]);
+    let path = tmp.path().join("m.py");
+
+    let offset = src.find("base() * 2").unwrap();
+    let out = apply(&inline::call(&index, &path, offset).unwrap(), &path);
+    assert!(out.contains("return 5 * 2"), "got:\n{out}");
 }

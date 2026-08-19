@@ -91,6 +91,19 @@ struct Cli {
     #[arg(long, short = 'C', global = true, default_value = ".")]
     root: PathBuf,
 
+    /// Set where `root` was not stated and had to be found. A typed path is then
+    /// read against the shell's directory, the one the caller can see.
+    #[arg(skip)]
+    root_inferred: bool,
+
+    /// Read files that .gitignore and friends exclude, and hidden files too.
+    ///
+    /// Generated trees, vendored copies and build output are refactoring targets
+    /// like any other, and they are usually ignored. Without this there was no
+    /// way to reach them at all: the scan honoured ignore files unconditionally.
+    #[arg(long, global = true)]
+    no_ignore: bool,
+
     /// Re-read every file instead of reusing cached facts.
     #[arg(long, global = true)]
     no_cache: bool,
@@ -125,6 +138,16 @@ enum Command {
         /// Emit the markdown table used in the README.
         #[arg(long)]
         markdown: bool,
+    },
+    /// Print a shell completion script for this tool.
+    ///
+    /// Written from the command tree itself, so it cannot describe a command
+    /// this binary does not have. Send it where your shell reads completions:
+    /// `fr completions bash > /usr/local/etc/bash_completion.d/fr`.
+    Completions {
+        /// The shell to write for.
+        #[arg(value_enum)]
+        shell: CompletionShell,
     },
     /// Inspect or clear the fact cache.
     Cache {
@@ -245,12 +268,18 @@ enum Command {
     },
     /// Replace a variable's uses with its value, or a call with the callee's body.
     ///
+    /// `--call` undoes `fr extract --variable` and nothing else. It inlines a callee
+    /// whose body is one expression, and refuses a body of several statements, whose
+    /// evaluation order and shadowing it cannot preserve. `fr extract --function` always
+    /// writes several, so its output is not something this can put back.
+    ///
     /// Prints a diff by default; pass --write to apply it.
     Inline {
         /// Position as `path:line:col`, or a bare symbol name.
         /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Inline the call at that position instead of a variable.
+        /// The callee's body has to be one expression.
         #[arg(long)]
         call: bool,
         /// Apply the change instead of printing a diff.
@@ -314,9 +343,11 @@ enum Command {
     /// Compares structure and not text, so a copy whose variables were renamed
     /// still matches. That is the copy a textual search will never find.
     Duplicates {
-        /// Smallest duplicate to report, in tokens.
-        #[arg(long, default_value_t = 60)]
-        min_tokens: usize,
+        /// Smallest duplicate to report, in tokens. Left out, each language
+        /// gets the floor its own density earns. Code gets 60. Markup and
+        /// configuration get 30, a dozen of their lines being far fewer tokens.
+        #[arg(long)]
+        min_tokens: Option<usize>,
         /// Require identifiers and literals to match too, not only the structure.
         #[arg(long)]
         exact: bool,
@@ -574,8 +605,144 @@ enum Command {
     },
 }
 
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum CompletionShell {
+    Bash,
+    Zsh,
+    Fish,
+}
+
+/// A completion script, written from the command tree this binary really has.
+///
+/// Thirty-three subcommands are a lot to type from memory, and nothing
+/// completed any of it. Generated rather than kept by hand, so a command added
+/// tomorrow is completed tomorrow.
+fn completion_script(shell: CompletionShell) -> String {
+    use clap::CommandFactory;
+    let command = Cli::command();
+    let globals: Vec<String> = command
+        .get_arguments()
+        .filter_map(|a| a.get_long().map(|l| format!("--{l}")))
+        .collect();
+    let globals = globals.join(" ");
+    let subcommands: Vec<(String, String, String)> = command
+        .get_subcommands()
+        .map(|sub| {
+            let flags: Vec<String> = sub
+                .get_arguments()
+                .filter_map(|a| a.get_long().map(|l| format!("--{l}")))
+                .collect();
+            // A description goes inside quotes in two of the three shells, and
+            // one line is all any of them shows.
+            let about = sub
+                .get_about()
+                .map(|a| a.to_string())
+                .unwrap_or_default()
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .replace(['\'', '"', '`', '$'], "");
+            (sub.get_name().to_string(), about, flags.join(" "))
+        })
+        .collect();
+    let names: Vec<&str> = subcommands.iter().map(|(n, _, _)| n.as_str()).collect();
+    let names = names.join(" ");
+
+    let mut lines: Vec<String> = Vec::new();
+    match shell {
+        CompletionShell::Bash => {
+            lines.push("_fr() {".into());
+            lines.push("    local cur command i".into());
+            lines.push("    cur=\"${COMP_WORDS[COMP_CWORD]}\"".into());
+            lines.push("    command=\"\"".into());
+            lines.push("    for ((i = 1; i < COMP_CWORD; i++)); do".into());
+            lines.push("        case \"${COMP_WORDS[i]}\" in".into());
+            lines.push("            -*) ;;".into());
+            lines.push("            *) command=\"${COMP_WORDS[i]}\"; break ;;".into());
+            lines.push("        esac".into());
+            lines.push("    done".into());
+            lines.push("    if [ -z \"$command\" ]; then".into());
+            lines.push(format!(
+                "        COMPREPLY=($(compgen -W \"{names} {globals}\" -- \"$cur\"))"
+            ));
+            lines.push("        return 0".into());
+            lines.push("    fi".into());
+            lines.push("    local options=\"\"".into());
+            lines.push("    case \"$command\" in".into());
+            for (name, _, flags) in &subcommands {
+                lines.push(format!("        {name})"));
+                lines.push(format!("            options=\"{flags}\""));
+                lines.push("            ;;".into());
+            }
+            lines.push("    esac".into());
+            lines.push("    if [[ \"$cur\" == -* ]]; then".into());
+            lines.push(format!(
+                "        COMPREPLY=($(compgen -W \"$options {globals}\" -- \"$cur\"))"
+            ));
+            lines.push("    else".into());
+            lines.push("        COMPREPLY=($(compgen -f -- \"$cur\"))".into());
+            lines.push("    fi".into());
+            lines.push("}".into());
+            lines.push("complete -F _fr fr".into());
+        }
+        CompletionShell::Zsh => {
+            lines.push("#compdef fr".into());
+            lines.push("_fr() {".into());
+            lines.push("    local -a commands".into());
+            lines.push("    commands=(".into());
+            for (name, about, _) in &subcommands {
+                lines.push(format!("        '{name}:{about}'"));
+            }
+            lines.push("    )".into());
+            lines.push("    if (( CURRENT == 2 )); then".into());
+            lines.push("        _describe -t commands 'fr command' commands".into());
+            lines.push("    else".into());
+            lines.push("        _files".into());
+            lines.push("    fi".into());
+            lines.push("}".into());
+            lines.push("compdef _fr fr".into());
+        }
+        CompletionShell::Fish => {
+            for flag in globals.split_whitespace() {
+                lines.push(format!(
+                    "complete -c fr -l {}",
+                    flag.trim_start_matches('-')
+                ));
+            }
+            for (name, about, flags) in &subcommands {
+                lines.push(format!(
+                    "complete -c fr -n __fish_use_subcommand -a {name} -d '{about}'"
+                ));
+                for flag in flags.split_whitespace() {
+                    lines.push(format!(
+                        "complete -c fr -n \"__fish_seen_subcommand_from {name}\" -l {}",
+                        flag.trim_start_matches('-')
+                    ));
+                }
+            }
+        }
+    }
+    lines.push(String::new());
+    lines.join("\n")
+}
+
 pub fn run() -> Result<()> {
-    let cli = Cli::parse();
+    let matches = <Cli as clap::CommandFactory>::command().get_matches();
+    let mut cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
+        .map_err(|e| Fault::invalid_input(e.to_string()))?;
+    if matches.value_source("root") != Some(clap::parser::ValueSource::CommandLine) {
+        if let Some(project) = enclosing_project(&cli.root) {
+            eprintln!(
+                "Reading the whole of {}, the project {} sits in. Pass `-C .` for \
+                 this directory alone.",
+                project.display(),
+                cli.root.display()
+            );
+            cli.root = project;
+            cli.root_inferred = true;
+        }
+    }
+    let cli = cli;
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -644,6 +811,10 @@ fn dispatch(cli: &Cli) -> Result<()> {
             language,
             markdown,
         } => cmd_capabilities(cli, capability.as_deref(), language.as_deref(), *markdown),
+        Command::Completions { shell } => {
+            print!("{}", completion_script(*shell));
+            Ok(())
+        }
         Command::Cache { clear } => cmd_cache(cli, *clear),
         Command::Scan { languages } => cmd_scan(cli, languages),
         Command::Parse { languages, stats } => cmd_parse(cli, languages, *stats),
@@ -901,6 +1072,41 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     )
 }
 
+/// The project `start` sits inside, when that is somewhere above `start`.
+///
+/// A question about a symbol is a question about the project, not about the
+/// directory a shell happens to be in. Answered from `pkg/deep`, `fr usages`
+/// said "0 use(s)" of a function `main.py` calls. `fr delete` offered to remove
+/// it. `fr rename` renamed the definition and left the caller reading a name
+/// nothing declares. All three reported success. The nearest enclosing marker
+/// wins, so a package inside a monorepo is read as itself. A stated `-C` is
+/// left alone.
+fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
+    const MARKERS: &[&str] = &[
+        ".git",
+        "Cargo.toml",
+        "go.mod",
+        "package.json",
+        "pyproject.toml",
+        "setup.py",
+        "build.zig",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+    ];
+    let from = start.canonicalize().ok()?;
+    if !from.is_dir() {
+        return None;
+    }
+    let found = from.ancestors().find(|dir| {
+        MARKERS
+            .iter()
+            .any(|marker| crate::vfs::exists(dir.join(marker).as_path()))
+    })?;
+    // Already at the project root: the default is right and needs no note.
+    (found != from).then(|| found.to_path_buf())
+}
+
 /// The canonical workspace root, the spelling the index writes into every path.
 fn workspace_root(cli: &Cli) -> PathBuf {
     cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone())
@@ -939,25 +1145,52 @@ fn skipped_files_json(index: &Index) -> Vec<serde_json::Value> {
         .collect()
 }
 
-/// Warn, on stderr, that the scan skipped files this answer cannot see.
+/// The files the grammar read only in part, as data for a JSON report.
+///
+/// Carried beside [`skipped_files_json`] and not merged into it. A skipped file
+/// contributed nothing; one of these contributed some of itself, and the two ask a
+/// caller for different things.
+fn unparsed_files_json(index: &Index) -> Vec<serde_json::Value> {
+    index
+        .unparsed()
+        .map(|path| serde_json::json!({ "file": path, "reason": "file has syntax errors" }))
+        .collect()
+}
+
+/// Warn, on stderr, about the files this answer saw partially or not at all.
 ///
 /// Called from [`build_index`], so every command that indexes the workspace says it
-/// once, instead of each command remembering to. The JSON twin rides in each
-/// report as `skipped_files`.
-fn warn_skipped_files(cli: &Cli, index: &Index) {
-    if cli.json || index.skipped.is_empty() {
+/// once, instead of each command remembering to. The JSON twins ride in each
+/// report as `skipped_files` and `unparsed_files`.
+fn warn_partial_index(cli: &Cli, index: &Index) {
+    if cli.json {
         return;
     }
     let root = workspace_root(cli);
-    eprintln!("Warning: {} file(s) were not read.", index.skipped.len());
-    eprintln!("The answer cannot see anything in them:");
-    for (path, reason) in index.skipped.iter().take(10) {
-        eprintln!("  {} ({reason})", shown_path(&root, path));
+    if !index.skipped.is_empty() {
+        eprintln!("Warning: {} file(s) were not read.", index.skipped.len());
+        eprintln!("The answer cannot see anything in them:");
+        for (path, reason) in index.skipped.iter().take(10) {
+            eprintln!("  {} ({reason})", shown_path(&root, path));
+        }
+        if index.skipped.len() > 10 {
+            eprintln!("  … and {} more", index.skipped.len() - 10);
+        }
+        eprintln!("Raise --max-file-size to include a file skipped for its size.");
     }
-    if index.skipped.len() > 10 {
-        eprintln!("  … and {} more", index.skipped.len() - 10);
+    let unparsed: Vec<_> = index.unparsed().collect();
+    if unparsed.is_empty() {
+        return;
     }
-    eprintln!("Raise --max-file-size to include a file skipped for its size.");
+    eprintln!("Warning: {} file(s) did not parse in full.", unparsed.len());
+    eprintln!("The answer sees only the part the grammar could read:");
+    for path in unparsed.iter().take(10) {
+        eprintln!("  {}", shown_path(&root, path));
+    }
+    if unparsed.len() > 10 {
+        eprintln!("  … and {} more", unparsed.len() - 10);
+    }
+    eprintln!("Run `fr parse` for the positions the grammar stopped at.");
 }
 
 /// Refuse a plan whose files changed after the index read them.
@@ -1012,6 +1245,22 @@ fn present(
     summary: &str,
     write: bool,
 ) -> Result<()> {
+    present_with(cli, index, edits, summary, write, |_| {})
+}
+
+/// [`present`], with fields only one command has to add to the JSON report.
+///
+/// `fr restructure` reports the matches it declined to rewrite. In text they are lines
+/// above the diff. Printed in `--json` mode they landed on stdout in front of the
+/// object. So the output was no longer JSON, and no reader of it could parse.
+fn present_with(
+    cli: &Cli,
+    index: Option<&Index>,
+    edits: &crate::edit::EditSet,
+    summary: &str,
+    write: bool,
+    decorate: impl FnOnce(&mut serde_json::Value),
+) -> Result<()> {
     if let Some(index) = index {
         refuse_stale_plan(index, edits)?;
     }
@@ -1029,16 +1278,16 @@ fn present(
                 })
             })
             .collect();
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "summary": summary,
-                "files_changed": outcomes.len(),
-                "applied": write,
-                "changes": changes,
-                "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
-            }))?
-        );
+        let mut report = serde_json::json!({
+            "summary": summary,
+            "files_changed": outcomes.len(),
+            "applied": write,
+            "changes": changes,
+            "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
+            "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
+        });
+        decorate(&mut report);
+        println!("{}", serde_json::to_string_pretty(&report)?);
         if write {
             crate::edit::commit(&outcomes)?;
         }
@@ -1320,17 +1569,22 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 
 /// A path the caller typed, spelled the way the index spells its paths.
 ///
-/// Relative paths resolve against the workspace root, not the shell's working directory: `-C`
-/// says which workspace to operate on. `fr -C ../helm refs pkg/x.go:3:6` means that file in
-/// that workspace. Canonical, because the index is, and a path that does not exist is an
-/// error. Resolving it to itself lets the file read fail two frames later with "reading
-/// pkg/x.go. No such file", which is true and unhelpful.
+/// Where `-C` was stated, relative paths resolve against it and not against the shell's
+/// working directory. `-C` says which workspace to operate on, so
+/// `fr -C ../helm refs pkg/x.go:3:6` means that file in that workspace. Where the root was
+/// found rather than stated, the caller typed a path they can see from where they stand.
+/// The shell's directory is tried first then, and the root second. Canonical, because the
+/// index is. A path that does not exist is an error. Resolving it to itself lets the file
+/// read fail two frames later with "reading pkg/x.go. No such file". True and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    let joined = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        root.join(path)
+    // An absolute path is already where it says. A relative one typed against a
+    // root nobody stated is read from where the caller stands, when something is
+    // there to read.
+    let as_typed = path.is_absolute() || (cli.root_inferred && crate::vfs::exists(path));
+    let joined = match as_typed {
+        true => path.to_path_buf(),
+        false => root.join(path),
     };
     // A path that does not resolve is a target that was not found, and the exit
     // code says so. It used to be a bare failure indistinguishable from a crash.
@@ -1407,7 +1661,7 @@ fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
 
 fn cmd_duplicates(
     cli: &Cli,
-    min_tokens: usize,
+    min_tokens: Option<usize>,
     exact: bool,
     languages: &[String],
     paths: &[PathBuf],
@@ -1430,10 +1684,17 @@ fn cmd_duplicates(
 
     let root = workspace_root(cli);
     if classes.is_empty() {
-        println!(
-            "No duplication of {min_tokens} tokens or more{}.",
-            if exact { " (exact)" } else { "" }
-        );
+        match min_tokens {
+            Some(stated) => println!(
+                "No duplication of {stated} tokens or more{}.",
+                if exact { " (exact)" } else { "" }
+            ),
+            None => println!(
+                "No duplication of 60 tokens or more in code, or 30 in markup and \
+                 configuration{}. Pass --min-tokens to look for smaller copies.",
+                if exact { " (exact)" } else { "" }
+            ),
+        }
     }
     for class in &classes {
         println!(
@@ -1458,9 +1719,12 @@ fn cmd_duplicates(
         // The threshold belongs here as much as it does in the empty case. Finding
         // nothing "of 60 tokens or more" says what was looked for; finding three and
         // saying only "3 duplicated block(s)" reads as all of them.
+        let floor = match min_tokens {
+            Some(stated) => format!("{stated} tokens or more"),
+            None => "60 tokens or more in code, 30 in markup and configuration".to_string(),
+        };
         println!(
-            "\n{} duplicated block(s) of {min_tokens} tokens or more, {redundant} \
-             redundant token(s).",
+            "\n{} duplicated block(s) of {floor}, {redundant} redundant token(s).",
             classes.len()
         );
         println!(
@@ -1567,6 +1831,7 @@ fn cmd_unused(
                 "unused": payload,
                 "caveat": UNUSED_CAVEAT.replace('\n', ""),
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         return Ok(());
@@ -1664,13 +1929,43 @@ fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result
         );
     }
 
+    // Every import nothing names and the planner kept anyway, with the reason it worked
+    // out. The reasons were computed and then dropped. So "removed 0 import(s)" was the
+    // whole answer, and a reader could not learn which import was held, or why.
+    if !cli.json && !plan.warnings.is_empty() {
+        println!("Kept {} import(s) nothing names:", plan.warnings.len());
+        for warning in &plan.warnings {
+            println!("  line {}: {}", warning.line, warning.detail);
+        }
+        println!();
+    }
+
     let summary = format!(
         "{}: removed {} import(s), reordered {} block(s)",
         plan.file.display(),
         plan.removed.len(),
         plan.sorted_blocks
     );
-    present(cli, Some(&index), &plan.edits, &summary, write)
+    let kept = kept_imports_json(&plan.warnings);
+    present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
+        report["kept_imports"] = kept;
+    })
+}
+
+/// The imports the planner held back, as data, each with the reason it printed.
+fn kept_imports_json(warnings: &[crate::refactor::Warning]) -> serde_json::Value {
+    let rows: Vec<serde_json::Value> = warnings
+        .iter()
+        .map(|warning| {
+            serde_json::json!({
+                "file": warning.file,
+                "line": warning.line,
+                "col": warning.col,
+                "reason": warning.detail,
+            })
+        })
+        .collect();
+    serde_json::Value::Array(rows)
 }
 
 /// Every file the index holds, one pass, one atomic apply.
@@ -1683,11 +1978,15 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
     let mut removed = 0usize;
     let mut reordered = 0usize;
     let mut skipped: std::collections::BTreeMap<String, usize> = Default::default();
+    let mut kept: Vec<crate::refactor::Warning> = Vec::new();
 
     let files: Vec<std::path::PathBuf> = index.files().map(|(path, _)| path.clone()).collect();
     for path in files {
         match crate::refactor::imports::plan(index, &path) {
             Ok(plan) => {
+                // Counted before the files with nothing to do are dropped: an import held
+                // back is the reason a file has nothing to do.
+                kept.extend(plan.warnings.iter().cloned());
                 if plan.edits.is_empty() {
                     continue;
                 }
@@ -1717,6 +2016,14 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
             println!("  {count} file(s): {first}");
         }
     }
+    // A sweep of a workspace would drown in one line per held import. The count is the
+    // report here, and the reason is one command away.
+    if !cli.json && !kept.is_empty() {
+        println!(
+            "\n{} import(s) nothing names were kept. `fr imports <file>` says why.",
+            kept.len()
+        );
+    }
     if !cli.json {
         println!();
     }
@@ -1725,7 +2032,10 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
         "workspace: {touched} file(s) changed, {removed} import(s) removed, \
          {reordered} block(s) reordered."
     );
-    present(cli, Some(index), &edits, &summary, write)
+    let kept = kept_imports_json(&kept);
+    present_with(cli, Some(index), &edits, &summary, write, |report| {
+        report["kept_imports"] = kept;
+    })
 }
 
 fn cmd_translate(
@@ -2538,9 +2848,18 @@ fn selector_of(step: &crate::recipe::Step) -> String {
 }
 
 fn print_recipe_report(report: &crate::recipe::Report) {
-    println!("recipe {}: {} step(s)", report.recipe, report.steps.len());
+    // The header describes the file, so it counts the steps the recipe holds. Counting
+    // the ones the run reached made a stopped three-step recipe call itself a two-step
+    // recipe, against the `--explain` of the same file. The traversal is its own line.
+    println!(
+        "recipe {}: {} step(s)",
+        report.recipe, report.steps_in_recipe
+    );
     if let Some(description) = &report.description {
         println!("  {description}");
+    }
+    if report.steps.len() < report.steps_in_recipe {
+        println!("  the run reached {} of them", report.steps.len());
     }
     println!();
     for (i, step) in report.steps.iter().enumerate() {
@@ -2660,7 +2979,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
     use crate::refactor::rewrite::{self, Rewrite};
 
     let pos = parse_position(target).ok_or_else(|| {
-        Fault::invalid_input("a rewrite needs a position: path:line:col".to_string())
+        Fault::invalid_input("a rewrite needs a position, as path:line:col.".to_string())
     })?;
     refuse_zero_column(&pos)?;
     let path = workspace_path(cli, &pos.path)?;
@@ -2716,26 +3035,53 @@ fn cmd_restructure(
     // before anything else. Saying nothing about it, or saying nothing matched, is how
     // a run that left three call sites alone called itself complete.
     let root = workspace_root(cli);
-    let skipped = describe_skipped_occurrences(&root, &plan.skipped_with_comments);
-
-    if plan.matches.is_empty() {
-        match skipped.is_empty() {
-            true => println!("No {lang} code matches `{pattern}`."),
-            false => print!("{skipped}"),
-        }
-        return Ok(());
+    if !cli.json {
+        print!(
+            "{}",
+            describe_skipped_occurrences(&root, &plan.skipped_with_comments)
+        );
     }
 
-    if !skipped.is_empty() {
-        print!("{skipped}");
+    // A pattern that matched nowhere found nothing, which is the failure `fr rename`
+    // reports with the same code. Exit 0 said the rewrite was done, so a typed pattern
+    // and a finished job read identically to whatever is driving the command.
+    if plan.matches.is_empty() && plan.skipped_with_comments.is_empty() {
+        return Err(Fault::not_found(format!(
+            "no {lang} code matches `{pattern}`; nothing was changed."
+        )));
     }
+
     let summary = format!(
         "rewrote {} occurrence(s) of `{}` in {} file(s)",
         plan.matches.len(),
         plan.pattern,
         plan.edits.file_count()
     );
-    present(cli, Some(&index), &plan.edits, &summary, write)
+    present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
+        report["skipped_occurrences"] = skipped_occurrences_json(&plan.skipped_with_comments);
+    })
+}
+
+/// The matches a template could not be written over, as data.
+///
+/// The same occurrences the text report lists, for a caller that reads JSON. It had
+/// neither: the prose went to stdout in front of the report and broke it.
+fn skipped_occurrences_json(skipped: &[(std::path::PathBuf, usize)]) -> serde_json::Value {
+    let rows: Vec<serde_json::Value> = skipped
+        .iter()
+        .map(|(path, offset)| {
+            let at = crate::vfs::read_to_string(path)
+                .ok()
+                .map(|source| LineIndex::new(&source).line_col(*offset, &source));
+            serde_json::json!({
+                "file": path,
+                "line": at.as_ref().map(|a| a.line),
+                "col": at.as_ref().map(|a| a.col),
+                "reason": "the match holds a comment, which the template has nowhere to put",
+            })
+        })
+        .collect();
+    serde_json::Value::Array(rows)
 }
 
 /// The report for matches the rewrite could not be written over.
@@ -3246,6 +3592,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
                 "changes": files,
                 "warnings": plan.warnings,
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         if write {
@@ -3649,6 +3996,25 @@ fn candidates_of(symbols: &[&Symbol]) -> Vec<Candidate> {
         .collect()
 }
 
+/// The likeliest reason a real file is absent from the index.
+///
+/// Guessing badly is worse than not guessing, so each answer is checked against
+/// the thing that would cause it rather than inferred from the absence.
+fn why_unindexed(cli: &Cli, path: &std::path::Path) -> String {
+    if crate::lang::detect(path).is_none() {
+        return "It is in no language this reads.".to_string();
+    }
+    let limit = cli
+        .max_file_size
+        .unwrap_or(crate::scan::ScanOptions::default().max_file_bytes);
+    if std::fs::metadata(path).is_ok_and(|m| m.len() > limit) {
+        return format!("It is larger than the {limit}-byte limit; raise --max-file-size.");
+    }
+    "An ignore rule probably excludes it, or --languages narrowed the scan; \
+     --no-ignore reads ignored files."
+        .to_string()
+}
+
 /// Resolve a CLI target to a symbol, accepting either a position or a name.
 fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a Symbol> {
     if let Some(pos) = parse_target_position(cli, target)? {
@@ -3658,12 +4024,24 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         let offset = offset_at(&source, pos.line, pos.col, &path)?;
 
         return index.definition_at(&path, offset).ok_or_else(|| {
-            Fault::not_found(format!(
-                "no symbol or resolved reference at {}:{}:{}",
-                path.display(),
-                pos.line,
-                pos.col
-            ))
+            // A file the scan never reached has no symbols at any position.
+            // Saying "no symbol here" sends the reader looking at a declaration
+            // that is plainly there. An ignore rule, a size limit or a language
+            // this does not read is a fact about the file, not the cursor.
+            Fault::not_found(match index.file(&path) {
+                Some(_) => format!(
+                    "no symbol or resolved reference at {}:{}:{}",
+                    path.display(),
+                    pos.line,
+                    pos.col
+                ),
+                None => format!(
+                    "{} is not in the workspace this indexed, so nothing in it \
+                     resolves. {} `fr scan` lists what was read.",
+                    path.display(),
+                    why_unindexed(cli, &path)
+                ),
+            })
         });
     }
 
@@ -3793,7 +4171,7 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         let (hits, misses) = (stats.hits, stats.misses);
         tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
     }
-    warn_skipped_files(cli, &index);
+    warn_partial_index(cli, &index);
     Ok(index)
 }
 
@@ -4225,6 +4603,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "usages": render(&all),
                 "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         return Ok(());
@@ -4352,6 +4731,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "references": resolved,
                 "same_name_elsewhere": unresolved,
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         return Ok(());
@@ -4414,6 +4794,7 @@ fn scan_options(cli: &Cli, names: &[String]) -> Result<ScanOptions> {
     if let Some(bytes) = cli.max_file_size {
         options.max_file_bytes = bytes;
     }
+    options.respect_ignore = !cli.no_ignore;
     Ok(options)
 }
 
@@ -4452,6 +4833,7 @@ fn cmd_scan(cli: &Cli, languages: &[String]) -> Result<()> {
                 "files": files,
                 "skipped": skipped,
                 "skipped_too_large": too_large,
+                "unsupported": result.unsupported,
             }))?
         );
     } else {
@@ -4599,6 +4981,28 @@ fn report_skipped(result: &crate::scan::ScanResult) {
         for (path, reason) in &result.skipped_symlinks {
             println!("  {} ({reason})", path.display());
         }
+    }
+    if !result.unsupported.is_empty() {
+        let total: usize = result.unsupported.values().sum();
+        // Commonest first, and only the leading few. A repository carries more
+        // kinds of file than a reader wants listed. The point is the size of
+        // what was passed over, not a census of it.
+        let mut kinds: Vec<_> = result.unsupported.iter().collect();
+        kinds.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
+        let named: Vec<String> = kinds
+            .iter()
+            .take(5)
+            .map(|(kind, count)| format!("{kind} ({count})"))
+            .collect();
+        let rest = match kinds.len().saturating_sub(5) {
+            0 => String::new(),
+            more => format!(", and {more} other kind(s)"),
+        };
+        println!(
+            "\n{total} file(s) in no language this reads: {}{rest}. \
+             `fr capabilities` lists what it does read.",
+            named.join(", ")
+        );
     }
 }
 

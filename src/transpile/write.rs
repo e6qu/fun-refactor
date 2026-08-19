@@ -1926,7 +1926,14 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     if method {
-        params.push(format!("&{}", receiver_word(out.language)));
+        // A body that writes to a field needs the receiver to be writable, and
+        // `&self` is not. Rust refused every translated setter with E0594.
+        let word = receiver_word(out.language);
+        let mutation = match assigns_to_receiver(f, word) {
+            true => "mut ",
+            false => "",
+        };
+        params.push(format!("&{mutation}{word}"));
     }
     let mut foreign = false;
     let mut unannotated = false;
@@ -2617,6 +2624,29 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         // instead, so it answers `-3` where the source's `7 // -2` says `-4`.
         // A block spells the floor itself and names each operand once, which
         // matters when an operand is a call.
+        // Python's `/` is a float division. Rust's is the operands' own, so an
+        // integer side is coerced before the operator sees it.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                // A written number takes the float spelling. `100 as f64`
+                // compiles and reads as a repair rather than as arithmetic.
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(rust_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("{text} as f64"),
+                }
+            };
+            let dividend = side(out, left);
+            let divisor = side(out, right);
+            format!("{dividend} / {divisor}")
+        }
         Expr::Binary {
             op: BinaryOp::FloorDiv,
             left,
@@ -3718,7 +3748,169 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
         }
     }
     walk(&f.body, &mut types);
+    settle_empty_collections(f, &mut types);
     types
+}
+
+/// Whether this method's body assigns to a field of its receiver.
+fn assigns_to_receiver(f: &Function, word: &str) -> bool {
+    fn is_receiver_field(target: &Expr, word: &str) -> bool {
+        match target {
+            Expr::Field { of, .. } => matches!(of.as_ref(), Expr::Name(n) if n == word),
+            Expr::Index { of, .. } => is_receiver_field(of, word),
+            _ => false,
+        }
+    }
+    let mut found = false;
+    each_stmt(&f.body, &mut |stmt| match stmt {
+        Stmt::Assign { target, .. } => found |= is_receiver_field(target, word),
+        Stmt::TupleAssign { .. } => {}
+        _ => {}
+    });
+    found
+}
+
+/// Visit every statement in a body, nested blocks included.
+fn each_stmt(stmts: &[Stmt], visit: &mut dyn FnMut(&Stmt)) {
+    for stmt in stmts {
+        visit(stmt);
+        match stmt {
+            Stmt::If {
+                then, otherwise, ..
+            }
+            | Stmt::IfPresent {
+                then, otherwise, ..
+            } => {
+                each_stmt(then, visit);
+                each_stmt(otherwise, visit);
+            }
+            Stmt::While { body, .. }
+            | Stmt::WhilePresent { body, .. }
+            | Stmt::ForEach { body, .. }
+            | Stmt::ForEachIndexed { body, .. }
+            | Stmt::Defer(body)
+            | Stmt::ErrDefer(body) => each_stmt(body, visit),
+            Stmt::CountedFor { init, body, .. } => {
+                if let Some(init) = init {
+                    each_stmt(std::slice::from_ref(init.as_ref()), visit);
+                }
+                each_stmt(body, visit);
+            }
+            Stmt::Try {
+                body,
+                catches,
+                finally,
+                ..
+            } => {
+                each_stmt(body, visit);
+                for catch in catches {
+                    each_stmt(&catch.body, visit);
+                }
+                each_stmt(finally, visit);
+            }
+            Stmt::Switch { arms, default, .. } => {
+                for (_, body) in arms {
+                    each_stmt(body, visit);
+                }
+                each_stmt(default, visit);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Give a local that starts as an empty list the element type it goes on to hold.
+///
+/// `out = []` says nothing about its elements. The targets that must name a
+/// type therefore wrote their word for "no idea". Go produced `out := []any{}`
+/// under a signature promising `[]Point`, and the compiler refused the return.
+/// What the body appends says what the list holds, and the declared return type
+/// says it where nothing is appended.
+fn settle_empty_collections(f: &Function, types: &mut std::collections::BTreeMap<String, Type>) {
+    fn empty_lists(stmts: &[Stmt], found: &mut Vec<String>) {
+        each_stmt(stmts, &mut |stmt| {
+            if let Stmt::Let {
+                name,
+                ty: None,
+                value: Some(Expr::ListLit(items)),
+                ..
+            } = stmt
+            {
+                if items.is_empty() {
+                    found.push(name.clone());
+                }
+            }
+        });
+    }
+
+    fn appended(stmts: &[Stmt], target: &str, found: &mut Vec<Expr>) {
+        each_stmt(stmts, &mut |stmt| {
+            let Stmt::Expr(Expr::Call { callee, args }) = stmt else {
+                return;
+            };
+            if let (Some(of), Some("append")) = callee_parts(callee) {
+                if matches!(of, Expr::Name(n) if n == target) {
+                    if let [x] = args.as_slice() {
+                        found.push(x.clone());
+                    }
+                }
+            }
+        });
+    }
+
+    let mut empties = Vec::new();
+    empty_lists(&f.body, &mut empties);
+    for name in empties {
+        if types.contains_key(&name) {
+            continue;
+        }
+        let mut elements = Vec::new();
+        appended(&f.body, &name, &mut elements);
+        let element = elements.iter().find_map(literal_type).or_else(|| {
+            // Nothing was appended in a shape this can read. A function that
+            // returns the list has already said what it holds.
+            match (&f.returns, returns_name(&f.body, &name)) {
+                (Some(Type::List(item)), true) => Some((**item).clone()),
+                _ => None,
+            }
+        });
+        if let Some(element) = element {
+            types.insert(name, Type::List(Box::new(element)));
+        }
+    }
+}
+
+/// The type of an expression that carries its own, with no context to consult.
+fn literal_type(e: &Expr) -> Option<Type> {
+    match e {
+        Expr::Int(_) => Some(Type::Int),
+        Expr::Float(_) => Some(Type::Float),
+        Expr::Str(_) => Some(Type::String),
+        Expr::Bool(_) => Some(Type::Bool),
+        Expr::New { callee, .. } => match callee.as_ref() {
+            Expr::Name(name) => Some(Type::Named {
+                name: name.clone(),
+                args: Vec::new(),
+            }),
+            _ => None,
+        },
+        Expr::RecordLit { ty, .. } => Some(Type::Named {
+            name: ty.clone(),
+            args: Vec::new(),
+        }),
+        _ => None,
+    }
+}
+
+/// Whether the body returns this binding by name.
+fn returns_name(stmts: &[Stmt], name: &str) -> bool {
+    let mut found = false;
+    each_stmt(stmts, &mut |stmt| {
+        if let Stmt::Return(Some(Expr::Name(n))) = stmt {
+            found |= n == name;
+        }
+    });
+    found
 }
 
 /// What this expression holds, as far as the source said so.
@@ -4090,7 +4282,8 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
 // --------------------------------------------------------------------------- Go
 
 fn go(out: &mut Out, module: &Module) {
-    out.line("package main");
+    let package = go_package(module);
+    out.line(&format!("package {package}"));
     out.blank();
     // `func TestX(t *testing.T)` names a package the file must import itself.
     if module.items.iter().any(|i| matches!(i, Item::Test { .. })) {
@@ -4245,10 +4438,41 @@ fn go(out: &mut Out, module: &Module) {
             .map(|package| format!("import \"{package}\"\n"))
             .chain(std::iter::once("\n".to_string()))
             .collect();
-        let clause = "package main\n\n";
+        let clause = format!("package {}\n\n", go_package(module));
+        let clause = clause.as_str();
         if let Some(at) = out.text.find(clause) {
             out.text.insert_str(at + clause.len(), &block);
         }
+    }
+}
+
+/// The package clause this module belongs under.
+///
+/// `package main` without a `func main` is a program with no entry point, and
+/// `go build` refuses it: every translated library came out unbuildable. A
+/// module carrying an entry point is `main`, and everything else takes its name
+/// from the file, lowercased and stripped to the letters Go accepts.
+fn go_package(module: &Module) -> String {
+    let entry = module
+        .items
+        .iter()
+        .any(|item| matches!(item, Item::Function(f) if f.name == "main" && f.params.is_empty()));
+    if entry {
+        return "main".to_string();
+    }
+    let named: String = module
+        .name
+        .as_deref()
+        .unwrap_or_default()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .collect::<String>()
+        .to_ascii_lowercase();
+    // A name starting with a digit is not an identifier, and an empty one is no
+    // name at all. Both fall back to a word Go accepts.
+    match named.chars().next() {
+        Some(c) if c.is_ascii_alphabetic() => named,
+        _ => "translated".to_string(),
     }
 }
 
@@ -4448,6 +4672,16 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     ));
     out.open();
     go_block(out, &f.body, f.returns.as_ref());
+    // Go refuses a function that promises a value and has no path returning one.
+    // A body whose statements did not translate reaches here, and the file that
+    // carried them as comments would not build. Panicking says the draft is not
+    // finished where a zero value would have said it was.
+    if !returns.is_empty() && !f.body.is_empty() && !body_leaves(&f.body) {
+        out.line(&format!(
+            "panic({})",
+            quoted(Language::Go, &format!("{MARKER}: this body has no return"))
+        ));
+    }
     out.close();
     out.line("}");
     out.go_result = None;
@@ -4638,6 +4872,56 @@ fn go_result_stmt(out: &mut Out, stmt: &Stmt) -> bool {
     }
 }
 
+/// Whether this body's last statement leaves the function on every path.
+///
+/// Go's own rule for a terminating statement, in the shapes the IR has. Judging
+/// only a trailing `return` put a `panic` after a switch whose every arm
+/// returned, which is unreachable code and a defect of its own.
+fn body_leaves(body: &[Stmt]) -> bool {
+    match body.last() {
+        Some(Stmt::Return(_)) | Some(Stmt::Throw(_)) => true,
+        Some(Stmt::If {
+            then, otherwise, ..
+        })
+        | Some(Stmt::IfPresent {
+            then, otherwise, ..
+        }) => !otherwise.is_empty() && body_leaves(then) && body_leaves(otherwise),
+        Some(Stmt::MatchVariants { arms, default, .. }) => {
+            !default.is_empty()
+                && body_leaves(default)
+                && arms.iter().all(|arm| body_leaves(&arm.body))
+        }
+        // A `finally` that leaves ends the function whatever the body did.
+        // Otherwise every path out of the attempt has to leave on its own.
+        Some(Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        }) => {
+            body_leaves(finally)
+                || (body_leaves(body) && catches.iter().all(|c| body_leaves(&c.body)))
+        }
+        Some(Stmt::Switch { arms, default, .. }) => {
+            !default.is_empty()
+                && body_leaves(default)
+                && arms.iter().all(|(_, body)| body_leaves(body))
+        }
+        // `for {}` with nothing to break out of never falls through.
+        Some(Stmt::While {
+            condition, body, ..
+        }) => matches!(condition, Expr::Bool(true)) && !has_break(body),
+        _ => false,
+    }
+}
+
+/// Whether a loop body can break out of the loop it belongs to.
+fn has_break(body: &[Stmt]) -> bool {
+    let mut found = false;
+    each_stmt(body, &mut |stmt| found |= matches!(stmt, Stmt::Break));
+    found
+}
+
 fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     if body.is_empty() {
         out.line(&out.comment(&format!("{MARKER}: the source had no body to translate")));
@@ -4752,7 +5036,14 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 value: Some(value),
                 ..
             } => {
-                let v = go_expr(out, value);
+                // `[]any{}` under a signature promising `[]Point` is a file Go
+                // refuses. Where the element type settled, the literal names it.
+                let v = match (value, out.binding_types.get(name)) {
+                    (Expr::ListLit(items), Some(ty)) if items.is_empty() => {
+                        format!("{}{{}}", go_type(ty))
+                    }
+                    _ => go_expr(out, value),
+                };
                 let bound = out.name(name);
                 out.line(&format!("{bound} := {v}"));
             }
@@ -5218,6 +5509,24 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 go_expr(out, left),
                 go_expr(out, right)
             )
+        }
+        // Go's `/` truncates two integers, and the source's did not.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(go_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("float64({text})"),
+                }
+            };
+            format!("{} / {}", side(out, left), side(out, right))
         }
         Expr::Binary { op, left, right } => format!(
             "{} {} {}",
@@ -7628,6 +7937,24 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("(({}) {})", java_expr(out, ty), java_expr(out, value))
         }
+        // Java's `/` truncates two integers, silently and with the wrong answer.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(java_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("(double) {text}"),
+                }
+            };
+            format!("{} / {}", side(out, left), side(out, right))
+        }
         Expr::InstanceOf { value, ty } => {
             let rendered = java_expr(out, value);
             format!("{rendered} instanceof {}", java_expr(out, ty))
@@ -8844,6 +9171,25 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
+        // Zig refuses `/` on signed integers outright, and the source divided
+        // as floats anyway.
+        Expr::Binary {
+            op: BinaryOp::TrueDiv,
+            left,
+            right,
+        } => {
+            let side = |out: &mut Out, e: &Expr| {
+                if let Expr::Int(n) = e {
+                    return format!("{n}.0");
+                }
+                let text = binary_operand(zig_expr(out, e), e, BinaryOp::Div, false);
+                match static_type(out, e) {
+                    Some(Type::Float) => text,
+                    _ => format!("@as(f64, @floatFromInt({text}))"),
+                }
+            };
+            format!("{} / {}", side(out, left), side(out, right))
+        }
         Expr::Binary { op, left, right } => {
             // A Zig string is a `[]const u8`, and `==` on a slice is not a comparison
             // the compiler will accept at all. The output looked like the other five

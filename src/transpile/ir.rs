@@ -778,6 +778,13 @@ pub enum BinaryOp {
     /// library call, `Math.floor`, `div_euclid`, `Math.floorDiv`, `math.Floor`,
     /// `@divFloor`, and each writer reaches for its own.
     FloorDiv,
+    /// `a / b` in Python: division that yields a float whatever the operands are.
+    ///
+    /// Python's `/` and C's `/` are different operations that share a spelling.
+    /// Reading both as [`BinaryOp::Div`] made `self.cents / 100` an integer
+    /// division in Rust, Go and Java. Two of them refused the file. Java
+    /// silently answered 5 where the source answered 5.34.
+    TrueDiv,
     Rem,
     Eq,
     Ne,
@@ -801,6 +808,9 @@ impl BinaryOp {
             // writer says it with its own library call before reaching for this
             // table. Asking here is a bug in the writer, said out loud.
             BinaryOp::FloorDiv => unreachable!("floor division has no shared operator spelling"),
+            // Only the languages whose `/` is already a float division reach
+            // this. The rest coerce an operand before they render the operator.
+            BinaryOp::TrueDiv => "/",
             BinaryOp::Rem => "%",
             BinaryOp::Eq => "==",
             BinaryOp::Ne => "!=",
@@ -833,7 +843,11 @@ impl BinaryOp {
     /// in all six languages, which is a different number.
     pub fn precedence(self) -> u8 {
         match self {
-            BinaryOp::Mul | BinaryOp::Div | BinaryOp::FloorDiv | BinaryOp::Rem => 6,
+            BinaryOp::Mul
+            | BinaryOp::Div
+            | BinaryOp::FloorDiv
+            | BinaryOp::TrueDiv
+            | BinaryOp::Rem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Eq | BinaryOp::Ne => 3,

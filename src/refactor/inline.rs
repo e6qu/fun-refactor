@@ -746,8 +746,11 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 
     let body_expression = single_expression_body(declaration, &callee_source).ok_or_else(|| {
         anyhow::anyhow!(
-            "'{}' is not a single-expression function; inlining a multi-statement body \
-             would have to preserve evaluation order and shadowing, which is not supported",
+            "'{}' has a body of several statements. Inlining one would have to preserve \
+             evaluation order and shadowing, which is not supported. Only a callee whose \
+             body is one expression can be inlined. `fr extract --function` writes \
+             several statements by construction, so what it produces cannot be put back \
+             this way",
             callee.name
         )
     })?;

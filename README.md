@@ -93,7 +93,7 @@ fr rename <target> <new>      # rename it and everything that points at it
 fr extract <path:l:c-l:c> <n> # extract an expression into a binding
 fr extract <range> <n> --function   # extract statements into a function
 fr inline <target>            # replace a variable's uses with its value
-fr inline <path:l:c> --call   # replace a call with the callee's body
+fr inline <path:l:c> --call   # replace a call with a one-expression body
 fr signature <target> remove:1  # change parameters, update every call site
 fr move <target> <dest-file>  # move a symbol, update imports
 fr delete <target>            # delete it, refusing if anything uses it

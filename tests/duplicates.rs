@@ -42,7 +42,7 @@ fn go_function(name: &str, var: &str) -> String {
 
 fn options(min_tokens: usize) -> Options {
     Options {
-        min_tokens,
+        min_tokens: Some(min_tokens),
         ..Options::default()
     }
 }
@@ -76,7 +76,7 @@ fn a_copy_with_renamed_variables_is_still_a_copy() {
     let exact = duplicates::find(
         &index,
         &Options {
-            min_tokens: 40,
+            min_tokens: Some(40),
             exact: true,
             ..Options::default()
         },
@@ -96,7 +96,7 @@ fn an_identical_copy_is_found_in_exact_mode_too() {
     let exact = duplicates::find(
         &index,
         &Options {
-            min_tokens: 40,
+            min_tokens: Some(40),
             exact: true,
             ..Options::default()
         },
@@ -183,7 +183,7 @@ fn a_language_filter_narrows_the_report() {
     let none = duplicates::find(
         &index,
         &Options {
-            min_tokens: 40,
+            min_tokens: Some(40),
             languages: vec![Language::Python],
             ..Options::default()
         },
@@ -194,7 +194,7 @@ fn a_language_filter_narrows_the_report() {
     let some = duplicates::find(
         &index,
         &Options {
-            min_tokens: 40,
+            min_tokens: Some(40),
             languages: vec![Language::Go],
             ..Options::default()
         },
@@ -230,5 +230,71 @@ fn the_redundant_count_is_what_factoring_out_would_save() {
         classes[0].redundant_tokens(),
         classes[0].tokens * 2,
         "one copy has to stay"
+    );
+}
+
+/// A stylesheet rule repeated verbatim. Eleven declarations come to 47 tokens,
+/// which is a lot of stylesheet and not much of an imperative function.
+fn css_rule(class: &str) -> String {
+    let declarations = [
+        "display: flex",
+        "flex-direction: column",
+        "gap: 12px",
+        "padding: 16px",
+        "margin: 0",
+        "border: 1px solid #ddd",
+        "border-radius: 8px",
+        "background: #fff",
+        "color: #222",
+        "font-size: 14px",
+        "line-height: 1.5",
+    ]
+    .map(|d| format!("  {d};\n"))
+    .join("");
+    format!(".{class} {{\n{declarations}}}\n")
+}
+
+#[test]
+fn markup_is_measured_against_a_markup_floor() {
+    let doubled = format!("{}\n{}", css_rule("card"), css_rule("panel"));
+    let (_tmp, index) = workspace(&[("a.css", &doubled)]);
+    let unstated = Options::default();
+    assert_eq!(
+        unstated.min_tokens, None,
+        "the default states no floor, so each language gets its own."
+    );
+    let found = duplicates::find(&index, &unstated).unwrap();
+    assert_eq!(
+        found.len(),
+        1,
+        "a rule written twice is duplication a stylesheet reader can act on."
+    );
+
+    // A Go pair of about the same token count stays under the code floor. The
+    // two floors are what tells these apart, not the amount of copying.
+    let go = format!(
+        "{}\n{}",
+        go_function("alpha", "total"),
+        go_function("beta", "total")
+    );
+    let (_tmp2, index2) = workspace(&[("a/x.go", &go)]);
+    assert!(
+        duplicates::find(&index2, &unstated).unwrap().is_empty(),
+        "a short Go pair is below the code floor"
+    );
+    assert!(
+        !duplicates::find(&index2, &options(40)).unwrap().is_empty(),
+        "and a stated floor still reaches it"
+    );
+}
+
+#[test]
+fn a_stated_floor_beats_the_language_default() {
+    let doubled = format!("{}\n{}", css_rule("card"), css_rule("panel"));
+    let (_tmp, index) = workspace(&[("a.css", &doubled)]);
+    let found = duplicates::find(&index, &options(200)).unwrap();
+    assert!(
+        found.is_empty(),
+        "asking for 200 tokens means 200, in every language."
     );
 }

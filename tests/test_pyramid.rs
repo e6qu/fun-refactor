@@ -101,6 +101,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
         ("capabilities", vec!["capabilities"]),
         ("cache", vec!["cache"]),
+        ("completions", vec!["completions", "bash"]),
         ("scan", vec!["scan"]),
         ("parse", vec!["parse", "--stats"]),
         ("symbols", vec!["symbols"]),

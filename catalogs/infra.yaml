@@ -1,5 +1,11 @@
 # Infrastructure entry points. For config languages an "entry point" is an
 # externally settable input or a declared network exposure, not a callable.
+#
+# The declaring keyword is what separates the two halves of a Terraform module.
+# `variable "region"` is settable from outside; `locals { prefix = … }` is the
+# module's own working store and nobody outside can name it. Both reach the
+# index as a symbol of kind `variable`, so a rule that asks only for the kind
+# calls a local an input. Then `fr unused` has no dead HCL left to find.
 - id: terraform-root-variable
   kind: infra-input
   threat_model: local
@@ -7,12 +13,18 @@
   matches:
     symbol_kind: variable
     path_contains: .tf
+    declaration_keyword: variable
 
+# The module's public surface, wherever it is written. Asking for `outputs.tf`
+# found the outputs of a module that follows the file-name convention and none
+# of the outputs written beside the resources they report on.
 - id: terraform-output
   kind: exported-api
   languages: [hcl]
   matches:
-    file_name: outputs.tf
+    symbol_kind: block
+    path_contains: .tf
+    declaration_keyword: output
 
 - id: helm-values-key
   kind: infra-input
@@ -22,8 +34,11 @@
     file_name: values.yaml
     symbol_kind: key
 
+# A chart's published identity, not something an install can set. `--set
+# apiVersion=v2` sets a value no template reads. Parent charts and Helm itself
+# read these, which is what `exported-api` says.
 - id: helm-chart-metadata
-  kind: infra-input
+  kind: exported-api
   languages: [helm]
   matches:
     file_name: chart.yaml

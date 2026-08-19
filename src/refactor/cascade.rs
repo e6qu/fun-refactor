@@ -418,6 +418,19 @@ fn substitute_flag(
     // reads, and deleting that is a different command with a different set of checks.
     // Answering it here removed a Next.js route handler called `DELETE`.
     if index.references_to(definition.id).is_empty() {
+        // "Nothing reads it" is a claim about the whole workspace, and the weakly resolved
+        // occurrences are the evidence against it. `fr rename` lists them for review. A
+        // refusal that ignored them contradicted the tool's own answer, and sent the
+        // reader to `fr delete` over a live flag.
+        let weak = weak_occurrences(index, sources, definition);
+        if !weak.is_empty() {
+            anyhow::bail!(
+                "'{flag}' is declared at {}, and no use of it resolves firmly enough to \
+                 rewrite. These name it and may be reads of it:\n  {}\nNothing was changed.",
+                definition.file.display(),
+                weak.join("\n  ")
+            );
+        }
         anyhow::bail!(
             "'{flag}' is declared at {} and nothing reads it, so there is no flag to \
              remove. `fr delete` removes a declaration nothing uses. Nothing was changed.",
@@ -476,6 +489,10 @@ fn substitute_flag(
             UseSite::Replace(span) => {
                 changes.push((reference.file.clone(), span, literal.to_string()))
             }
+            // The statement stays for now and the dead-import round removes it, once the
+            // uses under it are gone. It reads nothing, so the declaration is still free
+            // to go with the rest.
+            UseSite::Binds(_) => {}
             UseSite::Refuse(_) => every_use_was_rewritten = false,
         }
     }
@@ -501,6 +518,42 @@ fn substitute_flag(
         changes.push((definition.file.clone(), definition_span, String::new()));
     }
     Ok(Some((changes, definition.kind)))
+}
+
+/// Occurrences of the flag's name that resolution could not tie to the declaration.
+///
+/// A read through a module object was one of these until the index learned to follow the
+/// import. `flags.USE_NEW_TAX` sat on a line the tool prints, under a refusal saying
+/// nothing read the flag. Whatever is left over is what `fr rename` shows a reader and
+/// declines to rewrite, and a refusal has to account for the same occurrences.
+fn weak_occurrences(
+    index: &Index,
+    sources: &BTreeMap<PathBuf, (Language, String)>,
+    definition: &crate::model::Symbol,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    for reference in index.unresolved_matching(definition.id) {
+        // Resolved elsewhere, and firmly: a different thing that shares the name.
+        if reference.target.is_some() && reference.confidence.is_safe_to_rewrite() {
+            continue;
+        }
+        let Some((_, source)) = sources.get(&reference.file) else {
+            continue;
+        };
+        out.push(describe(
+            &reference.file,
+            source,
+            reference.span,
+            &format!(
+                "this names '{}', resolved only as '{}'",
+                definition.name,
+                reference.confidence.as_str()
+            ),
+        ));
+    }
+    out.sort();
+    out.dedup();
+    out
 }
 
 /// What the declaration says the named symbol holds, where that rules a flag out.
@@ -739,7 +792,7 @@ fn remaining_uses(
                 continue;
             }
             let reason = match use_site(*language, kind, &parsed, source, span) {
-                UseSite::Refuse(reason) => reason,
+                UseSite::Refuse(reason) | UseSite::Binds(reason) => reason,
                 UseSite::Replace(_) => {
                     "this use of the flag did not resolve to it firmly enough to rewrite".into()
                 }
@@ -810,6 +863,12 @@ fn literal_for(language: Language, value: bool) -> &'static str {
 /// The bytes a use site's literal must replace.
 enum UseSite {
     Replace(Span),
+    /// The occurrence binds the name and never reads it, so no literal stands here.
+    ///
+    /// An import is the whole of this case. A refusal would be too strong: binding a name
+    /// is not reading it, so the declaration can still go. The round that drops imports
+    /// nothing uses any more takes the statement away afterwards.
+    Binds(String),
     /// The use cannot be rewritten without changing what the code means.
     Refuse(String),
 }
@@ -845,6 +904,7 @@ fn use_site(
 ///   and not the callee. Replacing the callee gave `if true()`, which then never
 ///   collapsed, because `true()` is not a boolean literal.
 /// * Reading a field of the flag reads into its value, and a boolean has no field.
+/// * An import binds the name for the file and reads nothing, so no literal stands there.
 fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span: Span) -> UseSite {
     let Some(node) = parsed
         .root()
@@ -852,6 +912,17 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
     else {
         return UseSite::Replace(span);
     };
+
+    // Before anything about the value, because an import states nothing about one. Python
+    // writes the bound name bare. So `from app.flags import USE_NEW_TAX` became `from
+    // app.flags import True`, and the final parse gate threw the cascade away.
+    if names_an_import(node) {
+        return UseSite::Binds(format!(
+            "`{}` is bound by an import here, which names the flag and does not read it",
+            span.text(source)
+        ));
+    }
+
     let Some(parent) = node.parent() else {
         return UseSite::Replace(span);
     };
@@ -913,7 +984,7 @@ fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
         "scoped_identifier" => parent.child_by_field_name("name"),
         _ => return None,
     };
-    if member != Some(node) || names_an_import(parent) {
+    if member != Some(node) {
         return None;
     }
     Some(Span::from(parent))
@@ -922,7 +993,8 @@ fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
 /// Is this node part of an import statement?
 ///
 /// An import names the flag without reading it, so a boolean cannot stand there.
-/// `use crate::flags::SHINY;` rewritten whole reads `use true;`. The cascade already
+/// `use crate::flags::SHINY;` rewritten whole reads `use true;`, and Python's `from
+/// app.flags import USE_NEW_TAX` reads `from app.flags import True`. The cascade
 /// drops an import its own edits orphaned, in a later round.
 fn names_an_import(node: Node<'_>) -> bool {
     let mut current = Some(node);
@@ -1259,9 +1331,72 @@ fn generic_conditionals(parsed: &Parsed, source: &str) -> Collapse {
             // A false `if` with no else leaves nothing behind.
             None => String::new(),
         };
+        // A branch that always leaves takes the rest of its block with it.
+        // `if FLAG { return a } return b` folded to `return a; return b`. It
+        // compiles and answers the same, and `go vet` reports unreachable code
+        // against the user.
+        let span = match kept.filter(|branch| always_leaves(*branch)) {
+            Some(_) => Span::new(span.start, trailing_end(node)),
+            None => span,
+        };
         out.changes.push((span, replacement));
     }
     out
+}
+
+/// Does this block always leave, so nothing after it can run?
+///
+/// Only the statements every language here spells the same way. A `panic` or a
+/// process exit is a call. Telling one from an ordinary call is a question
+/// about the callee that this pass cannot answer.
+fn always_leaves(block: Node<'_>) -> bool {
+    // Go puts a `statement_list` between a block and its statements, so the
+    // block's own last child is that wrapper and never the `return` inside it.
+    let mut block = block;
+    loop {
+        let mut cursor = block.walk();
+        let Some(last) = block.named_children(&mut cursor).last() else {
+            return false;
+        };
+        if crate::refactor::is_statement_container(last.kind()) {
+            block = last;
+            continue;
+        }
+        // Rust spells a return as an expression, wrapped in a statement.
+        // Matching statement kinds alone left Rust keeping the dead tail while
+        // Go dropped it.
+        let last = match last.kind() {
+            "expression_statement" => last.named_child(0).unwrap_or(last),
+            _ => last,
+        };
+        let kind = last.kind();
+        return kind.starts_with("return")
+            || kind.starts_with("break")
+            || kind.starts_with("continue")
+            || kind.starts_with("throw");
+    }
+}
+
+/// Where this node's block ends, counting every sibling after it.
+///
+/// The node's own end when nothing follows, so a caller can take it either way.
+fn trailing_end(node: Node<'_>) -> usize {
+    // Rust's `if` is an expression, wrapped in a statement. So the `if` node
+    // has no siblings, and what follows it hangs off its parent.
+    let mut node = node;
+    while node
+        .parent()
+        .is_some_and(|p| p.kind() == "expression_statement")
+    {
+        node = node.parent().expect("just checked");
+    }
+    let mut end = node.end_byte();
+    let mut next = node.next_named_sibling();
+    while let Some(sibling) = next {
+        end = sibling.end_byte();
+        next = sibling.next_named_sibling();
+    }
+    end
 }
 
 /// The block an else clause wraps.
@@ -1330,6 +1465,13 @@ fn zig_conditionals(parsed: &Parsed, source: &str) -> Collapse {
         let replacement = match kept {
             None => String::new(),
             Some(branch) => zig_branch_text(branch, source, &indent, terminated),
+        };
+        // A branch that always leaves takes the rest of its block with it.
+        // Zig refuses unreachable code outright, so the fold produced a file
+        // its own compiler would not read.
+        let span = match kept.filter(|branch| always_leaves(*branch)) {
+            Some(_) => Span::new(span.start, trailing_end(node)),
+            None => span,
         };
         out.changes.push((span, replacement));
     }

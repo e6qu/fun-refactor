@@ -37,9 +37,10 @@ yaml              83        0        0
 are chart fixtures that hold broken templates on purpose. Helm tests its own
 error messages with them. This matters more than it looks: **a file that does not
 parse is invisible to every analysis below**. So a report that ignores parse failures
-is quietly incomplete. Commands that depend on complete information say so; `fr
-rename` will tell you that references may be missing. `fr duplicates` lists the
-files it skipped.
+is quietly incomplete. Every command that indexes the workspace names the files it
+could not parse in full, on stderr and as `unparsed_files` in its JSON. `fr rename`
+will also tell you that references may be missing. `fr duplicates` lists the files
+it skipped.
 
 ## 2. Naming the thing you mean
 
@@ -64,9 +65,19 @@ the definition or any use of it. The tool resolves whatever is under the
 cursor and then works from the symbol it found. That makes the form
 editor-friendly; it is the same information an editor has when you right-click.
 
-Relative paths are read **relative to the workspace root**, which is the current
-directory unless `-C` says otherwise. `fr -C ../helm refs pkg/x.go:3:6` means that
-file in that workspace, not one relative to your shell.
+The workspace is **the project your shell is standing in**, found by walking up
+for a `.git`, a `Cargo.toml`, a `go.mod` and the like. Asked from `pkg/deep`, the
+tool reads the whole project. A question about a symbol is a question about the
+project: a caller two directories up is still a caller. Widening the root is
+announced, and `-C .` means this directory alone.
+
+Where `-C` says which workspace to use, relative paths are read **relative to
+that root**. `fr -C ../helm refs pkg/x.go:3:6` means that file in that
+workspace, not one relative to your shell. Where the root was found rather than
+stated, a path is read from where you stand.
+
+Files that `.gitignore` excludes are outside all of this. `--no-ignore` reads
+them, which is how you reach a generated tree or a vendored copy.
 
 When a bare name is not enough, the tool refuses and shows you the choices rather
 than guessing:
@@ -293,7 +304,7 @@ $ fr extract pkg/action/install.go:221:5-221:20 itemCount     # expression → b
 +	if itemCount > 0 {
 
 $ fr extract <range> prepare --function   # statements → a function, with parameters
-$ fr inline <target>                      # the reverse of either
+$ fr inline <target>                      # the reverse of the binding form
 $ fr signature releaseApplyMethod move:0:1  # reorder parameters, fix every call
 $ fr move helper pkg/util/helper.go       # move, carrying and fixing imports
 $ fr delete oldHelper                     # refuses if anything uses it

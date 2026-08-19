@@ -627,3 +627,196 @@ fn a_selection_wholly_inside_a_loop_body_still_extracts() {
     let out = apply(&plan, &path);
     assert!(out.contains("def step("), "the extraction happened.\n{out}");
 }
+
+// --------------------------------------------------- where the definition lands
+
+#[test]
+fn extracting_from_a_method_that_is_not_the_last_keeps_the_class_whole() {
+    // The definition used to go straight after the method it came from, at column
+    // zero. Python nests a `def` anywhere, so the file still parsed and every method
+    // below became a closure of the new function. `Box` lost `total`, and the tests
+    // that called it failed with an `AttributeError`.
+    let src = "class Box:\n    def __init__(self):\n        self.values = []\n\n    \
+        def add(self, v):\n        self.values.append(v * 2)\n        return self\n\n    \
+        def total(self):\n        return sum(self.values)\n";
+    let (tmp, index) = workspace(&[("box.py", src)]);
+    let path = tmp.path().join("box.py");
+
+    let plan = extract::function(&index, &path, lines(src, 6, 6), "record").expect("a plan");
+    let out = apply(&plan, &path);
+    let definition = out.find("\ndef record(").unwrap_or_else(|| {
+        panic!("the definition is hoisted out of the class:\n{out}");
+    });
+    let total = out.find("    def total(self):").expect("total survives");
+    assert!(
+        total < definition,
+        "the class keeps every method it had:\n{out}"
+    );
+    assert!(out.contains("        record(self, v)"), "the call:\n{out}");
+}
+
+#[test]
+fn extracting_from_the_last_method_lands_in_the_same_place() {
+    // The last method was the one case that worked, because there was nothing below
+    // it to swallow. It has to keep working, and land where the other one does.
+    let src = "class Box:\n    def __init__(self):\n        self.values = []\n\n    \
+        def total(self):\n        return sum(self.values)\n";
+    let (tmp, index) = workspace(&[("box.py", src)]);
+    let path = tmp.path().join("box.py");
+
+    let plan = extract::function(&index, &path, lines(src, 3, 3), "start").expect("a plan");
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("\ndef start("),
+        "hoisted out of the class:\n{out}"
+    );
+    assert!(out.contains("    def total(self):"), "class intact:\n{out}");
+}
+
+#[test]
+fn extracting_from_a_nested_function_stays_inside_the_outer_one() {
+    // Hoisting stops at a function. The new definition reads `base`, which belongs to
+    // `outer`, so moving it to the top of the file would leave that name undefined.
+    let src = "def outer(base):\n    def inner(v):\n        scaled = v * base\n        \
+        return scaled + 1\n\n    return inner(2)\n";
+    let (tmp, index) = workspace(&[("n.py", src)]);
+    let path = tmp.path().join("n.py");
+
+    let plan = extract::function(&index, &path, lines(src, 3, 3), "scale").expect("a plan");
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("\n    def scale(v):"),
+        "written at the inner function's own indentation:\n{out}"
+    );
+    assert!(
+        out.trim_end().ends_with("return inner(2)"),
+        "the outer body is not swallowed:\n{out}"
+    );
+}
+
+#[test]
+fn a_typescript_method_carries_its_receiver_as_a_parameter() {
+    // `this` is named nowhere in a TypeScript signature, so the data-flow analysis
+    // could not see it. The body still said `this.values` while the parameter list
+    // was empty. Go reaches the same shape by ordinary means, its receiver being a
+    // named parameter, and this follows it.
+    let src = "export class Box {\n  values: number[] = [];\n\n  sum(): number {\n    \
+        let running = 0;\n    for (const v of this.values) {\n      running = running + v;\n    \
+        }\n    return running;\n  }\n}\n";
+    let (tmp, index) = workspace(&[("m.ts", src)]);
+    let path = tmp.path().join("m.ts");
+
+    let plan = extract::function(&index, &path, lines(src, 5, 8), "accumulate").expect("a plan");
+    let names: Vec<&str> = plan.parameters.iter().map(|p| p.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec!["self"],
+        "the receiver leads the list: {names:?}"
+    );
+
+    let out = apply(&plan, &path);
+    assert!(
+        out.contains("function accumulate(self: Box)"),
+        "typed with the class it came out of:\n{out}"
+    );
+    assert!(out.contains("of self.values"), "`this` rewritten:\n{out}");
+    assert!(
+        out.contains("accumulate(this)"),
+        "the call passes it:\n{out}"
+    );
+    assert!(
+        !out.contains("  function accumulate"),
+        "hoisted clear of the class body:\n{out}"
+    );
+}
+
+#[test]
+fn a_private_member_stops_the_extraction_leaving_the_class() {
+    // `private` is checked by the compiler, so a function outside the class that
+    // reads one is code that runs and does not build.
+    let src = "export class Box {\n  private values: number[] = [];\n\n  sum(): number {\n    \
+        let running = 0;\n    for (const v of this.values) {\n      running = running + v;\n    \
+        }\n    return running;\n  }\n}\n";
+    let (tmp, index) = workspace(&[("m.ts", src)]);
+    let path = tmp.path().join("m.ts");
+
+    let err = extract::function(&index, &path, lines(src, 5, 8), "accumulate")
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("this.values") && err.contains("does not expose"),
+        "the refusal names the member: {err}"
+    );
+}
+
+#[test]
+fn a_rust_method_that_reads_self_is_refused() {
+    // The definition leaves the `impl` block, so it is a free function with no
+    // receiver. Rust cannot be handed one as an ordinary parameter without inventing
+    // a borrow and a lifetime, so the extraction says so instead of guessing.
+    let src = "pub struct Box2 {\n    pub values: Vec<i64>,\n}\n\nimpl Box2 {\n    \
+        pub fn add(&mut self, v: i64) {\n        let doubled = v * 2;\n        \
+        self.values.push(doubled);\n    }\n}\n";
+    let (tmp, index) = workspace(&[("lib.rs", src)]);
+    let path = tmp.path().join("lib.rs");
+
+    let err = extract::function(&index, &path, lines(src, 7, 8), "helper")
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("reads `self`") && err.contains("no receiver"),
+        "the refusal names the receiver: {err}"
+    );
+}
+
+#[test]
+fn a_zig_struct_method_places_the_definition_beside_it() {
+    // A Zig container is a `variable_declaration`, not a type declaration the
+    // way the other five spell one. The hoist that keeps a definition out of a
+    // class body therefore does not recognise it. It does not need to. A Zig
+    // struct holds functions, and a sibling function is reachable unqualified.
+    // This pins that the placement is right rather than right by accident.
+    let src = "const std = @import(\"std\");\n\nconst Buffer = struct {\n    \
+        count: usize,\n\n    pub fn describe(self: *Buffer) void {\n        \
+        const doubled: usize = self.count * 2;\n        \
+        std.debug.print(\"{d}\\n\", .{doubled});\n        \
+        std.debug.print(\"done\\n\", .{});\n    }\n};\n";
+    let (tmp, index) = workspace(&[("buf.zig", src)]);
+    let path = tmp.path().join("buf.zig");
+
+    let plan = extract::function(&index, &path, lines(src, 8, 9), "report").expect("a plan");
+    let out = apply_to_string(src, plan.edits.edits_for(&path).unwrap()).expect("applying");
+    assert!(
+        out.contains("    fn report(doubled: usize) void {"),
+        "the definition is a member of the struct, indented with its siblings.\n{out}"
+    );
+    assert!(
+        out.contains("        report(doubled);"),
+        "and the call reaches it unqualified.\n{out}"
+    );
+    // The struct still closes once, after both functions.
+    assert_eq!(out.matches("};").count(), 1, "one container ending.\n{out}");
+}
+
+#[test]
+fn a_python_definition_at_module_scope_gets_the_two_blank_lines_it_needs() {
+    // `black` rewrites one blank line before a top-level `def` to two, and a
+    // method keeps one. Hoisting a definition out of a class moves it to module
+    // scope, and it landed there with a method's spacing.
+    let src = "class Report:\n    def total(self, rows: list[int]) -> int:\n        \
+        subtotal = 0\n        for r in rows:\n            subtotal += r\n        \
+        return subtotal\n";
+    let (tmp, index) = workspace(&[("svc.py", src)]);
+    let path = tmp.path().join("svc.py");
+
+    let plan = extract::function(&index, &path, lines(src, 4, 5), "accumulate").expect("a plan");
+    let out = apply_to_string(src, plan.edits.edits_for(&path).unwrap()).expect("applying");
+    assert!(
+        out.contains("\n\n\ndef accumulate("),
+        "a definition at module scope takes two blank lines.\n{out}"
+    );
+    assert!(
+        !out.contains("\n\n\n\ndef accumulate("),
+        "and not three.\n{out}"
+    );
+}

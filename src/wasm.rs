@@ -439,8 +439,9 @@ impl Workspace {
         }
     }
 
-    /// Code written more than once, compared structurally.
-    pub fn duplicates(&self, min_tokens: usize) -> String {
+    /// Code written more than once, compared structurally. Left out, the
+    /// floor is the one each language's density earns.
+    pub fn duplicates(&self, min_tokens: Option<usize>) -> String {
         self.enter();
         let options = crate::analysis::duplicates::Options {
             min_tokens,

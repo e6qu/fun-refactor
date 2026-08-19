@@ -3,6 +3,7 @@
 use crate::lang::Language;
 use anyhow::Result;
 use ignore::WalkBuilder;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// A source file discovered in a workspace.
@@ -47,6 +48,13 @@ pub struct ScanResult {
     /// reader comparing the listing against `ls` saw files the tool never mentioned.
     /// The real file is scanned where it lives; the link is reported here.
     pub skipped_symlinks: Vec<(PathBuf, String)>,
+    /// Files in no language this tool reads, counted by extension.
+    ///
+    /// Naming each one would bury the listing under lock files and images, and
+    /// saying nothing let a reader believe the whole tree was read. A repository
+    /// of `.sql` and one `.py` answered "1 file(s)" and left the rest to be
+    /// guessed at. Counted here, named by extension, reported in one line.
+    pub unsupported: BTreeMap<String, usize>,
 }
 
 /// Walk `root` and collect source files in a language we support.
@@ -77,6 +85,11 @@ pub fn scan(root: &Path, options: &ScanOptions) -> Result<ScanResult> {
             continue;
         }
         let Some(language) = crate::lang::detect(path) else {
+            let key = match path.extension().and_then(|e| e.to_str()) {
+                Some(extension) => format!(".{}", extension.to_ascii_lowercase()),
+                None => "no extension".to_string(),
+            };
+            *result.unsupported.entry(key).or_default() += 1;
             continue;
         };
         if !options.languages.is_empty() && !options.languages.contains(&language) {
@@ -131,6 +144,41 @@ mod tests {
         assert!(names.contains(&"app.py".to_string()));
         assert!(names.contains(&"README.md".to_string()));
         assert!(!names.contains(&"notes.bin".to_string()));
+    }
+
+    #[test]
+    fn files_in_no_language_are_counted_by_kind() {
+        let tmp = workspace();
+        fs::write(tmp.path().join("schema.sql"), "select 1;\n").unwrap();
+        fs::write(tmp.path().join("data.json"), "{}\n").unwrap();
+        fs::write(tmp.path().join("more.json"), "{}\n").unwrap();
+        fs::write(tmp.path().join("Makefile"), "all:\n").unwrap();
+        let result = scan(tmp.path(), &ScanOptions::default()).unwrap();
+        assert_eq!(result.unsupported.get(".sql"), Some(&1));
+        assert_eq!(
+            result.unsupported.get(".json"),
+            Some(&2),
+            "a kind is counted, and not listed once per file."
+        );
+        assert_eq!(result.unsupported.get("no extension"), Some(&1));
+        assert!(
+            !result.unsupported.contains_key(".rs"),
+            "a language this reads is not passed over"
+        );
+    }
+
+    #[test]
+    fn a_language_filter_is_not_a_file_this_cannot_read() {
+        let tmp = workspace();
+        let opts = ScanOptions {
+            languages: vec![Language::Rust],
+            ..Default::default()
+        };
+        let result = scan(tmp.path(), &opts).unwrap();
+        assert!(
+            !result.unsupported.contains_key(".py"),
+            "the reader asked for Rust. Python was not passed over for want of support."
+        );
     }
 
     #[test]

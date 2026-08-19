@@ -23,6 +23,12 @@ type Sources = BTreeMap<PathBuf, (Language, String)>;
 pub struct Report {
     pub recipe: String,
     pub description: Option<String>,
+    /// How many steps the recipe holds, whether or not the run reached them.
+    ///
+    /// A recipe is a reviewable artifact, and its length is a fact about the file. The
+    /// header counted `steps` instead. So a stopped run of a three-step recipe called
+    /// itself a two-step one, against the `--explain` of the same file.
+    pub steps_in_recipe: usize,
     pub steps: Vec<StepReport>,
     pub expectations: Vec<ExpectReport>,
     /// Files whose text differs from where the run started.
@@ -199,6 +205,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
             Report {
                 recipe: recipe.name.clone(),
                 description: recipe.description.clone(),
+                steps_in_recipe: recipe.steps.len(),
                 steps,
                 expectations,
                 files_changed: 0,
@@ -216,6 +223,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
         Report {
             recipe: recipe.name.clone(),
             description: recipe.description.clone(),
+            steps_in_recipe: recipe.steps.len(),
             steps,
             expectations,
             files_changed,

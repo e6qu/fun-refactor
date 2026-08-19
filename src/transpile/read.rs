@@ -2029,11 +2029,11 @@ mod python {
             params,
             returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
             body,
-            // Python's convention, which is all there is to go on.
-            exported: !cx
-                .field_text(node, "name")
-                .unwrap_or_default()
-                .starts_with('_'),
+            // Python's convention, which is all there is to go on. A dunder is
+            // not that convention. `__init__` is how the language spells a
+            // public constructor, and reading its underscores as "private" left
+            // every translated class unconstructible.
+            exported: is_exported_python_name(&cx.field_text(node, "name").unwrap_or_default()),
             is_async: cx.text(node).starts_with("async "),
             is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("__init__"),
@@ -2546,6 +2546,17 @@ mod python {
             method.is_property = is_property;
             method
         })
+    }
+
+    /// Whether Python's naming convention calls this name part of the surface.
+    ///
+    /// A leading underscore marks a name as internal, and a name wrapped in two
+    /// on each side is a protocol method the language itself calls.
+    fn is_exported_python_name(name: &str) -> bool {
+        if name.starts_with("__") && name.ends_with("__") && name.len() > 4 {
+            return true;
+        }
+        !name.starts_with('_')
     }
 
     fn annotated_field(cx: &Cx, node: Node<'_>) -> Option<Field> {
@@ -3288,7 +3299,14 @@ mod python {
                     .map(|c| cx.text(c))
                     .collect::<Vec<_>>()
                     .join(" ");
-                let op = super::binary_op(&operator);
+                // Python's `/` yields a float whatever it divides, and C's `/`
+                // truncates. One spelling, two operations, and reading both as
+                // the same one made `cents / 100` an integer division in every
+                // target whose `/` is C's.
+                let op = super::binary_op(&operator).map(|op| match op {
+                    BinaryOp::Div => BinaryOp::TrueDiv,
+                    other => other,
+                });
                 match op {
                     Some(op) => Expr::Binary {
                         op,

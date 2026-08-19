@@ -195,6 +195,32 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
         }
     }
 
+    // The name written as text: an `__all__` entry, a docstring, a CI script. No grammar
+    // links these to the declaration, and `fr rename` lists every one of them for review.
+    // `fr impact` is the reconnaissance for that rename. An occurrence it leaves out is
+    // one the reader meets later, in the report of a change already under way.
+    let accounted: std::collections::HashSet<(PathBuf, usize, usize)> = items
+        .iter()
+        .map(|item| (item.file.clone(), item.line, item.col))
+        .collect();
+    for mention in crate::mentions::of(index, &sym.name)? {
+        if accounted.contains(&(mention.file.clone(), mention.line, mention.col)) {
+            continue;
+        }
+        let Some(language) = index.file(&mention.file).map(|info| info.language) else {
+            continue;
+        };
+        items.push(Impacted {
+            file: mention.file,
+            language,
+            line: mention.line,
+            col: mention.col,
+            kind: ImpactKind::Textual,
+            confidence: Confidence::NameOnly,
+            detail: format!("'{}' is written here as text", sym.name),
+        });
+    }
+
     items.sort_by(|a, b| (a.kind, &a.file, a.line, a.col).cmp(&(b.kind, &b.file, b.line, b.col)));
     items.dedup();
 

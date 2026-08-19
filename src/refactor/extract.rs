@@ -599,6 +599,16 @@ pub struct Parameter {
     /// changed value has to travel back. Rust is the one language here that must
     /// say so on the parameter itself.
     pub mutated: bool,
+    /// What the call passes, where that is not the parameter's own name. A receiver
+    /// carried out of a method is passed as `this` and received under a plain name.
+    pub argument: Option<String>,
+}
+
+impl Parameter {
+    /// The expression the call site hands to this parameter.
+    fn argument(&self) -> String {
+        self.argument.clone().unwrap_or_else(|| self.name.clone())
+    }
 }
 
 impl Parameter {
@@ -762,6 +772,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
                 name: target.name.clone(),
                 type_annotation: known_type(index, &parsed, &source, target, language),
                 mutated: false,
+                argument: None,
             });
         }
     }
@@ -893,7 +904,26 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             .map(|types| format!("({})", types.join(", "))),
     };
 
-    let body = region.text(&source).to_string();
+    // A method's receiver is implicit: the region reads `this` or `self` and no
+    // parameter carries it. The extracted definition is a plain function, so the
+    // receiver either travels as a parameter or the extraction is refused.
+    let placement = definition_placement(&parsed, &source, region, language)?;
+    let receiver = match placement.from_a_member.then(|| implicit_receiver(language)) {
+        Some(Some(keyword)) => receiver_uses(&parsed, &source, region, keyword),
+        _ => Vec::new(),
+    };
+    let mut body = region.text(&source).to_string();
+    if !receiver.is_empty() {
+        let carrier = carried_receiver(&parsed, &source, region, language, &parameters)?;
+        // Descending, so an earlier rewrite does not move a later one's bytes.
+        for use_span in receiver.iter().rev() {
+            let start = use_span.start - region.start;
+            let end = use_span.end - region.start;
+            body.replace_range(start..end, &carrier.name);
+        }
+        parameters.insert(0, carrier);
+    }
+
     let indent = line_indent(&source, region.start);
     let call = render_call(language, name, &parameters, &returns, &carried, is_async);
     let definition = render_function(
@@ -909,6 +939,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         Indentation {
             outer: &indent,
             unit: &crate::edit::indent_unit(&source),
+            lead: &placement.indent,
         },
     );
 
@@ -917,12 +948,10 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         file.to_path_buf(),
         Edit::new(region, call, format!("call {name}")),
     );
-    // The new function goes after the one it came from, at that function's indentation.
-    let insert_at = enclosing_span.end;
     edits.add(
         file.to_path_buf(),
         Edit::new(
-            Span::new(insert_at, insert_at),
+            Span::new(placement.at, placement.at),
             definition,
             format!("define {name}"),
         ),
@@ -935,6 +964,283 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         returns,
         body,
     })
+}
+
+/// Where the extracted definition is spliced, and what it came out of.
+struct Placement {
+    /// Byte offset the definition goes at.
+    at: usize,
+    /// The indentation every line of the definition carries.
+    indent: String,
+    /// The region sits in a member of a class, an interface or an `impl` block.
+    from_a_member: bool,
+}
+
+/// Where the new definition goes.
+///
+/// It used to go straight after the function it came from, at column zero. Inside a class
+/// that put a `def` in the middle of the class body. Python parses that, because a `def`
+/// nests anywhere. Every method below it became a closure of the new function, and the
+/// class lost them. Inside a nested function it did the same to the outer body. So the
+/// definition is hoisted out of every class it sits in and written at the indentation of
+/// whatever it ends up beside. Hoisting stops at the first enclosing function, because a
+/// definition moved past one loses the locals it closes over.
+fn definition_placement(
+    parsed: &Parsed,
+    source: &str,
+    region: Span,
+    language: Language,
+) -> Result<Placement> {
+    let function = enclosing_definition_node(parsed, region).ok_or_else(|| {
+        anyhow::anyhow!(
+            "the selection is not inside a function, so there is nothing to extract from"
+        )
+    })?;
+
+    let mut outermost = function;
+    let mut from_a_member = false;
+    let mut current = function;
+    while let Some(parent) = current.parent() {
+        if crate::refactor::is_type_definition(parent.kind()) {
+            outermost = parent;
+            from_a_member = true;
+        } else if crate::refactor::is_function_definition(parent.kind()) {
+            break;
+        }
+        current = parent;
+    }
+
+    // Java is the one language here whose extracted definition stays a member. It is
+    // written `static`, beside the method it came from, so it does not move out.
+    let node = match language {
+        Language::Java => function,
+        _ => outermost,
+    };
+    Ok(Placement {
+        at: node.end_byte(),
+        indent: line_indent(source, node.start_byte()),
+        from_a_member,
+    })
+}
+
+/// The innermost function the region sits in.
+fn enclosing_definition_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Node<'a>> {
+    let mut current = parsed
+        .root()
+        .descendant_for_byte_range(region.start, region.start)?;
+    loop {
+        if crate::refactor::is_function_definition(current.kind()) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+/// The word a method of this language uses for its receiver, where the receiver is
+/// implicit.
+///
+/// Python and Go write theirs in the parameter list, so it is an ordinary binding and the
+/// data-flow analysis already carries it. The rest hide it behind a keyword that no
+/// analysis of names can see.
+fn implicit_receiver(language: Language) -> Option<&'static str> {
+    match language {
+        Language::TypeScript | Language::Tsx | Language::Java => Some("this"),
+        Language::Rust => Some("self"),
+        _ => None,
+    }
+}
+
+/// Occurrences of the receiver keyword in the region that mean the enclosing method's
+/// receiver.
+///
+/// A `this` inside a nested `function` means that function's own receiver, decided at the
+/// call, and it keeps that meaning wherever the code is written. So those are left alone.
+/// An arrow function has no receiver of its own, so the ones inside it do have to travel.
+fn receiver_uses(parsed: &Parsed, source: &str, region: Span, keyword: &str) -> Vec<Span> {
+    let mut found: Vec<Span> = collect_nodes(parsed.root(), |node| {
+        let span = Span::from(node);
+        if !region.contains(span) || span.text(source) != keyword {
+            return false;
+        }
+        if !matches!(node.kind(), "this" | "self" | "identifier") {
+            return false;
+        }
+        let mut current = node;
+        while let Some(parent) = current.parent() {
+            if !region.contains(Span::from(parent)) {
+                return true;
+            }
+            if crate::refactor::is_function_definition(parent.kind())
+                && parent.kind() != "arrow_function"
+            {
+                return false;
+            }
+            current = parent;
+        }
+        true
+    })
+    .into_iter()
+    .map(Span::from)
+    .collect();
+    found.sort_by_key(|span| span.start);
+    found
+}
+
+/// The parameter that carries a method's receiver into the extracted function.
+///
+/// Go reaches this by ordinary means. Its receiver is a named parameter, so extracting
+/// from `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)`. TypeScript names its
+/// receiver nowhere, so the parameter is invented here and the call passes `this`. Where
+/// the receiver cannot be handed over as a value the extraction is refused instead.
+fn carried_receiver(
+    parsed: &Parsed,
+    source: &str,
+    region: Span,
+    language: Language,
+    parameters: &[Parameter],
+) -> Result<Parameter> {
+    let keyword = implicit_receiver(language).unwrap_or("this");
+    let refuse = |detail: String| -> anyhow::Error {
+        Refusal::NotHere {
+            operation: "extracting a function".into(),
+            detail,
+        }
+        .into()
+    };
+    if !matches!(language, Language::TypeScript | Language::Tsx) {
+        return Err(refuse(format!(
+            "the selected code reads `{keyword}`, and the extracted function is not a \
+             method, so it has no receiver to read it from. {language} cannot be handed \
+             one as an ordinary parameter here."
+        )));
+    }
+
+    let class = enclosing_class_node(parsed, region).ok_or_else(|| {
+        refuse(
+            "the selected code reads `this` outside a class, so what it means is decided \
+             by the call and not by the text. A call to the extracted function would \
+             decide it differently."
+                .into(),
+        )
+    })?;
+    let Some(class_name) = class
+        .child_by_field_name("name")
+        .map(|n| Span::from(n).text(source).to_string())
+    else {
+        return Err(refuse(
+            "the selected code reads `this` inside a class expression with no name. The \
+             parameter that would carry it has no type to be given."
+                .into(),
+        ));
+    };
+    if class.child_by_field_name("type_parameters").is_some() {
+        return Err(refuse(format!(
+            "the selected code reads `this` inside the generic class `{class_name}`. \
+             Nothing here says which type arguments its receiver has. So the parameter \
+             that would carry it cannot be typed."
+        )));
+    }
+    if let Some(member) = unreachable_member(parsed, source, region, class) {
+        return Err(refuse(format!(
+            "the selected code reads `{member}`, which `{class_name}` does not expose. A \
+             function outside the class cannot read it, so the region cannot be extracted \
+             out of the class."
+        )));
+    }
+    if node_in_region(parsed, region, |kind| kind == "super") {
+        return Err(refuse(
+            "the selected code reads `super`, which names the class's own base and means \
+             nothing outside the class body."
+                .into(),
+        ));
+    }
+
+    let taken: std::collections::HashSet<String> = collect_nodes(parsed.root(), |node| {
+        node.kind() == "identifier" && region.contains(Span::from(node))
+    })
+    .into_iter()
+    .map(|node| Span::from(node).text(source).to_string())
+    .chain(parameters.iter().map(|p| p.name.clone()))
+    .collect();
+    let mut name = "self".to_string();
+    let mut suffix = 2;
+    while taken.contains(&name) {
+        name = format!("self{suffix}");
+        suffix += 1;
+    }
+
+    Ok(Parameter {
+        name,
+        type_annotation: Some(class_name),
+        mutated: false,
+        argument: Some(keyword.to_string()),
+    })
+}
+
+/// The class whose body the region sits in.
+fn enclosing_class_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Node<'a>> {
+    let mut current = parsed
+        .root()
+        .descendant_for_byte_range(region.start, region.start)?;
+    loop {
+        if crate::refactor::is_type_definition(current.kind()) {
+            return Some(current);
+        }
+        current = current.parent()?;
+    }
+}
+
+/// A member the region reads that nothing outside the class may read.
+///
+/// `private` and `protected` are compiler rules, and not runtime ones. An extraction that
+/// ignores them writes code that runs and does not build. `#name` is checked by both.
+fn unreachable_member(
+    parsed: &Parsed,
+    source: &str,
+    region: Span,
+    class: Node<'_>,
+) -> Option<String> {
+    if let Some(node) = collect_nodes(parsed.root(), |node| {
+        node.kind() == "private_property_identifier" && region.contains(Span::from(node))
+    })
+    .first()
+    {
+        return Some(format!("this.{}", Span::from(*node).text(source)));
+    }
+
+    let hidden: std::collections::HashSet<String> = collect_nodes(class, |node| {
+        matches!(
+            node.kind(),
+            "method_definition" | "public_field_definition" | "method_signature"
+        )
+    })
+    .into_iter()
+    .filter(|member| {
+        let mut cursor = member.walk();
+        member
+            .children(&mut cursor)
+            .any(|child| matches!(child.kind(), "accessibility_modifier"))
+            && matches!(
+                Span::from(*member).text(source).split_whitespace().next(),
+                Some("private") | Some("protected")
+            )
+    })
+    .filter_map(|member| member.child_by_field_name("name"))
+    .map(|name| Span::from(name).text(source).to_string())
+    .collect();
+
+    collect_nodes(parsed.root(), |node| {
+        node.kind() == "member_expression"
+            && region.contains(Span::from(node))
+            && node
+                .child_by_field_name("object")
+                .is_some_and(|object| object.kind() == "this")
+    })
+    .into_iter()
+    .filter_map(|node| node.child_by_field_name("property"))
+    .map(|property| Span::from(property).text(source).to_string())
+    .find(|property| hidden.contains(property))
+    .map(|property| format!("this.{property}"))
 }
 
 /// Names the region assigns to: the plain-name left side of an assignment,
@@ -1407,7 +1713,7 @@ fn render_call(
 ) -> String {
     let args = parameters
         .iter()
-        .map(|p| p.name.clone())
+        .map(Parameter::argument)
         .collect::<Vec<_>>()
         .join(", ");
     // The call has to await what the region awaited, or the binding holds a promise
@@ -1446,10 +1752,13 @@ fn render_call(
 /// `outer` is what the extracted region already carries. `unit` is one level as this file
 /// writes it, which is read from the source and not assumed so a two-space or tab-indented file
 /// does not come back with four spaces.
+/// `lead` is the definition's own indentation, taken from whatever it is written beside.
+/// It is empty for a definition that lands at the top of the file.
 #[derive(Clone, Copy)]
 struct Indentation<'a> {
     outer: &'a str,
     unit: &'a str,
+    lead: &'a str,
 }
 
 /// The new function definition.
@@ -1481,6 +1790,7 @@ fn render_function(
     let Indentation {
         outer: indent,
         unit: body_indent,
+        lead,
     } = indent;
     let params = parameters
         .iter()
@@ -1494,7 +1804,7 @@ fn render_function(
                 String::new()
             } else {
                 let stripped = line.strip_prefix(indent).unwrap_or(line);
-                format!("{body_indent}{stripped}")
+                format!("{lead}{body_indent}{stripped}")
             }
         })
         .collect::<Vec<_>>()
@@ -1511,9 +1821,17 @@ fn render_function(
         Language::Python => {
             let tail = match returns.len() {
                 0 => String::new(),
-                _ => format!("\n{body_indent}return {}", returns.join(", ")),
+                _ => format!("\n{lead}{body_indent}return {}", returns.join(", ")),
             };
-            format!("\n\n{prefix}def {name}({params}):\n{reindented}{tail}")
+            // Two blank lines before a definition at module scope and one
+            // before a method. `black` rewrites anything else. Hoisting a
+            // definition out of a class puts it at module scope, and it landed
+            // there with a method's single blank line.
+            let separation = match lead.is_empty() {
+                true => "\n\n\n",
+                false => "\n\n",
+            };
+            format!("{separation}{lead}{prefix}def {name}({params}):\n{reindented}{tail}")
         }
         Language::Rust => {
             let ret = match return_type {
@@ -1521,20 +1839,20 @@ fn render_function(
                 None => String::new(),
             };
             let tail = match returns.first() {
-                Some(r) => format!("\n{body_indent}{r}"),
+                Some(r) => format!("\n{lead}{body_indent}{r}"),
                 None => String::new(),
             };
-            format!("\n\nfn {name}({params}){ret} {{\n{reindented}{tail}\n}}")
+            format!("\n\n{lead}fn {name}({params}){ret} {{\n{reindented}{tail}\n{lead}}}")
         }
         Language::Zig => {
             // Zig writes the return type after the parameter list with no arrow, and
             // it is not optional: a function that yields nothing still says `void`.
             let ret = return_type.unwrap_or("void");
             let tail = match returns.first() {
-                Some(r) => format!("\n{body_indent}return {r};"),
+                Some(r) => format!("\n{lead}{body_indent}return {r};"),
                 None => String::new(),
             };
-            format!("\n\nfn {name}({params}) {ret} {{\n{reindented}{tail}\n}}")
+            format!("\n\n{lead}fn {name}({params}) {ret} {{\n{reindented}{tail}\n{lead}}}")
         }
         Language::Go => {
             let ret = match return_type {
@@ -1543,28 +1861,16 @@ fn render_function(
             };
             let tail = match returns.len() {
                 0 => String::new(),
-                _ => format!("\n{body_indent}return {}", returns.join(", ")),
+                _ => format!("\n{lead}{body_indent}return {}", returns.join(", ")),
             };
-            format!("\n\nfunc {name}({params}){ret} {{\n{reindented}{tail}\n}}")
+            format!("\n\n{lead}func {name}({params}){ret} {{\n{reindented}{tail}\n{lead}}}")
         }
         Language::Java => {
             // The new method sits beside the one it came from, inside the same
             // class. `static` keeps it callable from anywhere the region was,
-            // and the class's own member indent puts it where a member goes.
+            // and the member indent the placement worked out puts it where a
+            // member goes.
             let ret = return_type.unwrap_or("void");
-            let lead = body_indent;
-            let reindented = body
-                .lines()
-                .map(|line| {
-                    if line.trim().is_empty() {
-                        String::new()
-                    } else {
-                        let stripped = line.strip_prefix(indent).unwrap_or(line);
-                        format!("{lead}{body_indent}{stripped}")
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("\n");
             let tail = match returns.first() {
                 Some(r) => format!("\n{lead}{body_indent}return {r};"),
                 None => String::new(),
@@ -1573,10 +1879,10 @@ fn render_function(
         }
         _ => {
             let tail = match returns.first() {
-                Some(r) => format!("\n{body_indent}return {r};"),
+                Some(r) => format!("\n{lead}{body_indent}return {r};"),
                 None => String::new(),
             };
-            format!("\n\n{prefix}function {name}({params}) {{\n{reindented}{tail}\n}}")
+            format!("\n\n{lead}{prefix}function {name}({params}) {{\n{reindented}{tail}\n{lead}}}")
         }
     }
 }
@@ -3191,6 +3497,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
             name: text,
             type_annotation: None,
             mutated: false,
+            argument: None,
         });
     }
 
