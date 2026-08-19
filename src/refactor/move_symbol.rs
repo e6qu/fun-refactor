@@ -1349,7 +1349,58 @@ fn import_insertion_point(source: &str) -> usize {
         }
         offset += line.len();
     }
-    last_import_end
+    match last_import_end {
+        0 => after_the_prologue(source),
+        end => end,
+    }
+}
+
+/// Where a first import belongs in a file that has none.
+///
+/// Byte zero is above everything, and some things have to stay first. An
+/// import written there demoted a `#!` line to line two, so the script stopped
+/// running. It also pushed a module docstring into an expression nobody reads,
+/// so `__doc__` became `None`.
+fn after_the_prologue(source: &str) -> usize {
+    let mut offset = 0;
+    let mut lines = source.split_inclusive('\n').peekable();
+
+    // A shebang, then whatever comments and blank lines follow it.
+    if lines.peek().is_some_and(|l| l.starts_with("#!")) {
+        offset += lines.next().map(str::len).unwrap_or(0);
+    }
+    while let Some(line) = lines.peek() {
+        let trimmed = line.trim_start();
+        let is_prologue = trimmed.is_empty()
+            || trimmed.starts_with('#')
+            || trimmed.starts_with("//")
+            || trimmed.starts_with("/*")
+            || trimmed.starts_with('*');
+        if !is_prologue {
+            break;
+        }
+        offset += line.len();
+        lines.next();
+    }
+
+    // A module docstring: one string literal standing alone, which may run over
+    // several lines.
+    let rest = &source[offset..];
+    for quote in ["\"\"\"", "'''", "\"", "'"] {
+        let Some(after_open) = rest.strip_prefix(quote) else {
+            continue;
+        };
+        let Some(closes) = after_open.find(quote) else {
+            break;
+        };
+        let end = offset + quote.len() + closes + quote.len();
+        // Past the line the docstring ends on, so the import starts its own.
+        return match source[end..].find('\n') {
+            Some(newline) => end + newline + 1,
+            None => source.len(),
+        };
+    }
+    offset
 }
 
 // ---------------------------------------------------------------------------

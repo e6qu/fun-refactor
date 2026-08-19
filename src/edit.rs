@@ -450,6 +450,17 @@ fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
             tmp.write_all(outcome.updated.as_bytes())
                 .with_context(|| format!("writing staged {}", outcome.path.display()))?;
             tmp.flush()?;
+            // A staged file is created with the private mode a temporary file
+            // deserves, and renaming it over the target hands the target that
+            // mode. So an executable script stopped being executable, and a
+            // file the group could read became one only its owner can. What
+            // the file was is what it stays.
+            if let Ok(existing) = std::fs::metadata(&outcome.path) {
+                use std::os::unix::fs::PermissionsExt;
+                let mode = existing.permissions().mode();
+                std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(mode))
+                    .with_context(|| format!("keeping the mode of {}", outcome.path.display()))?;
+            }
             let (_, tmp_path) = tmp.keep().context("retaining staged file")?;
             staged.push((tmp_path, outcome.path.clone()));
         }
@@ -656,6 +667,32 @@ mod tests {
         assert_eq!(inserted, "abc");
         let deleted = apply_to_string("abc", &[Edit::new(Span::new(1, 2), "", "delete")]).unwrap();
         assert_eq!(deleted, "ac");
+    }
+
+    /// The file a commit writes keeps the mode it had.
+    ///
+    /// A staged file is created private, the way a temporary file should be,
+    /// and renaming it over the target handed the target that mode. An
+    /// executable script stopped being executable, and a file the group could
+    /// read became one only its owner can.
+    #[cfg(feature = "cli")]
+    #[test]
+    fn committing_keeps_the_mode_the_file_had() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("tool.py");
+        crate::vfs::write(&path, "print(1)\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let mut set = EditSet::new();
+        set.add(&path, Edit::new(Span::new(6, 7), "2", "change the number"));
+        let outcomes = plan(&set, Validation::None).unwrap();
+        commit(&outcomes).unwrap();
+
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o755, "the file was executable and stays so.");
+        assert_eq!(crate::vfs::read_to_string(&path).unwrap(), "print(2)\n");
     }
 
     #[test]

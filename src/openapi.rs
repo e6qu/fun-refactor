@@ -445,8 +445,8 @@ fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> V
         };
         // The source annotated the parameter, and FastAPI coerces the path
         // segment to what it says. Writing every one as a string contradicted
-        // the document's own claim that its schemas are as good as what the
-        // source declared, and disagreed with FastAPI's own output.
+        // the document's own claim about its schemas. It also disagreed with
+        // the document FastAPI generates for itself.
         let schema = match annotation.split('=').next().unwrap_or("").trim() {
             "int" => json!({ "type": "integer" }),
             "float" => json!({ "type": "number" }),

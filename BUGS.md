@@ -175,9 +175,24 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
-- [x] B572: **every element id in `index.html` was reported as an HTTP route.**
-  A rule matches a symbol, and the only symbols HTML declares are element ids,
-  so a page-level rule fired once per id. One page with two `<div id>` reported
+- [x] B574: **every `--write` reset the file's mode to 0600.** A commit stages
+  beside the target and renames over it. The target inherited the private mode
+  a temporary file is given. An executable script stopped being executable, a
+  git hook stopped running, and a file the group could read became one only
+  its owner can. A repository-wide rename re-permissioned the
+  repository. The staged file takes the mode of the file it replaces. Pinned
+  in `src/edit.rs` tests.
+
+- [x] B575: **a first import landed above the docstring and the shebang.** With
+  no imports to sit after, the insertion point was byte zero. That is above
+  everything. A `#!` line moved to line two, so the script stopped running, and
+  a module docstring became an expression nobody reads, so `__doc__` was
+  `None`. The insertion point is after the file's prologue now. Pinned in
+  `tests/move_imports.rs`.
+
+- [x] B572: **every element id was reported as an HTTP route.** A rule matches
+  a symbol, and the only symbols HTML declares are element ids. So a page-level
+  rule fired once per id. One page with two `<div id>` reported
   two routes, and a page with no ids reported nothing. An id is not a route.
   What an element genuinely offers the outside, a mount point or a form target,
   is still reported as what it is. Pinned in `tests/entrypoints_conventions.rs`.
