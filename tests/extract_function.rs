@@ -768,3 +768,32 @@ fn a_rust_method_that_reads_self_is_refused() {
         "the refusal names the receiver: {err}"
     );
 }
+
+#[test]
+fn a_zig_struct_method_places_the_definition_beside_it() {
+    // A Zig container is a `variable_declaration`, not a type declaration the
+    // way the other five spell one. The hoist that keeps a definition out of a
+    // class body therefore does not recognise it. It does not need to. A Zig
+    // struct holds functions, and a sibling function is reachable unqualified.
+    // This pins that the placement is right rather than right by accident.
+    let src = "const std = @import(\"std\");\n\nconst Buffer = struct {\n    \
+        count: usize,\n\n    pub fn describe(self: *Buffer) void {\n        \
+        const doubled: usize = self.count * 2;\n        \
+        std.debug.print(\"{d}\\n\", .{doubled});\n        \
+        std.debug.print(\"done\\n\", .{});\n    }\n};\n";
+    let (tmp, index) = workspace(&[("buf.zig", src)]);
+    let path = tmp.path().join("buf.zig");
+
+    let plan = extract::function(&index, &path, lines(src, 8, 9), "report").expect("a plan");
+    let out = apply_to_string(src, plan.edits.edits_for(&path).unwrap()).expect("applying");
+    assert!(
+        out.contains("    fn report(doubled: usize) void {"),
+        "the definition is a member of the struct, indented with its siblings.\n{out}"
+    );
+    assert!(
+        out.contains("        report(doubled);"),
+        "and the call reaches it unqualified.\n{out}"
+    );
+    // The struct still closes once, after both functions.
+    assert_eq!(out.matches("};").count(), 1, "one container ending.\n{out}");
+}
