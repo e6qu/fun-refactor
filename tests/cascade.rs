@@ -229,6 +229,63 @@ fn a_typescript_flag_read_through_an_import_is_removed_whole() {
 }
 
 #[test]
+fn a_python_flag_read_through_its_module_is_removed_whole() {
+    // `from app import flags` binds the submodule `app/flags.py`, and the read is written
+    // against it. The refusal used to say nothing read the flag, over a line it prints.
+    let tmp = workspace(&[
+        ("app/__init__.py", ""),
+        ("app/flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "app/tax.py",
+            "from app import flags\n\n\ndef tax(a):\n    if flags.USE_NEW_TAX:\n        return a * 1.2\n    return a * 1.15\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true).unwrap();
+    let out = result_for(tmp.path(), "app/tax.py", &plan);
+    assert!(out.contains("return a * 1.2"), "got:\n{out}");
+    assert!(!out.contains("1.15"), "the dead branch should go:\n{out}");
+    assert!(!out.contains("flags"), "the import should go:\n{out}");
+}
+
+#[test]
+fn a_python_flag_read_through_a_relative_import_is_removed_whole() {
+    let tmp = workspace(&[
+        ("app/__init__.py", ""),
+        ("app/flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "app/tax.py",
+            "from . import flags\n\n\ndef tax(a):\n    if flags.USE_NEW_TAX:\n        return a * 1.2\n    return a * 1.15\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true).unwrap();
+    let out = result_for(tmp.path(), "app/tax.py", &plan);
+    assert!(out.contains("return a * 1.2"), "got:\n{out}");
+    assert!(!out.contains("1.15"), "the dead branch should go:\n{out}");
+}
+
+#[test]
+fn a_refusal_names_the_occurrences_it_could_not_resolve() {
+    // The module object comes from a call, so no import says what it is. The name is still
+    // written down, and a refusal claiming nothing reads the flag would contradict it.
+    let tmp = workspace(&[
+        ("flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "tax.py",
+            "import importlib\nm = importlib.import_module(\"flags\")\nif m.USE_NEW_TAX:\n    print(1)\n",
+        ),
+    ]);
+
+    let err = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true)
+        .unwrap_err()
+        .to_string();
+    assert!(!err.contains("nothing reads it"), "got: {err}");
+    assert!(err.contains("tax.py:3"), "got: {err}");
+    assert!(err.contains("name-only"), "got: {err}");
+}
+
+#[test]
 fn an_unknown_flag_is_an_error_rather_than_a_silent_no_op() {
     let tmp = workspace(&[("a.rs", "fn run() {}\n")]);
     let err = cascade::remove_flag(tmp.path(), "NOT_THERE", true)

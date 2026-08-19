@@ -1645,3 +1645,10 @@ statement, and the parse gate threw the cascade away. TypeScript wrote the
 same nonsense there and survived by accident, because a later round deleted
 the statement. An import binds a name and reads nothing, so the choke point
 that decides where a literal can stand now says so for every language.
+
+The same command refused a flag it could see being read. `from app import flags`
+binds a submodule, and the index read the import path as the whole answer, so the
+receiver named the package file. `flags.USE_NEW_TAX` resolved to nothing, and the
+refusal said nothing read the flag and pointed at `fr delete`. A receiver bound by
+an import can now name the submodule too, and relative module paths resolve. A
+refusal with no firm use to work from lists what `fr rename` would show instead.

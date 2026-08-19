@@ -175,6 +175,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B681: **a read through a Python module object resolved to nothing.** `from app
+  import flags` binds the submodule `app/flags.py`, and `flags.USE_NEW_TAX` reads it.
+  The index took the import path for the whole answer, so the receiver named
+  `app/__init__.py`, which declares nothing. `fr remove-flag` then refused with
+  "nothing reads it" and sent the reader to `fr delete`, over a live declaration
+  and a line the tool prints. `import app.flags` and `from . import flags` failed the
+  same way. A receiver bound by an import can name the submodule as well as the
+  package now, and relative module paths resolve. A refusal that finds no firm use
+  lists the occurrences `fr rename` would show, instead of claiming there are none.
+  Pinned in `tests/cascade.rs` and `tests/python_modules.rs`.
+
 - [x] B680: **`fr remove-flag` rewrote an import statement.** Python puts a flag in
   its own module and imports it where it is read.
   `from app.flags import USE_NEW_TAX` became `from app.flags import True`, and

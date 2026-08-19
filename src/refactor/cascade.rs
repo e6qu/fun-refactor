@@ -418,6 +418,19 @@ fn substitute_flag(
     // reads, and deleting that is a different command with a different set of checks.
     // Answering it here removed a Next.js route handler called `DELETE`.
     if index.references_to(definition.id).is_empty() {
+        // "Nothing reads it" is a claim about the whole workspace, and the weakly resolved
+        // occurrences are the evidence against it. `fr rename` lists them for review. A
+        // refusal that ignored them contradicted the tool's own answer, and sent the
+        // reader to `fr delete` over a live flag.
+        let weak = weak_occurrences(index, sources, definition);
+        if !weak.is_empty() {
+            anyhow::bail!(
+                "'{flag}' is declared at {}, and no use of it resolves firmly enough to \
+                 rewrite. These name it and may be reads of it:\n  {}\nNothing was changed.",
+                definition.file.display(),
+                weak.join("\n  ")
+            );
+        }
         anyhow::bail!(
             "'{flag}' is declared at {} and nothing reads it, so there is no flag to \
              remove. `fr delete` removes a declaration nothing uses. Nothing was changed.",
@@ -505,6 +518,42 @@ fn substitute_flag(
         changes.push((definition.file.clone(), definition_span, String::new()));
     }
     Ok(Some((changes, definition.kind)))
+}
+
+/// Occurrences of the flag's name that resolution could not tie to the declaration.
+///
+/// A read through a module object was one of these until the index learned to follow the
+/// import. `flags.USE_NEW_TAX` sat on a line the tool prints, under a refusal saying
+/// nothing read the flag. Whatever is left over is what `fr rename` shows a reader and
+/// declines to rewrite, and a refusal has to account for the same occurrences.
+fn weak_occurrences(
+    index: &Index,
+    sources: &BTreeMap<PathBuf, (Language, String)>,
+    definition: &crate::model::Symbol,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    for reference in index.unresolved_matching(definition.id) {
+        // Resolved elsewhere, and firmly: a different thing that shares the name.
+        if reference.target.is_some() && reference.confidence.is_safe_to_rewrite() {
+            continue;
+        }
+        let Some((_, source)) = sources.get(&reference.file) else {
+            continue;
+        };
+        out.push(describe(
+            &reference.file,
+            source,
+            reference.span,
+            &format!(
+                "this names '{}', resolved only as '{}'",
+                definition.name,
+                reference.confidence.as_str()
+            ),
+        ));
+    }
+    out.sort();
+    out.dedup();
+    out
 }
 
 /// What the declaration says the named symbol holds, where that rules a flag out.
