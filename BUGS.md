@@ -191,8 +191,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   `tests/move_imports.rs`.
 
 - [x] B572: **every element id was reported as an HTTP route.** A rule matches
-  a symbol, and the only symbols HTML declares are element ids. So a page-level
-  rule fired once per id. One page with two `<div id>` reported
+  a symbol, and HTML declares only element ids. So a page-level rule fired once
+  per id. One page with two `<div id>` reported
   two routes, and a page with no ids reported nothing. An id is not a route.
   What an element genuinely offers the outside, a mount point or a form target,
   is still reported as what it is. Pinned in `tests/entrypoints_conventions.rs`.
