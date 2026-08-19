@@ -276,10 +276,11 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // `fr flow` shared an arm with the call graph, so the row told a reader
-        // that a Terraform variable cannot be traced "because this language has
-        // no functions". The verdict was right and the reason was not: dataflow
-        // needs execution, and these languages are evaluated by substitution.
+        // `fr flow` shared an arm with the call graph. So the row told a
+        // reader that a Terraform variable cannot be traced "because this
+        // language has no functions". The verdict was right and the reason was
+        // not: dataflow needs execution, and these are evaluated by
+        // substitution.
         // The same command answers for them under provenance, which is the row
         // to read, and the reason now says so.
         C::Flow => {
@@ -469,9 +470,9 @@ pub fn support(capability: Capability, language: Language) -> Support {
         // The contract lives in the *tree*, a Next.js route's URL is where its file sits, so
         // this is a question about one framework and not one language.
         // Two route shapes reach this, not one: a Next.js route tree written in
-        // TypeScript, and a FastAPI router written in Python. The row named only
-        // the first, so the matrix denied a capability the binary ships and
-        // exercises, which is the one thing the matrix exists to prevent.
+        // TypeScript, and a FastAPI router written in Python. The row named
+        // only the first, so the matrix denied a capability the binary ships
+        // and exercises. That is the one thing the matrix exists to prevent.
         C::Openapi => match language {
             Language::TypeScript | Language::Tsx | Language::Python => Support::Yes,
             _ => Support::NotApplicable {
