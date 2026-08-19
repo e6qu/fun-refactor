@@ -3622,7 +3622,7 @@ fn naming_nothing(cli: &Cli, index: &Index, target: &str) -> String {
         return String::new();
     }
     format!(
-        "\n{} site(s) name it and reach no definition:{}",
+        "\n{} site(s) name it and reach no definition.{}",
         sites.len(),
         sites.join("")
     )

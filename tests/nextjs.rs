@@ -476,8 +476,8 @@ fn every_handler_this_command_emits_is_an_entry_point() {
         let name = method.to_lowercase();
         assert!(
             routes.contains(&name),
-            "this command emitted `{name}` under a route decorator and the catalogue \
-             does not see it as an entry point, so `fr unused` calls it dead:\n{}",
+            "this command emitted `{name}` under a route decorator. The catalogue \
+             does not see it as an entry point, so `fr unused` calls it dead.\n{}",
             plan.output
         );
     }

@@ -2620,7 +2620,7 @@ impl Ctx<'_> {
                         self.stop(
                             depth + 2,
                             StopReason::Origin(format!(
-                                "{dotted} is read by template {name:?}, which nothing in the chart includes"
+                                "{dotted} is read by template {name:?}, which nothing in the chart includes."
                             )),
                         );
                     }
