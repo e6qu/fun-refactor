@@ -27,6 +27,9 @@ jobs:
       matrix:
         slice: [default, wasm]
     runs-on: ubuntu-latest
+    # The gate's own work takes about twenty minutes. Anything past an hour is
+    # something stuck, and a stuck job held a runner for six hours in silence.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +42,7 @@ jobs:
       # is not, which this step found out by asking rather than by assuming. The two
       # downloads are pinned, because a gate that changes under you is not a gate.
       - name: Install the validators the gate drives
+        timeout-minutes: 12
         run: |
           set -euo pipefail
           TERRAFORM=1.9.8
@@ -55,8 +59,10 @@ jobs:
               --connect-timeout 20 --max-time 120 -o "$1" "$2" \
               || { echo "could not fetch $2 within the time allowed"; exit 1; }
           }
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libxml2-utils
+          # `apt-get` waits on a stalled mirror as patiently as `curl` waited
+          # on a stalled host, and this is where both jobs sat.
+          sudo timeout 240 apt-get update -qq
+          sudo timeout 240 apt-get install -y -qq libxml2-utils
           # Zig has been absent since the gate started driving it, and every Zig case
           # skipped itself here while the run went green. The checksum is the one the
           # download index publishes for this build.
@@ -123,6 +129,7 @@ jobs:
   # the test job and not after it, so it costs wall-clock and not much else.
   playground:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
