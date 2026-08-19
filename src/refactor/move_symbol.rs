@@ -2051,8 +2051,9 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
                 );
             }
         }
+        let carried = go_carry_imports(index, sym, destination, removal, &source, &mut plan);
         let header = if go_package(index, destination).is_none() {
-            format!("package {package}\n\n")
+            format!("package {package}\n\n{}", go_header_imports(&carried))
         } else {
             String::new()
         };
@@ -2062,7 +2063,6 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
             &format!("{header}{moved_text}"),
             format!("move {} in", sym.name),
         );
-        warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
         carry_defined_dependencies(index, sym, destination, removal, &source, &mut plan);
         return Ok(plan);
     }
@@ -2177,10 +2177,14 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         false => None,
     };
 
+    let carried = go_carry_imports(index, sym, destination, removal, &source, &mut plan);
     let destination_exists = go_package(index, destination).is_some();
     let header = match (destination_exists, &source_import) {
-        (false, Some(path)) => format!("package {package}\n\nimport \"{path}\"\n\n"),
-        (false, None) => format!("package {package}\n\n"),
+        (false, Some(path)) => format!(
+            "package {package}\n\nimport \"{path}\"\n\n{}",
+            go_header_imports(&carried)
+        ),
+        (false, None) => format!("package {package}\n\n{}", go_header_imports(&carried)),
         (true, _) => String::new(),
     };
     if let (true, Some(path)) = (destination_exists, &source_import) {
@@ -2278,7 +2282,6 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         plan.imports_added.push(file.clone());
     }
 
-    warn_about_carried_imports(index, sym, destination, removal, &source, &mut plan);
     Ok(plan)
 }
 
@@ -2419,6 +2422,122 @@ fn go_import_insertion_point(index: &Index, file: &Path) -> Option<usize> {
         .find(|s| s.kind == SymbolKind::Module && s.language == Language::Go)?;
     let source = crate::vfs::read_to_string(file).ok()?;
     Some(full_line_span(&source, clause.full_span.start).end)
+}
+
+/// Carry the imports the moved Go code needs, and drop the ones that left with it.
+///
+/// A Go import path is absolute: the same statement reads the same in every file of the
+/// module, so it travels verbatim and nothing has to be re-derived. Which import a name
+/// came from is not a guess either. A qualified use is a reference the index recorded
+/// under the package binding, so the references inside the moved span decide what goes and
+/// the ones outside it decide what stays.
+///
+/// Both halves matter, and neither was done. Go rejects a file that names an undefined
+/// qualifier and a file that imports a package it does not use, so one move of one
+/// function produced `undefined: math` in the destination and `"math" imported and not
+/// used` in the source. The report said `0 file(s) gained an import` and meant it.
+/// Returns the statements for a destination that has no package clause yet: that file is
+/// written whole by the caller, and an edit cannot be placed in a file that does not exist.
+#[must_use]
+fn go_carry_imports(
+    index: &Index,
+    sym: &Symbol,
+    destination: &Path,
+    removal: Span,
+    source: &str,
+    plan: &mut MovePlan,
+) -> String {
+    let Some(info) = index.file(&sym.file) else {
+        return String::new();
+    };
+    let existing = crate::vfs::read_to_string(destination).unwrap_or_default();
+    let mut for_the_header = String::new();
+
+    for import in &info.imports {
+        let Some(binding) = go_import_binding(import) else {
+            continue;
+        };
+        let mut references = info
+            .references
+            .iter()
+            .map(|i| &index.references[*i])
+            .filter(|r| r.name == binding && !import.span.contains(r.span));
+        let (mut moved, mut stayed) = (false, false);
+        for reference in &mut references {
+            match removal.contains(reference.span) {
+                true => moved = true,
+                false => stayed = true,
+            }
+        }
+        if !moved {
+            continue;
+        }
+
+        // The destination may already import it, under this path or any other spelling
+        // of the same one. Two `import "math"` declarations in one file is a redeclared
+        // name, so the text is checked and not only the index.
+        let already_there = index
+            .file(destination)
+            .is_some_and(|d| d.imports.iter().any(|i| i.path == import.path))
+            || existing.contains(&format!("\"{}\"", import.path));
+        if !already_there {
+            let at = go_import_insertion_point(index, destination);
+            let statement = match &import.alias {
+                Some(alias) => format!("\nimport {alias} \"{}\"\n", import.path),
+                None => format!("\nimport \"{}\"\n", import.path),
+            };
+            match at {
+                Some(at) => {
+                    plan.edits.add(
+                        destination.to_path_buf(),
+                        Edit::new(
+                            Span::new(at, at),
+                            statement,
+                            format!("import what {} uses", sym.name),
+                        ),
+                    );
+                    plan.imports_added.push(destination.to_path_buf());
+                }
+                // A destination with no package clause yet is written whole by the
+                // caller, which puts the clause and the imports in together.
+                None => {
+                    for_the_header.push_str(statement.trim_start_matches('\n'));
+                    plan.imports_added.push(destination.to_path_buf());
+                }
+            }
+        }
+
+        if !stayed {
+            plan.edits.add(
+                sym.file.clone(),
+                Edit::new(
+                    full_line_span(source, import.span.start),
+                    "",
+                    format!("drop the import that left with {}", sym.name),
+                ),
+            );
+        }
+    }
+    for_the_header
+}
+
+/// The carried imports as they go into a header, with the blank line that follows them.
+fn go_header_imports(carried: &str) -> String {
+    match carried.is_empty() {
+        true => String::new(),
+        false => format!("{carried}\n"),
+    }
+}
+
+/// The name a Go import binds: its alias, or the package the path names.
+fn go_import_binding(import: &crate::model::Import) -> Option<String> {
+    // `import _ "embed"` binds nothing on purpose and is there for the side effect, so
+    // nothing the moved code reads can have come through it.
+    match import.alias.as_deref() {
+        Some("_") | Some(".") => None,
+        Some(alias) => Some(alias.to_string()),
+        None => crate::refactor::imports::implicit_binding(&import.path, Language::Go),
+    }
 }
 
 /// Widen a removal to swallow the `//` doc comment written directly above.

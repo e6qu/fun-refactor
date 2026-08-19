@@ -514,7 +514,10 @@ fn go_move_into_an_empty_file_writes_the_package_clause() {
 }
 
 #[test]
-fn go_move_warns_about_the_imports_the_code_leaves_behind_and_needs() {
+fn go_move_carries_the_imports_the_moved_code_uses() {
+    // Both directions used to be reported and neither done, which is two compile
+    // errors from one move: `undefined: fmt` where the code landed and `"fmt"
+    // imported and not used` where it came from.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
         (
@@ -527,21 +530,49 @@ fn go_move_warns_about_the_imports_the_code_leaves_behind_and_needs() {
     let id = symbol_id(&index, "Shared", None);
 
     let plan = move_symbol::to_file(&index, id, &ws.path("pkg/c.go")).unwrap();
-    // Nothing is edited: which import fed which name is what this index knows
-    // only weakly, so both directions are reported instead of guessed at.
+    assert_eq!(plan.imports_added, vec![ws.path("pkg/c.go")]);
+    commit(&plan);
+
     assert!(
-        plan.warnings
-            .iter()
-            .any(|w| w.contains("may now be unused")),
-        "got {:?}",
-        plan.warnings
+        ws.read("pkg/c.go").contains("import \"fmt\""),
+        "the destination gained it:\n{}",
+        ws.read("pkg/c.go")
     );
     assert!(
-        plan.warnings
-            .iter()
-            .any(|w| w.contains("which") && w.contains("c.go") && w.contains("does not import")),
-        "got {:?}",
-        plan.warnings
+        !ws.read("pkg/a.go").contains("import \"fmt\""),
+        "the source lost it:\n{}",
+        ws.read("pkg/a.go")
+    );
+}
+
+#[test]
+fn go_move_keeps_an_import_the_source_file_still_uses() {
+    // The other half of the same question. `fmt` feeds both functions, so it has to
+    // be in both files afterwards.
+    let ws = Workspace::new(&[
+        ("go.mod", "module example.com/app\n"),
+        (
+            "pkg/a.go",
+            "package pkg\n\nimport \"fmt\"\n\nfunc Shared() string {\n\treturn fmt.Sprint(1)\n}\n\
+             \nfunc Other() string {\n\treturn fmt.Sprint(2)\n}\n",
+        ),
+        ("pkg/c.go", "package pkg\n\nconst Limit = 10\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "Shared", None);
+
+    let plan = move_symbol::to_file(&index, id, &ws.path("pkg/c.go")).unwrap();
+    commit(&plan);
+
+    assert!(
+        ws.read("pkg/a.go").contains("import \"fmt\""),
+        "still used here:\n{}",
+        ws.read("pkg/a.go")
+    );
+    assert!(
+        ws.read("pkg/c.go").contains("import \"fmt\""),
+        "needed here too:\n{}",
+        ws.read("pkg/c.go")
     );
 }
 
