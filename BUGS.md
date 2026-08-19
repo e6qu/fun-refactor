@@ -175,6 +175,12 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B666: **a hoisted Python definition landed with a method's spacing.**
+  Fixing B660 moved an extracted definition out of the class it was written
+  in, to module scope, where `black` wants two blank lines in front of it and
+  got one. Verified against `black --check`, which now leaves the output
+  unchanged. A definition that stays a class member still takes one.
+
 - [x] B636: **nothing completed anything.** Thirty-three subcommands and six
   global flags, and no shell knew any of it. `fr completions bash|zsh|fish`
   writes a script from the command tree itself. It offers what this binary has,

@@ -1823,7 +1823,15 @@ fn render_function(
                 0 => String::new(),
                 _ => format!("\n{lead}{body_indent}return {}", returns.join(", ")),
             };
-            format!("\n\n{lead}{prefix}def {name}({params}):\n{reindented}{tail}")
+            // Two blank lines before a definition at module scope and one
+            // before a method. `black` rewrites anything else. Hoisting a
+            // definition out of a class puts it at module scope, and it landed
+            // there with a method's single blank line.
+            let separation = match lead.is_empty() {
+                true => "\n\n\n",
+                false => "\n\n",
+            };
+            format!("{separation}{lead}{prefix}def {name}({params}):\n{reindented}{tail}")
         }
         Language::Rust => {
             let ret = match return_type {

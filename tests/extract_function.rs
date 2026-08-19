@@ -797,3 +797,26 @@ fn a_zig_struct_method_places_the_definition_beside_it() {
     // The struct still closes once, after both functions.
     assert_eq!(out.matches("};").count(), 1, "one container ending.\n{out}");
 }
+
+#[test]
+fn a_python_definition_at_module_scope_gets_the_two_blank_lines_it_needs() {
+    // `black` rewrites one blank line before a top-level `def` to two, and a
+    // method keeps one. Hoisting a definition out of a class moves it to module
+    // scope, and it landed there with a method's spacing.
+    let src = "class Report:\n    def total(self, rows: list[int]) -> int:\n        \
+        subtotal = 0\n        for r in rows:\n            subtotal += r\n        \
+        return subtotal\n";
+    let (tmp, index) = workspace(&[("svc.py", src)]);
+    let path = tmp.path().join("svc.py");
+
+    let plan = extract::function(&index, &path, lines(src, 4, 5), "accumulate").expect("a plan");
+    let out = apply_to_string(src, plan.edits.edits_for(&path).unwrap()).expect("applying");
+    assert!(
+        out.contains("\n\n\ndef accumulate("),
+        "a definition at module scope takes two blank lines.\n{out}"
+    );
+    assert!(
+        !out.contains("\n\n\n\ndef accumulate("),
+        "and not three.\n{out}"
+    );
+}
