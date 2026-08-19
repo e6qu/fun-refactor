@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B572: **every element id in `index.html` was reported as an HTTP route.**
+  A rule matches a symbol, and the only symbols HTML declares are element ids,
+  so a page-level rule fired once per id. One page with two `<div id>` reported
+  two routes, and a page with no ids reported nothing. An id is not a route.
+  What an element genuinely offers the outside, a mount point or a form target,
+  is still reported as what it is. Pinned in `tests/entrypoints_conventions.rs`.
+
+- [x] B573: **a typed path parameter reached the contract as a string.**
+  `def h(i: int)` under `@app.get("/x/{i}")` produced `{"type": "string"}`,
+  disagreeing with the document FastAPI generates for itself, under a
+  description claiming the schemas are as good as what the source declared.
+  The annotation decides now. Pinned in `tests/nextjs.rs`.
+
 - [x] B570: **the capability matrix denied a capability the binary ships.**
   `fr openapi` reads a FastAPI router and writes a document. The row called
   Python not applicable, "because this derives an OpenAPI document from a

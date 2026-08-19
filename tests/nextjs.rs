@@ -482,3 +482,32 @@ fn every_handler_this_command_emits_is_an_entry_point() {
         );
     }
 }
+
+#[test]
+fn a_fastapi_path_parameter_takes_the_type_the_source_declared() {
+    // The document claims its schemas are as good as what the source declared.
+    // Every path parameter was written as a string, so a `int` came out a
+    // string, disagreeing with the document FastAPI generates for itself.
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().to_path_buf();
+    let file = root.join("m.py");
+    std::fs::write(
+        &file,
+        "from fastapi import APIRouter\n\napp = APIRouter()\n\n\n\
+         @app.get(\"/x/{i}\")\ndef h(i: int, name: str) -> dict:\n    return {\"i\": i}\n",
+    )
+    .unwrap();
+    let baseline = fun_refactor::openapi::from_fastapi("demo", &root, &[file]).expect("a document");
+    let parameters = baseline.document["paths"]["/x/{i}"]["get"]["parameters"]
+        .as_array()
+        .expect("the parameters");
+    let typed = |name: &str| -> String {
+        parameters
+            .iter()
+            .find(|p| p["name"] == name)
+            .map(|p| p["schema"]["type"].as_str().unwrap_or("").to_string())
+            .unwrap_or_default()
+    };
+    assert_eq!(typed("i"), "integer", "{parameters:?}");
+    assert_eq!(typed("name"), "string", "{parameters:?}");
+}
