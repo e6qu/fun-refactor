@@ -771,16 +771,16 @@ impl Index {
         // the name-matching rules, which saw a free function and a method sharing one name and
         // could not choose. Every cross-file call in Zig was unresolved, so `fr rename` rewrote
         // the declaration and left the callers naming something the file no longer has.
-        if let Some(file) = reference
+        let bound_files = reference
             .receiver
             .as_deref()
-            .and_then(|receiver| self.import_binding(info, receiver))
-            .and_then(|import| self.resolve_import_path(path, &import.path))
-        {
+            .map(|receiver| self.modules_bound_to(info, path, receiver))
+            .unwrap_or_default();
+        if !bound_files.is_empty() {
             let over_there: Vec<&Symbol> = candidates
                 .iter()
                 .filter_map(|id| self.symbol(*id))
-                .filter(|s| s.file == file && s.is_top_level())
+                .filter(|s| bound_files.contains(&s.file) && s.is_top_level())
                 .collect();
             match over_there.len() {
                 1 => return (Some(over_there[0].id), Confidence::ImportQualified),
@@ -1352,7 +1352,40 @@ impl Index {
                     .rsplit(['/', ':', '.'])
                     .find(|s| !s.is_empty())
                     .is_some_and(|last| last == name)
+                // `import app.flags` binds `app`, and the module is read as `app.flags.NAME`.
+                // So the receiver is the import path in full, and no segment of it is.
+                || import.path == name
         })
+    }
+
+    /// The files a receiver could be, where an import in this file binds it to a module.
+    ///
+    /// Zig's `const holder = @import("holder.zig")` binds one file, and the import path is the
+    /// whole answer. Python has a second spelling for the same thing: `from app import flags`
+    /// binds either a name `app/__init__.py` declares or the submodule `app/flags.py`, written
+    /// identically. So the submodule is offered as well, and the caller weighs both. Without
+    /// it, `flags.USE_NEW_TAX` resolved to nothing under the commonest Python layout there is.
+    fn modules_bound_to(&self, info: &FileInfo, from: &Path, receiver: &str) -> Vec<PathBuf> {
+        let Some(import) = self.import_binding(info, receiver) else {
+            return Vec::new();
+        };
+        let mut files: Vec<PathBuf> = Vec::new();
+        if let Some(file) = self.resolve_import_path(from, &import.path) {
+            files.push(file);
+        }
+        if let Some(bound) = import.names.iter().find(|n| n.local == receiver) {
+            let separator = match import.path.ends_with('.') {
+                true => "",
+                false => ".",
+            };
+            let submodule = format!("{}{separator}{}", import.path, bound.original);
+            if let Some(file) = self.resolve_import_path(from, &submodule) {
+                files.push(file);
+            }
+        }
+        files.sort();
+        files.dedup();
+        files
     }
 
     /// The directory a package import path names, where this workspace holds it.
@@ -1409,6 +1442,29 @@ impl Index {
         let beside = crate::vfs::normalise(dir.join(import_path));
         if self.files.contains_key(&beside) {
             return Some(beside);
+        }
+
+        // Python writes a relative import as leading dots and then dotted segments. One dot
+        // is the package this file sits in, two is its parent, and `..pkg.mod` reaches
+        // `pkg/mod.py` from there. TypeScript puts a separator after its dots, `./x`, so the
+        // two spellings never collide. A miss falls through to the rules below.
+        if import_path.starts_with('.') && !import_path.contains('/') {
+            let levels = import_path.chars().take_while(|c| *c == '.').count();
+            let tail = import_path.trim_start_matches('.');
+            let mut base = dir.to_path_buf();
+            for _ in 1..levels {
+                base = base.parent()?.to_path_buf();
+            }
+            for segment in tail.split('.').filter(|s| !s.is_empty()) {
+                base = base.join(segment);
+            }
+            let candidates = match tail.is_empty() {
+                true => vec![base.join("__init__.py")],
+                false => vec![base.with_extension("py"), base.join("__init__.py")],
+            };
+            if let Some(found) = candidates.into_iter().find(|c| self.files.contains_key(c)) {
+                return Some(found);
+            }
         }
 
         if import_path.starts_with('.') || import_path.starts_with('/') {

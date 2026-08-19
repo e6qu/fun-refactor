@@ -532,6 +532,28 @@ fn a_stopped_run_counts_only_the_steps_that_ran() {
     assert!(!report.ok);
 }
 
+#[test]
+fn a_stopped_run_still_reports_the_length_of_the_recipe() {
+    // The report headed itself with the steps the run reached, so a three-step recipe
+    // that stopped at the second announced itself as a two-step recipe. `--explain` on
+    // the same file said three. A recipe is a reviewable artifact. Its length is a fact
+    // about the file, and how far the run got is a fact about the run.
+    let (_tmp, report, _after) = run(
+        &[(
+            "a.py",
+            "def dead():\n    return 1\n\n\ndef used():\n    return 2\n\n\ndef entry():\n    return used()\n",
+        )],
+        "schema 1\n\
+         recipe r {\n\
+           delete where name=\"dead\"\n\
+           delete where name=\"used\"\n\
+           delete where name=\"gone\" allow-empty\n\
+         }\n",
+    );
+    assert_eq!(report.steps_in_recipe, 3, "the recipe holds three steps");
+    assert_eq!(report.steps.len(), 2, "the run reached two of them");
+}
+
 /// A misspelled predicate *value* blamed the repository.
 ///
 /// `kind=functoin` matched nothing, and the step failed saying it had matched nothing.

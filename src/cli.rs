@@ -1245,6 +1245,22 @@ fn present(
     summary: &str,
     write: bool,
 ) -> Result<()> {
+    present_with(cli, index, edits, summary, write, |_| {})
+}
+
+/// [`present`], with fields only one command has to add to the JSON report.
+///
+/// `fr restructure` reports the matches it declined to rewrite. In text they are lines
+/// above the diff. Printed in `--json` mode they landed on stdout in front of the
+/// object. So the output was no longer JSON, and no reader of it could parse.
+fn present_with(
+    cli: &Cli,
+    index: Option<&Index>,
+    edits: &crate::edit::EditSet,
+    summary: &str,
+    write: bool,
+    decorate: impl FnOnce(&mut serde_json::Value),
+) -> Result<()> {
     if let Some(index) = index {
         refuse_stale_plan(index, edits)?;
     }
@@ -1262,17 +1278,16 @@ fn present(
                 })
             })
             .collect();
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "summary": summary,
-                "files_changed": outcomes.len(),
-                "applied": write,
-                "changes": changes,
-                "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
-                "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
-            }))?
-        );
+        let mut report = serde_json::json!({
+            "summary": summary,
+            "files_changed": outcomes.len(),
+            "applied": write,
+            "changes": changes,
+            "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
+            "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
+        });
+        decorate(&mut report);
+        println!("{}", serde_json::to_string_pretty(&report)?);
         if write {
             crate::edit::commit(&outcomes)?;
         }
@@ -1914,13 +1929,43 @@ fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result
         );
     }
 
+    // Every import nothing names and the planner kept anyway, with the reason it worked
+    // out. The reasons were computed and then dropped. So "removed 0 import(s)" was the
+    // whole answer, and a reader could not learn which import was held, or why.
+    if !cli.json && !plan.warnings.is_empty() {
+        println!("Kept {} import(s) nothing names:", plan.warnings.len());
+        for warning in &plan.warnings {
+            println!("  line {}: {}", warning.line, warning.detail);
+        }
+        println!();
+    }
+
     let summary = format!(
         "{}: removed {} import(s), reordered {} block(s)",
         plan.file.display(),
         plan.removed.len(),
         plan.sorted_blocks
     );
-    present(cli, Some(&index), &plan.edits, &summary, write)
+    let kept = kept_imports_json(&plan.warnings);
+    present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
+        report["kept_imports"] = kept;
+    })
+}
+
+/// The imports the planner held back, as data, each with the reason it printed.
+fn kept_imports_json(warnings: &[crate::refactor::Warning]) -> serde_json::Value {
+    let rows: Vec<serde_json::Value> = warnings
+        .iter()
+        .map(|warning| {
+            serde_json::json!({
+                "file": warning.file,
+                "line": warning.line,
+                "col": warning.col,
+                "reason": warning.detail,
+            })
+        })
+        .collect();
+    serde_json::Value::Array(rows)
 }
 
 /// Every file the index holds, one pass, one atomic apply.
@@ -1933,11 +1978,15 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
     let mut removed = 0usize;
     let mut reordered = 0usize;
     let mut skipped: std::collections::BTreeMap<String, usize> = Default::default();
+    let mut kept: Vec<crate::refactor::Warning> = Vec::new();
 
     let files: Vec<std::path::PathBuf> = index.files().map(|(path, _)| path.clone()).collect();
     for path in files {
         match crate::refactor::imports::plan(index, &path) {
             Ok(plan) => {
+                // Counted before the files with nothing to do are dropped: an import held
+                // back is the reason a file has nothing to do.
+                kept.extend(plan.warnings.iter().cloned());
                 if plan.edits.is_empty() {
                     continue;
                 }
@@ -1967,6 +2016,14 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
             println!("  {count} file(s): {first}");
         }
     }
+    // A sweep of a workspace would drown in one line per held import. The count is the
+    // report here, and the reason is one command away.
+    if !cli.json && !kept.is_empty() {
+        println!(
+            "\n{} import(s) nothing names were kept. `fr imports <file>` says why.",
+            kept.len()
+        );
+    }
     if !cli.json {
         println!();
     }
@@ -1975,7 +2032,10 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
         "workspace: {touched} file(s) changed, {removed} import(s) removed, \
          {reordered} block(s) reordered."
     );
-    present(cli, Some(index), &edits, &summary, write)
+    let kept = kept_imports_json(&kept);
+    present_with(cli, Some(index), &edits, &summary, write, |report| {
+        report["kept_imports"] = kept;
+    })
 }
 
 fn cmd_translate(
@@ -2788,9 +2848,18 @@ fn selector_of(step: &crate::recipe::Step) -> String {
 }
 
 fn print_recipe_report(report: &crate::recipe::Report) {
-    println!("recipe {}: {} step(s)", report.recipe, report.steps.len());
+    // The header describes the file, so it counts the steps the recipe holds. Counting
+    // the ones the run reached made a stopped three-step recipe call itself a two-step
+    // recipe, against the `--explain` of the same file. The traversal is its own line.
+    println!(
+        "recipe {}: {} step(s)",
+        report.recipe, report.steps_in_recipe
+    );
     if let Some(description) = &report.description {
         println!("  {description}");
+    }
+    if report.steps.len() < report.steps_in_recipe {
+        println!("  the run reached {} of them", report.steps.len());
     }
     println!();
     for (i, step) in report.steps.iter().enumerate() {
@@ -2910,7 +2979,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
     use crate::refactor::rewrite::{self, Rewrite};
 
     let pos = parse_position(target).ok_or_else(|| {
-        Fault::invalid_input("a rewrite needs a position: path:line:col".to_string())
+        Fault::invalid_input("a rewrite needs a position, as path:line:col.".to_string())
     })?;
     refuse_zero_column(&pos)?;
     let path = workspace_path(cli, &pos.path)?;
@@ -2966,26 +3035,53 @@ fn cmd_restructure(
     // before anything else. Saying nothing about it, or saying nothing matched, is how
     // a run that left three call sites alone called itself complete.
     let root = workspace_root(cli);
-    let skipped = describe_skipped_occurrences(&root, &plan.skipped_with_comments);
-
-    if plan.matches.is_empty() {
-        match skipped.is_empty() {
-            true => println!("No {lang} code matches `{pattern}`."),
-            false => print!("{skipped}"),
-        }
-        return Ok(());
+    if !cli.json {
+        print!(
+            "{}",
+            describe_skipped_occurrences(&root, &plan.skipped_with_comments)
+        );
     }
 
-    if !skipped.is_empty() {
-        print!("{skipped}");
+    // A pattern that matched nowhere found nothing, which is the failure `fr rename`
+    // reports with the same code. Exit 0 said the rewrite was done, so a typed pattern
+    // and a finished job read identically to whatever is driving the command.
+    if plan.matches.is_empty() && plan.skipped_with_comments.is_empty() {
+        return Err(Fault::not_found(format!(
+            "no {lang} code matches `{pattern}`; nothing was changed."
+        )));
     }
+
     let summary = format!(
         "rewrote {} occurrence(s) of `{}` in {} file(s)",
         plan.matches.len(),
         plan.pattern,
         plan.edits.file_count()
     );
-    present(cli, Some(&index), &plan.edits, &summary, write)
+    present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
+        report["skipped_occurrences"] = skipped_occurrences_json(&plan.skipped_with_comments);
+    })
+}
+
+/// The matches a template could not be written over, as data.
+///
+/// The same occurrences the text report lists, for a caller that reads JSON. It had
+/// neither: the prose went to stdout in front of the report and broke it.
+fn skipped_occurrences_json(skipped: &[(std::path::PathBuf, usize)]) -> serde_json::Value {
+    let rows: Vec<serde_json::Value> = skipped
+        .iter()
+        .map(|(path, offset)| {
+            let at = crate::vfs::read_to_string(path)
+                .ok()
+                .map(|source| LineIndex::new(&source).line_col(*offset, &source));
+            serde_json::json!({
+                "file": path,
+                "line": at.as_ref().map(|a| a.line),
+                "col": at.as_ref().map(|a| a.col),
+                "reason": "the match holds a comment, which the template has nowhere to put",
+            })
+        })
+        .collect();
+    serde_json::Value::Array(rows)
 }
 
 /// The report for matches the rewrite could not be written over.

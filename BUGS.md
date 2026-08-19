@@ -342,6 +342,62 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   instead, in EXAMPLES.md, TUTORIAL.md, the README synopsis and `fr inline --help`.
   The refusal states it too, and names the command whose output cannot come back.
   Pinned in `tests/inline_call.rs`.
+- [x] B685: **a recipe run and its `--explain` disagreed on the recipe's length.**
+  `--explain` read the file and said "3 step(s)". The run of the same file said
+  "2 step(s)", because a refusal stopped it at the second and the header counted the
+  steps reached. A recipe is a reviewable artifact, so its length is a fact about the
+  file. The header reports that now, from `steps_in_recipe`, and how far the run got
+  is its own line and its own JSON field. Pinned in `tests/recipe.rs` and
+  `tests/cli.rs`, which compares the two commands.
+
+- [x] B684: **`fr imports` kept an import and never said why.** The planner works out a
+  reason for each one it holds back: a package `__init__.py` re-export, a `__future__`
+  import, a submodule imported for its registration side effects, a Rust trait used
+  through its methods. Each reason was built as a warning and then thrown away by the
+  command, in text and in `--json` alike. So the user read "removed 0 import(s)" and
+  had nowhere to go. The single-file report lists them now, and carries them as
+  `kept_imports`. The workspace sweep prints the count and names the command that
+  gives the reason. Pinned in `tests/cli.rs`.
+
+- [x] B683: **`fr impact` left out what `fr rename` reports.** The name written as
+  text is invisible to every resolver: an `__all__` entry, a line of
+  documentation, a CI script. `fr rename` sweeps for those and lists each one.
+  The tool suggests `fr impact` before that rename, and it ran no such
+  sweep. So it answered one site where the rename showed three. A reader met
+  the rest after committing to the change. It runs the same sweep now, from
+  `crate::mentions`, which is where `fr usages` and `fr delete` already ask.
+  `tests/impact_completeness.rs` compares the two commands site by site.
+
+- [x] B682: **`fr restructure` reported no matches as success.** `fr rename` exits 3
+  for a target it cannot find. Restructure printed one line and exited 0.
+  It is the operation where a typo is likeliest and least visible. A caller
+  looping over rewrites read "your pattern was wrong" as "there is nothing left to
+  do". It is a not-found now, in the exit code and in the `--json` error object. The
+  matches a template could not be written over were prose on stdout in `--json` mode
+  as well. They arrived in front of the report, so the output was not JSON, and they
+  are `skipped_occurrences` in it now. Pinned in `tests/cli.rs`.
+
+- [x] B681: **a read through a Python module object resolved to nothing.** `from app
+  import flags` binds the submodule `app/flags.py`, and `flags.USE_NEW_TAX` reads it.
+  The index took the import path for the whole answer, so the receiver named
+  `app/__init__.py`, which declares nothing. `fr remove-flag` then refused with
+  "nothing reads it" and sent the reader to `fr delete`, over a live declaration
+  and a line the tool prints. `import app.flags` and `from . import flags` failed the
+  same way. A receiver bound by an import can name the submodule as well as the
+  package now, and relative module paths resolve. A refusal that finds no firm use
+  lists the occurrences `fr rename` would show, instead of claiming there are none.
+  Pinned in `tests/cascade.rs` and `tests/python_modules.rs`.
+
+- [x] B680: **`fr remove-flag` rewrote an import statement.** Python puts a flag in
+  its own module and imports it where it is read.
+  `from app.flags import USE_NEW_TAX` became `from app.flags import True`, and
+  the final parse gate threw the whole cascade away. So the command was unusable on
+  that shape. TypeScript wrote `import { true }` in the same place and only survived
+  because a later round deleted the mangled statement. An import binds a name and
+  reads nothing, so no literal stands there. `use_site` now answers `Binds` for an
+  occurrence under an import, in every language. The declaration still goes, because
+  binding a name is not reading it, and the round that drops unused imports takes the
+  statement away. Pinned in `tests/cascade.rs`.
 
 - [x] B622: **a folded flag left code that cannot run.** `if FLAG { return a }
   return b` became `return a; return b`. It answers the same, and every

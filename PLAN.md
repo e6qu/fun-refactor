@@ -1692,3 +1692,45 @@ declaration's lines and left both blank lines that had separated it. A symbol
 moved out and back came home to that scar. And `fr inline` was documented as
 the reverse of `fr extract` while sharing no case with half of it. The docs,
 the help and the refusal say so now.
+
+### The pass where the commands were held to what they promise
+
+A probe drove the CLI the way an agent would and reported what it saw. The
+theme is a promise the tool makes and then keeps only in part.
+
+`fr remove-flag` could not run on the commonest Python layout, a flag in its
+own module and an import where it is read. The literal went into the import
+statement, and the parse gate threw the cascade away. TypeScript wrote the
+same nonsense there and survived by accident, because a later round deleted
+the statement. An import binds a name and reads nothing, so the choke point
+that decides where a literal can stand now says so for every language.
+
+The same command refused a flag it could see being read. `from app import flags`
+binds a submodule, and the index read the import path as the whole answer, so the
+receiver named the package file. `flags.USE_NEW_TAX` resolved to nothing, and the
+refusal said nothing read the flag and pointed at `fr delete`. A receiver bound by
+an import can now name the submodule too, and relative module paths resolve. A
+refusal with no firm use to work from lists what `fr rename` would show instead.
+
+`fr restructure` called a pattern that matched nothing a success. It printed a line
+and exited 0, while `fr rename` exits 3 for a target it cannot find. A caller looping
+over rewrites read a typo as "nothing left to do". The command reports not-found now,
+in the exit code and in the `--json` error. Its skipped matches were prose on stdout
+under `--json` too, in front of the report, so the output was not JSON.
+
+`fr impact` is the reconnaissance this tool suggests before a change, and it left
+out what the change itself reports. The name written as text resolves nowhere: an
+`__all__` entry, a line of documentation. `fr rename` sweeps for those and lists
+them. `fr impact` ran no sweep, so it answered one site where the rename showed
+three. It asks `crate::mentions` now, the same sweep the other commands ask.
+
+`fr imports` worked out why it kept each import and printed none of the reasons. A
+package `__init__.py` re-export, a `__future__` import, a submodule imported for its
+side effects: each one was built as a warning and dropped. The user read "removed 0
+import(s)" and had nowhere to go. The single-file report lists them, and `--json`
+carries them as `kept_imports`. The workspace sweep prints the count.
+
+A recipe run and its `--explain` gave the same file two lengths. `--explain` counted
+the steps in the recipe and the run counted the steps it reached. A run stopped at
+the second of three called itself a two-step recipe. The header describes the file
+now. How far the run got is a line of its own, and `steps_in_recipe` in the JSON.

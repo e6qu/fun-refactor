@@ -187,6 +187,105 @@ fn works_for_python_with_python_spelling() {
 }
 
 #[test]
+fn a_python_flag_read_through_an_import_is_removed_whole() {
+    // The commonest Python layout: the flag in its own module, imported by name where it
+    // is read. The substitution used to put the literal into the import statement. The
+    // file then said `from app.flags import True`, and the parse gate threw it away.
+    let tmp = workspace(&[
+        ("app/__init__.py", ""),
+        ("app/flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "app/tax.py",
+            "from app.flags import USE_NEW_TAX\n\n\ndef tax(amount):\n    if USE_NEW_TAX:\n        return amount * 1.2\n    return amount * 1.15\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true).unwrap();
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .expect("a cascade must leave every file parsing");
+
+    let out = result_for(tmp.path(), "app/tax.py", &plan);
+    assert!(!out.contains("import"), "the import should go:\n{out}");
+    assert!(out.contains("return amount * 1.2"), "got:\n{out}");
+    assert!(!out.contains("1.15"), "the dead branch should go:\n{out}");
+}
+
+#[test]
+fn a_typescript_flag_read_through_an_import_is_removed_whole() {
+    let tmp = workspace(&[
+        ("flags.ts", "export const USE_NEW: boolean = true;\n"),
+        (
+            "tax.ts",
+            "import { USE_NEW } from \"./flags\";\n\nexport function tax(a: number): number {\n  if (USE_NEW) {\n    return a * 1.2;\n  }\n  return a * 1.15;\n}\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW", true).unwrap();
+    let out = result_for(tmp.path(), "tax.ts", &plan);
+    assert!(!out.contains("import"), "the import should go:\n{out}");
+    // The import statement never held the literal on the way, either.
+    assert!(!out.contains("true"), "got:\n{out}");
+    assert!(out.contains("return a * 1.2;"), "got:\n{out}");
+}
+
+#[test]
+fn a_python_flag_read_through_its_module_is_removed_whole() {
+    // `from app import flags` binds the submodule `app/flags.py`, and the read is written
+    // against it. The refusal used to say nothing read the flag, over a line it prints.
+    let tmp = workspace(&[
+        ("app/__init__.py", ""),
+        ("app/flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "app/tax.py",
+            "from app import flags\n\n\ndef tax(a):\n    if flags.USE_NEW_TAX:\n        return a * 1.2\n    return a * 1.15\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true).unwrap();
+    let out = result_for(tmp.path(), "app/tax.py", &plan);
+    assert!(out.contains("return a * 1.2"), "got:\n{out}");
+    assert!(!out.contains("1.15"), "the dead branch should go:\n{out}");
+    assert!(!out.contains("flags"), "the import should go:\n{out}");
+}
+
+#[test]
+fn a_python_flag_read_through_a_relative_import_is_removed_whole() {
+    let tmp = workspace(&[
+        ("app/__init__.py", ""),
+        ("app/flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "app/tax.py",
+            "from . import flags\n\n\ndef tax(a):\n    if flags.USE_NEW_TAX:\n        return a * 1.2\n    return a * 1.15\n",
+        ),
+    ]);
+
+    let plan = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true).unwrap();
+    let out = result_for(tmp.path(), "app/tax.py", &plan);
+    assert!(out.contains("return a * 1.2"), "got:\n{out}");
+    assert!(!out.contains("1.15"), "the dead branch should go:\n{out}");
+}
+
+#[test]
+fn a_refusal_names_the_occurrences_it_could_not_resolve() {
+    // The module object comes from a call, so no import says what it is. The name is still
+    // written down, and a refusal claiming nothing reads the flag would contradict it.
+    let tmp = workspace(&[
+        ("flags.py", "USE_NEW_TAX = True\n"),
+        (
+            "tax.py",
+            "import importlib\nm = importlib.import_module(\"flags\")\nif m.USE_NEW_TAX:\n    print(1)\n",
+        ),
+    ]);
+
+    let err = cascade::remove_flag(tmp.path(), "USE_NEW_TAX", true)
+        .unwrap_err()
+        .to_string();
+    assert!(!err.contains("nothing reads it"), "got: {err}");
+    assert!(err.contains("tax.py:3"), "got: {err}");
+    assert!(err.contains("name-only"), "got: {err}");
+}
+
+#[test]
 fn an_unknown_flag_is_an_error_rather_than_a_silent_no_op() {
     let tmp = workspace(&[("a.rs", "fn run() {}\n")]);
     let err = cascade::remove_flag(tmp.path(), "NOT_THERE", true)
