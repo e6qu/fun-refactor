@@ -1497,8 +1497,8 @@ And the capability matrix stopped disclaiming what the binary does. It denied
 Terraform variable cannot be traced "because this language has no functions".
 The matrix's own claims test then refused the overcorrection, which was the
 useful part. Dataflow really does not apply where values are substituted
-rather than executed, so the row says that now, and points at the provenance
-row that answers. (B570 through B610.)
+rather than executed. The row says that now, and points at the provenance row
+that answers. (B570 through B610.)
 
 ### The pass where a name meant the same thing everywhere
 
