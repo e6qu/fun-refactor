@@ -538,6 +538,78 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
 }
 
 #[test]
+fn a_pattern_that_matches_nothing_is_not_found() {
+    // `fr restructure` reported a typed pattern as a finished job: it printed one line
+    // and exited 0. A caller looping over rewrites could not tell that from "done".
+    let ws = Workspace::new(&[("m.py", "def f(x):\n    return x\n")]);
+    let output = Command::new(FR)
+        .arg("-C")
+        .arg(ws.root())
+        .args([
+            "restructure",
+            "no_such_fn($X)",
+            "other($X)",
+            "--lang",
+            "python",
+            "--write",
+        ])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert_eq!(output.status.code(), Some(3), "a pattern found nothing");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("no python code matches"),
+        "the pattern is named:\n{stderr}"
+    );
+
+    let json = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args([
+            "restructure",
+            "no_such_fn($X)",
+            "other($X)",
+            "--lang",
+            "python",
+        ])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert_eq!(json.status.code(), Some(3));
+    let report: serde_json::Value =
+        serde_json::from_slice(&json.stdout).expect("--json emits one JSON object");
+    assert_eq!(report["error"]["kind"], "not-found");
+}
+
+#[test]
+fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
+    // The skipped occurrences were printed to stdout in `--json` mode as well. They
+    // landed in front of the report, so nothing downstream could parse the output.
+    let ws = Workspace::new(&[(
+        "m.py",
+        "def g(x):\n    return x\n\n\ny = g(1)\nz = g(  # keep\n    2\n)\n",
+    )]);
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["restructure", "g($X)", "h($X)", "--lang", "python"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert!(output.status.success());
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("--json emits one JSON object");
+    let skipped = report["skipped_occurrences"]
+        .as_array()
+        .expect("the skipped matches are data");
+    assert_eq!(skipped.len(), 1, "got: {report}");
+    assert_eq!(skipped[0]["line"], 6);
+}
+
+#[test]
 fn an_inverted_range_is_refused_with_both_ends_named() {
     // `fr extract "a.go:8:20-8:5"` used to panic in the span constructor, which
     // reported byte offsets instead of the typo.

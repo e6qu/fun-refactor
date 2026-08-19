@@ -1652,3 +1652,9 @@ receiver named the package file. `flags.USE_NEW_TAX` resolved to nothing, and th
 refusal said nothing read the flag and pointed at `fr delete`. A receiver bound by
 an import can now name the submodule too, and relative module paths resolve. A
 refusal with no firm use to work from lists what `fr rename` would show instead.
+
+`fr restructure` called a pattern that matched nothing a success. It printed a line
+and exited 0, while `fr rename` exits 3 for a target it cannot find. A caller looping
+over rewrites read a typo as "nothing left to do". The command reports not-found now,
+in the exit code and in the `--json` error. Its skipped matches were prose on stdout
+under `--json` too, in front of the report, so the output was not JSON.

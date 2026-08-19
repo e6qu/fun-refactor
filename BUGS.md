@@ -175,6 +175,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B682: **`fr restructure` reported no matches as success.** `fr rename` exits 3
+  for a target it cannot find. Restructure printed one line and exited 0.
+  It is the operation where a typo is likeliest and least visible. A caller
+  looping over rewrites read "your pattern was wrong" as "there is nothing left to
+  do". It is a not-found now, in the exit code and in the `--json` error object. The
+  matches a template could not be written over were prose on stdout in `--json` mode
+  as well. They arrived in front of the report, so the output was not JSON, and they
+  are `skipped_occurrences` in it now. Pinned in `tests/cli.rs`.
+
 - [x] B681: **a read through a Python module object resolved to nothing.** `from app
   import flags` binds the submodule `app/flags.py`, and `flags.USE_NEW_TAX` reads it.
   The index took the import path for the whole answer, so the receiver named

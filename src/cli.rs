@@ -1039,6 +1039,22 @@ fn present(
     summary: &str,
     write: bool,
 ) -> Result<()> {
+    present_with(cli, index, edits, summary, write, |_| {})
+}
+
+/// [`present`], with fields only one command has to add to the JSON report.
+///
+/// `fr restructure` reports the matches it declined to rewrite. In text they are lines
+/// above the diff. Printed in `--json` mode they landed on stdout in front of the
+/// object. So the output was no longer JSON, and no reader of it could parse.
+fn present_with(
+    cli: &Cli,
+    index: Option<&Index>,
+    edits: &crate::edit::EditSet,
+    summary: &str,
+    write: bool,
+    decorate: impl FnOnce(&mut serde_json::Value),
+) -> Result<()> {
     if let Some(index) = index {
         refuse_stale_plan(index, edits)?;
     }
@@ -1056,17 +1072,16 @@ fn present(
                 })
             })
             .collect();
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "summary": summary,
-                "files_changed": outcomes.len(),
-                "applied": write,
-                "changes": changes,
-                "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
-                "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
-            }))?
-        );
+        let mut report = serde_json::json!({
+            "summary": summary,
+            "files_changed": outcomes.len(),
+            "applied": write,
+            "changes": changes,
+            "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
+            "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
+        });
+        decorate(&mut report);
+        println!("{}", serde_json::to_string_pretty(&report)?);
         if write {
             crate::edit::commit(&outcomes)?;
         }
@@ -2689,7 +2704,7 @@ fn cmd_rewrite(cli: &Cli, target: &str, name: Option<&str>, write: bool) -> Resu
     use crate::refactor::rewrite::{self, Rewrite};
 
     let pos = parse_position(target).ok_or_else(|| {
-        Fault::invalid_input("a rewrite needs a position: path:line:col".to_string())
+        Fault::invalid_input("a rewrite needs a position, as path:line:col.".to_string())
     })?;
     refuse_zero_column(&pos)?;
     let path = workspace_path(cli, &pos.path)?;
@@ -2745,26 +2760,57 @@ fn cmd_restructure(
     // before anything else. Saying nothing about it, or saying nothing matched, is how
     // a run that left three call sites alone called itself complete.
     let root = workspace_root(cli);
-    let skipped = describe_skipped_occurrences(&root, &plan.skipped_with_comments);
-
-    if plan.matches.is_empty() {
-        match skipped.is_empty() {
-            true => println!("No {lang} code matches `{pattern}`."),
-            false => print!("{skipped}"),
-        }
-        return Ok(());
+    if !cli.json {
+        print!(
+            "{}",
+            describe_skipped_occurrences(&root, &plan.skipped_with_comments)
+        );
     }
 
-    if !skipped.is_empty() {
-        print!("{skipped}");
+    // A pattern that matched nowhere found nothing, which is the failure `fr rename`
+    // reports with the same code. Exit 0 said the rewrite was done, so a typed pattern
+    // and a finished job read identically to whatever is driving the command.
+    if plan.matches.is_empty() && plan.skipped_with_comments.is_empty() {
+        return Err(Fault::not_found(format!(
+            "no {lang} code matches `{pattern}`; nothing was changed."
+        )));
     }
+
     let summary = format!(
         "rewrote {} occurrence(s) of `{}` in {} file(s)",
         plan.matches.len(),
         plan.pattern,
         plan.edits.file_count()
     );
-    present(cli, Some(&index), &plan.edits, &summary, write)
+    present_with(cli, Some(&index), &plan.edits, &summary, write, |report| {
+        report["skipped_occurrences"] =
+            skipped_occurrences_json(&root, &plan.skipped_with_comments);
+    })
+}
+
+/// The matches a template could not be written over, as data.
+///
+/// The same occurrences the text report lists, for a caller that reads JSON. It had
+/// neither: the prose went to stdout in front of the report and broke it.
+fn skipped_occurrences_json(
+    root: &std::path::Path,
+    skipped: &[(std::path::PathBuf, usize)],
+) -> serde_json::Value {
+    let rows: Vec<serde_json::Value> = skipped
+        .iter()
+        .map(|(path, offset)| {
+            let at = crate::vfs::read_to_string(path)
+                .ok()
+                .map(|source| LineIndex::new(&source).line_col(*offset, &source));
+            serde_json::json!({
+                "file": shown_path(root, path),
+                "line": at.as_ref().map(|a| a.line),
+                "col": at.as_ref().map(|a| a.col),
+                "reason": "the match holds a comment, which the template has nowhere to put",
+            })
+        })
+        .collect();
+    serde_json::Value::Array(rows)
 }
 
 /// The report for matches the rewrite could not be written over.
