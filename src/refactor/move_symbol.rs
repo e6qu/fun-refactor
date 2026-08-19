@@ -1349,7 +1349,58 @@ fn import_insertion_point(source: &str) -> usize {
         }
         offset += line.len();
     }
-    last_import_end
+    match last_import_end {
+        0 => after_the_prologue(source),
+        end => end,
+    }
+}
+
+/// Where a first import belongs in a file that has none.
+///
+/// Byte zero is above everything, and some things have to stay first. An
+/// import written there demoted a `#!` line to line two, so the script stopped
+/// running. It also pushed a module docstring into an expression nobody reads,
+/// so `__doc__` became `None`.
+fn after_the_prologue(source: &str) -> usize {
+    let mut offset = 0;
+    let mut lines = source.split_inclusive('\n').peekable();
+
+    // A shebang, then whatever comments and blank lines follow it.
+    if lines.peek().is_some_and(|l| l.starts_with("#!")) {
+        offset += lines.next().map(str::len).unwrap_or(0);
+    }
+    while let Some(line) = lines.peek() {
+        let trimmed = line.trim_start();
+        let is_prologue = trimmed.is_empty()
+            || trimmed.starts_with('#')
+            || trimmed.starts_with("//")
+            || trimmed.starts_with("/*")
+            || trimmed.starts_with('*');
+        if !is_prologue {
+            break;
+        }
+        offset += line.len();
+        lines.next();
+    }
+
+    // A module docstring: one string literal standing alone, which may run over
+    // several lines.
+    let rest = &source[offset..];
+    for quote in ["\"\"\"", "'''", "\"", "'"] {
+        let Some(after_open) = rest.strip_prefix(quote) else {
+            continue;
+        };
+        let Some(closes) = after_open.find(quote) else {
+            break;
+        };
+        let end = offset + quote.len() + closes + quote.len();
+        // Past the line the docstring ends on, so the import starts its own.
+        return match source[end..].find('\n') {
+            Some(newline) => end + newline + 1,
+            None => source.len(),
+        };
+    }
+    offset
 }
 
 // ---------------------------------------------------------------------------
@@ -2667,7 +2718,13 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
     let source = crate::vfs::read_to_string(&sym.file)?;
     let headings = file_headings(index, &sym.file);
     let removal = section_span(&source, sym, &headings);
-    let moved_text = removal.text(&source).to_string();
+
+    // A link reference definition names a destination for the whole document, so one
+    // sitting inside the last section is not part of that section. Every definition
+    // stays where it is, and the section is taken around it.
+    let definitions = link_definitions_within(index, &sym.file, &source, removal);
+    let taken = spans_between(removal, &definitions);
+    let mut moved_text: String = taken.iter().map(|span| span.text(&source)).collect();
 
     // Every anchor that travelled with the section, so links to it can be repointed.
     let moved_slugs: HashSet<String> = headings
@@ -2682,10 +2739,38 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
         .collect();
 
     let mut plan = MovePlan::new(sym, destination);
-    plan.edits.add(
-        sym.file.clone(),
-        Edit::new(removal, "", format!("move the {} section out", sym.name)),
-    );
+
+    // A definition the moved text uses is copied, so the section still reads as
+    // written. The original stays: the rest of the document may use it too.
+    let (copied, left) = split_by_use(index, &definitions, &taken, &sym.file);
+    for definition in &definitions {
+        if copied.contains(&definition.name) {
+            moved_text.push_str(definition.lines.text(&source));
+        }
+    }
+    if !copied.is_empty() {
+        plan.warnings.push(format!(
+            "copied the link reference definition(s) {} into {}; the original stays in {}",
+            copied.join(", "),
+            destination.display(),
+            sym.file.display()
+        ));
+    }
+    if !left.is_empty() {
+        plan.warnings.push(format!(
+            "left the link reference definition(s) {} in {}; a definition serves the \
+             whole document, not the section it sits under",
+            left.join(", "),
+            sym.file.display()
+        ));
+    }
+
+    for span in &taken {
+        plan.edits.add(
+            sym.file.clone(),
+            Edit::new(*span, "", format!("move the {} section out", sym.name)),
+        );
+    }
     append_to_destination(
         &mut plan.edits,
         destination,
@@ -2713,7 +2798,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
             let Some(anchor) = span.text(&text).strip_prefix('#') else {
                 continue;
             };
-            if removal.contains(span) {
+            if taken.iter().any(|piece| piece.contains(span)) {
                 // It travels with the section. If its target stayed behind, the link
                 // breaks in the other direction, which is the reader's to fix.
                 if staying_slugs.contains(anchor) {
@@ -2778,6 +2863,81 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
     plan.imports_added.extend(updated);
 
     Ok(plan)
+}
+
+/// A link reference definition and the whole lines it occupies.
+struct LinkDefinition {
+    id: SymbolId,
+    name: String,
+    lines: Span,
+}
+
+/// Every link reference definition whose text falls inside `region`, in source order.
+fn link_definitions_within(
+    index: &Index,
+    file: &Path,
+    source: &str,
+    region: Span,
+) -> Vec<LinkDefinition> {
+    let Some(info) = index.file(file) else {
+        return Vec::new();
+    };
+    let mut found: Vec<LinkDefinition> = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.kind == SymbolKind::LinkDef && region.contains(s.full_span))
+        .map(|s| {
+            let start = full_line_span(source, s.full_span.start).start;
+            let last = s.full_span.end.saturating_sub(1).max(s.full_span.start);
+            let end = full_line_span(source, last).end;
+            LinkDefinition {
+                id: s.id,
+                name: s.name.clone(),
+                lines: Span::new(start, end),
+            }
+        })
+        .collect();
+    found.sort_by_key(|d| d.lines.start);
+    found
+}
+
+/// `region` with each definition's lines cut out of it, in source order.
+fn spans_between(region: Span, definitions: &[LinkDefinition]) -> Vec<Span> {
+    let mut out = Vec::new();
+    let mut cursor = region.start;
+    for definition in definitions {
+        if definition.lines.start > cursor {
+            out.push(Span::new(cursor, definition.lines.start));
+        }
+        cursor = cursor.max(definition.lines.end);
+    }
+    if cursor < region.end {
+        out.push(Span::new(cursor, region.end));
+    }
+    out
+}
+
+/// Which definitions the moved text uses, and which it only sat above.
+fn split_by_use(
+    index: &Index,
+    definitions: &[LinkDefinition],
+    taken: &[Span],
+    file: &Path,
+) -> (Vec<String>, Vec<String>) {
+    let mut copied = Vec::new();
+    let mut left = Vec::new();
+    for definition in definitions {
+        let used = index.references_to(definition.id).iter().any(|reference| {
+            reference.file == file && taken.iter().any(|piece| piece.contains(reference.span))
+        });
+        if used {
+            copied.push(definition.name.clone());
+        } else {
+            left.push(definition.name.clone());
+        }
+    }
+    (copied, left)
 }
 
 /// Every heading in a file, in source order.

@@ -511,15 +511,31 @@ fn yaml_extract_anchors_the_first_occurrence_even_when_a_later_one_is_selected()
 }
 
 #[test]
-fn yaml_extract_a_single_occurrence_only_anchors_it() {
+fn yaml_extract_refuses_an_anchor_that_nothing_would_alias() {
     let ws = workspace(&[("values.yaml", "a: hello\nb: world\n")]);
     let path = ws.path("values.yaml");
 
-    let plan_out = extract::variable(&ws.index, &path, Span::new(3, 8), "greeting", false).unwrap();
-    assert_eq!(plan_out.occurrences, 1);
+    let err = extract::variable(&ws.index, &path, Span::new(3, 8), "greeting", false)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("written once"), "got: {err}");
+}
+
+#[test]
+fn yaml_extract_of_a_repeated_value_asks_for_all() {
+    let ws = workspace(&[("values.yaml", "a: hello\nb: hello\n")]);
+    let path = ws.path("values.yaml");
+
+    let err = extract::variable(&ws.index, &path, Span::new(3, 8), "greeting", false)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("--all"), "got: {err}");
+    assert!(err.contains("1 other"), "got: {err}");
+
+    let plan_out = extract::variable(&ws.index, &path, Span::new(3, 8), "greeting", true).unwrap();
     assert_eq!(
         applied(&plan_out.edits, &path),
-        "a: &greeting hello\nb: world\n"
+        "a: &greeting hello\nb: *greeting\n"
     );
     must_reparse(&plan_out.edits);
 }

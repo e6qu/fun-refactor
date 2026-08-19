@@ -49,11 +49,17 @@
 ; block types — is a Block. `output` is deliberately here and not a Variable: an
 ; output is not substituted into expressions in its own module, it is a boundary
 ; declaration consumed as `module.<name>.<output>` from outside.
+;
+; The block-type keyword qualifies the label, exactly as `resource "type" "name"`
+; is qualified by its type below. That keyword is what separates an `output` from
+; a `provider` of the same name, and every command that has to know one from the
+; other reads it here instead of re-reading the source: resolution of
+; `module.<name>.<output>`, the entry-point catalogue, and the value tracer.
 (block
-  . (identifier) @_kw
+  . (identifier) @container.name
   . (string_lit (template_literal) @name)
   . (block_start)
-  (#not-any-of? @_kw "variable" "module")) @definition.block
+  (#not-any-of? @container.name "variable" "module")) @definition.block @container
 
 ; Two labels: `resource "type" "name"` and `data "type" "name"`. The Terraform
 ; address is `type.name`, and a query cannot synthesise a compound name, so the

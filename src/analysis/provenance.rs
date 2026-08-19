@@ -817,13 +817,17 @@ struct ModuleCall {
 /// Terraform's reserved evaluation-context namespaces: values the engine supplies.
 const HCL_CONTEXT_NAMESPACES: &[&str] = &["each", "count", "self", "path", "terraform"];
 
+/// The block-type keyword decides the role, and extraction records it as the
+/// symbol's qualifier. This reads the recorded fact. Re-sniffing the source here
+/// let this answer and the index's resolution of `module.<label>.<output>` disagree
+/// about which declarations are outputs.
 fn hcl_role(sym: &Symbol, source: &str) -> HclRole {
     let head = sym.full_span.text(source);
     match sym.kind {
         SymbolKind::Module => HclRole::Module,
         SymbolKind::Variable if head.starts_with("variable") => HclRole::InputVariable,
         SymbolKind::Variable => HclRole::Local,
-        _ if head.starts_with("output") => HclRole::Output,
+        _ if sym.qualifier.as_deref() == Some("output") => HclRole::Output,
         _ => HclRole::Block,
     }
 }
@@ -2507,6 +2511,28 @@ impl Ctx<'_> {
 
         self.helm_values_competition(sym, depth)?;
 
+        // A key another manifest reads by name has resolved references, and the
+        // index holds them. `configMapKeyRef` brought this here. The answer used
+        // to declare that nothing consumed the key, while `fr usages` listed the
+        // container reading it.
+        let named_readers: Vec<(PathBuf, Span)> = self
+            .index
+            .references_to(sym.id)
+            .into_iter()
+            .map(|r| (r.file.clone(), r.span))
+            .collect();
+        for (file, span) in &named_readers {
+            let text = self.source(file)?;
+            let index = LineIndex::new(&text);
+            let line = index.line_col(span.start, &text).line;
+            let line_text = index
+                .line_span(line)
+                .map(|s| s.text(&text).trim().to_string())
+                .unwrap_or_default();
+            let hop = self.hop(None, EdgeKind::Use, line_text, file, *span, depth + 1)?;
+            self.push_hop(hop);
+        }
+
         // Templates read values through masked actions; the link is textual.
         let (chart, path) = match chart_root(&sym.file) {
             Some(chart) => {
@@ -2515,13 +2541,17 @@ impl Ctx<'_> {
                 (owner, local)
             }
             None => {
-                self.stop(
-                    depth,
-                    StopReason::Origin(format!(
-                        "{} is not part of a chart; nothing in the workspace consumes it",
-                        short(&sym.file)
-                    )),
-                );
+                if named_readers.is_empty() {
+                    self.stop(
+                        depth,
+                        StopReason::Origin(format!(
+                            "{} is not part of a chart, and nothing in the workspace \
+                             resolves to this key. A consumer naming it in a form this \
+                             tool does not model would not appear here.",
+                            short(&sym.file)
+                        )),
+                    );
+                }
                 return Ok(());
             }
         };
@@ -2590,7 +2620,7 @@ impl Ctx<'_> {
                         self.stop(
                             depth + 2,
                             StopReason::Origin(format!(
-                                "{dotted} is read by template {name:?}, which nothing in the chart includes"
+                                "{dotted} is read by template {name:?}, which nothing in the chart includes."
                             )),
                         );
                     }
@@ -2627,16 +2657,13 @@ fn has_chart_yaml(dir: &Path) -> bool {
     crate::vfs::exists(dir.join("Chart.yaml")) || crate::vfs::exists(dir.join("chart.yaml"))
 }
 
-/// The nearest ancestor directory holding a `Chart.yaml`.
+/// The chart directory this file belongs to.
+///
+/// One authority, [`crate::lang::chart_root`], which also answers for a chart with no
+/// `Chart.yaml` in it. The copy here found no boundary for one, so a template's
+/// values file was invisible while the language layer had already called it Helm.
 fn chart_root(file: &Path) -> Option<PathBuf> {
-    let mut dir = file.parent();
-    while let Some(current) = dir {
-        if has_chart_yaml(current) {
-            return Some(current.to_path_buf());
-        }
-        dir = current.parent();
-    }
-    None
+    crate::lang::chart_root(file).map(Path::to_path_buf)
 }
 
 /// A chart and each chart that encloses it, with the key path as addressed at that

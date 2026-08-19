@@ -267,6 +267,65 @@ fn is_helm_path(path: &Path) -> bool {
         .components()
         .any(|c| c.as_os_str().to_str().is_some_and(|s| s == "charts"))
         || has_sibling_chart_yaml(path)
+        || writes_template_actions(path)
+}
+
+/// A file under `templates/` written in Go template syntax, with no `Chart.yaml`
+/// above it.
+///
+/// `{{ .Values.x }}` is not valid YAML, so reading such a file as YAML loses every
+/// value it names. `fr stitch` then began the chain at the manifest and looked
+/// complete. The values file feeding it went missing and unmentioned. The layout and
+/// the syntax together say chart, whether or not somebody wrote the metadata.
+fn writes_template_actions(path: &Path) -> bool {
+    if !under_templates_directory(path) {
+        return false;
+    }
+    crate::vfs::read_to_string(path).is_ok_and(|text| holds_template_action(&text))
+}
+
+/// Is any ancestor directory named `templates`?
+fn under_templates_directory(path: &Path) -> bool {
+    let mut dir = path.parent();
+    while let Some(here) = dir {
+        if here
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.eq_ignore_ascii_case("templates"))
+        {
+            return true;
+        }
+        dir = here.parent();
+    }
+    false
+}
+
+/// Does this text hold a Go template action, the syntax Helm charts are written in?
+///
+/// An action opens `{{`, closes `}}`, and starts with a field path or one of the
+/// keywords the template language defines. A YAML string holding a bare `{{` is not
+/// one, and `{{ }}` with anything else inside belongs to some other templating tool.
+fn holds_template_action(text: &str) -> bool {
+    const KEYWORDS: &[&str] = &[
+        "include", "if", "range", "with", "template", "define", "end", "else", "toYaml", "printf",
+        "quote", "required", "tpl", "default", "nindent", "indent",
+    ];
+    let mut rest = text;
+    while let Some(start) = rest.find("{{") {
+        let after = &rest[start + 2..];
+        let Some(end) = after.find("}}") else {
+            return false;
+        };
+        let action = after[..end].trim().trim_start_matches('-').trim_start();
+        if action.starts_with('.')
+            || action.starts_with('$')
+            || KEYWORDS.iter().any(|word| action.starts_with(word))
+        {
+            return true;
+        }
+        rest = &after[end + 2..];
+    }
+    false
 }
 
 /// The chart directory a Helm file belongs to: the nearest ancestor with a Chart.yaml.
@@ -280,6 +339,20 @@ pub fn chart_root(path: &Path) -> Option<&Path> {
     while let Some(d) = dir {
         if crate::vfs::exists(d.join("Chart.yaml")) || crate::vfs::exists(d.join("chart.yaml")) {
             return Some(d);
+        }
+        dir = d.parent();
+    }
+    // No metadata anywhere above. The layout still says where the boundary is: a
+    // chart is the directory holding `templates/`, and its values file sits beside
+    // that directory. Without this the chain from a values key to the code reading
+    // it began at the manifest, missing its first hop and looking whole.
+    let mut dir = path.parent();
+    while let Some(d) = dir {
+        if d.file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.eq_ignore_ascii_case("templates"))
+        {
+            return d.parent();
         }
         dir = d.parent();
     }
@@ -465,10 +538,34 @@ mod tests {
         let template = chart_root.join("templates/deployment.yaml");
         assert_eq!(detect(&template), Some(Language::Helm));
 
-        // Same layout without a Chart.yaml is just YAML.
+        // Same layout, no Chart.yaml and no template action: plain YAML.
         let other = tmp.path().join("other/templates/thing.yaml");
         std::fs::create_dir_all(other.parent().unwrap()).unwrap();
+        crate::vfs::write(&other, "kind: Service\n").unwrap();
         assert_eq!(detect(&other), Some(Language::Yaml));
+    }
+
+    #[test]
+    fn a_templates_file_writing_actions_is_helm_without_chart_metadata() {
+        // `{{ .Values.x }}` is not valid YAML. Reading such a file as YAML lost every
+        // value it named. So `fr stitch` began the chain at the manifest and looked
+        // whole, and the values file feeding it went unmentioned.
+        let tmp = tempfile::tempdir().unwrap();
+        let chart = tmp.path().join("svc/chart");
+        std::fs::create_dir_all(chart.join("templates")).unwrap();
+        crate::vfs::write(chart.join("values.yaml"), "logLevel: info\n").unwrap();
+
+        let template = chart.join("templates/deployment.yaml");
+        crate::vfs::write(&template, "env:\n  - value: {{ .Values.logLevel }}\n").unwrap();
+        assert_eq!(detect(&template), Some(Language::Helm));
+
+        // The chart boundary is the directory holding `templates/`.
+        assert_eq!(chart_root(&template), Some(chart.as_path()));
+
+        // A brace that opens no action leaves the file as YAML.
+        let plain = chart.join("templates/plain.yaml");
+        crate::vfs::write(&plain, "note: \"see {{ the docs\"\n").unwrap();
+        assert_eq!(detect(&plain), Some(Language::Yaml));
     }
 
     #[test]

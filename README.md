@@ -71,7 +71,7 @@ the `tsx` grammar reads `.jsx`.
 | duplicate code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | dead code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | write as another language | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a |
-| declared HTTP contract | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| declared HTTP contract | n/a | n/a | n/a | n/a | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | declared type | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 **No cell is blank for want of work.** Each one is either supported or carries the
@@ -189,7 +189,7 @@ framework, add data.
 
 Every stage of [PLAN.md](PLAN.md) is complete except the optional LSP delegation
 backend. Every capability a language can meaningfully support is built:
-**272 of 384 capability × language pairs supported, 112 not applicable, none refused.**
+**273 of 384 capability × language pairs supported, 111 not applicable, none refused.**
 The matrix above is generated, and `fr capabilities` prints the reason behind every
 cell that is not a ✓.
 

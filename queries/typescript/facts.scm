@@ -437,6 +437,14 @@
     (string (string_fragment) @reference.string))
  (#any-of? @_attr "className" "class" "id"))
 
+; `data-testid="submit-btn"` — the same string the HTML that renders this element
+; writes. Written in the same structural shape as `className` above, because the
+; JSX attribute node cannot be named here. Every site is a definition, as in HTML:
+; nothing declares a hook and then uses it.
+((_ (property_identifier) @_attr
+    (string (string_fragment) @name))
+ (#match? @_attr "^data-.")) @definition.data-attribute
+
 ; ---------------------------------------------------------------- imports
 ;
 ; One Import record per bound name, so `@import.original` always pairs with the

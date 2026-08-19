@@ -386,3 +386,72 @@ fn a_class_in_a_tsx_helper_call_is_reported_rather_than_rewritten() {
         "the helper call and the template literal are each reported: {reported:#?}"
     );
 }
+
+#[test]
+fn a_data_hook_is_one_entity_across_html_and_tsx() {
+    // `data-testid="submit-btn"` is written in the markup and in the component that
+    // renders the same element. `fr usages submit-btn` answered "no symbol named"
+    // while the string sat in both files, so a rename touched neither.
+    let (tmp, index) = workspace(&[
+        (
+            "index.html",
+            "<button class=\"btn\" data-testid=\"submit-btn\">Go</button>\n",
+        ),
+        (
+            "Button.tsx",
+            "export const Button = () => <button data-testid=\"submit-btn\">Go</button>;\n",
+        ),
+    ]);
+
+    let hooks = index.find_symbols("submit-btn", None);
+    assert_eq!(hooks.len(), 2, "one per file: {hooks:?}");
+    assert!(hooks.iter().all(|s| s.kind == SymbolKind::DataAttribute));
+    assert!(
+        index.is_one_entity(&hooks),
+        "neither site declares the hook for the other"
+    );
+
+    let plan = rename::plan(&index, hooks[0].id, "go-btn").expect("the rename plans");
+    assert_eq!(
+        rendered(&plan, &tmp.path().join("index.html")),
+        "<button class=\"btn\" data-testid=\"go-btn\">Go</button>\n"
+    );
+    assert_eq!(
+        rendered(&plan, &tmp.path().join("Button.tsx")),
+        "export const Button = () => <button data-testid=\"go-btn\">Go</button>;\n"
+    );
+}
+
+#[test]
+fn a_class_named_in_markdown_is_reported_by_the_rename() {
+    // A style guide writes the class twice: once as prose in backticks, once in an
+    // html fence. Markdown has no string and no comment node, so the mention sweep
+    // walked past both and the rename listed neither.
+    let (_tmp, index) = workspace(&[
+        ("site.css", ".btn-primary { color: white; }\n"),
+        (
+            "STYLEGUIDE.md",
+            "# Style guide\n\nUse `.btn-primary` for the main action.\n\n\
+             ```html\n<button class=\"btn-primary\">Go</button>\n```\n",
+        ),
+    ]);
+
+    let selector = index
+        .find_symbols("btn-primary", None)
+        .into_iter()
+        .find(|s| s.kind == SymbolKind::Selector)
+        .expect("the CSS class is a symbol")
+        .id;
+    let plan = rename::plan(&index, selector, "btn-cta").expect("the rename plans");
+
+    let reported: Vec<_> = plan
+        .warnings
+        .iter()
+        .filter(|w| w.file.extension().is_some_and(|e| e == "md"))
+        .collect();
+    assert_eq!(
+        reported.len(),
+        2,
+        "the prose mention and the fenced one: {reported:#?}"
+    );
+}

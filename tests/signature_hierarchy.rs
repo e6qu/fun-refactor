@@ -191,3 +191,58 @@ fn a_body_that_reads_the_parameter_still_refuses() {
         "the body is the one place a removal cannot repair: {err}"
     );
 }
+
+#[test]
+fn adding_a_parameter_twice_is_refused() {
+    // The grammar parses `def scale(v, factor, factor)` and Python refuses it
+    // at import. Every other operation declines a repeat; this one applied it
+    // again, so a retried command broke the file it had just changed.
+    let source = "def scale(v: int) -> int:\n    return v\n\n\nprint(scale(3))\n";
+    let (tmp, index) = workspace(&[("m.py", source)]);
+    let _ = &tmp;
+    let id = method_at(&index, source, "def scale");
+    let change = signature::Change::Add {
+        at: 1,
+        declaration: "factor: int".to_string(),
+        argument: "2".to_string(),
+    };
+    signature::change(&index, id, change.clone()).expect("the first add");
+
+    let already = "def scale(v: int, factor: int) -> int:\n    return v\n\n\nprint(scale(3, 2))\n";
+    let (tmp2, index2) = workspace(&[("m.py", already)]);
+    let _ = &tmp2;
+    let id2 = method_at(&index2, already, "def scale");
+    let err = signature::change(&index2, id2, change)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("already has a parameter called `factor`"),
+        "the refusal names it: {err}"
+    );
+}
+
+#[test]
+fn a_go_parameter_is_named_by_its_first_word() {
+    // Go writes `name type` and Java writes `type name`. Reading the wrong end
+    // answered `float64` when asked what `price float64` is called.
+    let source = "package main\n\nfunc WithTax(price float64, rate float64) float64 {\n\t\
+        return price\n}\n";
+    let (tmp, index) = workspace(&[("m.go", source)]);
+    let _ = &tmp;
+    let id = method_at(&index, source, "func WithTax");
+    let err = signature::change(
+        &index,
+        id,
+        signature::Change::Add {
+            at: 2,
+            declaration: "rate float64".to_string(),
+            argument: "0.2".to_string(),
+        },
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        err.contains("called `rate`"),
+        "the name, not the type: {err}"
+    );
+}

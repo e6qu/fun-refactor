@@ -118,6 +118,66 @@ pub struct SignaturePlan {
 /// body still reads $2, the parameter being removed". It was never true of anything else, which
 /// is the shape most of the defects in this tool have had. A rule that holds for the language
 /// it was written against.
+/// Refuse to add a parameter the declaration already has.
+///
+/// Running the same `add:` twice wrote `def scale(v, factor, factor)`, which
+/// the grammar parses and Python refuses at import. Every other operation here
+/// declines a repeat: a rename to an existing name, a delete of what is gone.
+/// This one applied it again, so a retried command or a re-run recipe broke
+/// the file it had just changed.
+fn already_declared(
+    source: &str,
+    items: &[Span],
+    change: &Change,
+    language: Language,
+) -> Result<()> {
+    let Change::Add { declaration, .. } = change else {
+        return Ok(());
+    };
+    let Some(name) = parameter_name(declaration, language) else {
+        return Ok(());
+    };
+    let taken = items
+        .iter()
+        .filter_map(|span| source.get(span.start..span.end))
+        .filter_map(|text| parameter_name(text, language))
+        .any(|existing| existing == name);
+    if taken {
+        anyhow::bail!(
+            "this declaration already has a parameter called `{name}`; adding it \
+             again would name one thing twice"
+        );
+    }
+    Ok(())
+}
+
+/// The name a parameter's text declares, whatever else it carries.
+///
+/// Which word is the name depends on the language, and reading the wrong one
+/// answered `float64` when asked what Go's `price float64` is called.
+fn parameter_name(text: &str, language: Language) -> Option<String> {
+    let head = text.split('=').next()?.trim();
+    if head.is_empty() {
+        return None;
+    }
+    let name = match language {
+        // `name: type`, and the type may itself contain spaces.
+        Language::Python
+        | Language::TypeScript
+        | Language::Tsx
+        | Language::Rust
+        | Language::Zig
+        | Language::Scss => head.split(':').next()?.trim(),
+        // `name type`.
+        Language::Go => head.split_whitespace().next()?,
+        // `type name`, modifiers and annotations ahead of both.
+        Language::Java => head.split_whitespace().last()?,
+        _ => head,
+    };
+    let name = name.trim_start_matches(['*', '&', '$']).trim();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
 fn still_read(
     index: &Index,
     sym: &crate::model::Symbol,
@@ -146,15 +206,49 @@ fn still_read(
         .filter(|r| r.file == sym.file && sym.full_span.contains(r.span))
         .collect();
     if let Some(first) = uses.first() {
-        anyhow::bail!(
-            "the body of `{}` still reads `{}` at {}; removing the parameter would leave \
-             a name nothing supplies",
-            sym.name,
-            parameter.name,
-            location(&first.file, first.span.start)
-        );
+        return Err(still_used(
+            format!(
+                "the body of `{}` still reads `{}` at {}; removing the parameter would \
+                 leave a name nothing supplies",
+                sym.name,
+                parameter.name,
+                location(&first.file, first.span.start)
+            ),
+            uses.iter().map(|r| refusal_site(&r.file, r.span.start)),
+        ));
     }
     Ok(())
+}
+
+/// A considered refusal that names the uses a change would strand.
+///
+/// The type `fr delete` raises, and the exit code is chosen from the error's type.
+/// `fr --help` promises 5 for a refusal. Every one of these printed 1, the code for
+/// a crash, under a message that had thought behind it.
+fn still_used(
+    detail: String,
+    sites: impl Iterator<Item = crate::refactor::RefusalSite>,
+) -> anyhow::Error {
+    crate::refactor::Refusal::StillUsed {
+        detail,
+        references: sites.collect(),
+    }
+    .into()
+}
+
+/// A position, for the data that rides beside a refusal's prose.
+fn refusal_site(path: &Path, offset: usize) -> crate::refactor::RefusalSite {
+    let (line, col) = crate::vfs::read_to_string(path)
+        .map(|source| {
+            let at = LineIndex::new(&source).line_col(offset, &source);
+            (at.line, at.col)
+        })
+        .unwrap_or((0, 0));
+    crate::refactor::RefusalSite {
+        file: path.to_path_buf(),
+        line,
+        col,
+    }
 }
 
 /// Apply `change` to `symbol` and every call site.
@@ -235,6 +329,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             Some(params) => {
                 let param_spans = without_receiver(m.language, m.kind, &source, list_items(params));
                 still_read(index, m, &param_spans, &change)?;
+                already_declared(&source, &param_spans, &change, m.language)?;
                 apply_change(
                     &mut edits,
                     &Site {
@@ -248,7 +343,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     true,
                     None,
                 )?;
-                removing = removed_parameter_name(&source, &param_spans, &change);
+                removing = removed_parameter_name(&source, &param_spans, &change, m.language);
             }
             // A declaration can legitimately have no parameter list to change: SCSS
             // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
@@ -524,14 +619,17 @@ struct Site<'a> {
 ///
 /// A call site passing arguments by name needs it: position tells it nothing
 /// about which argument is going.
-fn removed_parameter_name(source: &str, items: &[Span], change: &Change) -> Option<String> {
+fn removed_parameter_name(
+    source: &str,
+    items: &[Span],
+    change: &Change,
+    language: Language,
+) -> Option<String> {
     let Change::Remove(at) = change else {
         return None;
     };
     let text = source.get(items.get(*at)?.start..items.get(*at)?.end)?;
-    let head = text.split(['=', ':']).next()?.trim();
-    let name = head.rsplit([' ', '*', '&']).next()?.trim();
-    (!name.is_empty()).then(|| name.to_string())
+    parameter_name(text, language)
 }
 
 fn apply_change(
@@ -1014,11 +1112,14 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
             Change::Remove(at) => {
                 let gone = at + 1;
                 if reference.number == gone {
-                    anyhow::bail!(
-                        "the body of `{}` still reads ${gone}, the parameter being removed; \
-                         nothing would supply it afterwards",
-                        sym.name
-                    );
+                    return Err(still_used(
+                        format!(
+                            "the body of `{}` still reads ${gone}, the parameter being \
+                             removed; nothing would supply it afterwards",
+                            sym.name
+                        ),
+                        std::iter::once(refusal_site(&sym.file, reference.span.start)),
+                    ));
                 }
                 if reference.number > gone {
                     reference.number - 1
@@ -1783,13 +1884,16 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                     .map(|r| location(&r.file, r.span.start))
                     .collect::<Vec<_>>()
                     .join(", ");
-                anyhow::bail!(
-                    "`{}` is still read {} time(s) inside the module ({where_}); removing \
-                     it would leave those `var.{}` references dangling",
-                    target.name,
-                    uses.len(),
-                    target.name
-                );
+                return Err(still_used(
+                    format!(
+                        "`{}` is still read {} time(s) inside the module ({where_}); \
+                         removing it would leave those `var.{}` references dangling",
+                        target.name,
+                        uses.len(),
+                        target.name
+                    ),
+                    uses.iter().map(|r| refusal_site(&r.file, r.span.start)),
+                ));
             }
 
             let source = crate::vfs::read_to_string(&target.file)?;

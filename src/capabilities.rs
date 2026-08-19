@@ -263,7 +263,15 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         C::Restructure => Support::Yes,
 
-        C::CallGraph | C::Flow => {
+        // SCSS gets its own reason. `fr symbols` prints a mixin as a function, and
+        // `fr usages` lists every `@include` of it. So "this language has no
+        // functions" is untrue of what the tool has just described.
+        C::CallGraph if language == Language::Scss => Support::NotApplicable {
+            because: "a mixin is expanded where it is written, so a stylesheet holds no \
+                      call for a graph to walk; `fr usages` lists every `@include`",
+        },
+
+        C::CallGraph => {
             if imperative {
                 Support::Yes
             } else {
@@ -272,6 +280,33 @@ pub fn support(capability: Capability, language: Language) -> Support {
                     NO_CALLABLES,
                     "inlining a call here means substituting a body written with types \
                      this tool does not track",
+                )
+            }
+        }
+
+        // `fr flow` shared an arm with the call graph. So the row told a
+        // reader that a Terraform variable cannot be traced "because this
+        // language has no functions". The verdict was right and the reason was
+        // not: dataflow needs execution, and these are evaluated by
+        // substitution.
+        // The same command answers for them under provenance, which is the row
+        // to read, and the reason now says so.
+        C::Flow => {
+            if imperative {
+                Support::Yes
+            } else if crate::analysis::provenance::supports_provenance(language) {
+                Support::NotApplicable {
+                    because: "this language is evaluated by substitution rather than \
+                              executed, so `fr flow` traces its provenance instead; see \
+                              that row",
+                }
+            } else {
+                absent(
+                    language,
+                    "a value here is written where it is used, so there is no chain \
+                     to follow",
+                    "following a value here means reading a call graph this tool does \
+                     not build for it",
                 )
             }
         }
@@ -442,11 +477,15 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         // The contract lives in the *tree*, a Next.js route's URL is where its file sits, so
         // this is a question about one framework and not one language.
+        // Two route shapes reach this, not one: a Next.js route tree written in
+        // TypeScript, and a FastAPI router written in Python. The row named
+        // only the first, so the matrix denied a capability the binary ships
+        // and exercises. That is the one thing the matrix exists to prevent.
         C::Openapi => match language {
-            Language::TypeScript | Language::Tsx => Support::Yes,
+            Language::TypeScript | Language::Tsx | Language::Python => Support::Yes,
             _ => Support::NotApplicable {
-                because: "this derives an OpenAPI document from a Next.js route tree, \
-                          and a route file is TypeScript",
+                because: "this reads a route tree, and the ones it knows are a Next.js \
+                          tree in TypeScript and a FastAPI router in Python",
             },
         },
 

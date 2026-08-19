@@ -175,6 +175,170 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B578: **a stalled install hung the gate.** The step installing Zig,
+  Terraform and Helm reaches hosts nobody here controls. `apt` reaches a
+  mirror. None of it set a deadline, so both check jobs sat in that step for
+  an hour, runners idle and the log silent. Each fetch has a deadline and
+  three retries now, and so does `apt`. The step and the jobs are bounded.
+  A gate that cannot finish has to say so rather than wait until GitHub's own
+  six-hour limit. One slow host left both
+  check jobs in that step for forty-five minutes, runners idle and the log
+  silent. Every fetch has a connect timeout, a deadline and three retries now.
+  One that cannot finish says which host it waited for.
+
+- [x] B581: **`fr delete` removed a Terraform module output that a caller still
+  read.** `terraform validate` failed on the result. The refusal was already there
+  for Helm values and CSS classes, and it reads the index. Nothing in the index
+  said `module.net.subnet_id` reached that output, so there was nothing to refuse
+  over. B580 put the edge in, and this refusal came with it. Pinned in
+  `tests/namespaces.rs`.
+
+- [x] B580: **`fr usages`, `fr refs` and `fr impact` omitted an edge `fr flow`
+  reported.** A caller reads `module.net.subnet_id`. That counted as zero uses of
+  the module's `output "subnet_id"`. `fr flow back` named the same read, from its
+  own traversal code. Two things were missing from the facts. The
+  third segment of the traversal recorded `module` as its receiver, which lost
+  the module call the second segment names. And no symbol said which block-type
+  keyword declared it, so an `output "x"` and a `provider "x"` beside it were the
+  same thing to resolution. The keyword is now the symbol's qualifier, written
+  once at extraction, and `Index::resolve_module_surface` resolves both halves of
+  a module's call surface. `fr rename` rewrites the caller, and `hcl_role` reads
+  the recorded keyword instead of re-reading the file. Pinned in
+  `tests/namespaces.rs`.
+
+- [x] B610: **`fr stitch` truncated a chain silently.** A chart with no
+  `Chart.yaml` had its `templates/deployment.yaml` read as plain YAML. So the
+  chain began at the manifest and looked whole. The values file feeding it went
+  missing and unmentioned. A `templates/` file writing
+  template actions is a chart template now, and the directory holding
+  `templates/` is the chart boundary. Pinned in `tests/stitch_languages.rs`.
+
+- [x] B609: **Markdown was invisible to the mention sweep.** The sweep looks for
+  a string node or a comment node, and Markdown has neither. So a style guide
+  writing `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html
+  fence, was walked past twice. `fr rename` rewrote the CSS, the HTML and the
+  TSX, and listed neither Markdown site. A paragraph and a fence body count as
+  text now. So `fr rename`, `fr delete`, `fr usages` and the flag cascade all
+  report them. Pinned in `tests/cross_language.rs`.
+
+- [x] B608: **a name nothing declares was reported as a typo.** `<a
+  href="#section-two">` with no element carrying that id got "no symbol named
+  'section-two'". The sites that write the name now ride with the message, so a
+  link into nothing is visible from any command that takes a name.
+
+- [x] B607: **HTML modelling stopped at element ids.** A hook like
+  `data-testid="submit-btn"` is written twice. Once in the markup, once in the
+  TSX that renders the same element. `fr usages submit-btn` answered "no symbol
+  named" to it. A `data-*` value is a
+  symbol now, of its own kind, with every site equal, as a CSS class is. So a
+  rename of a test hook rewrites both files. Pinned in `tests/facts_html.rs`
+  and `tests/cross_language.rs`.
+
+- [x] B606: **a resolved call at file scope counted as unresolved.** A shell
+  script's `deploy_app "prod"` sits outside any function. So the graph has no
+  node for the caller. The callee resolved all the same. `fr graph`
+  counted it under "unresolved calls", which said the tool could not resolve
+  what `fr usages` resolved. These have their own count now, `file-scope
+  calls`, in the summary and in the JSON. Pinned in `tests/graph_export.rs`.
+
+- [x] B605: **`fr callers` answered nothing where it knows nothing.** SCSS has
+  no call graph in the matrix. The command printed the name and exited
+  0. A reader takes that for "nothing calls this" while `fr usages` lists two
+  `@include` sites. It refuses now, with a reason that fits SCSS: the old one
+  said the language has no functions, and `fr symbols` prints one. `fr graph`
+  keeps its filter behaviour, since a whole-workspace answer covers many
+  languages. Pinned in `tests/graph_export.rs`.
+
+- [x] B604: **`fr signature` refusals exited 1.** `fr --help` promises 5 for a
+  refactoring that refused to proceed. Three sites raised a considered refusal
+  as a plain error. An HCL variable the module still reads, an SCSS mixin
+  parameter its body still reads, and a shell positional. The exit code is
+  chosen from the error's type, so each now raises the `Refusal::StillUsed`
+  that `fr delete` raises. Pinned in `tests/cli.rs`.
+
+- [x] B603: **`fr remove-flag` wrote `Flags.true`.** A use written as a member,
+  `Flags.SHINY`, had its name replaced and its qualifier left standing. Java,
+  Go, Python and TypeScript all read a constant that way. The reparse gate let
+  it through, and `--write` put it on disk. The literal now stands for the
+  whole qualified name. An import is left alone, since a later round drops it.
+  Pinned in `tests/remove_flag_sweep.rs`.
+
+- [x] B602: **`fr remove-flag` refused the name `fr symbols` prints.**
+  `featureFlags::newCheckout` got "no symbol named" and exit 3. The bare leaf
+  reached the right refusal and exit 5. `fr usages` and `fr delete` took the
+  qualified spelling all along. One lookup, `Index::symbols_written`, now
+  serves every command that takes a name. Pinned in
+  `tests/remove_flag_sweep.rs`.
+
+- [x] B601: **`fr extract` on YAML reported a replacement it never made.**
+  Without `--all` it wrote the anchor `&g` and counted one replacement. Every
+  occurrence stayed spelled out and nothing named the anchor. An anchor binds a
+  name and an alias spends it, so the pair is the whole edit. A single-site
+  extraction now refuses, and says how many other occurrences `--all` would
+  alias. Pinned in `tests/config_extract_inline.rs`.
+
+- [x] B600: **`fr move` took link definitions away.** They serve a whole
+  Markdown document. A definition like `[api]: ./a.md` sits at the end of a
+  file, under the last section. Moving that section carried the definition off,
+  so reference links left behind resolved to nothing. The report said nothing
+  about it. A definition now stays where it is, and the section is taken around
+  it. Where the moved text uses one, a copy goes with it and a warning names
+  the copy. Pinned in `tests/move_languages.rs`.
+
+- [x] B576: **a repeated `signature add:` named one thing twice.** The grammar
+  parses `def scale(v, factor, factor)`, so the syntax gate passed it. Python
+  refused the file. Go answered `rate redeclared in
+  this block`. Every other operation declines a repeat, so a retried command or
+  a re-run recipe broke what it had just changed. A declaration that already
+  has the name refuses. Pinned in `tests/signature_hierarchy.rs`.
+
+- [x] B577: **a parameter's name was read from the wrong end.** Go writes
+  `name type` and Java writes `type name`. One rule read both, so Go's `price
+  float64` came back as a parameter called `float64`. Each
+  language is read the way it writes. Pinned in
+  `tests/signature_hierarchy.rs`.
+
+- [x] B574: **every `--write` reset the file's mode to 0600.** A commit stages
+  beside the target and renames over it. The target inherited the private mode
+  a temporary file is given. An executable script stopped being executable, a
+  git hook stopped running, and a file the group could read became one only
+  its owner can. A repository-wide rename re-permissioned the
+  repository. The staged file takes the mode of the file it replaces. Pinned
+  in `src/edit.rs` tests.
+
+- [x] B575: **a first import landed above the docstring and the shebang.** With
+  no imports to sit after, the insertion point was byte zero. That is above
+  everything. A `#!` line moved to line two, so the script stopped running, and
+  a module docstring became an expression nobody reads, so `__doc__` was
+  `None`. The insertion point is after the file's prologue now. Pinned in
+  `tests/move_imports.rs`.
+
+- [x] B572: **every element id was reported as an HTTP route.** A rule matches
+  a symbol, and HTML declares only element ids. So a page-level rule fired once
+  per id. One page with two `<div id>` reported
+  two routes, and a page with no ids reported nothing. An id is not a route.
+  What an element genuinely offers the outside, a mount point or a form target,
+  is still reported as what it is. Pinned in `tests/entrypoints_conventions.rs`.
+
+- [x] B573: **a typed path parameter reached the contract as a string.**
+  `def h(i: int)` under `@app.get("/x/{i}")` produced `{"type": "string"}`,
+  disagreeing with the document FastAPI generates for itself, under a
+  description claiming the schemas are as good as what the source declared.
+  The annotation decides now. Pinned in `tests/nextjs.rs`.
+
+- [x] B570: **the capability matrix denied a capability the binary ships.**
+  `fr openapi` reads a FastAPI router and writes a document. The row called
+  Python not applicable, "because this derives an OpenAPI document from a
+  Next.js route tree". Two route shapes reach that command, not one. The row
+  names both now, and the claims test proves the cell by running it.
+
+- [x] B571: **the `flow` row answered a dataflow question with a call-graph
+  reason.** CSS, SCSS, HCL, YAML and Helm were marked not applicable "because
+  this language has no functions, so there is nothing to call", on a command
+  that traces values through all five. The verdict was right and the reason was
+  not. `fr flow` follows provenance for a language evaluated by substitution.
+  That is its own row, and the reason says so and points there.
+
 - [x] B549: **removing a parameter took the wrong argument.** A call passing
   arguments by name resolves them to the parameter. So a keyword three files
   away was reported as "the body of `greet` still reads `punct`", with the

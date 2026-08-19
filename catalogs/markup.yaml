@@ -1,14 +1,12 @@
 # HTML and XML entry points. For markup an "entry point" is a document a browser,
 # build tool or parser is pointed at directly, or an element that receives input
 # from outside — the markup equivalent of a handler.
-- id: html-page
-  kind: http-route
-  threat_model: remote
-  languages: [html]
-  matches:
-    file_name: index.html
-    symbol_kind: element-id
-
+#
+# A rule here matches a symbol, and the only symbols HTML declares are element
+# ids. A rule for the page itself therefore fired once per id: `index.html` with
+# two `<div id>` reported two HTTP routes for one page, and a page with no ids
+# reported none. An id is not a route, so that rule is gone. What an element
+# genuinely offers the outside — a mount point, a form target — is below.
 - id: html-form-target
   kind: http-route
   threat_model: remote

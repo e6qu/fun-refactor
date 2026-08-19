@@ -12,7 +12,11 @@ use std::path::PathBuf;
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
     let tmp = tempfile::tempdir().expect("a temporary directory");
     for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).expect("writing the file");
+        let path = tmp.path().join(name);
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir).expect("the directory");
+        }
+        std::fs::write(&path, content).expect("writing the file");
     }
     let root = tmp.path().to_path_buf();
     (tmp, root)
@@ -153,5 +157,52 @@ fn an_aliased_import_repoints_and_keeps_its_alias() {
     assert!(
         !importer.contains("from \"./a\""),
         "no dangling import of the gone export:\n{importer}"
+    );
+}
+
+#[test]
+fn a_first_import_goes_below_the_docstring_and_the_shebang() {
+    // Byte zero is above everything, and some things must stay first. The
+    // import demoted a `#!` line to line two, so the script stopped running.
+    // It pushed a module docstring into an expression nobody reads, so
+    // `__doc__` became `None`.
+    let (from, _to) = moved(
+        &[
+            ("pkg/__init__.py", ""),
+            (
+                "pkg/a.py",
+                "\"\"\"Module A does arithmetic.\"\"\"\n\n\ndef helper(n: int) -> int:\n    \
+                 return n * 2\n\n\ndef use(n: int) -> int:\n    return helper(n) + 1\n",
+            ),
+        ],
+        "helper",
+        "pkg/a.py",
+        "pkg/b.py",
+    );
+    assert!(
+        from.starts_with("\"\"\"Module A does arithmetic.\"\"\""),
+        "the docstring is still the first thing in the file.\n{from}"
+    );
+    assert!(
+        from.contains("from .b import helper"),
+        "and the import is there, below it.\n{from}"
+    );
+
+    let (from, _to) = moved(
+        &[
+            ("pkg/__init__.py", ""),
+            (
+                "pkg/a.py",
+                "#!/usr/bin/env python3\n\n\ndef helper(n: int) -> int:\n    return n * 2\n\n\n\
+                 def use(n: int) -> int:\n    return helper(n) + 1\n",
+            ),
+        ],
+        "helper",
+        "pkg/a.py",
+        "pkg/b.py",
+    );
+    assert!(
+        from.starts_with("#!/usr/bin/env python3"),
+        "a shebang only works on line one.\n{from}"
     );
 }

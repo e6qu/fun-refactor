@@ -443,11 +443,21 @@ fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> V
             false if annotation.starts_with(|c: char| c.is_uppercase()) => continue,
             false => "query",
         };
+        // The source annotated the parameter, and FastAPI coerces the path
+        // segment to what it says. Writing every one as a string contradicted
+        // the document's own claim about its schemas. It also disagreed with
+        // the document FastAPI generates for itself.
+        let schema = match annotation.split('=').next().unwrap_or("").trim() {
+            "int" => json!({ "type": "integer" }),
+            "float" => json!({ "type": "number" }),
+            "bool" => json!({ "type": "boolean" }),
+            _ => json!({ "type": "string" }),
+        };
         out.push(json!({
             "name": name,
             "in": where_it_comes_from,
             "required": where_it_comes_from == "path",
-            "schema": { "type": "string" }
+            "schema": schema
         }));
     }
     out

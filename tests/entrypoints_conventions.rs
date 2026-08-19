@@ -588,3 +588,29 @@ fn a_declaration_merely_starting_with_the_keyword_does_not_match() {
         "`testing` and `tested` are not test blocks: {found:?}"
     );
 }
+
+#[test]
+fn an_element_id_is_not_an_http_route() {
+    // A rule matches a symbol, and the only symbols HTML declares are element
+    // ids. A rule for the page itself fired once per id. One page with two
+    // `<div id>` reported two HTTP routes, and a page with no ids reported
+    // nothing at all.
+    let found = entry_kinds(&[(
+        "index.html",
+        "<!doctype html>\n<html>\n  <body>\n    <div id=\"mount\"></div>\n    \
+         <div id=\"second\"></div>\n  </body>\n</html>\n",
+    )]);
+    assert!(
+        !found.iter().any(|(_, kind)| *kind == EntryKind::HttpRoute),
+        "an id is not a route: {found:?}"
+    );
+}
+
+#[test]
+fn a_mount_point_is_still_the_surface_it_is() {
+    let found = entry_kinds(&[("app.html", "<div id=\"root\"></div>\n")]);
+    assert!(
+        found.contains(&("root".to_string(), EntryKind::ExportedApi)),
+        "an app's mount point is the surface the outside reaches: {found:?}"
+    );
+}

@@ -598,7 +598,7 @@ name alone.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support is built: **272 of 384 capability ×
+capability a language can meaningfully support is built: **273 of 384 capability ×
 language pairs supported, 115 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
@@ -1463,6 +1463,43 @@ imports of their translations. The seam gate holds it. Python to TypeScript
 must pass `tsc --strict` and print byte-for-byte what the source printed,
 and the reverse must do the same under python3.
 
+### The pass where the tool stopped breaking what worked
+
+A fifth probe asked what the others had not. Does a refactoring hold up when
+it is composed, repeated, or reversed? Does it leave working code working? It
+built projects whose own tests pass, ran an operation, and ran the tests
+again. Seven of its findings wrote broken code to disk and exited
+zero.
+
+The worst were not in the refactorings at all. Every write staged a file
+beside its target and renamed it over, so the target took the private mode a
+temporary file is given. An executable script stopped being executable, and a
+repository-wide rename re-permissioned the repository. A first import went in
+at byte zero, which is above everything. A shebang moved to line two, and a
+module docstring became an expression nobody reads. Both were invisible to
+the syntax gate, because both files still parse.
+
+The same shape ran through the rest. A repeated `signature add:` wrote a
+parameter list naming one thing twice. The grammar accepts that and the
+language refuses it, and every other operation here declines a repeat. A
+parameter's name was read from the wrong end of its text, so Go's `price
+float64` came back called `float64`.
+
+The reports stopped disagreeing with the facts underneath them. A Kubernetes
+`configMapKeyRef` is a reference now, so renaming a ConfigMap key rewrites
+the Deployment that reads it. `fr flow` names that consumer instead of
+declaring there is none. A Terraform module's outputs and arguments are
+references every command reads. So `fr impact` stopped missing what `fr flow`
+reports, and `fr delete` refuses an output something still uses.
+
+And the capability matrix stopped disclaiming what the binary does. It denied
+`fr openapi` for Python while reading FastAPI routers. It told a reader that a
+Terraform variable cannot be traced "because this language has no functions".
+The matrix's own claims test then refused the overcorrection, which was the
+useful part. Dataflow really does not apply where values are substituted
+rather than executed. The row says that now, and points at the provenance row
+that answers. (B570 through B610.)
+
 ### The pass where a name meant the same thing everywhere
 
 A fourth probe drove the ground the others had left. The markup and config
@@ -1572,3 +1609,26 @@ expression. A property read spells its name from the method namespace, so a
 two-word property survives the crossing. The measure: the inventory fixture
 crosses to TypeScript, compiles under `tsc --strict`, runs under node, and a
 violated assert stops it with a nonzero exit.
+
+### The pass where the seams stopped swallowing things
+
+A probe over the joints between languages found eleven, B600 through B610.
+The theme is a seam: a place where one model hands to another and something
+fell in the gap without a word.
+
+A Markdown section carried the document's link definitions off with it, so
+the links left behind resolved to nothing. A YAML anchor was written with no
+alias to spend it, and counted as a replacement. `fr remove-flag` refused the
+qualified name `fr symbols` prints, and, once it took it, wrote `Flags.true`
+over a use read through its owner. Three `fr signature` refusals printed
+under exit 1, the code for a crash.
+
+The rest are answers that read as facts and were not. `fr callers` on SCSS
+printed the name and exited 0, which a reader takes for "nothing calls this".
+A resolved call at file scope counted among the unresolved. A `data-*` hook
+shared by markup and its component was no symbol at all. A link into an id
+nothing declares had no report anywhere. Markdown was invisible to the
+mention sweep, having neither a string node nor a comment node. So a style
+guide naming a CSS class went unlisted through a rename. A chart with no
+`Chart.yaml` was read as plain YAML, and `fr stitch` began its chain one hop
+in.

@@ -110,6 +110,33 @@ fn java_removes_the_flag_and_keeps_the_live_branch() {
 }
 
 #[test]
+fn the_qualified_name_symbols_prints_selects_the_flag() {
+    // `fr symbols` writes `Flags::SHINY`, and `fr remove-flag` answered "no symbol
+    // named" to it while `fr usages` and `fr delete` took it.
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        tmp.path().join("Flags.java"),
+        "class Flags {\n  static final boolean SHINY = true;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        tmp.path().join("App.java"),
+        "class App {\n  int greet() {\n    if (Flags.SHINY) {\n      return 2;\n    }\n    \
+         return 1;\n  }\n}\n",
+    )
+    .unwrap();
+
+    let (text, ok) = run(tmp.path(), &["remove-flag", "Flags::SHINY", "--write"]);
+    assert!(ok, "{text}");
+
+    // The qualifier and the name together read the value, so both go. Replacing the
+    // name alone wrote `if (Flags.true)`.
+    let after = std::fs::read_to_string(tmp.path().join("App.java")).unwrap();
+    assert!(!after.contains("Flags."), "got:\n{after}");
+    assert!(after.contains("return 2"), "got:\n{after}");
+}
+
+#[test]
 fn bash_removes_the_flag_and_keeps_the_live_branch() {
     swept(
         "a.sh",
