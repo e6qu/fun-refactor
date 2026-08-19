@@ -175,6 +175,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B640: **a file that did not parse was invisible where it mattered.**
+  `fr parse` and `fr duplicates` named it. So did `fr rename` and `fr extract`.
+  `fr symbols`, `fr usages`, `fr unused` and `fr graph` said nothing. `fr unused`
+  was the dangerous one. It listed deletion candidates read out of a file the
+  grammar only half understood. A user acting on that deletes live code. The
+  index already knew which files carried `FactGap::SyntaxErrors`.
+  `Index::unparsed` hands them to the choke point that warns about a file skipped
+  for its size. So every command that indexes says what it could not read. It
+  says it on stderr, and as `unparsed_files` in its JSON. Pinned in
+  `tests/json_surface.rs`.
+
 - [x] B578: **a stalled install hung the gate.** The step installing Zig,
   Terraform and Helm reaches hosts nobody here controls. `apt` reaches a
   mirror. None of it set a deadline, so both check jobs sat in that step for

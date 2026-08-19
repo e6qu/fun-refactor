@@ -407,6 +407,72 @@ fn a_file_skipped_for_size_rides_in_every_answer_it_could_falsify() {
     );
 }
 
+#[test]
+fn a_file_that_did_not_parse_rides_in_every_answer_it_could_falsify() {
+    // `fr parse` reported the broken file and the commands people act on did
+    // not. `fr unused` is the sharp one: it listed deletion candidates read
+    // out of a file whose text it only half understood.
+    let tmp = workspace(&[
+        ("a.py", "def helper():\n    return 1\n"),
+        ("broken.py", "def caller(:\n    return helper()\n"),
+    ]);
+
+    let (printed, _, ok) = run_json(&tmp, &["unused", "--json"]);
+    assert!(ok, "{printed}");
+    let unparsed = printed["unparsed_files"]
+        .as_array()
+        .expect("an unparsed list");
+    assert_eq!(unparsed.len(), 1, "got {printed}");
+    assert!(
+        unparsed[0]["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("broken.py")),
+        "got {unparsed:?}"
+    );
+    assert!(
+        unparsed[0]["reason"]
+            .as_str()
+            .is_some_and(|r| r.contains("syntax errors")),
+        "got {unparsed:?}"
+    );
+
+    // The read-only answers built on the same index carry the same fact.
+    let (printed, _, ok) = run_json(&tmp, &["usages", "helper", "--json"]);
+    assert!(ok, "{printed}");
+    assert_eq!(
+        printed["unparsed_files"].as_array().map(Vec::len),
+        Some(1),
+        "got {printed}"
+    );
+
+    // And every human run says it on stderr, from the one choke point, so a
+    // command that never mentioned the file before mentions it now.
+    for command in [
+        ["unused"].as_slice(),
+        ["symbols"].as_slice(),
+        ["graph"].as_slice(),
+        ["usages", "helper"].as_slice(),
+    ] {
+        let out = Command::cargo_bin("fr")
+            .expect("the binary")
+            .args(command)
+            .arg("-C")
+            .arg(tmp.path())
+            .output()
+            .expect("running fr");
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            stderr.contains("did not parse in full") && stderr.contains("broken.py"),
+            "`fr {}` must say what it could not read. {stderr}",
+            command.join(" ")
+        );
+        assert!(
+            stderr.contains("fr parse"),
+            "the warning must point at the positions. {stderr}"
+        );
+    }
+}
+
 // --------------------------------------------------------------------- recipes
 
 const RENDER_PY: &str = "def render():\n    return 1\n\ndef user():\n    return render()\n";

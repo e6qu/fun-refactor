@@ -37,9 +37,10 @@ yaml              83        0        0
 are chart fixtures that hold broken templates on purpose. Helm tests its own
 error messages with them. This matters more than it looks: **a file that does not
 parse is invisible to every analysis below**. So a report that ignores parse failures
-is quietly incomplete. Commands that depend on complete information say so; `fr
-rename` will tell you that references may be missing. `fr duplicates` lists the
-files it skipped.
+is quietly incomplete. Every command that indexes the workspace names the files it
+could not parse in full, on stderr and as `unparsed_files` in its JSON. `fr rename`
+will also tell you that references may be missing. `fr duplicates` lists the files
+it skipped.
 
 ## 2. Naming the thing you mean
 

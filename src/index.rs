@@ -336,6 +336,19 @@ impl Index {
         self.files.iter()
     }
 
+    /// Files the grammar could not read in full, so their facts are partial.
+    ///
+    /// A file skipped for its size contributes nothing and is listed as skipped. A
+    /// file with syntax errors contributes some of itself, which reads as a whole
+    /// file to every command answering from the index. `fr unused` is the sharp
+    /// edge: it lists deletion candidates from a file it only half read.
+    pub fn unparsed(&self) -> impl Iterator<Item = &PathBuf> {
+        self.files
+            .iter()
+            .filter(|(_, info)| info.gaps.contains(&FactGap::SyntaxErrors))
+            .map(|(path, _)| path)
+    }
+
     pub fn symbol(&self, id: SymbolId) -> Option<&Symbol> {
         self.symbols.get(id.0 as usize)
     }

@@ -939,25 +939,52 @@ fn skipped_files_json(index: &Index) -> Vec<serde_json::Value> {
         .collect()
 }
 
-/// Warn, on stderr, that the scan skipped files this answer cannot see.
+/// The files the grammar read only in part, as data for a JSON report.
+///
+/// Carried beside [`skipped_files_json`] and not merged into it. A skipped file
+/// contributed nothing; one of these contributed some of itself, and the two ask a
+/// caller for different things.
+fn unparsed_files_json(index: &Index) -> Vec<serde_json::Value> {
+    index
+        .unparsed()
+        .map(|path| serde_json::json!({ "file": path, "reason": "file has syntax errors" }))
+        .collect()
+}
+
+/// Warn, on stderr, about the files this answer saw partially or not at all.
 ///
 /// Called from [`build_index`], so every command that indexes the workspace says it
-/// once, instead of each command remembering to. The JSON twin rides in each
-/// report as `skipped_files`.
-fn warn_skipped_files(cli: &Cli, index: &Index) {
-    if cli.json || index.skipped.is_empty() {
+/// once, instead of each command remembering to. The JSON twins ride in each
+/// report as `skipped_files` and `unparsed_files`.
+fn warn_partial_index(cli: &Cli, index: &Index) {
+    if cli.json {
         return;
     }
     let root = workspace_root(cli);
-    eprintln!("Warning: {} file(s) were not read.", index.skipped.len());
-    eprintln!("The answer cannot see anything in them:");
-    for (path, reason) in index.skipped.iter().take(10) {
-        eprintln!("  {} ({reason})", shown_path(&root, path));
+    if !index.skipped.is_empty() {
+        eprintln!("Warning: {} file(s) were not read.", index.skipped.len());
+        eprintln!("The answer cannot see anything in them:");
+        for (path, reason) in index.skipped.iter().take(10) {
+            eprintln!("  {} ({reason})", shown_path(&root, path));
+        }
+        if index.skipped.len() > 10 {
+            eprintln!("  … and {} more", index.skipped.len() - 10);
+        }
+        eprintln!("Raise --max-file-size to include a file skipped for its size.");
     }
-    if index.skipped.len() > 10 {
-        eprintln!("  … and {} more", index.skipped.len() - 10);
+    let unparsed: Vec<_> = index.unparsed().collect();
+    if unparsed.is_empty() {
+        return;
     }
-    eprintln!("Raise --max-file-size to include a file skipped for its size.");
+    eprintln!("Warning: {} file(s) did not parse in full.", unparsed.len());
+    eprintln!("The answer sees only the part the grammar could read:");
+    for path in unparsed.iter().take(10) {
+        eprintln!("  {}", shown_path(&root, path));
+    }
+    if unparsed.len() > 10 {
+        eprintln!("  … and {} more", unparsed.len() - 10);
+    }
+    eprintln!("Run `fr parse` for the positions the grammar stopped at.");
 }
 
 /// Refuse a plan whose files changed after the index read them.
@@ -1037,6 +1064,7 @@ fn present(
                 "applied": write,
                 "changes": changes,
                 "skipped_files": index.map(skipped_files_json).unwrap_or_default(),
+                "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
             }))?
         );
         if write {
@@ -1567,6 +1595,7 @@ fn cmd_unused(
                 "unused": payload,
                 "caveat": UNUSED_CAVEAT.replace('\n', ""),
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         return Ok(());
@@ -3246,6 +3275,7 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
                 "changes": files,
                 "warnings": plan.warnings,
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         if write {
@@ -3793,7 +3823,7 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         let (hits, misses) = (stats.hits, stats.misses);
         tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
     }
-    warn_skipped_files(cli, &index);
+    warn_partial_index(cli, &index);
     Ok(index)
 }
 
@@ -4225,6 +4255,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "usages": render(&all),
                 "same_name_elsewhere": if include_unresolved { render(&weak) } else { Vec::new() },
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         return Ok(());
@@ -4352,6 +4383,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                 "references": resolved,
                 "same_name_elsewhere": unresolved,
                 "skipped_files": skipped_files_json(&index),
+                "unparsed_files": unparsed_files_json(&index),
             }))?
         );
         return Ok(());
