@@ -45,20 +45,30 @@ jobs:
           HELM=v3.16.3
           ZIG=0.16.0
           ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+          # Every fetch below reaches a host this repository does not control.
+          # Without a deadline `curl` waits forever on a stalled connection. The
+          # job sat here for forty-five minutes, the runner idle and the log
+          # silent. A download that cannot finish in two minutes has failed, and
+          # saying so costs a re-run instead of a six-hour timeout.
+          fetch() {
+            curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+              --connect-timeout 20 --max-time 120 -o "$1" "$2" \
+              || { echo "could not fetch $2 within the time allowed"; exit 1; }
+          }
           sudo apt-get update -qq
           sudo apt-get install -y -qq libxml2-utils
           # Zig has been absent since the gate started driving it, and every Zig case
           # skipped itself here while the run went green. The checksum is the one the
           # download index publishes for this build.
-          curl -fsSL -o /tmp/zig.tar.xz \
+          fetch /tmp/zig.tar.xz \
             "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz"
           echo "${ZIG_SHA}  /tmp/zig.tar.xz" | sha256sum -c -
           tar -xJf /tmp/zig.tar.xz -C /tmp
           sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
-          curl -fsSL -o /tmp/terraform.zip \
+          fetch /tmp/terraform.zip \
             "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
           sudo unzip -o -d /usr/local/bin /tmp/terraform.zip
-          curl -fsSL -o /tmp/helm.tar.gz \
+          fetch /tmp/helm.tar.gz \
             "https://get.helm.sh/helm-${HELM}-linux-amd64.tar.gz"
           tar -xzf /tmp/helm.tar.gz -C /tmp
           sudo install /tmp/linux-amd64/helm /usr/local/bin/helm

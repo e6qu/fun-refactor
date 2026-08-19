@@ -175,6 +175,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B578: **a stalled download hung the gate in silence.** The step that
+  installs Zig, Terraform and Helm fetched each from a host this repository
+  does not control, with no deadline and no retry. One slow host left both
+  check jobs in that step for forty-five minutes, runners idle and the log
+  silent. Every fetch has a connect timeout, a deadline and three retries now.
+  One that cannot finish says which host it waited for.
+
 - [x] B581: **`fr delete` removed a Terraform module output that a caller still
   read.** `terraform validate` failed on the result. The refusal was already there
   for Helm values and CSS classes, and it reads the index. Nothing in the index
