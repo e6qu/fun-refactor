@@ -62,7 +62,9 @@ jobs:
           # `apt-get` waits on a stalled mirror as patiently as `curl` waited
           # on a stalled host, and this is where both jobs sat.
           sudo timeout 240 apt-get update -qq
-          sudo timeout 240 apt-get install -y -qq libxml2-utils
+          # zsh parses the completion script this tool writes for it. Absent, that
+          # script would be checked by nothing and the run would still go green.
+          sudo timeout 240 apt-get install -y -qq libxml2-utils zsh
           # Zig has been absent since the gate started driving it, and every Zig case
           # skipped itself here while the run went green. The checksum is the one the
           # download index publishes for this build.

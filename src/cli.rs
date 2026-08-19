@@ -1092,9 +1092,11 @@ fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
     if !from.is_dir() {
         return None;
     }
-    let found = from
-        .ancestors()
-        .find(|dir| MARKERS.iter().any(|marker| dir.join(marker).exists()))?;
+    let found = from.ancestors().find(|dir| {
+        MARKERS
+            .iter()
+            .any(|marker| crate::vfs::exists(&dir.join(marker)))
+    })?;
     // Already at the project root: the default is right and needs no note.
     (found != from).then(|| found.to_path_buf())
 }

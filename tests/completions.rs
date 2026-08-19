@@ -4,6 +4,9 @@
 //! completed any of it. The script is generated from the command tree, so it
 //! cannot offer a command this binary does not have.
 
+mod common;
+
+use common::require_on_ci;
 use std::process::Command;
 
 const FR: &str = env!("CARGO_BIN_EXE_fr");
@@ -33,20 +36,28 @@ fn help_commands() -> Vec<String> {
 
 #[test]
 fn every_shell_gets_a_script_its_own_parser_accepts() {
-    for (shell, parser, flag) in [("bash", "bash", "-n"), ("zsh", "zsh", "-n")] {
+    let mut missing = Vec::new();
+    let mut checked = 0;
+    for shell in ["bash", "zsh"] {
         let path = std::env::temp_dir().join(format!("fr-completions-{shell}"));
         std::fs::write(&path, script(shell)).expect("write");
-        let out = Command::new(parser)
-            .arg(flag)
-            .arg(&path)
-            .output()
-            .expect("a shell to check with");
+        // A shell that is not installed cannot judge its own script. Saying so
+        // beats a failure that reads as a defect in the script.
+        let Ok(out) = Command::new(shell).arg("-n").arg(&path).output() else {
+            missing.push(shell.to_string());
+            continue;
+        };
         assert!(
             out.status.success(),
             "{shell} refused its own completion script: {}",
             String::from_utf8_lossy(&out.stderr)
         );
+        checked += 1;
     }
+    assert!(checked > 0, "no shell was available to check anything");
+    // On CI a missing shell is a check that ran and proved nothing. It fails
+    // there and asks for the package, instead of going quietly green.
+    require_on_ci("completion scripts", &missing);
 }
 
 #[test]
