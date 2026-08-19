@@ -798,6 +798,22 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
             symbol.kind.with_article()
         );
     }
+    // The matrix says `n/a` for this language's call graph, and the caller pointed at
+    // one symbol, so they are owed an answer about it. SCSS printed the name and
+    // exited 0, which reads as "nothing calls this" while two `@include` sites do.
+    if let crate::capabilities::Support::NotApplicable { because } =
+        crate::capabilities::support(crate::capabilities::Capability::CallGraph, symbol.language)
+    {
+        return Err(crate::refactor::Refusal::Unsupported {
+            operation: match direction {
+                Direction2::Callers => "showing what calls a function".into(),
+                Direction2::Callees => "showing what a function calls".into(),
+            },
+            language: symbol.language,
+            because,
+        }
+        .into());
+    }
 
     let graph = CallGraph::build(&index);
     let trace = graph.trace(symbol.id, direction, depth);
@@ -3050,6 +3066,7 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
                 "calls": graph.edge_count(),
                 "hierarchy_edges": graph.hierarchy_edge_count(),
                 "unresolved_calls": graph.unresolved.len(),
+                "file_scope_calls": graph.file_scope.len(),
                 "by_confidence": breakdown,
                 "by_origin": by_origin,
                 "nodes": nodes,
@@ -3069,6 +3086,9 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
         println!("  {confidence:<16} {count}");
     }
     println!("unresolved calls  {}", graph.unresolved.len());
+    // A call written at file scope resolved to a definition and has no node to hang
+    // off. A different fact from "the callee is unknown".
+    println!("file-scope calls  {}", graph.file_scope.len());
 
     // A call site the dispatch scan and the index disagree about is reported. An
     // edge on the wrong offset misreports; a missing one does not.

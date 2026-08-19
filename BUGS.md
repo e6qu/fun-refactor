@@ -175,6 +175,21 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B606: **a resolved call at file scope counted as unresolved.** A shell
+  script's `deploy_app "prod"` sits outside any function. So the graph has no
+  node for the caller. The callee resolved all the same. `fr graph`
+  counted it under "unresolved calls", which said the tool could not resolve
+  what `fr usages` resolved. These have their own count now, `file-scope
+  calls`, in the summary and in the JSON. Pinned in `tests/graph_export.rs`.
+
+- [x] B605: **`fr callers` answered nothing where it knows nothing.** SCSS has
+  no call graph in the matrix. The command printed the name and exited
+  0. A reader takes that for "nothing calls this" while `fr usages` lists two
+  `@include` sites. It refuses now, with a reason that fits SCSS: the old one
+  said the language has no functions, and `fr symbols` prints one. `fr graph`
+  keeps its filter behaviour, since a whole-workspace answer covers many
+  languages. Pinned in `tests/graph_export.rs`.
+
 - [x] B604: **`fr signature` refusals exited 1.** `fr --help` promises 5 for a
   refactoring that refused to proceed. Three sites raised a considered refusal
   as a plain error. An HCL variable the module still reads, an SCSS mixin
