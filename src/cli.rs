@@ -698,7 +698,10 @@ fn completion_script(shell: CompletionShell) -> String {
         }
         CompletionShell::Fish => {
             for flag in globals.split_whitespace() {
-                lines.push(format!("complete -c fr -l {}", flag.trim_start_matches('-')));
+                lines.push(format!(
+                    "complete -c fr -l {}",
+                    flag.trim_start_matches('-')
+                ));
             }
             for (name, about, flags) in &subcommands {
                 lines.push(format!(
@@ -1552,12 +1555,13 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 /// read fail two frames later with "reading pkg/x.go. No such file". True and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    let joined = if path.is_absolute() {
-        path.to_path_buf()
-    } else if cli.root_inferred && crate::vfs::exists(path) {
-        path.to_path_buf()
-    } else {
-        root.join(path)
+    // An absolute path is already where it says. A relative one typed against a
+    // root nobody stated is read from where the caller stands, when something is
+    // there to read.
+    let as_typed = path.is_absolute() || (cli.root_inferred && crate::vfs::exists(path));
+    let joined = match as_typed {
+        true => path.to_path_buf(),
+        false => root.join(path),
     };
     // A path that does not resolve is a target that was not found, and the exit
     // code says so. It used to be a bare failure indistinguishable from a crash.
@@ -3896,7 +3900,9 @@ fn why_unindexed(cli: &Cli, path: &std::path::Path) -> String {
     if crate::lang::detect(path).is_none() {
         return "It is in no language this reads.".to_string();
     }
-    let limit = cli.max_file_size.unwrap_or(crate::scan::ScanOptions::default().max_file_bytes);
+    let limit = cli
+        .max_file_size
+        .unwrap_or(crate::scan::ScanOptions::default().max_file_bytes);
     if std::fs::metadata(path).is_ok_and(|m| m.len() > limit) {
         return format!("It is larger than the {limit}-byte limit; raise --max-file-size.");
     }

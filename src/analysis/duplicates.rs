@@ -55,9 +55,10 @@ impl CloneClass {
 }
 
 /// What counts as a duplicate.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Options {
-    /// Smallest clone to report, in tokens. `None` asks each language for its own.
+    /// Smallest clone to report, in tokens. Unstated, each language gets the
+    /// floor its own density earns.
     pub min_tokens: Option<usize>,
     /// Require identifiers and literals to match, not only the structure.
     pub exact: bool,
@@ -80,18 +81,6 @@ impl Options {
             (Some(stated), _) => stated,
             (None, crate::lang::LanguageClass::Imperative) => 60,
             (None, crate::lang::LanguageClass::Config) => 30,
-        }
-    }
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Options {
-            // Unstated: each language gets the floor its own density earns.
-            min_tokens: None,
-            exact: false,
-            languages: Vec::new(),
-            paths: Vec::new(),
         }
     }
 }

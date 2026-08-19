@@ -843,7 +843,11 @@ impl BinaryOp {
     /// in all six languages, which is a different number.
     pub fn precedence(self) -> u8 {
         match self {
-            BinaryOp::Mul | BinaryOp::Div | BinaryOp::FloorDiv | BinaryOp::TrueDiv | BinaryOp::Rem => 6,
+            BinaryOp::Mul
+            | BinaryOp::Div
+            | BinaryOp::FloorDiv
+            | BinaryOp::TrueDiv
+            | BinaryOp::Rem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Eq | BinaryOp::Ne => 3,

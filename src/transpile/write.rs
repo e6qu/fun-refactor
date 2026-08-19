@@ -4889,9 +4889,9 @@ fn body_leaves(body: &[Stmt]) -> bool {
                 && arms.iter().all(|(_, body)| body_leaves(body))
         }
         // `for {}` with nothing to break out of never falls through.
-        Some(Stmt::While { condition, body, .. }) => {
-            matches!(condition, Expr::Bool(true)) && !has_break(body)
-        }
+        Some(Stmt::While {
+            condition, body, ..
+        }) => matches!(condition, Expr::Bool(true)) && !has_break(body),
         _ => false,
     }
 }

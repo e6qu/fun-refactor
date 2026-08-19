@@ -2033,9 +2033,7 @@ mod python {
             // not that convention. `__init__` is how the language spells a
             // public constructor, and reading its underscores as "private" left
             // every translated class unconstructible.
-            exported: is_exported_python_name(
-                &cx.field_text(node, "name").unwrap_or_default(),
-            ),
+            exported: is_exported_python_name(&cx.field_text(node, "name").unwrap_or_default()),
             is_async: cx.text(node).starts_with("async "),
             is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("__init__"),

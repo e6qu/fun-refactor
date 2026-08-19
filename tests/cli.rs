@@ -822,10 +822,7 @@ mod ignored_files {
             out.contains("not in the workspace this indexed"),
             "the reason is the file, not the cursor.\n{out}"
         );
-        assert!(
-            out.contains("--no-ignore"),
-            "the way out is named.\n{out}"
-        );
+        assert!(out.contains("--no-ignore"), "the way out is named.\n{out}");
     }
 
     #[test]
