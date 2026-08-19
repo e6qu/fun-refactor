@@ -814,8 +814,9 @@ struct Out {
     /// Nothing is inferred. A name whose type the source never wrote down is not in here, and
     /// the operator is written as it was.
     binding_types: std::collections::BTreeMap<String, Type>,
-    /// What the record now being written declares its fields to be, so a body
-    /// reading one through the receiver knows as much as it knows about a local.
+    /// What the record now being written declares its fields to be. A body
+    /// reading one through the receiver knows as much as it does about a
+    /// local.
     field_types: std::collections::BTreeMap<String, Type>,
     /// The same, for every record in view, keyed by the record's name.
     record_field_types:
@@ -3729,8 +3730,8 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         Expr::Bool(_) => Some(Type::Bool),
         // A bare name in a method body is a local, a parameter, or a field of
         // the record the method belongs to. The writer decides which when it
-        // spells it; the type question has the same three places to look, and
-        // stopping at the first two left `this.total / 2` untruncated while
+        // spells it, and the type question has the same three places to look.
+        // Stopping at the first two left `this.total / 2` untruncated, while
         // the same division over a local was right.
         Expr::Name(name) => out
             .binding_types
@@ -3744,8 +3745,8 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         // The canonical builtins the readers settle on: their answers have
         // one type each, whichever language wrote the call. Without this a
         // function whose whole body is `return len(items)` had no type to
-        // name, and the targets that must name one wrote their word for
-        // "no idea" over a number.
+        // name. The targets that must name one wrote their word for "no idea"
+        // over a number.
         Expr::Call { callee, args } => match (callee.as_ref(), args.len()) {
             (Expr::Name(name), 1) if name == "len" => Some(Type::Int),
             (Expr::Name(name), 1) if name == "str" => Some(Type::String),

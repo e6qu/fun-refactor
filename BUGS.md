@@ -175,6 +175,20 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B547: **a body that returns a value got no return type.** A Python
+  function annotates nothing and still hands something back. Rust, Go, Java
+  and Zig must name what, and named nothing, so the draft did not compile.
+  Each now names the type the returns agree on. Where they do not agree, the
+  target's word for an unknown type carries a note. The canonical builtins
+  carry their own types, so `return len(items)` is an integer rather than a
+  shrug.
+
+- [x] B548: **a field divided as a float where a local divided as an
+  integer.** `this.total / 2` in TypeScript kept its remainder. The same
+  division over a local truncated. A bare name in a method body is a local, a
+  parameter, or a field of its record, and the type question looks in all
+  three places now.
+
 - [x] B565: **`fr move` refused a class that names itself.** The cycle it
   named does not exist. `Counter.STEP` written in `Counter`'s own method
   counted as a use left behind in the source file. So the source was given an import of a
