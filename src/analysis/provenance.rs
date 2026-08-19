@@ -817,13 +817,17 @@ struct ModuleCall {
 /// Terraform's reserved evaluation-context namespaces: values the engine supplies.
 const HCL_CONTEXT_NAMESPACES: &[&str] = &["each", "count", "self", "path", "terraform"];
 
+/// The block-type keyword decides the role, and extraction records it as the
+/// symbol's qualifier. This reads the recorded fact. Re-sniffing the source here
+/// let this answer and the index's resolution of `module.<label>.<output>` disagree
+/// about which declarations are outputs.
 fn hcl_role(sym: &Symbol, source: &str) -> HclRole {
     let head = sym.full_span.text(source);
     match sym.kind {
         SymbolKind::Module => HclRole::Module,
         SymbolKind::Variable if head.starts_with("variable") => HclRole::InputVariable,
         SymbolKind::Variable => HclRole::Local,
-        _ if head.starts_with("output") => HclRole::Output,
+        _ if sym.qualifier.as_deref() == Some("output") => HclRole::Output,
         _ => HclRole::Block,
     }
 }

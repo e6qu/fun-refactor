@@ -276,11 +276,23 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
     if parent.kind() == "get_attr" {
         let expression = parent.parent()?;
         let mut cursor = expression.walk();
-        let first = expression.named_children(&mut cursor).next()?;
-        if first.kind() == "variable_expr" {
-            return Some(Span::from(first).text(source).to_string());
+        let segments: Vec<Node> = expression.named_children(&mut cursor).collect();
+        let first = segments.first()?;
+        if first.kind() != "variable_expr" {
+            return None;
         }
-        return None;
+        let namespace = Span::from(*first).text(source);
+        // `module.net.subnet_id` reaches a declaration in another directory, and the
+        // second segment is the module call that says which. Recording the namespace
+        // alone left the third segment looking like a field read on an untyped value.
+        // The output it names then resolved to nothing, and a delete of that output
+        // was allowed. The address is written down; this carries all of it.
+        let position = segments.iter().position(|s| s.id() == parent.id())?;
+        if namespace == "module" && position == 2 {
+            let label = Span::from(segments[1]).text(source).trim_start_matches('.');
+            return Some(format!("module.{label}"));
+        }
+        return Some(namespace.to_string());
     }
 
     // An argument of a Terraform `module` block names an input variable of the

@@ -43,6 +43,15 @@ impl FileInfo {
     }
 }
 
+/// Which half of a Terraform module's call surface a reference addresses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModuleSurface {
+    /// An argument inside the `module` block, naming an input variable.
+    Input,
+    /// The last segment of `module.<label>.<name>`, naming an output.
+    Output,
+}
+
 /// A resolved workspace.
 #[derive(Debug, Default)]
 pub struct Index {
@@ -374,18 +383,27 @@ impl Index {
         }
     }
 
-    /// Resolve an argument of a `module` block to the input variable it names.
+    /// Resolve a name reached through a `module` block to the declaration it names.
     ///
     /// The block's `source` names the configuration. Terraform's unit of scope is a
-    /// directory, so the variable is declared in the directory that source resolves to.
+    /// directory, so the declaration is in the directory that source resolves to.
     /// A source outside the workspace names a configuration nothing here can read, and
-    /// the argument stays unresolved. The rename then reports it rather than rewriting
+    /// the reference stays unresolved. The rename then reports it rather than rewriting
     /// it.
-    fn resolve_module_argument(
+    ///
+    /// Both directions of a module's call surface arrive here. An argument written
+    /// inside the block names an input variable. `module.<label>.<name>` written
+    /// outside it names an output. They differ in one thing, the declaration each
+    /// addresses, so they are one function. Only the first half used to exist.
+    /// `fr flow` and `fr signature` followed the second from their own code.
+    /// `fr usages`, `fr refs`, `fr impact` and `fr delete` read the index, and saw
+    /// nothing there.
+    fn resolve_module_surface(
         &self,
         path: &Path,
         info: &FileInfo,
         label: &str,
+        surface: ModuleSurface,
         candidates: &[SymbolId],
     ) -> (Option<SymbolId>, Confidence) {
         let source = info
@@ -405,9 +423,17 @@ impl Index {
         let declared: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
-            .filter(|s| s.kind == SymbolKind::Variable && s.language == Language::Hcl)
+            .filter(|s| s.language == Language::Hcl)
             .filter(|s| s.file.parent() == Some(directory.as_path()))
-            .filter(|s| self.terraform_namespace(s) == "var")
+            .filter(|s| match surface {
+                ModuleSurface::Input => {
+                    s.kind == SymbolKind::Variable && self.terraform_namespace(s) == "var"
+                }
+                // The block-type keyword is the symbol's qualifier, recorded when the
+                // facts were extracted. So an `output "x"` is told from a `provider "x"`
+                // without re-reading the file.
+                ModuleSurface::Output => s.qualifier.as_deref() == Some("output"),
+            })
             .collect();
         match declared.as_slice() {
             [only] => (Some(only.id), Confidence::Exact),
@@ -458,7 +484,15 @@ impl Index {
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
             || self.import_binding(info, receiver).is_some()
-            || self.names_a_type(receiver, reference.language);
+            || self.names_a_type(receiver, reference.language)
+            // `module.<label>` is a module path in the sense above: the label is bound
+            // by that block's `source`, which names a directory. Nothing is inferred,
+            // so the read of its output is as certain as an import-qualified call.
+            || (reference.language == Language::Hcl
+                && receiver.starts_with("module.")
+                && self
+                    .import_binding(info, receiver.trim_start_matches("module."))
+                    .is_some());
 
         // Weaker of the two: the tiers are ordered strongest first.
         match known {
@@ -611,10 +645,17 @@ impl Index {
         //     terraform-aws-vpc resolved to the module's `output "azs"`.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
-                // An argument of a `module` block names an input variable of the
-                // configuration `source` points at, and the label says which call it is.
+                // A name reached through one `module` block. An argument written
+                // inside it names an input variable of the configuration `source`
+                // points at. `module.<label>.<name>` written outside it names an
+                // output of that configuration. The label says which call, and the
+                // syntax says which half of the surface.
                 if let Some(label) = namespace.strip_prefix("module.") {
-                    return self.resolve_module_argument(path, info, label, candidates);
+                    let surface = match reference.kind {
+                        ReferenceKind::Field => ModuleSurface::Output,
+                        _ => ModuleSurface::Input,
+                    };
+                    return self.resolve_module_surface(path, info, label, surface, candidates);
                 }
                 let wanted = match namespace {
                     "var" | "local" => Some(SymbolKind::Variable),
