@@ -175,6 +175,14 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B609: **Markdown was invisible to the mention sweep.** The sweep looks for
+  a string node or a comment node, and Markdown has neither. So a style guide
+  writing `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html
+  fence, was walked past twice. `fr rename` rewrote the CSS, the HTML and the
+  TSX, and listed neither Markdown site. A paragraph and a fence body count as
+  text now. So `fr rename`, `fr delete`, `fr usages` and the flag cascade all
+  report them. Pinned in `tests/cross_language.rs`.
+
 - [x] B608: **a name nothing declares was reported as a typo.** `<a
   href="#section-two">` with no element carrying that id got "no symbol named
   'section-two'". The sites that write the name now ride with the message, so a
