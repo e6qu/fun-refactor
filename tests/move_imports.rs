@@ -206,3 +206,80 @@ fn a_first_import_goes_below_the_docstring_and_the_shebang() {
         "a shebang only works on line one.\n{from}"
     );
 }
+
+/// A move over a whole workspace, answering with the file named.
+fn moved_reading(files: &[(&str, &str)], symbol: &str, from: &str, to: &str, read: &str) -> String {
+    let (_tmp, root) = workspace(files);
+    let index = Index::build(&root, &ScanOptions::default()).expect("an index");
+    let id = index
+        .symbols
+        .iter()
+        .find(|s| s.name == symbol && s.file.ends_with(from))
+        .unwrap_or_else(|| panic!("no `{symbol}` in {from}"))
+        .id;
+    let plan = move_symbol::to_file(&index, id, &root.join(to)).expect("a move");
+    let outcomes =
+        fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+            .expect("a valid plan");
+    fun_refactor::edit::commit(&outcomes).expect("writing");
+    std::fs::read_to_string(root.join(read)).expect("the file")
+}
+
+#[test]
+fn an_importer_a_directory_away_has_its_import_narrowed() {
+    // With the importer beside the definition this worked. With a parent-relative
+    // specifier the old named import stayed beside the new one: `TS2300: Duplicate
+    // identifier` and `TS2459`. Two imports of one name is valid syntax, so the
+    // reparse guard passed it. The cause was one path join that kept the `..` as a
+    // component, so the specifier compared unequal to the very file it names.
+    let importer = moved_reading(
+        &[
+            (
+                "src/pricing.ts",
+                "export function roundCents(value: number): number {\n  return value;\n}\n\n\
+                 export function withTax(p: number): number {\n  return roundCents(p);\n}\n",
+            ),
+            ("src/money.ts", ""),
+            (
+                "test/run.ts",
+                "import { withTax, roundCents } from \"../src/pricing\";\n\n\
+                 console.log(roundCents(1), withTax(1));\n",
+            ),
+        ],
+        "roundCents",
+        "src/pricing.ts",
+        "src/money.ts",
+        "test/run.ts",
+    );
+    assert!(
+        !importer.contains("roundCents } from '../src/pricing'")
+            && !importer.contains("roundCents } from \"../src/pricing\""),
+        "the old import no longer binds the moved name:\n{importer}"
+    );
+    assert!(
+        importer.contains("withTax") && importer.contains("../src/pricing"),
+        "what stayed behind is still imported from there:\n{importer}"
+    );
+    assert!(
+        importer.contains("roundCents") && importer.contains("../src/money"),
+        "and the moved name arrives from its new home:\n{importer}"
+    );
+}
+
+#[test]
+fn a_parent_relative_import_resolves_to_the_file_it_names() {
+    // The narrowing above rests on this one question being answered right, so it is
+    // asked here on its own.
+    let (_tmp, root) = workspace(&[
+        ("src/pricing.ts", "export const rate = 1;\n"),
+        (
+            "test/run.ts",
+            "import { rate } from \"../src/pricing\";\nconsole.log(rate);\n",
+        ),
+    ]);
+    let index = Index::build(&root, &ScanOptions::default()).expect("an index");
+    assert_eq!(
+        index.resolve_import_path(&root.join("test/run.ts"), "../src/pricing"),
+        Some(root.join("src/pricing.ts")),
+    );
+}

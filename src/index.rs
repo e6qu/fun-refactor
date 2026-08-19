@@ -1400,13 +1400,19 @@ impl Index {
         // `@import("holder.zig")` exactly so, and every branch below assumed a leading dot or a
         // dotted module name. The extension was read as the last segment of a dotted path, so
         // `holder.zig` was looked up as a file called `zig`.
-        let beside = dir.join(import_path);
+        // Normalised, because the index is keyed by paths with no `.` or `..` left in
+        // them. `../src/pricing` joined onto `test/` kept the `..` as a component and
+        // compared unequal to the very file it names, so an import that crossed a
+        // directory resolved to nothing. `fr move` then added its new import beside the
+        // old one it had failed to recognise, which TypeScript calls a duplicate
+        // identifier, and duplicate imports parse, so no guard caught it.
+        let beside = crate::vfs::normalise(dir.join(import_path));
         if self.files.contains_key(&beside) {
             return Some(beside);
         }
 
         if import_path.starts_with('.') || import_path.starts_with('/') {
-            let base = dir.join(import_path.trim_start_matches("./"));
+            let base = crate::vfs::normalise(dir.join(import_path.trim_start_matches("./")));
             let candidates = [
                 base.clone(),
                 base.with_extension("ts"),
@@ -1430,7 +1436,7 @@ impl Index {
         // to nothing, so `fr unused` called a running function dead and
         // `fr delete` took it away.
         if let Some((_, tail)) = import_path.rsplit_once('/') {
-            let beside = dir.join(tail);
+            let beside = crate::vfs::normalise(dir.join(tail));
             if !tail.is_empty() && self.files.contains_key(&beside) {
                 return Some(beside);
             }
