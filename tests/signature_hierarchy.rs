@@ -152,7 +152,7 @@ fn a_function_held_as_a_value_refuses_the_change() {
 fn a_call_naming_its_arguments_loses_only_the_one_being_removed() {
     // Position says nothing about which argument is which once a call names
     // them. Removing parameter 1 took `loud=True` out of `greet("b",
-    // loud=True)`, and the refusal for the same shape blamed "the body of
+    // loud=True)`. The refusal for the same shape blamed "the body of
     // `greet`" while pointing at a call site.
     let source = "def greet(name: str, punct: str = \"!\", loud: bool = False) -> str:\n    \
         text = name\n    return text.upper() if loud else text\n\n\n\
