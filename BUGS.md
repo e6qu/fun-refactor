@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B570: **the capability matrix denied a capability the binary ships.**
+  `fr openapi` reads a FastAPI router and writes a document. The row called
+  Python not applicable, "because this derives an OpenAPI document from a
+  Next.js route tree". Two route shapes reach that command, not one. The row
+  names both now, and the claims test proves the cell by running it.
+
+- [x] B571: **the `flow` row answered a dataflow question with a call-graph
+  reason.** CSS, SCSS, HCL, YAML and Helm were marked not applicable "because
+  this language has no functions, so there is nothing to call", on a command
+  that traces values through all five. The verdict was right and the reason was
+  not. `fr flow` follows provenance for a language evaluated by substitution.
+  That is its own row, and the reason says so and points there.
+
 - [x] B549: **removing a parameter took the wrong argument.** A call passing
   arguments by name resolves them to the parameter. So a keyword three files
   away was reported as "the body of `greet` still reads `punct`", with the

@@ -598,7 +598,7 @@ name alone.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support is built: **272 of 384 capability ×
+capability a language can meaningfully support is built: **273 of 384 capability ×
 language pairs supported, 115 not applicable, none refused.**
 
 The matrix is no longer maintained by hand. `src/capabilities.rs` computes it by
