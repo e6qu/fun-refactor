@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B608: **a name nothing declares was reported as a typo.** `<a
+  href="#section-two">` with no element carrying that id got "no symbol named
+  'section-two'". The sites that write the name now ride with the message, so a
+  link into nothing is visible from any command that takes a name.
+
+- [x] B607: **HTML modelling stopped at element ids.** A hook like
+  `data-testid="submit-btn"` is written twice. Once in the markup, once in the
+  TSX that renders the same element. `fr usages submit-btn` answered "no symbol
+  named" to it. A `data-*` value is a
+  symbol now, of its own kind, with every site equal, as a CSS class is. So a
+  rename of a test hook rewrites both files. Pinned in `tests/facts_html.rs`
+  and `tests/cross_language.rs`.
+
 - [x] B606: **a resolved call at file scope counted as unresolved.** A shell
   script's `deploy_app "prod"` sits outside any function. So the graph has no
   node for the caller. The callee resolved all the same. `fr graph`

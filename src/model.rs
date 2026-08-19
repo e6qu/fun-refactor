@@ -55,6 +55,10 @@ pub enum SymbolKind {
     /// XML/HTML element id.
     #[serde(rename = "element-id")]
     ElementId,
+    /// The value of a `data-*` attribute: a hook a document and the component that
+    /// renders it agree on by string, `data-testid="submit-btn"`.
+    #[serde(rename = "data-attribute")]
+    DataAttribute,
 }
 
 impl SymbolKind {
@@ -81,6 +85,7 @@ impl SymbolKind {
         SymbolKind::Heading,
         SymbolKind::LinkDef,
         SymbolKind::ElementId,
+        SymbolKind::DataAttribute,
     ];
 
     /// The kind with the article that fits it, for a sentence that reads.
@@ -120,6 +125,7 @@ impl SymbolKind {
             SymbolKind::Heading => "heading",
             SymbolKind::LinkDef => "link-def",
             SymbolKind::ElementId => "element-id",
+            SymbolKind::DataAttribute => "data-attribute",
         }
     }
 
@@ -149,6 +155,7 @@ impl SymbolKind {
                 | SymbolKind::Heading
                 | SymbolKind::LinkDef
                 | SymbolKind::Anchor
+                | SymbolKind::DataAttribute
         )
     }
 
@@ -161,7 +168,10 @@ impl SymbolKind {
     pub fn allows_multiple_definitions(&self) -> bool {
         matches!(
             self,
-            SymbolKind::Selector | SymbolKind::Property | SymbolKind::ElementId
+            SymbolKind::Selector
+                | SymbolKind::Property
+                | SymbolKind::ElementId
+                | SymbolKind::DataAttribute
         )
     }
 }

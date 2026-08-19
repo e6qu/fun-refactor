@@ -40,6 +40,34 @@ fn id_attribute_defines_an_element_id_without_quotes() {
 }
 
 #[test]
+fn a_data_attribute_value_is_a_hook_the_document_names() {
+    // `data-testid="submit-btn"` is the author's own string, and the TSX that
+    // renders the same element writes it too. `fr usages submit-btn` used to say
+    // "no symbol named" while the name sat in two files.
+    let src = "<button data-testid=\"submit-btn\" data-role='main'>Go</button>\n";
+    let f = facts(src);
+    let mut hooks = names(&f, SymbolKind::DataAttribute);
+    hooks.sort();
+    assert_eq!(hooks, ["main", "submit-btn"]);
+
+    let hook = f
+        .symbols
+        .iter()
+        .find(|s| s.name == "submit-btn")
+        .expect("the hook");
+    assert_eq!(hook.name_span.text(src), "submit-btn");
+    assert_eq!(hook.full_span.text(src), "data-testid=\"submit-btn\"");
+}
+
+#[test]
+fn a_bare_data_attribute_names_nothing() {
+    // `data-` alone has no value to name, and `datatype=` is a different attribute.
+    let src = "<div datatype=\"x\"></div>\n";
+    let f = facts(src);
+    assert!(names(&f, SymbolKind::DataAttribute).is_empty());
+}
+
+#[test]
 fn single_quoted_and_unquoted_ids_are_handled_alike() {
     let src = "<div id='one'></div><div id=two></div>\n";
     let f = facts(src);

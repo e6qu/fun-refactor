@@ -1580,7 +1580,7 @@ fn cmd_unused(
         }
         let at = locate(symbol);
         println!(
-            "{:<12} {:<34} {:<9} {}:{at}",
+            "{:<14} {:<34} {:<9} {}:{at}",
             symbol.kind.as_str(),
             symbol.qualified_name(),
             if symbol.exported { "exported" } else { "" },
@@ -3597,6 +3597,37 @@ fn did_you_mean(suggestions: &[String]) -> String {
     }
 }
 
+/// The sites that write this name and reach no definition.
+///
+/// Nothing declares the name, and something in the workspace names it anyway.
+/// `<a href="#section-two">` with no element carrying that id was invisible: the
+/// answer was "no symbol named", which reads as a typo in the question. The sites
+/// are the answer.
+fn naming_nothing(cli: &Cli, index: &Index, target: &str) -> String {
+    let root = workspace_root(cli);
+    let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
+    let sites: Vec<String> = index
+        .references
+        .iter()
+        .filter(|r| r.name == target && r.target.is_none())
+        .map(|r| {
+            let source = sources
+                .entry(r.file.clone())
+                .or_insert_with(|| crate::vfs::read_to_string(&r.file).unwrap_or_default());
+            let at = LineIndex::new(source).line_col(r.span.start, source);
+            format!("\n  {}:{at}", shown_path(&root, &r.file))
+        })
+        .collect();
+    if sites.is_empty() {
+        return String::new();
+    }
+    format!(
+        "\n{} site(s) name it and reach no definition:{}",
+        sites.len(),
+        sites.join("")
+    )
+}
+
 /// Where each rival definition sits, as data for the JSON error object.
 fn candidates_of(symbols: &[&Symbol]) -> Vec<Candidate> {
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
@@ -3645,7 +3676,11 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         0 => {
             let near = nearest_names(index, target);
             Err(Fault::not_found_near(
-                format!("no symbol named '{target}'.{}", did_you_mean(&near)),
+                format!(
+                    "no symbol named '{target}'.{}{}",
+                    did_you_mean(&near),
+                    naming_nothing(cli, index, target)
+                ),
                 near,
             ))
         }

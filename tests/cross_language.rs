@@ -386,3 +386,38 @@ fn a_class_in_a_tsx_helper_call_is_reported_rather_than_rewritten() {
         "the helper call and the template literal are each reported: {reported:#?}"
     );
 }
+
+#[test]
+fn a_data_hook_is_one_entity_across_html_and_tsx() {
+    // `data-testid="submit-btn"` is written in the markup and in the component that
+    // renders the same element. `fr usages submit-btn` answered "no symbol named"
+    // while the string sat in both files, so a rename touched neither.
+    let (tmp, index) = workspace(&[
+        (
+            "index.html",
+            "<button class=\"btn\" data-testid=\"submit-btn\">Go</button>\n",
+        ),
+        (
+            "Button.tsx",
+            "export const Button = () => <button data-testid=\"submit-btn\">Go</button>;\n",
+        ),
+    ]);
+
+    let hooks = index.find_symbols("submit-btn", None);
+    assert_eq!(hooks.len(), 2, "one per file: {hooks:?}");
+    assert!(hooks.iter().all(|s| s.kind == SymbolKind::DataAttribute));
+    assert!(
+        index.is_one_entity(&hooks),
+        "neither site declares the hook for the other"
+    );
+
+    let plan = rename::plan(&index, hooks[0].id, "go-btn").expect("the rename plans");
+    assert_eq!(
+        rendered(&plan, &tmp.path().join("index.html")),
+        "<button class=\"btn\" data-testid=\"go-btn\">Go</button>\n"
+    );
+    assert_eq!(
+        rendered(&plan, &tmp.path().join("Button.tsx")),
+        "export const Button = () => <button data-testid=\"go-btn\">Go</button>;\n"
+    );
+}

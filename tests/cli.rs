@@ -391,6 +391,22 @@ fn a_closed_stdout_ends_the_run_quietly_instead_of_panicking() {
 }
 
 #[test]
+fn a_name_nothing_declares_lists_the_sites_that_write_it() {
+    // `<a href="#section-two">` with no element carrying that id had no report
+    // anywhere. "no symbol named" reads as a typo in the question, so the sites
+    // that write the name ride with it.
+    let ws = Workspace::new(&[(
+        "index.html",
+        "<html><body>\n<a href=\"#section-two\">Jump</a>\n</body></html>\n",
+    )]);
+
+    let (said, ok) = ws.run(&["usages", "section-two"]);
+    assert!(!ok, "{said}");
+    assert!(said.contains("reach no definition"), "got:\n{said}");
+    assert!(said.contains("index.html:2:11"), "got:\n{said}");
+}
+
+#[test]
 fn a_signature_change_that_would_strand_a_read_is_a_refusal() {
     // These printed a considered refusal under exit 1, the code for a crash, while
     // `fr --help` promised 5 for one. Both languages route through the same type now.

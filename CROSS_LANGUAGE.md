@@ -79,6 +79,7 @@ an edit that compiles somewhere else and breaks here.
 | HTML, XML, TSX, TypeScript, Markdown | CSS, SCSS | selectors, custom properties | markup names a style rule by class or id |
 | Helm | YAML, and back | keys | a template names a key in its values file |
 | HTML, XML, TSX, TypeScript | HTML, XML | element ids | a template names an element the markup declares |
+| HTML, TSX, TypeScript | HTML, TSX | `data-*` hooks | a test and a component agree on `data-testid="submit-btn"` by string |
 
 **Deliberately absent: every pair of imperative languages.** Rust cannot name a Zig
 method; Go cannot name a Python function. Where an FFI does connect them, the binding

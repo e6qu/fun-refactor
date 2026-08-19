@@ -43,6 +43,25 @@
   (attribute_value) @name
   (#match? @_attr "^(?i)id$")) @definition.element-id
 
+; `data-testid="submit-btn"` — a hook a document and the component that renders it
+; agree on by string. The value is the author's own name, unlike the element and
+; attribute vocabulary around it, and the same string is written in the TSX that
+; renders the same element. So it is the one attribute family beyond `id` and
+; `class` worth naming, and renaming one has to rewrite both sides.
+;
+; Every definition site is equal, as with a CSS class: markup does not declare a
+; hook anywhere and then use it, it spells it out wherever the element is written.
+(attribute
+  (attribute_name) @_attr
+  (quoted_attribute_value
+    (attribute_value) @name)
+  (#match? @_attr "^(?i)data-.")) @definition.data-attribute
+
+(attribute
+  (attribute_name) @_attr
+  (attribute_value) @name
+  (#match? @_attr "^(?i)data-.")) @definition.data-attribute
+
 ; ------------------------------------------------------------- references
 ; `class="btn"` — a use site of a CSS class definition. See the multi-value gap
 ; above: the span is the whole attribute value.
