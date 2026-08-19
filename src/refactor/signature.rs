@@ -146,15 +146,49 @@ fn still_read(
         .filter(|r| r.file == sym.file && sym.full_span.contains(r.span))
         .collect();
     if let Some(first) = uses.first() {
-        anyhow::bail!(
-            "the body of `{}` still reads `{}` at {}; removing the parameter would leave \
-             a name nothing supplies",
-            sym.name,
-            parameter.name,
-            location(&first.file, first.span.start)
-        );
+        return Err(still_used(
+            format!(
+                "the body of `{}` still reads `{}` at {}; removing the parameter would \
+                 leave a name nothing supplies",
+                sym.name,
+                parameter.name,
+                location(&first.file, first.span.start)
+            ),
+            uses.iter().map(|r| refusal_site(&r.file, r.span.start)),
+        ));
     }
     Ok(())
+}
+
+/// A considered refusal that names the uses a change would strand.
+///
+/// The type `fr delete` raises, and the exit code is chosen from the error's type.
+/// `fr --help` promises 5 for a refusal. Every one of these printed 1, the code for
+/// a crash, under a message that had thought behind it.
+fn still_used(
+    detail: String,
+    sites: impl Iterator<Item = crate::refactor::RefusalSite>,
+) -> anyhow::Error {
+    crate::refactor::Refusal::StillUsed {
+        detail,
+        references: sites.collect(),
+    }
+    .into()
+}
+
+/// A position, for the data that rides beside a refusal's prose.
+fn refusal_site(path: &Path, offset: usize) -> crate::refactor::RefusalSite {
+    let (line, col) = crate::vfs::read_to_string(path)
+        .map(|source| {
+            let at = LineIndex::new(&source).line_col(offset, &source);
+            (at.line, at.col)
+        })
+        .unwrap_or((0, 0));
+    crate::refactor::RefusalSite {
+        file: path.to_path_buf(),
+        line,
+        col,
+    }
 }
 
 /// Apply `change` to `symbol` and every call site.
@@ -1014,11 +1048,14 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
             Change::Remove(at) => {
                 let gone = at + 1;
                 if reference.number == gone {
-                    anyhow::bail!(
-                        "the body of `{}` still reads ${gone}, the parameter being removed; \
-                         nothing would supply it afterwards",
-                        sym.name
-                    );
+                    return Err(still_used(
+                        format!(
+                            "the body of `{}` still reads ${gone}, the parameter being \
+                             removed; nothing would supply it afterwards",
+                            sym.name
+                        ),
+                        std::iter::once(refusal_site(&sym.file, reference.span.start)),
+                    ));
                 }
                 if reference.number > gone {
                     reference.number - 1
@@ -1783,13 +1820,16 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                     .map(|r| location(&r.file, r.span.start))
                     .collect::<Vec<_>>()
                     .join(", ");
-                anyhow::bail!(
-                    "`{}` is still read {} time(s) inside the module ({where_}); removing \
-                     it would leave those `var.{}` references dangling",
-                    target.name,
-                    uses.len(),
-                    target.name
-                );
+                return Err(still_used(
+                    format!(
+                        "`{}` is still read {} time(s) inside the module ({where_}); \
+                         removing it would leave those `var.{}` references dangling",
+                        target.name,
+                        uses.len(),
+                        target.name
+                    ),
+                    uses.iter().map(|r| refusal_site(&r.file, r.span.start)),
+                ));
             }
 
             let source = crate::vfs::read_to_string(&target.file)?;

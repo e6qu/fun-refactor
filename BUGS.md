@@ -175,6 +175,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B604: **`fr signature` refusals exited 1.** `fr --help` promises 5 for a
+  refactoring that refused to proceed. Three sites raised a considered refusal
+  as a plain error. An HCL variable the module still reads, an SCSS mixin
+  parameter its body still reads, and a shell positional. The exit code is
+  chosen from the error's type, so each now raises the `Refusal::StillUsed`
+  that `fr delete` raises. Pinned in `tests/cli.rs`.
+
 - [x] B603: **`fr remove-flag` wrote `Flags.true`.** A use written as a member,
   `Flags.SHINY`, had its name replaced and its qualifier left standing. Java,
   Go, Python and TypeScript all read a constant that way. The reparse gate let
