@@ -4882,7 +4882,26 @@ fn body_leaves(body: &[Stmt]) -> bool {
         Some(Stmt::Return(_)) | Some(Stmt::Throw(_)) => true,
         Some(Stmt::If {
             then, otherwise, ..
+        })
+        | Some(Stmt::IfPresent {
+            then, otherwise, ..
         }) => !otherwise.is_empty() && body_leaves(then) && body_leaves(otherwise),
+        Some(Stmt::MatchVariants { arms, default, .. }) => {
+            !default.is_empty()
+                && body_leaves(default)
+                && arms.iter().all(|arm| body_leaves(&arm.body))
+        }
+        // A `finally` that leaves ends the function whatever the body did.
+        // Otherwise every path out of the attempt has to leave on its own.
+        Some(Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        }) => {
+            body_leaves(finally)
+                || (body_leaves(body) && catches.iter().all(|c| body_leaves(&c.body)))
+        }
         Some(Stmt::Switch { arms, default, .. }) => {
             !default.is_empty()
                 && body_leaves(default)

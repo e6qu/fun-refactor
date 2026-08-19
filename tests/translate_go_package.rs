@@ -84,3 +84,14 @@ fn a_switch_whose_every_arm_returns_needs_nothing_after_it() {
         "an exhaustive switch terminates, and code after it is unreachable.\n{go}"
     );
 }
+
+#[test]
+fn an_if_let_whose_branches_both_return_needs_nothing_after_it() {
+    let source = "pub fn label(o: Option<i64>) -> i64 {\n    if let Some(v) = o {\n        \
+        return v * 2;\n    } else {\n        return 0;\n    }\n}\n";
+    let go = translated(source, "opt.rs");
+    assert!(
+        !go.contains("panic("),
+        "both branches leave, so nothing follows them.\n{go}"
+    );
+}
