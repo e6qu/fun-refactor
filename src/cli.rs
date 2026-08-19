@@ -245,12 +245,18 @@ enum Command {
     },
     /// Replace a variable's uses with its value, or a call with the callee's body.
     ///
+    /// `--call` undoes `fr extract --variable` and nothing else. It inlines a callee
+    /// whose body is one expression, and refuses a body of several statements, whose
+    /// evaluation order and shadowing it cannot preserve. `fr extract --function` always
+    /// writes several, so its output is not something this can put back.
+    ///
     /// Prints a diff by default; pass --write to apply it.
     Inline {
         /// Position as `path:line:col`, or a bare symbol name.
         /// Line and column are 1-based and land on the identifier.
         target: String,
         /// Inline the call at that position instead of a variable.
+        /// The callee's body has to be one expression.
         #[arg(long)]
         call: bool,
         /// Apply the change instead of printing a diff.
