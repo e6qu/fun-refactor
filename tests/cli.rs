@@ -692,3 +692,161 @@ fn the_language_filter_has_one_name() {
     let (long, _) = ws.run(&["symbols", "--language", "go"]);
     assert_eq!(short, long);
 }
+
+/// Asked from a subdirectory, `fr` used to answer about that subdirectory.
+///
+/// `fr usages` reported "0 use(s)" of a function the file above it calls.
+/// `fr delete` offered to remove it. `fr rename` renamed the definition and
+/// left the caller reading a name nothing declares. Every one of them reported
+/// success. Where `-C` is not stated, the root is the project the shell's
+/// directory sits in.
+mod from_a_subdirectory {
+    use super::*;
+
+    fn project() -> tempfile::TempDir {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("pkg/deep")).unwrap();
+        std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+        std::fs::write(
+            tmp.path().join("pkg/deep/h.py"),
+            "def helper():\n    return 1\n",
+        )
+        .unwrap();
+        std::fs::write(
+            tmp.path().join("main.py"),
+            "from pkg.deep.h import helper\n\n\ndef go():\n    return helper()\n",
+        )
+        .unwrap();
+        tmp
+    }
+
+    fn run_in(dir: &Path, cache: &Path, args: &[&str]) -> (String, bool) {
+        let output = Command::new(FR)
+            .current_dir(dir)
+            .args(args)
+            .env("FUN_REFACTOR_CACHE", cache)
+            .output()
+            .expect("fr should run");
+        let mut text = String::from_utf8_lossy(&output.stdout).to_string();
+        text.push_str(&String::from_utf8_lossy(&output.stderr));
+        (text, output.status.success())
+    }
+
+    #[test]
+    fn a_use_one_directory_up_is_found() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let deep = tmp.path().join("pkg/deep");
+        let (out, ok) = run_in(&deep, cache.path(), &["usages", "h.py:1:5"]);
+        assert!(ok, "the command should succeed.\n{out}");
+        assert!(
+            out.contains("2 use(s)"),
+            "the caller above is a use.\n{out}"
+        );
+        assert!(
+            out.contains("the project"),
+            "widening the root is said out loud.\n{out}"
+        );
+    }
+
+    #[test]
+    fn delete_refuses_what_the_file_above_still_calls() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let deep = tmp.path().join("pkg/deep");
+        let (out, ok) = run_in(&deep, cache.path(), &["delete", "h.py:1:5"]);
+        assert!(!ok, "a used symbol is not deletable.\n{out}");
+        assert!(
+            out.contains("main.py"),
+            "the caller is named so it can be dealt with.\n{out}"
+        );
+    }
+
+    #[test]
+    fn a_stated_root_is_left_alone() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let deep = tmp.path().join("pkg/deep");
+        let (out, ok) = run_in(&deep, cache.path(), &["-C", ".", "usages", "h.py:1:5"]);
+        assert!(ok, "the command should succeed.\n{out}");
+        assert!(
+            out.contains("0 use(s)"),
+            "`-C .` means this directory, and nothing above it.\n{out}"
+        );
+        assert!(
+            !out.contains("the project"),
+            "nothing was widened, so nothing is announced.\n{out}"
+        );
+    }
+}
+
+/// An ignored file was unreachable, and the refusal blamed the cursor.
+///
+/// `fr usages build/g.py:1:5` answered "no symbol or resolved reference" over a
+/// declaration sitting plainly on that line. The file was excluded by
+/// .gitignore and never indexed, and no flag existed to bring it in. Generated
+/// trees, vendored copies and build output are refactoring targets like any
+/// other.
+mod ignored_files {
+    use super::*;
+
+    fn project() -> tempfile::TempDir {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("build")).unwrap();
+        std::fs::write(tmp.path().join(".gitignore"), "build/\n").unwrap();
+        std::fs::write(tmp.path().join("build/g.py"), "def gen():\n    return 1\n").unwrap();
+        std::fs::write(tmp.path().join("a.py"), "x = 1\n").unwrap();
+        tmp
+    }
+
+    fn run(tmp: &Path, cache: &Path, args: &[&str]) -> (String, bool) {
+        let output = Command::new(FR)
+            .arg("-C")
+            .arg(tmp)
+            .args(args)
+            .env("FUN_REFACTOR_CACHE", cache)
+            .output()
+            .expect("fr should run");
+        let mut text = String::from_utf8_lossy(&output.stdout).to_string();
+        text.push_str(&String::from_utf8_lossy(&output.stderr));
+        (text, output.status.success())
+    }
+
+    #[test]
+    fn the_refusal_blames_the_file_and_not_the_position() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let (out, ok) = run(tmp.path(), cache.path(), &["usages", "build/g.py:1:5"]);
+        assert!(!ok, "an unindexed file is not answerable.\n{out}");
+        assert!(
+            out.contains("not in the workspace this indexed"),
+            "the reason is the file, not the cursor.\n{out}"
+        );
+        assert!(
+            out.contains("--no-ignore"),
+            "the way out is named.\n{out}"
+        );
+    }
+
+    #[test]
+    fn no_ignore_brings_the_file_in() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let (out, ok) = run(
+            tmp.path(),
+            cache.path(),
+            &["--no-ignore", "usages", "build/g.py:1:5"],
+        );
+        assert!(ok, "the symbol resolves once the file is read.\n{out}");
+        assert!(out.contains("gen"), "and it is the right symbol.\n{out}");
+    }
+
+    #[test]
+    fn the_flag_named_in_the_advice_exists() {
+        let tmp = project();
+        let cache = tempfile::tempdir().unwrap();
+        let (out, ok) = run(tmp.path(), cache.path(), &["--no-ignore", "scan"]);
+        assert!(ok, "--no-ignore is a real flag.\n{out}");
+        assert!(out.contains("build/g.py"), "and it reads the file.\n{out}");
+    }
+}

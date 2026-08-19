@@ -65,9 +65,19 @@ the definition or any use of it. The tool resolves whatever is under the
 cursor and then works from the symbol it found. That makes the form
 editor-friendly; it is the same information an editor has when you right-click.
 
-Relative paths are read **relative to the workspace root**, which is the current
-directory unless `-C` says otherwise. `fr -C ../helm refs pkg/x.go:3:6` means that
-file in that workspace, not one relative to your shell.
+The workspace is **the project your shell is standing in**, found by walking up
+for a `.git`, a `Cargo.toml`, a `go.mod` and the like. Asked from `pkg/deep`, the
+tool reads the whole project. A question about a symbol is a question about the
+project: a caller two directories up is still a caller. Widening the root is
+announced, and `-C .` means this directory alone.
+
+Where `-C` says which workspace to use, relative paths are read **relative to
+that root**. `fr -C ../helm refs pkg/x.go:3:6` means that file in that
+workspace, not one relative to your shell. Where the root was found rather than
+stated, a path is read from where you stand.
+
+Files that `.gitignore` excludes are outside all of this. `--no-ignore` reads
+them, which is how you reach a generated tree or a vendored copy.
 
 When a bare name is not enough, the tool refuses and shows you the choices rather
 than guessing:

@@ -57,8 +57,8 @@ impl CloneClass {
 /// What counts as a duplicate.
 #[derive(Debug, Clone)]
 pub struct Options {
-    /// Smallest clone to report, in tokens.
-    pub min_tokens: usize,
+    /// Smallest clone to report, in tokens. `None` asks each language for its own.
+    pub min_tokens: Option<usize>,
     /// Require identifiers and literals to match, not only the structure.
     pub exact: bool,
     /// Restrict the report to these languages. Empty means all of them.
@@ -67,14 +67,28 @@ pub struct Options {
     pub paths: Vec<PathBuf>,
 }
 
+impl Options {
+    /// The floor for one language, where the caller stated none.
+    ///
+    /// A dozen lines is the unit worth reporting, and a dozen lines is a
+    /// different number of tokens in each kind of language. Twelve lines of
+    /// CSS declarations count 47 and twelve of YAML count 33, so one floor of
+    /// 60 meant copy-paste that any reader would call duplication went
+    /// unreported, with nothing said about why.
+    fn floor_for(&self, language: Language) -> usize {
+        match (self.min_tokens, language.class()) {
+            (Some(stated), _) => stated,
+            (None, crate::lang::LanguageClass::Imperative) => 60,
+            (None, crate::lang::LanguageClass::Config) => 30,
+        }
+    }
+}
+
 impl Default for Options {
     fn default() -> Self {
         Options {
-            // Around a dozen lines of ordinary code. Below this the matches are
-            // language boilerplate, an import block, a struct literal, a `for` over
-            // a slice, which repeat by nature and are not duplication anyone can act
-            // on.
-            min_tokens: 60,
+            // Unstated: each language gets the floor its own density earns.
+            min_tokens: None,
             exact: false,
             languages: Vec::new(),
             paths: Vec::new(),
@@ -118,7 +132,8 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
             // already reported by `fr parse`, so it is skipped and not guessed at.
             continue;
         };
-        collect(parsed.root(), source, i, options, &mut candidates);
+        let floor = options.floor_for(*language);
+        collect(parsed.root(), source, i, options, floor, &mut candidates);
     }
 
     // Group by hash. The language is carried per file, so two languages can only
@@ -228,6 +243,7 @@ fn collect(
     source: &str,
     file_index: usize,
     options: &Options,
+    floor: usize,
     out: &mut Vec<Candidate>,
 ) {
     // (node, depth, whether its children have been processed)
@@ -270,7 +286,7 @@ fn collect(
         };
         hashes.insert(node.id(), (hash, tokens));
 
-        if tokens >= options.min_tokens && node.is_named() {
+        if tokens >= floor && node.is_named() {
             out.push(Candidate {
                 hash,
                 file_index,

@@ -91,6 +91,19 @@ struct Cli {
     #[arg(long, short = 'C', global = true, default_value = ".")]
     root: PathBuf,
 
+    /// Set where `root` was not stated and had to be found. A typed path is then
+    /// read against the shell's directory, the one the caller can see.
+    #[arg(skip)]
+    root_inferred: bool,
+
+    /// Read files that .gitignore and friends exclude, and hidden files too.
+    ///
+    /// Generated trees, vendored copies and build output are refactoring targets
+    /// like any other, and they are usually ignored. Without this there was no
+    /// way to reach them at all: the scan honoured ignore files unconditionally.
+    #[arg(long, global = true)]
+    no_ignore: bool,
+
     /// Re-read every file instead of reusing cached facts.
     #[arg(long, global = true)]
     no_cache: bool,
@@ -314,9 +327,11 @@ enum Command {
     /// Compares structure and not text, so a copy whose variables were renamed
     /// still matches. That is the copy a textual search will never find.
     Duplicates {
-        /// Smallest duplicate to report, in tokens.
-        #[arg(long, default_value_t = 60)]
-        min_tokens: usize,
+        /// Smallest duplicate to report, in tokens. Left out, each language
+        /// gets the floor its own density earns. Code gets 60. Markup and
+        /// configuration get 30, a dozen of their lines being far fewer tokens.
+        #[arg(long)]
+        min_tokens: Option<usize>,
         /// Require identifiers and literals to match too, not only the structure.
         #[arg(long)]
         exact: bool,
@@ -575,7 +590,22 @@ enum Command {
 }
 
 pub fn run() -> Result<()> {
-    let cli = Cli::parse();
+    let matches = <Cli as clap::CommandFactory>::command().get_matches();
+    let mut cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
+        .map_err(|e| Fault::invalid_input(e.to_string()))?;
+    if matches.value_source("root") != Some(clap::parser::ValueSource::CommandLine) {
+        if let Some(project) = enclosing_project(&cli.root) {
+            eprintln!(
+                "Reading the whole of {}, the project {} sits in. Pass `-C .` for \
+                 this directory alone.",
+                project.display(),
+                cli.root.display()
+            );
+            cli.root = project;
+            cli.root_inferred = true;
+        }
+    }
+    let cli = cli;
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -899,6 +929,39 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
         &outcome.updated,
         &shown.display().to_string(),
     )
+}
+
+/// The project `start` sits inside, when that is somewhere above `start`.
+///
+/// A question about a symbol is a question about the project, not about the
+/// directory a shell happens to be in. Answered from `pkg/deep`, `fr usages`
+/// said "0 use(s)" of a function `main.py` calls. `fr delete` offered to remove
+/// it. `fr rename` renamed the definition and left the caller reading a name
+/// nothing declares. All three reported success. The nearest enclosing marker
+/// wins, so a package inside a monorepo is read as itself. A stated `-C` is
+/// left alone.
+fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
+    const MARKERS: &[&str] = &[
+        ".git",
+        "Cargo.toml",
+        "go.mod",
+        "package.json",
+        "pyproject.toml",
+        "setup.py",
+        "build.zig",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+    ];
+    let from = start.canonicalize().ok()?;
+    if !from.is_dir() {
+        return None;
+    }
+    let found = from
+        .ancestors()
+        .find(|dir| MARKERS.iter().any(|marker| dir.join(marker).exists()))?;
+    // Already at the project root: the default is right and needs no note.
+    (found != from).then(|| found.to_path_buf())
 }
 
 /// The canonical workspace root, the spelling the index writes into every path.
@@ -1348,14 +1411,18 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 
 /// A path the caller typed, spelled the way the index spells its paths.
 ///
-/// Relative paths resolve against the workspace root, not the shell's working directory: `-C`
-/// says which workspace to operate on. `fr -C ../helm refs pkg/x.go:3:6` means that file in
-/// that workspace. Canonical, because the index is, and a path that does not exist is an
-/// error. Resolving it to itself lets the file read fail two frames later with "reading
-/// pkg/x.go. No such file", which is true and unhelpful.
+/// Where `-C` was stated, relative paths resolve against it and not against the shell's
+/// working directory. `-C` says which workspace to operate on, so
+/// `fr -C ../helm refs pkg/x.go:3:6` means that file in that workspace. Where the root was
+/// found rather than stated, the caller typed a path they can see from where they stand.
+/// The shell's directory is tried first then, and the root second. Canonical, because the
+/// index is. A path that does not exist is an error. Resolving it to itself lets the file
+/// read fail two frames later with "reading pkg/x.go. No such file". True and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     let joined = if path.is_absolute() {
+        path.to_path_buf()
+    } else if cli.root_inferred && crate::vfs::exists(path) {
         path.to_path_buf()
     } else {
         root.join(path)
@@ -1435,7 +1502,7 @@ fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
 
 fn cmd_duplicates(
     cli: &Cli,
-    min_tokens: usize,
+    min_tokens: Option<usize>,
     exact: bool,
     languages: &[String],
     paths: &[PathBuf],
@@ -1458,10 +1525,17 @@ fn cmd_duplicates(
 
     let root = workspace_root(cli);
     if classes.is_empty() {
-        println!(
-            "No duplication of {min_tokens} tokens or more{}.",
-            if exact { " (exact)" } else { "" }
-        );
+        match min_tokens {
+            Some(stated) => println!(
+                "No duplication of {stated} tokens or more{}.",
+                if exact { " (exact)" } else { "" }
+            ),
+            None => println!(
+                "No duplication of 60 tokens or more in code, or 30 in markup and \
+                 configuration{}. Pass --min-tokens to look for smaller copies.",
+                if exact { " (exact)" } else { "" }
+            ),
+        }
     }
     for class in &classes {
         println!(
@@ -1486,9 +1560,12 @@ fn cmd_duplicates(
         // The threshold belongs here as much as it does in the empty case. Finding
         // nothing "of 60 tokens or more" says what was looked for; finding three and
         // saying only "3 duplicated block(s)" reads as all of them.
+        let floor = match min_tokens {
+            Some(stated) => format!("{stated} tokens or more"),
+            None => "60 tokens or more in code, 30 in markup and configuration".to_string(),
+        };
         println!(
-            "\n{} duplicated block(s) of {min_tokens} tokens or more, {redundant} \
-             redundant token(s).",
+            "\n{} duplicated block(s) of {floor}, {redundant} redundant token(s).",
             classes.len()
         );
         println!(
@@ -3679,6 +3756,23 @@ fn candidates_of(symbols: &[&Symbol]) -> Vec<Candidate> {
         .collect()
 }
 
+/// The likeliest reason a real file is absent from the index.
+///
+/// Guessing badly is worse than not guessing, so each answer is checked against
+/// the thing that would cause it rather than inferred from the absence.
+fn why_unindexed(cli: &Cli, path: &std::path::Path) -> String {
+    if crate::lang::detect(path).is_none() {
+        return "It is in no language this reads.".to_string();
+    }
+    let limit = cli.max_file_size.unwrap_or(crate::scan::ScanOptions::default().max_file_bytes);
+    if std::fs::metadata(path).is_ok_and(|m| m.len() > limit) {
+        return format!("It is larger than the {limit}-byte limit; raise --max-file-size.");
+    }
+    "An ignore rule probably excludes it, or --languages narrowed the scan; \
+     --no-ignore reads ignored files."
+        .to_string()
+}
+
 /// Resolve a CLI target to a symbol, accepting either a position or a name.
 fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a Symbol> {
     if let Some(pos) = parse_target_position(cli, target)? {
@@ -3688,12 +3782,24 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         let offset = offset_at(&source, pos.line, pos.col, &path)?;
 
         return index.definition_at(&path, offset).ok_or_else(|| {
-            Fault::not_found(format!(
-                "no symbol or resolved reference at {}:{}:{}",
-                path.display(),
-                pos.line,
-                pos.col
-            ))
+            // A file the scan never reached has no symbols at any position.
+            // Saying "no symbol here" sends the reader looking at a declaration
+            // that is plainly there. An ignore rule, a size limit or a language
+            // this does not read is a fact about the file, not the cursor.
+            Fault::not_found(match index.file(&path) {
+                Some(_) => format!(
+                    "no symbol or resolved reference at {}:{}:{}",
+                    path.display(),
+                    pos.line,
+                    pos.col
+                ),
+                None => format!(
+                    "{} is not in the workspace this indexed, so nothing in it \
+                     resolves. {} `fr scan` lists what was read.",
+                    path.display(),
+                    why_unindexed(cli, &path)
+                ),
+            })
         });
     }
 
@@ -4446,6 +4552,7 @@ fn scan_options(cli: &Cli, names: &[String]) -> Result<ScanOptions> {
     if let Some(bytes) = cli.max_file_size {
         options.max_file_bytes = bytes;
     }
+    options.respect_ignore = !cli.no_ignore;
     Ok(options)
 }
 
@@ -4484,6 +4591,7 @@ fn cmd_scan(cli: &Cli, languages: &[String]) -> Result<()> {
                 "files": files,
                 "skipped": skipped,
                 "skipped_too_large": too_large,
+                "unsupported": result.unsupported,
             }))?
         );
     } else {
@@ -4631,6 +4739,28 @@ fn report_skipped(result: &crate::scan::ScanResult) {
         for (path, reason) in &result.skipped_symlinks {
             println!("  {} ({reason})", path.display());
         }
+    }
+    if !result.unsupported.is_empty() {
+        let total: usize = result.unsupported.values().sum();
+        // Commonest first, and only the leading few. A repository carries more
+        // kinds of file than a reader wants listed. The point is the size of
+        // what was passed over, not a census of it.
+        let mut kinds: Vec<_> = result.unsupported.iter().collect();
+        kinds.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
+        let named: Vec<String> = kinds
+            .iter()
+            .take(5)
+            .map(|(kind, count)| format!("{kind} ({count})"))
+            .collect();
+        let rest = match kinds.len().saturating_sub(5) {
+            0 => String::new(),
+            more => format!(", and {more} other kind(s)"),
+        };
+        println!(
+            "\n{total} file(s) in no language this reads: {}{rest}. \
+             `fr capabilities` lists what it does read.",
+            named.join(", ")
+        );
     }
 }
 

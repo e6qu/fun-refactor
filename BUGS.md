@@ -175,6 +175,74 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B630: **an empty list crossed as `[]any` under a signature promising
+  something else.** `out = []` says nothing about its elements. Go therefore
+  wrote `out := []any{}` inside a function returning `[]Point`, and the compiler
+  refused the return. What the body appends says what the list holds, and a
+  declared return type says it where nothing is appended. The element type
+  settles in the shared binding table, so every target that must name one
+  benefits.
+
+- [x] B631: **a function whose body did not translate would not compile.** The
+  untranslated statements were carried as comments. That left a Go function
+  promising a value and returning nothing: `missing return`. It now panics with
+  the marker, so a draft says it is unfinished where a zero value would have
+  said it was done.
+
+- [x] B632: **every translated Go file was `package main`.** A file with no
+  `func main` is a program with no entry point. `go build` refuses it, so every
+  translated library was unbuildable. A module carrying an entry point is
+  still `main`. Everything else takes its package name from the file.
+
+- [x] B628: **an unindexed file was refused as if the cursor were wrong.**
+  A `def` sat plainly on the line named. The answer was "no symbol or resolved
+  reference". The file was excluded by .gitignore and never
+  indexed, so nothing in it resolves at any position. The refusal now names the
+  file as the reason. It also offers the likeliest cause it can check: a
+  language this does not read, a size over the limit, or an ignore rule.
+
+- [x] B629: **ignored files could not be reached at all.** The scan honoured
+  .gitignore unconditionally and no flag turned that off. A generated tree, a
+  vendored copy or build output was therefore outside every command, and B628's
+  advice had no flag to name. `--no-ignore` reads ignored and hidden files.
+  Every command takes it, because every command scans.
+
+- [x] B626: **asked from a subdirectory, every command answered about that
+  subdirectory.** The root defaulted to `.`, so `fr usages` run in `pkg/deep`
+  reported "0 use(s)" of a function `main.py` calls, `fr delete` offered to
+  remove it, and `fr rename` renamed the definition and left the caller reading
+  a name nothing declares. All three exited zero and reported success. That is
+  the worst shape a wrong answer takes. A shell sits in a subdirectory far more
+  often than at a repository root, and an agent's shell almost always does.
+  Where `-C` is not stated, the root is now the nearest enclosing project. It is
+  found by `.git`, `Cargo.toml`, `go.mod`, `package.json`, `pyproject.toml`,
+  `setup.py`, `build.zig`, `pom.xml` or a Gradle build. Widening it is said out
+  loud, and `-C .` still means this directory alone.
+
+- [x] B627: **a path typed from a subdirectory was read against the root.**
+  Fixing B626 exposed the other half: `-C` states which workspace to operate
+  on, so relative paths resolved against it, and a caller standing in
+  `pkg/deep` typing `h.py` was answered "does not exist". Where the root was
+  found rather than stated, a typed path is now read from where the caller
+  stands first, and against the root second. A stated `-C` keeps its meaning.
+
+- [x] B625: **`fr scan` passed over files without saying so.** A directory of
+  `.sql`, `.json` and a `Makefile` beside one Python file answered "1 file(s)"
+  and nothing else, so a reader could not tell an unsupported tree from an
+  empty one, and neither could an agent deciding whether `fr` was the right
+  tool. Both the listing and the JSON now account for every file skipped for
+  want of a language. Each is counted by extension, so a lock file does not bury
+  the report. A `--languages` filter is not a gap in support, and is not
+  counted.
+
+- [x] B624: **`fr duplicates` measured a stylesheet against a function's
+  floor.** One threshold of 60 tokens covered all sixteen languages. A
+  stylesheet rule written twice comes to 47, so the command answered "no
+  duplication" over eleven copied declarations. Where nothing is stated, the
+  floor is the one each language class earns. Code gets 60; markup and
+  configuration get 30, their lines being far fewer tokens each. `--min-tokens`
+  still wins where it is given, and the report names the floor it used.
+
 - [x] B622: **a folded flag left code that cannot run.** `if FLAG { return a }
   return b` became `return a; return b`. It answers the same, and every
   compiler says so: `go vet` reports unreachable code, `rustc` warns, and Zig
