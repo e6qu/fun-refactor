@@ -40,6 +40,46 @@ pub(crate) fn is_statement_container(kind: &str) -> bool {
         || kind == "subshell"
 }
 
+/// Is this node kind a definition whose body holds members rather than statements?
+///
+/// A function spliced into one of these becomes a method, reachable only through a
+/// receiver, so a plain call to it does not resolve. Extraction hoists past every one of
+/// these instead of writing the definition where the member would go.
+pub(crate) fn is_type_definition(kind: &str) -> bool {
+    matches!(
+        kind,
+        "class_definition"
+            | "class_declaration"
+            | "abstract_class_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "record_declaration"
+            | "impl_item"
+            | "trait_item"
+    )
+}
+
+/// Is this node kind a function, so its body is a scope the names inside it belong to?
+///
+/// Hoisting stops at one of these. A definition moved past a function loses the
+/// enclosing locals it reads, and nothing puts them back.
+pub(crate) fn is_function_definition(kind: &str) -> bool {
+    matches!(
+        kind,
+        "function_definition"
+            | "function_declaration"
+            | "function_item"
+            | "function_expression"
+            | "generator_function"
+            | "generator_function_declaration"
+            | "arrow_function"
+            | "method_definition"
+            | "method_declaration"
+            | "constructor_declaration"
+            | "func_literal"
+    )
+}
+
 /// Something a refactoring found but deliberately did not act on.
 ///
 /// Warnings say what the tool saw, why it

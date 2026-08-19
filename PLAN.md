@@ -1663,3 +1663,32 @@ Two things a person needs that were not there. `__init__` is how Python spells
 a public constructor. Its underscores were read as the mark for internal, so
 no translated class could be built from outside its own file. And nothing
 completed anything: thirty-three subcommands, and no shell knew one of them.
+### The pass where the edits landed where they belong
+
+A probe over extract and move found six, B660 through B665. The theme is
+placement: an edit computed correctly and written into the wrong scope, the
+wrong file, or beside the thing it should have replaced.
+
+`fr extract --function` wrote its definition straight after the function it
+came from, at column zero. Inside a Python class that puts a `def` in the
+middle of the class body. Python parses that, so the reparse guard passed.
+The methods below became closures of the new function. Placement is one
+choke point now. Hoist out of every enclosing class, stop at the first
+enclosing function, and take the indentation of whatever it lands beside.
+TypeScript reached the same code with a receiver nobody could see, `this`
+being named in no signature. It travels as a parameter now, the way Go's
+named receiver already did.
+
+`fr move` in Go left the imports where they were. The destination named an
+undefined qualifier, and the source imported a package it no longer used. Both
+had been reported and neither done. A Go import path is absolute and a
+qualified use is a reference under the package binding, so neither half was
+ever a guess. In TypeScript a specifier crossing a directory resolved to
+nothing at all, one path join short of normalised. The old import stayed
+beside the new one.
+
+The last two are about what a refactoring leaves behind. A move erased a
+declaration's lines and left both blank lines that had separated it. A symbol
+moved out and back came home to that scar. And `fr inline` was documented as
+the reverse of `fr extract` while sharing no case with half of it. The docs,
+the help and the refusal say so now.

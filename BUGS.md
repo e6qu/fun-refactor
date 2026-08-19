@@ -270,6 +270,72 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   floor is the one each language class earns. Code gets 60; markup and
   configuration get 30, their lines being far fewer tokens each. `--min-tokens`
   still wins where it is given, and the report names the floor it used.
+- [x] B660: **`fr extract --function` spliced a class in half.** The new definition
+  went straight after the function it came from, at column zero. Extracting from a
+  Python method that was not the last one put a `def` in the middle of the class
+  body. Python parses that, because a `def` nests anywhere, so the reparse guard
+  passed. Every method below became a closure of the new function, and the class
+  lost them. The file still imported, and the tests that called those methods
+  failed with `AttributeError`. A nested function got the same treatment, at the
+  outer body's expense. Placement is one choke point now. The definition is hoisted
+  out of every class it sits in, and stops at the first enclosing function. It takes
+  the indentation of whatever it lands beside. Pinned in
+  `tests/extract_function.rs`.
+
+- [x] B661: **`fr extract --function` lost a method's receiver.** TypeScript reached
+  it first. `this` is named nowhere in a signature, so the data-flow analysis could
+  not see it. The body still read `this.values` while the parameter list was empty,
+  and the definition landed inside the class body. The syntax guard caught the
+  second half, so nothing was written, and the capability matrix went on claiming
+  extract-function for typescript and tsx. Go had it right all along: its receiver
+  is a named parameter, so `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)`
+  by ordinary means. TypeScript now carries the receiver the same way, as a
+  parameter typed with the class it came out of, with the call passing `this`. A
+  private or protected member, a generic class, an anonymous one and `super` are
+  each refused by name. Rust and Java say the receiver cannot be handed over.
+  Pinned in `tests/extract_function.rs`.
+
+- [x] B662: **`fr move` did not carry a Go symbol's imports.** Moving a function
+  that used `math` broke both files. The destination said `undefined: math`. The
+  source said `"math" imported and not used`. Two compile errors from one move, in
+  the commonest Go refactoring there is, and the report said `0 file(s) gained an
+  import`. Both directions had been reported and neither done. A Go import path is
+  absolute, so the statement travels verbatim. A qualified use is a reference under
+  the package binding, so which import fed which name is a fact. References inside
+  the moved span decide what goes and the ones outside decide what stays. Pinned in
+  `tests/move_languages.rs`.
+
+- [x] B663: **a relative import that crossed a directory resolved to nothing.** One
+  path join short of normalised. `Index::resolve_import_path` joined the specifier
+  onto the importer's directory and looked the result up as written.
+  `"../src/pricing"` from `test/run.ts` became `test/../src/pricing`. That compared
+  unequal to the file it names, because the index is keyed by paths with no `..` in
+  them. Every caller asking which file an import points at got `None`. `fr move`
+  then wrote its new import beside the old one it had failed to recognise: `TS2300:
+  Duplicate identifier` and `TS2459`. Duplicate imports parse, so no guard caught
+  it. The join is normalised at that one point. Pinned in `tests/move_imports.rs`.
+
+- [x] B664: **a move left a blank-line scar.** Two declarations have a blank line on
+  each side of the one between them. Erasing that one's lines alone left both, so
+  the file kept a two-line gap where a one-line gap belongs. `gofmt` rewrites it. A
+  symbol moved out and back came home to that scar. What "back" means is decided and
+  pinned now. A move appends to the file it lands in and leaves no trace in the one
+  it left. So out and back returns the package to the declarations it started with,
+  in a different order. The emptied file returns to what it held. Holes whose blank
+  runs meet are worked out as one, because two edits claiming the same blank line is
+  a conflict the applier refuses. A declaration with nothing blank above it keeps
+  the run below, which is the only separator left. Pinned in
+  `tests/move_languages.rs` and the unit tests beside `erase_spans`.
+
+- [x] B665: **half of a documented pairing was empty.** `fr inline` was called the
+  reverse of `fr extract`. `extract --function` writes a body of several statements
+  by construction. `inline --call` refuses a body of several statements by
+  construction. So no output of the first is an input to the second, and nothing
+  said so. Teaching `--call` the multi-statement case is a different piece of work
+  to the one that would make the sentence true today. So the limit is stated
+  instead, in EXAMPLES.md, TUTORIAL.md, the README synopsis and `fr inline --help`.
+  The refusal states it too, and names the command whose output cannot come back.
+  Pinned in `tests/inline_call.rs`.
 
 - [x] B622: **a folded flag left code that cannot run.** `if FLAG { return a }
   return b` became `return a; return b`. It answers the same, and every

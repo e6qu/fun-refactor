@@ -304,7 +304,7 @@ $ fr extract pkg/action/install.go:221:5-221:20 itemCount     # expression → b
 +	if itemCount > 0 {
 
 $ fr extract <range> prepare --function   # statements → a function, with parameters
-$ fr inline <target>                      # the reverse of either
+$ fr inline <target>                      # the reverse of the binding form
 $ fr signature releaseApplyMethod move:0:1  # reorder parameters, fix every call
 $ fr move helper pkg/util/helper.go       # move, carrying and fixing imports
 $ fr delete oldHelper                     # refuses if anything uses it

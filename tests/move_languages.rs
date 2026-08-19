@@ -132,7 +132,7 @@ fn rust_move_repoints_a_simple_use() {
 
     assert_eq!(
         ws.read("src/helpers.rs"),
-        "pub fn kept() -> i32 {\n    1\n}\n\n"
+        "pub fn kept() -> i32 {\n    1\n}\n"
     );
     assert_eq!(
         ws.read("src/store.rs"),
@@ -216,7 +216,7 @@ fn rust_move_carries_attributes_and_doc_comments() {
     commit(&plan);
 
     // An attribute or doc comment left behind is a compile error, so both travel.
-    assert_eq!(ws.read("src/helpers.rs"), "pub fn kept() {}\n\n");
+    assert_eq!(ws.read("src/helpers.rs"), "pub fn kept() {}\n");
     assert_eq!(
         ws.read("src/store.rs"),
         "// store\n\n/// What it does.\n#[inline]\npub fn shared() -> i32 {\n    2\n}\n"
@@ -240,11 +240,11 @@ fn rust_source_file_gains_a_use_when_it_still_calls_the_item() {
     assert_eq!(plan.imports_added, vec![ws.path("src/helpers.rs")]);
     commit(&plan);
 
-    // The blank line the definition sat between stays: a move splices bytes out, it
-    // does not reflow what is left.
+    // One blank line where the definition was, not the two it sat between. Both
+    // separators used to stay, which left a gap that no later move healed.
     assert_eq!(
         ws.read("src/helpers.rs"),
-        "//! Helpers.\nuse crate::store::shared;\n\n\npub fn caller() -> i32 {\n    shared()\n}\n"
+        "//! Helpers.\nuse crate::store::shared;\n\npub fn caller() -> i32 {\n    shared()\n}\n"
     );
     let after = ws.index();
     let refs = after.references_to(symbol_id(&after, "shared", None));
@@ -472,7 +472,7 @@ fn go_move_inside_one_package_changes_nothing_else() {
         "the caller must not be touched at all"
     );
 
-    assert_eq!(ws.read("pkg/a.go"), "package pkg\n\n");
+    assert_eq!(ws.read("pkg/a.go"), "package pkg\n");
     assert_eq!(
         ws.read("pkg/c.go"),
         "package pkg\n\nconst Limit = 10\n\n// Shared does a thing.\nfunc Shared() int {\n\treturn 2\n}\n"
@@ -510,11 +510,14 @@ fn go_move_into_an_empty_file_writes_the_package_clause() {
         "package pkg\n\nfunc helper() int {\n\treturn 1\n}\n"
     );
     // An unexported name is fine here: the move stayed inside the package.
-    assert_eq!(ws.read("pkg/a.go"), "package pkg\n\n");
+    assert_eq!(ws.read("pkg/a.go"), "package pkg\n");
 }
 
 #[test]
-fn go_move_warns_about_the_imports_the_code_leaves_behind_and_needs() {
+fn go_move_carries_the_imports_the_moved_code_uses() {
+    // Both directions used to be reported and neither done. That is two compile
+    // errors from one move. `undefined: fmt` where the code landed, and `"fmt"
+    // imported and not used` where it came from.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
         (
@@ -527,21 +530,91 @@ fn go_move_warns_about_the_imports_the_code_leaves_behind_and_needs() {
     let id = symbol_id(&index, "Shared", None);
 
     let plan = move_symbol::to_file(&index, id, &ws.path("pkg/c.go")).unwrap();
-    // Nothing is edited: which import fed which name is what this index knows
-    // only weakly, so both directions are reported instead of guessed at.
+    assert_eq!(plan.imports_added, vec![ws.path("pkg/c.go")]);
+    commit(&plan);
+
     assert!(
-        plan.warnings
-            .iter()
-            .any(|w| w.contains("may now be unused")),
-        "got {:?}",
-        plan.warnings
+        ws.read("pkg/c.go").contains("import \"fmt\""),
+        "the destination gained it:\n{}",
+        ws.read("pkg/c.go")
     );
     assert!(
-        plan.warnings
-            .iter()
-            .any(|w| w.contains("which") && w.contains("c.go") && w.contains("does not import")),
-        "got {:?}",
-        plan.warnings
+        !ws.read("pkg/a.go").contains("import \"fmt\""),
+        "the source lost it:\n{}",
+        ws.read("pkg/a.go")
+    );
+}
+
+#[test]
+fn a_go_symbol_moved_out_and_back_comes_home() {
+    // What "back" means, decided and pinned. A move appends to the file it lands in and
+    // leaves no trace in the one it left. So out and back returns the package to the
+    // declarations it started with, in a different order. The emptied file returns to
+    // what it held. It used to come back to a file scarred with the blank lines of two
+    // holes, which `gofmt` rewrites, and no later move healed it.
+    let pricing = "package pricing\n\nimport \"math\"\n\nfunc Round2(v float64) float64 {\n\t\
+        return math.Round(v*100) / 100\n}\n\nfunc WithTax(v float64) float64 {\n\t\
+        return Round2(v * 1.2)\n}\n";
+    let ws = Workspace::new(&[
+        ("go.mod", "module example.com/rt\n"),
+        ("pricing/pricing.go", pricing),
+        ("pricing/money.go", "package pricing\n"),
+    ]);
+
+    let index = ws.index();
+    let id = symbol_id(&index, "Round2", None);
+    commit(&move_symbol::to_file(&index, id, &ws.path("pricing/money.go")).unwrap());
+    assert_eq!(
+        ws.read("pricing/pricing.go"),
+        "package pricing\n\nfunc WithTax(v float64) float64 {\n\treturn Round2(v * 1.2)\n}\n",
+        "the import left with the only code that used it, and left no gap."
+    );
+
+    let index = ws.index();
+    let id = symbol_id(&index, "Round2", None);
+    commit(&move_symbol::to_file(&index, id, &ws.path("pricing/pricing.go")).unwrap());
+    assert_eq!(
+        ws.read("pricing/money.go"),
+        "package pricing\n",
+        "the file it emptied holds the one line it held before."
+    );
+    assert_eq!(
+        ws.read("pricing/pricing.go"),
+        "package pricing\n\nimport \"math\"\n\nfunc WithTax(v float64) float64 {\n\t\
+         return Round2(v * 1.2)\n}\n\nfunc Round2(v float64) float64 {\n\t\
+         return math.Round(v*100) / 100\n}\n",
+        "the same declarations, the moved one appended, and no scar."
+    );
+}
+
+#[test]
+fn go_move_keeps_an_import_the_source_file_still_uses() {
+    // The other half of the same question. `fmt` feeds both functions, so it has to
+    // be in both files afterwards.
+    let ws = Workspace::new(&[
+        ("go.mod", "module example.com/app\n"),
+        (
+            "pkg/a.go",
+            "package pkg\n\nimport \"fmt\"\n\nfunc Shared() string {\n\treturn fmt.Sprint(1)\n}\n\
+             \nfunc Other() string {\n\treturn fmt.Sprint(2)\n}\n",
+        ),
+        ("pkg/c.go", "package pkg\n\nconst Limit = 10\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "Shared", None);
+
+    let plan = move_symbol::to_file(&index, id, &ws.path("pkg/c.go")).unwrap();
+    commit(&plan);
+
+    assert!(
+        ws.read("pkg/a.go").contains("import \"fmt\""),
+        "still used here:\n{}",
+        ws.read("pkg/a.go")
+    );
+    assert!(
+        ws.read("pkg/c.go").contains("import \"fmt\""),
+        "needed here too:\n{}",
+        ws.read("pkg/c.go")
     );
 }
 
@@ -564,7 +637,7 @@ fn go_cross_package_move_qualifies_uses_and_imports_the_destination() {
 
     assert_eq!(
         ws.read("pkg/a.go"),
-        "package pkg\n\nimport \"example.com/app/util\"\n\n\nfunc Use() int {\n\treturn util.Shared()\n}\n"
+        "package pkg\n\nimport \"example.com/app/util\"\n\nfunc Use() int {\n\treturn util.Shared()\n}\n"
     );
     assert_eq!(
         ws.read("util/u.go"),
@@ -670,7 +743,7 @@ fn hcl_resource_moves_between_files_of_one_module_with_no_other_change() {
 
     assert_eq!(
         ws.read("main.tf"),
-        "resource \"aws_s3_bucket\" \"logs\" {\n  bucket = \"logs\"\n}\n\n"
+        "resource \"aws_s3_bucket\" \"logs\" {\n  bucket = \"logs\"\n}\n"
     );
     assert_eq!(
         ws.read("buckets.tf"),
@@ -826,7 +899,7 @@ fn css_rule_moves_to_an_imported_partial_without_a_warning() {
 
     assert_eq!(
         ws.read("main.css"),
-        "@import \"buttons.css\";\n\n.card {\n  color: red;\n}\n\n"
+        "@import \"buttons.css\";\n\n.card {\n  color: red;\n}\n"
     );
     // The whole rule moves, not just the selector.
     assert_eq!(
