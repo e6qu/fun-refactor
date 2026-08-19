@@ -140,22 +140,27 @@ pub fn remove_flag_in_for(
 
     // The name, resolved once. Everything downstream looks the flag up by name: which
     // uses are left, which imports were orphaned, what the rounds are called. So a
-    // target given as a position has to become a name here and not later.
-    let flag_name = match target {
-        FlagTarget::Named(name) => name.clone(),
-        FlagTarget::At(path, offset) => {
-            let snapshot: Vec<(PathBuf, Language, String)> = sources
-                .iter()
-                .map(|(p, (l, s))| (p.clone(), *l, s.clone()))
-                .collect();
-            let index = Index::build_from_sources(&snapshot)?;
-            match index.definition_at(path, *offset) {
+    // target given as a position, or as the qualified spelling `fr symbols` prints,
+    // has to become the leaf name here and not later.
+    let flag_name = {
+        let snapshot: Vec<(PathBuf, Language, String)> = sources
+            .iter()
+            .map(|(p, (l, s))| (p.clone(), *l, s.clone()))
+            .collect();
+        let index = Index::build_from_sources(&snapshot)?;
+        match target {
+            FlagTarget::Named(name) => match index.symbols_written(name, None).first() {
+                Some(symbol) => symbol.name.clone(),
+                // Kept as written, so the refusal below names what the caller asked for.
+                None => name.clone(),
+            },
+            FlagTarget::At(path, offset) => match index.definition_at(path, *offset) {
                 Some(symbol) => symbol.name.clone(),
                 None => anyhow::bail!(
                     "no declaration at {}:{offset}; nothing was changed",
                     path.display()
                 ),
-            }
+            },
         }
     };
     let flag = &flag_name;
@@ -349,7 +354,7 @@ fn substitute_flag(
             ),
         },
         FlagTarget::Named(name) => {
-            let definitions = index.find_symbols(name, None);
+            let definitions = index.symbols_written(name, None);
             if definitions.is_empty() {
                 return Ok(None);
             }
@@ -886,7 +891,48 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
         ));
     }
 
+    if let Some(whole) = qualified_use(node, parent) {
+        return UseSite::Replace(whole);
+    }
+
     UseSite::Replace(span)
+}
+
+/// The span of a use written as a member of something else, `Flags.SHINY`.
+///
+/// The qualifier and the name together read the value, so the literal stands for
+/// both. Replacing the name alone wrote `if (Flags.true)`, which no compiler accepts,
+/// and `fr remove-flag --write` put it on disk.
+fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
+    let member = match parent.kind() {
+        "field_expression" | "field_access" | "selector_expression" => {
+            parent.child_by_field_name("field")
+        }
+        "member_expression" => parent.child_by_field_name("property"),
+        "attribute" => parent.child_by_field_name("attribute"),
+        "scoped_identifier" => parent.child_by_field_name("name"),
+        _ => return None,
+    };
+    if member != Some(node) || names_an_import(parent) {
+        return None;
+    }
+    Some(Span::from(parent))
+}
+
+/// Is this node part of an import statement?
+///
+/// An import names the flag without reading it, so a boolean cannot stand there.
+/// `use crate::flags::SHINY;` rewritten whole reads `use true;`. The cascade already
+/// drops an import its own edits orphaned, in a later round.
+fn names_an_import(node: Node<'_>) -> bool {
+    let mut current = Some(node);
+    while let Some(here) = current {
+        if here.kind().contains("import") || here.kind() == "use_declaration" {
+            return true;
+        }
+        current = here.parent();
+    }
+    false
 }
 
 /// Whether a use of a name is a use of it as a type.

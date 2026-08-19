@@ -1518,6 +1518,27 @@ impl Index {
         symbols.iter().all(|s| group.contains(&s.id))
     }
 
+    /// Find a symbol by the name a listing prints: `Type::method`, or a bare leaf.
+    ///
+    /// The one lookup behind every command that takes a name. `fr symbols` prints
+    /// `featureFlags::newCheckout`, and `fr remove-flag` answered "no symbol named"
+    /// to the spelling it had just been shown. A qualified name wins where one
+    /// matches, so a leaf shared by several types stays unambiguous.
+    pub fn symbols_written(&self, written: &str, in_file: Option<&Path>) -> Vec<&Symbol> {
+        if written.contains("::") {
+            let qualified: Vec<&Symbol> = self
+                .symbols
+                .iter()
+                .filter(|s| s.qualified_name() == written)
+                .filter(|s| in_file.is_none_or(|f| s.file == f))
+                .collect();
+            if !qualified.is_empty() {
+                return qualified;
+            }
+        }
+        self.find_symbols(written, in_file)
+    }
+
     /// Find a symbol by name, optionally narrowed to a file.
     pub fn find_symbols(&self, name: &str, in_file: Option<&Path>) -> Vec<&Symbol> {
         self.symbols

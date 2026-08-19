@@ -2588,7 +2588,7 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
     // that a bad rename target gets.
     let index = build_index(cli, &[])?;
     if let FlagTarget::Named(name) = &target {
-        if index.find_symbols(name, None).is_empty() {
+        if index.symbols_written(name, None).is_empty() {
             let near = nearest_names(&index, name);
             return Err(Fault::not_found_near(
                 format!(
@@ -3620,33 +3620,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
     // tool printed these everywhere and then refused them as input. So the obvious way to name
     // one of twenty `String` methods was the one way that did not work. The only alternative
     // offered was a line and column somebody had to go and look up.
-    let matches = match target.contains("::") {
-        true => index
-            .symbols
-            .iter()
-            .filter(|s| s.qualified_name() == target)
-            .collect::<Vec<_>>(),
-        false => Vec::new(),
-    };
-    if matches.len() == 1 {
-        return Ok(matches[0]);
-    }
-    if matches.len() > 1 {
-        let mut listing = String::new();
-        for symbol in &matches {
-            listing.push_str(&format!("\n  {} in {}", target, symbol.file.display()));
-        }
-        return Err(Fault::ambiguous(
-            format!(
-                "'{target}' is declared in {} files; specify a position as \
-                 path:line:col{listing}",
-                matches.len()
-            ),
-            candidates_of(&matches),
-        ));
-    }
-
-    let matches = index.find_symbols(target, None);
+    let matches = index.symbols_written(target, None);
     match matches.len() {
         0 => {
             let near = nearest_names(index, target);
@@ -3659,6 +3633,22 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
         // Several sites can declare one entity, a CSS class has no canonical
         // definition, and that is not an ambiguous choice between rivals.
         _ if index.is_one_entity(&matches) => Ok(matches[0]),
+        // Every candidate answers to the name as written, so listing that name again
+        // helps nobody. A position is the only thing left that tells them apart.
+        _ if target.contains("::") && matches.iter().all(|s| s.qualified_name() == target) => {
+            let mut listing = String::new();
+            for symbol in &matches {
+                listing.push_str(&format!("\n  {} in {}", target, symbol.file.display()));
+            }
+            Err(Fault::ambiguous(
+                format!(
+                    "'{target}' is declared in {} files; specify a position as \
+                     path:line:col{listing}",
+                    matches.len()
+                ),
+                candidates_of(&matches),
+            ))
+        }
         _ => {
             // Ambiguity is reported, never resolved by guessing.
             let mut listing = String::new();

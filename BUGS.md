@@ -175,6 +175,20 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B603: **`fr remove-flag` wrote `Flags.true`.** A use written as a member,
+  `Flags.SHINY`, had its name replaced and its qualifier left standing. Java,
+  Go, Python and TypeScript all read a constant that way. The reparse gate let
+  it through, and `--write` put it on disk. The literal now stands for the
+  whole qualified name. An import is left alone, since a later round drops it.
+  Pinned in `tests/remove_flag_sweep.rs`.
+
+- [x] B602: **`fr remove-flag` refused the name `fr symbols` prints.**
+  `featureFlags::newCheckout` got "no symbol named" and exit 3. The bare leaf
+  reached the right refusal and exit 5. `fr usages` and `fr delete` took the
+  qualified spelling all along. One lookup, `Index::symbols_written`, now
+  serves every command that takes a name. Pinned in
+  `tests/remove_flag_sweep.rs`.
+
 - [x] B601: **`fr extract` on YAML reported a replacement it never made.**
   Without `--all` it wrote the anchor `&g` and counted one replacement. Every
   occurrence stayed spelled out and nothing named the anchor. An anchor binds a
