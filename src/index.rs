@@ -29,6 +29,8 @@ pub struct FileInfo {
     /// Why this file's facts are incomplete, empty when they are not. Resolutions from
     /// a file with any gap are suspect.
     pub gaps: Vec<FactGap>,
+    /// The Kubernetes objects this file declares, which another file addresses by name.
+    pub kubernetes_objects: Vec<KubernetesObject>,
 }
 
 impl FileInfo {
@@ -316,6 +318,7 @@ impl Index {
                 symbols: symbol_ids,
                 references: reference_ids,
                 gaps: facts.gaps,
+                kubernetes_objects: facts.kubernetes_objects,
             },
         );
     }
@@ -1075,6 +1078,46 @@ impl Index {
                 // A glob import or an ambiguous path: plausible but unproven.
                 return (Some(matches[0].id), Confidence::FieldBased);
             }
+        }
+
+        // 4z. A Kubernetes `configMapKeyRef` or `secretKeyRef` names one key of one
+        //     object, and the manifest writes down which object. The receiver carries
+        //     that address, so the search is over the files declaring it and not over
+        //     the workspace. Without this the read was a textual mention: renaming the
+        //     key left the container asking for an entry the ConfigMap no longer has,
+        //     and the pod failed to start.
+        if let Some((kind, object)) = reference
+            .receiver
+            .as_deref()
+            .filter(|_| matches!(reference.language, Language::Yaml | Language::Helm))
+            .and_then(|receiver| receiver.split_once('/'))
+        {
+            let declaring: Vec<&Path> = self
+                .files
+                .iter()
+                .filter(|(_, info)| {
+                    info.kubernetes_objects
+                        .iter()
+                        .any(|o| o.kind == kind && o.name == object)
+                })
+                .map(|(path, _)| path.as_path())
+                .collect();
+            let entries: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| s.kind == SymbolKind::Key)
+                .filter(|s| matches!(s.qualifier.as_deref(), Some("data") | Some("stringData")))
+                .filter(|s| declaring.contains(&s.file.as_path()))
+                .collect();
+            return match entries.as_slice() {
+                [only] => (Some(only.id), Confidence::Exact),
+                // One name declared twice under one object name. The manifests
+                // disagree, so picking one is a guess and the report says so.
+                [first, ..] => (Some(first.id), Confidence::FieldBased),
+                // The object is outside the workspace, or declares no such key.
+                // Nothing here is provable, and no weaker rule may guess instead.
+                [] => (None, Confidence::NameOnly),
+            };
         }
 
         // 4a. A Helm `.Values` path names a key in *this chart's* values file. Two

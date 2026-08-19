@@ -2511,6 +2511,28 @@ impl Ctx<'_> {
 
         self.helm_values_competition(sym, depth)?;
 
+        // A key another manifest reads by name has resolved references, and the index
+        // holds them. `configMapKeyRef` is the case that brought this here: the answer
+        // used to declare that nothing consumed the key while `fr usages` listed the
+        // container reading it.
+        let named_readers: Vec<(PathBuf, Span)> = self
+            .index
+            .references_to(sym.id)
+            .into_iter()
+            .map(|r| (r.file.clone(), r.span))
+            .collect();
+        for (file, span) in &named_readers {
+            let text = self.source(file)?;
+            let index = LineIndex::new(&text);
+            let line = index.line_col(span.start, &text).line;
+            let line_text = index
+                .line_span(line)
+                .map(|s| s.text(&text).trim().to_string())
+                .unwrap_or_default();
+            let hop = self.hop(None, EdgeKind::Use, line_text, file, *span, depth + 1)?;
+            self.push_hop(hop);
+        }
+
         // Templates read values through masked actions; the link is textual.
         let (chart, path) = match chart_root(&sym.file) {
             Some(chart) => {
@@ -2519,13 +2541,17 @@ impl Ctx<'_> {
                 (owner, local)
             }
             None => {
-                self.stop(
-                    depth,
-                    StopReason::Origin(format!(
-                        "{} is not part of a chart; nothing in the workspace consumes it",
-                        short(&sym.file)
-                    )),
-                );
+                if named_readers.is_empty() {
+                    self.stop(
+                        depth,
+                        StopReason::Origin(format!(
+                            "{} is not part of a chart, and nothing in the workspace \
+                             resolves to this key. A consumer naming it in a form this \
+                             tool does not model would not appear here.",
+                            short(&sym.file)
+                        )),
+                    );
+                }
                 return Ok(());
             }
         };
