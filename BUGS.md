@@ -175,6 +175,16 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B549: **removing a parameter took the wrong argument.** A call passing
+  arguments by name resolves them to the parameter. So a keyword three files
+  away was reported as "the body of `greet` still reads `punct`", with the
+  call site's line. The check looks
+  inside the declaration now, which is the only place a removal cannot repair.
+  At a call site the name decides which argument goes, so `greet("b",
+  loud=True)` keeps what it passed. A call that names arguments and not the
+  one going relied on the default, and is left alone. Pinned in
+  `tests/signature_hierarchy.rs`.
+
 - [x] B547: **a body that returns a value got no return type.** A Python
   function annotates nothing and still hands something back. Rust, Go, Java
   and Zig must name what, and named nothing, so the draft did not compile.

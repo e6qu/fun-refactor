@@ -136,7 +136,15 @@ fn still_read(
     }) else {
         return Ok(());
     };
-    let uses = index.references_to(parameter.id);
+    // Inside the declaration, and nowhere else. A call passing the parameter
+    // by name resolves to it too. A keyword argument three files away was
+    // reported as "the body of `greet` still reads `punct`", with the call
+    // site's line. The body is the only place a removal cannot repair.
+    let uses: Vec<_> = index
+        .references_to(parameter.id)
+        .into_iter()
+        .filter(|r| r.file == sym.file && sym.full_span.contains(r.span))
+        .collect();
     if let Some(first) = uses.first() {
         anyhow::bail!(
             "the body of `{}` still reads `{}` at {}; removing the parameter would leave \
@@ -209,6 +217,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 
     let mut edits = EditSet::new();
     let mut notes = Vec::new();
+    // The name of the parameter a removal takes away, read off the declaration
+    // and used at every call site that names its arguments.
+    let mut removing: Option<String> = None;
     for member in &members {
         let Some(m) = index.symbol(*member) else {
             continue;
@@ -235,7 +246,9 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     &param_spans,
                     &change,
                     true,
+                    None,
                 )?;
+                removing = removed_parameter_name(&source, &param_spans, &change);
             }
             // A declaration can legitimately have no parameter list to change: SCSS
             // spells a no-argument mixin `@mixin reset { }`, with no parentheses at all.
@@ -333,6 +346,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     &arg_spans,
                     &change,
                     false,
+                    removing.as_deref(),
                 )?;
             }
             // `@include reset;` passes nothing and needs no parentheses. Removing or
@@ -435,6 +449,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 &arg_spans,
                 &change,
                 false,
+                removing.as_deref(),
             )?;
             call_sites += 1;
             notes.push(format!(
@@ -505,6 +520,20 @@ struct Site<'a> {
     language: Language,
 }
 
+/// The name of the parameter a removal targets, read from the declaration.
+///
+/// A call site passing arguments by name needs it: position tells it nothing
+/// about which argument is going.
+fn removed_parameter_name(source: &str, items: &[Span], change: &Change) -> Option<String> {
+    let Change::Remove(at) = change else {
+        return None;
+    };
+    let text = source.get(items.get(*at)?.start..items.get(*at)?.end)?;
+    let head = text.split(['=', ':']).next()?.trim();
+    let name = head.rsplit([' ', '*', '&']).next()?.trim();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
 fn apply_change(
     edits: &mut EditSet,
     site: &Site<'_>,
@@ -512,6 +541,7 @@ fn apply_change(
     items: &[Span],
     change: &Change,
     is_declaration: bool,
+    removed_name: Option<&str>,
 ) -> Result<()> {
     let Site {
         file,
@@ -532,8 +562,28 @@ fn apply_change(
                 }
                 return Ok(());
             };
+            // A call may pass its arguments by name, and then position says
+            // nothing about which one this is. `greet("b", loud=True)` lost
+            // its `loud=True` to a removal of parameter 1. The name decides at
+            // a call site. Where a call names arguments and none is the one
+            // going, it relied on the default and needs no edit.
+            let (index, target) = match (is_declaration, removed_name) {
+                (false, Some(name)) => {
+                    let named = |span: &Span| -> Option<String> {
+                        let text = source.get(span.start..span.end)?.trim();
+                        let (head, _) = text.split_once('=')?;
+                        Some(head.trim().to_string())
+                    };
+                    match items.iter().position(|s| named(s).as_deref() == Some(name)) {
+                        Some(at) => (at, items[at]),
+                        None if items.iter().any(|s| named(s).is_some()) => return Ok(()),
+                        None => (*index, *target),
+                    }
+                }
+                _ => (*index, *target),
+            };
             // Take the separating comma with it, or the list ends up malformed.
-            let span = with_separator(source, items, *index, *target);
+            let span = with_separator(source, items, index, target);
             edits.add(
                 file.to_path_buf(),
                 Edit::new(span, "", format!("remove parameter {index}")),
