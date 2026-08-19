@@ -175,6 +175,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B601: **`fr extract` on YAML reported a replacement it never made.**
+  Without `--all` it wrote the anchor `&g` and counted one replacement. Every
+  occurrence stayed spelled out and nothing named the anchor. An anchor binds a
+  name and an alias spends it, so the pair is the whole edit. A single-site
+  extraction now refuses, and says how many other occurrences `--all` would
+  alias. Pinned in `tests/config_extract_inline.rs`.
+
 - [x] B600: **`fr move` took link definitions away.** They serve a whole
   Markdown document. A definition like `[api]: ./a.md` sits at the end of a
   file, under the last section. Moving that section carried the definition off,
