@@ -314,7 +314,7 @@ fn rust_move_into_a_module_directory_uses_the_nested_path() {
 }
 
 #[test]
-fn rust_refuses_when_a_use_site_cannot_be_repointed() {
+fn rust_repoints_a_fully_qualified_call() {
     let ws = rust_crate(&[
         ("src/helpers.rs", "pub fn shared() -> i32 {\n    2\n}\n"),
         (
@@ -326,19 +326,20 @@ fn rust_refuses_when_a_use_site_cannot_be_repointed() {
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
 
-    // A fully-qualified call is matched by name alone, so the path inside it cannot be
-    // rewritten with any confidence. The move used to proceed and report the site in a
-    // warning, which left `crate::helpers::shared()` naming a module that no longer had
-    // it. That does not compile, so the move declines and names the site.
-    let refusal = move_symbol::to_file(&index, id, &ws.path("src/store.rs"))
-        .expect_err("the use site cannot be repointed")
-        .to_string();
-    assert!(refusal.contains("app.rs:2:"), "{refusal}");
-    assert!(refusal.contains("name-only"), "{refusal}");
-    assert_eq!(
-        ws.read("src/helpers.rs"),
-        "pub fn shared() -> i32 {\n    2\n}\n",
-        "nothing was written"
+    // The whole path is written down, and a trailing module segment names
+    // its file. The call resolves, and the move rewrites the path in place. This
+    // used to be a refusal: the path resolved name-only, and before that a
+    // warned-and-broken write.
+    let plan = move_symbol::to_file(&index, id, &ws.path("src/store.rs")).expect("a plan");
+    let app = ws.path("src/app.rs");
+    let out = fun_refactor::edit::apply_to_string(
+        &ws.read("src/app.rs"),
+        plan.edits.edits_for(&app).unwrap(),
+    )
+    .unwrap();
+    assert!(
+        out.contains("crate::store::shared()"),
+        "the written path names the new module.\n{out}"
     );
 }
 

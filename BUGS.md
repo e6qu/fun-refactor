@@ -175,6 +175,60 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B711: **a module docstring crossed as raw prose.** The Python reader
+  stored the whole docstring as one entry. Every writer puts its comment
+  marker in front of each entry, so the marker covered the first line and the
+  rest landed bare. The parse gate caught it and refused the write. One entry
+  per line fixes the class for every target at once.
+
+- [x] B712: **a constant's type was decoration.** With no annotation, Rust's
+  writer typed every constant `&str`: `RETRY_LIMIT: &str = 3` refused to
+  build. A literal says its own type now, and a list of literals becomes a
+  slice of one.
+
+- [x] B713: **a list constant lost its case and its buildability.** A list
+  of literals was spelt as a value. `NAMES` came out `names`, and its
+  `vec![…]` never evaluates in a `const`. A list of literals is as constant
+  as a scalar. Rust writes `&[…]`; Go writes a `var`, its `const` holding
+  scalars and nothing else. A run-time value keeps its draft declaration:
+  dropping it to a comment lost the entity on every round trip.
+
+- [x] B714: **pathlib's `/` became float division.** `ROOT / "tools"` reached
+  the true-division repair. It came out `float64(Root) / float64("tools")`,
+  which is not a number and was never a division. A `/` with a string operand
+  is no arithmetic; the draft carries it marked.
+
+- [x] B706: **a path written inside a macro resolved name-only.**
+  `assert_eq!(fun_refactor::model::anchor_slug(x), y)` spells the whole path,
+  and a macro body is tokens, so no rule read it: the reference fell to the
+  weakest tier and `fr signature` refused the change. The tokens are walked
+  now, and the path becomes the receiver. A trailing module segment resolves
+  to the file it names, the way the module tree names files.
+
+- [x] B707: **`fr signature` refused every call written inside a macro.**
+  Half of a crate's call sites live in its tests' `assert_eq!`. The command
+  was unusable on real Rust. The argument tokens have the shape of a call,
+  and the token tree's top-level commas split them exactly. The change
+  rewrites them like any other site.
+
+- [x] B708: **an extraction missed what a format string captures.**
+  `println!("{total} file(s)")` reads `total`. No reference records it,
+  because the identifier is string content. The extracted function did not
+  compile while the command reported success. A capture is a read now, and
+  travels as a parameter.
+
+- [x] B709: **a move left a written path naming the module the symbol left.**
+  `crate::refactor::delete::deletion_span(…)` kept its old spelling. A fresh
+  `use` landed beside it unused, and the crate did not compile. A
+  written path is repointed in its own bytes, and such a file gets no `use`
+  it does not need.
+
+- [x] B710: **a move carried a `use` the destination already had.** The moved
+  code needed `full_line_span`; the destination imported it in a brace group.
+  The carried single-name `use` was E0252, twice defined. What the
+  destination already binds is not carried, at either of the two writers that
+  carry imports.
+
 - [x] B705: **`fr refs` could not predict what `fr rename` rewrites.** The
   tiers alone under-answer: a field-based `s.pending` whose receiver is
   declared `*BatchSink` rewrites too, and only the rename logic knew it, so

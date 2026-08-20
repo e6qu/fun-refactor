@@ -1840,7 +1840,16 @@ mod python {
                     let inner = cx.children(child);
                     match inner.first() {
                         Some(n) if n.kind() == "string" && module.items.is_empty() => {
-                            module.doc.push(super::unquote(&cx.text(*n)));
+                            // One entry per line. A writer puts its comment
+                            // marker in front of each entry. An entry holding
+                            // embedded newlines came out with the marker on
+                            // its first line, raw prose after, and a file no
+                            // target parses.
+                            module.doc.extend(
+                                super::unquote(&cx.text(*n))
+                                    .lines()
+                                    .map(|l| l.trim_end().to_string()),
+                            );
                         }
                         Some(n) if matches!(n.kind(), "assignment") => {
                             if let Some(nt) = newtype(cx, *n) {

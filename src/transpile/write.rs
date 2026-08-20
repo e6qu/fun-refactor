@@ -45,6 +45,18 @@ enum Kind {
 /// else, which is the same rule its refactorings follow.
 type Spellings = (BTreeMap<String, String>, BTreeMap<String, String>);
 
+/// Whether a value is one scalar literal, `-80.0` included.
+fn scalar_literal(value: &Expr) -> bool {
+    match value {
+        Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Bool(_) | Expr::Null => true,
+        Expr::Unary {
+            op: UnaryOp::Neg,
+            operand,
+        } => scalar_literal(operand),
+        _ => false,
+    }
+}
+
 fn spellings(language: Language, module: &Module) -> Spellings {
     fn spell(language: Language, name: &str, kind: Kind, exported: bool) -> String {
         match kind {
@@ -198,13 +210,21 @@ fn spellings(language: Language, module: &Module) -> Spellings {
             // happens to be immutable, `const schema = z.object({...})`. Shouting
             // its name would be wrong in Python and unstable across a round trip.
             Item::Constant(c) => {
-                let kind = match c.value {
-                    Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Bool(_) | Expr::Null => {
-                        Kind::Constant
-                    }
-                    _ => Kind::Value,
+                // A scalar takes the target's constant convention. A name the
+                // author already shouts stays shouted, whatever it holds:
+                // `DOCS = ["README.md"]` came out spelt `docs`. The rest keep
+                // the value convention, so `routeContextSchema` still snakes
+                // where the target snakes and `actions` never shouts.
+                let screaming = c.name.chars().any(|ch| ch.is_ascii_uppercase())
+                    && !c.name.chars().any(|ch| ch.is_ascii_lowercase());
+                let kind = match &c.value {
+                    value if scalar_literal(value) => Some(Kind::Constant),
+                    _ if screaming => None,
+                    _ => Some(Kind::Value),
                 };
-                add(&c.name, kind, c.exported)
+                if let Some(kind) = kind {
+                    add(&c.name, kind, c.exported);
+                }
             }
             Item::Sum(s) => {
                 add(&s.name, Kind::Type, s.exported);
@@ -1739,15 +1759,29 @@ fn rust(out: &mut Out, module: &Module) {
                     out.blank();
                     continue;
                 }
+                // The type is not decoration. `RETRY_LIMIT: &str = 3` refused
+                // to build; a literal says its own type, and a list of
+                // literals becomes a slice. A runtime value keeps the draft
+                // declaration it always had: dropping it to a comment lost the
+                // entity on every round trip.
                 for line in &c.doc {
                     out.line(&format!("/// {line}"));
                 }
-                let ty =
-                    c.ty.as_ref()
-                        .map(rust_type)
-                        .unwrap_or_else(|| "&str".to_string());
+                let ty = c.ty.as_ref().map(rust_type).unwrap_or_else(|| {
+                    rust_literal_type(&c.value).unwrap_or_else(|| "&str".to_string())
+                });
                 let visibility = if c.exported { "pub " } else { "" };
-                let value = rust_expr(out, &c.value);
+                let value = match &c.value {
+                    Expr::ListLit(items) => format!(
+                        "&[{}]",
+                        items
+                            .iter()
+                            .map(|i| rust_expr(out, i))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    other => rust_expr(out, other),
+                };
                 out.line(&format!(
                     "{visibility}const {}: {ty} = {value};",
                     out.name(&c.name)
@@ -2445,6 +2479,43 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     }
 }
 
+/// Whether a `/` operand rules out arithmetic: a string on either side.
+///
+/// Python's pathlib overloads `/` as path joining. `ROOT / "tools"` reached
+/// the true-division repair and came out `float64(Root) / float64("tools")`,
+/// which is not a number and was never a division. What it is cannot be said
+/// in the target, so the writers carry it instead.
+fn divides_a_string(out: &Out, left: &Expr, right: &Expr) -> bool {
+    let stringish =
+        |e: &Expr| matches!(e, Expr::Str(_)) || static_type(out, e) == Some(Type::String);
+    stringish(left) || stringish(right)
+}
+
+/// The Rust type a literal constant says on its own.
+fn rust_literal_type(value: &Expr) -> Option<String> {
+    Some(match value {
+        Expr::Int(_) => "i64".to_string(),
+        Expr::Float(_) => "f64".to_string(),
+        Expr::Str(_) => "&str".to_string(),
+        Expr::Bool(_) => "bool".to_string(),
+        Expr::Unary {
+            op: UnaryOp::Neg,
+            operand,
+        } => rust_literal_type(operand)?,
+        Expr::ListLit(items) => {
+            let inner = rust_literal_type(items.first()?)?;
+            let same = items
+                .iter()
+                .all(|i| rust_literal_type(i).as_deref() == Some(inner.as_str()));
+            if !same {
+                return None;
+            }
+            format!("&[{inner}]")
+        }
+        _ => return None,
+    })
+}
+
 fn rust_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "()".to_string(),
@@ -2631,6 +2702,16 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             left,
             right,
         } => {
+            if divides_a_string(out, left, right) {
+                let rendered = format!("{} / {}", rust_expr(out, left), rust_expr(out, right))
+                    .replace("*/", "* /");
+                out.carried(&Unsupported {
+                    construct: "`/` on a non-number".into(),
+                    source: rendered.clone(),
+                    line: 0,
+                });
+                return format!("todo!(/* {MARKER}: {rendered} */)");
+            }
             let side = |out: &mut Out, e: &Expr| {
                 // A written number takes the float spelling. `100 as f64`
                 // compiles and reads as a repair rather than as arithmetic.
@@ -4308,8 +4389,30 @@ fn go(out: &mut Out, module: &Module) {
                 for line in &c.doc {
                     out.line(&format!("// {name} {line}"));
                 }
-                let value = go_expr(out, &c.value);
-                out.line(&format!("const {name} = {value}"));
+                // Go's `const` holds compile-time scalars and nothing else:
+                // `const Docs = []any{…}` and `const Root = Path(…)` both
+                // refuse to build. Anything beyond a scalar literal is a `var`,
+                // which Go initialises at start-up.
+                let keyword = match scalar_literal(&c.value) {
+                    true => "const",
+                    false => "var",
+                };
+                let value = match &c.value {
+                    Expr::ListLit(items)
+                        if !items.is_empty() && items.iter().all(|i| matches!(i, Expr::Str(_))) =>
+                    {
+                        format!(
+                            "[]string{{{}}}",
+                            items
+                                .iter()
+                                .map(|i| go_expr(out, i))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                    other => go_expr(out, other),
+                };
+                out.line(&format!("{keyword} {name} = {value}"));
                 out.fidelity.constants += 1;
                 out.blank();
             }
@@ -5516,6 +5619,16 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             left,
             right,
         } => {
+            if divides_a_string(out, left, right) {
+                let rendered = format!("{} / {}", go_expr(out, left), go_expr(out, right))
+                    .replace("*/", "* /");
+                out.carried(&Unsupported {
+                    construct: "`/` on a non-number".into(),
+                    source: rendered.clone(),
+                    line: 0,
+                });
+                return format!("nil /* {MARKER}: {rendered} */");
+            }
             let side = |out: &mut Out, e: &Expr| {
                 if let Expr::Int(n) = e {
                     return format!("{n}.0");

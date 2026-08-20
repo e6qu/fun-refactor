@@ -727,6 +727,36 @@ fn carried_imports(
     // of an import cycle. The caller holds the other half.
     let mut imports_the_source_back = false;
 
+    // Names the destination already binds. Carrying an import for one of these
+    // wrote `use crate::edit::full_line_span;` under an existing
+    // `use crate::edit::{full_line_span, …}`, and rustc refuses the repeat.
+    let bound_at_destination: std::collections::HashSet<String> = index
+        .file(destination)
+        .map(|dest| {
+            import_statements(&dest.imports)
+                .into_iter()
+                .flat_map(|statement| {
+                    let implicit =
+                        crate::refactor::imports::implicit_binding(&statement.path, sym.language);
+                    statement
+                        .names
+                        .iter()
+                        .map(|n| n.local.clone())
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .chain(statement.alias.clone())
+                        .chain(implicit)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let used: std::collections::HashSet<String> = used
+        .iter()
+        .filter(|name| !bound_at_destination.contains(*name))
+        .cloned()
+        .collect();
+    let used = &used;
+
     for statement in import_statements(&info.imports) {
         // `import os` binds `os` without naming it anywhere in the statement, and the
         // moved code reaches `os.path.basename` through that binding. Reading
@@ -1505,6 +1535,8 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
     let mut needs_use: BTreeSet<PathBuf> = BTreeSet::new();
     let mut unverified: Vec<String> = Vec::new();
+    let mut parsed_files: std::collections::BTreeMap<PathBuf, (String, crate::parse::Parsed)> =
+        Default::default();
     for reference in &outside {
         if reference.file == *destination {
             continue;
@@ -1516,6 +1548,57 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
                 reference.confidence.as_str()
             ));
             continue;
+        }
+        // A use written as a full path names the old module in its own bytes.
+        // `crate::refactor::delete::deletion_span(…)` kept naming the file the
+        // symbol left, while a fresh `use` landed beside it unused. The prefix
+        // is rewritten in place, and such a file needs no `use` at all unless a
+        // bare reference sits in it too. A path inside an import statement is
+        // the import machinery's to repoint, not this rule's.
+        let in_an_import = index.file(&reference.file).is_some_and(|info| {
+            info.imports
+                .iter()
+                .any(|import| import.span.contains(reference.span))
+        });
+        if !in_an_import && sym.language == Language::Rust {
+            let entry = parsed_files.entry(reference.file.clone());
+            let loaded = match entry {
+                std::collections::btree_map::Entry::Occupied(o) => Some(o.into_mut()),
+                std::collections::btree_map::Entry::Vacant(v) => {
+                    crate::vfs::read_to_string(&reference.file)
+                        .ok()
+                        .and_then(|text| {
+                            crate::parse::Parsers::new()
+                                .parse(sym.language, &text)
+                                .ok()
+                                .map(|parsed| v.insert((text, parsed)))
+                        })
+                }
+            };
+            let prefix_span = loaded.and_then(|(_, parsed)| {
+                let node = parsed
+                    .root()
+                    .descendant_for_byte_range(reference.span.start, reference.span.end)?;
+                let parent = node.parent()?;
+                if !parent.kind().starts_with("scoped_") {
+                    return None;
+                }
+                (parent.start_byte() < reference.span.start)
+                    .then(|| Span::new(parent.start_byte(), reference.span.start))
+            });
+            if let Some(span) = prefix_span {
+                if let Some(prefix) = reachable_prefix(&to_module, &reference.file) {
+                    plan.edits.add(
+                        reference.file.clone(),
+                        Edit::new(
+                            span,
+                            format!("{prefix}::"),
+                            format!("repoint the written path to {}", sym.name),
+                        ),
+                    );
+                    continue;
+                }
+            }
         }
         needs_use.insert(reference.file.clone());
     }
@@ -4103,6 +4186,34 @@ fn carry_defined_dependencies(
     let Ok(used) = names_used_in(sym.language, source, removal) else {
         return;
     };
+    // Names the destination already binds need no second `use`: writing
+    // `use crate::edit::full_line_span;` under an existing
+    // `use crate::edit::{full_line_span, …}` is E0252, twice defined.
+    let bound_at_destination: std::collections::HashSet<String> = index
+        .file(destination)
+        .map(|dest| {
+            import_statements(&dest.imports)
+                .into_iter()
+                .flat_map(|statement| {
+                    let implicit =
+                        crate::refactor::imports::implicit_binding(&statement.path, sym.language);
+                    statement
+                        .names
+                        .iter()
+                        .map(|n| n.local.clone())
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .chain(statement.alias.clone())
+                        .chain(implicit)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let used: std::collections::HashSet<String> = used
+        .iter()
+        .filter(|name| !bound_at_destination.contains(*name))
+        .cloned()
+        .collect();
 
     let mut wanted: Vec<&Symbol> = info
         .symbols
