@@ -31,6 +31,16 @@ pub struct FileInfo {
     pub gaps: Vec<FactGap>,
     /// The Kubernetes objects this file declares, which another file addresses by name.
     pub kubernetes_objects: Vec<KubernetesObject>,
+    /// Import index by the name it binds, built when resolution runs.
+    ///
+    /// [`Index::import_binding`] scanned every import per member reference,
+    /// which multiplied by a workspace's references was a visible slice of
+    /// every warm command.
+    binding_of: HashMap<String, usize>,
+    /// Positions of glob imports, which can bind any name.
+    glob_imports: Vec<usize>,
+    /// Whether the two lookups above are filled.
+    bindings_built: bool,
 }
 
 impl FileInfo {
@@ -90,6 +100,47 @@ pub fn content_hash_of(text: &str) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     text.hash(&mut hasher);
     hasher.finish()
+}
+
+/// Extract every file's facts, in parallel where the build has threads.
+///
+/// Extraction shares nothing between files. The browser build has one thread
+/// and takes the plain loop. Each rayon worker keeps its parsers and compiled
+/// queries in a thread-local: paid once per thread, not once per file.
+#[cfg(feature = "cli")]
+fn extract_all(
+    sources: &[(PathBuf, Language, String)],
+) -> Result<Vec<(PathBuf, Language, FileFacts)>> {
+    use rayon::prelude::*;
+    sources
+        .par_iter()
+        .map(|(path, language, source)| {
+            thread_local! {
+                static WORKER: std::cell::RefCell<(Parsers, Extractor)> =
+                    std::cell::RefCell::new((Parsers::new(), Extractor::new()));
+            }
+            let facts = WORKER.with(|worker| {
+                let (parsers, extractor) = &mut *worker.borrow_mut();
+                extract_facts(parsers, extractor, path, *language, source)
+            })?;
+            Ok((path.clone(), *language, facts))
+        })
+        .collect()
+}
+
+#[cfg(not(feature = "cli"))]
+fn extract_all(
+    sources: &[(PathBuf, Language, String)],
+) -> Result<Vec<(PathBuf, Language, FileFacts)>> {
+    let parsers = Parsers::new();
+    let mut extractor = Extractor::new();
+    sources
+        .iter()
+        .map(|(path, language, source)| {
+            let facts = extract_facts(&parsers, &mut extractor, path, *language, source)?;
+            Ok((path.clone(), *language, facts))
+        })
+        .collect()
 }
 
 /// Parse one file and extract everything the index keeps about it.
@@ -194,17 +245,25 @@ impl Index {
                         }
                     }
 
-                    // Parsers and compiled queries are not shareable across threads, so
-                    // each worker builds its own. Query compilation is the cost here and
-                    // it is paid once per thread. It is not once per file.
-                    let parsers = Parsers::new();
-                    let mut extractor = Extractor::new();
-                    let parsed = parsers.parse(file.language, &source)?;
-                    let facts = extractor
-                        .extract(&parsed, &file.path, &source)
-                        .with_context(|| {
-                            format!("extracting facts from {}", file.path.display())
-                        })?;
+                    // Parsers and compiled queries are not shareable across
+                    // threads, so each worker keeps its own. The comment here
+                    // used to say the compilation was paid once per thread
+                    // while the code built both per *file*. Recompiling the
+                    // query set hundreds of times was most of a cold index;
+                    // a thread-local makes the comment true.
+                    thread_local! {
+                        static WORKER: std::cell::RefCell<(Parsers, Extractor)> =
+                            std::cell::RefCell::new((Parsers::new(), Extractor::new()));
+                    }
+                    let facts = WORKER.with(|worker| {
+                        let (parsers, extractor) = &mut *worker.borrow_mut();
+                        let parsed = parsers.parse(file.language, &source)?;
+                        extractor
+                            .extract(&parsed, &file.path, &source)
+                            .with_context(|| {
+                                format!("extracting facts from {}", file.path.display())
+                            })
+                    })?;
 
                     if let Some(cache) = cache {
                         let key = crate::cache::Cache::key(file.language, &source);
@@ -240,7 +299,53 @@ impl Index {
             index.add_file(facts, file.language);
         }
 
-        index.resolve();
+        // Resolution is a pure function of the merged facts, and it is most
+        // of a warm command. An agent running ten commands paid it ten times. The
+        // workspace key is the ordered file list with each file's content hash,
+        // so any change anywhere misses and resolves afresh.
+        let workspace_key = cache.map(|_| {
+            use sha2::{Digest, Sha256};
+            let mut hasher = Sha256::new();
+            for (path, info) in &index.files {
+                hasher.update(path.to_string_lossy().as_bytes());
+                hasher.update([0]);
+                hasher.update(info.language.name().as_bytes());
+                hasher.update([0]);
+                let hash = index.content_hashes.get(path).copied().unwrap_or(0);
+                hasher.update(hash.to_le_bytes());
+                hasher.update([1]);
+            }
+            let digest = hasher.finalize();
+            let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+            format!("resolved-{hex}")
+        });
+        let cached = workspace_key.as_ref().and_then(|key| {
+            cache?
+                .get_resolutions(key)
+                .filter(|r| r.len() == index.references.len())
+        });
+        match cached {
+            Some(resolutions) => {
+                index.rebuild_name_buckets();
+                for (reference, (target, confidence)) in
+                    index.references.iter_mut().zip(resolutions)
+                {
+                    reference.target = target;
+                    reference.confidence = confidence;
+                }
+            }
+            None => {
+                index.resolve();
+                if let (Some(cache), Some(key)) = (cache, workspace_key.as_ref()) {
+                    let snapshot: Vec<(Option<SymbolId>, Confidence)> = index
+                        .references
+                        .iter()
+                        .map(|r| (r.target, r.confidence))
+                        .collect();
+                    cache.put_resolutions(key, &snapshot);
+                }
+            }
+        }
         Ok(index)
     }
 
@@ -265,13 +370,7 @@ impl Index {
     /// deciding what to do next. Writing each intermediate state to disk just to read it back
     /// would be both slower and observable.
     pub fn build_from_sources(sources: &[(PathBuf, Language, String)]) -> Result<Self> {
-        let parsers = Parsers::new();
-        let mut extractor = Extractor::new();
-        let mut extracted = Vec::with_capacity(sources.len());
-        for (path, language, source) in sources {
-            let facts = extract_facts(&parsers, &mut extractor, path, *language, source)?;
-            extracted.push((path.clone(), *language, facts));
-        }
+        let extracted = extract_all(sources)?;
         let mut index = Self::build_from_facts(&extracted);
         for (path, _, source) in sources {
             index
@@ -330,6 +429,9 @@ impl Index {
                 references: reference_ids,
                 gaps: facts.gaps,
                 kubernetes_objects: facts.kubernetes_objects,
+                binding_of: HashMap::new(),
+                glob_imports: Vec::new(),
+                bindings_built: false,
             },
         );
     }
@@ -385,6 +487,29 @@ impl Index {
         }
         self.files_by_stem.clear();
         self.inits_by_dir.clear();
+        for info in self.files.values_mut() {
+            info.binding_of.clear();
+            info.glob_imports.clear();
+            for (at, import) in info.imports.iter().enumerate() {
+                if import.is_glob {
+                    info.glob_imports.push(at);
+                }
+                let mut bind = |name: &str| {
+                    info.binding_of.entry(name.to_string()).or_insert(at);
+                };
+                if let Some(alias) = import.alias.as_deref() {
+                    bind(alias);
+                }
+                for n in &import.names {
+                    bind(&n.local);
+                }
+                if let Some(last) = import.path.rsplit(['/', ':', '.']).find(|s| !s.is_empty()) {
+                    bind(last);
+                }
+                bind(&import.path);
+            }
+            info.bindings_built = true;
+        }
         for path in self.files.keys() {
             if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                 self.files_by_stem
@@ -1447,6 +1572,17 @@ impl Index {
 
     /// The import in `info` that binds `name`, if any.
     fn import_binding<'a>(&self, info: &'a FileInfo, name: &str) -> Option<&'a Import> {
+        if info.bindings_built {
+            // The earliest of the named binding and any glob, matching the
+            // scan's first-hit order.
+            let named = info.binding_of.get(name).copied();
+            let glob = info.glob_imports.first().copied();
+            let at = match (named, glob) {
+                (Some(n), Some(g)) => Some(n.min(g)),
+                (a, b) => a.or(b),
+            }?;
+            return info.imports.get(at);
+        }
         info.imports.iter().find(|import| {
             import.alias.as_deref() == Some(name)
                 || import.names.iter().any(|n| n.local == name)

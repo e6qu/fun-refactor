@@ -175,6 +175,20 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B719: **the parallel build compiled the query set once per file.** The
+  comment beside it said the compilation was paid once per thread. The code
+  built the parsers and the extractor inside the per-file closure. A
+  thread-local makes the comment true; the source build joined the same
+  parallel path. Cold indexing of this repository fell from 50 to 24 seconds,
+  on top of the last pass's gains.
+
+- [x] B720: **every warm command re-resolved the workspace.** Resolution is
+  a pure function of the merged facts. It was most of a warm run. An
+  agent issuing ten commands paid seventeen seconds ten times. The
+  resolution is a cache entry now, keyed by every file's path, language and
+  content hash. Any change anywhere resolves afresh; an untouched workspace
+  answers in a fifth of a second.
+
 - [x] B715: **inlining a wrapped binding left a line of whitespace.** The
   removal compared only the first line, so a `let` wrapped over several lines
   was cut from its keyword to its `;`, and the first line's indentation stayed

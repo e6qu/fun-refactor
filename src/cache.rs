@@ -144,6 +144,55 @@ impl Cache {
         let _ = tmp.persist(&path);
     }
 
+    /// The stored resolution snapshot for a workspace key, when one exists.
+    ///
+    /// Resolution is a pure function of the merged facts, and it was most of a
+    /// warm command. The entry is `(target, confidence)` per reference, in the
+    /// index's own reference order, which the key's file list pins.
+    pub fn get_resolutions(
+        &self,
+        key: &str,
+    ) -> Option<Vec<(Option<crate::model::SymbolId>, crate::model::Confidence)>> {
+        if self.disabled.load(Ordering::Relaxed) {
+            return None;
+        }
+        let bytes = std::fs::read(self.entry_path(key)).ok()?;
+        match postcard::from_bytes(&bytes) {
+            Ok(entries) => Some(entries),
+            Err(_) => {
+                let _ = std::fs::remove_file(self.entry_path(key));
+                None
+            }
+        }
+    }
+
+    /// Store a resolution snapshot under a workspace key.
+    pub fn put_resolutions(
+        &self,
+        key: &str,
+        entries: &[(Option<crate::model::SymbolId>, crate::model::Confidence)],
+    ) {
+        if self.disabled.load(Ordering::Relaxed) {
+            return;
+        }
+        let Ok(bytes) = postcard::to_allocvec(entries) else {
+            return;
+        };
+        let path = self.entry_path(key);
+        let Some(dir) = path.parent() else { return };
+        if std::fs::create_dir_all(dir).is_err() {
+            return;
+        }
+        let Ok(mut tmp) = tempfile::NamedTempFile::new_in(dir) else {
+            return;
+        };
+        use std::io::Write;
+        if tmp.write_all(&bytes).is_err() {
+            return;
+        }
+        let _ = tmp.persist(&path);
+    }
+
     pub fn stats(&self) -> CacheStats {
         CacheStats {
             hits: self.hits.load(Ordering::Relaxed),
