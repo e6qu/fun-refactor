@@ -4,26 +4,6 @@
 // writes this file holds each one to its declared verdict. Regenerate with:
 //   UPDATE_SITE_DATA=1 cargo test --test typesafety
 export const EXAMPLES = {
-  "alias_compound": {
-    title: "RetryPolicy and DEFAULT_BACKOFF give the type and the number names",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: false,
-    improves: "alias_repeated",
-    misuseOf: null,
-    python: "from collections.abc import Callable\nfrom typing import Final\n\ntype Milliseconds = int\ntype RetryPolicy = Callable[[int, Exception], Milliseconds]\n\nDEFAULT_BACKOFF: Final[Milliseconds] = 30_000\n\n\ndef fixed_backoff(_attempt: int, _error: Exception) -> Milliseconds:\n    return DEFAULT_BACKOFF\n\n\ndef doubling_backoff(attempt: int, _error: Exception) -> Milliseconds:\n    return DEFAULT_BACKOFF * (1 << attempt)\n\n\ndef run_with_retries(policy: RetryPolicy) -> Milliseconds:\n    return policy(1, ValueError(\"transient\"))\n",
-    typescript: "type Milliseconds = number;\ntype RetryPolicy = (attempt: number, error: Error) => Milliseconds;\n\nconst DEFAULT_BACKOFF: Milliseconds = 30_000;\n\nexport const fixedBackoff: RetryPolicy = () => DEFAULT_BACKOFF;\n\nexport const doublingBackoff: RetryPolicy = (attempt) => DEFAULT_BACKOFF * 2 ** attempt;\n\nexport function runWithRetries(policy: RetryPolicy): Milliseconds {\n  return policy(1, new Error(\"transient\"));\n}\n",
-  },
-  "alias_repeated": {
-    title: "The same function type is written out three times",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: false,
-    improves: null,
-    misuseOf: null,
-    python: "from collections.abc import Callable\n\n\ndef fixed_backoff(_attempt: int, _error: Exception) -> int:\n    return 30_000\n\n\ndef doubling_backoff(attempt: int, _error: Exception) -> int:\n    return 30_000 * (1 << attempt)\n\n\ndef run_with_retries(policy: Callable[[int, Exception], int]) -> int:\n    return policy(1, ValueError(\"transient\"))\n",
-    typescript: "export const fixedBackoff: (attempt: number, error: Error) => number = () => 30_000;\n\nexport const doublingBackoff: (attempt: number, error: Error) => number = (attempt) =>\n  30_000 * 2 ** attempt;\n\nexport function runWithRetries(policy: (attempt: number, error: Error) => number): number {\n  return policy(1, new Error(\"transient\"));\n}\n",
-  },
   "alias_transparent": {
     title: "An alias is only a name: a bare count still passes as Meters",
     expectPython: "passes",
@@ -434,16 +414,6 @@ export const EXAMPLES = {
     python: "from collections.abc import Awaitable, Callable\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Assembly:\n    name: str\n    parts: tuple[str, ...]\n\n\ndef all_parts(assemblies: list[Assembly]) -> list[str]:\n    return [part for assembly in assemblies for part in assembly.parts]\n\n\nasync def quoted_total(fetch: Callable[[str], Awaitable[int]]) -> int:\n    frame = await fetch(\"F-101\")\n    wheels = await fetch(\"W-200\")\n    return frame + wheels\n\n\ndef note_length(note: str | None) -> int:\n    if note is None:\n        return 0\n    return len(note)\n\n\nassemblies = [Assembly(\"frame\", (\"top tube\", \"down tube\")), Assembly(\"wheel\", (\"rim\",))]\nassert all_parts(assemblies) == [\"top tube\", \"down tube\", \"rim\"]\nassert note_length(\"fragile\") == 7\nassert note_length(None) == 0\n",
     typescript: "type Assembly = { readonly name: string; readonly parts: readonly string[] };\n\nexport function allParts(assemblies: readonly Assembly[]): string[] {\n  return assemblies.flatMap((assembly) => [...assembly.parts]);\n}\n\nexport async function quotedTotal(fetch: (part: string) => Promise<number>): Promise<number> {\n  const frame = await fetch(\"F-101\");\n  const wheels = await fetch(\"W-200\");\n  return frame + wheels;\n}\n\nexport function noteLength(note: string | null): number {\n  return note?.length ?? 0;\n}\n",
   },
-  "flag_documented": {
-    title: "The docstring says text or binary, and the checker cannot read it",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: false,
-    improves: null,
-    misuseOf: null,
-    python: "def read_log(path: str, mode: str) -> int:\n    \"\"\"mode is \"text\" or \"binary\".\"\"\"\n    record_size = 1 if mode == \"text\" else 8\n    return len(path) * record_size\n\n\ndef tail() -> int:\n    return read_log(\"app.log\", \"binry\")\n",
-    typescript: "/** mode is \"text\" or \"binary\". */\nfunction readLog(path: string, mode: string): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(): number {\n  return readLog(\"app.log\", \"binry\");\n}\n",
-  },
   "function_any": {
     title: "A loosely typed key accepts a lambda the sort cannot call",
     expectPython: "passes",
@@ -504,16 +474,6 @@ export const EXAMPLES = {
     python: "from datetime import datetime, timedelta\n\n\ndef remaining(deadline: datetime) -> timedelta:\n    return deadline - datetime.now()\n",
     typescript: "export function remaining(deadline: Date): number {\n  return deadline.getTime() - Date.now();\n}\n",
   },
-  "inline_retry": {
-    title: "The retry loop lives inside the business function",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: false,
-    improves: null,
-    misuseOf: null,
-    python: "def fetch_greeting(attempts_left: int = 3) -> str:\n    failures = 0\n    while True:\n        try:\n            return unreliable_fetch().upper()\n        except ConnectionError:\n            failures += 1\n            if failures >= attempts_left:\n                raise\n\n\ndef unreliable_fetch() -> str:\n    raise ConnectionError(\"try again\")\n",
-    typescript: "class ConnectionLost extends Error {}\n\nfunction unreliableFetch(): string {\n  throw new ConnectionLost(\"try again\");\n}\n\nexport function fetchGreeting(attemptsLeft = 3): string {\n  let failures = 0;\n  for (;;) {\n    try {\n      return unreliableFetch().toUpperCase();\n    } catch (error) {\n      if (!(error instanceof ConnectionLost)) throw error;\n      failures += 1;\n      if (failures >= attemptsLeft) throw error;\n    }\n  }\n}\n",
-  },
   "invoice_lifecycle_runtime": {
     title: "Any invoice accepts any operation, and the order is checked only when it runs",
     expectPython: "passes",
@@ -544,26 +504,6 @@ export const EXAMPLES = {
     python: "from dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass DraftInvoice:\n    number: str\n\n    def send(self) -> \"SentInvoice\":\n        return SentInvoice(self.number)\n\n\n@dataclass(frozen=True)\nclass SentInvoice:\n    number: str\n\n    def record_payment(self) -> \"PaidInvoice\":\n        return PaidInvoice(self.number)\n\n\n@dataclass(frozen=True)\nclass PaidInvoice:\n    number: str\n\n\npaid = DraftInvoice(\"INV-7\").record_payment()\n",
     typescript: "type DraftInvoice = { readonly stage: \"draft\"; readonly number: string };\ntype SentInvoice = { readonly stage: \"sent\"; readonly number: string };\ntype PaidInvoice = { readonly stage: \"paid\"; readonly number: string };\n\nfunction send(invoice: DraftInvoice): SentInvoice {\n  return { stage: \"sent\", number: invoice.number };\n}\n\nfunction recordPayment(invoice: SentInvoice): PaidInvoice {\n  return { stage: \"paid\", number: invoice.number };\n}\n\nexport const paid = recordPayment({ stage: \"draft\", number: \"INV-7\" });\n",
   },
-  "io_actions": {
-    title: "IO describes the fetch, retry wraps it, and run performs it",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: true,
-    improves: "inline_retry",
-    misuseOf: null,
-    python: "from collections.abc import Callable\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass IO[T]:\n    run: Callable[[], T]\n\n\ndef of[T](value: T) -> IO[T]:\n    return IO(lambda: value)\n\n\ndef and_then[T, U](action: IO[T], step: Callable[[T], IO[U]]) -> IO[U]:\n    return IO(lambda: step(action.run()).run())\n\n\ndef retry[T](times: int, action: IO[T]) -> IO[T]:\n    def attempt() -> T:\n        failures = 0\n        while True:\n            try:\n                return action.run()\n            except ConnectionError:\n                failures += 1\n                if failures >= times:\n                    raise\n    return IO(attempt)\n\n\n_calls = {\"count\": 0}\n\n\ndef flaky_fetch() -> str:\n    _calls[\"count\"] += 1\n    if _calls[\"count\"] < 3:\n        raise ConnectionError(\"try again\")\n    return \"payload\"\n\n\ngreeting = and_then(retry(3, IO(flaky_fetch)), lambda text: of(text.upper()))\n\nassert _calls[\"count\"] == 0\nassert greeting.run() == \"PAYLOAD\"\nassert _calls[\"count\"] == 3\n",
-    typescript: "class ConnectionLost extends Error {}\n\ntype IO<T> = { readonly run: () => T };\n\nfunction of<T>(value: T): IO<T> {\n  return { run: () => value };\n}\n\nfunction andThen<T, U>(action: IO<T>, step: (value: T) => IO<U>): IO<U> {\n  return { run: () => step(action.run()).run() };\n}\n\nfunction retry<T>(times: number, action: IO<T>): IO<T> {\n  return {\n    run: () => {\n      let failures = 0;\n      for (;;) {\n        try {\n          return action.run();\n        } catch (error) {\n          if (!(error instanceof ConnectionLost)) throw error;\n          failures += 1;\n          if (failures >= times) throw error;\n        }\n      }\n    },\n  };\n}\n\nlet calls = 0;\n\nfunction flakyFetch(): string {\n  calls += 1;\n  if (calls < 3) throw new ConnectionLost(\"try again\");\n  return \"payload\";\n}\n\nexport const greeting = andThen(retry(3, { run: flakyFetch }), (text) => of(text.toUpperCase()));\n\nexport const nothingRanYet = calls === 0;\nexport const answer = greeting.run();\nexport const callsAfterRun = calls;\n",
-  },
-  "io_actions_misuse": {
-    title: "An IO description where its result is required, rejected by the checker",
-    expectPython: "fails",
-    expectTypescript: "fails",
-    runs: false,
-    improves: null,
-    misuseOf: "io_actions",
-    python: "from collections.abc import Callable\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass IO[T]:\n    run: Callable[[], T]\n\n\ndef fetch_greeting() -> IO[str]:\n    return IO(lambda: \"payload\")\n\n\ndef send(payload: str) -> str:\n    return f\"sent {payload}\"\n\n\ndelivery = send(fetch_greeting())\n",
-    typescript: "type IO<T> = { readonly run: () => T };\n\nfunction fetchGreeting(): IO<string> {\n  return { run: () => \"payload\" };\n}\n\nfunction send(payload: string): string {\n  return `sent ${payload}`;\n}\n\nexport const delivery = send(fetchGreeting());\n",
-  },
   "json_blob": {
     title: "Json travels through every signature, and every use needs a cast",
     expectPython: "passes",
@@ -593,46 +533,6 @@ export const EXAMPLES = {
     misuseOf: "json_parsed",
     python: "from dataclasses import dataclass\nfrom typing import NewType\n\ntype Json = None | bool | int | float | str | list[\"Json\"] | dict[str, \"Json\"]\n\nPence = NewType(\"Pence\", int)\n\n\n@dataclass(frozen=True)\nclass Line:\n    item: str\n    pence: Pence\n    quantity: int\n\n\ndef invoice_total(lines: list[Line]) -> Pence:\n    return Pence(sum(line.pence * line.quantity for line in lines))\n\n\ndef report(decoded: Json) -> Pence:\n    return invoice_total(decoded)\n",
     typescript: "declare const penceBrand: unique symbol;\ntype Pence = number & { readonly [penceBrand]: true };\n\ntype Json = null | boolean | number | string | Json[] | { [key: string]: Json };\n\ntype Line = { readonly item: string; readonly pence: Pence; readonly quantity: number };\n\nfunction invoiceTotal(lines: readonly Line[]): Pence {\n  return lines.reduce((sum, line) => sum + line.pence * line.quantity, 0) as Pence;\n}\n\nexport function report(decoded: Json): Pence {\n  return invoiceTotal(decoded);\n}\n",
-  },
-  "literal_flag": {
-    title: "The mode parameter accepts only text or binary",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: false,
-    improves: "flag_documented",
-    misuseOf: null,
-    python: "from typing import Literal\n\n\ndef read_log(path: str, mode: Literal[\"text\", \"binary\"]) -> int:\n    record_size = 1 if mode == \"text\" else 8\n    return len(path) * record_size\n\n\ndef tail() -> int:\n    return read_log(\"app.log\", \"binary\")\n",
-    typescript: "export function readLog(path: string, mode: \"text\" | \"binary\"): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(): number {\n  return readLog(\"app.log\", \"binary\");\n}\n",
-  },
-  "literal_flag_misuse": {
-    title: "A variable typed str, rejected at the mode parameter",
-    expectPython: "fails",
-    expectTypescript: "fails",
-    runs: false,
-    improves: null,
-    misuseOf: "literal_flag",
-    python: "from typing import Literal\n\n\ndef read_log(path: str, mode: Literal[\"text\", \"binary\"]) -> int:\n    record_size = 1 if mode == \"text\" else 8\n    return len(path) * record_size\n\n\ndef tail(chosen: str) -> int:\n    return read_log(\"app.log\", chosen)\n",
-    typescript: "function readLog(path: string, mode: \"text\" | \"binary\"): number {\n  const recordSize = mode === \"text\" ? 1 : 8;\n  return path.length * recordSize;\n}\n\nexport function tail(chosen: string): number {\n  return readLog(\"app.log\", chosen);\n}\n",
-  },
-  "logged_steps": {
-    title: "Logged pairs each result with the log that produced it",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: true,
-    improves: "printed_steps",
-    misuseOf: null,
-    python: "from collections.abc import Callable\nfrom dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Logged[T]:\n    value: T\n    log: tuple[str, ...]\n\n\ndef and_then[T, U](logged: Logged[T], step: Callable[[T], Logged[U]]) -> Logged[U]:\n    result = step(logged.value)\n    return Logged(result.value, logged.log + result.log)\n\n\ndef double(n: int) -> Logged[int]:\n    return Logged(n * 2, (f\"doubled {n}\",))\n\n\ndef add_tax(n: int) -> Logged[int]:\n    return Logged(n + n // 10, (f\"taxed {n}\",))\n\n\ndef total(n: int) -> Logged[int]:\n    return and_then(and_then(Logged(n, ()), double), add_tax)\n\n\nassert total(100).value == 220\nassert total(100).log == (\"doubled 100\", \"taxed 200\")\n",
-    typescript: "type Logged<T> = { readonly value: T; readonly log: readonly string[] };\n\nfunction andThen<T, U>(logged: Logged<T>, step: (value: T) => Logged<U>): Logged<U> {\n  const result = step(logged.value);\n  return { value: result.value, log: [...logged.log, ...result.log] };\n}\n\nfunction double(n: number): Logged<number> {\n  return { value: n * 2, log: [`doubled ${n}`] };\n}\n\nfunction addTax(n: number): Logged<number> {\n  return { value: n + Math.floor(n / 10), log: [`taxed ${n}`] };\n}\n\nexport function total(n: number): Logged<number> {\n  return andThen(andThen({ value: n, log: [] }, double), addTax);\n}\n",
-  },
-  "logged_steps_misuse": {
-    title: "A Logged total spent as a number, rejected by the checker",
-    expectPython: "fails",
-    expectTypescript: "fails",
-    runs: false,
-    improves: null,
-    misuseOf: "logged_steps",
-    python: "from dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Logged[T]:\n    value: T\n    log: tuple[str, ...]\n\n\ndef audited_total(n: int) -> Logged[int]:\n    return Logged(n + n // 10, (f\"taxed {n}\",))\n\n\ndef net(n: int) -> int:\n    return audited_total(n) - 45\n",
-    typescript: "type Logged<T> = { readonly value: T; readonly log: readonly string[] };\n\nfunction auditedTotal(n: number): Logged<number> {\n  return { value: n + Math.floor(n / 10), log: [`taxed ${n}`] };\n}\n\nexport function net(n: number): number {\n  return auditedTotal(n) - 45;\n}\n",
   },
   "money_float": {
     title: "A price and a discount rate are both bare numbers, so the swapped call is accepted",
@@ -764,16 +664,6 @@ export const EXAMPLES = {
     python: "from dataclasses import dataclass\nfrom typing import NewType\n\nPence = NewType(\"Pence\", int)\n\n\n@dataclass(frozen=True)\nclass InvoiceLine:\n    item: str\n    pence: Pence\n    gift: bool\n\n\ndef gift_total(lines: list[InvoiceLine]) -> Pence:\n    total = 0\n    for line in lines:\n        if line.gift:\n            total += line.pence\n    return Pence(total)\n",
     typescript: "declare const penceBrand: unique symbol;\ntype Pence = number & { readonly [penceBrand]: true };\n\ntype InvoiceLine = { readonly item: string; readonly pence: Pence; readonly gift: boolean };\n\nexport function giftTotal(lines: readonly InvoiceLine[]): number {\n  let total = 0;\n  for (const line of lines) {\n    if (line.gift) {\n      total += line.pence;\n    }\n  }\n  return total;\n}\n",
   },
-  "printed_steps": {
-    title: "The steps print their log, and the caller cannot read it",
-    expectPython: "passes",
-    expectTypescript: "passes",
-    runs: false,
-    improves: null,
-    misuseOf: null,
-    python: "def double(n: int) -> int:\n    print(f\"doubled {n}\")\n    return n * 2\n\n\ndef add_tax(n: int) -> int:\n    print(f\"taxed {n}\")\n    return n + n // 10\n\n\ndef total(n: int) -> int:\n    return add_tax(double(n))\n",
-    typescript: "function double(n: number): number {\n  console.log(`doubled ${n}`);\n  return n * 2;\n}\n\nfunction addTax(n: number): number {\n  console.log(`taxed ${n}`);\n  return n + Math.floor(n / 10);\n}\n\nexport function total(n: number): number {\n  return addTax(double(n));\n}\n",
-  },
   "pure_clock": {
     title: "remaining takes now as a parameter, so a test can pin its answer",
     expectPython: "passes",
@@ -856,13 +746,13 @@ export const EXAMPLES = {
   },
   "the_program": {
     title: "The bill of materials and the invoice, as they stand today",
-    expectPython: "passes",
-    expectTypescript: "passes",
+    expectPython: "fails",
+    expectTypescript: "fails",
     runs: false,
     improves: null,
     misuseOf: null,
-    python: "from typing import Any\n\n\ndef bom_line(part_no: Any, description: Any, qty: Any, unit: Any, cost: Any) -> Any:\n    return f\"{part_no}  {description}  {qty} {unit} at {cost}d\"\n\n\ndef product_cost(costs_pounds: list[float]) -> float:\n    return sum(costs_pounds)\n\n\ndef invoice_line(description: Any, price_pence: Any, quantity: Any, taxed: Any) -> Any:\n    note = \" +tax\" if taxed else \"\"\n    return f\"{description} x{quantity} at {price_pence}d{note}\"\n\n\ndef invoice_total(prices_pounds: list[float]) -> float:\n    return sum(prices_pounds)\n\n\ndef apply_discount(total_pounds: float, rate: float) -> float:\n    return total_pounds * (1 - rate)\n\n\ndef advance(status: str) -> str:\n    if status == \"darft\":\n        return \"sent\"\n    if status == \"sent\":\n        return \"paid\"\n    return status\n\n\ndef bill(customer_id: str, product_id: str) -> str:\n    return f\"invoice {customer_id} for one {product_id}\"\n\n\ndef load_bom_line(row: str) -> list[str]:\n    return row.split(\",\")\n",
-    typescript: "export function bomLine(partNo: any, description: any, qty: any, unit: any, cost: any): any {\n  return `${partNo}  ${description}  ${qty} ${unit} at ${cost}d`;\n}\n\nexport function productCost(costsPounds: number[]): number {\n  return costsPounds.reduce((sum, cost) => sum + cost, 0);\n}\n\nexport function invoiceLine(description: any, pricePence: any, quantity: any, taxed: any): any {\n  const note = taxed ? \" +tax\" : \"\";\n  return `${description} x${quantity} at ${pricePence}d${note}`;\n}\n\nexport function invoiceTotal(pricesPounds: number[]): number {\n  return pricesPounds.reduce((sum, price) => sum + price, 0);\n}\n\nexport function applyDiscount(totalPounds: number, rate: number): number {\n  return totalPounds * (1 - rate);\n}\n\nexport function advance(status: string): string {\n  if (status === \"darft\") {\n    return \"sent\";\n  }\n  if (status === \"sent\") {\n    return \"paid\";\n  }\n  return status;\n}\n\nexport function bill(customerId: string, productId: string): string {\n  return `invoice ${customerId} for one ${productId}`;\n}\n\nexport function loadBomLine(row: string): string[] {\n  return row.split(\",\");\n}\n",
+    python: "def bom_line(part_no, description, qty, unit, cost):\n    return f\"{part_no}  {description}  {qty} {unit} at {cost}d\"\n\n\ndef product_cost(costs_pounds):\n    return sum(costs_pounds)\n\n\ndef invoice_line(description, price_pence, quantity, taxed):\n    note = \" +tax\" if taxed else \"\"\n    return f\"{description} x{quantity} at {price_pence}d{note}\"\n\n\ndef invoice_total(prices_pounds):\n    return sum(prices_pounds)\n\n\ndef apply_discount(total_pounds, rate):\n    return total_pounds * (1 - rate)\n\n\ndef advance(status):\n    if status == \"darft\":\n        return \"sent\"\n    if status == \"sent\":\n        return \"paid\"\n    return status\n\n\ndef bill(customer_id, product_id):\n    return f\"invoice {customer_id} for one {product_id}\"\n\n\ndef load_bom_line(row):\n    return row.split(\",\")\n",
+    typescript: "export function bomLine(partNo, description, qty, unit, cost) {\n  return `${partNo}  ${description}  ${qty} ${unit} at ${cost}d`;\n}\n\nexport function productCost(costsPounds) {\n  return costsPounds.reduce((sum, cost) => sum + cost, 0);\n}\n\nexport function invoiceLine(description, pricePence, quantity, taxed) {\n  const note = taxed ? \" +tax\" : \"\";\n  return `${description} x${quantity} at ${pricePence}d${note}`;\n}\n\nexport function invoiceTotal(pricesPounds) {\n  return pricesPounds.reduce((sum, price) => sum + price, 0);\n}\n\nexport function applyDiscount(totalPounds, rate) {\n  return totalPounds * (1 - rate);\n}\n\nexport function advance(status) {\n  if (status === \"darft\") return \"sent\";\n  if (status === \"sent\") return \"paid\";\n  return status;\n}\n\nexport function bill(customerId, productId) {\n  return `invoice ${customerId} for one ${productId}`;\n}\n\nexport function loadBomLine(row) {\n  return row.split(\",\");\n}\n",
   },
   "the_program_fixed": {
     title: "The bill of materials and the invoice, with the types doing the work",
@@ -956,10 +846,6 @@ export const EXAMPLES = {
   },
 };
 export const DIFFS = {
-  "alias_compound": {
-    python: "--- a/example.py\n+++ b/example.py\n@@ -1,13 +1,19 @@\n from collections.abc import Callable\n+from typing import Final\n+\n+type Milliseconds = int\n+type RetryPolicy = Callable[[int, Exception], Milliseconds]\n+\n+DEFAULT_BACKOFF: Final[Milliseconds] = 30_000\n \n \n-def fixed_backoff(_attempt: int, _error: Exception) -> int:\n-    return 30_000\n+def fixed_backoff(_attempt: int, _error: Exception) -> Milliseconds:\n+    return DEFAULT_BACKOFF\n \n \n-def doubling_backoff(attempt: int, _error: Exception) -> int:\n-    return 30_000 * (1 << attempt)\n+def doubling_backoff(attempt: int, _error: Exception) -> Milliseconds:\n+    return DEFAULT_BACKOFF * (1 << attempt)\n \n \n-def run_with_retries(policy: Callable[[int, Exception], int]) -> int:\n+def run_with_retries(policy: RetryPolicy) -> Milliseconds:\n     return policy(1, ValueError(\"transient\"))\n",
-    typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,8 +1,12 @@\n-export const fixedBackoff: (attempt: number, error: Error) => number = () => 30_000;\n+type Milliseconds = number;\n+type RetryPolicy = (attempt: number, error: Error) => Milliseconds;\n+\n+const DEFAULT_BACKOFF: Milliseconds = 30_000;\n+\n+export const fixedBackoff: RetryPolicy = () => DEFAULT_BACKOFF;\n \n-export const doublingBackoff: (attempt: number, error: Error) => number = (attempt) =>\n-  30_000 * 2 ** attempt;\n+export const doublingBackoff: RetryPolicy = (attempt) => DEFAULT_BACKOFF * 2 ** attempt;\n \n-export function runWithRetries(policy: (attempt: number, error: Error) => number): number {\n+export function runWithRetries(policy: RetryPolicy): Milliseconds {\n   return policy(1, new Error(\"transient\"));\n }\n",
-  },
   "carrier_protocol": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,12 +1,22 @@\n-class Carrier:\n+from typing import Protocol\n+\n+\n+class Carrier(Protocol):\n+    def quote_pence(self, kilograms: float) -> int: ...\n+\n+\n+class RoyalPost:\n     def quote_pence(self, kilograms: float) -> int:\n-        raise NotImplementedError\n+        return int(kilograms * 120)\n \n \n-class RoyalPost(Carrier):\n+class VillageCourier:\n     def quote_pence(self, kilograms: float) -> int:\n-        return int(kilograms * 120)\n+        return 90\n \n \n def cheapest(carriers: list[Carrier], kilograms: float) -> int:\n     return min(carrier.quote_pence(kilograms) for carrier in carriers)\n+\n+\n+assert cheapest([RoyalPost(), VillageCourier()], 9.5) == 90\n",
     typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,15 +1,19 @@\n-abstract class Carrier {\n-  abstract quotePence(kilograms: number): number;\n-}\n+type Carrier = {\n+  quotePence(kilograms: number): number;\n+};\n \n-class RoyalPost extends Carrier {\n+class RoyalPost {\n   quotePence(kilograms: number): number {\n     return Math.floor(kilograms * 120);\n   }\n }\n \n-export function cheapest(carriers: Carrier[], kilograms: number): number {\n+const villageCourier: Carrier = {\n+  quotePence: () => 90,\n+};\n+\n+export function cheapest(carriers: readonly Carrier[], kilograms: number): number {\n   return Math.min(...carriers.map((carrier) => carrier.quotePence(kilograms)));\n }\n \n-export const quote = cheapest([new RoyalPost()], 9.5);\n+export const quote = cheapest([new RoyalPost(), villageCourier], 9.5);\n",
@@ -1024,21 +910,9 @@ export const DIFFS = {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,22 +1,26 @@\n from dataclasses import dataclass\n \n \n-@dataclass\n-class Invoice:\n+@dataclass(frozen=True)\n+class DraftInvoice:\n+    number: str\n+\n+    def send(self) -> \"SentInvoice\":\n+        return SentInvoice(self.number)\n+\n+\n+@dataclass(frozen=True)\n+class SentInvoice:\n     number: str\n-    status: str\n \n-    def send(self) -> None:\n-        if self.status != \"draft\":\n-            raise ValueError(\"only a draft can be sent\")\n-        self.status = \"sent\"\n+    def record_payment(self) -> \"PaidInvoice\":\n+        return PaidInvoice(self.number)\n+\n \n-    def record_payment(self) -> None:\n-        if self.status != \"sent\":\n-            raise ValueError(\"only a sent invoice can be paid\")\n-        self.status = \"paid\"\n+@dataclass(frozen=True)\n+class PaidInvoice:\n+    number: str\n \n \n-def rush(invoice: Invoice) -> None:\n-    invoice.record_payment()\n-    invoice.send()\n+paid = DraftInvoice(\"INV-7\").send().record_payment()\n+assert paid == PaidInvoice(\"INV-7\")\n",
     typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,23 +1,13 @@\n-type Invoice = {\n-  number: string;\n-  status: string;\n-};\n+type DraftInvoice = { readonly stage: \"draft\"; readonly number: string };\n+type SentInvoice = { readonly stage: \"sent\"; readonly number: string };\n+type PaidInvoice = { readonly stage: \"paid\"; readonly number: string };\n \n-function send(invoice: Invoice): void {\n-  if (invoice.status !== \"draft\") {\n-    throw new Error(\"only a draft can be sent\");\n-  }\n-  invoice.status = \"sent\";\n+function send(invoice: DraftInvoice): SentInvoice {\n+  return { stage: \"sent\", number: invoice.number };\n }\n \n-function recordPayment(invoice: Invoice): void {\n-  if (invoice.status !== \"sent\") {\n-    throw new Error(\"only a sent invoice can be paid\");\n-  }\n-  invoice.status = \"paid\";\n+function recordPayment(invoice: SentInvoice): PaidInvoice {\n+  return { stage: \"paid\", number: invoice.number };\n }\n \n-export function rush(invoice: Invoice): void {\n-  recordPayment(invoice);\n-  send(invoice);\n-}\n+export const paid = recordPayment(send({ stage: \"draft\", number: \"INV-7\" }));\n",
   },
-  "io_actions": {
-    python: "--- a/example.py\n+++ b/example.py\n@@ -1,13 +1,45 @@\n-def fetch_greeting(attempts_left: int = 3) -> str:\n-    failures = 0\n-    while True:\n-        try:\n-            return unreliable_fetch().upper()\n-        except ConnectionError:\n-            failures += 1\n-            if failures >= attempts_left:\n-                raise\n+from collections.abc import Callable\n+from dataclasses import dataclass\n+\n+\n+@dataclass(frozen=True)\n+class IO[T]:\n+    run: Callable[[], T]\n+\n+\n+def of[T](value: T) -> IO[T]:\n+    return IO(lambda: value)\n+\n+\n+def and_then[T, U](action: IO[T], step: Callable[[T], IO[U]]) -> IO[U]:\n+    return IO(lambda: step(action.run()).run())\n+\n+\n+def retry[T](times: int, action: IO[T]) -> IO[T]:\n+    def attempt() -> T:\n+        failures = 0\n+        while True:\n+            try:\n+                return action.run()\n+            except ConnectionError:\n+                failures += 1\n+                if failures >= times:\n+                    raise\n+    return IO(attempt)\n+\n \n+_calls = {\"count\": 0}\n \n-def unreliable_fetch() -> str:\n-    raise ConnectionError(\"try again\")\n+\n+def flaky_fetch() -> str:\n+    _calls[\"count\"] += 1\n+    if _calls[\"count\"] < 3:\n+        raise ConnectionError(\"try again\")\n+    return \"payload\"\n+\n+\n+greeting = and_then(retry(3, IO(flaky_fetch)), lambda text: of(text.upper()))\n+\n+assert _calls[\"count\"] == 0\n+assert greeting.run() == \"PAYLOAD\"\n+assert _calls[\"count\"] == 3\n",
-    typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,18 +1,42 @@\n class ConnectionLost extends Error {}\n \n-function unreliableFetch(): string {\n-  throw new ConnectionLost(\"try again\");\n+type IO<T> = { readonly run: () => T };\n+\n+function of<T>(value: T): IO<T> {\n+  return { run: () => value };\n+}\n+\n+function andThen<T, U>(action: IO<T>, step: (value: T) => IO<U>): IO<U> {\n+  return { run: () => step(action.run()).run() };\n+}\n+\n+function retry<T>(times: number, action: IO<T>): IO<T> {\n+  return {\n+    run: () => {\n+      let failures = 0;\n+      for (;;) {\n+        try {\n+          return action.run();\n+        } catch (error) {\n+          if (!(error instanceof ConnectionLost)) throw error;\n+          failures += 1;\n+          if (failures >= times) throw error;\n+        }\n+      }\n+    },\n+  };\n }\n \n-export function fetchGreeting(attemptsLeft = 3): string {\n-  let failures = 0;\n-  for (;;) {\n-    try {\n-      return unreliableFetch().toUpperCase();\n-    } catch (error) {\n-      if (!(error instanceof ConnectionLost)) throw error;\n-      failures += 1;\n-      if (failures >= attemptsLeft) throw error;\n-    }\n-  }\n+let calls = 0;\n+\n+function flakyFetch(): string {\n+  calls += 1;\n+  if (calls < 3) throw new ConnectionLost(\"try again\");\n+  return \"payload\";\n }\n+\n+export const greeting = andThen(retry(3, { run: flakyFetch }), (text) => of(text.toUpperCase()));\n+\n+export const nothingRanYet = calls === 0;\n+export const answer = greeting.run();\n+export const callsAfterRun = calls;\n",
-  },
   "json_parsed": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,17 +1,36 @@\n-from typing import cast\n+from dataclasses import dataclass\n+from typing import NewType\n \n-type Json = None | bool | int | float | str | list[\"Json\"] | dict[str, \"Json\"]\n+Pence = NewType(\"Pence\", int)\n \n \n-def line_total(line: Json) -> Json:\n-    fields = cast(dict[str, Json], line)\n-    return cast(int, fields[\"pence\"]) * cast(int, fields[\"quantity\"])\n+@dataclass(frozen=True)\n+class Line:\n+    item: str\n+    pence: Pence\n+    quantity: int\n \n \n-def invoice_total(lines: Json) -> Json:\n-    rows = cast(list[Json], lines)\n-    return sum(cast(int, line_total(row)) for row in rows)\n+def parse_line(raw: object) -> Line:\n+    match raw:\n+        case {\"item\": str(item), \"pence\": int(pence), \"quantity\": int(quantity)}:\n+            return Line(item, Pence(pence), quantity)\n+        case _:\n+            raise ValueError(f\"not a line: {raw!r}\")\n+\n+\n+def line_total(line: Line) -> Pence:\n+    return Pence(line.pence * line.quantity)\n \n \n-def is_large(lines: Json) -> bool:\n-    return cast(int, invoice_total(lines)) > 1000\n+def invoice_total(lines: list[Line]) -> Pence:\n+    return Pence(sum(line_total(line) for line in lines))\n+\n+\n+def is_large(lines: list[Line]) -> bool:\n+    return invoice_total(lines) > 1000\n+\n+\n+basket = [parse_line({\"item\": \"saddle\", \"pence\": 155, \"quantity\": 4})]\n+assert invoice_total(basket) == 620\n+assert is_large(basket) is False\n",
     typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,14 +1,34 @@\n-type Json = null | boolean | number | string | Json[] | { [key: string]: Json };\n+declare const penceBrand: unique symbol;\n+type Pence = number & { readonly [penceBrand]: true };\n+\n+type Line = { readonly item: string; readonly pence: Pence; readonly quantity: number };\n+\n+function parseLine(raw: unknown): Line {\n+  if (\n+    typeof raw !== \"object\" ||\n+    raw === null ||\n+    !(\"item\" in raw) ||\n+    !(\"pence\" in raw) ||\n+    !(\"quantity\" in raw) ||\n+    typeof raw.item !== \"string\" ||\n+    typeof raw.pence !== \"number\" ||\n+    typeof raw.quantity !== \"number\"\n+  ) {\n+    throw new Error(\"not a line\");\n+  }\n+  return { item: raw.item, pence: raw.pence as Pence, quantity: raw.quantity };\n+}\n \n-export function lineTotal(line: Json): Json {\n-  const fields = line as { [key: string]: Json };\n-  return (fields.pence as number) * (fields.quantity as number);\n+function lineTotal(line: Line): Pence {\n+  return (line.pence * line.quantity) as Pence;\n }\n \n-export function invoiceTotal(lines: Json): Json {\n-  return (lines as Json[]).reduce((sum: number, row) => sum + (lineTotal(row) as number), 0);\n+export function invoiceTotal(lines: readonly Line[]): Pence {\n+  return lines.reduce((sum, line) => sum + lineTotal(line), 0) as Pence;\n }\n \n-export function isLarge(lines: Json): boolean {\n-  return (invoiceTotal(lines) as number) > 1000;\n+export function isLarge(lines: readonly Line[]): boolean {\n+  return invoiceTotal(lines) > 1000;\n }\n+\n+export const basket = [parseLine({ item: \"saddle\", pence: 155, quantity: 4 })];\n",
-  },
-  "literal_flag": {
-    python: "--- a/example.py\n+++ b/example.py\n@@ -1,8 +1,10 @@\n-def read_log(path: str, mode: str) -> int:\n-    \"\"\"mode is \"text\" or \"binary\".\"\"\"\n+from typing import Literal\n+\n+\n+def read_log(path: str, mode: Literal[\"text\", \"binary\"]) -> int:\n     record_size = 1 if mode == \"text\" else 8\n     return len(path) * record_size\n \n \n def tail() -> int:\n-    return read_log(\"app.log\", \"binry\")\n+    return read_log(\"app.log\", \"binary\")\n",
-    typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,9 +1,8 @@\n-/** mode is \"text\" or \"binary\". */\n-function readLog(path: string, mode: string): number {\n+export function readLog(path: string, mode: \"text\" | \"binary\"): number {\n   const recordSize = mode === \"text\" ? 1 : 8;\n   return path.length * recordSize;\n }\n \n export function tail(): number {\n-  return readLog(\"app.log\", \"binry\");\n+  return readLog(\"app.log\", \"binary\");\n }\n",
-  },
-  "logged_steps": {
-    python: "--- a/example.py\n+++ b/example.py\n@@ -1,12 +1,29 @@\n-def double(n: int) -> int:\n-    print(f\"doubled {n}\")\n-    return n * 2\n+from collections.abc import Callable\n+from dataclasses import dataclass\n \n \n-def add_tax(n: int) -> int:\n-    print(f\"taxed {n}\")\n-    return n + n // 10\n+@dataclass(frozen=True)\n+class Logged[T]:\n+    value: T\n+    log: tuple[str, ...]\n \n \n-def total(n: int) -> int:\n-    return add_tax(double(n))\n+def and_then[T, U](logged: Logged[T], step: Callable[[T], Logged[U]]) -> Logged[U]:\n+    result = step(logged.value)\n+    return Logged(result.value, logged.log + result.log)\n+\n+\n+def double(n: int) -> Logged[int]:\n+    return Logged(n * 2, (f\"doubled {n}\",))\n+\n+\n+def add_tax(n: int) -> Logged[int]:\n+    return Logged(n + n // 10, (f\"taxed {n}\",))\n+\n+\n+def total(n: int) -> Logged[int]:\n+    return and_then(and_then(Logged(n, ()), double), add_tax)\n+\n+\n+assert total(100).value == 220\n+assert total(100).log == (\"doubled 100\", \"taxed 200\")\n",
-    typescript: "--- a/example.ts\n+++ b/example.ts\n@@ -1,13 +1,18 @@\n-function double(n: number): number {\n-  console.log(`doubled ${n}`);\n-  return n * 2;\n+type Logged<T> = { readonly value: T; readonly log: readonly string[] };\n+\n+function andThen<T, U>(logged: Logged<T>, step: (value: T) => Logged<U>): Logged<U> {\n+  const result = step(logged.value);\n+  return { value: result.value, log: [...logged.log, ...result.log] };\n }\n \n-function addTax(n: number): number {\n-  console.log(`taxed ${n}`);\n-  return n + Math.floor(n / 10);\n+function double(n: number): Logged<number> {\n+  return { value: n * 2, log: [`doubled ${n}`] };\n+}\n+\n+function addTax(n: number): Logged<number> {\n+  return { value: n + Math.floor(n / 10), log: [`taxed ${n}`] };\n }\n \n-export function total(n: number): number {\n-  return addTax(double(n));\n+export function total(n: number): Logged<number> {\n+  return andThen(andThen({ value: n, log: [] }, double), addTax);\n }\n",
   },
   "money_pence": {
     python: "--- a/example.py\n+++ b/example.py\n@@ -1,6 +1,11 @@\n-def apply_discount(total_pounds: float, rate: float) -> float:\n-    return total_pounds * (1 - rate)\n+from typing import NewType\n \n+Pence = NewType(\"Pence\", int)\n+Rate = NewType(\"Rate\", float)\n \n-def checkout() -> float:\n-    return apply_discount(0.1, 12.5)\n+\n+def apply_discount(total: Pence, rate: Rate) -> Pence:\n+    return Pence(round(total * (1 - rate)))\n+\n+\n+assert apply_discount(Pence(1250), Rate(0.1)) == 1125\n",

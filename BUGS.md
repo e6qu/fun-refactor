@@ -175,6 +175,16 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B721: **the type-safety tutorial disclaimed its own examples.** Its
+  monads section called hand-rolled monads friction and said only `Result`
+  earns its keep. It then demonstrated a Writer and an IO anyway. The literal-flag
+  block repeated the status-literal lesson, and the alias-as-names block
+  taught what the section had already said. All four went, with their
+  before-and-misuse files: twelve examples, twenty-four files. The first
+  example now carries no annotations at all. Both checkers refuse it for
+  that alone, which is where the tutorial's journey starts.
+  The prose lost its passive voice on the way.
+
 - [x] B719: **the parallel build compiled the query set once per file.** The
   comment beside it said the compilation was paid once per thread. The code
   built the parsers and the extractor inside the per-file closure. A

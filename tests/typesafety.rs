@@ -503,13 +503,8 @@ fn the_examples_carry_no_comments() {
 
 #[test]
 fn every_improvement_shows_a_rejection() {
-    // alias_compound teaches that an alias enforces nothing, so it has no catch.
-    let allowed_without = ["alias_compound"];
     let all = examples();
     for example in all.iter().filter(|e| e.improves.is_some()) {
-        if allowed_without.contains(&example.id.as_str()) {
-            continue;
-        }
         let shown = all
             .iter()
             .any(|e| e.misuse_of.as_deref() == Some(&example.id));
