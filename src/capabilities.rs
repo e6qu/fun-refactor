@@ -201,14 +201,16 @@ pub fn record(capability: Capability, language: Language) {
     let Some(path) = path else {
         return;
     };
-    // Appended and not held: the writer may be one of a dozen processes, and a line
-    // under the pipe buffer arrives whole.
+    // Appended and not held: the writer may be one of a dozen processes. The line goes
+    // out in one write call, because `writeln!` may split one line across several and
+    // two processes' halves can interleave. One small write under O_APPEND lands whole.
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(path)
     {
-        let _ = writeln!(file, "{}\t{}", capability.label(), language.name());
+        let line = format!("{}\t{}\n", capability.label(), language.name());
+        let _ = file.write_all(line.as_bytes());
     }
 }
 

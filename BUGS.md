@@ -175,6 +175,26 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B723: **the capability log tore under concurrent writers.** `record`
+  wrote its line with `writeln!`, which may split one line across several
+  write calls. A dozen test processes append to the same log, two halves
+  interleaved, and both lines died. The coverage report then blamed an
+  innocent cell for having no driver, once in dozens of runs. The line now
+  goes out in a single `write_all`, whole under `O_APPEND`. The report
+  script also skipped malformed lines in silence, which had hidden the
+  tear; now it fails and prints them.
+
+- [x] B722: **the tutorial wrote like a document, and people talk.** The
+  page still hid its doers. A status "was misspelled", a string "became"
+  an `EmailAddress` by itself, and "there is no server" had nobody in it.
+  Every such spot now names the actor: whoever wrote `advance` typed
+  `darft`, only `parse_email` builds an `EmailAddress`, and the tab is
+  the whole machine. The body text contracts the way speech does,
+  five-item lists stand as bullets, and the paragraph that explained the
+  epigraph's joke is gone. The widgets grew with the prose: softer cards,
+  a leading check button, zebra tables in their own scroll box, a
+  two-column contents list.
+
 - [x] B721: **the type-safety tutorial disclaimed its own examples.** Its
   monads section called hand-rolled monads friction and said only `Result`
   earns its keep. It then demonstrated a Writer and an IO anyway. The literal-flag

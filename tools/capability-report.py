@@ -25,11 +25,20 @@ def main(matrix_path: str, log_path: str) -> int:
     }
 
     seen = set()
+    torn = []
     with open(log_path) as f:
         for line in f:
             cell = tuple(line.rstrip("\n").split("\t"))
-            if len(cell) == 2:
+            if len(cell) == 2 and all(cell):
                 seen.add(cell)
+            else:
+                torn.append(line.rstrip("\n"))
+
+    if torn:
+        print(f"{len(torn)} malformed line(s) in the capability log; a writer tore:")
+        for line in torn[:10]:
+            print(f"  {line!r}")
+        return 1
 
     covered = claimed & seen
     missing = sorted(claimed - seen)
