@@ -776,6 +776,32 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             });
         }
     }
+    // Rust's inline format captures read a binding from inside a string.
+    // `println!("{total} file(s)")` reads `total`, and no reference records
+    // it, because the identifier is string content. Extracted without the
+    // parameter, the body did not compile while the command reported success.
+    if language == Language::Rust {
+        for name in format_captured_names(&parsed, &source, region) {
+            if seen_params.contains(&name) {
+                continue;
+            }
+            let Some(target) = index.find_symbols(&name, Some(file)).into_iter().find(|s| {
+                is_value_binding(s.kind)
+                    && enclosing_span.contains(s.name_span)
+                    && !region.contains(s.name_span)
+            }) else {
+                continue;
+            };
+            seen_params.insert(name.clone());
+            parameter_ids.push((name.clone(), target.id));
+            parameters.push(Parameter {
+                name: name.clone(),
+                type_annotation: known_type(index, &parsed, &source, target, language),
+                mutated: false,
+                argument: None,
+            });
+        }
+    }
     parameters.sort_by(|a, b| a.name.cmp(&b.name));
 
     // A parameter the region assigns to is a copy: the caller's binding keeps its
@@ -1188,6 +1214,56 @@ fn enclosing_class_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Node<'a>
         }
         current = current.parent()?;
     }
+}
+
+/// The names Rust format strings inside the region capture inline.
+///
+/// `{total}` and `{total:>8}` read the binding `total`; `{{` is an escaped
+/// brace and `{}` is positional. Only the capture form reads a name.
+fn format_captured_names(parsed: &Parsed, source: &str, region: Span) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut stack = vec![parsed.root()];
+    while let Some(node) = stack.pop() {
+        let span = Span::from(node);
+        if span.end <= region.start || span.start >= region.end {
+            continue;
+        }
+        if node.kind().contains("string") && region.contains(span) {
+            let text = span.text(source);
+            let bytes = text.as_bytes();
+            let mut i = 0;
+            while i < bytes.len() {
+                if bytes[i] != b'{' {
+                    i += 1;
+                    continue;
+                }
+                if bytes.get(i + 1) == Some(&b'{') {
+                    i += 2;
+                    continue;
+                }
+                let start = i + 1;
+                let mut end = start;
+                while end < bytes.len()
+                    && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_')
+                {
+                    end += 1;
+                }
+                if end > start
+                    && !bytes[start].is_ascii_digit()
+                    && matches!(bytes.get(end), Some(b'}') | Some(b':'))
+                {
+                    names.push(text[start..end].to_string());
+                }
+                i = end.max(start) + 1;
+            }
+            continue;
+        }
+        let mut cursor = node.walk();
+        stack.extend(node.children(&mut cursor));
+    }
+    names.sort();
+    names.dedup();
+    names
 }
 
 /// A member the region reads that nothing outside the class may read.

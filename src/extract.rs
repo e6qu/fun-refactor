@@ -257,6 +257,44 @@ fn inside_token_tree(root: Node<'_>, span: Span) -> bool {
 }
 
 fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
+    // A macro body is tokens, so `myc::model::slug(x)` inside `assert_eq!` has
+    // no scoped_identifier to read a path from. The tokens still spell it: walk
+    // the `ident::` segments backwards and hand resolution the same path an
+    // expression position would carry.
+    if inside_token_tree(root, span) {
+        let before = &source[..span.start];
+        if before.trim_end().ends_with("::") {
+            let mut end = before.trim_end().len() - 2;
+            let mut start = end;
+            loop {
+                let head = source[..start].trim_end();
+                let word = head
+                    .char_indices()
+                    .rev()
+                    .take_while(|(_, c)| c.is_alphanumeric() || *c == '_')
+                    .last()
+                    .map(|(i, _)| i);
+                let Some(word_start) = word.filter(|i| *i < head.len()) else {
+                    break;
+                };
+                start = word_start;
+                let further = source[..start].trim_end();
+                if further.ends_with("::") {
+                    start = further.len() - 2;
+                    end = end.max(start);
+                    continue;
+                }
+                break;
+            }
+            let path = source[start..span.start]
+                .trim_end()
+                .trim_end_matches("::")
+                .trim();
+            if !path.is_empty() {
+                return Some(path.to_string());
+            }
+        }
+    }
     const MEMBER_SHAPES: &[&str] = &[
         "selector_expression", // Go
         "member_expression",   // TypeScript, JavaScript
@@ -685,7 +723,10 @@ fn kubernetes_key_references(
 }
 
 /// Was the receiver written as a path (`A::b`) and not against a value (`a.b`)?
-fn receiver_is_path(root: Node<'_>, span: Span) -> bool {
+fn receiver_is_path(root: Node<'_>, span: Span, source: &str) -> bool {
+    if inside_token_tree(root, span) && source[..span.start].trim_end().ends_with("::") {
+        return true;
+    }
     root.descendant_for_byte_range(span.start, span.end)
         .and_then(|n| n.parent())
         .is_some_and(|p| p.kind().starts_with("scoped_") || p.kind() == "get_attr")
@@ -1006,7 +1047,7 @@ impl Extractor {
                     kind,
                     expects: r.expects,
                     receiver: receiver_of(root, span, source),
-                    receiver_is_path: receiver_is_path(root, span),
+                    receiver_is_path: receiver_is_path(root, span, source),
                     member_in_macro: member_in_macro(root, span, source),
                     twin: r.twin,
                 });

@@ -1765,3 +1765,27 @@ Two ergonomic gaps a dogfooding agent hits in the first minute. `fr symbols
 deliberately kept. Both answer properly now. The wasm surface's one dead
 method, `declared_type`, turned out to be a playground action nobody wired;
 the playground offers "What type is this?" now.
+
+### The pass where the write commands went to work
+
+The previous pass turned the analyses on this repository; this one turned the
+writers. Each command ran over real code, the result went to the compiler,
+and what the compiler refused became the finding.
+
+`fr signature` refused at the first target it was given, twice over. A path
+written inside `assert_eq!` is tokens to the grammar, so
+`fun_refactor::model::anchor_slug` resolved at the weakest tier. Even
+resolved, the call could not be rewritten. Both halves read the tokens now.
+The tokens spell a path and an argument list, and the top-level commas of the
+token tree split the arguments exactly.
+
+`fr extract --function` compiled cleanly on its second target and not its
+first. `println!("{total} file(s)")` reads `total` through a format capture
+no reference records, so the parameter never travelled. A capture is a
+read now. `fr move`, sent on a round trip between two modules, failed one way per
+direction. Out, a written `crate::…` path kept naming the module the symbol
+had left. Back, the move carried a `use` the destination already bound in a
+brace group. The round trip compiles both ways.
+
+`fr rewrite invert-if`, applied twice to a real branch, returned the file
+byte-for-byte, which is the property a rewrite pair owes.

@@ -127,21 +127,22 @@ const DISPATCHED: &str = "trait Renderer {\n    fn draw(&self, width: u32) -> u3
                           struct Svg;\nimpl Renderer for Svg {\n    \
                           fn draw(&self, width: u32) -> u32 {\n        width * 2\n    }\n}\n";
 
-/// A macro body is tokens, so `println!(\"{}\", s.draw(4))` offers the grammar no call and
-/// no receiver. The signature change reported zero call sites and left the call behind,
-/// and the crate stopped compiling. It refuses now, naming the site.
+/// A macro body is tokens, so `println!(\"{}\", s.draw(4))` offers the grammar no call.
+/// The tokens still have a call's shape, and the change rewrites them with the family.
+/// This was once a silent skip that broke the crate. Then it was a refusal that
+/// made the command unusable: half of real Rust's call sites live in test macros.
 #[test]
-fn a_method_call_hidden_in_a_macro_blocks_a_signature_change() {
+fn a_method_call_hidden_in_a_macro_changes_with_the_family() {
     let source = format!(
         "{DISPATCHED}\nfn main() {{\n    let s = Svg;\n    println!(\"{{}}\", s.draw(4));\n}}\n"
     );
-    let (_tmp, index) = indexed(&source);
+    let (tmp, index) = indexed(&source);
     let declared = index
         .symbols
         .iter()
         .find(|s| s.name == "draw" && s.qualifier.as_deref() == Some("Renderer"))
         .expect("the trait method");
-    let error = signature::change(
+    let plan = signature::change(
         &index,
         declared.id,
         signature::Change::Add {
@@ -150,12 +151,13 @@ fn a_method_call_hidden_in_a_macro_blocks_a_signature_change() {
             argument: "8".to_string(),
         },
     )
-    .expect_err("a refusal")
-    .to_string();
-    assert!(error.contains("inside a macro"), "got: {error}");
+    .expect("the macro call rewrites with the family");
+    let path = tmp.path().join("src/lib.rs");
+    let out =
+        fun_refactor::edit::apply_to_string(&source, plan.edits.edits_for(&path).unwrap()).unwrap();
     assert!(
-        error.contains("src/lib.rs:14"),
-        "the site is named: {error}"
+        out.contains("s.draw(4, 8)"),
+        "the call inside the macro takes the new argument.\n{out}"
     );
 }
 

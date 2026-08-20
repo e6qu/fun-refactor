@@ -775,6 +775,35 @@ impl Index {
                     _ => return (None, Confidence::FieldBased),
                 }
             }
+
+            // `fun_refactor::model::anchor_slug` writes everything down, and it
+            // resolved name-only: no rule read the path. The trailing module
+            // segment names a file, the way Rust's module tree names files: the
+            // stem itself, or the directory whose `mod.rs`/`__init__.py` it is.
+            let segment = prefix.rsplit("::").next().unwrap_or(prefix);
+            let in_that_module: Vec<&Symbol> = candidates
+                .iter()
+                .filter_map(|id| self.symbol(*id))
+                .filter(|s| {
+                    s.language == reference.language
+                        && s.qualifier.is_none()
+                        && s.is_top_level()
+                        && (s.file.file_stem().is_some_and(|stem| stem == segment)
+                            || (s
+                                .file
+                                .file_stem()
+                                .is_some_and(|stem| stem == "mod" || stem == "lib")
+                                && s.file
+                                    .parent()
+                                    .and_then(|d| d.file_name())
+                                    .is_some_and(|dir| dir == segment)))
+                })
+                .collect();
+            match in_that_module.len() {
+                1 => return (Some(in_that_module[0].id), Confidence::ImportQualified),
+                0 => {}
+                _ => return (None, Confidence::FieldBased),
+            }
         }
 
         // 0b. A receiver bound by an import names a *file*, so the member is one of that file's

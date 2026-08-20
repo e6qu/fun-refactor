@@ -402,6 +402,29 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 continue;
             }
             None => {
+                // A macro body is tokens and not syntax, so the grammar offers
+                // no call. The tokens still have a call's shape. Refusing
+                // every `assert_eq!(f(x), …)` made the command unusable on real
+                // Rust: half of a crate's call sites live in its tests' macros.
+                if let Some((opens_at, arg_spans)) =
+                    macro_call_arguments(&call_parsed, reference.span)
+                {
+                    apply_change(
+                        &mut edits,
+                        &Site {
+                            file: &reference.file,
+                            source: &call_source,
+                            language: reference.language,
+                        },
+                        opens_at,
+                        &arg_spans,
+                        &change,
+                        false,
+                        removing.as_deref(),
+                    )?;
+                    call_sites += 1;
+                    continue;
+                }
                 return Err(Refusal::Unknowable {
                     detail: format!(
                         "the call to `{}` at {} is not a call expression this grammar \
@@ -410,7 +433,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                         location(&reference.file, reference.span.start)
                     ),
                 }
-                .into())
+                .into());
             }
         };
         // An unparsed call site would be silently skipped, and a skipped call site
@@ -516,9 +539,29 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 .into()
             };
             let Some(call) = call_expression(&call_parsed, reference.span) else {
-                // A macro body is tokens and not syntax, so the grammar offers no call
-                // and no receiver. `println!("{}", s.draw(4))` was passed over in
-                // silence, and the report counted zero call sites.
+                // A macro body is tokens and not syntax, so the grammar offers no
+                // call. The tokens still have a call's shape. Refusing every
+                // `assert_eq!(f(x), …)` made the command unusable on real Rust:
+                // half of a crate's call sites live in its tests' macros.
+                if let Some((opens_at, arg_spans)) =
+                    macro_call_arguments(&call_parsed, reference.span)
+                {
+                    apply_change(
+                        &mut edits,
+                        &Site {
+                            file: &reference.file,
+                            source: &call_source,
+                            language: reference.language,
+                        },
+                        opens_at,
+                        &arg_spans,
+                        &change,
+                        false,
+                        removing.as_deref(),
+                    )?;
+                    call_sites += 1;
+                    continue;
+                }
                 return Err(out_of_reach(match reference.member_in_macro {
                     true => {
                         "it is written inside a macro, where the grammar records \
@@ -949,6 +992,61 @@ fn inside_import(parsed: &Parsed, span: Span) -> bool {
         }
     }
     false
+}
+
+/// The argument tokens of a call written inside a macro body.
+///
+/// A macro body is tokens, so `assert_eq!(anchor_slug(&h.name), "x")` offers no
+/// call expression. The tokens still have the shape of one: the named
+/// identifier followed by a parenthesised `token_tree`. Its direct children
+/// are the delimiters, the argument tokens, and the top-level commas. Nested
+/// trees are single children, so splitting on the direct commas is exact.
+fn macro_call_arguments(parsed: &Parsed, span: Span) -> Option<(usize, Vec<Span>)> {
+    let node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end)?;
+    if node.end_byte() != span.end {
+        return None;
+    }
+    let mut tree = node.next_sibling()?;
+    // `myc::model::slug(x)`: the identifier's siblings inside the token tree
+    // are `::` tokens and path segments; the argument tree follows the last.
+    while matches!(tree.kind(), "::" | "identifier") {
+        tree = tree.next_sibling()?;
+    }
+    if tree.kind() != "token_tree" {
+        return None;
+    }
+    let text_start = tree.start_byte();
+    let mut cursor = tree.walk();
+    let children: Vec<Node> = tree.children(&mut cursor).collect();
+    let first = children.first()?;
+    if first.kind() != "(" {
+        return None;
+    }
+    let mut arguments = Vec::new();
+    let mut run_start: Option<usize> = None;
+    let mut run_end = 0usize;
+    for child in &children[1..] {
+        match child.kind() {
+            ")" => break,
+            "," => {
+                if let Some(start) = run_start.take() {
+                    arguments.push(Span::new(start, run_end));
+                }
+            }
+            _ => {
+                if run_start.is_none() {
+                    run_start = Some(child.start_byte());
+                }
+                run_end = child.end_byte();
+            }
+        }
+    }
+    if let Some(start) = run_start {
+        arguments.push(Span::new(start, run_end));
+    }
+    Some((text_start, arguments))
 }
 
 fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
