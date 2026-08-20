@@ -66,21 +66,9 @@ export const ERRORS = {
     python: "invoice_typestate_misuse.py:28: error: \"DraftInvoice\" has no attribute \"record_payment\"  [attr-defined]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "invoice_typestate_misuse.ts(15,37): error TS2322: Type '\"draft\"' is not assignable to type '\"sent\"'.",
   },
-  "io_actions_misuse": {
-    python: "io_actions_misuse.py:21: error: Argument 1 to \"send\" has incompatible type \"IO[str]\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "io_actions_misuse.ts(13,30): error TS2345: Argument of type 'IO<string>' is not assignable to parameter of type 'string'.",
-  },
   "json_parsed_misuse": {
     python: "json_parsed_misuse.py:24: error: Argument 1 to \"invoice_total\" has incompatible type \"bool | int | float | str | list[Json] | dict[str, Json] | None\"; expected \"list[Line]\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "json_parsed_misuse.ts(15,23): error TS2345: Argument of type 'Json' is not assignable to parameter of type 'readonly Line[]'.\n  Type 'null' is not assignable to type 'readonly Line[]'.",
-  },
-  "literal_flag_misuse": {
-    python: "literal_flag_misuse.py:13: error: Argument 2 to \"read_log\" has incompatible type \"str\"; expected \"Literal['text', 'binary']\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "literal_flag_misuse.ts(9,29): error TS2345: Argument of type 'string' is not assignable to parameter of type '\"text\" | \"binary\"'.",
-  },
-  "logged_steps_misuse": {
-    python: "logged_steps_misuse.py:18: error: Unsupported operand types for - (\"Logged[int]\" and \"int\")  [operator]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "logged_steps_misuse.ts(10,10): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.",
   },
   "money_pence_misuse": {
     python: "money_pence_misuse.py:15: error: Argument 1 to \"apply_discount\" has incompatible type \"Rate\"; expected \"Pence\"  [arg-type]\nmoney_pence_misuse.py:15: error: Argument 2 to \"apply_discount\" has incompatible type \"Pence\"; expected \"Rate\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
@@ -105,6 +93,10 @@ export const ERRORS = {
   "status_literal_misuse": {
     python: "status_literal_misuse.py:20: error: Argument 1 to \"advance\" has incompatible type \"Literal['snet']\"; expected \"Literal['draft', 'sent', 'paid']\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "status_literal_misuse.ts(17,18): error TS2345: Argument of type '\"snet\"' is not assignable to parameter of type 'Status'.",
+  },
+  "the_program": {
+    python: "the_program.py:5: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:9: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:13: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:18: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:22: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:26: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:34: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:38: error: Function is missing a type annotation  [no-untyped-def]\nFound 8 errors in 1 file (checked 1 source file)",
+    typescript: "the_program.ts(3,25): error TS7006: Parameter 'partNo' implicitly has an 'any' type.\nthe_program.ts(3,33): error TS7006: Parameter 'description' implicitly has an 'any' type.\nthe_program.ts(3,46): error TS7006: Parameter 'qty' implicitly has an 'any' type.\nthe_program.ts(3,51): error TS7006: Parameter 'unit' implicitly has an 'any' type.\nthe_program.ts(3,57): error TS7006: Parameter 'cost' implicitly has an 'any' type.\nthe_program.ts(7,29): error TS7006: Parameter 'costsPounds' implicitly has an 'any' type.\nthe_program.ts(8,30): error TS7006: Parameter 'sum' implicitly has an 'any' type.\nthe_program.ts(8,35): error TS7006: Parameter 'cost' implicitly has an 'any' type.\nthe_program.ts(11,29): error TS7006: Parameter 'description' implicitly has an 'any' type.\nthe_program.ts(11,42): error TS7006: Parameter 'pricePence' implicitly has an 'any' type.\nthe_program.ts(11,54): error TS7006: Parameter 'quantity' implicitly has an 'any' type.\nthe_program.ts(11,64): error TS7006: Parameter 'taxed' implicitly has an 'any' type.\nthe_program.ts(16,30): error TS7006: Parameter 'pricesPounds' implicitly has an 'any' type.\nthe_program.ts(17,31): error TS7006: Parameter 'sum' implicitly has an 'any' type.\nthe_program.ts(17,36): error TS7006: Parameter 'price' implicitly has an 'any' type.\nthe_program.ts(20,31): error TS7006: Parameter 'totalPounds' implicitly has an 'any' type.\nthe_program.ts(20,44): error TS7006: Parameter 'rate' implicitly has an 'any' type.\nthe_program.ts(24,25): error TS7006: Parameter 'status' implicitly has an 'any' type.\nthe_program.ts(30,22): error TS7006: Parameter 'customerId' implicitly has an 'any' type.\nthe_program.ts(30,34): error TS7006: Parameter 'productId' implicitly has an 'any' type.\nthe_program.ts(34,29): error TS7006: Parameter 'row' implicitly has an 'any' type.",
   },
   "typed_arguments_misuse": {
     python: "typed_arguments_misuse.py:9: error: Argument 1 to \"invoice_line\" has incompatible type \"int\"; expected \"str\"  [arg-type]\ntyped_arguments_misuse.py:9: error: Argument 2 to \"invoice_line\" has incompatible type \"str\"; expected \"int\"  [arg-type]\ntyped_arguments_misuse.py:9: error: Argument 4 to \"invoice_line\" has incompatible type \"int\"; expected \"bool\"  [arg-type]\nFound 3 errors in 1 file (checked 1 source file)",

@@ -1822,3 +1822,18 @@ is a pure function of the merged facts, so it is a cache entry now, keyed by
 every file's path, language and content hash. An agent running ten commands
 against an untouched workspace paid seventeen seconds ten times. It pays a
 fifth of a second now; the first command after an edit resolves afresh.
+
+### The pass where the tutorial practiced what it preached
+
+The type-safety page called hand-rolled monads friction and said only
+`Result` earns its keep. It then walked readers through a Writer and an IO
+anyway. Those went. So did a literal-flag block that repeated the status
+lesson, and an alias block that repeated its own section. Twelve examples
+went, twenty-four files, each with its before and its misuse. The gate
+in `tests/typesafety.rs` chased out every orphan the removals left.
+
+The opening example now carries no annotations at all. It runs, and it
+gives wrong answers. Both checkers refuse to reason about it until someone
+annotates, which becomes the tutorial's first step. The
+prose swapped its passive constructions for sentences with subjects, and the
+concepts table lost the row for a lesson the page no longer teaches.
