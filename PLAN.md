@@ -1789,3 +1789,21 @@ brace group. The round trip compiles both ways.
 
 `fr rewrite invert-if`, applied twice to a real branch, returned the file
 byte-for-byte, which is the property a rewrite pair owes.
+
+### The pass where the tool got fast enough to use
+
+`fr recipe` over this repository was the probe that mattered: a two-step
+recipe never finished. Under it sat two compounding costs. The engine rebuilt
+the whole index from scratch after every step. One such build took two and a
+half minutes, most of it in resolution walking the workspace per candidate. `definition_group` scanned every symbol; the dotted-import rule
+scanned every file key; `names_a_type` scanned every symbol again. All of it
+goes through by-name buckets now, and extraction is cached by content within
+a run. The same recipe finishes in the time its steps take.
+
+The rest of the pass was the writers again, smaller. `fr rewrite
+guard-clause`, pointed at a real branch of `values_paths`, negated the
+first atom of `!a && !b` alone. That silent wrong
+answer let duplicates through; both directions are pinned now. An
+inlined multi-line binding left its indentation behind as a line of trailing
+whitespace. A TypeScript rename round-tripped byte-clean under `tsc`, and
+`fr restructure` matched nineteen real occurrences across eleven files.

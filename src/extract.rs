@@ -256,14 +256,16 @@ fn inside_token_tree(root: Node<'_>, span: Span) -> bool {
     false
 }
 
-fn receiver_of(root: Node<'_>, span: Span, source: &str) -> Option<String> {
+fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> Option<String> {
     // A macro body is tokens, so `myc::model::slug(x)` inside `assert_eq!` has
     // no scoped_identifier to read a path from. The tokens still spell it: walk
     // the `ident::` segments backwards and hand resolution the same path an
-    // expression position would carry.
-    if inside_token_tree(root, span) {
+    // expression position would carry. The cheap text check runs first, and
+    // the tree walk only for the one language with token-tree macros. Run for
+    // every reference of every language, the walk was a tenth of extraction.
+    if language == Language::Rust && source[..span.start].trim_end().ends_with("::") {
         let before = &source[..span.start];
-        if before.trim_end().ends_with("::") {
+        if inside_token_tree(root, span) {
             let mut end = before.trim_end().len() - 2;
             let mut start = end;
             loop {
@@ -723,8 +725,11 @@ fn kubernetes_key_references(
 }
 
 /// Was the receiver written as a path (`A::b`) and not against a value (`a.b`)?
-fn receiver_is_path(root: Node<'_>, span: Span, source: &str) -> bool {
-    if inside_token_tree(root, span) && source[..span.start].trim_end().ends_with("::") {
+fn receiver_is_path(root: Node<'_>, span: Span, source: &str, language: Language) -> bool {
+    if language == Language::Rust
+        && source[..span.start].trim_end().ends_with("::")
+        && inside_token_tree(root, span)
+    {
         return true;
     }
     root.descendant_for_byte_range(span.start, span.end)
@@ -1046,8 +1051,8 @@ impl Extractor {
                     confidence: Confidence::NameOnly,
                     kind,
                     expects: r.expects,
-                    receiver: receiver_of(root, span, source),
-                    receiver_is_path: receiver_is_path(root, span, source),
+                    receiver: receiver_of(root, span, source, lang),
+                    receiver_is_path: receiver_is_path(root, span, source, lang),
                     member_in_macro: member_in_macro(root, span, source),
                     twin: r.twin,
                 });

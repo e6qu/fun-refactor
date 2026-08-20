@@ -108,3 +108,34 @@ fn zig_spells_its_boolean_operators_as_words() {
     let after = applied("e.zig", source, at, Rewrite::DeMorgan);
     assert!(after.contains("if (!a or !b) {"), "{after}");
 }
+
+#[test]
+fn a_negation_on_the_first_atom_is_not_a_negation_of_the_whole() {
+    // `!path.is_empty() && !seen` guarded a push. The double-negative rule
+    // stripped the leading `!`, so the guard became `path.is_empty() && !seen`
+    // and let every duplicate through, silently. The `!` covers one atom; the
+    // negation of the whole goes round the outside.
+    let source = "pub fn keep(path: &str, seen: bool) {\n    \
+                  if !path.is_empty() && !seen {\n        push(path);\n    }\n}\n";
+    let (_tmp, path, index) = workspace("g.rs", source);
+    let at = source.find("if !").expect("the if");
+    let plan = rewrite::apply(&index, &path, at, Rewrite::GuardClause).expect("a plan");
+    let after = apply_to_string(source, plan.edits.edits_for(&path).unwrap()).unwrap();
+    assert!(
+        after.contains("if !(!path.is_empty() && !seen) {"),
+        "the guard negates the whole condition.\n{after}"
+    );
+}
+
+#[test]
+fn a_whole_expression_negation_still_cancels() {
+    let source = "pub fn keep(ok: bool) {\n    if !ok {\n        act();\n    }\n}\n";
+    let (_tmp, path, index) = workspace("h.rs", source);
+    let at = source.find("if !").expect("the if");
+    let plan = rewrite::apply(&index, &path, at, Rewrite::GuardClause).expect("a plan");
+    let after = apply_to_string(source, plan.edits.edits_for(&path).unwrap()).unwrap();
+    assert!(
+        after.contains("if ok {"),
+        "one atom's negation cancels instead of doubling.\n{after}"
+    );
+}

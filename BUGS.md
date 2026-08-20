@@ -175,6 +175,32 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B715: **inlining a wrapped binding left a line of whitespace.** The
+  removal compared only the first line, so a `let` wrapped over several lines
+  was cut from its keyword to its `;`, and the first line's indentation stayed
+  behind as trailing whitespace. The whole lines go when nothing else sits on
+  them.
+
+- [x] B716: **`guard-clause` negated one atom and called it the condition.**
+  `!path.is_empty() && !seen` guarded a push; the double-negative rule
+  stripped the leading `!`, so the guard became `path.is_empty() && !seen`
+  and let every duplicate through, silently, on this repository's own
+  `values_paths`. The `!` covers one atom. A top-level `and`/`or` means the
+  negation goes round the outside.
+
+- [x] B717: **a two-step recipe over this repository never finished.** The
+  engine rebuilt the whole index from scratch after every step. That is
+  extraction of every file, sequentially, uncached, at minutes apiece. Extraction is
+  per-file and depends only on the file's bytes. Unchanged files now cost a
+  lookup, and the run finishes in the time its steps take.
+
+- [x] B718: **resolution spent two minutes scanning the workspace.**
+  `definition_group` walked every symbol per candidate. The dotted-import
+  arm walked every file key per reference, and `names_a_type` every symbol
+  per receiver. All three go through by-name buckets now, and the
+  token-tree walk added in the last pass runs only for Rust, behind a cheap
+  text check. Indexing this repository fell from 162 to 50 seconds.
+
 - [x] B711: **a module docstring crossed as raw prose.** The Python reader
   stored the whole docstring as one entry. Every writer puts its comment
   marker in front of each entry, so the marker covered the first line and the
