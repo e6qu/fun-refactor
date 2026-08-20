@@ -144,19 +144,40 @@ impl InvisibleUses {
 /// follow it. A returned reason is reported verbatim as a warning, so it has to say which
 /// binding and why.
 fn hold_back_reason(
+    index: &Index,
     language: Language,
     statement: &Statement,
     uses: &InvisibleUses,
 ) -> Option<String> {
+    // An attribute above the statement makes its liveness a property of the
+    // configuration. `#[cfg(feature = "cli")] use crate::scan::S;` is unused
+    // in one build and load-bearing in the other, and this index reads one
+    // tree.
+    if statement.guarded {
+        return Some(format!(
+            "'{}' is guarded by an attribute, so whether a build uses it depends \
+             on the configuration, which this index cannot see. It is kept",
+            statement.path
+        ));
+    }
     match language {
         // Any upper-camel-case name may be a trait, and there is no way to tell from
-        // syntax alone. Treating them all as possible traits costs some unused type
-        // imports left in place, and buys never silently breaking a build.
+        // syntax alone for a name another crate declares. A name this workspace
+        // declares is on record: an enum is not a trait. Holding its import
+        // back left `use crate::model::Confidence` behind every deletion of
+        // its last user. The caution stays for the names the index cannot see.
         Language::Rust => {
             let binding = statement
                 .bindings
                 .iter()
-                .find(|binding| binding.chars().next().is_some_and(char::is_uppercase))?;
+                .filter(|binding| binding.chars().next().is_some_and(char::is_uppercase))
+                .find(|binding| {
+                    let declared = index.find_symbols(binding, None);
+                    declared.is_empty()
+                        || declared
+                            .iter()
+                            .any(|s| s.kind == crate::model::SymbolKind::Trait)
+                })?;
             Some(format!(
                 "'{}' binds '{binding}', which nothing names. A trait is used \
                  through its methods, never by name, so this is kept. Remove it by \
@@ -469,6 +490,21 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 /// and the question is the same one. So it is asked here and not answered a second time
 /// somewhere else.
 pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<ImportsPlan> {
+    plan_in_consulting(index, index, file, source)
+}
+
+/// [`plan_in`], with the trait caution asking a different index.
+///
+/// The orphan pass reindexes one file to measure liveness after an edit, and a
+/// single file cannot see that `crate::model::Confidence` is an enum. The
+/// caution consults the whole workspace, the liveness answer stays with the
+/// after-text.
+pub(crate) fn plan_in_consulting(
+    index: &Index,
+    oracle: &Index,
+    file: &Path,
+    source: &str,
+) -> Result<ImportsPlan> {
     if let Some(info) = index.file(file) {
         crate::capabilities::record(
             crate::capabilities::Capability::OrganizeImports,
@@ -593,7 +629,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
         // check cannot catch. So it is kept and reported instead. A name with a path of its
         // own, one clause of a plain Python `import a, b`, is asked under that path. The
         // narrowing pass below still removes the clauses that can go.
-        let held = hold_back_reason(info.language, statement, &invisible).or_else(|| {
+        let held = hold_back_reason(oracle, info.language, statement, &invisible).or_else(|| {
             statement
                 .named
                 .iter()
@@ -605,7 +641,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
                         named: vec![name.clone()],
                         ..statement.clone()
                     };
-                    hold_back_reason(info.language, &alone, &invisible)
+                    hold_back_reason(oracle, info.language, &alone, &invisible)
                 })
         });
         if let Some(detail) = held {
@@ -649,7 +685,7 @@ pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<Import
                     named: vec![(*name).clone()],
                     ..(*statement).clone()
                 };
-                hold_back_reason(info.language, &alone, &invisible).is_none()
+                hold_back_reason(oracle, info.language, &alone, &invisible).is_none()
             })
             .collect();
         if dead.is_empty() || dead.len() == statement.named.len() {
@@ -828,6 +864,9 @@ struct Statement {
     /// binds several can lose some and keep the rest, which needs the spans and not only
     /// the names.
     named: Vec<NamedImport>,
+    /// True when an attribute sits above the statement. `#[cfg(...)]` makes the
+    /// import's liveness configuration-dependent, which the index cannot judge.
+    guarded: bool,
     /// Replacement text for [`Statement::lines`], where some of the names it binds went
     /// and the rest stayed.
     narrowed: Option<String>,
@@ -903,7 +942,7 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warni
         let Ok(reindexed) = Index::build_from_sources(&snapshot) else {
             continue;
         };
-        let Ok(plan) = plan_in(&reindexed, file, &after) else {
+        let Ok(plan) = plan_in_consulting(&reindexed, index, file, &after) else {
             continue;
         };
         // An import the deletion orphaned that caution keeps anyway. `use
@@ -993,7 +1032,9 @@ fn statements<'a>(
             let first = full_line_span(source, span.start);
             let last = full_line_span(source, span.end - 1);
             let lines = Span::new(first.start, last.end.max(first.end).max(span.end));
+            let unguarded_lines = lines;
             let lines = with_attributes(source, lines, &attributes);
+            let guarded = lines.start < unguarded_lines.start;
             // A statement owns its line if nothing but its own introducing keyword sits before
             // it. Go records `import "os"` as the spec alone, so without this the keyword looks
             // like unrelated code and ends the block. From the statement's own line, not from
@@ -1051,6 +1092,7 @@ fn statements<'a>(
                 binding_certain,
                 named,
                 narrowed: None,
+                guarded,
             }
         })
         .collect()

@@ -434,8 +434,6 @@ fn shadowed_name(
     None
 }
 
-/// Confidence of the weakest use site, for reporting.
-
 /// The declaration statement a lone declarator belongs to.
 ///
 /// Java and the C family write the type once and the bindings after it. So the symbol is `total

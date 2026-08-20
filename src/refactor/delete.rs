@@ -990,6 +990,18 @@ pub(crate) fn widen_for_delete(
     Span::new(begin, span.end)
 }
 
+/// Whether the line starting at `at` sits inside a `/* ... */` block that a
+/// line above opens. A bare `*` also begins a YAML alias, and eating one of
+/// those would delete data, so the `*` prefix only counts inside a block.
+fn block_comment_continues(source: &str, at: usize) -> bool {
+    let above = &source[..at];
+    match (above.rfind("/*"), above.rfind("*/")) {
+        (Some(open), Some(close)) => open > close,
+        (Some(_), None) => true,
+        _ => false,
+    }
+}
+
 pub(crate) fn deletion_span(source: &str, span: Span) -> Span {
     if span.is_empty() || span.end > source.len() {
         return span;
@@ -1001,6 +1013,31 @@ pub(crate) fn deletion_span(source: &str, span: Span) -> Span {
         && source[span.end..line_end].trim().is_empty();
     if !alone {
         return span;
+    }
+
+    // What sits attached above the definition goes with it. A `///` doc
+    // comment describes the deleted thing, and clippy refuses one left
+    // orphaned. An attribute changes the meaning of whatever follows:
+    // `#[allow(dead_code)]` moved onto the next survivor. Plain `//` and `#`
+    // comments stay: a comment above a definition may be about the
+    // neighbourhood, and their survival is pinned behaviour. Attached means
+    // contiguous: the first blank line ends the walk.
+    let mut first = first;
+    loop {
+        if first.start == 0 {
+            break;
+        }
+        let previous = full_line_span(source, first.start - 1);
+        let line = previous.text(source).trim_start();
+        let attached = line.starts_with("///")
+            || line.starts_with("#[")
+            || line.starts_with("*/")
+            || line.starts_with("/**")
+            || (line.starts_with('*') && block_comment_continues(source, previous.start));
+        if !attached {
+            break;
+        }
+        first = Span::new(previous.start, first.end);
     }
 
     // The blank lines around the definition merge into one run once it is gone.

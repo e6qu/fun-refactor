@@ -2579,8 +2579,6 @@ fn first_line(text: &str) -> &str {
     text.lines().next().unwrap_or(text).trim_end()
 }
 
-/// Line of a symbol, for error messages.
-
 #[cfg(test)]
 mod tests {
     use super::*;

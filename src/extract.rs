@@ -885,6 +885,19 @@ impl Extractor {
                 .map(|s| s.id)
                 .unwrap_or(ScopeId(0))
         };
+        // A definition lives in the scope it is declared in, not the scope it
+        // creates. A whole-function scope contains the function's own name, so
+        // the innermost-scope rule put every function inside itself. The rules
+        // that compare a declaration's scope with a reference's then stopped
+        // matching: `@size.setter` no longer saw the `size` its class binds.
+        let declaration_scope = |name_offset: usize, own: Span| -> ScopeId {
+            scopes
+                .iter()
+                .filter(|s| s.span.contains_offset(name_offset) && s.span != own)
+                .min_by_key(|s| s.span.len())
+                .map(|s| s.id)
+                .unwrap_or(ScopeId(0))
+        };
 
         // One identifier position is one definition. Several patterns may legitimately
         // match the same node (a language often needs one pattern per parent context),
@@ -939,7 +952,7 @@ impl Extractor {
                 full_span: d.full_span,
                 file: path.to_path_buf(),
                 language: lang,
-                scope: scope_at(d.name_span.start),
+                scope: declaration_scope(d.name_span.start, d.full_span),
                 container,
                 qualifier,
                 exported: d.exported,

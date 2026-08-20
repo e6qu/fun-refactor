@@ -95,3 +95,19 @@ fn an_attribute_does_not_make_the_line_look_shared() {
         "{after}"
     );
 }
+
+#[test]
+fn an_unused_guarded_import_is_held_with_its_reason() {
+    // Liveness reads one configuration of the tree; `#[cfg]` makes the import's
+    // use a property of the build. Removing it stranded the attribute above
+    // whatever came next; holding it is the honest answer.
+    let source = format!(
+        "#[cfg(feature = \"cli\")]\nuse crate::scan::S;\nuse anyhow::Result;\n\
+         use crate::a::A;\nuse crate::b::B;\nuse std::path::Path;\n{TAIL}"
+    );
+    let after = organized(&source);
+    assert!(
+        after.contains("#[cfg(feature = \"cli\")]\nuse crate::scan::S;"),
+        "the guarded import survives, attribute and all:\n{after}"
+    );
+}

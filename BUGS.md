@@ -175,6 +175,34 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B704: **removing a guarded import would have stranded its attribute.**
+  B702 let liveness reach imports the old caution always held. The first one
+  it removed was `#[cfg(feature = "cli")] use crate::scan::S;`, leaving the
+  attribute above whatever came next. The deeper truth: a guarded
+  import's liveness depends on the configuration, and this index reads one
+  tree. A guarded import is held back, with that reason.
+
+- [x] B701: **`fr delete` left the dead function's docs and attributes.**
+  Each of this pass's four tool-made deletions left a `///` block behind.
+  clippy refuses an orphaned doc comment outright. Worse, the
+  `#[allow(dead_code)]` above one of them moved onto the next survivor, which
+  changes what the compiler checks. What is attached above a deletion goes
+  with it: doc comments, attributes, and a closing `/** ... */` block. Plain
+  `//` and `#` comments stay, as the tests have always pinned.
+
+- [x] B702: **the trait caution held imports the workspace can rule on.**
+  `use crate::model::Confidence` stayed behind a deletion of its last user.
+  The reason given: any capitalised Rust name may be a trait. An enum this workspace
+  declares is on record as not one. The caution now asks the index and stays
+  only for the names it cannot see. The orphan pass consults the whole
+  workspace; its liveness answer stays with the reindexed file.
+
+- [x] B703: **two meanings on one span doubled ordinary references.** The
+  shorthand fix first kept a field and a value reading of *every* span, so a
+  Python keyword argument counted twice and `fr usages` disagreed with the
+  index's own reference count. The second meaning arrives marked as a twin
+  now, and only a genuine shorthand carries one.
+
 - [x] B690: **`fr unused` buried the dead code under Markdown headings.** On
   this repository, 202 of the report's 445 lines were headings. Most headings
   are never linked to, so "nothing links here" is true of nearly all of them
