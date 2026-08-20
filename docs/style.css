@@ -749,8 +749,13 @@ footer a { color: var(--ink-soft); }
 
 /* ------------------------------------------------- the type-safety tutorial */
 
-.ts-toc { margin: 1.5rem 0 0; padding-left: 1.5rem; }
-.ts-toc li { margin: 0.35rem 0; }
+.ts-toc {
+  margin: 1.5rem 0 0;
+  padding-left: 1.5rem;
+  columns: 2 22rem;
+  column-gap: 3.5rem;
+}
+.ts-toc li { margin: 0.35rem 0; break-inside: avoid; }
 .ts-progress { margin-right: 0.6rem; accent-color: var(--accent); }
 
 .ts-example { margin: 1.5rem 0; }
@@ -809,15 +814,35 @@ footer a { color: var(--ink-soft); }
   border-radius: 999px;
   white-space: nowrap;
 }
-.ts-badge.accepted { color: var(--exact); border: 1px solid var(--exact); }
-.ts-badge.rejected { color: var(--refuse); border: 1px solid var(--refuse); }
-.ts-badge.runs { color: var(--accent); border: 1px solid var(--accent); }
+.ts-badge.accepted {
+  color: var(--exact);
+  border: 1px solid var(--exact);
+  background: color-mix(in srgb, var(--exact) 10%, transparent);
+}
+.ts-badge.rejected {
+  color: var(--refuse);
+  border: 1px solid var(--refuse);
+  background: color-mix(in srgb, var(--refuse) 10%, transparent);
+}
+.ts-badge.runs {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
 
 .ts-solution { margin: 1rem 0; }
 .ts-solution summary { cursor: pointer; font-weight: 600; }
 .ts-solution[open] summary { margin-bottom: 0.5rem; }
 
 .ts-next { margin-top: 2rem; font-weight: 600; }
+.ts-next a::after { content: " →"; }
+
+/* Wide tables scroll inside their own box; the page never scrolls sideways. */
+.table-scroll { overflow-x: auto; }
+.ts-page .table-scroll table { min-width: 44rem; }
+.ts-page th, .ts-page td { padding: 0.55rem 1rem 0.55rem 0.4rem; }
+.ts-page tr:nth-child(even) td { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.ts-page tr:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .ts-missing { color: var(--refuse); font-weight: 600; }
 
 .ts-diff-added { color: var(--exact); }
@@ -829,8 +854,9 @@ footer a { color: var(--ink-soft); }
 .ts-block {
   margin: 1.5rem 0 2.5rem;
   border: 1px solid var(--rule-soft);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1rem 1.25rem 1.25rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
 }
 
 .ts-block-head { margin-bottom: 0.5rem; }
@@ -883,22 +909,30 @@ footer a { color: var(--ink-soft); }
 
 .ts-quiz-card {
   border: 1px solid var(--rule);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1rem 1.25rem 1.25rem;
   margin: 2.5rem 0 1rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
 }
 .ts-quiz-question { font-weight: 600; margin: 0.25rem 0 1rem; }
 .ts-quiz-controls { display: flex; gap: 0.75rem; justify-content: center; margin: 1.25rem 0 0.5rem; }
 .ts-quiz-button {
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  padding: 0.3rem 1rem;
+  padding: 0.45rem 1.25rem;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--raised);
   color: inherit;
   cursor: pointer;
+}
+.ts-quiz-reveal p {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 0 6px 6px 0;
 }
 .ts-quiz-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .ts-quiz-button:disabled { opacity: 0.45; cursor: default; }
@@ -934,7 +968,7 @@ footer a { color: var(--ink-soft); }
 .ts-lang-toggle {
   display: inline-flex;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 999px;
   overflow: hidden;
   flex: none;
 }
@@ -942,7 +976,7 @@ footer a { color: var(--ink-soft); }
   font: inherit;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.9rem;
   border: none;
   background: var(--raised);
   color: var(--ink-soft);
@@ -956,11 +990,11 @@ footer a { color: var(--ink-soft); }
 
 .ts-cell-button {
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.15rem 0.7rem;
+  padding: 0.2rem 0.8rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--raised);
   color: inherit;
   cursor: pointer;
@@ -968,13 +1002,20 @@ footer a { color: var(--ink-soft); }
 .ts-cell-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .ts-cell-button:disabled { opacity: 0.45; cursor: default; }
 
+/* The page is about the checker, so the check button leads the row. */
+.ts-cell-button[data-action="check"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--rule));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
 .ts-edit-link {
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.15rem 0.7rem;
+  padding: 0.2rem 0.8rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--raised);
   color: inherit;
   text-decoration: none;
@@ -1029,11 +1070,11 @@ footer a { color: var(--ink-soft); }
 .ts-cell-buttons { display: inline-flex; gap: 0.5rem; }
 .ts-reset-button {
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.15rem 0.7rem;
+  padding: 0.2rem 0.8rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--raised);
   color: var(--ink-soft);
   cursor: pointer;

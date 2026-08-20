@@ -382,7 +382,7 @@ async function runCell(action, code, language, out) {
   out.textContent =
     result.output ||
     (result.ok && action === "run"
-      ? `ran, with nothing to print. The cell is editable: add a ${printer} and run again.`
+      ? `ran, with nothing to print. Add a ${printer} and run again.`
       : result.output || "failed");
 }
 
@@ -624,7 +624,7 @@ for (const slot of document.querySelectorAll("[data-quiz]")) {
     slot.innerHTML = `
       <div class="ts-quiz-card">
         <div class="ts-block-head"><h4>You be the checker (${at + 1} of ${ids.length})</h4>${langToggle()}</div>
-        <p class="ts-quiz-question">Does the strict scan accept this?</p>
+        <p class="ts-quiz-question">Would the checker accept this?</p>
         ${pane(codes, example[lang], id)}
         <div class="ts-quiz-controls">
           <button type="button" class="ts-quiz-button" data-answer="passes">It passes</button>
@@ -641,8 +641,8 @@ for (const slot of document.querySelectorAll("[data-quiz]")) {
           ? "The checker rejects it."
           : example.improves
             ? "The checker accepts it, and this version has earned it."
-            : "The checker accepts it. Accepted is not the same as correct: " +
-              "the weakness is real, the type just cannot see it.";
+            : "The checker accepts it. Accepted and correct are different things: " +
+              "the weakness is real, and the type can't see it.";
         reveal.innerHTML = `
           <p><strong>${right ? "Right." : "Not quite."}</strong>
             ${escape(example.title)}. ${note}</p>

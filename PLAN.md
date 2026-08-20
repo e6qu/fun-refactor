@@ -1837,3 +1837,23 @@ gives wrong answers. Both checkers refuse to reason about it until someone
 annotates, which becomes the tutorial's first step. The
 prose swapped its passive constructions for sentences with subjects, and the
 concepts table lost the row for a lesson the page no longer teaches.
+
+### The pass where the tutorial learned to talk
+
+Pass twenty-one made the grammar active; this pass made the voice human.
+The test came from the style manuals. Microsoft's says write like you
+speak, Google's says make the doer the subject, Orwell's says cut what
+you can. Read aloud, "a string becomes an `EmailAddress`" still hid its
+doer, so now only `parse_email` builds one. The typo in `advance` got a
+culprit and a consequence: the workshop hums, the bikes roll out, and no
+bill ever follows them. The body text gained contractions, lists became
+bullets, and the epigraph lost the paragraph that explained its joke.
+
+The widgets got the same treatment: softer cards, a leading check
+button, zebra tables in their own scroll box. The contents list runs in
+two columns, and the language toggle became a pill.
+
+The pass also caught a flake with a cause. The capability log let
+concurrent writers tear each other's lines, and the coverage report
+skipped the wreckage in silence. One `write_all` per line and a report
+that names malformed lines fixed the class.
