@@ -71,6 +71,17 @@ pub struct Index {
     /// The reparse gate then reports a syntax error instead of the race. The hash
     /// lets a caller name the race.
     content_hashes: BTreeMap<PathBuf, u64>,
+    /// Symbol ids by name, rebuilt when resolution runs.
+    ///
+    /// [`Index::definition_group`] used to scan every symbol in the
+    /// workspace, and resolution asks it about most member references'
+    /// candidates. This repository spent most of two minutes in that scan.
+    name_buckets: HashMap<String, Vec<SymbolId>>,
+    /// Files by their stem, rebuilt with the name buckets. The dotted-path arm
+    /// of [`Index::resolve_import_path`] scanned every file key per reference.
+    files_by_stem: HashMap<String, Vec<PathBuf>>,
+    /// `pkg/__init__.py` files by the name of `pkg`, for the same reason.
+    inits_by_dir: HashMap<String, Vec<PathBuf>>,
 }
 
 /// The hash [`Index::content_hash`] answers with, for callers comparing fresh text.
@@ -332,6 +343,11 @@ impl Index {
         self.content_hashes.get(path).copied()
     }
 
+    /// Record the text hash a caller built this index from.
+    pub fn note_content_hash(&mut self, path: PathBuf, hash: u64) {
+        self.content_hashes.insert(path, hash);
+    }
+
     pub fn files(&self) -> impl Iterator<Item = (&PathBuf, &FileInfo)> {
         self.files.iter()
     }
@@ -358,7 +374,50 @@ impl Index {
     }
 
     /// Resolve every reference to a symbol, tagging each with a confidence.
+    /// Fill the by-name buckets [`Index::definition_group`] reads.
+    fn rebuild_name_buckets(&mut self) {
+        self.name_buckets.clear();
+        for symbol in &self.symbols {
+            self.name_buckets
+                .entry(symbol.name.clone())
+                .or_default()
+                .push(symbol.id);
+        }
+        self.files_by_stem.clear();
+        self.inits_by_dir.clear();
+        for path in self.files.keys() {
+            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                self.files_by_stem
+                    .entry(stem.to_string())
+                    .or_default()
+                    .push(path.clone());
+            }
+            if path.file_name().and_then(|n| n.to_str()) == Some("__init__.py") {
+                if let Some(dir) = path
+                    .parent()
+                    .and_then(|d| d.file_name())
+                    .and_then(|n| n.to_str())
+                {
+                    self.inits_by_dir
+                        .entry(dir.to_string())
+                        .or_default()
+                        .push(path.clone());
+                }
+            }
+        }
+    }
+
+    /// The symbols sharing this name, from the buckets where they exist.
+    fn named_like<'a>(&'a self, name: &str) -> Box<dyn Iterator<Item = &'a Symbol> + 'a> {
+        match self.name_buckets.get(name) {
+            Some(ids) => Box::new(ids.iter().filter_map(|id| self.symbol(*id))),
+            // A caller mutated symbols after resolution; correctness over speed.
+            None => Box::new(self.symbols.iter().filter(move |_| true)),
+        }
+    }
+
     fn resolve(&mut self) {
+        self.rebuild_name_buckets();
         // Resolve against an immutable view first, then write the answers back:
         // resolution reads the whole index, so it cannot hold a mutable borrow.
         let resolutions: Vec<(usize, Option<SymbolId>, Confidence)> = {
@@ -522,7 +581,7 @@ impl Index {
     /// What makes a receiver a path is what it names, not how the language punctuates it: Rust
     /// writes `Type::m` and Java writes `Type.m`. Both say which type the member belongs to.
     fn names_a_type(&self, name: &str, language: Language) -> bool {
-        self.symbols.iter().any(|s| {
+        self.named_like(name).any(|s| {
             s.name == name
                 && s.language == language
                 && matches!(
@@ -588,6 +647,10 @@ impl Index {
             .imports
             .iter()
             .any(|import| import.span.contains(reference.span));
+        // Once per reference, not once per candidate. Computed inside the
+        // closure below, this allocated a fresh chain for every candidate of
+        // every reference.
+        let own_scopes = self.scope_chain(info, reference.scope);
         let plausible = |s: &Symbol| {
             // A candidate in another language is only a candidate where the two
             // languages have a way of naming each other's declarations. Without this
@@ -619,7 +682,7 @@ impl Index {
                 s.kind,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
             ) && s.scope != crate::model::ScopeId(0)
-                && (s.file != path || !info.scope_chain(reference.scope).contains(&s.scope))
+                && (s.file != path || !own_scopes.contains(&s.scope))
             {
                 return false;
             }
@@ -832,7 +895,7 @@ impl Index {
             }
         }
 
-        let scope_chain = self.scope_chain(info, reference.scope);
+        let scope_chain = own_scopes.clone();
         let candidates: Vec<SymbolId> = candidates
             .iter()
             .copied()
@@ -1546,21 +1609,47 @@ impl Index {
         let last = import_path
             .rsplit(['/', ':', '.'])
             .find(|s| !s.is_empty())?;
-        let matches: Vec<&PathBuf> = self
-            .files
-            .keys()
-            .filter(|p| p.file_stem().and_then(|s| s.to_str()) == Some(last))
-            .collect();
+        let stem_scan;
+        let matches: &[PathBuf] = match self.files_by_stem.is_empty() {
+            false => self
+                .files_by_stem
+                .get(last)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]),
+            // A caller resolved before the buckets were built; correctness first.
+            true => {
+                stem_scan = self
+                    .files
+                    .keys()
+                    .filter(|p| p.file_stem().and_then(|s| s.to_str()) == Some(last))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                &stem_scan
+            }
+        };
         if matches.len() == 1 {
             return Some(matches[0].clone());
         }
         // A Python package is a directory, so `pkg` names `pkg/__init__.py`. The stem
         // rule above cannot see that: the file's stem is `__init__`.
-        let inits: Vec<&PathBuf> = self
-            .files
-            .keys()
-            .filter(|p| p.ends_with(Path::new(last).join("__init__.py")))
-            .collect();
+        let init_scan;
+        let inits: &[PathBuf] = match self.inits_by_dir.is_empty() && self.files_by_stem.is_empty()
+        {
+            false => self
+                .inits_by_dir
+                .get(last)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]),
+            true => {
+                init_scan = self
+                    .files
+                    .keys()
+                    .filter(|p| p.ends_with(Path::new(last).join("__init__.py")))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                &init_scan
+            }
+        };
         if inits.len() == 1 {
             return Some(inits[0].clone());
         }
@@ -1624,8 +1713,7 @@ impl Index {
                 || (sym.language == Language::Python && sym.kind == SymbolKind::Method)
             {
                 let peers: Vec<SymbolId> = self
-                    .symbols
-                    .iter()
+                    .named_like(&sym.name)
                     .filter(|s| {
                         s.name == sym.name
                             && s.kind == sym.kind
@@ -1651,8 +1739,7 @@ impl Index {
             {
                 if let Some(chart) = crate::lang::chart_root(&sym.file) {
                     let layers: Vec<SymbolId> = self
-                        .symbols
-                        .iter()
+                        .named_like(&sym.name)
                         .filter(|s| {
                             s.name == sym.name
                                 && s.kind == SymbolKind::Key
@@ -1669,8 +1756,7 @@ impl Index {
             }
             if sym.kind == SymbolKind::Field && sym.qualifier.is_some() {
                 return self
-                    .symbols
-                    .iter()
+                    .named_like(&sym.name)
                     .filter(|s| {
                         s.name == sym.name
                             && s.kind == sym.kind
@@ -1682,8 +1768,7 @@ impl Index {
             }
             return vec![symbol];
         }
-        self.symbols
-            .iter()
+        self.named_like(&sym.name)
             .filter(|s| s.name == sym.name && s.kind == sym.kind)
             .map(|s| s.id)
             .collect()

@@ -184,12 +184,15 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // this declarator is the only one in it, because `int a = 1, b = 2, c = 3;` declares
     // three and inlining one must leave the other two alone.
     let binding = sole_declarator_statement(&parsed, sym.full_span).unwrap_or(sym.full_span);
-    let line = full_line_span(&source, binding.start);
-    let removal = if line.text(&source).trim() == binding.text(&source).trim() {
-        line
-    } else {
-        binding
-    };
+    // The whole lines go when nothing else sits on them. Comparing only the
+    // first line meant a wrapped binding was cut from its `let` to its `;`.
+    // The first line's indentation stayed behind as trailing whitespace.
+    let first = full_line_span(&source, binding.start);
+    let last = full_line_span(&source, binding.end.saturating_sub(1));
+    let whole = Span::new(first.start, last.end.max(binding.end));
+    let alone = source[first.start..binding.start].trim().is_empty()
+        && source[binding.end..whole.end].trim().is_empty();
+    let removal = if alone { whole } else { binding };
     edits.add(
         sym.file.clone(),
         Edit::new(removal, "", format!("remove binding of {}", sym.name)),

@@ -242,17 +242,45 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
 /// installing it a plan made after one step is measured against the file on disk, which is the
 /// text before *any* step ran.
 fn reindex(sources: &Sources) -> Result<Index> {
+    // Extraction is per-file and depends only on the file's bytes, and a step
+    // touches a handful of them. Rebuilding every file's facts on every step
+    // made a two-step recipe here take three cold index builds. Minutes went
+    // to re-reading files no step had touched. The facts
+    // cache is keyed by content, so an unchanged file costs a lookup.
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+    thread_local! {
+        static FACTS: RefCell<HashMap<(PathBuf, u64), crate::model::FileFacts>> =
+            RefCell::new(HashMap::new());
+    }
     let handle = crate::vfs::new_handle(
         sources
             .iter()
             .map(|(path, (_, text))| (path.clone(), text.clone())),
     );
     crate::vfs::activate(&handle);
-    let snapshot: Vec<(PathBuf, Language, String)> = sources
-        .iter()
-        .map(|(p, (l, s))| (p.clone(), *l, s.clone()))
-        .collect();
-    Index::build_from_sources(&snapshot)
+    let parsers = crate::parse::Parsers::new();
+    let mut extractor = crate::extract::Extractor::new();
+    let mut extracted = Vec::with_capacity(sources.len());
+    for (path, (language, text)) in sources.iter() {
+        let key = (path.clone(), crate::index::content_hash_of(text));
+        let cached = FACTS.with(|facts| facts.borrow().get(&key).cloned());
+        let facts = match cached {
+            Some(facts) => facts,
+            None => {
+                let fresh =
+                    crate::index::extract_facts(&parsers, &mut extractor, path, *language, text)?;
+                FACTS.with(|facts| facts.borrow_mut().insert(key, fresh.clone()));
+                fresh
+            }
+        };
+        extracted.push((path.clone(), *language, facts));
+    }
+    let mut index = Index::build_from_facts(&extracted);
+    for (path, (_, text)) in sources.iter() {
+        index.note_content_hash(path.clone(), crate::index::content_hash_of(text));
+    }
+    Ok(index)
 }
 
 fn apply(sources: &mut Sources, edits: &EditSet) -> Result<()> {

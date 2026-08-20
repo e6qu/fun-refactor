@@ -121,3 +121,21 @@ fn a_config_value_is_not_an_expression() {
     assert!(after.contains("b: enabled"), "{after}");
     assert!(!after.contains('('), "{after}");
 }
+
+#[test]
+fn a_multi_line_binding_takes_its_whole_lines_along() {
+    // The removal compared only the first line, so a wrapped binding was
+    // cut from its `let` to its `;`. The first line's indentation stayed
+    // behind as a line of trailing whitespace.
+    let source = "pub fn f(last: &str) -> String {\n    let bare = last\n        \
+                  .trim()\n        .to_string();\n    bare\n}\n";
+    let out = inlined("m.rs", source, "bare");
+    assert!(
+        !out.lines().any(|l| !l.is_empty() && l.trim().is_empty()),
+        "no line of the result is only whitespace.\n{out:?}"
+    );
+    assert!(
+        out.contains("last\n        .trim()\n        .to_string()"),
+        "the value itself is intact.\n{out}"
+    );
+}

@@ -644,10 +644,16 @@ fn negate(expression: &str, language: Language) -> String {
     let trimmed = expression.trim();
     let (not_token, and_op, or_op) = boolean_spelling(language);
 
-    // A double negative cancels.
-    if let Some(rest) = trimmed.strip_prefix(not_token) {
-        let inner = rest.trim();
-        return strip_outer_parentheses(inner).to_string();
+    // A double negative cancels, when the `!` covers the whole expression. In
+    // `!path.is_empty() && !seen` it covers only the first atom, and stripping
+    // it produced `path.is_empty() && !seen`: a guard that let duplicates
+    // through, silently. A top-level `and`/`or` means the negation goes round
+    // the outside instead.
+    if split_boolean(trimmed, and_op, or_op).is_none() {
+        if let Some(rest) = trimmed.strip_prefix(not_token) {
+            let inner = rest.trim();
+            return strip_outer_parentheses(inner).to_string();
+        }
     }
 
     // A comparison flips to its opposite instead of gaining a `!`, but only when the comparison
