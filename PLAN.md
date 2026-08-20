@@ -1807,3 +1807,18 @@ answer let duplicates through; both directions are pinned now. An
 inlined multi-line binding left its indentation behind as a line of trailing
 whitespace. A TypeScript rename round-tripped byte-clean under `tsc`, and
 `fr restructure` matched nineteen real occurrences across eleven files.
+
+### The pass where a warm command stopped costing seventeen seconds
+
+Two lies about cost, one in a comment and one in an architecture. The
+parallel build's comment said query compilation was paid once per thread.
+The code compiled the whole set once per file, hundreds of times a build. A
+thread-local made the comment true and took a cold index from fifty seconds
+to twenty-four, on top of the last pass's three-fold gain.
+
+The architectural one: every warm command re-resolved the workspace, because
+resolution ran on every index build however fresh the facts were. Resolution
+is a pure function of the merged facts, so it is a cache entry now, keyed by
+every file's path, language and content hash. An agent running ten commands
+against an untouched workspace paid seventeen seconds ten times. It pays a
+fifth of a second now; the first command after an edit resolves afresh.
