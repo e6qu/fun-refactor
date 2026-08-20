@@ -350,7 +350,13 @@ impl Workspace {
                     line: usize,
                     col: usize,
                     confidence: String,
+                    /// Whether a rename of this symbol would rewrite this site.
+                    /// The tiers alone under-answer: a declared receiver lifts
+                    /// a field-based use into the rewrite. A reader predicting
+                    /// the rename needs the answer the rename acts on.
+                    rewritable: bool,
                 }
+                let rewritable = crate::refactor::rename::rewritable_spans(&self.index, id);
                 let refs: Vec<Ref> = self
                     .index
                     .references_to(id)
@@ -363,6 +369,7 @@ impl Workspace {
                             line: at.line,
                             col: at.col,
                             confidence: r.confidence.as_str().to_string(),
+                            rewritable: rewritable.contains(&(r.file.clone(), r.span)),
                         })
                     })
                     .collect();

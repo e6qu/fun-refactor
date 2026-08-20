@@ -175,6 +175,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B705: **`fr refs` could not predict what `fr rename` rewrites.** The
+  tiers alone under-answer: a field-based `s.pending` whose receiver is
+  declared `*BatchSink` rewrites too, and only the rename logic knew it, so
+  the playground's fidelity sweep and any agent reading `--json` guessed low.
+  Every reference now carries `rewritable`, computed from the rename's own
+  plan, and the sweep checks the writes against the tool's own claim.
+
 - [x] B704: **removing a guarded import would have stranded its attribute.**
   B702 let liveness reach imports the old caution always held. The first one
   it removed was `#[cfg(feature = "cli")] use crate::scan::S;`, leaving the

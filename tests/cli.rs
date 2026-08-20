@@ -1030,3 +1030,27 @@ fn delete_names_the_import_it_kept() {
         "the kept import is named up front:\n{out}"
     );
 }
+
+/// `fr refs --json` says which sites a rename would rewrite.
+///
+/// The tiers alone under-answer: a field-based use through a receiver declared
+/// `*BatchSink` rewrites too, and only the rename logic knows it. An agent
+/// predicting a rename needs the rename's own answer.
+#[test]
+fn refs_json_marks_what_a_rename_would_rewrite() {
+    let ws = Workspace::new(&[(
+        "sink.go",
+        "package p\n\ntype BatchSink struct {\n\tpending []int\n}\n\n\
+         func (s *BatchSink) Add(n int) {\n\ts.pending = append(s.pending, n)\n}\n",
+    )]);
+    let (out, ok) = ws.run(&["--json", "refs", "sink.go:4:2"]);
+    assert!(ok, "{out}");
+    let json_start = out.find('{').expect("json");
+    let payload: serde_json::Value = serde_json::from_str(&out[json_start..]).expect("parses");
+    let refs = payload["references"].as_array().expect("references");
+    assert!(!refs.is_empty(), "the field has uses:\n{out}");
+    assert!(
+        refs.iter().all(|r| r["rewritable"] == true),
+        "a declared receiver lifts the use into the rewrite:\n{out}"
+    );
+}

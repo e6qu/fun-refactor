@@ -26,6 +26,26 @@ pub struct RenamePlan {
     pub reference_edits: usize,
 }
 
+/// The reference spans a rename of `symbol` would rewrite.
+///
+/// The tiers alone under-answer: a field-based `s.pending` whose receiver is
+/// declared `*BatchSink` rewrites too, and only the rename logic knows it. A
+/// reader predicting a rename from `fr refs` needs the answer the rename will
+/// act on. This asks the plan itself, under a throwaway name.
+pub fn rewritable_spans(
+    index: &Index,
+    symbol_id: SymbolId,
+) -> std::collections::HashSet<(std::path::PathBuf, crate::span::Span)> {
+    plan(index, symbol_id, "fr_rewritable_probe_")
+        .map(|plan| {
+            plan.edits
+                .iter()
+                .flat_map(|(file, edits)| edits.iter().map(move |e| (file.clone(), e.span)))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// Work out how to rename `symbol` to `new_name`.
 ///
 /// Returns a [`Refusal`] instead of a partial rename when the change would collide

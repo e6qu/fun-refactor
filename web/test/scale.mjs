@@ -389,9 +389,10 @@ for (const target of sample) {
     continue;
   }
   if (!Array.isArray(refs)) continue;
-  const strong = refs.filter(
-    (r) => r.confidence === "exact" || r.confidence === "import-qualified",
-  );
+  // The tool's own answer for what the rename rewrites. The tiers alone
+  // under-count: a field-based `s.pending` on a receiver declared `*BatchSink`
+  // rewrites too, and only the rename logic knows it, so the refs API says so.
+  const strong = refs.filter((r) => r.rewritable);
 
   const workspace = new Workspace({ ...files });
   const outcome = outcomeOf(workspace.rename(target.path, target.line, target.col, NEW_NAME));

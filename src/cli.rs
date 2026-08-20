@@ -4721,6 +4721,10 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     };
 
     if cli.json {
+        // What a rename would rewrite, which the tiers alone under-answer:
+        // a declared receiver lifts a field-based use into the rewrite. A
+        // reader predicting the rename needs the rename's answer.
+        let rewritable = crate::refactor::rename::rewritable_spans(&index, symbol.id);
         let render =
             |list: &[&crate::model::Reference],
              locate: &mut dyn FnMut(&PathBuf, usize) -> crate::span::LineCol| {
@@ -4733,6 +4737,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                             "col": at.col,
                             "kind": format!("{:?}", r.kind).to_lowercase(),
                             "confidence": r.confidence.as_str(),
+                            "rewritable": rewritable.contains(&(r.file.clone(), r.span)),
                         })
                     })
                     .collect::<Vec<_>>()
