@@ -188,6 +188,10 @@ enum Command {
         /// Show index-wide totals instead of listing symbols.
         #[arg(long)]
         stats: bool,
+        /// Only symbols in these files or directories. The whole workspace is
+        /// still indexed, so cross-file answers stay right; only the listing
+        /// narrows.
+        paths: Vec<PathBuf>,
     },
     /// Show where a symbol is defined, every definition. It is not just one.
     ///
@@ -823,7 +827,15 @@ fn dispatch(cli: &Cli) -> Result<()> {
             name,
             kind,
             stats,
-        } => cmd_symbols(cli, languages, name.as_deref(), kind.as_deref(), *stats),
+            paths,
+        } => cmd_symbols(
+            cli,
+            languages,
+            name.as_deref(),
+            kind.as_deref(),
+            *stats,
+            paths,
+        ),
         Command::Def { target, first } => cmd_def(cli, target, *first),
         Command::Type { target } => cmd_type(cli, target),
         Command::Implementations { target } => cmd_implementations(cli, target),
@@ -4278,6 +4290,7 @@ fn cmd_symbols(
     name_filter: Option<&str>,
     kind_filter: Option<&str>,
     stats: bool,
+    paths: &[PathBuf],
 ) -> Result<()> {
     let index = build_index(cli, languages)?;
 
@@ -4309,11 +4322,13 @@ fn cmd_symbols(
         return Ok(());
     }
 
+    let roots = absolute_paths(cli, paths)?;
     let selected: Vec<&Symbol> = index
         .symbols
         .iter()
         .filter(|s| name_filter.is_none_or(|n| s.name.contains(n)))
         .filter(|s| kind_filter.is_none_or(|k| s.kind.as_str() == k))
+        .filter(|s| roots.is_empty() || roots.iter().any(|r| s.file.starts_with(r)))
         .collect();
 
     if cli.json {
@@ -4706,6 +4721,10 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     };
 
     if cli.json {
+        // What a rename would rewrite, which the tiers alone under-answer:
+        // a declared receiver lifts a field-based use into the rewrite. A
+        // reader predicting the rename needs the rename's answer.
+        let rewritable = crate::refactor::rename::rewritable_spans(&index, symbol.id);
         let render =
             |list: &[&crate::model::Reference],
              locate: &mut dyn FnMut(&PathBuf, usize) -> crate::span::LineCol| {
@@ -4718,6 +4737,7 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                             "col": at.col,
                             "kind": format!("{:?}", r.kind).to_lowercase(),
                             "confidence": r.confidence.as_str(),
+                            "rewritable": rewritable.contains(&(r.file.clone(), r.span)),
                         })
                     })
                     .collect::<Vec<_>>()

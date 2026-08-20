@@ -9,7 +9,7 @@ use super::Refusal;
 use crate::edit::{full_line_span, Edit, EditSet};
 use crate::index::Index;
 use crate::lang::Language;
-use crate::model::{Confidence, SymbolId, SymbolKind};
+use crate::model::{SymbolId, SymbolKind};
 use crate::parse::{Parsed, Parsers};
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
@@ -432,15 +432,6 @@ fn shadowed_name(
         }
     }
     None
-}
-
-/// Confidence of the weakest use site, for reporting.
-pub fn weakest_use(index: &Index, symbol: SymbolId) -> Option<Confidence> {
-    index
-        .references_to(symbol)
-        .iter()
-        .map(|r| r.confidence)
-        .max()
 }
 
 /// The declaration statement a lone declarator belongs to.

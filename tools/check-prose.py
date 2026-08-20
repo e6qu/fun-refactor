@@ -91,7 +91,7 @@ def messages_of(path: Path) -> str:
         # A literal holding a shell expansion is a program this tool writes,
         # not a sentence anybody reads. `fr completions` emits one line at a
         # time, and the lines glued together counted as a 74-word sentence.
-        code = "${" in raw or "$(" in raw
+        code = "${" in raw or "$(" in raw or "=>" in raw or "fn " in raw
         if len(raw) > 40 and " " in raw and not code and not raw.startswith(("@", "(", "http")):
             out.append(raw)
     return "\n".join(out)

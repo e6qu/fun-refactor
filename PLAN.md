@@ -1734,3 +1734,34 @@ A recipe run and its `--explain` gave the same file two lengths. `--explain` cou
 the steps in the recipe and the run counted the steps it reached. A run stopped at
 the second of three called itself a two-step recipe. The header describes the file
 now. How far the run got is a line of its own, and `steps_in_recipe` in the JSON.
+
+### The pass where the tool was turned on itself
+
+Every probe of this pass was an `fr` command run over this repository, and
+every fix was retried with the command that had misbehaved. The edits used
+`fr` itself where an operation exists for them. The four genuinely dead
+functions left this codebase through `fr delete`.
+
+`fr unused` opened the pass by answering 445 lines, 202 of them Markdown
+headings. Working the rest of that report down uncovered a chain of
+resolution defects, each hiding behind the last. An enum variant matched
+seventeen times read as dead, because variants had no qualifier. A field
+consumed only by destructuring read as dead, because a pattern was no
+reference. A serde-constructed variant read as dead, because a catalog spells
+`Remote` as `remote`. A call to `fn stmt` resolved to a sibling function's
+`stmt` parameter, because scopes covered only the body block and a parameter
+sits before it. When the report finally told the truth, it had shrunk from
+445 lines to the handful this pass deleted or wired up.
+
+The worst find was a write. Renaming the local that feeds `Facts { count }`
+produced `Facts { total }`, a field the struct does not have. Rust and
+TypeScript both had it. The shorthand expands now, in whichever direction the
+rename runs. The companion fixes let a field rename reach `f.count` through a
+receiver declared `&Facts`. A struct now owns its fields, and a declared type
+sheds its sigils.
+
+Two ergonomic gaps a dogfooding agent hits in the first minute. `fr symbols
+<file>` was a usage error, and `fr delete` said nothing about the import it
+deliberately kept. Both answer properly now. The wasm surface's one dead
+method, `declared_type`, turned out to be a playground action nobody wired;
+the playground offers "What type is this?" now.

@@ -2579,18 +2579,6 @@ fn first_line(text: &str) -> &str {
     text.lines().next().unwrap_or(text).trim_end()
 }
 
-/// Line of a symbol, for error messages.
-pub fn line_of(index: &Index, symbol: SymbolId) -> usize {
-    index
-        .symbol(symbol)
-        .and_then(|s| {
-            crate::vfs::read_to_string(&s.file)
-                .ok()
-                .map(|src| LineIndex::new(&src).line_col(s.name_span.start, &src).line)
-        })
-        .unwrap_or(0)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

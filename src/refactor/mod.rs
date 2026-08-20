@@ -420,7 +420,15 @@ fn receiver_binding_type(
         crate::analysis::types::Held::Unwritten => return ReceiverType::Unwritten,
     };
     // `List<Order>` names `List`; the last plain segment is the type's own name.
+    // `&Facts`, `*Buffer` and `?Handle` name the same types their sigils
+    // borrow, point at, or make optional. A receiver declared `&Facts` reaches
+    // what one declared `Facts` does, and the sigil made every such receiver
+    // read as unknown.
     let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);
-    ReceiverType::Settled(last.to_string())
+    let bare = last
+        .trim_start_matches(['&', '*', '?'])
+        .trim_start_matches("mut ")
+        .trim();
+    ReceiverType::Settled(bare.to_string())
 }

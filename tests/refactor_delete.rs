@@ -932,6 +932,73 @@ fn a_zig_test_block_and_what_it_calls_are_reached() {
     );
     assert!(
         names.contains(&"nothing_calls_this".to_string()),
-        "and a function no test calls is still a finding: {names:?}"
+        "a function no test calls is still a finding. {names:?}"
+    );
+}
+
+/// What sits attached above a deleted definition goes with it.
+///
+/// Left behind, `#[allow(dead_code)]` and three lines of documentation moved
+/// onto the next survivor. An attribute changes the meaning of whatever
+/// follows, and clippy refuses an orphaned doc comment outright.
+#[test]
+fn a_deletion_takes_its_docs_and_attributes() {
+    let (tmp, index) = workspace(&[(
+        "lib.rs",
+        "/// Documentation of the dead function.\n///\n/// Two paragraphs.\n\
+         #[allow(dead_code)]\npub fn dead() -> i64 {\n    9\n}\n\n\
+         pub fn live() -> i64 {\n    7\n}\n",
+    )]);
+    let symbol = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "dead")
+        .expect("the symbol");
+    let plan = delete::plan(&index, symbol.id).expect("a plan");
+    let source = std::fs::read_to_string(tmp.path().join("lib.rs")).unwrap();
+    let out = fun_refactor::edit::apply_to_string(
+        &source,
+        plan.edits.edits_for(&tmp.path().join("lib.rs")).unwrap(),
+    )
+    .unwrap();
+    assert!(!out.contains("Documentation"), "the docs went too.\n{out}");
+    assert!(
+        !out.contains("allow(dead_code)"),
+        "the attribute went.\n{out}"
+    );
+    assert!(
+        out.starts_with("pub fn live"),
+        "the survivor opens the file.\n{out}"
+    );
+}
+
+/// An import of a name this workspace declares as a non-trait goes when its
+/// last user does. The trait caution stays for names the index cannot see.
+#[test]
+fn a_deletion_drops_an_import_the_workspace_knows_is_no_trait() {
+    let (tmp, index) = workspace(&[
+        ("kinds.rs", "pub enum Confidence {\n    Exact,\n}\n"),
+        (
+            "lib.rs",
+            "use crate::kinds::Confidence;\n\npub fn dead() -> Confidence {\n    \
+             Confidence::Exact\n}\n\npub fn live() -> i64 {\n    7\n}\n",
+        ),
+        ("main.rs", "mod kinds;\nmod lib;\n"),
+    ]);
+    let symbol = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "dead")
+        .expect("the symbol");
+    let plan = delete::plan(&index, symbol.id).expect("a plan");
+    let source = std::fs::read_to_string(tmp.path().join("lib.rs")).unwrap();
+    let out = fun_refactor::edit::apply_to_string(
+        &source,
+        plan.edits.edits_for(&tmp.path().join("lib.rs")).unwrap(),
+    )
+    .unwrap();
+    assert!(
+        !out.contains("use crate::kinds::Confidence"),
+        "an enum is not a trait, and the workspace knows as much.\n{out}"
     );
 }

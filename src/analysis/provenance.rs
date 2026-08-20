@@ -324,11 +324,6 @@ impl Provenance {
         self.hops.is_empty()
     }
 
-    /// The weakest link in the chain, which is the confidence of the whole answer.
-    pub fn weakest_confidence(&self) -> Option<Confidence> {
-        self.hops.iter().map(|h| h.confidence).max()
-    }
-
     /// Does any stop match `predicate`?
     pub fn stopped_because(&self, predicate: impl Fn(&StopReason) -> bool) -> bool {
         self.stops.iter().any(|(_, r)| predicate(r))

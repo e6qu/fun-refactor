@@ -27,6 +27,10 @@
 (interface_body) @scope
 (enum_body) @scope
 (block) @scope
+; Parameters live outside the block; without these, they spilled into the class
+; scope and calls resolved to them by proximity.
+(method_declaration) @scope
+(constructor_declaration) @scope
 (constructor_body) @scope
 (lambda_expression) @scope
 (for_statement) @scope

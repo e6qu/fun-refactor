@@ -109,7 +109,9 @@ fn reference_kind(name: &str) -> Option<ReferenceKind> {
         "call" => ReferenceKind::Call,
         "identifier" => ReferenceKind::Identifier,
         "type" => ReferenceKind::Type,
-        "field" => ReferenceKind::Field,
+        // `field.twin` is a second meaning sharing an ordinary span: a
+        // shorthand initializer's identifier reads a local and writes a field.
+        "field" | "field.twin" => ReferenceKind::Field,
         "string" | "selector" | "element-id" => ReferenceKind::StringRef,
         _ => return None,
     })
@@ -189,13 +191,17 @@ fn trim_markdown_syntax(span: Span, source: &str) -> Span {
 /// references two CSS classes. Renaming one must rewrite only its own bytes, so the
 /// value is fanned out into separate references and not treated as one name.
 fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
+    // Commas separate as much as spaces do: `data-quiz="a,b,c"` names three
+    // hooks the way `class="a b"` names two classes. Read as one name, none of
+    // the three could ever match a use, and all three read as dead.
+    let separator = |c: char| c.is_whitespace() || c == ',';
     let text = span.text(source);
-    if !text.trim().contains(char::is_whitespace) {
+    if !text.trim().contains(separator) {
         return vec![span];
     }
     let mut spans = Vec::new();
     let mut offset = 0;
-    for token in text.split_whitespace() {
+    for token in text.split(separator).filter(|t| !t.is_empty()) {
         // `find` from the running offset keeps repeated tokens on distinct spans.
         if let Some(found) = text[offset..].find(token) {
             let start = span.start + offset + found;
@@ -437,6 +443,7 @@ fn interpolation_references(
                 receiver: None,
                 receiver_is_path: false,
                 member_in_macro: false,
+                twin: false,
             });
         }
     }
@@ -486,6 +493,7 @@ fn values_references(
                 receiver: segments.len().checked_sub(2).map(|i| segments[i].clone()),
                 receiver_is_path: true,
                 member_in_macro: false,
+                twin: false,
             });
         }
     }
@@ -670,6 +678,7 @@ fn kubernetes_key_references(
             receiver: Some(format!("{object_kind}/{object}")),
             receiver_is_path: true,
             member_in_macro: false,
+            twin: false,
         });
     }
     out
@@ -807,6 +816,7 @@ impl Extractor {
                             kind,
                             span,
                             expects,
+                            twin: cap_name.ends_with(".twin"),
                         });
                     } else if cap_name == "import" {
                         is_import = true;
@@ -832,12 +842,22 @@ impl Extractor {
                     if let Some(name_span) = name {
                         let name_span = refine_name_span(name_span, source, lang);
                         if !name_span.is_empty() {
-                            raw_defs.push(RawDef {
-                                kind,
-                                full_span,
-                                name_span,
-                                exported,
-                            });
+                            // A markup value may declare several names at once:
+                            // `data-quiz="a,b,c"` is three hooks the way
+                            // `class="a b"` is two classes. One symbol per name,
+                            // or none of them ever matches a use.
+                            let name_spans = match kind {
+                                SymbolKind::DataAttribute => split_value_spans(name_span, source),
+                                _ => vec![name_span],
+                            };
+                            for name_span in name_spans {
+                                raw_defs.push(RawDef {
+                                    kind,
+                                    full_span,
+                                    name_span,
+                                    exported,
+                                });
+                            }
                         }
                     }
                 }
@@ -861,6 +881,19 @@ impl Extractor {
             scopes
                 .iter()
                 .filter(|s| s.span.contains_offset(offset))
+                .min_by_key(|s| s.span.len())
+                .map(|s| s.id)
+                .unwrap_or(ScopeId(0))
+        };
+        // A definition lives in the scope it is declared in, not the scope it
+        // creates. A whole-function scope contains the function's own name, so
+        // the innermost-scope rule put every function inside itself. The rules
+        // that compare a declaration's scope with a reference's then stopped
+        // matching: `@size.setter` no longer saw the `size` its class binds.
+        let declaration_scope = |name_offset: usize, own: Span| -> ScopeId {
+            scopes
+                .iter()
+                .filter(|s| s.span.contains_offset(name_offset) && s.span != own)
                 .min_by_key(|s| s.span.len())
                 .map(|s| s.id)
                 .unwrap_or(ScopeId(0))
@@ -919,7 +952,7 @@ impl Extractor {
                 full_span: d.full_span,
                 file: path.to_path_buf(),
                 language: lang,
-                scope: scope_at(d.name_span.start),
+                scope: declaration_scope(d.name_span.start, d.full_span),
                 container,
                 qualifier,
                 exported: d.exported,
@@ -975,6 +1008,7 @@ impl Extractor {
                     receiver: receiver_of(root, span, source),
                     receiver_is_path: receiver_is_path(root, span),
                     member_in_macro: member_in_macro(root, span, source),
+                    twin: r.twin,
                 });
             }
         }
@@ -1007,9 +1041,13 @@ impl Extractor {
         }
 
         // One identifier can match several patterns (a call is also an identifier).
-        // Keep the most specific kind per span so each use site appears exactly once.
-        references.sort_by_key(|r| (r.span, reference_specificity(r.kind)));
-        references.dedup_by_key(|r| r.span);
+        // Keep the most specific kind per span so each use site appears exactly
+        // once. A shorthand initializer is the one true double meaning: `Facts
+        // { count }` reads the local and writes the field in a single
+        // identifier. Its second meaning arrives marked `twin` and survives the
+        // dedup; everything else still collapses to one reference per span.
+        references.sort_by_key(|r| (r.span, r.twin, reference_specificity(r.kind)));
+        references.dedup_by_key(|r| (r.span, r.twin));
 
         Ok(FileFacts {
             path: path.to_path_buf(),
@@ -1041,6 +1079,9 @@ struct RawRef {
     kind: ReferenceKind,
     span: Span,
     expects: Option<SymbolKind>,
+    /// A second meaning sharing an ordinary span: a shorthand initializer's
+    /// identifier reads a local and writes a field, and both must survive.
+    twin: bool,
 }
 
 #[derive(Default)]

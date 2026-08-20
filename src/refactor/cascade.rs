@@ -793,9 +793,24 @@ fn remaining_uses(
             }
             let reason = match use_site(*language, kind, &parsed, source, span) {
                 UseSite::Refuse(reason) | UseSite::Binds(reason) => reason,
-                UseSite::Replace(_) => {
-                    "this use of the flag did not resolve to it firmly enough to rewrite".into()
-                }
+                // The tier is the reason: the reader deciding whether to rewrite
+                // by hand needs to know how weak the evidence was.
+                UseSite::Replace(_) => match index
+                    .file(path)
+                    .into_iter()
+                    .flat_map(|info| info.references.iter())
+                    .map(|idx| &index.references[*idx])
+                    .find(|r| r.span == span)
+                    .map(|r| r.confidence)
+                {
+                    Some(confidence) => format!(
+                        "this use resolved to the flag only as '{}', too weakly to rewrite",
+                        confidence.as_str()
+                    ),
+                    None => {
+                        "this use of the flag did not resolve to it firmly enough to rewrite".into()
+                    }
+                },
             };
             out.push(describe(path, source, span, &reason));
         }
