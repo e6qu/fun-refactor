@@ -1857,3 +1857,24 @@ The pass also caught a flake with a cause. The capability log let
 concurrent writers tear each other's lines, and the coverage report
 skipped the wreckage in silence. One `write_all` per line and a report
 that names malformed lines fixed the class.
+
+### The pass where the tutorial got a cast
+
+The page still read like a document. Its prose had no people in it, so
+its sentences had no subjects to speak of. One sentence in ten closed on
+the same beat: 25 of 242 ended on a negation. The busiest subject on the
+page was the word "nothing".
+
+The books now belong to Albert Hargreaves, and the mistakes to his clerk
+Ernest. Ernest typed `darft` for draft and handed `apply_discount` its
+arguments the wrong way round. He swapped the ids in `bill` too, so an
+invoice went out addressed to a roadster. A clerk who makes the mistakes
+gives every later sentence somebody to be about.
+
+Three other rules came out of the same review. Each lesson says what can
+no longer exist, rather than what the checker objects to. The reader is
+the student here, and the checker is the tool that enforces the result. Each unit keeps its parts apart: the problem above the cell, the
+cell as the answer, the conclusion and the cost below. And each claim
+about an example gets read against the example, which caught six
+paragraphs describing the wrong file. `docs/style.md` carries all of it,
+with the list of phrases a language model reaches for.
