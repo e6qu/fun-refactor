@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B725: **the tutorial described its own lessons instead of giving
+  them.** Every verdict paragraph reported an arrangement.
+  "With `Pence` and `Rate` as types of their own, that call can't exist
+  any more" has nobody acting in it. A sentence like that reads as
+  passive however the grammar parses. The page now tells the reader what to do and what comes
+  back. 56 of its 221 sentences now open with an instruction, and one
+  sentence pairs a form of "to be" with a participle. The stative tic
+  ran through eleven paragraphs and is gone. Two examples went with it. The
+  filter-and-map cell taught an idiom rather than a type, and the
+  pipeline cell repeated the parsing lesson.
+  Sections 6 and 7 merged into one border section, so the count of
+  numbered sections fell from twelve to eleven.
+
 - [x] B724: **the tutorial read like a document with nobody in it.** Its
   prose had no people, so its sentences had no subjects. The same
   rhetorical beat closed one sentence in ten, and 25 of 242 ended on a

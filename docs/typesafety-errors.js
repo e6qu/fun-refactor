@@ -30,10 +30,6 @@ export const ERRORS = {
     python: "escape_wrapper_misuse.py:21: error: Argument 1 to \"render_note\" has incompatible type \"str\"; expected \"HtmlText\"  [arg-type]\nescape_wrapper_misuse.py:22: error: Argument 1 to \"escape_html\" has incompatible type \"HtmlText\"; expected \"str\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
     typescript: "escape_wrapper_misuse.ts(15,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'HtmlText'.\nescape_wrapper_misuse.ts(16,33): error TS2345: Argument of type 'HtmlText' is not assignable to parameter of type 'string'.",
   },
-  "everyday_higher_order_misuse": {
-    python: "everyday_higher_order_misuse.py:26: error: Argument 1 to \"map\" has incompatible type \"Callable[[InvoiceLine], str]\"; expected \"Callable[[InvoiceLine], bool]\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "everyday_higher_order_misuse.ts(17,3): error TS2322: Type 'string' is not assignable to type 'number'.\neveryday_higher_order_misuse.ts(17,42): error TS2769: No overload matches this call.\n  Overload 1 of 3, '(callbackfn: (previousValue: string, currentValue: string, currentIndex: number, array: string[]) => string, initialValue: string): string', gave the following error.\n    Argument of type '(sum: number, pence: string) => string' is not assignable to parameter of type '(previousValue: string, currentValue: string, currentIndex: number, array: string[]) => string'.\n      Types of parameters 'sum' and 'previousValue' are incompatible.\n        Type 'string' is not assignable to type 'number'.\n  Overload 2 of 3, '(callbackfn: (previousValue: number, currentValue: string, currentIndex: number, array: string[]) => number, initialValue: number): number', gave the following error.\n    Type 'string' is not assignable to type 'number'.",
-  },
   "exercise_lookup_misuse": {
     python: "exercise_lookup_misuse.py:28: error: Argument 1 to \"greet\" has incompatible type \"Ok[str] | Err\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
     typescript: "exercise_lookup_misuse.ts(15,29): error TS2345: Argument of type 'Result<string>' is not assignable to parameter of type 'string'.\n  Type 'Err' is not assignable to type 'string'.",
@@ -101,10 +97,6 @@ export const ERRORS = {
   "typed_arguments_misuse": {
     python: "typed_arguments_misuse.py:9: error: Argument 1 to \"invoice_line\" has incompatible type \"int\"; expected \"str\"  [arg-type]\ntyped_arguments_misuse.py:9: error: Argument 2 to \"invoice_line\" has incompatible type \"str\"; expected \"int\"  [arg-type]\ntyped_arguments_misuse.py:9: error: Argument 4 to \"invoice_line\" has incompatible type \"int\"; expected \"bool\"  [arg-type]\nFound 3 errors in 1 file (checked 1 source file)",
     typescript: "typed_arguments_misuse.ts(8,33): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.",
-  },
-  "typed_pipeline_misuse": {
-    python: "typed_pipeline_misuse.py:29: error: Argument 1 to \"price\" has incompatible type \"RawOrder\"; expected \"Order\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "typed_pipeline_misuse.ts(11,47): error TS2561: Object literal may only specify known properties, but 'quantityText' does not exist in type 'Order'. Did you mean to write 'quantity'?",
   },
   "unit_arithmetic_misuse": {
     python: "unit_arithmetic_misuse.py:24: error: Unsupported operand types for + (\"Meters\" and \"Kilograms\")  [operator]\nFound 1 error in 1 file (checked 1 source file)",
