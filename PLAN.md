@@ -1878,3 +1878,24 @@ cell as the answer, the conclusion and the cost below. And each claim
 about an example gets read against the example, which caught six
 paragraphs describing the wrong file. `docs/style.md` carries all of it,
 with the list of phrases a language model reaches for.
+
+### The pass where the tutorial started giving instructions
+
+The prose still described the lessons rather than giving them. Every
+verdict paragraph reported an arrangement: with these types in place,
+that call can no longer exist. Nobody acts in a sentence like that, and
+a sentence with nobody in it reads as passive whatever its grammar.
+
+Each verdict is now an instruction and its result. Wrap the two in
+`Pence` and `Rate`, then write the backwards call again; it will not
+compile. Put a function call between the test and the use, press Type
+check, and the `None` is back. 56 of 221 sentences open with an
+imperative, and one sentence still pairs a form of "to be" with a
+participle.
+
+Cutting came with it. The filter-and-map cell taught an idiom rather
+than a type. The pipeline cell repeated the lesson that parsing and
+typestate had already given. Both went, with their before-and-misuse
+files. Parsing and fake types became one section about the border, the
+subject both of them shared. The numbered sections fell from twelve to
+eleven.
