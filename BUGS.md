@@ -175,6 +175,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B724: **the tutorial read like a document with nobody in it.** Its
+  prose had no people, so its sentences had no subjects. The same
+  rhetorical beat closed one sentence in ten, and 25 of 242 ended on a
+  negation. The books now belong to Albert Hargreaves, and the mistakes to
+  his clerk Ernest. Ernest typed `darft` for draft, and swapped the two
+  ids in `bill`. Each lesson states what can no longer exist, rather than what
+  the checker objects to. The reader does the work now, and the checker
+  only enforces it. Each unit keeps its three parts apart: the
+  problem above the cell, the cell as the answer, the conclusion and the
+  run-time cost below. Every claim about an example was checked against
+  the file, and six paragraphs that described the wrong example got
+  rewritten. `docs/style.md` carries the doctrine and the phrase list.
+
 - [x] B723: **the capability log tore under concurrent writers.** `record`
   wrote its line with `writeln!`, which may split one line across several
   write calls. A dozen test processes append to the same log, two halves

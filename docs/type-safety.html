@@ -57,30 +57,32 @@
 <section id="the-program">
   <div class="shell prose">
     <h2>1. The program we will fix</h2>
-    <p>A workshop builds bicycles. A bill of materials lists the parts, an invoice bills the customer, and the books still run on old British money: twelve pence to a shilling, twenty shillings to a pound. The file below carries no annotations at all. Python runs it. Node runs it. Both give wrong answers without a word of complaint.</p>
+    <p>Albert Hargreaves builds bicycles, and his clerk Ernest wrote the program that runs the books: a bill of materials for the parts, an invoice for each customer, everything in old money at twelve pence to the shilling and twenty shillings to the pound. Ernest didn't annotate anything. His file runs fine in Python and in Node, and it has been getting the sums wrong for months.</p>
     <div class="ts-example" data-example="the_program"></div>
-    <p>Read it and find the five bugs:</p>
+    <p>The cells are editable. At the bottom of the file, print a call to <code>bill</code> with its two arguments backwards and press Run. The invoice comes out made out to the roadster, for one Mrs. Pemberton. That's one of five things Ernest got wrong:</p>
     <ul>
-      <li><code>invoice_line</code> takes its four arguments in any order and never complains.</li>
-      <li>Money looks like every other number, and pence pass for pounds.</li>
-      <li>Whoever wrote <code>advance</code> typed <code>darft</code> for draft, so no invoice ever leaves drafts. The workshop hums, the bikes roll out, and no bill ever follows them.</li>
-      <li>Hand <code>bill</code> its ids backwards and it invoices the bicycle for one customer.</li>
-      <li><code>load_bom_line</code> hands every field on as text, even the ones that are secretly numbers.</li>
+      <li>His <code>invoice_line</code> takes its four arguments in any order.</li>
+      <li>His prices are plain numbers, and some functions count in pence while others count in pounds.</li>
+      <li>He typed <code>darft</code> for draft in <code>advance</code>, so no invoice ever leaves the draft state, and no customer has been billed since.</li>
+      <li><code>bill</code> accepts its ids in either order, as you just saw.</li>
+      <li>His <code>load_bom_line</code> passes every field on as text, the quantities and prices included.</li>
     </ul>
-    <p>The program keeps all five secrets until someone runs it.</p>
-    <p>Point either checker at the file and it refuses outright. Not for the bugs, which it can't see: for the missing annotations. <code>mypy --strict</code> demands a type on every function, and <code>tsc --strict</code> rejects every implicit <code>any</code>. Annotations are the price of admission. Pay it, and each section below teaches the checker to catch one more of the five.</p>
+    <p>Point either checker at the file and it refuses outright. It can't see the bugs yet. It refuses because the annotations are missing: <code>mypy --strict</code> wants a type on every function, and <code>tsc --strict</code> rejects every implicit <code>any</code>. So Albert could keep finding Ernest's mistakes the hard way, one angry customer at a time. There has to be a better way, and it takes five sections: each one takes one of Ernest's mistakes, and you change the types so it can't be written again. By the end his file still runs the books, and none of the five fit in it anywhere.</p>
   </div>
 </section>
 
 <section id="simple-types">
   <div class="shell prose">
     <h2>2. Simple types</h2>
-    <p>Start with <code>invoice_line</code>. Type its arguments <code>str</code>, <code>int</code> and <code>bool</code>, and the checker turns the mixed-up call away. The annotations cost nothing at run time: Python never evaluates them, and TypeScript deletes them.</p>
+    <p>Start with <code>invoice_line</code>. It takes a description, a price, a quantity and a tax flag, and Ernest has been passing them in whatever order came to mind. Python accepts every ordering, and so does Node.</p>
     <div class="ts-block" data-block="typed_arguments"></div>
-    <p>Money needs the same treatment. A price and a discount rate are both bare numbers, so nothing stops you handing them over the wrong way round. Split them: TypeScript erases the brand entirely, and Python charges about 20 ns for the constructor call.</p>
+    <p>With the arguments typed <code>str</code>, <code>int</code> and <code>bool</code>, a call in the wrong order stops being a valid program. The annotations cost nothing at run time: Python never evaluates them, and TypeScript deletes them.</p>
+    <p>Money needs more than that. A price and a discount rate are both numbers, so <code>apply_discount(rate, total)</code> is an ordinary, working program. Ernest wrote it that way round once, and ten percent off a bill of 1250 pence came back as minus 125 pence.</p>
     <div class="ts-block" data-block="money_pence"></div>
-    <p>Now the gift note, which may be missing. Reach for <code>cast</code> and you silence the checker; the crash waits for run time. Write the branch instead. The checker follows an <code>if</code> and drops <code>None</code> inside it, a move Typed Racket named <em>occurrence typing</em>. Call a function in between, though, and you lose the narrowing. The branch costs one comparison. The <code>cast</code> costs nothing and checks nothing, which is the whole trade.</p>
+    <p>With <code>Pence</code> and <code>Rate</code> as types of their own, that call can't exist any more. TypeScript erases the brand; in Python each constructor call costs about 20 ns.</p>
+    <p>Some of Albert's customers add a gift note to the order, and most don't, so the note is a <code>str | None</code>. Ernest cast it to <code>str</code> to quiet the checker, and the crash arrived with the first noteless order.</p>
     <div class="ts-block" data-block="note_narrowing"></div>
+    <p>Inside <code>if note is not None</code>, the <code>None</code> is ruled out. The narrowing follows simple tests only: call a function in between and the checker forgets what it knew. The branch costs one comparison at run time.</p>
     <div class="ts-quiz" data-quiz="any_arguments,typed_arguments_misuse,money_float"></div>
   </div>
 </section>
@@ -88,12 +90,15 @@
 <section id="aliases-and-units">
   <div class="shell prose">
     <h2>3. Aliases and units</h2>
-    <p>An alias renames a type without changing it, so it enforces nothing. When two same-shaped values must never trade places, reach for <code>NewType</code> in Python or a brand in TypeScript: a genuinely distinct type. TypeScript erases the brand outright; <code>NewType</code> leaves the value alone and charges about 20 ns per call. The parts file measures spokes by count and tubing by the meter, and those must never swap.</p>
+    <p>The parts file measures spokes by count and tubing by the metre. To the program both are numbers, and Ernest has swapped the two columns before. An alias won't help here: it renames a type without changing it, so a <code>Meters</code> alias accepts a spoke count without complaint.</p>
     <div class="ts-block" data-block="unit_newtype"></div>
-    <p>Watch the arithmetic, though. Add two branded numbers and the brand falls off. Give the quantities typed operations instead, and width times height comes out an area, a unit neither factor had. This safety has a price: every quantity becomes an object, about 135 ns to build in Python. Right for a bill of materials, wrong inside a numeric loop.</p>
+    <p>A <code>NewType</code> in Python or a brand in TypeScript is a genuinely distinct type, and with one for each unit, a spoke count can't go where metres belong. TypeScript erases the brand; <code>NewType</code> leaves the value alone and costs about 20 ns per call.</p>
+    <p>Watch the arithmetic, though. Add two branded lengths and the sum comes back a plain number, brand gone.</p>
     <div class="ts-block" data-block="unit_arithmetic"></div>
-    <p>A status typed <code>str</code> accepts every typo, including the <code>darft</code> from section 1. Write the three real values into the type, and the checker turns the rest away. Both languages erase literal types, so this costs nothing.</p>
+    <p>With typed operations, width times height comes out an area, a unit neither factor had. Every quantity becomes an object, about 135 ns to build in Python: right for a bill of materials, wrong inside a numeric loop.</p>
+    <p>While the status is a plain <code>str</code>, <code>darft</code> is as good a value as <code>draft</code>. That's Ernest's typo from section 1, still sitting in <code>advance</code>.</p>
     <div class="ts-block" data-block="status_literal"></div>
+    <p>With the three real statuses written into the type, <code>darft</code> isn't a status any more, and the typo can't get back into the books. Both languages erase literal types before the program runs, so the change is free.</p>
     <div class="ts-quiz" data-quiz="alias_transparent,unit_newtype_misuse,unit_arithmetic_misuse"></div>
   </div>
 </section>
@@ -101,24 +106,30 @@
 <section id="domain-types">
   <div class="shell prose">
     <h2>4. Domain types</h2>
-    <p>Only <code>parse_email</code> can turn a string into an <code>EmailAddress</code>. That's a domain type: it states a fact about your problem, and you can't hold one unless the fact is true. Scott Wlaschin calls the alternative <em>primitive obsession</em>. Keep the constructor in one module, because neither checker can stop a cast written somewhere else. The type is free. You pay for the check once, where you put it.</p>
+    <p>Customers type their address into the order form, and anything can arrive: a stray space, a line that never had an <code>@</code> in it, an empty box. Ernest checked the field once in <code>checkout</code> and passed a plain <code>str</code> onwards, so every function after it took the address on trust.</p>
     <div class="ts-block" data-block="email_parse"></div>
-    <p>Swap two same-shaped ids and nothing notices. Give them two types, and the checker catches the swap, at no run-time cost.</p>
+    <p>Only <code>parse_email</code> builds an <code>EmailAddress</code>, so holding one means the check already passed. This is a domain type: it states a fact about your problem, and you can't hold one unless the fact is true. Keep the constructor in one module, because a cast written somewhere else can still forge one. The type is free, and the check runs once, where you put it.</p>
+    <p>A customer id and a product id have the same shape, which is how the roadster came to be invoiced in section 1.</p>
     <div class="ts-block" data-block="entity_ids"></div>
-    <p>Give escaped text its own class, not a subtype of <code>str</code>, and you close both doors: raw text can't reach the renderer, and nobody can escape the escaped text twice. The cost is one allocation per value.</p>
+    <p>With two id types, an invoice addressed to a product can't exist. At run time the types cost nothing.</p>
+    <p>Ernest's escaper took a note and gave back a plain <code>str</code>, so nothing marked which notes had already been through it. One note went through twice, and the ampersands came out doubled on the printed page.</p>
     <div class="ts-block" data-block="escape_wrapper"></div>
-    <p>Here the two languages part ways. TypeScript matches shapes everywhere; Python matches names. Declare a <code>Protocol</code> and Python matches shapes too: any class with the right method counts, including one you can't edit. A <code>Protocol</code> exists for the checker alone unless you mark it runtime-checkable.</p>
+    <p>With escaped text as its own class instead of a subtype of <code>str</code>, raw text can't reach the renderer, and text that's already escaped can't go through the escaper again, because each function accepts only one of the two types. The cost is one allocation per value.</p>
+    <p>Albert sends the finished bicycles out by two carriers, the Royal Post and a village courier, and each of them quotes a price by the kilogram. Here the two languages disagree about what makes a carrier. TypeScript matches shapes everywhere. Python matches names, so a courier class from somebody else's package doesn't count, however right its <code>quote_pence</code> method looks, and Ernest can't edit that package to say otherwise.</p>
     <div class="ts-block" data-block="carrier_protocol"></div>
+    <p>Declare a <code>Protocol</code> and Python matches by shape too: any class with the right method counts, the outside one included, with no inheritance asked for. A <code>Protocol</code> exists for the checker alone unless you mark it runtime-checkable.</p>
   </div>
 </section>
 
 <section id="states-and-stages">
   <div class="shell prose">
     <h2>5. States and stages</h2>
-    <p>A distinct name keeps two values apart. It can't stop you building nonsense. For that, reshape the data until the nonsense has nowhere to live. Give each state its own type: a settled payment carries its receipt, and a pending one has no field to put one in. You pay one real tag field, plus a comparison to read it. Alexis King draws exactly this line, between labelling a value and modelling it. The second makes illegal states unrepresentable.</p>
+    <p>A distinct name keeps two values apart, but you can still build nonsense out of honest parts. Ernest's payment record carries a settled flag and an optional receipt, so a payment can say settled and hold no receipt. Albert found one in the ledger in March and spent an afternoon on it.</p>
     <div class="ts-block" data-block="payment_states"></div>
-    <p>Stages work the same way. Let <code>send</code> return the only invoice <code>record_payment</code> accepts, and paying a draft becomes a type error instead of a guard you hope somebody wrote. Each transition allocates one object; the types themselves are free. Rust calls this <em>typestate</em>.</p>
+    <p>With each state as its own type, a settled payment without a receipt can't exist. You pay one real tag field, plus a comparison to read it. The difference is between labelling a value and modelling it.</p>
+    <p>Stages have the same trouble. Ernest's file relies on everyone remembering that an invoice gets sent before it gets paid, and the only guard is a comment.</p>
     <div class="ts-block" data-block="invoice_typestate"></div>
+    <p>Let <code>send</code> return the only invoice type <code>record_payment</code> accepts, and paying a draft can't be written. Each transition allocates one object; the types are free. The pattern is called typestate.</p>
     <div class="ts-quiz" data-quiz="entity_ids_misuse,payment_states_misuse,email_parse"></div>
   </div>
 </section>
@@ -126,20 +137,22 @@
 <section id="parse-dont-validate">
   <div class="shell prose">
     <h2>6. Parse, don't validate</h2>
-    <p>The outside world hands your program text. Validate it, and you check the value and pass the same string on, so the next reader checks it again. Parse it, and you return a different type, which every later function demands. Alexis King named the rule and gave it its slogan: write functions on the data you wish you had. You pay for the parse once, at the border. After that the types carry the fact, and by run time they're gone.</p>
+    <p>The outside world hands the program text. The works' invoicing job takes its settings on the command line, and Ernest read them into a dictionary of strings. <code>connect</code> checks that the port is a number and in range; <code>report</code> checks it again, because a dictionary of strings that has been checked and one that hasn't are the same type.</p>
     <div class="ts-block" data-block="config_parse_once"></div>
-    <p>One honest limit: your type records that the check ran, and the world keeps moving without you. Parse a port, and somebody can still take it before you bind it.</p>
+    <p>Parsing returns a different type. <code>parse_argv</code> checks the port once and hands back a <code>Config</code>, and every later function asks for a <code>Config</code>, so the check can't be skipped and can't run twice. Alexis King's slogan covers it: write functions on the data you wish you had. The check runs once, at the border, and the type carries the answer from there on.</p>
+    <p>One honest limit: the type records that the check ran, and the world keeps moving. The port was free when you parsed it, and somebody else can still take it before you bind it.</p>
   </div>
 </section>
 
 <section id="fake-types">
   <div class="shell prose">
     <h2>7. Fake types</h2>
-    <p>Build a type that holds anything the input can hold, and you hand the checker nothing to refuse. The faithful <code>Json</code> type is the classic. It looks careful, and it spreads: it turns up in every signature that touches the data, and every field access needs a cast, an assertion nobody checks. Decoding isn't parsing, and nothing pushes you to convert: <code>json.loads</code> returns <code>Any</code>, and <code>JSON.parse</code> returns <code>unknown</code>.</p>
+    <p>A type wide enough to hold anything the input might hold rules nothing out, so every mistake still fits inside it. The classic is a faithful <code>Json</code> type, and Ernest reached for one when the supplier began sending the price list as JSON. It looks careful, and it spreads through every signature that touches the data. Each field access then needs a cast, and a cast asserts without checking. Decoding isn't parsing yet: <code>json.loads</code> returns <code>Any</code> and <code>JSON.parse</code> returns <code>unknown</code>, and turning either into your own types is a step you still have to write.</p>
     <div class="ts-block" data-block="json_parsed"></div>
-    <p>Copying an external system's shape into your own types springs the same trap. Resources with a kind, a name and an attribute bag describe the config format perfectly and tell your program nothing: a server and a database share one type, every field is optional, and a misspelled key waits for whoever runs it. Model what your program needs, and read the foreign shape in one place.</p>
+    <p>Parse each line once at the door and the <code>Json</code> type stops there. Past that point a line has an item, a price in pence and a quantity, and no reader needs a cast to find them.</p>
+    <p>Copying an outside system's shape into your own types springs the same trap. Resources with a kind, a name and a bag of attributes describe a config file perfectly and tell the program nothing: a server and a database share one type, every attribute is optional, and a misspelled key waits for whoever runs it.</p>
     <div class="ts-block" data-block="deploy_plan"></div>
-    <p>Ask one question of every type you add: what does it refuse? If every value the source can produce fits, you've written documentation, and it cost you a checker.</p>
+    <p>Model the two fields the program actually uses, and read the foreign shape in one place. A <code>ServerPlan</code> without a port can't get past the border, and no reader downstream needs a cast to find one. Ask one question of every type you add: what does it rule out? If every value the source can produce still fits, you've written documentation.</p>
     <div class="ts-quiz" data-quiz="json_blob,json_parsed_misuse,deploy_mirror"></div>
   </div>
 </section>
@@ -147,14 +160,18 @@
 <section id="functions-as-values">
   <div class="shell prose">
     <h2>8. Functions as values</h2>
-    <p>A function's type is what it takes and what it returns. Leave it open, and the checker waves through a sort key it can't call. Write it down, and the mistake dies at the keyboard. The call is still a call.</p>
+    <p>The picking list sorts the invoice lines, and it takes the sort key as an argument. Ernest typed that argument loosely, so a key that expects something other than an invoice line goes in without complaint and fails when the sort calls it.</p>
     <div class="ts-block" data-block="function_values"></div>
-    <p>Handler tables collect this dividend daily. Declare one handler shape, and the checker holds every entry to it: you catch the handler wired to the wrong case while you're still typing. At run time, the same lookup, the same call.</p>
+    <p>A function's type is what it takes and what it returns. Write it down, and a key the sort can't call stops being something you can hand it. The call itself is unchanged.</p>
+    <p>The everyday case is a handler table, one handler per order status.</p>
     <div class="ts-block" data-block="dispatch_typed"></div>
-    <p>Wrap a function carelessly, and you lose its signature, and every argument check with it. Keep the signature, and the wrapper stays honest. Either way, the wrapper adds one call frame.</p>
+    <p>With one declared handler shape, a handler wired to the wrong case can't sit in the table. You find out while you're still typing, and the running code is the same lookup and call it always was.</p>
+    <p>The supplier's price service drops connections, so Ernest wrapped <code>fetch</code> in a helper that retries it. The helper took any function and returned any function, and the wrapped <code>fetch</code> came back accepting anything at all.</p>
     <div class="ts-block" data-block="higher_order"></div>
-    <p>One everyday shape closes the section. Replace the hand-rolled loop with a chain that takes its test and its extractor as values, and the checker types every step. The two languages price it differently: Python's <code>map</code> and <code>filter</code> are lazy and build nothing, while each JavaScript <code>filter</code> and <code>map</code> allocates a fresh array.</p>
+    <p>A wrapper written to keep the signature keeps every argument check that came with it. Either way, the wrapper adds one call frame.</p>
+    <p>One everyday shape closes the section: the hand-rolled loop with a test and an extraction inside it.</p>
     <div class="ts-block" data-block="everyday_higher_order"></div>
+    <p>As a chain that takes its test and its extractor as values, every step is typed. Python's <code>map</code> and <code>filter</code> are lazy and build nothing; each JavaScript <code>filter</code> and <code>map</code> allocates a fresh array.</p>
   </div>
 </section>
 
@@ -172,22 +189,24 @@
       <li>the <code>if</code> that clears away a value that may be missing.</li>
     </ul>
     <div class="ts-example" data-example="familiar_monads"></div>
-    <p>Those three share one shape, called a <strong>monad</strong>: a way in (<code>Ok</code>, <code>Promise.resolve</code>, a one-element list) and a chaining step that returns the same wrapper (<code>and_then</code>, <code>flatMap</code>, <code>bind</code>, <code>then</code>, <code>await</code>). <code>map</code> is the version for a step that can't fail. Here are the wrappers you'll meet:</p>
+    <p>Those three share one shape, called a <strong>monad</strong>: a way in (<code>Ok</code>, <code>Promise.resolve</code>, a one-element list) and a chaining step that returns the same wrapper (<code>and_then</code>, <code>flatMap</code>, <code>bind</code>, <code>then</code>, <code>await</code>). <code>map</code> is the version for a step that can't fail. The wrappers you'll meet:</p>
     <ul>
       <li><strong>Option</strong>: the answer may be missing. Neither language ships it; <code>| None</code> and optional chaining cover it.</li>
       <li><strong>Result</strong>: the step failed, and the reason matters.</li>
-      <li><strong>List</strong>: many answers at once, chained with <code>flatMap</code> or a comprehension.</li>
-      <li><strong>Promise</strong>: the answer arrives later, chained with <code>await</code>.</li>
+      <li><strong>List</strong>: many answers at once; chain them with <code>flatMap</code> or a comprehension.</li>
+      <li><strong>Promise</strong>: the answer arrives later; chain it with <code>await</code>.</li>
       <li><strong>Writer</strong>: an audit line travels beside the value.</li>
-      <li><strong>IO</strong>: a description of an effect, performed later at the edge.</li>
+      <li><strong>IO</strong>: a description of an effect; the edge of the program performs it later.</li>
     </ul>
-    <p>Reach for your own language's tools first: <code>None</code> narrowing, exceptions at the edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled monads aren't idiomatic in either language, and most teams treat them as friction. Only <code>Result</code> tends to earn its keep, so this page builds <code>Result</code> and stops there. Return <code>None</code> and every failure collapses into the same empty answer. Return a <code>Result</code> and each failure carries its reason, and <code>and_then</code> only runs the next step if the last one succeeded. Wlaschin calls this picture <em>railway-oriented programming</em>: two tracks and one switch. Every step allocates a wrapper, about 95 ns in Python.</p>
+    <p>Reach for your own language's tools first: <code>None</code> narrowing, exceptions at the edge, comprehensions, <code>async</code> and <code>await</code>. Hand-rolled monads aren't idiomatic in either language, and most teams treat them as friction. The exception is <code>Result</code>, and it's the only one you'll build here. Ernest's <code>quote</code> can fail three ways: the quantity isn't a number, the stock won't cover it, or the price is missing. All three come back as <code>None</code>, so Albert is told that the quote failed and nothing else.</p>
     <div class="ts-block" data-block="result_chain"></div>
-    <p>Now the failure sits in the signature, where an exception never was. A caller can't forget it, and the checker refuses a quote spent as a number.</p>
-    <p>Purity is the one idea on this page the checker can't see at all. A function typed <code>int</code> to <code>int</code> can peek at the clock, and the checker never blinks. So move whatever it reaches for into its signature: hand <code>remaining</code> the time, and a test pins the answer down. An argument is the cheapest thing on this page.</p>
+    <p>Each failure now carries its reason, and <code>and_then</code> runs the next step only when the one before it produced a value. The shape has a name, railway-oriented programming: two tracks and one switch. The failure is written in the signature, where an exception never was, so a caller has to open the <code>Result</code> to reach the price and can't spend the wrapper as a number. Every step allocates a wrapper, about 95 ns in Python.</p>
+    <p>Purity is the one idea on this page that no type can express: a signature saying <code>datetime</code> to <code>timedelta</code> says nothing about whether the function also reads the clock. Ernest's <code>remaining</code> read it inside, so how long until the afternoon dispatch depended on when you asked, and no test could pin the answer.</p>
     <div class="ts-block" data-block="pure_clock"></div>
-    <p>Most pipelines carry nothing extra, and then you need none of this. Composition is the types lining up, and a step out of order is a type error on its own.</p>
+    <p>Hand the time in as <code>now</code> instead. The answer then depends on the arguments alone, and a test can assert exactly thirty minutes. An argument is cheap, and it shows in the signature.</p>
+    <p>Most pipelines carry nothing extra, and then you need none of this. Ernest's order pipeline passed dictionaries from step to step, so a raw order and a priced one looked alike going in.</p>
     <div class="ts-block" data-block="typed_pipeline"></div>
+    <p>With a type for each stage, the steps only fit together one way round, and a pipeline written out of order stops being a program.</p>
   </div>
 </section>
 
@@ -196,7 +215,7 @@
     <h2>10. Exercises</h2>
 
     <h3>Exercise 1: make the typo impossible</h3>
-    <p>A typo killed one branch, and the checker can't see it. Turn the typo into a type error, and catch a forgotten status while you're there.</p>
+    <p>Ernest's typo killed one branch of <code>advance</code>, and the program runs anyway. Turn the typo into a type error, and catch any status nobody handled while you're there.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 3 for the literal type. Section 5 for an exhaustive match with
@@ -206,7 +225,7 @@
     <div class="ts-block" data-block="exercise_status_solution" data-collapse-after></div>
 
     <h3>Exercise 2: name the units and the flags</h3>
-    <p>Two call sites disagree about the argument order, and both pass. A row of bare booleans invites what Robert Harper calls <em>boolean blindness</em>. Give the units types and the flags names.</p>
+    <p>Two call sites disagree about the argument order, and both run. A row of bare booleans at a call site tells the reader nothing. Give the units types and the flags names.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 3 for the units. For the flags, use a frozen dataclass or an object
@@ -215,7 +234,7 @@
     <div class="ts-block" data-block="exercise_shipping_solution" data-collapse-after></div>
 
     <h3>Exercise 3: parse the user once</h3>
-    <p>A user arrives as JSON, then travels as a loose dictionary, so every function re-checks it. Parse once at the edge, then delete the checks.</p>
+    <p>The user record arrives as JSON and then travels through the program as a loose dictionary, so every function re-checks the fields before using them. Write one parse at the edge, then delete the downstream checks.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>Section 6. Write one parse function that returns a <code>User</code> or
@@ -224,7 +243,7 @@
     <div class="ts-block" data-block="exercise_user_json_solution" data-collapse-after></div>
 
     <h3>Exercise 4: separate the currencies</h3>
-    <p>Each amount keeps its currency in a string beside it, so the checker happily adds dollars to euros and calls it money. Move the currency into the types and that sum stops passing.</p>
+    <p>Each amount keeps its currency in a string beside it, so the program happily adds dollars to euros. Move the currency into the types, and that sum can't be written.</p>
     <details class="ts-solution">
       <summary>Hint</summary>
       <p>In Python, write one class per currency and a constrained type variable,
@@ -251,10 +270,10 @@
     <div class="table-scroll">
     <table>
       <tr><th>Concept</th><th>What it means</th><th>Scan or run time</th><th>Section</th></tr>
-      <tr><td>Gradual typing</td><td>Checked and unchecked code in one program, with <code>Any</code> as the seam. Typed Racket worked out the rules.</td><td>Scan only</td><td>2</td></tr>
+      <tr><td>Gradual typing</td><td>Checked and unchecked code in one program, with <code>Any</code> as the seam.</td><td>Scan only</td><td>2</td></tr>
       <tr><td><code>Any</code></td><td>The escape hatch: every value fits, and the checker stops looking.</td><td>Neither; it turns the checker off</td><td>2</td></tr>
       <tr><td>Stringly typed</td><td>Strings carry the meaning, where no checker can read it.</td><td>Neither; the checker sees a string</td><td>2</td></tr>
-      <tr><td>Narrowing</td><td>The checker follows a test and uses the narrower type inside the branch. Typed Racket called it <em>occurrence typing</em>.</td><td>Scan, and the test itself runs</td><td>2</td></tr>
+      <tr><td>Narrowing</td><td>The checker follows a test and uses the narrower type inside the branch.</td><td>Scan, and the test itself runs</td><td>2</td></tr>
       <tr><td>Type alias</td><td>A second name for the same type. It enforces nothing.</td><td>Scan only; nothing survives</td><td>3</td></tr>
       <tr><td><code>NewType</code>, brand</td><td>A distinct type over the same representation.</td><td>Scan only; the plain value remains</td><td>3</td></tr>
       <tr><td>Literal type</td><td>The values that exist, written into the type itself.</td><td>Scan only; plain strings at run time</td><td>3</td></tr>
@@ -262,11 +281,11 @@
       <tr><td>Units of measure</td><td>Quantities that must never mix; their types keep them apart.</td><td>Scan only</td><td>3</td></tr>
       <tr><td>Domain type</td><td>A type that states a fact about your problem.</td><td>Scan; a class also exists at run time</td><td>4</td></tr>
       <tr><td>Primitive obsession</td><td>Building everything out of raw strings and numbers. Scott Wlaschin's name for it.</td><td>Neither; the checker sees int and str</td><td>4</td></tr>
-      <tr><td>Smart constructor</td><td>The one function allowed to build a type, holding its invariant.</td><td>Both; the check runs, the type records it</td><td>4</td></tr>
+      <tr><td>Smart constructor</td><td>The one function that may build the type, holding its invariant.</td><td>Both; the check runs, the type records it</td><td>4</td></tr>
       <tr><td>Structural and nominal typing</td><td>Anything with the right shape fits, against only the declared name fits.</td><td>Scan only</td><td>4</td></tr>
       <tr><td><code>Protocol</code></td><td>Python's opt-in structural typing: the methods a value must have, no inheritance.</td><td>Scan only, unless marked runtime-checkable</td><td>4</td></tr>
-      <tr><td>Tagged union</td><td>One of several shapes, told apart by a tag. TypeScript calls it a discriminated union.</td><td>Scan; the tag field is real data</td><td>5</td></tr>
-      <tr><td>Illegal states unrepresentable</td><td>Reshape the data so nobody can build the bad combination. Yaron Minsky's phrase.</td><td>Scan only</td><td>5</td></tr>
+      <tr><td>Tagged union</td><td>One of several shapes, and the tag tells them apart. TypeScript calls it a discriminated union.</td><td>Scan; the tag field is real data</td><td>5</td></tr>
+      <tr><td>Illegal states unrepresentable</td><td>Reshape the data so the bad combination can't exist. Yaron Minsky's phrase.</td><td>Scan only</td><td>5</td></tr>
       <tr><td>Exhaustiveness checking</td><td>Every reader must handle every case, or the check fails.</td><td>Scan, with a throw as the net beneath</td><td>5</td></tr>
       <tr><td>Typestate</td><td>The type carries the value's stage, so a step out of order is a type error. Rust named it.</td><td>Scan only; the objects are ordinary</td><td>5</td></tr>
       <tr><td>Validation</td><td>Check a value and pass the same value on. Nothing records that the check ran.</td><td>Run time, and again at every reader</td><td>6</td></tr>
@@ -274,12 +293,12 @@
       <tr><td>Shotgun parsing</td><td>Every reader repeats the same check, and malformed input slips between them.</td><td>Run time, repeatedly</td><td>6</td></tr>
       <tr><td>Parse, don't validate</td><td>Alexis King's rule: convert at the border, then write functions on the data you wish you had.</td><td>Both, by design</td><td>6</td></tr>
       <tr><td>Schema validation</td><td>pydantic and zod: declare the shape once, and the library checks incoming data and hands the checker a type.</td><td>Run time, at the border</td><td>6</td></tr>
-      <tr><td>Fake type</td><td>A type wide enough to hold whatever the source can hold. It spreads through every signature and refuses nothing.</td><td>Scan only, and it holds nothing back</td><td>7</td></tr>
+      <tr><td>Fake type</td><td>A type wide enough to hold whatever the source can hold. It spreads through every signature and rules nothing out.</td><td>Scan only, and it holds nothing back</td><td>7</td></tr>
       <tr><td>Higher-order function</td><td>A function that takes or returns a function.</td><td>Both; real values the checker types</td><td>8</td></tr>
       <tr><td>Signature preservation</td><td>A wrapper that keeps the wrapped function's exact type.</td><td>Scan only</td><td>8</td></tr>
       <tr><td>Composition</td><td>One function's output is the next one's input, and the types must agree.</td><td>Both</td><td>9</td></tr>
       <tr><td>Monad</td><td>A wrapper with a way in and a chaining step that returns the wrapper.</td><td>Both; real values, checked chains</td><td>9</td></tr>
-      <tr><td>Railway-oriented programming</td><td>Wlaschin's picture of a Result chain: two tracks, one switch.</td><td>Both</td><td>9</td></tr>
+      <tr><td>Railway-oriented programming</td><td>Scott Wlaschin's picture of a Result chain: two tracks, one switch.</td><td>Both</td><td>9</td></tr>
       <tr><td>Purity</td><td>Same arguments, same result, nothing else. Formally, <em>referential transparency</em>.</td><td>Neither; a discipline the checker can't see</td><td>9</td></tr>
       <tr><td>Dependency injection</td><td>Hand a function what it needs instead of letting it reach out.</td><td>Both; a real argument with a type</td><td>9</td></tr>
       <tr><td>Functional core, imperative shell</td><td>Effects at the boundary, pure functions in the middle. Gary Bernhardt's shape.</td><td>Neither; an arrangement</td><td>9</td></tr>
@@ -325,7 +344,7 @@
       <tr><td>zod schema</td><td>The inferred static type</td><td>Validation: about 46 ns per object, and 180 ns including <code>JSON.parse</code></td><td>The border, where data arrives as text</td><td>a library</td></tr>
     </table>
     </div>
-    <p>Those figures come from one laptop, Python 3.14 and Node 26, and yours will differ. Remember the shape, not the numbers. Anything the checker alone uses is free, because it vanishes before the program runs. Compile the TypeScript above and the alias, the brand, the literal union, the interface and the <code>satisfies</code> leave no trace; only the enum, the class and the values survive. You pay for what exists: an object to allocate, a member to look up, a value to validate. Freezing a dataclass roughly triples the cost of building one, and a validating model costs a hundred times a plain dictionary. Both earn their keep at a border and rarely inside a loop.</p>
+    <p>Those figures come from one laptop, Python 3.14 and Node 26, and yours will differ. Remember the shape, not the numbers. Anything the checker alone uses is free, because it vanishes before the program runs. Compile the TypeScript above and the alias, the brand, the literal union, the interface and the <code>satisfies</code> leave no trace; only the enum, the class and the values survive. You pay for what exists: an object to allocate, a member to look up, a value to validate. Freezing a dataclass roughly triples the cost of building one, and a validating model costs a hundred times a plain dictionary. Use both at a border, and rarely inside a loop.</p>
     <p>Count the other costs too:</p>
     <ul>
       <li>Data from the wild arrives dirty, and a model that holds only clean values can't load the record you need to repair.</li>
@@ -339,7 +358,7 @@
 <section>
   <div class="shell prose">
     <h2>Where this goes next</h2>
-    <p>Here's the file from section 1, rewritten. The checker now catches every mistake this page covered.</p>
+    <p>Here's Ernest's file from section 1, rewritten. None of his five mistakes can be written in it any more.</p>
     <div class="ts-example" data-example="the_program_fixed"></div>
     <p>The Rust side of this repository applies the same ideas: <a href="types.html">Making it unrepresentable</a>. The examples behind this page live in <a href="https://github.com/e6qu/fun-refactor/tree/main/tests/typesafety">tests/typesafety</a>, and <a href="https://github.com/e6qu/fun-refactor/blob/main/tests/typesafety.rs">tests/typesafety.rs</a> keeps them honest.</p>
     <div class="ts-mantras">
@@ -355,7 +374,7 @@
 <section id="how-this-page-works">
   <div class="shell prose">
     <h2>How does this page work?</h2>
-    <p>Type in any cell, press a button, and a real tool runs in your tab. No server anywhere; the tab is the whole machine.</p>
+    <p>Every cell on this page is a working editor. Type in one, press a button, and the real tool runs in your browser tab. The sections below say how each one got there.</p>
     <p><strong>Run, Python.</strong> <a href="https://pyodide.org">Pyodide</a> is CPython compiled to WebAssembly. The first click loads it from a CDN. Each run hands your cell to the interpreter with fresh globals and shows what it printed.</p>
     <p><strong>Type check, Python.</strong> PyPI carries mypy as a pure-Python wheel, so Pyodide can install it in the browser. The button installs <code>mypy==1.18.2</code>, writes your cell to <code>/cell.py</code> on the virtual filesystem with a strict <code>mypy.ini</code> beside it, and calls mypy's API. The words are mypy's, character for character.</p>
     <p><strong>TypeScript.</strong> tsc was always JavaScript, so one CDN script is the whole compiler. Diagnostics use the same strict flags as the repository's tests; Run transpiles and evaluates.</p>
