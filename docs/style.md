@@ -38,6 +38,58 @@ how" or "this is what makes".
 
 **Use a list** for three or more items, for conditions, and for steps in order.
 
+## Tutorials
+
+A tutorial is a lesson, and the reader is the student. The reader acts; the types are
+what the reader changes; the checker is the tool that enforces the result. Do not cast
+the checker as the pupil or the hero.
+
+**People make the mistakes.** Give the story a person with a name and let the mistakes be
+theirs. A named clerk who typed `darft` gives every later sentence a subject. "A status is
+misspelled" has no one in it, and prose without actors slides back into passive voice.
+
+**Say what can no longer exist.** The payoff of a type is that the bad program stops being
+a program. Write "that call can't exist any more", not "the checker rejects it".
+
+**Keep the three parts apart.** The paragraph above a code cell states the problem and
+stops there. The cell answers it. The paragraph below draws the conclusion and gives the
+run-time cost. Do not braid the three together.
+
+**Describe only what the cell contains.** Every claim about an example is checked against
+the file. Do not invent a detail to fit the story.
+
+**Names cost the reader.** A person's name or another language's name in the middle of a
+lesson buys nothing. Credit belongs in the concepts table. Quote somebody's words and the
+credit stays with the quote.
+
+## Sentence rhythm
+
+A device used once is a pleasure and used ten times is a tic. Count these before
+committing prose:
+
+- **Ending on a negation.** "and never complains", "and nothing notices". One per page.
+- **The balanced pair.** Two mirrored clauses, one after the other. Break the second.
+- **The three-part list inside a sentence.** Keep one per document.
+- **The trailing sting.** A comma and a short verdict added after the sentence has ended.
+- **The three-word beat.** "The program took it." A short sentence should carry a fact.
+
+Read the sentence aloud. If it sounds like a line from a talk, write the plain version.
+
+## Phrases a language model reaches for
+
+These arrive ready-made and read as filler to anyone who has seen them before. The list
+grows. Add to it whatever gets caught in review.
+
+| Avoid | Write |
+| --- | --- |
+| earns its keep, earns its place | is worth the cost, say what it buys |
+| load-bearing | say what depends on it |
+| the price of admission | what you have to do |
+| does the heavy lifting | name the part that does the work |
+| a testament to, delve, tapestry, landscape | (delete, then say the fact) |
+| not just X, but Y | the positive claim on its own |
+| an alliterated summary, "pence pass for pounds" | the plain statement |
+
 ## What a comment is for
 
 A comment says what the reader cannot see in the code.
