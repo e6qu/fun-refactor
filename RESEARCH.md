@@ -2,20 +2,20 @@
 
 Target languages (inherited from [funveil](https://github.com/e6qu/funveil), see its
 [docs/LANGUAGE_FEATURES.md](https://github.com/e6qu/funveil/blob/main/docs/LANGUAGE_FEATURES.md)):
-**Rust, Go, Zig, TypeScript/TSX, Python, Bash, HTML, CSS/SCSS, Terraform/HCL, Helm/YAML, XML, Markdown**,
-all parsed with tree-sitter (funveil pins tree-sitter 0.26 + per-language grammar crates).
+**Rust, Go, Zig, TypeScript/TSX, Python, Bash, HTML, CSS/SCSS, Terraform/HCL, Helm/YAML, XML, Markdown**.
+tree-sitter parses all of them, and funveil pins tree-sitter 0.26 + per-language grammar crates.
 
 ## 1. The canonical catalog
 
 Fowler's catalog ([refactoring.com/catalog](https://refactoring.com/catalog/)) has ~66 named
-refactorings, but mainstream engines automate only about a dozen. Cross-referencing
+refactorings, but mainstream engines automate only about a dozen. Cross-reference
 [rust-analyzer's assists](https://rust-analyzer.github.io/book/assists.html),
 [gopls transformations](https://go.dev/gopls/features/transformation),
 [VS Code / TS language service](https://code.visualstudio.com/docs/typescript/typescript-refactoring),
 [rope](https://rope.readthedocs.io/en/latest/overview.html) /
 [PyCharm](https://www.jetbrains.com/help/pycharm/refactoring-source-code.html), and
-[IntelliJ's common set](https://www.jetbrains.com/help/idea/refactoring-source-code.html),
-the **table stakes** are:
+[IntelliJ's common set](https://www.jetbrains.com/help/idea/refactoring-source-code.html).
+The **table stakes** are:
 
 | Refactoring | LSP kind | Knowledge required |
 |---|---|---|
@@ -29,22 +29,24 @@ the **table stakes** are:
 | Organize imports | `source.organizeImports` | module resolution to detect unused |
 | Safe delete | (JetBrains concept) | inverse reference index ("who still uses this?") |
 
-Advanced tier (differentiators): the `refactor.rewrite.*` micro-transform tail (invert-if,
-guarded return, de Morgan, fill-struct/switch, loop↔iterator), class-level ops
-(extract class/interface, pull up/push down), async conversions, and rope-style
-**pattern restructure** (user-supplied before/after patterns, the only precedent for
-automating catalog entries like Replace Loop with Pipeline).
+The advanced tier holds the differentiators:
+- the `refactor.rewrite.*` micro-transform tail (invert-if, guarded return, de Morgan,
+  fill-struct/switch, loop↔iterator)
+- class-level ops (extract class/interface, pull up/push down)
+- async conversions
+- rope-style **pattern restructure** (user-supplied before/after patterns, the only
+  precedent for automating catalog entries like Replace Loop with Pipeline)
 
-Notable gaps in the ecosystem we can exploit:
-- LSP has **no change-signature flow**, a CLI-native one is an advantage. It is not a workaround.
+The ecosystem leaves two gaps open to us:
+- LSP offers **no change-signature flow**, so a CLI-native one is an advantage.
 - gopls drops comments in extract/inline ([golang/go#20744](https://github.com/golang/go/issues/20744));
   comment preservation is a known weak spot everywhere.
 
 ## 2. The language suite splits in two
 
-**Big-4 code languages (Rust, Go, TS/TSX, Python)**, mature LSPs exist
+**Big-4 code languages (Rust, Go, TS/TSX, Python)**. Mature LSPs already cover them
 (rust-analyzer, gopls, typescript-language-server, pyright). Correct project-wide rename here
-requires imports/types/dynamic dispatch; only a compiler-grade frontend gets it right.
+requires imports/types/dynamic dispatch, so only a compiler-grade frontend gets it right.
 
 **The other eight (Zig, Bash, HTML, CSS/SCSS, HCL, Helm/YAML, XML, Markdown)**. LSP support is
 weak to nonexistent (terraform-ls rename: open request
@@ -53,10 +55,10 @@ rename: [bash-lsp#161](https://github.com/bash-lsp/bash-language-server/issues/1
 returns empty edits in practice, [serena#799](https://github.com/oraios/serena/issues/799);
 nothing rename-grade for HTML/CSS/XML/Markdown/Helm). But their name semantics are simple and
 **string-keyed** (Terraform addresses, Helm `.Values` paths, CSS selectors, XML ids, Markdown
-anchors), small hand-written binders on tree-sitter are feasible and *nobody else has built
+anchors). Small hand-written binders on tree-sitter are feasible, and *nobody else has built
 this*. Cross-language refs (CSS class ↔ HTML/TSX `className`, `values.yaml` ↔ template
-`{{ .Values.x }}`, Terraform `var.x` ↔ `variables.tf`) are invisible to every LSP, the unique
-value of a multi-language tool.
+`{{ .Values.x }}`, Terraform `var.x` ↔ `variables.tf`) are invisible to every LSP. A
+multi-language tool draws its unique value from them.
 
 ## 3. Architecture options
 
@@ -72,42 +74,42 @@ value of a multi-language tool.
 
 Key facts:
 - **`github/stack-graphs` is archived** (2025-09-09, read-only; only 4 language definitions ever
-  shipped: Java/JS/Python/TS), do not build on it.
-  [`tree-sitter/tree-sitter-graph`](https://github.com/tree-sitter/tree-sitter-graph) is alive
-  but you'd own all binding rules.
+  shipped: Java/JS/Python/TS). Do not build on it.
+  [`tree-sitter/tree-sitter-graph`](https://github.com/tree-sitter/tree-sitter-graph) is alive,
+  but you would own every binding rule.
 - tree-sitter `locals.scm` captures (`@local.scope/definition/reference`) give per-file
-  lexical scoping, enough for shadowing-safe renames, but no imports/types, and shipped
-  query quality varies per grammar.
-- **Lossless editing**: tree-sitter CSTs keep every byte (comments included). So edits are
-  byte-range splices on original source, applied descending by offset, followed by incremental
-  reparse + assert-no-ERROR-nodes
+  lexical scoping, which covers shadowing-safe renames. They give no imports and no types,
+  and shipped query quality varies per grammar.
+- **Lossless editing**: tree-sitter CSTs keep every byte (comments included). So splice byte
+  ranges into the original source and apply them descending by offset. Then reparse
+  incrementally and assert no ERROR nodes
   ([docs](https://tree-sitter.github.io/tree-sitter/using-parsers/3-advanced-parsing.html)).
   This beats pretty-printing (recast's fallback reformats; OpenRewrite's whitespace-carrying
   LST needs a compiler frontend per language). ast-grep's indentation-aware fixes prove the
   approach yields hand-written-looking output.
 - **Piranha lesson** ([uber/piranha](https://github.com/uber/piranha)): cascading rule graphs
-  (delete flag → inline constant → delete dead branch → delete unused var/file) get deep
-  cleanup without a full semantic model.
+  get deep cleanup without a full semantic model. The chain runs delete flag → inline
+  constant → delete dead branch → delete unused var/file.
 - **Headless LSP prior art**: `gopls rename -w` is the model CLI; Serena/SolidLSP
   ([oraios/serena](https://github.com/oraios/serena)) is the best-documented multi-server
-  headless orchestration. Real costs: server startup (everyone ends up daemonizing), per-language
-  project-config discovery, applying `WorkspaceEdit` yourself, capability checks before offering
-  an op.
+  headless orchestration. Four costs are real: server startup (everyone ends up daemonizing),
+  per-language project-config discovery, applying `WorkspaceEdit` yourself, and capability
+  checks before offering an op.
 
 ## 4. Recommended hybrid
 
 1. **Substrate (all 12)**: Rust CLI, funveil's grammar set, byte-splice edit engine with
    descending-offset application, post-edit reparse validation, dry-run diff output.
 2. **Own resolution where LSPs are weak** (the eight): `locals.scm` scope trees for
-   shadowing-safe renames; weekend-sized string-keyed binders per config/markup language
+   shadowing-safe renames. Weekend-sized string-keyed binders per config/markup language
    (Terraform address graph, Helm values paths, CSS↔HTML selectors, XML id/idref, Markdown
-   anchors/links); cross-language reference index on top.
+   anchors/links). A cross-language reference index on top.
 3. **Optional LSP delegation for the big 4**: `prepareRename` → `rename` → apply WorkspaceEdit,
-   with capability checks and LSP diagnostics as post-edit verification. Without it, big-4
-   renames are offered in "syntactic + scope-checked" mode with explicit safety caveats.
-4. **Safety net for what nothing catches**: after any rename, textual sweep for the old name in
-   strings/comments/templates across *all* languages; surface hits for review (string refs
-   defeat both syntax and LSP).
+   with capability checks and LSP diagnostics as post-edit verification. Without it, the tool
+   offers big-4 renames in "syntactic + scope-checked" mode with explicit safety caveats.
+4. **Safety net for what nothing catches**: after any rename, sweep the text for the old name
+   in strings/comments/templates across *all* languages. Surface the hits for review, because
+   string refs defeat both syntax and LSP.
 
 ## 5. Refactor × language-class matrix (what "all the standard refactors" concretely means)
 
@@ -122,21 +124,20 @@ Key facts:
 | Safe delete | via reference index | — | unused variables/outputs/locals | **unused values.yaml keys** | **dead selectors** (vs HTML/TSX usage) | unused ids | orphaned link defs |
 | Organize imports | full | Zig `@import` | — | — | `@use`/`@import` ordering | — | — |
 
-Bold entries are things no existing tool does; they fall out naturally from the cross-language
-reference index.
+No existing tool does the bold entries. They fall out of the cross-language reference index.
 
 ## 6. Beyond refactors: entrypoints, flow analysis, call graphs
 
-The analysis features and the refactorings share one substrate: the reference index that makes
-rename safe is the Tier-0 layer of the flow graph.
+The analysis features and the refactorings share one substrate. The reference index that makes
+rename safe serves as the Tier-0 layer of the flow graph.
 
 ### 6.1 What funveil already has (and its limits)
 
 - **Call graph** (`src/analysis/call_graph.rs`): petgraph `DiGraph<FunctionNode, CallEdge>` with
-  BFS `trace()`, DOT export, std-function filtering. Resolution is **pure string-name matching**:
-  no scoping, no import resolution, same-named functions in different files are conflated into
-  one node. Dynamic calls carry an `is_dynamic` flag but are never resolved. Good API shape
-  (callers/callees/trace/format_tree), floor-level precision.
+  BFS `trace()`, DOT export, std-function filtering. Resolution is **pure string-name matching**,
+  with no scoping and no import resolution, so it conflates same-named functions in different
+  files into one node. Dynamic calls carry an `is_dynamic` flag, and nothing ever resolves them.
+  Good API shape (callers/callees/trace/format_tree), floor-level precision.
 - **Entrypoint detection** (`src/analysis/entrypoints.rs`): five categories (Main, Test, Cli,
   Handler, Export) via naming conventions, attributes (`#[test]`, `#[tokio::main]`,
   `#[derive(Parser)]`), and file conventions (`main.tf`, `page.tsx`, `Chart.yaml`). Binary
@@ -154,30 +155,30 @@ rename safe is the Tier-0 layer of the flow graph.
 
 **Achievable target:** Tier 2–3 for the imperative languages (Semgrep proves the parser stack;
 Joern proves the architecture works without types for dynamic languages). The known cost of no
-compiler is **call boundaries**, so: intra-procedural reaching-defs everywhere, inter-procedural
-tracing as query-time traversal that **downgrades confidence loudly at unresolved call edges**,
-plus Joern-style summaries for stdlib/framework functions.
+compiler is **call boundaries**. So run intra-procedural reaching-defs everywhere, and make
+inter-procedural tracing a query-time traversal that **downgrades confidence loudly at
+unresolved call edges**. Add Joern-style summaries for stdlib/framework functions.
 
-**Config languages get different, and fully solvable, flow semantics. Substitution/override
-provenance**, since each has a deterministic evaluation model:
+Config languages get flow semantics of their own. Each one evaluates deterministically, so
+**substitution/override provenance** solves them completely:
 - Terraform: `var`/`local`/`module.out` substitution is a true value DAG. Checkov implements it
   completely with attribute-labeled edges and multi-pass rendering
-  ([local_graph.py](https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/graph_builder/local_graph.py));
-  its one flaw: it substitutes in place, destroying the hop chain. We must keep it.
+  ([local_graph.py](https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/graph_builder/local_graph.py)).
+  Its one flaw: it substitutes in place and destroys the hop chain. We must keep that chain.
 - Helm: 4-level override precedence + coalescing ([docs](https://helm.sh/docs/chart_template_guide/values_files/));
   [helm-ls](https://github.com/mrjosh/helm-ls) already resolves `.Values.x` → values files.
 - CSS: the cascade **is** a spec'd provenance algorithm (origin → layer → specificity → order);
   DevTools' struck-through-losers view is the reference UX.
-- YAML: anchors are discarded post-composition per spec, provenance must be captured
-  pre-composition, which a CST-based tool does naturally (advantage over yq-style tools).
+- YAML: the spec discards anchors post-composition, so a tool must capture provenance
+  pre-composition. A CST-based tool does that naturally (advantage over yq-style tools).
 - Markdown: [marksman](https://github.com/artempyanykh/marksman) does link resolution; HTML
   id/`for` reference resolution is a genuine gap (vscode-html-languageservice doesn't do it).
 
 ### 6.3 Unified graph model (steal from Joern + Checkov)
 
-One directed, edge-labeled property multigraph; shared nodes, **separate edge layers** built
-incrementally per language, queries degrading gracefully when a layer is absent (Joern CPG's key
-design, [cpg.joern.io](https://cpg.joern.io/)):
+Use one directed, edge-labeled property multigraph with shared nodes. Build **separate edge
+layers** incrementally per language, and let queries degrade gracefully when a layer is absent
+(Joern CPG's key design, [cpg.joern.io](https://cpg.joern.io/)):
 
 - **Nodes**: `File`, `Symbol` (kind: function/type/var/param/css-rule/tf-block/helm-key/
   yaml-anchor/md-heading…, byte range, language), `CallSite`, `Reference`, `Value`.
@@ -193,7 +194,7 @@ reverse. The layers stitch across the code/config boundary (Helm value → env v
 
 ### 6.4 Call-graph resolution per language
 
-The literature's headline: **precision is cheap, recall dies on dynamic features**; the unsound
+The literature's headline: **precision is cheap, recall dies on dynamic features**. The unsound
 field-based heuristic (bucket call targets by method/property name, [Feldthaus et al.
 ICSE'13](https://www.franktip.org/pubs/icse2013approximate.pdf)) gets ~66–80% precision / ≥85%
 recall on JS with no types, the single most effective technique.
@@ -208,14 +209,14 @@ recall on JS with no types, the single most effective technique.
 | Bash | function-name-in-command-position + static `source` resolution | bash-language-server has no callHierarchy either |
 
 Every `CALLS` edge carries its resolution-confidence tag (compare Sourcegraph's
-precise vs search-based split). LSP callHierarchy stays an optional precision backend, not the
-core: whole-program extraction is O(2 requests/function), so Sourcegraph abandoned
+precise vs search-based split). LSP callHierarchy stays an optional precision backend rather
+than the core. Whole-program extraction costs O(2 requests/function), so Sourcegraph abandoned
 LSP for compiler-based SCIP indexers.
 
 ### 6.5 Entrypoint catalog
 
-Funveil's five categories survive, but detection moves from hardcoded Rust heuristics to
-**flat declarative per-framework YAML catalogs**, following CodeQL Models-as-Data
+Funveil's five categories survive. Detection moves from hardcoded Rust heuristics to
+**flat declarative per-framework YAML catalogs**. Two precedents lead: CodeQL Models-as-Data
 (`sourceModel(package, type, name, kind, provenance)` rows,
 [docs](https://codeql.github.com/docs/codeql-language-guides/customizing-library-models-for-java-and-kotlin/))
 and [OWASP noir](https://github.com/owasp-noir/noir) (~193 frameworks incl. Rust/Zig/Go/Python/TS,
@@ -230,17 +231,21 @@ Semgrep's per-rule duplication of source definitions is the anti-pattern to avoi
 ### 6.6 Licensing constraints
 
 CodeQL engine: proprietary, unembeddable. Safe design references: Semgrep/Opengrep (LGPL-2.1),
-Joern (Apache-2.0), Checkov (Apache-2.0). Fits an AGPL-3.0 tool like funveil.
+Joern (Apache-2.0), Checkov (Apache-2.0). All three fit an AGPL-3.0 tool like funveil.
 
 ## 7. Prior art shortlist
 
-[ast-grep](https://github.com/ast-grep/ast-grep) · [GritQL](https://github.com/getgrit/gritql)
-([Biome fork](https://github.com/biomejs/gritql)) · [comby](https://comby.dev) +
-[Sourcegraph batch changes](https://sourcegraph.com/docs/batch-changes/faq) ·
-[Polyglot Piranha](https://github.com/uber/piranha)
-([PLDI'24 paper](https://danieltrt.github.io/papers/pldi24.pdf)) ·
-[OpenRewrite LST docs](https://docs.openrewrite.org/concepts-and-explanations/lossless-semantic-trees) ·
-[gopls CLI](https://pkg.go.dev/golang.org/x/tools/gopls/internal/lsp/cmd) ·
-[Serena/SolidLSP](https://github.com/oraios/serena) · [rope](https://rope.readthedocs.io) ·
-[rust-analyzer SSR / ra_ap_ssr](https://docs.rs/crate/ra_ap_ssr/latest) ·
-[LibCST](https://github.com/Instagram/LibCST) · jscodeshift/[recast](https://github.com/benjamn/recast)
+The shortlist:
+
+- [ast-grep](https://github.com/ast-grep/ast-grep).
+- [GritQL](https://github.com/getgrit/gritql) ([Biome fork](https://github.com/biomejs/gritql)).
+- [comby](https://comby.dev) + [Sourcegraph batch changes](https://sourcegraph.com/docs/batch-changes/faq).
+- [Polyglot Piranha](https://github.com/uber/piranha)
+  ([PLDI'24 paper](https://danieltrt.github.io/papers/pldi24.pdf)).
+- [OpenRewrite LST docs](https://docs.openrewrite.org/concepts-and-explanations/lossless-semantic-trees).
+- [gopls CLI](https://pkg.go.dev/golang.org/x/tools/gopls/internal/lsp/cmd).
+- [Serena/SolidLSP](https://github.com/oraios/serena).
+- [rope](https://rope.readthedocs.io).
+- [rust-analyzer SSR / ra_ap_ssr](https://docs.rs/crate/ra_ap_ssr/latest).
+- [LibCST](https://github.com/Instagram/LibCST).
+- jscodeshift/[recast](https://github.com/benjamn/recast).

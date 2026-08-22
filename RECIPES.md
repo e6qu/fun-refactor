@@ -1,25 +1,25 @@
 # Refactoring recipes
 
 A **recipe** is a refactoring written down: a file that says what to find, what to do
-to it, and what must be true afterwards. It is reviewable, re-runnable, and it fails
-loudly.
+to it, and what must be true afterwards. A reviewer can read it, you can run it again,
+and it fails loudly.
 
-**Built.** `fr recipe <file>` runs one; `src/recipe/` is the implementation and
+**Built.** Run `fr recipe <file>` to apply one. `src/recipe/` implements the runner and
 `tests/recipe.rs` covers it. The tutorial at
 [docs/recipes.html](https://e6qu.github.io/fun-refactor/recipes.html) works five of
 them, in five languages, with the output the tool produced.
 
-What the design argued for and what got built agree. Every predicate in the table below
-is implemented, including the four that were not at first. `calls=` and `called-by=`
-come from one call graph, built only when one of them is asked for. `implements=` from
-the hierarchy; and `matches=` from the pattern matcher, which needs `lang=` beside it
-because the same text parses into a different tree in every language.
+The design and the build agree. Every predicate in the table below is implemented,
+including the four that were missing at first. One call graph answers both `calls=` and
+`called-by=`, and the runner builds it only when a recipe asks for one of them. The
+hierarchy answers `implements=`. The pattern matcher answers `matches=`, and it needs
+`lang=` beside it: the same text parses into a different tree in every language.
 
-The runner found a defect the design could not have: the refactorings read source through `crate::vfs`. So a step planned
-after another step was measured against the file on *disk*, the text before any step
-ran. The in-memory backing that the browser build uses is now compiled everywhere and
-the runner installs the workspace on it, which makes "each step sees what the
-last one left" true and not intended.
+The runner found a defect the design could not have: the refactorings read source
+through `crate::vfs`. So a later step read the file on *disk*, the text as it stood
+before any step ran. The in-memory backing that the browser build uses now compiles
+everywhere, and the runner installs the workspace on it. The design intended "each step
+sees what the last one left". The runner now delivers it.
 
 ```
 schema 1
@@ -44,54 +44,52 @@ recipe retire-legacy-auth {
 
 ## Why
 
-Every command in this tool acts on **one** target. That is right for a person at a
-terminal and wrong for the work people have:
+Every command in this tool acts on **one** target. A person at a terminal wants that.
+The work people bring does not fit it:
 
 - *"Retire `USE_LEGACY_AUTH`, delete what it was guarding, and tidy the imports that
   leaves behind."*, three commands, in order, each depending on the last.
-- *"Turn every wrapping `if` in `pkg/services` into a guard clause."* — 1,498 sites in
-  helm/helm alone. Nobody types that.
+- *"Turn every wrapping `if` in `pkg/services` into a guard clause."* That names 1,498
+  sites in helm/helm alone. Nobody types that.
 
-Today each is a shell loop over `fr`, which means the refusals scroll past, the
-ordering is implicit. The thing you did is written down nowhere a
-reviewer can read. A recipe makes the *plan* the artifact. The diff is what it
-produces.
+Today you write a shell loop over `fr`. The refusals scroll past, the ordering stays
+implicit, and nowhere does a reviewer find what you did written down. A recipe makes
+the *plan* the artifact and the diff its product.
 
 ## Non-goals
 
 **Not a programming language.** No loops, no arithmetic, no user-defined functions,
 no conditionals. The moment a recipe needs those it should be a program calling the
-CLI, and we should make that pleasant instead. Every construct below earns its place
-by appearing in a refactoring someone wants.
+CLI, and we should make that pleasant instead. Every construct below appears in a
+refactoring someone wants.
 
-**Does not extend what the tool can do.** A recipe composes existing operations. If a
-step could not be typed as an `fr` command, it is not a step.
+**Does not extend what the tool can do.** A recipe composes existing operations. If you
+could not type a step as an `fr` command, it is not a step.
 
-**Not a linter.** It changes code. Reporting without changing is the default run:
-nothing is written without `--write`, so every run is its own check.
+**Not a linter.** A recipe changes code. The default run reports without changing:
+nothing is written without `--write`, so every run doubles as a check.
 
 ## The cost of a bespoke syntax, and how it gets paid
 
-This is a third mini-language in one repository, after the entry-point catalogs and
-the `$META` patterns in `restructure`. That is a real cost and it buys terseness. To
-be worth it, three things have to come with the language, and here is where each
-stands:
+This repository now holds a third mini-language, after the entry-point catalogs and
+the `$META` patterns in `restructure`. The cost is real and it buys terseness. Three
+things have to come with the language to justify it, and here is where each stands:
 
 1. **Errors that name the mistake and where it is**, with a suggestion from the
-   closed vocabulary. Built: a mistyped predicate is answered with `there is no
-   predicate called 'exportd'. Did you mean 'exported'?`, which is the difference
-   between a language and a chore.
+   closed vocabulary. Built: type a predicate wrong and the parser answers `there is
+   no predicate called 'exportd'. Did you mean 'exported'?`. A language without that
+   answer is a chore.
 2. **`fr recipe <file> --explain`**, print what a recipe would do, without running
    it. Built: it parses the file and prints the steps, the selectors and the
-   expectations, and nothing is selected or run. A terse language earns its
-   terseness only if you can ask it what it means.
-3. **One canonical layout.** Not built. The parser keeps no layout and has no
-   printer that round-trips a file. So an `fr recipe fmt` would be new machinery
-   rather than a flag on what exists. Until it is written, the layout is the
-   author's, and a diff of a recipe is still a diff of its meaning.
+   expectations, selecting and running nothing. A terse language repays reading only
+   when you can ask it what it means.
+3. **One canonical layout.** Not built. The parser discards layout and no printer
+   round-trips a file, so `fr recipe fmt` would need new machinery instead of a flag
+   on what exists. Until someone writes it, the author owns the layout, and a diff of
+   a recipe still shows a diff of its meaning.
 
-Anything less on the first two and the YAML we did not write would have been the
-better choice.
+Weaken either of the first two and the YAML we did not write becomes the better
+choice.
 
 ## Lexical structure
 
@@ -104,14 +102,14 @@ better choice.
 | Booleans | `true`, `false` |
 | Layout | insignificant: newlines and indentation are whitespace |
 
-Two string forms because patterns *are code*, and code is full of quotes:
-`'"%s" % ($X,)'` needs no escaping and stays legible. Raw strings cannot contain
-their own delimiter; use the other form.
+Patterns *are code*, and code is full of quotes, so the language offers two string
+forms: `'"%s" % ($X,)'` needs no escaping and stays legible. A raw string cannot
+contain its own delimiter; write it in the other form.
 
-Statements are **not** terminated. A statement ends when the parser meets a token that
-can only begin a new one. That works because **step keywords are reserved and no
-predicate shares a name with one**, an invariant a test enforces, not a hope. It is
-what lets a `where` clause run across as many lines as it needs with no punctuation:
+Nothing terminates a statement. The parser ends one when it meets a token that can only
+begin the next. **Step keywords are reserved and no predicate shares a name with one**,
+an invariant a test enforces. So a `where` clause runs across as many lines as it needs
+with no punctuation:
 
 ```
 delete where kind=function
@@ -179,11 +177,11 @@ All three are the same mistake: **the grammar is permissive where the operations
 not.** A production that says `operation , [selector] , {modifier}` cannot express
 that `rewrite` needs a name, that `rename` needs a target, or that `remove-flag` acts
 on the whole workspace and a `where` clause is meaningless to it. The third is the
-worst, silently accepting a selector and ignoring it is exactly the accept-and-ignore
-this codebase bans elsewhere.
+worst: it accepts a selector and drops it without a word, the accept-and-ignore this
+codebase bans elsewhere.
 
-The fix is not a bigger grammar. It is a **signature table**, checked immediately
-after the parse:
+Fix all three with a **signature table**, checked immediately after the parse, rather
+than with a bigger grammar:
 
 | Operation | Positional | Selector | Notes |
 | --- | --- | --- | --- |
@@ -202,24 +200,23 @@ after the parse:
 
 Two more things the prototype argued for:
 
-- **A value may not be a bare reserved word.** `where name=` followed by a newline and
-  `imports` swallowed `imports` as the value and then failed confusingly two tokens
-  later. Refusing keywords in value position turns that into
+- **A value may not be a bare reserved word.** The prototype read `where name=`, a
+  newline, and `imports`, and took `imports` as the value. It then failed confusingly
+  two tokens later. Refusing keywords in value position turns that into
   `name= needs a value; found the step keyword 'imports'`.
 - **`where` and modifiers should be order-independent.** The prototype rejected
-  `delete on-refusal allow where unused`, an unmemorable rule that
-  which buys nothing.
+  `delete on-refusal allow where unused`, an unmemorable rule that buys nothing.
 
 `schema 1` is the first statement in the file and is mandatory. It makes the
-staged answer to sharing possible: a reader can refuse a file it does not understand
-before it has parsed a single step. See *Sharing*, below.
+staged answer to sharing possible: a reader refuses a file it does not understand
+before parsing a single step. See *Sharing*, below.
 
 ## Selection
 
 The heart of it. Everything else is the existing CLI.
 
-The predicate vocabulary is the **entry-point catalog matcher**, which already exists
-in `src/analysis/entrypoints.rs` and already carries rules for thirteen languages:
+The predicates come from the **entry-point catalog matcher** in
+`src/analysis/entrypoints.rs`, which already carries rules for thirteen languages:
 
 | Predicate | Matches |
 | --- | --- |
@@ -231,11 +228,11 @@ in `src/analysis/entrypoints.rs` and already carries rules for thirteen language
 | `file~"*_test.go"` | by path glob |
 | `lang=python` | one of the sixteen |
 
-Reusing it means a recipe's selector and an entry-point rule mean the same thing by
-construction, and the matcher gains from being used twice.
+Reuse it and a recipe's selector means what an entry-point rule means, by
+construction. The matcher gains from a second caller.
 
-A recipe adds predicates that only make sense against a whole workspace, each one an
-existing analysis, not new machinery:
+A recipe adds predicates that only make sense against a whole workspace. Each one is an
+existing analysis:
 
 | Predicate | Meaning | Comes from |
 | --- | --- | --- |
@@ -253,9 +250,9 @@ So *"every unused unexported helper under `src/adapters`"* is:
 delete where unused !exported kind=function in="src/adapters/"
 ```
 
-**A selector that matches nothing stops the recipe.** Silently doing nothing is the
-failure this design most wants to avoid, because it looks like success. Write
-`allow-empty` when a step is genuinely conditional.
+**A selector that matches nothing stops the recipe.** Doing nothing without a word
+looks like success, and this design fears that failure most. Write `allow-empty` when
+a step is genuinely conditional.
 
 ## Steps
 
@@ -275,28 +272,27 @@ rewrite guard-clause       where lang=go in="pkg/services/"
 extract function at "report.py:24:5-31:20" as "accumulate"
 ```
 
-What it becomes sits next to the verb; the selector, which can be long, trails. Two
+The result sits next to the verb, and the selector, which can run long, trails. Two
 steps need comment.
 
 **`rewrite`** has no target in the usual sense. It applies at a position. The
-selector chooses *files*, and the step applies the transformation everywhere it
-applies. This is the most dangerous statement in the language: `guard-clause` was once
-wrong at 1,258 of 1,498 sites in helm/helm. It is the one that most needs `limit`,
-the dry run, and an `expect`.
+selector chooses *files*, and the step transforms every position in them that fits.
+This is the most dangerous statement in the language: `guard-clause` was once wrong at
+1,258 of 1,498 sites in helm/helm. It needs `limit`, the dry run, and an `expect` more
+than any other step.
 
-**`extract`** takes a range, and a range cannot be selected. It is a judgement about
-one specific piece of code. It stays positional, which means a recipe containing one
-is about a file instead of a policy. A real limit, better stated than papered over.
+**`extract`** takes a range, and a selector cannot name a range. It is a judgement
+about one specific piece of code, so it stays positional. A recipe containing one
+describes a file rather than a policy. The limit is real, and we say so.
 
-**`rename` takes a literal.** There are no computed names in v1: no captures, no case
-conversions. A convention-wide rename, `handle_*` to `on_*`, is not
-expressible, and that is deliberate. Small expression languages grow, and nobody has
-asked for this one yet.
+**`rename` takes a literal.** v1 computes no names: no captures, no case conversions.
+You cannot write a convention-wide rename, `handle_*` to `on_*`, and we chose that.
+Small expression languages grow, and nobody has asked for this one yet.
 
 ## Refusals
 
-The tool refuses instead of guessing. A recipe run at scale collects refusals, and
-what it does with them is the decision that matters most here.
+The tool refuses instead of guessing. A recipe run at scale collects refusals, and how
+it treats them is the decision that matters most here.
 
 | `on-refusal` | Meaning |
 | --- | --- |
@@ -304,20 +300,20 @@ what it does with them is the decision that matters most here.
 | `report` | record it, apply the rest, exit non-zero |
 | `allow` | record it, apply the rest, exit zero, the refusals were expected |
 
-There is deliberately no `ignore`. A refusal is always in the report; the only
-question is what it does to the exit code. `allow` has to be typed by a person who has
-decided these refusals are acceptable, permitted, visible, and attributable.
+The language deliberately offers no `ignore`. Every refusal reaches the report; the
+only question is its effect on the exit code. A person types `allow` after deciding
+these refusals are acceptable, which leaves the permission visible and attributable.
 
 ## Transactions
 
-A recipe is **one transaction**. Either every step's edits are written or none are. A
-half-applied recipe leaves a repository in a state nobody designed, the flag removed
-and its dead branches still there.
+A recipe is **one transaction**. The runner writes every step's edits or none of them.
+A half-applied recipe leaves a repository in a state nobody designed: the flag removed,
+its dead branches still there.
 
-Each step sees the workspace **as the previous step left it**, which means re-indexing
+Each step sees the workspace **as the previous step left it**, so the runner re-indexes
 between steps. `Index::build_from_sources` already does this for the cascade
-machinery: re-resolve against in-memory results instead of writing to disk to read it
-back.
+machinery: it re-resolves against in-memory results instead of writing to disk to read
+the text back.
 
 Dry-run is the default, as everywhere else in this tool. `--write` applies.
 
@@ -331,17 +327,16 @@ expect refusals = 0
 ```
 
 `no-new` is the interesting one: it re-runs the analysis afterwards and compares. A
-refactoring that removes a call and orphans three functions has not finished, and this
-is how a recipe says so.
+refactoring that removes a call and orphans three functions has not finished, and
+`no-new` says so.
 
-Every edit is reparse-checked by the engine regardless. That is not an expectation
-you opt into.
+The engine reparse-checks every edit regardless. You do not opt into that one.
 
 ## Output
 
-Every run produces a report. Human by default, `--json` for a machine.
-For each step: what was selected and by which predicate, what changed, what was
-refused and why, and what `expect` found.
+Every run produces a report, human by default and `--json` for a machine.
+For each step it prints what was selected and by which predicate, what changed, what
+was refused and why, and what `expect` found.
 
 ```
 recipe retire-legacy-auth — 3 steps
@@ -367,7 +362,7 @@ Nothing written. Re-run with --write to apply.
 
 ## Worked examples
 
-A policy, run everywhere, no positions, no file names, it is about a shape:
+A policy, run everywhere, with no positions and no file names, matching on shape alone:
 
 ```
 schema 1
@@ -393,7 +388,7 @@ recipe rename-parse-url {
 }
 ```
 
-A clean-up that expects to be refused, some of this is public API:
+A clean-up that expects refusals, because some of this is public API:
 
 ```
 schema 1
@@ -408,40 +403,40 @@ recipe drop-dead-adapters {
 
 ## Sharing, staged, and honest about it
 
-v1 recipes are **local**: a file beside the code it changes, run as
+v1 recipes are **local**: keep the file beside the code it changes and run
 `fr recipe recipes/retire-legacy-auth.recipe --write`. No registry, no fetching, no
 running someone else's file against your source.
 
-`schema 1` is carried from day one anyway, because it costs one line now and is
-unaddable later. It is the hook a future reader uses to refuse a file it does not
+Every file carries `schema 1` from day one anyway, because it costs one line now and
+cannot be added later. A future reader grabs that hook to refuse a file it does not
 understand.
 
-What sharing would require, written down and not answered badly:
+What sharing would require, written down rather than answered badly:
 
-- **Compatibility.** What does `schema 2` mean for a `schema 1` recipe, is the reader
-  required to run it, refuse it, or upgrade it?
-- **Blast radius.** A shared recipe edits your source, and does it declare the paths it
-  may touch, and is that enforced or advisory?
+- **Compatibility.** What does `schema 2` mean for a `schema 1` recipe? Must the reader
+  run it, refuse it, or upgrade it?
+- **Blast radius.** A shared recipe edits your source. Does it declare the paths it
+  may touch, and is that declaration enforced or advisory?
 - **Provenance.** Who wrote it, what does it hash to, and does the run record that in
   the commit it produces? The repository already insists on provenance for vendored
   corpora; a recipe that rewrites your code deserves at least as much.
-- **Review.** A diff of a recipe is small and its effect is not. That asymmetry is the
-  whole risk, and it is not solved by a version field.
+- **Review.** A diff of a recipe is small and its effect is large. The asymmetry
+  carries the whole risk, and a version field does not solve it.
 
 None of these are answered here. They are the reason v1 does not fetch.
 
 ## What I am least sure about
 
 1. **`rewrite` at scale.** Selecting files and applying at every applicable position
-   is the most useful and most dangerous step. `limit N` is a partial answer; a
-   `sample N` that applies to ten sites so a person can *read* them may be better, and
-   I do not know which without watching someone use it.
+   is the most useful and most dangerous step. `limit N` is a partial answer. A
+   `sample N` that applies to ten sites, so a person can *read* them, may be better.
+   I cannot tell without watching someone use it.
 
 2. **Statement termination by reserved word.** It gives the clean multi-line `where`
-   with no punctuation. It survived the adversarial inputs above, a mistyped
-   *predicate* is caught precisely. A mistyped *step name* is the remaining ambiguity:
-   `delte where unused` can only be reported as "not a step or directive", because at
-   that point the parser genuinely cannot tell a bad step from a bad predicate. A
+   with no punctuation. It survived the adversarial inputs above, and the parser
+   catches a mistyped *predicate* precisely. A mistyped *step name* is the remaining
+   ambiguity. The parser can only answer `delte where unused` with "not a step or
+   directive". At that point it cannot tell a bad step from a bad predicate. A
    closed vocabulary makes "did you mean `delete`?" easy, which is probably enough.
 
 3. **Whether `expect` belongs in the language at all.** It could be a CI concern:

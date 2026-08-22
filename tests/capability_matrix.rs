@@ -220,12 +220,11 @@ fn the_published_totals_match_the_matrix() {
         ),
         (
             "docs/index.html",
-            &["YES of TOTAL capability × language pairs are supported; the other REST are marked"]
-                [..],
+            &["The tool supports YES of TOTAL capability × language pairs. It marks the other\n      REST"][..],
         ),
         (
             "docs/why.html",
-            &["capability × language pairs marked \"refused\"; the other REST are not applicable"]
+            &["capability × language pairs marked \"refused\"; the tool marks the other REST not applicable"]
                 [..],
         ),
         ("PLAN.md", &["YES of TOTAL capability ×"][..]),

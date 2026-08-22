@@ -179,10 +179,10 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     // Remove the binding, taking its whole line when nothing else is on it.
     //
-    // A Java declarator is the symbol and the `int` in front of it is not, so removing
-    // the symbol's own span left `int ;` behind. The statement goes too, but only where
-    // this declarator is the only one in it, because `int a = 1, b = 2, c = 3;` declares
-    // three and inlining one must leave the other two alone.
+    // A Java declarator is the symbol and the `int` in front of it is not, so removing the
+    // symbol's own span left `int ;` behind. The statement goes too, but only where this
+    // declarator stands alone in it. `int a = 1, b = 2, c = 3;` declares three, and inlining
+    // one must leave the other two alone.
     let binding = sole_declarator_statement(&parsed, sym.full_span).unwrap_or(sym.full_span);
     // The whole lines go when nothing else sits on them. Comparing only the
     // first line meant a wrapped binding was cut from its `let` to its `;`.
@@ -211,12 +211,12 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 /// `b = a + 1; return b * 2` inlined to `return a + 1 * 2` computes `a + 2`. Every
 /// language with an expression grammar had this.
 ///
-/// The rule errs toward a parenthesis: a pair around an expression never changes its
-/// meaning, whereas deciding precedence properly needs a per-grammar operator table
-/// that would be wrong somewhere, silently. Left bare: the things no surrounding
-/// operator can split, a name, a literal, a call, a field, an index, and anything
-/// already wrapped. A use site that is itself delimited is also left bare, because
-/// `total = value` holds the whole value however it associates. See [`shielded`].
+/// The rule errs toward a parenthesis, because a pair around an expression never changes its
+/// meaning. Deciding precedence properly needs a per-grammar operator table, and such a table
+/// would be wrong somewhere without saying so. Left bare: the things no surrounding operator
+/// can split, a name, a literal, a call, a field, an index, and anything already wrapped. A
+/// use site that is itself delimited is also left bare, because `total = value` holds the
+/// whole value however it associates. See [`shielded`].
 ///
 /// Languages without an expression grammar are untouched. A YAML value is not an
 /// expression, and `(true)` is not the same scalar as `true`.
@@ -332,8 +332,8 @@ fn other_assignment(
     let sym = index.symbol(symbol)?;
     // A later definition of the same name *in the same scope* is a rebinding. In a different
     // scope it is a different variable that happens to share a name, which is most of them.
-    // 6,166 of this repository's 9,147 locals share a name with another local in the same file,
-    // and refusing on all of them refused nearly every inline anyone would want.
+    // 6,166 of this repository's 9,147 locals share a name with another local in the same
+    // file. Refusing on all of them refused nearly every inline anyone would want.
     let rebound = index
         .find_symbols(name, Some(&sym.file))
         .into_iter()
@@ -390,12 +390,12 @@ fn meaning_of(
 /// Substituting an expression moves every name in it to wherever the variable was used. A name
 /// that resolves to a different binding there is a silent change of behaviour.
 ///
-/// Asked of the lexical scopes the index already records. It used to be asked of whichever
-/// reference with the same name happened to come first within two hundred bytes of the use
-/// site, which is not a question about scope at all. In a seven-line file every reference is
-/// within two hundred bytes. So inlining `total = price_of(order)` was refused because the
-/// *other* function's parameter is also called `order`. The scope-aware answer was computed on
-/// the line above and thrown away.
+/// Asked of the lexical scopes the index already records. It used to ask about whichever
+/// same-named reference came first within two hundred bytes of the use site. Proximity says
+/// nothing about scope. In a seven-line file every reference is within two hundred bytes. So
+/// inlining `total = price_of(order)` was refused because the *other* function's parameter is
+/// also called `order`. The scope-aware answer was computed on the line above and thrown
+/// away.
 fn shadowed_name(
     index: &Index,
     value_span: &Span,
@@ -845,8 +845,8 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         }
     }
 
-    // The body may bind an argument more tightly than the caller wrote it: `n * 2`
-    // with `x + 1` for `n` is `x + 1 * 2`, which is a different number.
+    // The body may bind an argument more tightly than the caller wrote it. Substituting `x +
+    // 1` for `n` in `n * 2` gives `x + 1 * 2`, a different number.
     let grouped: Vec<String> = arguments.iter().map(|a| a.grouped.clone()).collect();
     let mut expansion = substitute_words(body_text, &parameters, &grouped);
     // The body was an expression in its own right; parenthesise it so it keeps its
@@ -880,9 +880,9 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 /// The single expression a function body evaluates to, if that is all it does.
 fn single_expression_body<'a>(declaration: tree_sitter::Node<'a>, source: &str) -> Option<Span> {
     let body = declaration.child_by_field_name("body")?;
-    // Some grammars interpose a list node between a block and its statements
-    // (tree-sitter-go wraps them in `statement_list`); descend through it, or the
-    // wrapper itself looks like the single statement.
+    // Some grammars interpose a list node between a block and its statements, as
+    // tree-sitter-go does with `statement_list`. Descend through it, or the wrapper itself
+    // looks like the single statement.
     let mut block = body;
     loop {
         let mut cursor = block.walk();
@@ -905,11 +905,11 @@ fn single_expression_body<'a>(declaration: tree_sitter::Node<'a>, source: &str) 
         return None;
     }
 
-    // Peel the wrappers grammars put between a block and the value it yields:
-    // an expression statement, a return statement, or a return expression nested
-    // inside one (Zig spells it `expression_statement > return_expression`). Doing
-    // this in a loop instead of a fixed order keeps the `return` keyword from being
-    // inlined along with the value.
+    // Peel the wrappers grammars put between a block and the value it yields. Those are an
+    // expression statement, a return statement, or a return expression nested inside one,
+    // which Zig spells `expression_statement > return_expression`. Doing this in a loop
+    // instead of a fixed order keeps the `return` keyword from being inlined along with the
+    // value.
     let mut node = statements[0];
     for _ in 0..4 {
         let kind = node.kind();
@@ -1036,9 +1036,9 @@ fn enclosing_call<'a>(
 
 /// Can a call be inlined in this language?
 ///
-/// A predicate the capability table asks, instead of a guess from the language's
-/// class. `InlineCall` was the one cell derived from "is it imperative", so adding a
-/// language to the enum claimed the capability for it before a line was written.
+/// A predicate the capability table asks, instead of a guess from the language's class.
+/// `InlineCall` was the one cell derived from "is it imperative". Adding a language to the
+/// enum claimed the capability for it before anyone wrote a line.
 pub fn supports_call(language: crate::lang::Language) -> bool {
     use crate::lang::Language as L;
     matches!(
@@ -1157,9 +1157,9 @@ fn word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
 /// Does the expansion need wrapping to survive its new context? Is the whole expression inside
 /// one pair of brackets?
 ///
-/// `(a + b)` is. `(a + 1) / (b - 1)` is not. Reading only the first and last character says it
-/// is, which left `2 * scale(p + 1, q - 1)` expanding to `2 * (p + 1) / (q - 1)`. For `p = 1, q
-/// = 4` the call returns 0 and the expansion is 1.
+/// `(a + b)` is. `(a + 1) / (b - 1)` is not. Reading only the first and last character says
+/// it is. That left `2 * scale(p + 1, q - 1)` expanding to `2 * (p + 1) / (q - 1)`. For `p =
+/// 1, q = 4` the call returns 0 and the expansion is 1.
 fn wrapped_in_one_group(text: &str) -> bool {
     if !text.starts_with('(') || !text.ends_with(')') {
         return false;
@@ -1204,10 +1204,9 @@ fn needs_parentheses(expansion: &str) -> bool {
 
 // ------------------------------------------------------- config languages
 //
-// Each of these is the exact inverse of the corresponding extraction: substitute the
-// named value at every use site and delete the declaration, including the container
-// the extraction created when nothing else is left in it. Everything else in the file
-// keeps its bytes.
+// Each of these inverts the corresponding extraction. Substitute the named value at every use
+// site and delete the declaration, and take the container the extraction created when nothing
+// else remains in it. Everything else in the file keeps its bytes.
 
 /// The node whose byte range is exactly, or most closely, the given span.
 fn node_covering<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
@@ -1235,8 +1234,8 @@ fn named_children_of_kind<'a>(node: Node<'a>, kind: &str) -> Vec<Node<'a>> {
 /// The span to delete for a construct that owns whole lines: the lines it covers,
 /// plus the blank lines directly after it.
 ///
-/// This makes an extraction reversible, the blank line an extraction wrote
-/// to separate its new block from the rest of the file goes away with the block.
+/// This makes an extraction reversible. The blank line it wrote to separate the new block
+/// from the rest of the file goes away with the block.
 fn block_removal_span(source: &str, inner: Span) -> Span {
     let first = full_line_span(source, inner.start);
     let last_offset = inner.end.saturating_sub(1).max(inner.start);
@@ -1262,8 +1261,8 @@ fn block_removal_span(source: &str, inner: Span) -> Span {
     Span::new(first.start, end)
 }
 
-/// The span to delete for a construct sharing its line with other code: itself, plus
-/// the whitespace directly before it so no double space is left behind.
+/// For a construct sharing its line with other code, delete the construct plus the whitespace
+/// directly before it. Otherwise a double space remains.
 ///
 /// A construct need not fit on one line. An HCL local holding a multi-line object
 /// begins on the line its name is on and ends several lines below, so the line before
@@ -1321,8 +1320,8 @@ fn needs_grouping(value: &str) -> bool {
 
 // ------------------------------------------------------------ Terraform / HCL
 
-/// Inline a `locals` entry: substitute its expression at every `local.<name>` and
-/// delete the entry, taking the `locals` block with it when it becomes empty.
+/// Inline a `locals` entry. Substitute its expression at every `local.<name>`, delete the
+/// entry, and take the `locals` block with it when the block becomes empty.
 fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
@@ -1392,9 +1391,9 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         }
     }
 
-    // A local belongs to one module, which in Terraform is one directory. A use of the
-    // same name from another directory is a different module's business and this tool
-    // has no way to tell whether it was meant to be this value.
+    // A local belongs to one module, which in Terraform is one directory. A use of the same
+    // name from another directory belongs to a different module. This tool cannot tell
+    // whether the author meant this value.
     let foreign = hcl_foreign_local_uses(index, &sym.file, &sym.name);
     if !foreign.is_empty() {
         anyhow::bail!(
@@ -1908,8 +1907,8 @@ fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     }
 }
 
-/// The lines a link reference definition occupies, plus the blank line before it when
-/// it is the last thing in the document, the separator an extraction wrote.
+/// Delete the lines a link reference definition occupies. Take the blank line before it too
+/// when the definition ends the document, because an extraction wrote that separator.
 fn markdown_definition_removal(source: &str, definition: Span) -> Span {
     let line = full_line_span(source, definition.start);
     let mut start = line.start;
@@ -1962,10 +1961,10 @@ fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 /// * `'$name'` inside single quotes is not a use, the shell expands nothing there. So deleting
 ///   the assignment would leave text that looks like a use. Reported.
 ///
-/// Quoting decides the substitution, mirroring the extraction: a use inside double quotes takes
-/// a quoted value's contents. An unquoted use takes a quoted value only when its contents are a
-/// single plain word, since otherwise the shell would word-split and glob-expand it where
-/// `$name` never was.
+/// Quoting decides the substitution, mirroring the extraction: a use inside double quotes
+/// takes a quoted value's contents. An unquoted use takes a quoted value only when its
+/// contents form a single plain word. Otherwise the shell word-splits and glob-expands it
+/// where `$name` never was.
 fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
@@ -2092,9 +2091,9 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         })?;
         let expansion = bash_expansion_of(use_node, &source, &sym.name)?;
         let (target, replacement) = match bash_redundant_quotes(expansion, &source, &sym.name) {
-            // `x="$name"` on the right of an assignment is one word however it is written, so
-            // the quotes may go with the expansion and the value keeps its own, which makes an
-            // extraction reversible byte for byte.
+            // `x="$name"` on the right of an assignment stays one word however anyone writes
+            // it. The quotes may travel with the expansion while the value keeps its own,
+            // which reverses an extraction byte for byte.
             Some(quoted) => (quoted, Span::from(value).text(&source).to_string()),
             None => (
                 Span::from(expansion),
@@ -2215,9 +2214,9 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
     }
 }
 
-/// The span of a `"$name"` whose quotes are doing no work: a string holding nothing but this
-/// expansion, standing on the right of an assignment, where the shell splits nothing whatever
-/// the value turns out to be.
+/// The span of a `"$name"` whose quotes do no work. Such a string holds nothing but this
+/// expansion, and it stands on the right of an assignment. The shell splits nothing there,
+/// whatever the value turns out to be.
 ///
 /// Everywhere else the quotes are load-bearing, `"$name"` as a command argument is one word and
 /// the value alone might not be. So this returns `None` and the value is spliced inside the
@@ -2325,9 +2324,9 @@ fn bash_is_one_plain_word(text: &str) -> bool {
 
 // --------------------------------------------------------------------------- XML
 
-/// Inline an XML internal-subset entity: substitute its replacement text at every `&name;` and
-/// delete the `<!ENTITY …>`, taking the `<!DOCTYPE …>` an extraction created with it when
-/// nothing else is left inside.
+/// Inline an XML internal-subset entity. Substitute its replacement text at every `&name;`
+/// and delete the `<!ENTITY …>`. Take the `<!DOCTYPE …>` an extraction created when nothing
+/// else remains inside it.
 ///
 /// This is the exact inverse of `extract::variable` on an XML file. It is a standalone function
 /// and not only a `variable()` arm because an entity has no [`SymbolId`]:

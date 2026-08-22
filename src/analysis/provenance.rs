@@ -23,8 +23,8 @@
 //!
 //! Anything undetermined becomes a [`StopReason`] and not a guess:
 //!
-//! - a Terraform input variable's value comes from `*.tfvars`, `-var` or `TF_VAR_*`, which is
-//!   outside the code entirely ([`StopReason::ExternalInput`]);
+//! - a Terraform input variable takes its value from `*.tfvars`, `-var` or `TF_VAR_*`, all
+//!   outside the code ([`StopReason::ExternalInput`]);
 //! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`] reads it back
 //!   instead of the YAML queries. The `.Values` paths it names resolve, and what the template
 //!   engine decides, which branch renders, what the release supplies, becomes
@@ -284,14 +284,15 @@ pub struct Competition {
     /// False when the workspace does not show which of *these* sources wins.
     ///
     /// A channel outside the workspace that could pre-empt every source listed, `--set`,
-    /// `-var`, is a [`StopReason::ExternalInput`] stop. It is not an undecided competition. It
-    /// replaces the answer instead of reordering the candidates. A channel that ranks *between*
-    /// two listed sources does make the competition undecided. So Terraform's `TF_VAR_*` leaves
-    /// one undecided and Helm's `-f`, which outranks every values file in the chart, does not.
+    /// `-var`, is a [`StopReason::ExternalInput`] stop. It replaces the answer instead of
+    /// reordering the candidates, so the competition stays decided. A channel that ranks
+    /// *between* two listed sources does make the competition undecided. So Terraform's
+    /// `TF_VAR_*` leaves one undecided, and Helm's `-f` outranks every values file in the
+    /// chart and leaves it decided.
     ///
-    /// A Helm competition a caller's [`ValuesInputs`] settles is decided here, and says through
-    /// [`StopReason::DecidedGivenInputs`] which input settled it and which channel it was never
-    /// told about.
+    /// A Helm competition a caller's [`ValuesInputs`] settles is decided here.
+    /// [`StopReason::DecidedGivenInputs`] then names the input that settled it and the
+    /// channel the caller never described.
     pub decided: bool,
     /// Sorted strongest first.
     pub sources: Vec<CompetingSource>,
@@ -393,7 +394,7 @@ impl Provenance {
     }
 }
 
-/// Does provenance analysis apply to this file's language?
+/// Whether provenance analysis applies to this file's language.
 ///
 /// The mirror of [`super::flow::applies_to`]: imperative languages get dataflow,
 /// config languages get substitution/override provenance.
@@ -426,10 +427,10 @@ pub const COMMAND_LINE: &str = "<command line>";
 impl ValuesInputs {
     /// Parse the raw flag strings a CLI collects.
     ///
-    /// `sets` and `set_strings` arrive as two lists because that is how flags
-    /// parse, and their relative order is lost in the process. That order only
-    /// matters when both set the same key, so that case is refused rather
-    /// than resolved by picking one.
+    /// `sets` and `set_strings` arrive as two lists, in the shape the flag parser
+    /// produces, and their relative order is lost on the way. That order matters
+    /// only when both set the same key, so this refuses that case rather than
+    /// picking one.
     pub fn parse(files: &[PathBuf], sets: &[String], set_strings: &[String]) -> Result<Self> {
         let mut parsed: Vec<helm::SetValue> = Vec::new();
         for argument in sets {
@@ -464,8 +465,8 @@ impl ValuesInputs {
 
     /// The channels the caller said nothing about, named as they would be written.
     ///
-    /// A caller who lists `--set` but no `-f` has described part of a command line,
-    /// and an answer from it is only as good as that part.
+    /// A caller who lists `--set` but no `-f` has described part of a command line.
+    /// An answer from it is only as good as that part.
     pub fn unsupplied(&self) -> Vec<String> {
         let mut out = Vec::new();
         if self.files.is_empty() {
@@ -611,12 +612,12 @@ pub fn consumers_with_inputs(
     Ok(ctx.out)
 }
 
-/// Does this language have a value-substitution model to trace?
+/// Whether this language has a value-substitution model to trace.
 ///
 /// The five arms of the two dispatches above, named once. The matrix claimed provenance for
-/// every non-imperative language, which is three more than the dispatch handles: an HTML, XML
-/// or Markdown symbol reached the fallback and stopped. `fr flow`'s refusal sent callers here
-/// for an answer this cannot give.
+/// every non-imperative language, three more than the dispatch handles. An HTML, XML or
+/// Markdown symbol reached the fallback and stopped, and `fr flow`'s refusal sent callers
+/// here for an answer this cannot give.
 pub fn supports_provenance(language: Language) -> bool {
     matches!(
         language,
@@ -628,8 +629,8 @@ pub fn supports_provenance(language: Language) -> bool {
 /// apply to them.
 fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     if sym.language.class() == LanguageClass::Imperative {
-        // This named `analysis::flow (backward/forward)`, a library module, which is
-        // not something the reader of the message can run. `fr flow` is.
+        // The message names `fr flow`, a command the reader can run. It named
+        // `analysis::flow (backward/forward)`, a library module, before.
         bail!(
             "{} is imperative: '{}' has a dataflow, not a substitution/override \
              provenance; `fr flow` traces it instead",
@@ -638,9 +639,9 @@ fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
         );
     }
     if !supports_provenance(sym.language) {
-        // The two dispatches have arms for five languages. Every other one fell through to a
-        // stop reason inside an `Ok`, an answer shaped like an answer, saying there was nothing
-        // to say. The matrix claimed those cells on that basis.
+        // The two dispatches have arms for five languages. Every other one fell through to
+        // a stop reason inside an `Ok`, an answer shaped like an answer that said there was
+        // nothing to say. The matrix claimed those cells on that basis.
         return Err(crate::refactor::Refusal::Unsupported {
             operation: "tracing provenance".into(),
             language: sym.language,
@@ -918,8 +919,7 @@ impl Ctx<'_> {
         }
 
         // A module called by another module takes its inputs from the `module`
-        // block's arguments, and from nothing else: tfvars and -var apply to the
-        // root module only.
+        // block's arguments alone. tfvars and -var apply to the root module only.
         let callers = self.hcl_module_arguments(sym)?;
         if !callers.is_empty() {
             return self.hcl_child_module_sources(sym, sources, callers, depth);
@@ -1235,9 +1235,9 @@ impl Ctx<'_> {
                         )),
                     );
                 }
-                // A trailing attribute or type label already accounted for by the address it
-                // belongs to. Function names, which transform the arguments that are followed
-                // separately.
+                // A trailing attribute or type label, already accounted for by the address
+                // it belongs to. Function names land here too: they transform arguments
+                // that the walk follows separately.
                 _ => {}
             }
             i += 1;
@@ -1478,7 +1478,7 @@ impl Ctx<'_> {
         let hop = self.hop(None, EdgeKind::Use, line_text, file, span, depth)?;
         self.push_hop(hop);
 
-        // The innermost declaration containing the use is what the value flows into.
+        // The value flows into the innermost declaration containing the use.
         let container = self
             .index
             .file(file)
@@ -1655,9 +1655,9 @@ struct ValuesSource {
     rank: u32,
     label: String,
     origin: ValuesOrigin,
-    /// False for a values file the supplied inputs say is never passed. It is still
-    /// listed. It is what the next reader will reach for, but it supplies nothing
-    /// in the invocation described, so it cannot win.
+    /// False for a values file the supplied inputs say is never passed. The listing
+    /// keeps it, because the next reader will reach for it. It supplies nothing in
+    /// the invocation described, so it cannot win.
     participates: bool,
 }
 
@@ -1995,7 +1995,7 @@ impl Ctx<'_> {
         let values = chart.join("values.yaml");
         let Some(symbol) = self.find_key(&values, path) else {
             // No values file declares it. An input that supplies it is then the
-            // whole answer: it does not override a default, it introduces the key.
+            // whole answer: it introduces the key rather than overriding a default.
             if self.helm_introduced_key(&chart, path, depth)? {
                 return Ok(());
             }
@@ -2065,8 +2065,8 @@ impl Ctx<'_> {
         Ok(true)
     }
 
-    /// A file whose keys are chart values: any `values*.yaml` beside a chart, and
-    /// any file the caller passed with `-f`, whatever it happens to be named.
+    /// A file whose keys are chart values. Any `values*.yaml` beside a chart counts,
+    /// and so does any file the caller passed with `-f`, whatever its name.
     fn is_values_source(&self, path: &Path) -> bool {
         is_values_file(path) || self.inputs.files.iter().any(|f| f == path)
     }
@@ -2099,10 +2099,10 @@ impl Ctx<'_> {
 
     /// The values files of a chart and each chart enclosing it.
     ///
-    /// A `values-*.yaml` beside a chart is a file *someone may pass* with `-f`.
-    /// Whether they do, and in which order, is the command line: with no inputs
-    /// supplied it ranks above every chart file but decides nothing, and with
-    /// inputs supplied it is either one of them or takes no part at all.
+    /// A `values-*.yaml` beside a chart is a file *someone may pass* with `-f`. The
+    /// command line decides whether they do, and in which order. With no inputs
+    /// supplied, the file ranks above every chart file and decides nothing. With
+    /// inputs supplied, it is either one of them or takes no part at all.
     fn helm_chart_candidates(
         &mut self,
         levels: &[(PathBuf, Vec<String>)],
@@ -2157,8 +2157,8 @@ impl Ctx<'_> {
         Ok(out)
     }
 
-    /// The sources the caller supplied that set this key: each `-f` file at its
-    /// position on the command line, then each `--set` above all of them.
+    /// The sources the caller supplied that set this key. Each `-f` file ranks at its
+    /// position on the command line, and each `--set` above all of them.
     fn helm_input_candidates(&mut self, addressed: &[String]) -> Result<Vec<ValuesSource>> {
         let mut out = Vec::new();
         let files = self.inputs.files.clone();
@@ -2592,8 +2592,8 @@ impl Ctx<'_> {
                 self.push_hop(hop);
                 self.stop(depth + 1, StopReason::RenderDependent(action_text.clone()));
 
-                // A read under a conditional is a read that may not happen; the
-                // condition is what decides it, so name it and not imply always.
+                // A read under a conditional is a read that may not happen. The
+                // condition decides it, so name the condition rather than imply always.
                 for guard in template.conditions_at(span.start) {
                     self.stop(
                         depth + 1,
@@ -2605,7 +2605,7 @@ impl Ctx<'_> {
                 }
 
                 // A read inside a `define` happens wherever that template is
-                // included, so the consumers are the include sites. They are not the body.
+                // included, so the consumers are the include sites rather than the body.
                 let define = template
                     .define_containing(span.start)
                     .map(|define| define.name.clone());
@@ -3292,9 +3292,9 @@ fn css_language(file: &Path) -> Language {
 /// Implements the spec's counting rules, including `:is()`/`:not()`/`:has()`
 /// taking their most specific argument and `:where()` contributing nothing.
 pub fn specificity(selector: &str) -> Specificity {
-    // A selector list has no single specificity; the strongest branch is the one
-    // that can win, so report that. Only a comma outside parentheses splits a
-    // list, the one in `:is(#a, .b)` belongs to the functional pseudo-class.
+    // A selector list has no single specificity. The strongest branch is the one that
+    // can win, so report that. Only a comma outside parentheses splits a list. The
+    // comma in `:is(#a, .b)` belongs to the functional pseudo-class.
     let branches = split_top_level(selector, ',');
     if branches.len() > 1 {
         return branches

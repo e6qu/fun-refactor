@@ -1,8 +1,8 @@
 //! The workspace index: symbols, references and their resolution.
 //!
-//! Extraction is per-file and knows nothing beyond the file it read. The index is
-//! where facts from many files meet and references become resolved edges, each
-//! carrying a [`Confidence`] that says how much the resolution can be trusted
+//! Extraction is per-file and knows nothing beyond the file it read. The index
+//! brings facts from many files together and turns references into resolved edges.
+//! Each edge carries a [`Confidence`] saying how far the resolution can be trusted
 //! (PLAN.md D4). Refactorings act on `exact`/`import-qualified` edges and refuse to
 //! silently rewrite anything weaker.
 
@@ -33,9 +33,9 @@ pub struct FileInfo {
     pub kubernetes_objects: Vec<KubernetesObject>,
     /// Import index by the name it binds, built when resolution runs.
     ///
-    /// [`Index::import_binding`] scanned every import per member reference,
-    /// which multiplied by a workspace's references was a visible slice of
-    /// every warm command.
+    /// Without it, [`Index::import_binding`] scans every import once per member
+    /// reference. Multiplied by a workspace's references, that scan took a visible
+    /// slice of every warm command.
     binding_of: HashMap<String, usize>,
     /// Positions of glob imports, which can bind any name.
     glob_imports: Vec<usize>,
@@ -83,7 +83,7 @@ pub struct Index {
     content_hashes: BTreeMap<PathBuf, u64>,
     /// Symbol ids by name, rebuilt when resolution runs.
     ///
-    /// [`Index::definition_group`] used to scan every symbol in the
+    /// Without them, [`Index::definition_group`] scans every symbol in the
     /// workspace, and resolution asks it about most member references'
     /// candidates. This repository spent most of two minutes in that scan.
     name_buckets: HashMap<String, Vec<SymbolId>>,
@@ -145,13 +145,13 @@ fn extract_all(
 
 /// Parse one file and extract everything the index keeps about it.
 ///
-/// Depends only on this file's bytes, which makes the result reusable: an edit elsewhere cannot
-/// change it.
+/// The result depends only on this file's bytes, so a caller may reuse it. An edit
+/// elsewhere cannot change it.
 ///
-/// The parsers and the extractor are passed in. They are not made here, because
-/// [`Extractor::new`] compiles the whole query set. Building one per file turned a 2.9-second
-/// index of `zod` into a 19-second one, the same mistake the parallel path avoids by noting
-/// that "query compilation is the cost here and it is paid once per thread, not once per file".
+/// The caller passes in the parsers and the extractor, because [`Extractor::new`]
+/// compiles the whole query set. Building one per file turned a 2.9-second index of
+/// `zod` into a 19-second one. The parallel path pays query compilation once per
+/// thread for the same reason.
 pub fn extract_facts(
     parsers: &Parsers,
     extractor: &mut Extractor,
@@ -193,9 +193,9 @@ impl Index {
     /// [`Self::build_with_cache`], telling `progress` how far extraction has come.
     ///
     /// The callback receives `(files done, files total)` and runs on worker threads.
-    /// It exists because a cold index of a large workspace is most of a minute of
-    /// silence. Only the terminal-facing caller can decide whether a progress line
-    /// belongs on stderr.
+    /// A cold index of a large workspace is otherwise most of a minute of silence.
+    /// Only the terminal-facing caller can decide whether a progress line belongs on
+    /// stderr.
     #[cfg(feature = "cli")]
     pub fn build_with_cache_reporting(
         scan_result: &ScanResult,
@@ -212,8 +212,8 @@ impl Index {
         }
 
         // Extraction is per-file and shares nothing, so it parallelises cleanly. The
-        // results are collected in scan order and merged serially afterwards, because
-        // symbol ids are assigned by position and must not depend on thread timing.
+        // merge collects the results in scan order and runs serially, because symbol
+        // ids follow position and must not depend on thread timing.
         let total = scan_result.files.len();
         let done = std::sync::atomic::AtomicUsize::new(0);
         type Extracted = (usize, FileFacts, Option<u64>);
@@ -245,12 +245,10 @@ impl Index {
                         }
                     }
 
-                    // Parsers and compiled queries are not shareable across
-                    // threads, so each worker keeps its own. The comment here
-                    // used to say the compilation was paid once per thread
-                    // while the code built both per *file*. Recompiling the
-                    // query set hundreds of times was most of a cold index;
-                    // a thread-local makes the comment true.
+                    // Parsers and compiled queries do not cross threads, so each
+                    // worker keeps its own in a thread-local. Building them per
+                    // file recompiles the query set hundreds of times, which was
+                    // most of the cost of a cold index.
                     thread_local! {
                         static WORKER: std::cell::RefCell<(Parsers, Extractor)> =
                             std::cell::RefCell::new((Parsers::new(), Extractor::new()));
@@ -299,8 +297,8 @@ impl Index {
             index.add_file(facts, file.language);
         }
 
-        // Resolution is a pure function of the merged facts, and it is most
-        // of a warm command. An agent running ten commands paid it ten times. The
+        // Resolution is a pure function of the merged facts and costs most of a
+        // warm command. An agent running ten commands paid it ten times. The
         // workspace key is the ordered file list with each file's content hash,
         // so any change anywhere misses and resolves afresh.
         let workspace_key = cache.map(|_| {
@@ -382,11 +380,11 @@ impl Index {
 
     /// Build an index from facts that have already been extracted.
     ///
-    /// Extraction is per-file and depends only on a file's bytes; resolution is
-    /// global and depends on all of them. Separating the two is what lets a caller
-    /// that changed one file out of four hundred re-extract one file and re-resolve,
-    /// and not parse the other three hundred and ninety-nine again. The on-disk
-    /// fact cache splits the work the same way for the same reason.
+    /// Extraction is per-file and depends only on a file's bytes. Resolution is global
+    /// and depends on all of them. Split that way, a caller that changed one file out of
+    /// four hundred re-extracts that one and re-resolves. The other three hundred and
+    /// ninety-nine stay unparsed. The on-disk fact cache splits the work the same way for
+    /// the same reason.
     pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
         let mut index = Index::default();
         for (_, language, facts) in files {
@@ -398,9 +396,9 @@ impl Index {
 
     /// Merge one file's facts, remapping file-local ids into the global namespace.
     pub fn add_file(&mut self, facts: FileFacts, language: Language) {
-        // Reading a file's symbols and references *is* the symbols/def/refs capability;
-        // there is no later function to instrument, because every caller reads the index
-        // directly. Recorded here so the audit measures what ran and not what was called.
+        // Reading a file's symbols and references *is* the symbols/def/refs capability.
+        // No later function exists to instrument, because every caller reads the index
+        // directly. The record sits here so the audit measures what ran.
         crate::capabilities::record(crate::capabilities::Capability::Symbols, language);
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);
@@ -475,7 +473,6 @@ impl Index {
         self.files.len()
     }
 
-    /// Resolve every reference to a symbol, tagging each with a confidence.
     /// Fill the by-name buckets [`Index::definition_group`] reads.
     fn rebuild_name_buckets(&mut self) {
         self.name_buckets.clear();
@@ -574,7 +571,7 @@ impl Index {
     /// Which Terraform namespace addresses this declaration.
     ///
     /// `locals { thing = … }` is written as `local.thing` and `variable "thing"` as
-    /// `var.thing`. Both are variables to the index, and the block each is written in is what
+    /// `var.thing`. Both are variables to the index, and the block each is written in
     /// separates them. A local's container is the `locals` block, and a variable has none.
     fn terraform_namespace(&self, symbol: &Symbol) -> &'static str {
         match symbol.container.and_then(|c| self.symbol(c)) {
@@ -594,10 +591,10 @@ impl Index {
     /// Both directions of a module's call surface arrive here. An argument written
     /// inside the block names an input variable. `module.<label>.<name>` written
     /// outside it names an output. They differ in one thing, the declaration each
-    /// addresses, so they are one function. Only the first half used to exist.
-    /// `fr flow` and `fr signature` followed the second from their own code.
-    /// `fr usages`, `fr refs`, `fr impact` and `fr delete` read the index, and saw
-    /// nothing there.
+    /// addresses, so one function serves both. `fr flow` and `fr signature` follow
+    /// the output direction from their own code. The index-reading commands
+    /// (`fr usages`, `fr refs`, `fr impact`, `fr delete`) found nothing until it
+    /// was resolved here.
     fn resolve_module_surface(
         &self,
         path: &Path,
@@ -644,17 +641,16 @@ impl Index {
     /// Resolve a reference, and cap what the answer is allowed to claim.
     ///
     /// [`Confidence::Exact`] means "safe to edit" and [`Confidence::FieldBased`] means "matched
-    /// by member name without knowing the receiver's type". Which of those a member access on
-    /// an ordinary value deserves is not a per-branch judgement: it is the definition of the
-    /// tier. It holds however the branch below arrived at an answer.
+    /// by member name without knowing the receiver's type". The tier definition decides which
+    /// of those a member access on an ordinary value deserves. It holds however the branch
+    /// below arrived at an answer.
     ///
-    /// It is enforced here and not in the branches because there are twenty-eight places
-    /// pairing a symbol with a tier. Each one was an opportunity to disagree. Two of them did,
-    /// with the same reasoning, one definition of the name means "there is nothing to be wrong
-    /// about". It is wrong the same way both times: the workspace does not contain every type.
-    /// A `boto3` client and an `aws-sdk` instance both have members this tool has never seen,
-    /// and `fr rename` edited calls on them. Fixing the first branch left the second, which is
-    /// what a rule living at its use sites does.
+    /// The cap lives here because twenty-eight places pair a symbol with a tier, and each one
+    /// could disagree. Two of them did, with the same reasoning: one definition of the name
+    /// means "there is nothing to be wrong about". Both were wrong the same way, because the
+    /// workspace does not contain every type. A `boto3` client and an `aws-sdk` instance both
+    /// have members this tool has never seen, and `fr rename` edited calls on them. Fixing one
+    /// branch left the other standing.
     fn resolve_one(
         &self,
         reference: &Reference,
@@ -677,10 +673,10 @@ impl Index {
         // import binding, and a type's own name. All four name something the source declared.
         // Anything else is a value this tool has not typed.
         //
-        // The fourth was missing, and the omission was invisible because the rule that resolves
-        // such a call lives elsewhere. Java's `Widths.width(…)` found the right method and then
-        // had its confidence capped to `field-based`, which no refactoring will rewrite. Both
-        // places ask the same question and now ask it in one place.
+        // The fourth was missing, and the omission hid because the rule resolving such a call
+        // lives elsewhere. Java's `Widths.width(…)` found the right method and then had its
+        // confidence capped to `field-based`, which no refactoring rewrites. That rule and
+        // this cap ask the same question, so they ask it here.
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
             || self.import_binding(info, receiver).is_some()
@@ -703,8 +699,8 @@ impl Index {
 
     /// Whether a name is one this workspace declares a type under.
     ///
-    /// What makes a receiver a path is what it names, not how the language punctuates it: Rust
-    /// writes `Type::m` and Java writes `Type.m`. Both say which type the member belongs to.
+    /// A receiver is a path when it names a type, whatever punctuation the language uses.
+    /// Rust writes `Type::m` and Java writes `Type.m`. Both say which type owns the member.
     fn names_a_type(&self, name: &str, language: Language) -> bool {
         self.named_like(name).any(|s| {
             s.name == name
@@ -743,12 +739,12 @@ impl Index {
         };
 
         // 1. Lexical scope: the innermost definition in this file whose scope encloses the
-        //    reference. This makes shadowing correct. Was this written as a member of
-        //    something, and if so, of a value or of a package? An import binding before the dot
-        //    means a package-qualified call to a function; anything else means a value. So the
-        //    name is one of its members. A value receiver leaves the type unknown, so only a
-        //    member can follow it. A path receiver names a type or a module and is handled
-        //    below, where it can be matched against a symbol's qualifier directly.
+        //    reference. Shadowing comes out right this way. The next question is whether the
+        //    source wrote the reference as a member of a value or of a package. An import
+        //    binding before the dot means a package-qualified call to a function. Anything
+        //    else means a value, so the name is one of its members. A value receiver leaves
+        //    the type unknown, so only a member can follow it. A path receiver names a type
+        //    or a module, and the rules below match it against a symbol's qualifier.
         let called_on_a_value = reference.kind == ReferenceKind::Call
             && !reference.receiver_is_path
             && reference
@@ -759,10 +755,8 @@ impl Index {
         let bare_call = reference.kind == ReferenceKind::Call
             && reference.receiver.is_none()
             && reference.language.members_always_have_a_receiver();
-        // Written as a member of something, either `x.field` or a call on a value.
-        // Written as a member of something, either `x.field`, a call on a value, or a
-        // dotted name inside a macro, where the grammar recorded the tokens and not the
-        // receiver.
+        // Written as a member of something: `x.field`, a call on a value, or a dotted name
+        // inside a macro. In the macro case the grammar recorded the tokens and no receiver.
         let member_access = reference.kind == ReferenceKind::Field
             || called_on_a_value
             || reference.member_in_macro;
@@ -772,9 +766,9 @@ impl Index {
             .imports
             .iter()
             .any(|import| import.span.contains(reference.span));
-        // Once per reference, not once per candidate. Computed inside the
-        // closure below, this allocated a fresh chain for every candidate of
-        // every reference.
+        // The chain is built once per reference. Computed inside the closure
+        // below, it allocated a fresh chain for every candidate of every
+        // reference.
         let own_scopes = self.scope_chain(info, reference.scope);
         let plausible = |s: &Symbol| {
             // A candidate in another language is only a candidate where the two
@@ -799,10 +793,10 @@ impl Index {
             }
             // A local is not usable outside its own scope, in any language here.
             // Left in the candidate set, a sibling function's `stmt` parameter
-            // answered a call to `fn stmt`, and a `let spellings` two functions
-            // down answered a call to `fn spellings`, whenever the binding sat
-            // nearer than the function it shadowed nothing of. A file-scoped
-            // variable stays a candidate: other files import those.
+            // answered a call to `fn stmt`. A `let spellings` two functions down
+            // answered a call to `fn spellings`. The nearer binding won although
+            // it shadowed nothing. A file-scoped variable stays a candidate:
+            // other files import those.
             if matches!(
                 s.kind,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
@@ -858,9 +852,9 @@ impl Index {
 
         // 0a. A Terraform namespace. `var.azs`, `local.azs` and `module.azs` name
         //     three different declarations, and an `output "azs"` beside them names a
-        //     fourth that no traversal ever reaches. The namespace is written down,
-        //     so the kind it implies is not a guess, without it, `var.azs` in
-        //     terraform-aws-vpc resolved to the module's `output "azs"`.
+        //     fourth that no traversal ever reaches. The namespace is written down, so
+        //     the kind it implies is no guess. Without it, `var.azs` in terraform-aws-vpc
+        //     resolved to the module's `output "azs"`.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
                 // A name reached through one `module` block. An argument written
@@ -907,30 +901,30 @@ impl Index {
         }
 
         // 0. A path prefix that names a type: `Patterns::from_low_args(…)` in Rust reaches an
-        //    associated function through the type it belongs to. The prefix is recorded as the
-        //    receiver, and a symbol carries the same name as its qualifier, so the two match
-        //    directly, no type inference needed, because the type was written down.
+        //    associated function through the type it belongs to. The extractor records the
+        //    prefix as the receiver, and a symbol carries its owner's name as its qualifier.
+        //    The two match directly, with no type inference, because the source wrote the
+        //    type down.
         //
-        // This runs before every other rule: ripgrep declares four `from_low_args` methods in
-        // one file. So the nearest-in-file rule below would pick whichever sat closest and
+        // This runs before every other rule. ripgrep declares four `from_low_args` methods in
+        // one file, so the nearest-in-file rule below would pick whichever sat closest and
         // leave the other three looking dead. `Patterns::` already says which.
         //
-        // A path is what the receiver *means*. It is not how it is punctuated. Rust writes
-        // `Type::m` and Java writes `Type.m`, and only the first was recognised. So every
-        // static call in Java fell through to the nearest-in-file rule below, which answered
-        // `Widths.width(…)` inside `Holder.java` with `Holder`'s own method, at exact
-        // confidence. A receiver that names a type in this workspace is a path however the
-        // language spells it.
+        // A receiver is a path when it names a type, whatever punctuation the language uses.
+        // Rust writes `Type::m` and Java writes `Type.m`, and only the first was recognised.
+        // Every static call in Java then fell through to the nearest-in-file rule below. It
+        // answered `Widths.width(…)` inside `Holder.java` with `Holder`'s own method, at
+        // exact confidence.
         if let Some(prefix) = reference.receiver.as_deref().filter(|receiver| {
             reference.receiver_is_path || self.names_a_type(receiver, reference.language)
         }) {
             let by_qualifier: Vec<&Symbol> = candidates
                 .iter()
                 .filter_map(|id| self.symbol(*id))
-                // The language too. A workspace holding the same design in Python and in
-                // TypeScript declares `Money::of` twice, and matching on the qualifier alone
-                // called that ambiguous. So a call that had always resolved stopped, and
-                // `Money::plus` vanished from its callers.
+                // The language matters too. A workspace holding the same design in Python
+                // and in TypeScript declares `Money::of` twice, and matching on the
+                // qualifier alone called that ambiguous. A call that had always resolved
+                // stopped, and `Money::plus` vanished from its callers.
                 .filter(|s| {
                     s.language == reference.language && s.qualifier.as_deref() == Some(prefix)
                 })
@@ -996,7 +990,7 @@ impl Index {
 
         // 0b. A receiver bound by an import names a *file*, so the member is one of that file's
         // declarations. `const holder = @import("holder.zig")` makes `holder.width(…)` a call
-        // to the `width` declared over there, and the import statement is what says so.
+        // to the `width` declared over there, and the import statement says so.
         //
         // This runs beside the rule above and for the same reason. Without it the call reached
         // the name-matching rules, which saw a free function and a method sharing one name and
@@ -1073,8 +1067,8 @@ impl Index {
         // cannot say that. An attribute defined in `__init__` is invisible from
         // a sibling method's chain, so resolution fell to the name-matched tier.
         // It then called the receiver's type unknown, about the one receiver
-        // whose type is never unknown. The innermost enclosing symbol with a qualifier names the
-        // class.
+        // whose type is always known. The innermost enclosing symbol with a
+        // qualifier names the class.
         if member_access
             && reference
                 .receiver
@@ -1100,17 +1094,17 @@ impl Index {
         }
 
         // A member access is a scope lookup only where the scope chain can settle it.
-        // `c.run(1)` names a member of whatever `c` is. The lexical scope has nothing to say
-        // about that. But it was answering anyway, with `Exact`, by picking whichever
-        // same-named method sat in an enclosing scope. With two classes declaring `run`, a call
-        // on one was attributed to the other. Renaming that one rewrote the call and left the
-        // real one behind.
+        // `c.run(1)` names a member of whatever `c` is, and the lexical scope has nothing to
+        // say about that. It answered anyway, with `Exact`, by picking whichever same-named
+        // method sat in an enclosing scope. With two classes declaring `run`, a call on one
+        // was attributed to the other. Renaming that one rewrote the call and left the real
+        // one behind.
         //
-        // Two things keep the scope chain in play. Between them they cover the cases where it
-        // is not a guess. A receiver that *is* the enclosing instance, `this.run`, `self.run`
-        // mean a member of the type this code is written in. A name only one member in the
-        // workspace has, where there is nothing to be wrong about. Anything else falls through
-        // to step 5, which says "either".
+        // Two conditions keep the scope chain in play, and both leave nothing to guess. A
+        // receiver that *is* the enclosing instance, `this.run` or `self.run`, means a member
+        // of the type this code is written in. A name held by one member in the whole
+        // workspace has nothing to be wrong about. Anything else falls through to step 5,
+        // which says "either".
         let receiver_is_self = reference
             .receiver
             .as_deref()
@@ -1141,12 +1135,12 @@ impl Index {
                     .iter()
                     .position(|sc| *sc == s.scope)
                     .unwrap_or(usize::MAX);
-                // "Preceding" has to be part of the key, not just the distance. Go re-declares
-                // a name with `:=` mid-function, and a use above that line reads the earlier
-                // binding however close the later one sits. Var ret map[string]any if m == nil
-                // { return ret } // this one ret, err := conv(m) // not this one, 15 bytes
-                // nearer Only value bindings are ordered this way. A function may be called
-                // above where it is written.
+                // "Preceding" belongs in the key, alongside the distance. Go re-declares a
+                // name with `:=` mid-function, and a use above that line reads the earlier
+                // binding however close the later one sits. A `return ret` above a nearer
+                // `ret, err := conv(m)` still reads the `var ret` declared at the top. Only
+                // value bindings are ordered this way. A function may be called above where
+                // it is written.
                 let ordered = matches!(
                     s.kind,
                     SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
@@ -1159,12 +1153,12 @@ impl Index {
                 )
             });
         if let Some(symbol) = scoped {
-            // Proximity is evidence for a binding and not for a callable. `let x` twice in one
-            // block is shadowing. The nearer one is the answer; two methods declared in one
-            // class body are an overload set, and the nearer one is a coin flip. Java's
-            // `add(int)` beside `add(String)` resolved both bare `add(...)` calls to whichever
-            // was written second, at `Exact`. So a rename rewrote calls belonging to the other
-            // one.
+            // Proximity is evidence for a binding and not for a callable. `let x` twice in
+            // one block is shadowing, so the nearer one is the answer. Two methods declared
+            // in one class body are an overload set, where the nearer one is a coin flip.
+            // Java's `add(int)` beside `add(String)` resolved both bare `add(...)` calls to
+            // whichever was written second, at `Exact`. A rename then rewrote calls belonging
+            // to the other one.
             let callable = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method);
             let tied = in_file
                 .iter()
@@ -1183,10 +1177,9 @@ impl Index {
         // 2. Any other definition in the same file (e.g. a function defined below its
         //    use, or a sibling scope for languages that hoist).
         //
-        //
-        //    Naming a plausible target for a member access is useful. It is the tier
-        //    that says how much to trust it, and `resolve_one` caps that for every
-        //    branch at once instead of each branch remembering to.
+        //    Naming a plausible target for a member access is useful, and the tier says
+        //    how far to trust it. `resolve_one` caps the tier for every branch at once,
+        //    so no branch has to remember.
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
@@ -1287,11 +1280,11 @@ impl Index {
                                     .find(|n| n.local == original)
                                     .map(|n| (i.path.clone(), n.original.clone()))
                             })
-                            // `export * from "./holder"` names nothing and hands on everything,
-                            // so it is the onward hop for any name the file does not export
-                            // itself. A star that binds an alias is not: readers of `export *
-                            // as ns` write `ns.width`. That is a member access, and not this
-                            // name.
+                            // `export * from "./holder"` names nothing and hands on
+                            // everything, so it is the onward hop for any name the file does
+                            // not export itself. A star that binds an alias stays out of the
+                            // chain: readers of `export * as ns` write `ns.width`, a member
+                            // access under another name.
                             .or_else(|| {
                                 current_info
                                     .imports
@@ -1396,9 +1389,8 @@ impl Index {
 
         // 4. String-keyed references. In CSS, HTML, XML and Markdown a reference
         //    names its target globally: `class="btn"` refers to whatever declares
-        //    `.btn`, in any file. That is the language's actual rule, not a
-        //    heuristic, so a unique kind match resolves exactly. This is what lets a
-        //    CSS class rename reach HTML and TSX.
+        //    `.btn`, in any file. The language defines it that way, so a unique kind
+        //    match resolves exactly, and a CSS class rename reaches HTML and TSX.
         if reference.kind == ReferenceKind::StringRef {
             // A heading is referenced by its anchor, which is a slug of its text and
             // rarely equal to it. Everything else string-keyed, an element id, a CSS
@@ -1423,19 +1415,19 @@ impl Index {
                 1 => return (Some(targets[0].id), Confidence::Exact),
                 0 => {}
                 // The same name declared as two different kinds is genuinely
-                // ambiguous; report it and not pick one.
+                // ambiguous. Report it rather than pick one.
                 _ => return (Some(targets[0].id), Confidence::FieldBased),
             }
         }
 
         // 5. Member access without a known receiver type: name-matched at best.
         //
-        // A call written through a selector arrives as a plain `Call`, because
-        // `w.contextWithTimeout(…)` and `time.Now()` are one syntax in Go and the grammars
-        // capture only the callee. What separates them is the receiver: an import binding means
-        // a package-qualified call to a function, and anything else means a value. So the name
-        // is one of its members. Without that distinction a method call resolves to a
-        // package-level function of the same name, and the method itself reads as dead.
+        // A call written through a selector arrives as a plain `Call`. Go writes
+        // `w.contextWithTimeout(…)` and `time.Now()` with one syntax, and the grammars
+        // capture only the callee. The receiver separates them. An import binding means a
+        // package-qualified call to a function. Anything else means a value, and the name is
+        // one of its members. Without that distinction a method call resolves to a
+        // package-level function of the same name, and the method reads as dead.
         let members: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
@@ -1450,13 +1442,12 @@ impl Index {
             }
         }
 
-        // 6. A package-qualified name. `holder.Width(…)` names a top-level declaration of the
-        //    package the import bound as `holder`, and that package is a directory somewhere
-        //    else in the tree. Step 6b looks in the directory of the file doing the calling,
-        //    which is not this. Without this step every cross-package call in Go resolved to
-        //    nothing, `fr unused` called the callee dead, and `fr rename` rewrote the
-        //    declaration while leaving `holder.Width(…)` naming a function that no longer
-        //    exists.
+        // 6. A package-qualified name. `holder.Width(…)` names a top-level declaration of
+        //    the package the import bound as `holder`, and that package is a directory
+        //    somewhere else in the tree. Step 6b covers only the caller's own directory.
+        //    Without this step every cross-package call in Go resolved to nothing. Then
+        //    `fr unused` called the callee dead, and `fr rename` rewrote the declaration
+        //    while leaving `holder.Width(…)` naming a function that had gone.
         if reference.language.packages_by_directory() {
             if let Some(package) = reference
                 .receiver
@@ -1487,15 +1478,15 @@ impl Index {
             }
         }
 
-        // 6b. Package-scoped languages. Go's package is the directory: a top-level declaration
-        // in one file is visible, unqualified, from every file beside it, with no import to
-        // record the fact. Only top-level declarations are in that scope, a method or a struct
-        // field is reached through a value, which step 5 handles.
+        // 6b. Package-scoped languages. Go's package is the directory. A top-level
+        // declaration in one file is visible from every file beside it, unqualified, with no
+        // import to record the fact. Only top-level declarations sit in that scope. A method
+        // or a struct field is reached through a value, which step 5 handles.
         //
-        // "Top-level" is `qualifier`, not `container`: a Go method's receiver type is declared
-        // elsewhere. So the method links to no containing symbol and carries the type's name as
-        // its qualifier instead. Testing `container` would let every method into package scope,
-        // which is how `Circle.Area()` briefly resolved to a bare `Area`.
+        // "Top-level" means `qualifier` and not `container`, because a Go method's receiver
+        // type is declared elsewhere. The method links to no containing symbol and carries
+        // the type's name as its qualifier. Testing `container` would let every method into
+        // package scope, and `Circle.Area()` then resolved to a bare `Area`.
         if reference.language.packages_by_directory() && !called_on_a_value {
             let dir = path.parent();
             let siblings: Vec<&Symbol> = candidates
@@ -1521,8 +1512,9 @@ impl Index {
 
         // 6. Directory-scoped languages: Terraform's module is a directory, so a definition
         //    anywhere beside this file is in scope. Names are unique per namespace there, so a
-        //    single match is exact. Several mean the namespace (`var.` versus `local.`)
-        //    decides, which this layer cannot see, so those are reported and not rewritten.
+        //    single match is exact. With several, the namespace (`var.` versus `local.`)
+        //    decides, and this layer cannot see it, so the report names them and no
+        //    rewrite touches them.
         if reference.language.resolves_by_directory() {
             let dir = path.parent();
             let siblings: Vec<&Symbol> = candidates
@@ -1595,18 +1587,18 @@ impl Index {
                     .find(|s| !s.is_empty())
                     .is_some_and(|last| last == name)
                 // `import app.flags` binds `app`, and the module is read as `app.flags.NAME`.
-                // So the receiver is the import path in full, and no segment of it is.
+                // So the receiver is the import path in full rather than any segment of it.
                 || import.path == name
         })
     }
 
     /// The files a receiver could be, where an import in this file binds it to a module.
     ///
-    /// Zig's `const holder = @import("holder.zig")` binds one file, and the import path is the
-    /// whole answer. Python has a second spelling for the same thing: `from app import flags`
-    /// binds either a name `app/__init__.py` declares or the submodule `app/flags.py`, written
-    /// identically. So the submodule is offered as well, and the caller weighs both. Without
-    /// it, `flags.USE_NEW_TAX` resolved to nothing under the commonest Python layout there is.
+    /// Zig's `const holder = @import("holder.zig")` binds one file, and the import path is
+    /// the whole answer. Python writes one spelling for two things. `from app import flags`
+    /// binds either a name `app/__init__.py` declares or the submodule `app/flags.py`. This
+    /// offers the submodule too, and the caller weighs both. Without it, `flags.USE_NEW_TAX`
+    /// resolved to nothing under the commonest Python layout there is.
     fn modules_bound_to(&self, info: &FileInfo, from: &Path, receiver: &str) -> Vec<PathBuf> {
         let Some(import) = self.import_binding(info, receiver) else {
             return Vec::new();
@@ -1633,10 +1625,9 @@ impl Index {
     /// The directory a package import path names, where this workspace holds it.
     ///
     /// Go writes an import path from the module root, `gate/holder`. The module root is
-    /// wherever `go.mod` sits, which is a file this does not read. Matching the longest suffix
-    /// of the path that names one directory in the tree resolves it without the module file,
-    /// and answers nothing where two directories would do, because a wrong package is worse
-    /// than an unresolved one.
+    /// wherever `go.mod` sits, and this function does not read that file. It matches the
+    /// longest suffix of the path that names one directory in the tree. Two matching
+    /// directories give no answer, because a wrong package is worse than an unresolved one.
     fn package_directory(&self, import_path: &str) -> Option<PathBuf> {
         let segments: Vec<&str> = import_path.split('/').filter(|s| !s.is_empty()).collect();
         for start in 0..segments.len() {
@@ -1661,10 +1652,10 @@ impl Index {
 
     /// Map an import path to a file in the workspace.
     ///
-    /// Handles the relative-path forms used by TypeScript, Python, SCSS and Bash.
-    /// Module systems that need build configuration (Rust crate paths, Go module
-    /// paths, tsconfig `paths` aliases) are not resolved here; callers see the
-    /// weaker confidence that results instead of a wrong answer.
+    /// This handles the relative-path forms used by TypeScript, Python, SCSS and Bash.
+    /// Module systems that need build configuration stay unresolved: Rust crate paths,
+    /// Go module paths, tsconfig `paths` aliases. Callers see the weaker confidence
+    /// that results, in place of a wrong answer.
     pub fn resolve_import_path(&self, from: &Path, import_path: &str) -> Option<PathBuf> {
         if import_path.is_empty() {
             return None;
@@ -1672,15 +1663,16 @@ impl Index {
         let dir = from.parent()?;
 
         // A path that names a file beside this one, with no `./` in front of it. Zig writes
-        // `@import("holder.zig")` exactly so, and every branch below assumed a leading dot or a
-        // dotted module name. The extension was read as the last segment of a dotted path, so
+        // `@import("holder.zig")` that way, and every branch below assumed a leading dot or
+        // a dotted module name. The extension read as the last segment of a dotted path, so
         // `holder.zig` was looked up as a file called `zig`.
-        // Normalised, because the index is keyed by paths with no `.` or `..` left in
-        // them. `../src/pricing` joined onto `test/` kept the `..` as a component. It
-        // compared unequal to the file it names, so a specifier that crossed a
-        // directory resolved to nothing. `fr move` then wrote its new import beside the
-        // old one it had failed to recognise. TypeScript calls that a duplicate
-        // identifier. Duplicate imports parse, so no guard caught it.
+        //
+        // The join is normalised, because the index is keyed by paths with no `.` or `..`
+        // left in them. `../src/pricing` joined onto `test/` kept the `..` as a component.
+        // It compared unequal to the file it names, so a specifier crossing a directory
+        // resolved to nothing. `fr move` then wrote its new import beside the old one it
+        // had failed to recognise, which TypeScript rejects as a duplicate identifier.
+        // Duplicate imports parse, so no guard caught it.
         let beside = crate::vfs::normalise(dir.join(import_path));
         if self.files.contains_key(&beside) {
             return Some(beside);
@@ -1792,14 +1784,14 @@ impl Index {
         None
     }
 
-    /// All references that resolve to `symbol`. Every reference to the entity `symbol` names.
+    /// All references to the entity `symbol` names.
     ///
     /// Some kinds are declared in several places and are still one thing: a CSS class written
     /// in a stylesheet and again in a theme. A reference resolves to one of those sites, so
-    /// counting per site under-reports, `fr refs` on the second declaration of `.sensor-table`
-    /// found nothing while `fr rename` on the same position changed five sites. You look before
-    /// you leap, see nothing, and five things move. `definition_group` is the identity here,
-    /// and it returns just this symbol for every kind that has one declaration site.
+    /// counting per site under-reports. `fr refs` on the second declaration of
+    /// `.sensor-table` found nothing while `fr rename` on the same position changed five
+    /// sites. `definition_group` supplies the identity here, and it returns this symbol alone
+    /// for every kind with one declaration site.
     pub fn references_to(&self, symbol: SymbolId) -> Vec<&Reference> {
         let group = self.definition_group(symbol);
         self.references
@@ -1822,28 +1814,29 @@ impl Index {
 
     /// Every definition site of the entity `symbol` belongs to.
     ///
-    /// Usually just the symbol itself. For kinds with no canonical definition. CSS
-    /// classes, custom properties. It is every site that declares the same name, so
-    /// a rename rewrites all of them and not half.
+    /// Usually the symbol itself. Kinds with no canonical definition, such as CSS
+    /// classes and custom properties, group every site that declares the same name.
+    /// A rename then rewrites all of them.
     pub fn definition_group(&self, symbol: SymbolId) -> Vec<SymbolId> {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
         if !sym.kind.allows_multiple_definitions() {
-            // `self.count = 0` in `__init__` and `self.count = n` in another method
-            // are one attribute declared twice, which is how Python declares
-            // attributes at all. The class is the identity, and the class is the
-            // qualifier: each site's container is the method it sits in. A rename
-            // that took one site left the object answering two names at run time.
-            // TypeScript's overloads are separate declarations over one
-            // implementation. Two `function pick(...)` signatures and the body
-            // all name one function; renamed alone, any of them leaves `error
-            // TS2389: Function implementation name must be 'pick'`. The grammar allows the
-            // repetition only for overloads, so same name, same file, same
-            // container is the entity.
-            // Python allows the repetition for a property family: `@property def
-            // size` and `@size.setter def size` are one attribute with two doors.
-            // Renaming the getter alone left the setter answering the old name.
+            // `self.count = 0` in `__init__` and `self.count = n` in another method are
+            // one attribute declared twice, and Python declares attributes only that way.
+            // The class is the identity and the class is the qualifier, because each
+            // site's container is the method it sits in. A rename that took one site left
+            // the object answering two names at run time.
+            //
+            // TypeScript's overloads are separate declarations over one implementation.
+            // Two `function pick(...)` signatures and the body all name one function.
+            // Renaming one alone leaves `error TS2389: Function implementation name must
+            // be 'pick'`. The grammar allows the repetition only for overloads, so the
+            // entity is same name, same file, same container.
+            //
+            // Python allows the repetition for a property family: `@property def size` and
+            // `@size.setter def size` are one attribute with two doors. Renaming the getter
+            // alone left the setter answering the old name.
             if (matches!(sym.language, Language::TypeScript | Language::Tsx)
                 && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method))
                 || (sym.language == Language::Python && sym.kind == SymbolKind::Method)
@@ -1923,13 +1916,13 @@ impl Index {
         count
     }
 
-    /// Do these symbols all denote the same entity?
+    /// Whether these symbols all denote the same entity.
     ///
-    /// `definition_group` is the identity, so every kind it groups answers here the
-    /// same way. That covers CSS classes across stylesheets and chart values across
-    /// a chart's values files. Testing the kind's own flag instead left the chart
-    /// value out, and `fr usages replicaCount` refused as ambiguous what rename
-    /// treats as one thing.
+    /// `definition_group` supplies the identity, so every kind it groups answers here
+    /// the same way. That covers CSS classes across stylesheets and chart values across
+    /// a chart's values files. Testing the kind's own flag instead left the chart value
+    /// out, and `fr usages replicaCount` refused as ambiguous what rename treats as one
+    /// thing.
     pub fn is_one_entity(&self, symbols: &[&Symbol]) -> bool {
         let Some(first) = symbols.first() else {
             return false;
@@ -2067,7 +2060,7 @@ fn distance(a: usize, b: usize) -> usize {
     a.abs_diff(b)
 }
 
-/// Is this a chart's values file, instead of a manifest that has keys?
+/// Whether this path is a chart's values file rather than a manifest with keys.
 ///
 /// `.Values.name` names a key a values file supplies. Every template in the chart is YAML with
 /// keys of its own. Matching those would point a reference at whatever manifest happened to use
@@ -2208,8 +2201,8 @@ mod tests {
         let index = Index::build_from_scan(&scanned).unwrap();
         assert_eq!(index.file_count(), 0);
         assert_eq!(index.skipped.len(), 1, "skip must be visible");
-        // Visible means a reader can act on it: which file, and why. A skip that says
-        // neither is a count, and a count is not a report.
+        // Visible means a reader can act on it: which file, and why. A skip that gives
+        // neither leaves a count where a report belongs.
         let (skipped, reason) = &index.skipped[0];
         assert_eq!(skipped, &path);
         assert!(!reason.is_empty(), "the skip gives no reason");

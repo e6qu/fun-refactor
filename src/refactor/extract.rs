@@ -44,9 +44,9 @@ pub fn variable(
     let language = info.language;
     crate::capabilities::record(crate::capabilities::Capability::ExtractVariable, language);
 
-    // The config languages have no bindings, so each gets the construct that plays
-    // the same role there: a Terraform `local`, a YAML anchor, a CSS custom property,
-    // a Markdown link reference definition.
+    // The config languages have no bindings, so each one gets the construct that plays the
+    // same role. Those are a Terraform `local`, a YAML anchor, a CSS custom property and a
+    // Markdown link reference definition.
     match language {
         Language::Hcl => return hcl_local(index, file, span, name, all_occurrences),
         Language::Yaml | Language::Helm => {
@@ -104,11 +104,11 @@ pub fn variable(
         anyhow::bail!("'{expr_text}' is already a name; extracting it would only create an alias");
     }
 
-    // An expression that *is* its statement has nothing left behind it. Replacing it
-    // with the new name leaves a statement that only names the binding: `zzx;`, which
-    // Zig rejects outright, Go rejects as an unused value, and the other three accept
-    // while meaning nothing. The value is already being computed for its effect, so
-    // there is nothing to hoist.
+    // An expression that *is* its statement has nothing left behind it. Replacing it with the
+    // new name leaves a statement that only names the binding, `zzx;`. Zig rejects that
+    // outright, Go rejects it as an unused value, and the other three accept it while it
+    // means nothing. The value is already being computed for its effect, so there is nothing
+    // to hoist.
     if expr
         .parent()
         .is_some_and(|p| p.kind().contains("expression_statement") && p.named_child_count() == 1)
@@ -197,9 +197,9 @@ pub(crate) fn supports_imperative_extract(language: Language) -> bool {
 
 /// Can a value be extracted into a named binding in this language?
 ///
-/// The single authority for the capability table. It has to account for the
-/// config-language paths `variable()` dispatches to before reaching the generic one,
-/// consulting only the imperative predicate is what made the published matrix wrong.
+/// The single authority for the capability table. It has to account for the config-language
+/// paths `variable()` dispatches to before reaching the generic one. Consulting only the
+/// imperative predicate made the published matrix wrong.
 pub fn supports_extract(language: Language) -> bool {
     supports_imperative_extract(language)
         || matches!(
@@ -642,9 +642,9 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
 
-    // Each of these languages has something that plays a function's role, a shell
-    // function, an SCSS mixin, a Helm named template, but none of them reaches it
-    // through the generic dataflow analysis, so each has its own arm.
+    // Each of these languages has something that plays a function's role: a shell function,
+    // an SCSS mixin, a Helm named template. None of them reaches it through the generic
+    // dataflow analysis, so each gets its own arm.
     match language {
         Language::Helm => return helm_named_template(file, span, name),
         Language::Bash => return bash_function(index, file, span, name),
@@ -1440,12 +1440,13 @@ fn supports_imperative_extract_function(language: Language) -> bool {
 
 /// Can a region be extracted into something callable in this language?
 ///
-/// Three languages get there by a route of their own, a Helm named template in `_helpers.tpl`,
-/// an SCSS `@mixin`, a shell function, and not a function with parameters and a returned
-/// value. So this cannot ask the imperative predicate alone. It named Helm and not the other
-/// two. The matrix reads this: `fr extract --function` has been writing `@mixin`/`@include` and
-/// shell functions for languages the table told the reader it could not do, under a reason
-/// invented to explain the gap. The arms in [`function`] are the list, and this is that list.
+/// Three languages get there by a route of their own. They write a Helm named template in
+/// `_helpers.tpl`, an SCSS `@mixin` or a shell function, rather than a function with
+/// parameters and a returned value. So this cannot ask the imperative predicate alone. It
+/// named Helm and not the other two. The matrix reads this. `fr extract --function` had been
+/// writing `@mixin`/`@include` and shell functions for languages the table told the reader it
+/// could not do, under a reason invented to explain the gap. The arms in [`function`] are the
+/// list, and this is that list.
 pub fn supports_extract_function(language: Language) -> bool {
     supports_imperative_extract_function(language)
         || matches!(language, Language::Helm | Language::Bash | Language::Scss)
@@ -1453,9 +1454,8 @@ pub fn supports_extract_function(language: Language) -> bool {
 
 /// Widen a selection to the complete statements it touches.
 ///
-/// A line selection starts on the line's indentation, which belongs to no statement,
-/// so the search begins at the first real content inside the span and ends at the
-/// last.
+/// A line selection starts on the line's indentation, which belongs to no statement. The
+/// search therefore begins at the first real content inside the span and ends at the last.
 fn statement_region<'tree>(
     parsed: &'tree Parsed,
     span: Span,
@@ -1615,8 +1615,8 @@ fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> 
         }
         if region.contains(span) {
             let kind = node.kind();
-            // A break or continue belonging to a loop inside the region is fine; only
-            // the ones escaping the selection matter, and a loop carries its own.
+            // A break or continue belonging to a loop inside the region does no harm. Only
+            // the ones escaping the selection matter, because a loop carries its own.
             if kind.contains("return_statement") || kind == "return" {
                 return Some("return");
             }
@@ -1825,11 +1825,11 @@ fn render_call(
 
 /// How the file being edited is indented.
 ///
-/// `outer` is what the extracted region already carries. `unit` is one level as this file
-/// writes it, which is read from the source and not assumed so a two-space or tab-indented file
-/// does not come back with four spaces.
-/// `lead` is the definition's own indentation, taken from whatever it is written beside.
-/// It is empty for a definition that lands at the top of the file.
+/// `outer` is what the extracted region already carries. `unit` holds one level of
+/// indentation as this file writes it. The value comes from the source rather than an
+/// assumption, so a two-space or tab-indented file does not come back with four spaces.
+/// `lead` is the definition's own indentation, taken from whatever it is written beside. It
+/// is empty for a definition that lands at the top of the file.
 #[derive(Clone, Copy)]
 struct Indentation<'a> {
     outer: &'a str,
@@ -2368,8 +2368,8 @@ fn yaml_is_anchorable(node: Node<'_>, _source: &str) -> bool {
     }
     let mut cursor = node.walk();
     let children: Vec<Node> = node.named_children(&mut cursor).collect();
-    // An anchored or aliased node already names a value; a block scalar spans lines,
-    // and splicing one at an alias would depend on the alias site's indentation.
+    // An anchored or aliased node already names a value. A block scalar spans lines, and
+    // splicing one at an alias would depend on the alias site's indentation.
     !children.is_empty()
         && children.iter().all(|c| {
             matches!(
@@ -3141,10 +3141,10 @@ fn bash_is_statement_container(kind: &str) -> bool {
 
 /// The statement the value belongs to, the one the binding goes in front of.
 ///
-/// Two positions have no statement in front of them, and both are refused. The first
-/// is the condition of an `if`: the binding would replace the test. The second is the
-/// condition of a loop, which is re-evaluated on every iteration and so
-/// cannot be hoisted out without changing how many times it runs.
+/// Two positions have no statement in front of them, and both are refused. The first is the
+/// condition of an `if`: the binding would replace the test. The second is the condition of a
+/// loop. It runs again on every iteration, so hoisting it out would change how many times the
+/// loop runs.
 fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
     let mut current = node;
     loop {
@@ -3212,17 +3212,17 @@ fn bash_would_split(node: Node<'_>, source: &str) -> bool {
 
 /// Extract statements into a shell function.
 ///
-/// The function is written before the one the selection came from, or at the top of the script
-/// when the selection is not in a function, either way, before the call, which the
-/// shell requires. A function has to have been *defined* by the time the call runs, and
-/// definition happens in file order.
+/// The function goes before the one the selection came from, or at the top of the script when
+/// the selection sits outside a function. Either way it lands before the call, as the shell
+/// requires. A function has to have been *defined* by the time the call runs, and definition
+/// happens in file order.
 ///
-/// There is no parameter analysis, and there is none to do. Shell has no block scope: every
-/// name a shell function reads is either global or a caller's `local`, both of which stay
-/// readable from the new function. So no binding has to cross the boundary. The one thing that
-/// does not survive the move is the positional parameters, `$1` inside a function is that
-/// function's first argument, not the enclosing one's. So a region that reads them is refused
-/// instead of silently rebound.
+/// There is no parameter analysis, and there is none to do. Shell has no block scope. Every
+/// name a shell function reads is global or a caller's `local`, and the new function can
+/// still read both. So no binding has to cross the boundary. Only the positional parameters
+/// fail to survive the move. Inside a function, `$1` names that function's first argument
+/// rather than the enclosing one's. So a region that reads them is refused instead of
+/// silently rebound.
 fn bash_function(
     index: &Index,
     file: &Path,

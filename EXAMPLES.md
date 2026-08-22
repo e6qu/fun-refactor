@@ -1,8 +1,8 @@
 # Every refactoring, on real code
 
 One example per capability, each run against a public repository at a pinned commit.
-The outputs are copied from those runs. Nothing here is invented, and where a command
-refused or found nothing, that is what it printed.
+The outputs are copied from those runs. Nothing here is invented. Where a command
+refused or found nothing, the refusal or the empty result stands as printed.
 
 | Repository | Commit | Languages used here |
 |---|---|---|
@@ -13,9 +13,9 @@ refused or found nothing, that is what it printed.
 | [zigtools/zls](https://github.com/zigtools/zls) | [`8da87d4`](https://github.com/zigtools/zls/commit/8da87d4) | Zig |
 | [grafana/grafana](https://github.com/grafana/grafana) | [`b3648173`](https://github.com/grafana/grafana/commit/b3648173) | TypeScript, TSX, SCSS |
 
-Eleven of the examples below are bugs this exercise found and fixed. They are marked
-🔎, because "we ran it on real code and this is what happened" is the only honest way
-to describe a tool's behaviour.
+Eleven of the examples below are bugs this exercise found and fixed. A 🔎 marks each
+one. Running a tool on real code and reporting what happened is the only honest way
+to describe its behaviour.
 
 ---
 
@@ -23,8 +23,8 @@ to describe a tool's behaviour.
 
 ### `fr refs`, where is this used, and how sure are we
 
-Rust reaches a module item through a path. `super::` is the module a file's directory
-forms, and the four uses live in two sibling files:
+Rust reaches a module item through a path. `super::` names the module a file's
+directory forms, and the four uses live in two sibling files:
 
 ```console
 $ fr refs crates/core/flags/doc/mod.rs:18:4
@@ -35,7 +35,7 @@ $ fr refs crates/core/flags/doc/mod.rs:18:4
   crates/core/flags/doc/man.rs:84:22  [exact]
 ```
 
-🔎 This returned **zero** before. Rust module paths were not resolved at all, so
+🔎 This returned **zero** before. Nothing resolved Rust module paths, so
 `super::render_custom_markup(…)` matched nothing and the function read as dead code.
 
 The harder case is a name four types share.
@@ -50,7 +50,7 @@ $ fr refs crates/core/flags/hiargs.rs:1016:8
 ```
 
 🔎 The written type is the evidence. Before, the nearest definition in the file won,
-which meant one of the four absorbed the others' call sites and three looked unused.
+so one of the four absorbed the others' call sites and three looked unused.
 
 ### `fr callers`, who calls this
 
@@ -95,7 +95,7 @@ $ fr entrypoints
 ```
 
 🔎 That was 141 tests. A Rust test declares itself with `#[test]`, and the catalog
-could only match names and paths, ripgrep's tests are called `backslash`, `tab` and
+could only match names and paths. ripgrep's tests are called `backslash`, `tab` and
 `carriage`. Catalogs gained `annotated_with`, which reads the annotations above a
 definition.
 
@@ -114,12 +114,12 @@ declaration var.azs: variable "azs" { …  (variables.tf:47)
 ```
 
 🔎 `fr refs` on the same variable used to resolve it to the module's own
-`output "azs"`, a different Terraform namespace that no traversal can reach. A rename
-would have renamed the output and rewritten all 41 uses of the variable to match.
-`var.` is written in the source; it is now read.
+`output "azs"`. The output sits in a different Terraform namespace, which no traversal
+reaches. A rename would have renamed the output and rewritten all 41 uses of the
+variable to match. The source writes `var.`, and the index now reads it.
 
-And Helm, where a value's origin is a values file and the answer is honest about what
-it cannot see:
+And Helm, where a value originates in a values file and the answer admits what it
+cannot see:
 
 ```console
 $ fr flow back pkg/cmd/testdata/testcharts/alpine/templates/alpine-pod.yaml:4:38
@@ -149,8 +149,8 @@ $ fr duplicates --lang rust --min-tokens 120
   …
 ```
 
-The comparison is structural, so copies whose identifiers differ still match, which
-matters here, since a textual search finds none of these.
+The comparison reads structure, so copies whose identifiers differ still match. That
+matters here: a textual search finds none of these.
 
 Zig, on the language server's test suite:
 
@@ -169,8 +169,9 @@ $ fr duplicates --lang go
 337 duplicated block(s), 64530 redundant token(s)
 ```
 
-The largest is `internal/release/v2/info_test.go` against `pkg/release/v1/info_test.go`
-— 377 lines whose only differences are the package clause and one blank line.
+The largest pits `internal/release/v2/info_test.go` against
+`pkg/release/v1/info_test.go`: 377 lines whose only differences are the package clause
+and one blank line.
 
 ### `fr unused`, code nothing appears to use
 
@@ -182,13 +183,13 @@ $ fr unused --lang go --internal        # helm
 Thirty-nine unused parameters and eight unused struct fields; no dead functions,
 methods or variables. helm has very little dead code.
 
-🔎 The same command reported **238** candidates before this exercise. The difference
-is eight resolution bugs, the largest being that a Go package is a directory and only
+🔎 The same command reported **238** candidates before this exercise. Eight resolution
+bugs account for the difference. The largest: a Go package is a directory, and only
 Terraform was treated that way. So `fr refs` returned nothing for symbols helm calls
 from the file next door.
 
 `--internal` matters for a library: `--lang go` alone reports 199 exported
-symbols, which is the public API. It is not dead code.
+symbols. Those are the public API, and a public API is not dead code.
 
 ---
 
@@ -208,8 +209,8 @@ $ fr rename pkg/action/action.go:725:6 releaseApplyMethod
 determineReleaseSSApplyMethod → releaseApplyMethod: 5 site(s) across 4 file(s)
 ```
 
-`TestDetermineReleaseSSAApplyMethod` keeps its name. It contains the old one and is
-not it. Verified afterwards with `go build ./...` and `go test ./pkg/action/`.
+`TestDetermineReleaseSSAApplyMethod` keeps its name: it contains the old name without
+being it. We verified afterwards with `go build ./...` and `go test ./pkg/action/`.
 
 A Helm values key renames through the templates that read it:
 
@@ -223,9 +224,9 @@ Not changed — review these yourself:
     alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged
 ```
 
-🔎 `{{ … }}` is masked before parsing. So everything inside it was invisible to the
-index: this rewrote `values.yaml` and nothing else, listing every template use as a
-textual occurrence to fix by hand.
+🔎 `{{ … }}` is masked before parsing, so the index never saw inside it. The command
+rewrote `values.yaml` and nothing else, listing every template use as a textual
+occurrence to fix by hand.
 
 ### `fr extract`, an expression into a binding
 
@@ -238,8 +239,8 @@ $ fr extract pkg/action/install.go:221:5-221:20 itemCount
 ```
 
 🔎 This put the binding at the top of the function, above the declaration of
-`totalItems`, until the third private copy of "is this a statement container" was
-merged with the other two. It parses, so no reparse check caught it; it does
+`totalItems`. The fix merged the third private copy of "is this a statement container"
+with the other two. The result parses, so the reparse check passed it, and it does
 not compile.
 
 ### `fr move`, a symbol, with what it needs
@@ -258,9 +259,9 @@ def guess_filename(obj: Any) -> str | None:
     …
 ```
 
-🔎 Three faults, all found here. The new import in `utils.py` was written *inside*
-`from typing import (`, requests spans that statement over three lines and the
-insertion point was found by scanning lines. `import os` stayed behind, because a
+🔎 Three faults, all found here. The move wrote the new import in `utils.py` *inside*
+`from typing import (`. requests spans that statement over three lines, and the
+insertion point came from scanning lines. `import os` stayed behind, because a
 module import binds a name without naming it in the statement. And
 `from __future__ import annotations` stayed behind too: it binds nothing at all and
 decides how every annotation in the file is read, so `str | None` stopped parsing
@@ -300,11 +301,11 @@ $ fr rewrite crates/cli/src/decompress.rs:477:9 guard-clause
 🔎 That `continue` was `return` until this example was written. The `if` ends a `for`
 body inside a function returning `Result<PathBuf>`. So `return` left the loop
 entirely *and* returned nothing from a function that owes a value. The exit now
-follows from the block, and a function that owes a value is refused outright, what
-to return early is the author's decision.
+follows from the block. The tool refuses a function that owes a value outright,
+because what to return early is the author's decision.
 
-Only transformations whose result reparses are offered, so the menu never lists
-something that applying it would then refuse.
+The menu offers only transformations whose result reparses, so it never lists
+something the tool would then refuse to apply.
 
 ### `fr restructure`, a pattern, everywhere it appears
 
@@ -319,9 +320,8 @@ $ fr restructure 'raise InvalidURL($X)' 'raise InvalidURL($X) from None' --lang 
 ```
 
 🔎 Statement patterns were impossible in Python, shell and YAML. Those languages wrap
-a fragment in nothing, so the statement the pattern writes is the outermost node, and
-the narrowing that strips wrapper-introduced statement containers stripped that one
-too.
+a fragment in nothing, so the pattern's statement is the outermost node. The narrowing
+that strips wrapper-introduced statement containers stripped that one too.
 
 ### `fr delete`, and the refusal that matters more
 
@@ -345,14 +345,14 @@ became a one-expression function. It refuses a callee of several statements, who
 evaluation order and shadowing it cannot preserve. So `fr extract --function`, which
 writes several statements by construction, has no inverse here. `fr remove-flag`
 retires a feature flag and the branch that only served it. `fr stitch` links a
-configuration key to the code that reads it, an environment variable declared in a
-chart and read by a Go program.
+configuration key to the code that reads it: an environment variable declared in a
+chart, read by a Go program.
 
 ---
 
 ## Not supported, and what each would take
 
-These are refactorings the tool does not do. They are listed because the shape of
+The tool does not do these refactorings. They are listed because the shape of
 what is missing says more about a tool than the list of what it has.
 
 | Refactoring | Why not, and what it needs |
@@ -361,7 +361,7 @@ what is missing says more about a tool than the list of what it has.
 | **Pull up / push down a member** | Needs the type hierarchy *and* the type of every receiver at every call site, to know which sites still resolve after the move. Hierarchy analysis exists; receiver types do not. |
 | **Introduce parameter object** | Mechanically an `fr signature` change plus a new type, but choosing which parameters group together is the substance of it. A version taking an explicit list is the likeliest of these to be built. |
 | **Change a return type** | The edit is easy; finding every caller that must adapt needs the type of each call's context, which syntax does not give. |
-| **Convert callback to promise / async** | Requires understanding control flow, not just shape. Each language spells it differently enough that it is really eight refactorings. |
+| **Convert callback to promise / async** | Requires understanding control flow, which shape alone does not give. Each language spells it differently enough that it is really eight refactorings. |
 | **Encapsulate a field** | Needs to distinguish reads from writes at every use site, which is dataflow and not resolution. `fr flow` has the machinery; the refactoring does not exist yet. |
 | **Rename a file or module** | Every language spells the dependency differently, a Go directory, a Rust `mod`, a TypeScript relative path, a Python package. `fr move` already does this for a *symbol*; doing it for a file is the same work at a different granularity, and is the second-likeliest to be built. |
 | **Inline a class or type** | Needs to know every use is compatible with the inlined shape, which is type checking. |
@@ -369,8 +369,8 @@ what is missing says more about a tool than the list of what it has.
 | **Split a class or module** | The tool can *find* the case for it, `fr duplicates` and `fr graph` show cohesion, but performing the split is a sequence of moves a human should direct. |
 
 The common thread: everything above needs types, and this tool is built on syntax. It
-stops where the syntax stops and says so, so a reference it cannot prove is
-reported and not rewritten. A refactoring that needs the type of an arbitrary
+stops where the syntax stops and says so, reporting a reference it cannot prove
+instead of rewriting it. A refactoring that needs the type of an arbitrary
 expression belongs in a language server. One that needs only what is written down
 belongs here, across all sixteen languages at once.
 
@@ -384,6 +384,6 @@ $ git checkout 435f59f
 $ fr duplicates --lang rust --min-tokens 120
 ```
 
-Every command above is copy-pasteable against the commit in the table. See
+Copy any command above and run it against the commit in the table. See
 [TUTORIAL.md](TUTORIAL.md) for a single refactoring followed end to end, and
 [BUGS.md](BUGS.md) for the 🔎 entries with their measurements.

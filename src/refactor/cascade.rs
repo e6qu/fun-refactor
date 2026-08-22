@@ -498,11 +498,11 @@ fn substitute_flag(
     }
 
     if every_use_was_rewritten {
-        // The definition goes with whatever holds it and then with its whole line, the same two
-        // steps `fr delete` takes, because the answer is the same question. Taking the symbol's
-        // own span instead removed `NEW_UI = true` from `const NEW_UI = true;` and left `const
-        // ;` behind. The edit guard caught it, so `fr remove-flag` did not damage a TypeScript
-        // file, it never worked on one.
+        // The definition goes with whatever holds it and then with its whole line. `fr
+        // delete` takes the same two steps, because both answer the same question. Taking the
+        // symbol's own span instead removed `NEW_UI = true` from `const NEW_UI = true;` and
+        // left `const ;` behind. The edit guard caught it, so `fr remove-flag` did not damage
+        // a TypeScript file, it never worked on one.
         let definition_span = match sources.get(&definition.file) {
             Some((language, source)) => {
                 let widened = match parsers.parse(*language, source) {
@@ -742,10 +742,10 @@ fn hcl_block_argument(block: Node<'_>, source: &str, name: &str) -> Option<Strin
 
 /// Occurrences of the flag's name that outlived the cascade.
 ///
-/// Every use the substitution could rewrite is gone by now. So whatever still spells the flag
-/// is something it declined, a use in a form no literal fits, or one whose resolution was never
-/// strong enough to touch. Finding them in the finished text is what makes the line numbers
-/// point at the file the caller will open.
+/// Every use the substitution could rewrite is gone by now. Whatever still spells the flag is
+/// something it declined. Either the use takes a form no literal fits, or its resolution was
+/// never strong enough to touch. Finding them in the finished text is what makes the line
+/// numbers point at the file the caller will open.
 ///
 /// The declaration is read from the finished text as well. Where it survived, it survived
 /// because a use of it did. Reporting it as one more unrewritable use of itself said
@@ -1024,10 +1024,10 @@ fn names_an_import(node: Node<'_>) -> bool {
 
 /// Whether a use of a name is a use of it as a type.
 ///
-/// A type is written as a name, so nothing about the name says which it is. What says it is the
-/// field the grammar hangs it from. Every language here holds a declared type under `type`, and
-/// a declared result under `return_type` or `result`, wrapping it in a node or two on the way,
-/// `*const P`, `P[]`, `: P`.
+/// A type is written as a name, so nothing about the name says which it is. What says it is
+/// the field the grammar hangs it from. Every language here holds a declared type under
+/// `type`, and a declared result under `return_type` or `result`. Each wraps it in a node or
+/// two on the way, as in `*const P`, `P[]` and `: P`.
 fn names_a_type(node: Node<'_>) -> bool {
     let mut current = node;
     for _ in 0..4 {
@@ -1242,8 +1242,8 @@ fn simplify_constants(
 
 /// What the collapse step needs to know beyond the file in front of it.
 ///
-/// Terraform's unit of scope is the directory, so what one file may do to a resource
-/// depends on how the files beside it address that resource.
+/// Terraform scopes by directory. What one file may do to a resource depends on how the files
+/// beside it address that resource.
 struct Context<'a> {
     /// The file as it stood before the cascade started.
     original: &'a str,
@@ -1524,9 +1524,9 @@ fn zig_expression_branches<'a>(children: &[Node<'a>], truth: bool) -> Result<Nod
 
 /// A Zig branch as it reads once the `if` around it is gone.
 ///
-/// A braced branch loses its braces and a level of indentation. An unbraced one is an
-/// expression where a statement now has to stand: the semicolon that ended the `if` belonged to
-/// the statement, not to the branch. So it has to be carried over.
+/// A braced branch loses its braces and a level of indentation. An unbraced one puts an
+/// expression where a statement now has to stand. The semicolon that ended the `if` belonged
+/// to the statement rather than the branch. So it has to be carried over.
 fn zig_branch_text(branch: Node<'_>, source: &str, indent: &str, terminated: bool) -> String {
     if let Some(block) = zig_block(branch) {
         return dedent_block(Span::from(block), source, indent);
@@ -1541,8 +1541,8 @@ fn zig_branch_text(branch: Node<'_>, source: &str, indent: &str, terminated: boo
 
 /// The block a branch wraps, if it is braced and unlabelled.
 ///
-/// A labelled block is kept whole: `blk: { … }` is a statement in its own right and
-/// dropping the label would strand the `break :blk` inside it.
+/// A labelled block stays whole. `blk: { … }` is a statement in its own right, and dropping
+/// the label would strand the `break :blk` inside it.
 fn zig_block(node: Node<'_>) -> Option<Node<'_>> {
     if node.kind() == "block" {
         return Some(node);
@@ -2183,9 +2183,9 @@ fn unfinished_work(
 
 /// Delete symbols that nothing references any more.
 ///
-/// Only functions and constants are considered, and only ones the cascade could
-/// plausibly have orphaned, a symbol that was already unused before any of this
-/// started is not this refactoring's business.
+/// This considers functions and constants only, and only ones the cascade could plausibly
+/// have orphaned. A symbol that was already unused beforehand belongs to somebody else's
+/// clean-up.
 fn remove_orphans(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -2229,9 +2229,9 @@ fn remove_orphans(
 /// project's own CI turns into one. The output parses either way, which is why sweeping for
 /// parse errors never saw it.
 ///
-/// Which imports are dead is not asked here. `fr imports` already answers it, and carries a
-/// body of knowledge about uses no query can see, a Rust trait used through its methods, a JSX
-/// pragma in a comment. That a second answer would get wrong.
+/// Which imports are dead is not asked here. `fr imports` already answers it, and it knows
+/// about uses no query can see. A Rust trait used through its methods and a JSX pragma in a
+/// comment both count. That a second answer would get wrong.
 fn remove_dead_imports(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -2251,8 +2251,8 @@ fn remove_dead_imports(
 
 /// What `fr imports` would make of this file's import statements, region by region.
 ///
-/// The replacements and not the removals: a statement may lose one of the names it binds
-/// and keep the others, and treating that as a removal deleted the live ones with it.
+/// Take the replacements rather than the removals. A statement may lose one of the names it
+/// binds and keep the others, and treating that as a removal deleted the live ones with it.
 fn dead_import_spans(index: &Index, path: &Path, source: &str) -> Vec<(Span, String)> {
     let Ok(plan) = crate::refactor::imports::plan_in(index, path, source) else {
         return Vec::new();
@@ -2276,10 +2276,10 @@ fn dedent_block(block: Span, source: &str, indent: &str) -> String {
 
 /// Re-indent a run of lines so its shallowest line sits at `indent`.
 ///
-/// Taking the shallowest line as the baseline is what keeps nesting inside the
-/// branch intact: every line moves by the same amount, so relative depth survives.
-/// The first line is returned bare, because the replacement starts where the
-/// construct it replaces did and that column is already occupied.
+/// Taking the shallowest line as the baseline keeps the nesting inside the branch intact.
+/// Every line moves by the same amount, so relative depth survives. The first line is
+/// returned bare, because the replacement starts where the construct it replaces did and that
+/// column is already occupied.
 fn dedent_to(text: &str, indent: &str) -> String {
     let lines: Vec<&str> = text
         .lines()
@@ -2347,9 +2347,8 @@ fn apply_in_memory(
         for (_, span, replacement) in applied.iter().rev() {
             // Deleting a statement should take its line, not leave a blank one.
             let range = if replacement.is_empty() {
-                // A definition usually spans several lines, so the deletion has to
-                // cover all of them, taking only the first would leave the body
-                // behind as a stray blank region.
+                // A definition usually spans several lines, so the deletion covers all of
+                // them. Taking only the first leaves the body behind as a stray blank region.
                 let first = crate::edit::full_line_span(&updated, span.start);
                 let last = crate::edit::full_line_span(
                     &updated,

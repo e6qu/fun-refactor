@@ -6,18 +6,17 @@
 //!
 //! Three languages spell "signature" differently:
 //!
-//! * SCSS. `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call, so
-//!   the machinery below handles both once it treats an `include_statement` as a call. SCSS
-//!   adds a declaration that can start with no parentheses, and a grammar whose gaps hide
-//!   call sites, see [`open_a_parameter_list`] and [`reject_hidden_call_sites`].
-//! * Terraform. A module is a directory; its parameters are the `variable "x" {}` blocks
-//!   declared in it. Its call sites are `module "m" { source = "./dir" }` blocks pointing at
-//!   that directory. Arguments there are named and not positional, so a change addresses a
-//!   position in the variables' document order and rewrites the named argument at each call
-//!   site: [`terraform_module`].
-//! * Bash. A shell function declares no parameter list, but still has a signature: the
-//!   positional parameters `$1 $2 …` the body reads. The words every call site passes. A
-//!   change renumbers one and rewrites the other: [`shell_function`].
+//! * SCSS. `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call. The
+//!   machinery below handles both once it treats an `include_statement` as a call. SCSS adds a
+//!   declaration that can start with no parentheses, and a grammar whose gaps hide call sites,
+//!   see [`open_a_parameter_list`] and [`reject_hidden_call_sites`]. * Terraform. A module is a
+//!   directory; its parameters are the `variable "x" {}` blocks declared in it. Its call sites
+//!   are `module "m" { source = "./dir" }` blocks pointing at that directory. Arguments there
+//!   carry names rather than positions. A change addresses a position in the variables'
+//!   document order, then rewrites the named argument at each call site. See
+//!   [`terraform_module`]. * Bash. A shell function declares no parameter list, but still has a
+//!   signature: the positional parameters `$1 $2 …` the body reads. The words every call site
+//!   passes. A change renumbers one and rewrites the other: [`shell_function`].
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
@@ -611,10 +610,10 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
 /// before one without?
 ///
 /// Python and TypeScript both require every defaulted parameter to come last, and tree-sitter
-/// parses `def circ(units="m", r):` without complaint. So the engine's reparse check cannot see
-/// this and `fr signature circ move:0:1` produced a file Python rejects with *"parameter
-/// without a default follows parameter with a default"*. The languages with no defaults at all
-/// cannot hit it.
+/// parses `def circ(units="m", r):` without complaint. The engine's reparse check cannot see
+/// this, so `fr signature circ move:0:1` produced a file Python rejects with *"parameter
+/// without a default follows parameter with a default"*. The languages with no defaults at
+/// all cannot hit it.
 fn defaults_would_be_out_of_order(
     language: Language,
     source: &str,
@@ -935,9 +934,9 @@ fn argument_list(node: Node<'_>) -> Option<Node<'_>> {
 /// Where a call's arguments start, and what they are.
 ///
 /// Most grammars wrap the arguments in a node of their own, and the answer is that node. Zig
-/// does not: `holder.width(a, b)` is a `call_expression` whose children are the callee and then
-/// the arguments themselves, with no list around them and no `(` of its own to find them by.
-/// Asking only for a wrapper therefore reported every Zig call as taking no arguments. `fr
+/// does not. `holder.width(a, b)` is a `call_expression` whose children are the callee and
+/// then the arguments themselves, with no list around them and no `(` to find them by. Asking
+/// only for a wrapper therefore reported every Zig call as taking no arguments. `fr
 /// signature` reordered the declaration, said it was "updating 2 call site(s)", and left both
 /// of them alone.
 ///
@@ -1058,19 +1057,19 @@ fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
         // name(args)`, an `include_statement`; Java spells every call a
         // `method_invocation` and every construction an `object_creation_expression`.
         //
-        // The comment here used to say "the one call form whose kind does not say
-        // call", which was true of the languages it was written against, and meant
-        // `fr signature` refused at every Java call site there has ever been.
+        // The comment here used to say "the one call form whose kind does not say call". That
+        // held for the languages it was written against, and it made `fr signature` refuse at
+        // every Java call site.
         if node.kind().contains("call")
             || matches!(
                 node.kind(),
                 "include_statement" | "method_invocation" | "object_creation_expression"
             )
         {
-            // The walk has to find the call this reference *names*, not one it merely
-            // sits inside. A mention in an argument position, `render(Pet)`, walks up
-            // into a call to something else entirely, whose arguments would then be
-            // reordered as if they were the mentioned symbol's.
+            // The walk has to find the call this reference *names*, not one it merely sits
+            // inside. A mention in an argument position, `render(Pet)`, walks up into a call
+            // to something else entirely. Its arguments would then be reordered as though
+            // they belonged to the mentioned symbol.
             return match argument_list(node) {
                 Some(args) if span.start >= args.start_byte() => None,
                 _ => Some(node),
@@ -1471,11 +1470,11 @@ fn shell_positional_text(number: usize, braced: bool) -> String {
 
 /// Every command invocation of `sym` that can be tied to it, grouped by file.
 ///
-/// Bash has no import that binds a name: a command is whatever `source` put in scope
-/// by the time the line runs. So a call is attributed to this function only when its
-/// file is the defining file or reaches it through a chain of literal `source` paths.
-/// Anything else is either an external command of the same name, reported and left
-/// alone, or a file whose scope cannot be known, which refuses.
+/// Bash has no import that binds a name: a command is whatever `source` put in scope by the
+/// time the line runs. A call belongs to this function only when its file is the defining
+/// file, or reaches it through a chain of literal `source` paths. Anything else is either an
+/// external command of the same name, reported and left alone, or a file whose scope cannot
+/// be known, which refuses.
 fn shell_call_files<'a>(
     index: &'a Index,
     sym: &Symbol,
@@ -1624,8 +1623,8 @@ fn shell_call_at(parsed: &Parsed, sym: &Symbol, file: &Path, span: Span) -> Resu
             location(file, node.start_byte())
         )
     })?;
-    // A name that does not coincide with the reference means the reference was an
-    // argument of some other command, which is not a call at all.
+    // A name that fails to coincide with the reference means the reference was an argument of
+    // some other command, and no call took place.
     if !Span::from(name).contains(span) {
         anyhow::bail!(
             "`{}` at {} is an argument of another command, not a call to the function",
@@ -1647,9 +1646,9 @@ fn shell_call_at(parsed: &Parsed, sym: &Symbol, file: &Path, span: Span) -> Resu
 
 /// Refuse unless every position this change reads or moves is exactly one argument.
 ///
-/// Only the prefix up to the highest position touched has to be determinate: what
-/// follows shifts uniformly whatever it expands to, so `f a "$@"` survives losing its
-/// first argument even though `"$@"` is any number of words.
+/// Only the prefix up to the highest position touched has to be determinate. What follows
+/// shifts uniformly whatever it expands to, so `f a "$@"` survives losing its first argument
+/// even though `"$@"` holds any number of words.
 fn shell_check_positions(
     call: &ShellCall,
     parsed: &Parsed,
@@ -2243,9 +2242,8 @@ fn module_variables(index: &Index, dir: &Path) -> Result<Vec<ModuleVariable>> {
 ///
 /// All-or-nothing applies across the whole workspace: a `module` block whose source is not a
 /// literal path might be the one caller this change would miss. No amount of reading the
-/// configuration can prove otherwise. So one such block refuses the operation instead of
-/// producing an update that is right for the callers we could see and wrong for Terraform as a
-/// whole.
+/// configuration can prove otherwise. One such block refuses the operation. The alternative
+/// updates the callers this tool can see and leaves the rest of Terraform wrong.
 fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
     let mut calls: Vec<ModuleCall> = Vec::new();
     let mut opaque: Vec<String> = Vec::new();
@@ -2300,9 +2298,9 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
         }
 
         // The index records every module `source` as an import. One that points at the target
-        // directory without a matching top-level `module` block means the block is somewhere
-        // this rewrite does not look, nested inside another block, say. Editing around it would
-        // update only part of the call surface.
+        // directory without a matching top-level `module` block puts the block somewhere this
+        // rewrite does not look, nested inside another block for instance. Editing around it
+        // would update only part of the call surface.
         for import in &info.imports {
             if local_module_dir(here, &import.path).as_deref() != Some(dir) {
                 continue;
@@ -2483,8 +2481,8 @@ fn statement_deletion_span(source: &str, span: Span) -> Span {
         return span;
     }
 
-    // A block separated from its neighbours by blank lines must take one of them
-    // with it, or the file is left with a double gap where it used to be.
+    // A block separated from its neighbours by blank lines takes one of them with it.
+    // Otherwise a double gap remains where the block used to be.
     let mut start = first.start;
     let mut end = line_end;
     let previous_blank = start > 0
@@ -2503,8 +2501,8 @@ fn statement_deletion_span(source: &str, span: Span) -> Span {
     Span::new(start, end)
 }
 
-/// Resolve a module `source` to a workspace directory, or `None` if it names
-/// something that is not a local path (a registry address, a git URL).
+/// Resolve a module `source` to a workspace directory. Returns `None` when the source names a
+/// registry address, a git URL, or anything else that is not a local path.
 fn local_module_dir(from: &Path, source: &str) -> Option<PathBuf> {
     if !(source.starts_with("./") || source.starts_with("../") || source.starts_with('/')) {
         return None;

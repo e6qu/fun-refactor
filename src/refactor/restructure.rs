@@ -4,8 +4,8 @@
 //! same name in the template puts that text back. Matching is structural, so `$A + $B` matches
 //! an addition however it is spaced, and never matches inside a string or comment.
 //!
-//! Syntactic only. It carries no name resolution and no type information. The reparse that
-//! every edit goes through is the only check on the result.
+//! Matching is syntactic only, with no name resolution and no type information. The
+//! reparse every edit goes through is the only check on the result.
 //!
 //! # How a fragment is parsed
 //!
@@ -67,18 +67,17 @@ pub struct RestructurePlan {
     /// Sites the pattern matched and the rewrite left alone: file and byte offset.
     ///
     /// A comment between the pattern's own tokens has no place in the template, so the
-    /// rewrite would delete it. Those sites are skipped and reported. Reporting them is
-    /// the whole point: skipping in silence is what made `foo(1, /* why */ 2)` disappear
-    /// from a run that called itself complete.
+    /// rewrite would delete it. The plan skips those sites and reports them, so a run
+    /// that calls itself complete never drops `foo(1, /* why */ 2)` in silence.
     pub skipped_with_comments: Vec<(PathBuf, usize)>,
 }
 
-/// Where does this pattern match, without rewriting anything?
+/// Where this pattern matches, rewriting nothing.
 ///
 /// The find half of [`apply`], exposed because a recipe's `matches=` predicate asks this
-/// question about a symbol and has no template to offer. Running `apply` with the pattern as
-/// its own template would not answer it. A rewrite that changes nothing is skipped, so every
-/// match would be discarded.
+/// question about a symbol and has no template to offer. Running `apply` with the
+/// pattern as its own template answers nothing, since a rewrite that changes nothing is
+/// skipped and every match would be discarded.
 pub fn locate(index: &Index, language: Language, pattern: &str) -> Result<Vec<(PathBuf, Span)>> {
     let parsers = Parsers::new();
     let encoded = encode_metavariables(pattern);
@@ -125,9 +124,9 @@ pub fn apply(
     crate::capabilities::record(crate::capabilities::Capability::Restructure, language);
     let parsers = Parsers::new();
 
-    // Helm's `{{ ... }}` actions are masked out before the YAML parse, so a
-    // pattern containing one would be matched against blanks. Say so and not
-    // silently matching nothing.
+    // Helm's `{{ ... }}` actions are masked out before the YAML parse, so a pattern
+    // containing one would be matched against blanks. Refuse instead of matching
+    // nothing in silence.
     if language == Language::Helm && pattern.contains("{{") {
         return Err(Refusal::Unsupported {
             operation: "a pattern containing a '{{ ... }}' template action".to_string(),
@@ -138,16 +137,16 @@ pub fn apply(
         .into());
     }
 
-    // `$X` is not valid syntax in most languages, so the pattern is rewritten into
-    // ordinary identifiers before parsing. Without this the pattern would parse into
-    // ERROR nodes everywhere except Rust, where `$` happens to be macro syntax.
+    // `$X` is invalid syntax in most languages, so the pattern becomes ordinary
+    // identifiers before parsing. Left alone it parses into ERROR nodes everywhere
+    // except Rust, where `$` is macro syntax.
     let original_pattern = pattern.to_string();
     let encoded = encode_metavariables(pattern);
     let (pattern_parsed, pattern_source, offset, trim_trailing) =
         parse_fragment(&parsers, language, &encoded, pattern)?;
-    // Located again and not returned: a `Node` borrows its tree, and handing the
-    // tree back out of `parse_fragment` alongside a node borrowed from it would need a
-    // self-referential struct to say. Re-walking a fragment-sized tree costs nothing.
+    // Locate the root again rather than returning it. A `Node` borrows its tree, and
+    // returning both from `parse_fragment` would need a self-referential struct.
+    // Re-walking a fragment-sized tree costs nothing.
     let pattern_root = fragment_root(&pattern_parsed, offset, encoded.len())
         .ok_or_else(|| anyhow::anyhow!("could not parse the pattern as {language}: '{pattern}'"))?;
     let compiled = Pattern {
@@ -166,9 +165,9 @@ pub fn apply(
     }
 
     // A metavariable the pattern never binds has nothing to substitute, so the
-    // template would emit the literal text `$Y`. The engine's reparse check catches
-    // the result, but it reports "would not parse", which is true and says nothing
-    // about the mistake. Named here, where the mistake is.
+    // template would emit the literal text `$Y`. The reparse check catches the result
+    // and reports "would not parse", which says nothing about the mistake. Name it
+    // here, where the mistake is.
     let bound = metavariable_names(pattern);
     let unbound: Vec<String> = metavariable_names(template)
         .into_iter()
@@ -197,17 +196,16 @@ pub fn apply(
         .into());
     }
 
-    // Both are properties of the template, so they are decided once and not per
+    // Both are properties of the template, so they are decided once instead of per
     // match site.
-    // Only where `( … )` groups a sub-expression. A CSS selector's parent is an
-    // `attribute_selector` or a `descendant_selector`, which look like operator
-    // kinds by name and are nothing of the sort, bracketing there is not a grouping,
-    // it is a syntax error.
+    // Bracket only where `( … )` groups a sub-expression. A CSS selector's parent is
+    // an `attribute_selector` or a `descendant_selector`, whose names read like
+    // operator kinds while bracketing there is a syntax error.
     let groups = crate::refactor::inline::groups_with_parentheses(language);
     // Bracket a metavariable only where the template binds it more tightly than the
-    // pattern already did. Reading the template alone bracketed `$X.len()` → `$X.len()`,
-    // because a method call binds its receiver, and so did the pattern. An identity
-    // rewrite has to be a rewrite of nothing.
+    // pattern already did. A method call binds its receiver, so reading the template
+    // alone brackets `$X.len()` even when the pattern bound it just as tightly. An
+    // identity rewrite must rewrite nothing.
     let tight = match groups {
         true => {
             let by_template = tightly_bound_metavariables(&parsers, language, template);
@@ -233,24 +231,23 @@ pub fn apply(
 
         for found in find_matches(&parsed, &source, &compiled) {
             let span = found.span;
-            // The template says where every bound piece goes and says nothing about a
-            // comment written between the pattern's own tokens. Writing over it would
-            // delete it, so the site is left alone and reported.
+            // The template places every bound piece and says nothing about a comment
+            // written between the pattern's own tokens. Writing over it would delete
+            // it, so this leaves the site alone and reports it.
             if let Some(first) = found.stranded_comments.first() {
                 skipped_with_comments.push((path.clone(), first.start));
                 continue;
             }
             let mut replacement = substitute(template, &found.bindings, &tight);
-            // The match sat where a call sat, and the replacement is an operator expression.
-            // Whatever the call was an operand of will now bind into it.
+            // The match sat where a call sat, and the replacement is an operator
+            // expression. Whatever the call was an operand of now binds into it.
             if template_binds && matched_in_a_tight_place(&parsed, span) {
                 replacement = format!("({replacement})");
             }
-            // A rewrite that changes nothing is not a rewrite, and a rewrite that moves
-            // only whitespace is not one either. A template is written on one line, so
-            // substituting it over a receiver the author put on its own line pulls the
-            // line up. D2 says this tool never pretty-prints, and that holds for the
-            // layout it did not come to change.
+            // Skip a rewrite that changes nothing, and one that moves only whitespace.
+            // A template is written on one line, so substituting it over a receiver the
+            // author put on its own line pulls the line up. D2 says this tool never
+            // pretty-prints, and that covers layout it did not come to change.
             if same_but_for_layout(&replacement, span.text(&source)) {
                 continue;
             }
@@ -263,8 +260,8 @@ pub fn apply(
     }
 
     Ok(RestructurePlan {
-        // Report the pattern the caller wrote, not the wrapped, encoded form used
-        // internally for parsing.
+        // Report the pattern the caller wrote, leaving the wrapped and encoded form
+        // to the parser.
         pattern: original_pattern,
         template: template.to_string(),
         edits,
@@ -273,7 +270,7 @@ pub fn apply(
     })
 }
 
-/// Does the matched span sit as an operand of something that binds?
+/// Reports whether the matched span sits as an operand of something that binds.
 fn matched_in_a_tight_place(parsed: &Parsed, span: Span) -> bool {
     parsed
         .root()
@@ -312,9 +309,9 @@ fn parse_fragment(
         let Some(root) = fragment_root(&parsed, offset, encoded.len()) else {
             continue;
         };
-        // The node must begin where the fragment begins, a node that starts inside
-        // the wrapper is the wrapper's. It is not the pattern's, and may reach past the
-        // fragment only into punctuation the wrapper itself supplied.
+        // The node must begin where the fragment begins, since a node starting inside
+        // the wrapper belongs to the wrapper. It may reach past the fragment only into
+        // punctuation the wrapper itself supplied.
         if root.start_byte() != offset
             || root.end_byte() < end
             || root.end_byte() > end + suffix.len()
@@ -325,9 +322,8 @@ fn parse_fragment(
         return Ok((parsed, source, offset, trim_trailing));
     }
 
-    // The wrappers are how a fragment gets parsed, and naming them here described the
-    // machinery instead of the mistake. The mistake is nearly always a pattern that is
-    // not a whole piece of code.
+    // Name the mistake, which is nearly always a pattern that is not a whole piece of
+    // code. Naming the wrappers here would describe the machinery instead.
     anyhow::bail!("'{display}' is not valid {language}; check for unbalanced brackets.")
 }
 
@@ -390,11 +386,11 @@ fn fragment_root<'a>(parsed: &'a Parsed, offset: usize, len: usize) -> Option<No
     // Descend through single-child wrappers: a node of identical extent adds nothing
     // to the shape, and a statement container is punctuation the wrapper asked for.
     //
-    // Only when the child starts where the container does. A container whose child
-    // begins later has leading syntax of its own — `raise` in `raise Invalid(x)`,
-    // and that syntax is the pattern. It is not the wrapper. Descending past it left the
-    // fragment starting six bytes into itself, so every statement pattern in a
-    // language with an empty wrapper (Python, shell, YAML) was rejected as unparseable.
+    // Descend only when the child starts where the container does. A container whose
+    // child begins later carries leading syntax of its own, such as `raise` in `raise
+    // Invalid(x)`, and that syntax belongs to the pattern. Descending past it starts
+    // the fragment inside itself. That rejects every statement pattern in a language
+    // with an empty wrapper, such as Python, shell and YAML.
     loop {
         let named: Vec<Node> = {
             let mut cursor = node.walk();
@@ -416,8 +412,8 @@ const META: &str = "FrMeta";
 
 /// Rewrite `$NAME` into an ordinary identifier so the pattern parses.
 ///
-/// `$$NAME` is an escaped literal `$NAME` and keeps its sigil: Bash expansions, SCSS variables
-/// and Helm values are all spelled with a real `$`. A pattern must be able to say so.
+/// `$$NAME` is an escaped literal `$NAME` and keeps its sigil. Bash expansions, SCSS
+/// variables and Helm values all carry a real `$`, and a pattern must be able to say so.
 fn encode_metavariables(pattern: &str) -> String {
     let re = Regex::new(r"\$(\$?)([A-Za-z_][A-Za-z0-9_]*)").expect("static regex");
     re.replace_all(pattern, |caps: &regex::Captures<'_>| {
@@ -441,16 +437,17 @@ struct Metavariable {
 
 /// If `node` is an encoded metavariable, which one.
 ///
-/// Two spellings are recognised. A node whose text is `FrMetaX` is the ordinary case. A *leaf*
-/// whose text is `"FrMetaX"` is the quoted case, which exists because some grammars never break
-/// a quoted value into a node, tree-sitter-xml's `AttValue` is one token, quotes included. So
-/// `id="$X"` has nothing else to bind to. The quoted spelling is deliberately restricted to
-/// leaves. Where a grammar does expose the text inside the quotes, that inner node is what a
-/// metavariable binds, and a pattern string stays a pattern string instead of matching any node
-/// at all.
+/// A node whose text is `FrMetaX` is the ordinary case. A *leaf* whose text is
+/// `"FrMetaX"` is the quoted case, which exists because some grammars never break a
+/// quoted value into a node. tree-sitter-xml's `AttValue` is one token, quotes included,
+/// so `id="$X"` has nothing else to bind to.
+///
+/// The quoted spelling stays restricted to leaves. Where a grammar exposes the text
+/// inside the quotes, a metavariable binds that inner node, and a pattern string stays a
+/// pattern string.
 fn metavariable(node: Node<'_>, source: &str) -> Option<Metavariable> {
-    // Some grammars fold padding into a node, tree-sitter-yaml keeps the space
-    // after a `-` sequence marker inside the item, so compare trimmed.
+    // Some grammars fold padding into a node. tree-sitter-yaml keeps the space after
+    // a `-` sequence marker inside the item, so compare trimmed.
     let text = Span::from(node).text(source).trim();
     if let Some(name) = meta_name(text) {
         return Some(Metavariable {
@@ -468,7 +465,7 @@ fn metavariable(node: Node<'_>, source: &str) -> Option<Metavariable> {
     None
 }
 
-/// The metavariable name in an encoded identifier, if that is what this text is.
+/// The metavariable name inside an encoded identifier, when the text is one.
 fn meta_name(text: &str) -> Option<String> {
     let name = text.strip_prefix(META)?;
     if !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_') {
@@ -513,8 +510,8 @@ struct Match {
 /// Every match of the pattern in the file, with its metavariable bindings.
 fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Match> {
     let mut results = Vec::new();
-    // Markdown's inline content is a sub-tree of its own. That is where its links and emphasis
-    // are; a pattern over them matches nothing in the block tree.
+    // Markdown's inline content forms a sub-tree of its own, holding its links and
+    // emphasis. A pattern over them matches nothing in the block tree.
     let mut stack: Vec<Node> = parsed.roots().collect();
     let mut cursor = parsed.root().walk();
 
@@ -536,8 +533,8 @@ fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Mat
                     bindings,
                     stranded_comments: stranded_comments(node, span, &bound),
                 });
-                // Do not rewrite inside something already being rewritten: nested
-                // edits would overlap and be rejected.
+                // Never rewrite inside something already being rewritten. Nested
+                // edits overlap, and the engine rejects them.
                 continue;
             }
         }
@@ -546,17 +543,17 @@ fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Mat
 
     results.sort_by_key(|found| found.span);
     // A node can appear in two trees at once. Markdown's `inline` is the block
-    // grammar's opaque leaf and the inline grammar's root, and one match rewritten
-    // twice is an overlapping edit the engine rejects.
+    // grammar's opaque leaf and the inline grammar's root, and rewriting one match
+    // twice produces an overlapping edit the engine rejects.
     results.dedup_by_key(|found| found.span);
     results
 }
 
 /// Comments inside a match that no metavariable binding would carry over.
 ///
-/// A comment inside a bound span travels into the template with that binding's text. One
-/// between the pattern's own tokens has no place in the template, and rewriting over it
-/// would delete what somebody wrote.
+/// A comment inside a bound span travels into the template with that binding's text.
+/// One between the pattern's own tokens has no place in the template, and rewriting
+/// over it would delete what somebody wrote.
 fn stranded_comments(node: Node<'_>, span: Span, bound: &[Span]) -> Vec<Span> {
     let mut stranded = Vec::new();
     let mut stack = vec![node];
@@ -581,13 +578,13 @@ fn stranded_comments(node: Node<'_>, span: Span, bound: &[Span]) -> Vec<Span> {
     stranded
 }
 
-/// Does a match run into a Helm `{{ ... }}` action?
+/// Reports whether a match runs into a Helm `{{ ... }}` action.
 ///
-/// The action's bytes are spaces to the YAML parser, so the tree says nothing about them. A
-/// span that covers one would be rewritten from a parse that never saw it. A span that *ends
-/// where one begins* is worse: `name: web-{{ .V.x }}` parses as the complete-looking scalar
-/// `web-`. So a match there would bind a value that is only half of the real one. Both are
-/// dropped; adjacency counts.
+/// The action's bytes are spaces to the YAML parser, so the tree says nothing about
+/// them. A span covering one would be rewritten from a parse that never saw it. A span
+/// *ending where one begins* is worse. `name: web-{{ .V.x }}` parses as the
+/// complete-looking scalar `web-`, so a match there binds half of the real value. Both
+/// are dropped, and adjacency counts.
 fn touches_template_action(actions: &[Span], span: Span) -> bool {
     actions
         .iter()
@@ -596,9 +593,9 @@ fn touches_template_action(actions: &[Span], span: Span) -> bool {
 
 /// The span a match rewrites.
 ///
-/// When the pattern's wrapper supplied trailing punctuation, the `;` that turns `color: $X`
-/// into a CSS declaration, the target's equivalent punctuation is not part of what the pattern
-/// asked for. So the match stops at the last named child.
+/// A wrapper can supply trailing punctuation, such as the `;` that turns `color: $X`
+/// into a CSS declaration. The pattern never asked for the target's equivalent
+/// punctuation, so the match stops at the last named child.
 fn match_span(node: Node<'_>, trim_trailing: bool) -> Span {
     if !trim_trailing {
         return Span::from(node);
@@ -612,12 +609,12 @@ fn match_span(node: Node<'_>, trim_trailing: bool) -> Span {
     }
 }
 
-/// Is this node a comment?
+/// Reports whether this node is a comment.
 ///
-/// Every grammar here spells it with the word in the kind: `comment`, `line_comment`,
+/// Every grammar here puts the word in the kind: `comment`, `line_comment`,
 /// `block_comment`, `Comment`. A comment is an extra, so it can sit between any two
-/// children of any node. Counting it as one of them made `foo(1, /* why */ 2)` a
-/// three-argument call that `foo($A, $B)` could not match.
+/// children of any node. Counting it as one of them makes `foo(1, /* why */ 2)` a
+/// three-argument call that `foo($A, $B)` cannot match.
 fn is_a_comment(node: Node<'_>) -> bool {
     node.kind().to_ascii_lowercase().contains("comment")
 }
@@ -687,11 +684,10 @@ fn decode_metavariables(encoded: &str) -> String {
     encoded.replace(META, "$")
 }
 
-/// Replace `$NAME` in the template with its binding.
 /// Every metavariable a pattern or template names, in order of first appearance.
 ///
-/// `$$NAME` is an escaped literal and binds nothing, so it is skipped here as
-/// it is when substituting.
+/// `$$NAME` is an escaped literal and binds nothing, so this skips it, as
+/// substitution does.
 fn metavariable_names(text: &str) -> Vec<String> {
     let mut names = Vec::new();
     let mut chars = text.char_indices().peekable();
@@ -720,7 +716,7 @@ fn metavariable_names(text: &str) -> Vec<String> {
 /// Node kinds that bind their operands, so a captured expression dropped into one
 /// keeps its own shape only if it is bracketed.
 ///
-/// The list is by substring because six grammars name the same thing six ways:
+/// The list matches by substring because six grammars name one thing six ways:
 /// `binary_expression`, `binary_operator`, `comparison_operator`, `boolean_operator`,
 /// `not_operator`, `unary_expression`, `field_expression`, `member_expression`.
 fn binds_its_operands(kind: &str) -> bool {
@@ -745,10 +741,9 @@ fn binds_its_operands(kind: &str) -> bool {
 
 /// Metavariables the template places where an operator will bind them.
 ///
-/// `double($X)` → `$X * 2` reads as "the captured expression, times two". Substituting the text
-/// of `x + 1` gives `x + 1 * 2`, which is `x + 2`. The same defect was fixed in `inline` twice.
-/// This is the third place a captured expression is dropped into a context it was not written
-/// for.
+/// `double($X)` → `$X * 2` reads as "the captured expression, times two". Substituting
+/// the text of `x + 1` gives `x + 1 * 2`, which is `x + 2`. A captured expression lands
+/// in a context it was not written for, and brackets keep its shape.
 fn tightly_bound_metavariables(
     parsers: &Parsers,
     language: Language,
@@ -758,8 +753,8 @@ fn tightly_bound_metavariables(
     let encoded = encode_metavariables(template);
     let Ok((parsed, source, offset, _)) = parse_fragment(parsers, language, &encoded, template)
     else {
-        // An unparseable template is reported downstream by the reparse check. Adding
-        // no brackets is the same answer this gave before there were any.
+        // The reparse check downstream reports an unparseable template, so add no
+        // brackets here.
         return tight;
     };
     let Some(root) = fragment_root(&parsed, offset, encoded.len()) else {
@@ -779,11 +774,11 @@ fn tightly_bound_metavariables(
     tight
 }
 
-/// Does the template as a whole bind its operands, so the *match site's* context can
-/// reassociate it?
+/// Reports whether the template binds its operands, letting the *match site's* context
+/// reassociate it.
 ///
-/// `double($X)` → `$X / 2` applied inside `2 * double(y)` gives `2 * y / 2`, which for
-/// integers is not `2 * (y / 2)`.
+/// Inside `2 * double(y)`, the rewrite `double($X)` → `$X / 2` gives `2 * y / 2`. For
+/// integers that differs from `2 * (y / 2)`.
 fn template_is_an_operator_expression(
     parsers: &Parsers,
     language: Language,
@@ -797,10 +792,10 @@ fn template_is_an_operator_expression(
         .is_some_and(|root| binds_its_operands(root.kind()))
 }
 
-/// Is this text a single thing, needing no brackets wherever it lands?
+/// Reports whether this text is a single thing, needing no brackets wherever it lands.
 ///
-/// A name, a literal, a call, an already-bracketed expression. Anything with an
-/// operator outside brackets is not.
+/// A name, a literal, a call and an already-bracketed expression all qualify. Text
+/// carrying an operator outside brackets does not.
 fn is_atomic(text: &str) -> bool {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -811,13 +806,13 @@ fn is_atomic(text: &str) -> bool {
     let mut in_string = false;
     let mut escaped = false;
     for character in trimmed.chars() {
-        // A quoted string is one thing, whatever is written inside it. Without this, `"price *
-        // quantity"` read as an expression with an operator in it and an identity rewrite
-        // bracketed it: `("price * quantity").len()`.
+        // A quoted string is one thing, whatever is written inside it. Read otherwise,
+        // `"price * quantity"` looks like an expression with an operator, and an
+        // identity rewrite brackets it as `("price * quantity").len()`.
         //
-        // Double quotes only. A single quote opens a character in Rust and Zig and marks a
-        // lifetime in Rust, where `&'a str` has no closing one. So reading it as a delimiter
-        // would swallow the rest of the text.
+        // Double quotes only. A single quote opens a character in Rust and Zig and
+        // marks a lifetime in Rust, where `&'a str` has no closing one. Reading it as a
+        // delimiter would swallow the rest of the text.
         if in_string {
             match (escaped, character) {
                 (false, '\\') => escaped = true,
@@ -836,7 +831,7 @@ fn is_atomic(text: &str) -> bool {
             '(' | '[' | '{' => depth += 1,
             ')' | ']' | '}' => depth -= 1,
             ' ' if depth == 0 => {
-                // A space at the top level means more than one thing: `x + 1`,
+                // A space at the top level marks more than one thing: `x + 1`,
                 // `not ready`, `a as i64`.
                 return false;
             }
@@ -852,12 +847,12 @@ fn is_atomic(text: &str) -> bool {
     true
 }
 
-/// Do these two texts differ only in things the author chose and the tool did not?
+/// Reports whether two texts differ only in what the author chose and the tool did not.
 ///
-/// Whitespace is one: a template is written on one line. So substituting it over a receiver the
-/// author put on its own line pulls the line up. A comma before a closing bracket is the other:
-/// `Some(x,)` matched and came back as `Some(x)`, which compiles and means the same and is
-/// still a file the user did not ask to change.
+/// Whitespace is one such choice. A template is written on one line, so substituting it
+/// over a receiver the author put on its own line pulls the line up. A trailing comma is
+/// the other. `Some(x,)` comes back as `Some(x)`, which compiles and means the same, in
+/// a file the user did not ask to change.
 fn same_but_for_layout(a: &str, b: &str) -> bool {
     fn reduced(text: &str) -> String {
         let dense: String = text.chars().filter(|c| !c.is_whitespace()).collect();
@@ -882,6 +877,7 @@ fn grouped(value: &str, needs_grouping: bool) -> String {
     }
 }
 
+/// Replace `$NAME` in the template with its binding.
 fn substitute(
     template: &str,
     bindings: &HashMap<String, String>,
@@ -916,8 +912,8 @@ fn substitute(
                     chars.next();
                 }
             }
-            // An unbound metavariable is left as written and not silently
-            // dropped, so a typo in the template is visible in the diff.
+            // An unbound metavariable stays as written, so a typo in the template
+            // shows up in the diff.
             None => out.push('$'),
         }
     }

@@ -1,20 +1,20 @@
 # Cross-language refactoring, what crosses, what does not, and what it would take
 
-A rename that stops at a file extension is not much use. A CSS class is named by
-markup, a Helm value by a template, an environment variable by a manifest and by the
-program that reads it. This document maps those boundaries: which the tool crosses
-today, which it does not, and what each missing one would cost.
+A rename that stops at a file extension does little. Markup names a CSS class, a
+template names a Helm value, and a manifest names an environment variable the program
+then reads. This document maps those boundaries: which the tool crosses today, which it
+does not, and what each missing one would cost.
 
-Every number here was measured. It was not estimated. `examples/crosslang.rs` produced them:
+`examples/crosslang.rs` measured every number here and estimated none of them:
 
     cargo run --example crosslang -- /path/to/repo
     cargo run --example crosslang -- /path/to/repo "rust->zig"    # name the crossings
 
 ## The first thing the measurement changed
 
-The tool's flagship cross-language feature, a Helm value renamed across a chart,
-**does not cross a language boundary at all.** A `values.yaml` sitting beside a
-`Chart.yaml` is detected *as* Helm. So is the template that reads it. Measured by
+The tool's flagship cross-language feature renames a Helm value across a chart. It
+**does not cross a language boundary at all**. The tool detects a `values.yaml` sitting
+beside a `Chart.yaml` *as* Helm, and the template that reads it too. Measured by
 language, a production `ingress-nginx` chart reports zero cross-language references.
 Measured by *file role*, the same chart reports **627**.
 
@@ -22,11 +22,11 @@ Measured by *file role*, the same chart reports **627**.
       by language:   0 crossings
       by file role:  template -> values   627
 
-That is 627 of the 674 `.Values.*` expressions in the chart — 93%. The edge works
-very well. It is just not the kind of edge the word "language" describes.
+That covers 627 of the 674 `.Values.*` expressions in the chart, 93%. The edge works
+very well. The word "language" describes a different kind of edge.
 
-So there are two different things worth separating. Conflating them is how you
-end up believing a feature is missing or present when it is not:
+Two different things deserve separating here. Conflate them and you end up believing a
+feature is missing or present when it is not:
 
 | | |
 | --- | --- |
@@ -35,41 +35,39 @@ end up believing a feature is missing or present when it is not:
 
 ## What crosses today
 
-Measured on the bundled sample, which is the only corpus that exercises many
-languages at once:
+Measured on the bundled sample, the only corpus that exercises many languages at once:
 
     web/sample (24 files, 15 languages, 574 resolved references)
             html -> css          18   selector
              tsx -> css           2   selector
              tsx -> typescript    8   function 6, interface 2
 
-And on real repositories, which are mostly monolingual and say so:
+And on real repositories, most of them monolingual and saying so:
 
     psf/requests   7,687 resolved references,  2 crossings (html -> css)
     ripgrep       37,934 resolved references,  0 crossings
     helm          79,394 resolved references,  0 crossings
 
-The lesson is worth stating plainly: **on a real single-language repository,
-cross-language refactoring does nothing.** It earns its place in polyglot
-repositories, a service with a chart, a frontend with stylesheets, infrastructure
-beside the code it configures. Those are exactly the repositories where nothing
-else will do the job.
+State the lesson plainly: **on a real single-language repository, cross-language
+refactoring does nothing**. It pays off in polyglot repositories: a service with a
+chart, a frontend with stylesheets, infrastructure beside the code it configures.
+Nothing else does the job in those repositories.
 
 ## What may cross, and why that is now a table
 
 Resolution matches candidates by name across the whole workspace. Until recently it
 did so **without asking what language a candidate was written in**. In the bundled
-sample that produced four false crossings, one of them dangerous:
+sample it produced four false crossings, one of them dangerous:
 
     ingest.rs:56 `push` [import-qualified] -> method Ring::push in buffer.zig
 
-A Rust `out.push(…)`, a `Vec::push`, resolving to a Zig struct method, at a
+A Rust `out.push(…)`, a `Vec::push`, resolved to a Zig struct method, at a
 confidence tier the tool *rewrites*. Renaming the Zig method turned the Rust call into
 `out.pushReading(…)`. Two languages, no relationship, and a perfectly ordinary diff.
 
 `lang::may_resolve_across(from, to, kind)` now enumerates the boundaries a reference
-may cross. It is a table and not a heuristic because the cost of a wrong entry is
-an edit that compiles somewhere else and breaks here.
+may cross. It stays a table rather than a heuristic because a wrong entry costs you an
+edit that compiles somewhere else and breaks here.
 
 | From | To | For | Why it is real |
 | --- | --- | --- | --- |
@@ -82,13 +80,13 @@ an edit that compiles somewhere else and breaks here.
 | HTML, TSX, TypeScript | HTML, TSX | `data-*` hooks | a test and a component agree on `data-testid="submit-btn"` by string |
 
 **Deliberately absent: every pair of imperative languages.** Rust cannot name a Zig
-method; Go cannot name a Python function. Where an FFI does connect them, the binding
-is declared in a build file this tool does not read. Reporting those as unresolved
-is the honest answer and not a guess that occasionally rewrites the wrong file.
+method; Go cannot name a Python function. Where an FFI does connect them, a build file
+this tool does not read declares the binding. The tool reports those as unresolved, the
+honest answer, rather than guessing and occasionally rewriting the wrong file.
 
 ## What does not cross, and what each would take
 
-These are edges that exist in real code and that the tool does not follow. Ordered by
+These edges exist in real code and the tool does not follow them. They run in order of
 how often they appear in the repositories people have.
 
 ### 1. CSS modules, `styles.primary` in TSX to `.primary` in a stylesheet
@@ -103,13 +101,13 @@ import styles from "./Button.module.css";
 Measured: plain `class="primary"` in HTML resolves; `styles.primary` does not.
 
 **What it needs.** The default import of a `*.module.css` binds an object whose
-members are that file's selectors. That is a real, declared relationship, the import
-path names the file, so the edge would be `Exact`, not a guess. The work is in
-import resolution: recognise a CSS-module import, bind the local name. Resolve a
+members are that file's selectors. The import path names the file, a real declared
+relationship, so the edge would be `Exact` rather than a guess. The work sits in import
+resolution: recognise a CSS-module import and bind the local name. Then resolve a
 member access on it to a selector in the named file.
 
-**Cost.** Moderate. The import machinery already resolves paths; the new part is
-treating a stylesheet as a module with an export list.
+**Cost.** Moderate. The import machinery already resolves paths, and the new part
+treats a stylesheet as a module with an export list.
 
 ### 2. Element ids named from code, `getElementById("panel")`
 
@@ -118,14 +116,15 @@ document.getElementById("open-path")           // a string, resolving to nothing
 ```
 
 The tool already resolves ids *within* markup (`<label for>` → `<input id>`). From
-code the id is a string literal.
+code, the id arrives as a string literal.
 
-**What it needs.** String-keyed resolution already exists. It is how Helm values and
-some config keys resolve. This is the same mechanism with a narrower trigger: a string
-argument to a known DOM accessor. It must be `NameOnly`: nothing proves the string is
-an id instead of a coincidence, and the tool should say so and not rewrite it.
+**What it needs.** String-keyed resolution already exists, and Helm values and some
+config keys resolve through it. The same mechanism takes a narrower trigger here: a
+string argument to a known DOM accessor. Keep it `NameOnly`. Nothing proves the string
+names an id rather than matching by coincidence, so the tool should report it and leave
+it alone.
 
-**Cost.** Small, and it should be reported and not rewritten.
+**Cost.** Small. Report it and do not rewrite it.
 
 ### 3. Environment variables, manifest to `os.getenv`
 
@@ -137,12 +136,12 @@ os.environ["RETENTION_DAYS"]                    # the program that reads it
 ```
 
 `fr stitch` **already traces this**, end to end, including the `.Values` path behind
-the manifest value. What it does not do is make it a *rename* edge: stitch reports
-chains, and renaming the manifest key does not rewrite `os.environ[…]`.
+the manifest value. It stops short of making the trace a *rename* edge: stitch reports
+chains, and renaming the manifest key leaves `os.environ[…]` alone.
 
-**What it needs.** Promote the stitch chain into the reference index, at `NameOnly`,
-so a rename reports it as a use it will not rewrite. Rewriting would be wrong, an
-environment variable name is a runtime string that other systems also use.
+**What it needs.** Promote the stitch chain into the reference index at `NameOnly`,
+so a rename reports it as a use it will not rewrite. Rewriting would be wrong: an
+environment variable name is a runtime string that other systems also read.
 
 **Cost.** Small, and mostly a question of whether the answer belongs in `refs`.
 
@@ -152,13 +151,14 @@ environment variable name is a runtime string that other systems also use.
 ./collector --retention-days 30
 ```
 
-The flag is declared in Go or Rust as a struct field or a clap attribute. This is how
-scripts and CI break silently when a flag is renamed.
+Go or Rust declares the flag as a struct field or a clap attribute. Rename that flag
+and scripts and CI break silently.
 
-**What it needs.** A flag declaration is recognisable per framework (clap attributes,
-Go's `flag` package, `argparse`). The shell side is a word starting with `--`.
-`NameOnly`, always. The catalogs are the natural home for the per-framework rules.
-They already encode "what a test looks like" per language in this shape.
+**What it needs.** Each framework declares a flag recognisably (clap attributes,
+Go's `flag` package, `argparse`). On the shell side, look for a word starting with
+`--`. Keep it `NameOnly`, always. The catalogs are the natural home for the
+per-framework rules; they already encode "what a test looks like" per language in this
+shape.
 
 **Cost.** Moderate, and it grows with every framework. The catalog format keeps that
 growth out of the code.
@@ -171,9 +171,9 @@ growth out of the code.
 
 A path in a YAML `run:` step naming a file, and flags naming a script's options.
 
-**What it needs.** Path-valued strings resolving to files is a small, high-confidence
-edge, the path either exists in the workspace or it does not. Worth having for
-"what runs this?" as much as for renaming.
+**What it needs.** Resolving a path-valued string to a file is a small,
+high-confidence edge. The path either exists in the workspace or it does not. It
+answers "what runs this?" as much as it serves a rename.
 
 **Cost.** Small.
 
@@ -183,7 +183,7 @@ edge, the path either exists in the workspace or it does not. Worth having for
 user_data = templatefile("${path.module}/init.sh", { port = var.port })
 ```
 
-The file reference is a path; the substituted names are template variables inside
+The file reference is a path, and the substituted names are template variables inside
 another language's file.
 
 **Cost.** The path half is small. The variable half needs a template grammar per
@@ -191,12 +191,12 @@ target and is probably not worth it.
 
 ### 7. Markdown to the code it documents
 
-A link to `src/ingest.rs#L20`, or a fenced block naming a function that has been
+A link to `src/ingest.rs#L20`, or a fenced block naming a function somebody has since
 renamed. Documentation drifts from code more reliably than anything else in a
 repository.
 
-**Cost.** The link half is small and genuinely useful. Prose mentioning a symbol is
-already covered, as a *textual occurrence*, reported and never rewritten, which is
+**Cost.** The link half is small and genuinely useful. The tool already covers prose
+mentioning a symbol, as a *textual occurrence*, reported and never rewritten, which is
 the right answer.
 
 ## Rewriting a file as another language
@@ -204,17 +204,18 @@ the right answer.
 Since this document was written, `fr translate` gained a second mode. The first,
 containment, writes the same bytes under a different grammar: CSS as SCSS, a manifest
 as a Helm template. The second **translates**, between Rust, Go, Java, Python, TypeScript and Zig,
-and is a different promise entirely.
+and it makes a different promise entirely.
 
-The signature is the contract: every parameter in order, with its type and the return
-type, carried exactly and spelled the target's way. `fn averages(readings: &[Reading])
--> HashMap<String, f64>` becomes `def averages(readings: list[Reading]) ->
-dict[str, float]`. Declarations are idiomatic, a record is a Rust `struct` with an
-`impl`, a Python `@dataclass`, a Go `struct`, a TypeScript `interface` or `class`.
+The signature is the contract. The writer carries every parameter in order, with its
+type and the return type, and spells each the target's way. `fn averages(readings:
+&[Reading]) -> HashMap<String, f64>` becomes `def averages(readings: list[Reading]) ->
+dict[str, float]`. Declarations come out idiomatic. A record becomes a Rust `struct`
+with an `impl`, a Python `@dataclass`, a Go `struct`, a TypeScript `interface` or
+`class`.
 
-Everything with no counterpart, ownership, closures, macros, comprehensions, error
-propagation, is carried into the output **verbatim, inside a comment**, and counted.
-The result is a draft that says how much of it is real.
+The writer carries everything with no counterpart into the output **verbatim, inside a
+comment**, and counts it: ownership, closures, macros, comprehensions, error
+propagation. The result is a draft that says how much of it is real.
 
 See `src/transpile/` and RECIPES-style notes in that module's documentation.
 
@@ -222,101 +223,101 @@ See `src/transpile/` and RECIPES-style notes in that module's documentation.
 
 Every one of these languages has a naming convention and they disagree: TypeScript
 writes `userName`, Python writes `user_name`, Go says "exported" with a capital letter.
-Adopting the target's is most of what makes a translated file read as written rather
-than converted.
+Adopt the target's convention and the translated file reads as written rather than
+converted.
 
-The rule is the same one the refactorings follow: **rename what the file declares and
-nothing else.** Functions, records, fields, constants, parameters and locals are the
-module's own and are re-spelled at their declaration *and* at every use. A name the
-module does not declare, `db.users.find`, `NextResponse`, a library function, is
-foreign and is left as written, because re-casing it would rename somebody
-else's API.
+The refactorings follow the same rule: **rename what the file declares and nothing
+else.** Functions, records, fields, constants, parameters and locals belong to the
+module. The writer re-spells each at its declaration *and* at every use. A name the
+module does not declare stays as written: `db.users.find`, `NextResponse`, any library
+function. Re-casing one would rename somebody else's API.
 
-One map, built once, consulted everywhere. The alternative, re-casing at each site
-with whichever helper was to hand, is how `interface User { userName }` became
+One map, built once, consulted everywhere. The alternative re-cases at each site with
+whichever helper was to hand. It turned `interface User { userName }` into
 `class User. User_name` whose bodies still said `.userName`.
 
-Three details that only real code surfaces:
+Only real code surfaces these three details:
 
-- **Acronyms.** Splitting before every capital turns `HTTPServer` into
-  `h_t_t_p_server` and `MAX_RETRY` into `M_A_X__R_E_T_R_Y`. A separator goes where a
+- **Acronyms.** Split before every capital and `HTTPServer` turns into
+  `h_t_t_p_server`, `MAX_RETRY` into `M_A_X__R_E_T_R_Y`. Put a separator where a
   word starts.
-- **Fields are their own namespace.** A Go `Reading` with an exported `sensor` field is
+- **Fields are their own namespace.** A Go `Reading` spells an exported `sensor` field
   `Sensor`, while a *parameter* also called `sensor` stays lowercase. One map keyed by
   name alone gave the parameter the field's spelling.
-- **Keywords.** `select` is a name sqlmodel exports and a keyword in Go. `select(User)`
-  is not something Go's grammar accepts, so the whole file was refused, which gives
-  the reader nothing. It is escaped and *reported* instead.
+- **Keywords.** sqlmodel exports the name `select`, and Go reserves it as a keyword.
+  Go's grammar rejects `select(User)`, so the writer refused the whole file, which
+  gives the reader nothing. It now escapes the name and *reports* it instead.
 
 ### Java, and the language that has no top level
 
-Java is the fifth, and it is the one that made the writer do something no other does.
+Java is the fifth, and it made the writer do something no other target does.
 Every other target takes a module's items and writes them out. Java has **no top level
-below the type**: a function has to be inside a class. A public class must be named
-after its file, which is a rule the compiler enforces and not a convention. So a
-module becomes a class, `sensors.py` becomes `Sensors.java`. A record that would
-have been public becomes a package-private sibling with a comment saying why.
+below the type**: a function has to sit inside a class. A public class must carry its
+file's name, a rule the compiler enforces rather than a convention. So a module becomes
+a class, and `sensors.py` becomes `Sensors.java`. A record that would have been public
+becomes a package-private sibling with a comment saying why.
 
-Reading Java is the same job in reverse: a file *is* a class, so reading one means
-unwrapping it to find the module inside. A `static final` field is Java's only spelling
-for a module constant and reads as one; an instance field reads as a field.
+Reading Java runs the same job in reverse: a file *is* a class, so the reader unwraps
+it to find the module inside. A `static final` field is Java's only spelling for a
+module constant, so the reader takes it as one. An instance field reads as a field.
 
 ### Zig, and the language where a type is a value
 
-Zig is the sixth, and it is the far end of the range. A `struct` is not a declaration
-form. It is a **value**, so `const Reading = struct { … };` is a constant whose value
-happens to be a type, and the methods live inside it. Reading one means noticing that
-the grammar reuses `variable_declaration` for an assignment too: `sum = sum + x` and
-`var sum = 0` are the same node. Only the keyword tells them apart.
+Zig is the sixth, and it sits at the far end of the range. A `struct` is a **value**
+rather than a declaration form. `const Reading = struct { … };` declares a constant
+whose value happens to be a type, and the methods live inside it. The reader also has
+to notice that the grammar reuses `variable_declaration` for an assignment.
+`sum = sum + x` and `var sum = 0` are the same node. Only the keyword tells them apart.
 
 Four things about the language shape the writer:
 
-- **No `new`, no exception, no `async`.** Failure is a value in the return type and the
-  error set is part of the type. So a `throw` arriving from Python or Java has nowhere
-  to go; `async` was removed in 0.11 and has not come back. Each is carried, because
-  inventing an error set would be inventing the program's vocabulary of failures.
-- **No block comment.** `//` runs to the end of the line. So a carried fragment written
+- **No `new`, no exception, no `async`.** Failure is a value in the return type, and
+  the error set belongs to the type. So a `throw` arriving from Python or Java has
+  nowhere to go. Zig removed `async` in 0.11 and has not brought it back. The writer
+  carries each, because inventing an error set would invent the program's vocabulary
+  of failures.
+- **No block comment.** `//` runs to the end of the line. A carried fragment written
   beside an expression would swallow the rest of the statement, semicolon included. It
   goes on its own line above the statement, the only place in Zig a comment can go.
 - **`var` is an error when nothing writes to it.** Only the Rust reader records
-  mutability. Every other one says "mutable" because it has nothing better to say.
-  Which keyword a binding takes is therefore a fact about the rest of the body, worked
-  out by looking at what assigns to it.
-- **Three conventions, not two.** Types are `PascalCase`, functions are `camelCase` and
-  everything else is `snake_case`, a split no other target here makes. One that
+  mutability. Every other reader says "mutable" because it has nothing better to say.
+  The rest of the body therefore decides which keyword a binding takes. The writer
+  works that out by looking at what assigns to it.
+- **Three conventions, not two.** Zig writes types `PascalCase`, functions `camelCase`
+  and everything else `snake_case`, a split no other target here makes. The writer
   spelled every local like a function until the naming map learned to tell them apart.
 
-`error` is Go's type and Zig's keyword. It is written `@"error"`, which is how Zig
-spells an identifier that collides with one of its own words. Under it the name
-still says what the source said.
+`error` is Go's type and Zig's keyword. The writer emits `@"error"`, Zig's spelling for
+an identifier that collides with one of its own words. Under the escape the name still
+says what the source said.
 
 ### How much of this is checked
 
-Two properties, both over every real file in the repository and every vendored corpus,
-into every target:
+The tests check two properties over every real file in the repository and every
+vendored corpus, into every target:
 
 1. **The output parses as the language it claims to be.** The strongest check available
    without six compilers. It found nine defects the first time it ran.
 2. **Every function comes back with the parameters it left with, every field and
-   constant comes back. No type changes shape.** A round trip, read, translate,
-   read the result back, compare. Parsing cannot see a dropped parameter; the file is
-   still perfectly good in the target's grammar. The fidelity report says every
-   signature carried across intact. This has found eighteen.
+   constant comes back. No type changes shape.** A round trip: read, translate,
+   read the result back, compare. Parsing cannot see a dropped parameter, because the
+   file is still perfectly good in the target's grammar. The fidelity report says every
+   signature carried across intact. This check has found eighteen.
 
-A type is compared as a *shape*: a list stays a list, an optional stays optional, a
-named type keeps its name. Not which scalar. TypeScript has one numeric type, so an
-`i64` that goes through it comes back a `number` and nothing is wrong. Not the qualifier
-. Go has room for one level of it, so `crate::model::Reference` is `model.Reference`
-there and cannot be anything else. Two things are allowed to change and both are stated
-in the report when they do. A type this tool cannot write at all is replaced by a
-placeholder. A constructor's name, because in three of these languages "constructor"
-*is* a naming convention.
+The check compares a type as a *shape*: a list stays a list, an optional stays
+optional, a named type keeps its name. It does not compare which scalar. TypeScript has
+one numeric type, so an `i64` that goes through it comes back a `number` and nothing is
+wrong. It does not compare the qualifier either. Go has room for one level of it, so
+`crate::model::Reference` is `model.Reference` there and can be nothing else. Two
+things may change, and the report states both when they do. A placeholder replaces a
+type this tool cannot write at all. A constructor's name changes, because in three of
+these languages "constructor" *is* a naming convention.
 
 ### What real code has that a fixture does not
 
-The strongest check available without six compilers is that the output parses as the
-language it claims to be. Run over this repository's own source, twenty thousand lines
-of Rust, thirteen files of TypeScript, three of Go, and the vendored Python. That
+The output parsing as the language it claims to be is the strongest check available
+without six compilers. Run it over this repository's own source: twenty thousand lines
+of Rust, thirteen files of TypeScript, three of Go, and the vendored Python. That run
 failed 97 of 235 translations, and every failure was a thing nobody thinks to put in a
 fixture:
 
@@ -337,20 +338,20 @@ None of these is exotic. All five are in the first file you would pick up.
 
 ### What the IR has, and what it deliberately does not
 
-Two additions came out of reading real Java instead of running it.
+Reading real Java, rather than running it, produced two additions.
 
 **The conditional expression**, `a ? b : c`, `b if a else c`, `if a { b } else { c }`,
-is one expression that chooses between two. Five of these six languages have it. It
-is a node and not a branch because it *is* a value: reading it as an `if` would need
-somewhere to put the result. There is no such place inside an argument list. Go is
+is one expression that chooses between two. Five of these six languages have it. The IR
+holds it as a node rather than a branch because it *is* a value. Reading it as an `if`
+would need somewhere to put the result. An argument list offers no such place. Go is
 the exception and says so.
 
-**The base class.** Three of these languages inherit and three do not. It is carried
-into Java, Python and TypeScript, and *reported* for Rust, Go and Zig, because
+**The base class.** Three of these languages inherit and three do not. The writer
+carries it into Java, Python and TypeScript, and *reports* it for Rust, Go and Zig.
 `class JsonPrimitive extends JsonElement` becoming a class that extends nothing is a
-different type, and a translation that says nothing about it is the failure this whole
-document is about. Only a single base: Python allows several, the other two do not, and
-picking one of them would be a guess.
+different type. A translation that says nothing about it fails the way this document
+warns against. The IR holds a single base only: Python allows several, the other two do
+not, and picking one of them would be a guess.
 
 ### The constructor has six spellings
 
@@ -363,30 +364,30 @@ picking one of them would be a guess.
 | Go | `NewThing`, returns the type |
 | Zig | `Thing.init`, returns the type |
 
-The name is not what carries; what carries is that the function **makes a value of its
-type**. The last three have no constructor at all, only a habit. So one is read as a
-constructor there only when it *also returns the type*, because a `new` that returns
-something else is an ordinary function with a common name.
+The name does not carry. The function's job carries: it **makes a value of its type**.
+The last three have no constructor at all, only a habit. So the reader takes one as a
+constructor there only when it *also returns the type*. A `new` that returns something
+else is an ordinary function with a common name.
 
-The consequence worth knowing: **a constructor's body only travels where a receiver
+One consequence matters: **a constructor's body only travels where a receiver
 does.** The first three act on a value that already exists. The last three build one and
 return it. So a body that assigns through a receiver has nowhere to run. The tool says
-so instead of writing `self.n = n` inside a function that binds no `self`. And Java is
-the one target that overloads constructors, a second one written anywhere else keeps
-the name its source gave it. The report says which name to call instead.
+so rather than writing `self.n = n` inside a function that binds no `self`. And Java
+alone among these targets overloads constructors, so a second one written anywhere else
+keeps the name its source gave it. The report says which name to call instead.
 
 ### The receiver has six names
 
 `self`, `this`, or whatever the Go author called it. The receiver is the one binding
-that is **not in the parameter list**. So it never went through the rename that every
-other name goes through. Each body kept its source's word. `this.cache` inside a
-Rust `impl` is not a typo; it is a file that cannot compile. It was in every
-translated method of every class until the IR started recording which word the source
-used and each writer started putting its own back on.
+**outside the parameter list**. So it never went through the rename that every other
+name goes through, and each body kept its source's word. `this.cache` inside a
+Rust `impl` produces a file that cannot compile, not a typo. It appeared in every
+translated method of every class. Then the IR started recording which word the source
+used, and each writer started putting its own back on.
 
-Rust makes this sharper than the rest: `self` is the one keyword it refuses to
+Rust sharpens this further: `self` is the one keyword it refuses to
 raw-escape. So the escape that made every other reserved word writable turned a correct
-file into `r#self`, which is a compile error.
+file into `r#self`, a compile error.
 
 ### Typed Python and typed TypeScript
 
@@ -397,21 +398,21 @@ literal. A comprehension is a `.filter().map()` chain. `await` means the same
 thing in both.
 
 Both directions of the round-trip carry **zero** constructs verbatim
-(`tests/transpile.rs::typed_python_and_typed_typescript_round_trip`), which is the
-strongest claim any pair in this tool makes. It is a claim about *typed* Python:
-translating a signature with no annotations means writing `object` for every parameter,
-and the report says so.
+(`tests/transpile.rs::typed_python_and_typed_typescript_round_trip`), the strongest
+claim any pair in this tool makes. The claim covers *typed* Python only. Translating a
+signature with no annotations writes `object` for every parameter, and the report says
+so.
 
 ## Porting a framework, not just a language
 
-`fr translate <route.ts> fastapi` is a third mode, and it exists because a Next.js API
-route cannot be translated by reading the file alone.
+`fr translate <route.ts> fastapi` is a third mode, and it exists because nobody can
+translate a Next.js API route by reading the file alone.
 
 **The URL is the path.** `app/api/users/[id]/route.ts` serves `/users/{id}` and nothing
 inside the file says so. `app/api/files/[...path]/route.ts` serves
-`/files/{path:path}`, a catch-all, which FastAPI spells with a converter and which a
-translation that emitted `{path}` would silently point at the wrong URLs. This is the
-one thing no content-only translation could ever do, and it is most of the value.
+`/files/{path:path}`, a catch-all. FastAPI spells it with a converter, and a
+translation that emitted `{path}` would silently point at the wrong URLs. No
+content-only translation could ever do this, and it carries most of the value.
 
 | Next.js | FastAPI |
 | --- | --- |
@@ -426,23 +427,23 @@ one thing no content-only translation could ever do, and it is most of the value
 | `NextResponse.json(x, { status: 404 })` | `JSONResponse(x, 404)` |
 | `NextResponse.redirect(u)` | `RedirectResponse(u)` |
 
-Three of those rows are worth dwelling on, because each was wrong first:
+Dwell on three of those rows, because each was wrong first:
 
-- **`NextRequest` is kept. It is not dropped.** It is Starlette's `Request` under another
+- **The tool keeps `NextRequest`.** It is Starlette's `Request` under another
   name. Dropping it and commenting out every line that read it produced a file where
-  `await request.json()`, perfectly good Python, was a comment.
-- **`context.params.id` is dropped. It is not carried.** It is the commonest line in a
-  Next.js route and it is exactly the work FastAPI already did. Carrying it opened
-  every translated handler with a line naming an object Python does not have.
-- **Nested returns are rewritten too.** An error return inside an `if` is the
-  commonest branch in a route; rewriting only the top level missed precisely those.
+  `await request.json()`, perfectly good Python, sat inside a comment.
+- **The tool drops `context.params.id`.** It is the commonest line in a Next.js route
+  and it repeats work FastAPI already did. Carrying it opened every translated handler
+  with a line naming an object Python does not have.
+- **The tool rewrites nested returns too.** An error return inside an `if` is the
+  commonest branch in a route. Rewriting only the top level missed precisely those.
 
 ### Measured against real projects
 
-The fixtures in `tests/nextjs.rs` and `tests/transpile.rs` are written by whoever
-writes the assertion. So `tests/corpus.rs` runs the same translations over two
-MIT-licensed projects vendored unmodified and pinned, `fastapi/full-stack-fastapi-template`
-and `shadcn-ui/taxonomy`; see `tests/corpus/PROVENANCE.md`. Running against them found
+Whoever writes the assertion writes the fixtures in `tests/nextjs.rs` and
+`tests/transpile.rs`. So `tests/corpus.rs` runs the same translations over two
+MIT-licensed projects, vendored unmodified and pinned: `fastapi/full-stack-fastapi-template`
+and `shadcn-ui/taxonomy`, see `tests/corpus/PROVENANCE.md`. Running against them found
 what 1,300 fixture tests did not:
 
 | What real code had | What it produced | Now |
@@ -456,36 +457,35 @@ what 1,300 fixture tests did not:
 | `// Validate the route params.` | "not translated: comment" | `# Validate the route params.` |
 | `select(User)` in Go | the file refused outright | escaped and reported |
 
-On the hardest route in the corpus, two handlers, each a single `try`, with typed
-error branches and four response shapes, the count of constructs carried over went
+Take the hardest route in the corpus: two handlers, each a single `try`, with typed
+error branches and four response shapes. The count of constructs carried over went
 from 15 to 3. The three that remain are object destructuring, which Python has no
 counterpart for.
 
-What it refuses, with the reason: a `.tsx` file containing JSX. A React component
-renders a user interface and a FastAPI endpoint answers HTTP. There is no translation
-between them, and a file that pretended there was would be worse than no file.
+It refuses one thing, with the reason: a `.tsx` file containing JSX. A React component
+renders a user interface and a FastAPI endpoint answers HTTP. No translation joins
+them, and a file that pretended otherwise would be worse than no file.
 
-What is left foreign is your own dependencies, `db.posts.find(id)` and the helpers
-the route imported, which no translation could supply. When nothing at all is carried
-the banner says so instead of saying DRAFT, because a banner that cries draft over a
-complete file is a banner nobody reads.
+Your own dependencies stay foreign: `db.posts.find(id)` and the helpers the route
+imported, which no translation could supply. When the writer carries nothing at all,
+the banner says so rather than DRAFT. A banner that cries draft over a complete file is
+a banner nobody reads.
 
 ## What this changes about the design
 
 Three things the measurements argue for:
 
-1. **Report the file-role edge, not just the language edge.** The tool's most
-   valuable cross-file capability is invisible in a language-based summary. `fr stats`
-   should say "627 template→values references", because that is the number that tells
-   you the chart is wired up.
+1. **Report the file-role edge alongside the language edge.** A language-based summary
+   hides the tool's most valuable cross-file capability. `fr stats` should say
+   "627 template→values references", the number that tells you the chart is wired up.
 
 2. **Cross-language edges should be `Exact` only where a path is written down.** The
    CSS-module import names a file. The `class` attribute names a class in a stylesheet
-   the page includes. Everything reached by a bare string, an env var, an element id
-   from code, a flag in a shell script, is `NameOnly` and must be reported rather
-   than rewritten. The four false crossings that started this were all cases of a
-   strong tier being handed out for a weak reason.
+   the page includes. Everything a bare string reaches stays `NameOnly` and must be
+   reported rather than rewritten. That covers an env var, an element id from code, a
+   flag in a shell script. The four false crossings that started this all handed a
+   strong tier out for a weak reason.
 
-3. **The permitted table belongs beside the languages, not inside resolution.** It is
-   a statement about how these languages refer to each other, which is knowledge about
-   the world and not about this program. It should be readable as such.
+3. **The permitted table belongs beside the languages, not inside resolution.** It
+   states how these languages refer to each other. That is knowledge about the world
+   rather than about this program, and the table should read as such.

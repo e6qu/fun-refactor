@@ -28,8 +28,8 @@ the files that contain them.
 **Byte offset.** The position of a byte from the start of a file. This project measures
 every position in bytes.
 
-**Span.** A pair of byte offsets that marks a region of a file. A symbol has a name span,
-which is the identifier alone, and a full span, which is the whole declaration.
+**Span.** A pair of byte offsets that marks a region of a file. A symbol carries two: its
+name span covers the identifier alone, and its full span covers the whole declaration.
 
 **Query.** A pattern file under `queries/<language>/facts.scm` that tells the extractor
 which nodes are definitions, references, scopes and imports. A query file holds all of the
@@ -38,10 +38,11 @@ knowledge about one language.
 **Capture.** A name that a query attaches to a matched node, such as `@definition.function`
 or `@reference.call`. The extractor reads the captures and builds facts from them.
 
-**Mask.** A copy of a source file in which some regions are replaced with other bytes of
-the same length. The parser reads the mask. Every byte offset in the tree still points at
-the original file. Two languages need a mask: Helm, because a template action is not valid
-YAML. SCSS, because the grammar cannot read an interpolation in a declaration value.
+**Mask.** A copy of a source file that replaces some regions with other bytes of the same
+length. The parser reads the mask. Every byte offset in the tree still points at the
+original file. Two languages need a mask. Helm needs one because a template action is not
+valid YAML, and SCSS because the grammar cannot read an interpolation in a declaration
+value.
 
 **Token tree.** The body of a Rust macro call, such as the arguments of `assert_eq!`.
 tree-sitter reports the tokens inside it and does not report their structure. A name inside
@@ -61,23 +62,23 @@ span. Examples: a Rust function, a CSS class, a YAML key, a Markdown heading.
 method, struct, key, selector and heading. Reference kinds are identifier, call, type,
 field and string reference.
 
-**Scope.** A region of a file in which a name is visible. Scopes nest. The innermost scope
-that declares a name is the one that a reference in that scope reads.
+**Scope.** A region of a file in which a name is visible. Scopes nest. A reference reads
+the innermost scope that declares its name.
 
 **Shadowing.** A second declaration of a name in an inner scope. The inner declaration
 hides the outer one for the region of the inner scope.
 
 **Container.** The declaration that encloses another declaration. A function inside an
-`impl` block has that type as its container, and the extractor records the type name as
+`impl` block takes that type as its container, and the extractor records the type name as
 the qualifier.
 
-**Receiver.** What a member is read from. In `holder.width(2)` the receiver is `holder`.
-In `Foo::new()` the receiver is `Foo`, and the project marks it as a path because it names
-a type or a module.
+**Receiver.** What a member access reads from. In `holder.width(2)` the receiver is
+`holder`. In `Foo::new()` the receiver is `Foo`, and the project marks it as a path
+because it names a type or a module.
 
 **Member access.** A reference written after a receiver. A member access names a field or
-a method. In Rust a call with no receiver is not a member access, because Rust has no
-implicit self.
+a method. Rust has no implicit self, so a Rust call with no receiver is not a member
+access.
 
 **Index.** The result of merging the facts from every file in a workspace. The index
 resolves references to symbols.
@@ -88,9 +89,9 @@ whole index, so it can follow a name across files.
 **Target.** The symbol that a reference resolved to. A reference with no target is
 unresolved.
 
-**Confidence.** How much the resolution can be trusted. The four values, from strongest to
-weakest, are exact, import-qualified, field-based and name-only. A refactoring rewrites a
-reference at exact or import-qualified. It reports the others and leaves them alone.
+**Confidence.** How far a reader can trust one resolution. The four values, from strongest
+to weakest, are exact, import-qualified, field-based and name-only. A refactoring rewrites
+a reference at exact or import-qualified. It reports the others and leaves them alone.
 
 **Fact gap.** A reason that the facts for one file are incomplete. There are two: the
 grammar produced ERROR nodes, and a Helm template action stands where a key belongs. Every
@@ -119,7 +120,7 @@ changes code produces a plan and prints it as a diff. The change reaches disk on
 `--write`.
 
 **Plan.** The set of edits that a refactoring would apply, with the warnings that go with
-them. A plan is computed and inspected before anything is written.
+them. The tool computes the plan first, and you read it before anything is written.
 
 **Edit.** One replacement of a span with new text, with the reason recorded beside it.
 
@@ -141,9 +142,9 @@ followed by `fr inline`. A failed inverse is evidence of a defect in one of the 
 **Provenance.** The chain of sources that supply one configuration value, with the winner
 marked. `fr flow` answers the same question for imperative code.
 
-**Competition.** The set of sources that could supply one value. A competition is decided
-when the workspace shows which source wins, and undecided when a channel outside the
-workspace could change the answer.
+**Competition.** The set of sources that could supply one value. The workspace decides a
+competition when it shows which source wins. A channel outside the workspace that could
+change the answer leaves the competition undecided.
 
 **Precedence.** The rule that orders competing sources, such as the order of Helm values
 files or the CSS cascade.
@@ -154,17 +155,17 @@ files or the CSS cascade.
 
 **Feature.** A cargo build flag that includes or excludes part of the crate. The `cli`
 feature adds the terminal program. The `wasm` feature builds the browser library. Code
-under one feature is invisible to a build without it, so both are checked.
+under one feature is invisible to a build without it, so the project checks both builds.
 
 **Fact cache.** A store of extracted facts on disk, keyed by the bytes of a file. The key
-also includes a fingerprint of the sources that decide what a fact means. So an entry
-written by an older extractor is never read by a newer one.
+also includes a fingerprint of the sources that decide what a fact means. A newer
+extractor therefore never reads an entry that an older extractor wrote.
 
 **Corpus.** A real repository used as test input, such as `twbs/bootstrap` for SCSS or
 `bitnami/charts` for Helm. A corpus measures what a change is worth.
 
 **Sweep.** A run of one command over every candidate in a repository, with the results
-counted. A sweep finds defects that a single example does not.
+counted. A sweep finds the defects that one example misses.
 
 **Compile gate.** A test that applies a refactoring to a copy of a workspace and then
 runs the real compiler on the result. A plan that parses but does not compile fails the
@@ -182,8 +183,8 @@ run, because a skipped check reads the same as a passed one.
 "organise imports". `fr capabilities` lists them.
 
 **Capability matrix.** The table of every capability against every language. A cell holds
-either a mark for supported or `n/a` with the reason. Each cell is computed from the
-predicate the command itself asks, so the table and the command cannot disagree.
+either a mark for supported or `n/a` with the reason. Each cell comes from the predicate
+that the command itself asks, so the table and the command cannot disagree.
 
 **Cascade.** The repeated rounds that `fr remove-flag` runs. Round one replaces the flag
 with its value. Later rounds collapse conditionals that are now constant and delete what
@@ -199,5 +200,6 @@ every construct that did not carry across.
 the same library as the terminal program, compiled to WebAssembly.
 
 **Budget file.** A file that holds a count that may only go down, such as
-`tools/PROSE-DEBT`. A check fails when the count rises above the number, and fails again
-when the count falls below it until the number is lowered. Both directions are recorded.
+`tools/PROSE-DEBT`. A check fails when the count rises above the number. It fails again
+when the count falls below the number, until someone lowers the number. The check records
+both directions.
