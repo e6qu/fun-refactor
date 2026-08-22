@@ -275,10 +275,11 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 .map_err(said),
             None => return Outcome::NotDriven,
         },
-        Capability::EntryPoints => {
-            let _ = analysis::entrypoints::Entrypoints::detect(&f.index);
-            Ok(())
-        }
+        // Detection returns a `Result`, and dropping it here reported success for a language
+        // whose detection had failed.
+        Capability::EntryPoints => analysis::entrypoints::Entrypoints::detect(&f.index)
+            .map(|_| ())
+            .map_err(said),
         Capability::ExtractVariable => match f.a_span() {
             Some(span) => refactor::extract::variable(&f.index, &f.file, span, "lifted", false)
                 .map(|_| ())
@@ -353,9 +354,16 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
         Capability::Duplicates => analysis::duplicates::find_in(&f.index, &f.root)
             .map(|_| ())
             .map_err(said),
+        // A fixture this small may honestly have nothing unused, so the count proves nothing.
+        // What every answer owes is that each symbol it names exists. Dropping the list let a
+        // reply of invented ids pass.
         Capability::DeadCode => match analysis::entrypoints::Entrypoints::detect(&f.index) {
             Ok(entrypoints) => {
-                let _ = refactor::delete::find_unused(&f.index, &entrypoints);
+                let unused = refactor::delete::find_unused(&f.index, &entrypoints);
+                assert!(
+                    unused.iter().all(|id| f.index.symbol(*id).is_some()),
+                    "{language:?}: the unused list names a symbol the index does not hold"
+                );
                 Ok(())
             }
             Err(e) => Err(said(e)),

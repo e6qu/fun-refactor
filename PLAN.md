@@ -1961,7 +1961,14 @@ files agree.
 
 The audit that followed found no invented feature behind the CLI.
 `restructure`, `flow`, `duplicates` and `impact` all do what the matrix
-says, on real files, including the config languages. It did find two
+says, on real files, including the config languages. It did find four
 capability drivers that could not fail. One passed a pattern chosen to
-match nothing, and both dropped the result they were given. They read
-their results now.
+match nothing, one swallowed a `Result`, and all four dropped the answer
+they were given. Each one reads its answer now.
+
+The probes themselves are worth recording, since they are the evidence
+that nothing behind the CLI is invented. `restructure` rewrote a Python
+accumulator, and `flow back` traced a YAML port to its literal.
+`duplicates` found two identical CSS rules, then declined the same pair
+under `--exact`. `rename` left the disk alone without `--write`, and
+rewrote both the definition and the call site with it.

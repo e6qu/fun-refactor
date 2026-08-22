@@ -195,12 +195,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   the two sides carry different names. The generator asserts that each
   diff has both signs, which is the check the old pane would have failed.
 
-- [x] B728: **two capability drivers could not fail.** The coverage test
-  says a cell nothing drives is a claim nothing checks. Its restructure
-  driver passed a pattern chosen to match nothing and dropped the
-  result, and its call-graph driver dropped the graph. Both now read
-  what came back. The empty pattern must produce no edits, and a graph
-  over a fixture whose `caller` calls `width` must have an edge.
+- [x] B728: **four capability drivers could not fail.** The coverage test
+  says a cell nothing drives is a claim nothing checks. Four of its
+  drivers read nothing back. The restructure driver passed a pattern
+  chosen to match nothing and dropped the plan. The call-graph driver
+  dropped the graph, so an empty one passed. The entry-point driver
+  dropped a `Result`, so a language whose detection had failed reported
+  success. The dead-code driver dropped the list of unused symbols. Each
+  one reads its answer now. The pattern that matches nothing must
+  produce no edits. A graph over a fixture whose `caller` calls `width`
+  must have an edge. Detection must succeed, and the unused list must
+  name only symbols the index holds.
 
 - [x] B726: **the project wrote one way and its tutorial wrote another.**
   The type-safety page had learned to put a doer in every subject. It
